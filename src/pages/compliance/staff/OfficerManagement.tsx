@@ -8,8 +8,25 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, UserCheck, Plus, Pencil, Power } from "lucide-react";
+import { Loader2, UserCheck, Plus, Pencil, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
+import { OfficerStatusChangeWizard } from "@/components/compliance/staff/OfficerStatusChangeWizard";
+
+type OfficerStatus = "ACTIVE" | "ON_LEAVE" | "TRANSFERRED" | "SUSPENDED" | "RESIGNED" | "INACTIVE";
+
+const STATUS_BADGE_COLORS: Record<string, string> = {
+  ACTIVE: "bg-primary/10 text-primary border-primary/20",
+  ON_LEAVE: "bg-accent/30 text-accent-foreground border-accent/20",
+  TRANSFERRED: "bg-secondary/10 text-secondary border-secondary/20",
+  SUSPENDED: "bg-destructive/10 text-destructive border-destructive/20",
+  RESIGNED: "bg-destructive/10 text-destructive border-destructive/20",
+  INACTIVE: "bg-muted text-muted-foreground",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  ACTIVE: "Active", ON_LEAVE: "On Leave", TRANSFERRED: "Transferred",
+  SUSPENDED: "Suspended", RESIGNED: "Resigned", INACTIVE: "Inactive",
+};
 
 interface OfficerRow {
   id: string;
@@ -25,6 +42,7 @@ interface OfficerRow {
   can_handle_review: boolean;
   can_handle_legal: boolean;
   office_code: string | null;
+  status: OfficerStatus;
   is_active: boolean;
   supervisor_name?: string;
   zone_name?: string;
@@ -34,7 +52,6 @@ interface ProfileOption { id: string; full_name: string | null; email: string | 
 interface ZoneOption { id: string; zone_name: string; zone_code: string; }
 interface LegacyInspector { code: string; insp_name: string | null; }
 
-// Non-person codes to exclude
 const EXCLUDED_LEGACY_CODES = ["00", "OSC", "UNK"];
 
 export default function OfficerManagement() {
@@ -48,10 +65,14 @@ export default function OfficerManagement() {
   const [form, setForm] = useState({
     profile_id: "", inspector_code: "", legacy_inspector_code: "",
     max_caseload: "50", supervisor_id: "", primary_zone_id: "",
-    office_code: "", can_handle_review: false, can_handle_legal: false, is_active: true,
+    office_code: "", can_handle_review: false, can_handle_legal: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+
+  // Status change wizard
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardOfficer, setWizardOfficer] = useState<OfficerRow | null>(null);
 
   const fetchOfficers = useCallback(async () => {
     setLoading(true);
@@ -73,6 +94,7 @@ export default function OfficerManagement() {
       const profile = o.profile_id ? profileMap[o.profile_id] : null;
       return {
         ...o,
+        status: o.status || "ACTIVE",
         display_name: profile?.full_name || o.inspector_code || o.legacy_inspector_code || o.id.slice(0, 12),
         email: profile?.email || null,
         zone_name: o.primary_zone_id ? zoneMap[o.primary_zone_id]?.zone_name : null,
@@ -93,14 +115,12 @@ export default function OfficerManagement() {
 
   const linkedProfileIds = new Set(officers.filter(o => o.profile_id && o.id !== editing?.id).map(o => o.profile_id));
   const availableProfiles = profileOptions.filter(p => !linkedProfileIds.has(p.id));
-
-  // Legacy codes already used by other officers (exclude current editing)
   const usedLegacyCodes = new Set(officers.filter(o => o.legacy_inspector_code && o.id !== editing?.id).map(o => o.legacy_inspector_code));
   const availableLegacyCodes = legacyInspectors.filter(l => !usedLegacyCodes.has(l.code));
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ profile_id: "", inspector_code: "", legacy_inspector_code: "", max_caseload: "50", supervisor_id: "", primary_zone_id: "", office_code: "", can_handle_review: false, can_handle_legal: false, is_active: true });
+    setForm({ profile_id: "", inspector_code: "", legacy_inspector_code: "", max_caseload: "50", supervisor_id: "", primary_zone_id: "", office_code: "", can_handle_review: false, can_handle_legal: false });
     setErrors({}); setDialogOpen(true);
   };
 
@@ -116,9 +136,13 @@ export default function OfficerManagement() {
       office_code: o.office_code || "",
       can_handle_review: o.can_handle_review,
       can_handle_legal: o.can_handle_legal,
-      is_active: o.is_active,
     });
     setErrors({}); setDialogOpen(true);
+  };
+
+  const openStatusChange = (o: OfficerRow) => {
+    setWizardOfficer(o);
+    setWizardOpen(true);
   };
 
   const validate = (): boolean => {
@@ -145,7 +169,6 @@ export default function OfficerManagement() {
       office_code: form.office_code?.trim() || null,
       can_handle_review: form.can_handle_review,
       can_handle_legal: form.can_handle_legal,
-      is_active: form.is_active,
     };
     if (editing) {
       const { error } = await supabase.from("ce_inspectors").update(payload).eq("id", editing.id);
@@ -159,14 +182,7 @@ export default function OfficerManagement() {
     setSaving(false); setDialogOpen(false); fetchOfficers();
   };
 
-  const toggleActive = async (o: OfficerRow) => {
-    const { error } = await supabase.from("ce_inspectors").update({ is_active: !o.is_active }).eq("id", o.id);
-    if (error) { toast.error("Failed: " + error.message); return; }
-    toast.success(o.is_active ? "Officer deactivated" : "Officer activated");
-    fetchOfficers();
-  };
-
-  const supervisorOptions = officers.filter(o => o.is_active && o.id !== editing?.id);
+  const supervisorOptions = officers.filter(o => o.status === "ACTIVE" && o.id !== editing?.id);
 
   return (
     <div className="space-y-6 p-6">
@@ -187,7 +203,7 @@ export default function OfficerManagement() {
             <div className="text-center py-12 text-muted-foreground">
               <UserCheck className="h-10 w-10 mx-auto mb-3 opacity-40" />
               <p className="font-medium">No officers linked yet</p>
-              <p className="text-sm mt-1">Click "Link Officer" to connect a system user to the compliance module, or use the Legacy Inspector Linking tool for bulk migration.</p>
+              <p className="text-sm mt-1">Click "Link Officer" to connect a system user to the compliance module.</p>
             </div>
           ) : (
             <Table>
@@ -224,10 +240,14 @@ export default function OfficerManagement() {
                       {o.can_handle_review && <Badge variant="secondary" className="text-xs">REV</Badge>}
                       {o.can_handle_legal && <Badge variant="secondary" className="text-xs">LEG</Badge>}
                     </TableCell>
-                    <TableCell><Badge variant={o.is_active ? "default" : "secondary"}>{o.is_active ? "Active" : "Inactive"}</Badge></TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={`font-medium ${STATUS_BADGE_COLORS[o.status] || "bg-muted text-muted-foreground"}`}>
+                        {STATUS_LABELS[o.status] || o.status}
+                      </Badge>
+                    </TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(o)}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={() => toggleActive(o)}><Power className={`h-4 w-4 ${o.is_active ? "text-destructive" : "text-green-600"}`} /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(o)} title="Edit"><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => openStatusChange(o)} title="Change Status"><ArrowRightLeft className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -237,6 +257,7 @@ export default function OfficerManagement() {
         </CardContent>
       </Card>
 
+      {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editing ? "Edit Officer" : "Link Officer to Compliance"}</DialogTitle></DialogHeader>
@@ -268,7 +289,6 @@ export default function OfficerManagement() {
                     {availableLegacyCodes.map(l => (
                       <SelectItem key={l.code} value={l.code}>{l.code} — {l.insp_name || "Unknown"}</SelectItem>
                     ))}
-                    {/* Show current value even if already used (it's this record's own) */}
                     {editing?.legacy_inspector_code && !availableLegacyCodes.find(l => l.code === editing.legacy_inspector_code) && (
                       <SelectItem value={editing.legacy_inspector_code}>
                         {editing.legacy_inspector_code} — {editing.legacy_inspector_name || "Unknown"} (current)
@@ -312,10 +332,6 @@ export default function OfficerManagement() {
             </div>
             <div className="flex items-center gap-6 flex-wrap">
               <div className="flex items-center gap-2">
-                <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} id="off-active" />
-                <Label htmlFor="off-active">Active</Label>
-              </div>
-              <div className="flex items-center gap-2">
                 <input type="checkbox" checked={form.can_handle_review} onChange={e => setForm(f => ({ ...f, can_handle_review: e.target.checked }))} id="off-review" />
                 <Label htmlFor="off-review">Can Handle Review</Label>
               </div>
@@ -331,6 +347,18 @@ export default function OfficerManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Status Change Wizard */}
+      {wizardOfficer && (
+        <OfficerStatusChangeWizard
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+          officer={wizardOfficer}
+          officers={officers}
+          zones={zoneOptions}
+          onComplete={fetchOfficers}
+        />
+      )}
     </div>
   );
 }

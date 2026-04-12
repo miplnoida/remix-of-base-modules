@@ -11903,6 +11903,60 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_inspector_status_history: {
+        Row: {
+          changed_by: string
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          inspector_id: string
+          new_status: string
+          previous_status: string
+          reason: string | null
+          violations_reassigned_count: number | null
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          inspector_id: string
+          new_status: string
+          previous_status: string
+          reason?: string | null
+          violations_reassigned_count?: number | null
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          inspector_id?: string
+          new_status?: string
+          previous_status?: string
+          reason?: string | null
+          violations_reassigned_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_inspector_status_history_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["inspector_id"]
+          },
+          {
+            foreignKeyName: "ce_inspector_status_history_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_inspectors: {
         Row: {
           can_handle_legal: boolean
@@ -11916,7 +11970,14 @@ export type Database = {
           office_code: string | null
           primary_zone_id: string | null
           profile_id: string | null
+          status: string
+          status_change_reason: string | null
+          status_changed_by: string | null
+          status_effective_from: string | null
+          status_effective_to: string | null
           supervisor_id: string | null
+          transferred_from_zone_id: string | null
+          transferred_to_zone_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -11931,7 +11992,14 @@ export type Database = {
           office_code?: string | null
           primary_zone_id?: string | null
           profile_id?: string | null
+          status?: string
+          status_change_reason?: string | null
+          status_changed_by?: string | null
+          status_effective_from?: string | null
+          status_effective_to?: string | null
           supervisor_id?: string | null
+          transferred_from_zone_id?: string | null
+          transferred_to_zone_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -11946,7 +12014,14 @@ export type Database = {
           office_code?: string | null
           primary_zone_id?: string | null
           profile_id?: string | null
+          status?: string
+          status_change_reason?: string | null
+          status_changed_by?: string | null
+          status_effective_from?: string | null
+          status_effective_to?: string | null
           supervisor_id?: string | null
+          transferred_from_zone_id?: string | null
+          transferred_to_zone_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -11956,6 +12031,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_zones"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspectors_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "ce_inspectors_profile_id_fkey"
@@ -11976,6 +12058,20 @@ export type Database = {
             columns: ["supervisor_id"]
             isOneToOne: false
             referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspectors_transferred_from_zone_id_fkey"
+            columns: ["transferred_from_zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspectors_transferred_to_zone_id_fkey"
+            columns: ["transferred_to_zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -13813,6 +13909,8 @@ export type Database = {
           id: string
           is_current: boolean | null
           notes: string | null
+          reassigned_from_inspector_id: string | null
+          reassignment_reason: string | null
           resolution_method: string | null
           routing_rule_id: string | null
           superseded_at: string | null
@@ -13829,6 +13927,8 @@ export type Database = {
           id?: string
           is_current?: boolean | null
           notes?: string | null
+          reassigned_from_inspector_id?: string | null
+          reassignment_reason?: string | null
           resolution_method?: string | null
           routing_rule_id?: string | null
           superseded_at?: string | null
@@ -13845,6 +13945,8 @@ export type Database = {
           id?: string
           is_current?: boolean | null
           notes?: string | null
+          reassigned_from_inspector_id?: string | null
+          reassignment_reason?: string | null
           resolution_method?: string | null
           routing_rule_id?: string | null
           superseded_at?: string | null
@@ -13871,6 +13973,20 @@ export type Database = {
             columns: ["assigned_to_queue_id"]
             isOneToOne: false
             referencedRelation: "ce_assignment_queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violation_assignments_reassigned_from_inspector_id_fkey"
+            columns: ["reassigned_from_inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["inspector_id"]
+          },
+          {
+            foreignKeyName: "ce_violation_assignments_reassigned_from_inspector_id_fkey"
+            columns: ["reassigned_from_inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspectors"
             referencedColumns: ["id"]
           },
           {
@@ -30869,6 +30985,13 @@ export type Database = {
             foreignKeyName: "legal_admin_audit_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "legal_admin_audit_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -31034,6 +31157,13 @@ export type Database = {
           usage_count?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "legal_code_sets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "legal_code_sets_created_by_fkey"
             columns: ["created_by"]
@@ -31330,6 +31460,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "legal_integrations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "legal_integrations_created_by_fkey"
             columns: ["created_by"]
@@ -31634,6 +31771,13 @@ export type Database = {
             foreignKeyName: "legal_sla_rules_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "legal_sla_rules_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -31782,6 +31926,13 @@ export type Database = {
             foreignKeyName: "legal_templates_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "legal_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -31791,6 +31942,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "legal_templates"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_templates_published_by_fkey"
+            columns: ["published_by"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "legal_templates_published_by_fkey"
@@ -34085,6 +34243,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tb_office"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "profiles_reporting_to_user_id_fkey"
+            columns: ["reporting_to_user_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "profiles_reporting_to_user_id_fkey"
@@ -40931,6 +41096,13 @@ export type Database = {
             foreignKeyName: "workflow_definitions_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workflow_definitions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -41092,6 +41264,13 @@ export type Database = {
             foreignKeyName: "workflow_instances_started_by_fkey"
             columns: ["started_by"]
             isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workflow_instances_started_by_fkey"
+            columns: ["started_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -41161,6 +41340,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workflow_steps"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
           },
           {
             foreignKeyName: "workflow_logs_user_id_fkey"
@@ -41716,6 +41902,13 @@ export type Database = {
             foreignKeyName: "workflow_tasks_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workflow_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -41767,6 +41960,13 @@ export type Database = {
           workflow_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workflow_triggers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "workflow_triggers_created_by_fkey"
             columns: ["created_by"]
@@ -41966,31 +42166,31 @@ export type Database = {
         Row: {
           can_handle_legal: boolean | null
           can_handle_review: boolean | null
-          created_at: string | null
           designation_id: string | null
           designation_name: string | null
           email: string | null
           first_name: string | null
-          full_name: string | null
           inspector_code: string | null
           inspector_id: string | null
-          inspector_office_code: string | null
           is_active: boolean | null
           last_name: string | null
           legacy_inspector_code: string | null
           legacy_inspector_name: string | null
           max_caseload: number | null
-          phone: string | null
+          office_code: string | null
           primary_zone_id: string | null
+          primary_zone_name: string | null
           profile_id: string | null
-          profile_office_code: string | null
-          reporting_to_user_id: string | null
+          status: string | null
+          status_effective_from: string | null
+          status_effective_to: string | null
+          supervisor_code: string | null
+          supervisor_first_name: string | null
           supervisor_id: string | null
-          supervisor_name: string | null
-          updated_at: string | null
+          supervisor_last_name: string | null
+          transferred_from_zone_id: string | null
+          transferred_to_zone_id: string | null
           user_code: string | null
-          zone_code: string | null
-          zone_name: string | null
         }
         Relationships: [
           {
@@ -41998,13 +42198,6 @@ export type Database = {
             columns: ["primary_zone_id"]
             isOneToOne: false
             referencedRelation: "ce_zones"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ce_inspectors_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -42022,24 +42215,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ce_inspectors_transferred_from_zone_id_fkey"
+            columns: ["transferred_from_zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspectors_transferred_to_zone_id_fkey"
+            columns: ["transferred_to_zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "profiles_designation_id_fkey"
             columns: ["designation_id"]
             isOneToOne: false
             referencedRelation: "tb_designations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_office_code_fkey"
-            columns: ["profile_office_code"]
-            isOneToOne: false
-            referencedRelation: "tb_office"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "profiles_reporting_to_user_id_fkey"
-            columns: ["reporting_to_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
