@@ -25,6 +25,7 @@ import { WorkflowActionButtonsCompact } from '@/components/workflow/WorkflowActi
 import { useAuth } from '@/contexts/AuthContext';
 import { useTablePagination } from '@/hooks/useTablePagination';
 import { TablePagination } from '@/components/shared/TablePagination';
+import { useAutoAttachEmployerWorkflow } from '@/hooks/useAutoAttachEmployerWorkflow';
 
 interface Filters {
   regno: string;
@@ -49,6 +50,9 @@ export default function EmployerRegistrationList() {
   } = useEmployerList();
 
   const { submitERRegistration, isSubmitting } = useEmployerRegistrationSubmit();
+
+  // Auto-attach workflow to pending employers missing one
+  useAutoAttachEmployerWorkflow(employers, user?.id, refetch, activeTab === 'pending');
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
