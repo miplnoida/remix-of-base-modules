@@ -172,6 +172,7 @@ const JobConfiguration = () => {
   const [detailJob, setDetailJob] = useState<AutomationJob | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [confirmActivation, setConfirmActivation] = useState<{ job: AutomationJob; enable: boolean } | null>(null);
+  const [runningJobCode, setRunningJobCode] = useState<string | null>(null);
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ['ce_automation_jobs'],
