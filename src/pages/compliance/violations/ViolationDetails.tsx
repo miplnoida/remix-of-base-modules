@@ -80,7 +80,7 @@ export default function ViolationDetails() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('ce_violation_assignments')
-        .select('*, ce_assignment_queues(queue_code, queue_name, queue_type), ce_inspectors(name, inspector_code)')
+        .select('*, ce_assignment_queues(queue_code, queue_name, queue_type), ce_inspectors(inspector_code)')
         .eq('violation_id', id!)
         .order('assigned_at', { ascending: false });
       if (error) return [];
