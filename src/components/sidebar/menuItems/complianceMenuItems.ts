@@ -207,6 +207,13 @@ export const complianceMenuItems = [
             icon: Network,
             requiresPermission: "manage_compliance",
             description: "Inspector-to-supervisor reporting structure"
+          },
+          {
+            title: "Link Legacy Inspectors",
+            url: "/compliance/staff/link-legacy",
+            icon: UserCheck,
+            requiresPermission: "manage_compliance",
+            description: "Map legacy inspector records to system profiles"
           }
         ]
       },

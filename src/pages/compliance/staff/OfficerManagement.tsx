@@ -18,6 +18,7 @@ interface OfficerRow {
   email: string | null;
   inspector_code: string | null;
   legacy_inspector_code: string | null;
+  legacy_inspector_name: string | null;
   supervisor_id: string | null;
   primary_zone_id: string | null;
   max_caseload: number | null;
@@ -31,11 +32,16 @@ interface OfficerRow {
 
 interface ProfileOption { id: string; full_name: string | null; email: string | null; }
 interface ZoneOption { id: string; zone_name: string; zone_code: string; }
+interface LegacyInspector { code: string; insp_name: string | null; }
+
+// Non-person codes to exclude
+const EXCLUDED_LEGACY_CODES = ["00", "OSC", "UNK"];
 
 export default function OfficerManagement() {
   const [officers, setOfficers] = useState<OfficerRow[]>([]);
   const [profileOptions, setProfileOptions] = useState<ProfileOption[]>([]);
   const [zoneOptions, setZoneOptions] = useState<ZoneOption[]>([]);
+  const [legacyInspectors, setLegacyInspectors] = useState<LegacyInspector[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<OfficerRow | null>(null);
@@ -49,16 +55,19 @@ export default function OfficerManagement() {
 
   const fetchOfficers = useCallback(async () => {
     setLoading(true);
-    const [{ data: inspData }, { data: profiles }, { data: zones }] = await Promise.all([
+    const [{ data: inspData }, { data: profiles }, { data: zones }, { data: legacyData }] = await Promise.all([
       supabase.from("ce_inspectors").select("*"),
       supabase.from("profiles").select("id, full_name, email"),
       supabase.from("ce_zones").select("id, zone_name, zone_code").eq("is_active", true),
+      supabase.from("tb_inspector").select("code, insp_name").order("code"),
     ]);
     setProfileOptions(profiles || []);
     setZoneOptions(zones || []);
+    setLegacyInspectors((legacyData || []).filter(l => !EXCLUDED_LEGACY_CODES.includes(l.code)));
 
     const profileMap = Object.fromEntries((profiles || []).map(p => [p.id, p]));
     const zoneMap = Object.fromEntries((zones || []).map(z => [z.id, z]));
+    const legacyMap = Object.fromEntries((legacyData || []).map(l => [l.code, l.insp_name]));
 
     const allOfficers: OfficerRow[] = (inspData || []).map((o: any) => {
       const profile = o.profile_id ? profileMap[o.profile_id] : null;
@@ -67,10 +76,10 @@ export default function OfficerManagement() {
         display_name: profile?.full_name || o.inspector_code || o.legacy_inspector_code || o.id.slice(0, 12),
         email: profile?.email || null,
         zone_name: o.primary_zone_id ? zoneMap[o.primary_zone_id]?.zone_name : null,
+        legacy_inspector_name: o.legacy_inspector_code ? legacyMap[o.legacy_inspector_code] || null : null,
       };
     });
 
-    // Resolve supervisor names
     const officerMap = Object.fromEntries(allOfficers.map(o => [o.id, o]));
     allOfficers.forEach(o => {
       o.supervisor_name = o.supervisor_id ? officerMap[o.supervisor_id]?.display_name || "—" : "—";
@@ -82,9 +91,12 @@ export default function OfficerManagement() {
 
   useEffect(() => { fetchOfficers(); }, [fetchOfficers]);
 
-  // Filter out profiles already linked to an inspector (except current editing)
   const linkedProfileIds = new Set(officers.filter(o => o.profile_id && o.id !== editing?.id).map(o => o.profile_id));
   const availableProfiles = profileOptions.filter(p => !linkedProfileIds.has(p.id));
+
+  // Legacy codes already used by other officers (exclude current editing)
+  const usedLegacyCodes = new Set(officers.filter(o => o.legacy_inspector_code && o.id !== editing?.id).map(o => o.legacy_inspector_code));
+  const availableLegacyCodes = legacyInspectors.filter(l => !usedLegacyCodes.has(l.code));
 
   const openCreate = () => {
     setEditing(null);
@@ -126,7 +138,7 @@ export default function OfficerManagement() {
     const payload: any = {
       profile_id: form.profile_id,
       inspector_code: form.inspector_code?.trim() || null,
-      legacy_inspector_code: form.legacy_inspector_code?.trim() || null,
+      legacy_inspector_code: form.legacy_inspector_code || null,
       max_caseload: parseInt(form.max_caseload) || 50,
       supervisor_id: form.supervisor_id || null,
       primary_zone_id: form.primary_zone_id || null,
@@ -171,13 +183,19 @@ export default function OfficerManagement() {
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          ) : officers.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <UserCheck className="h-10 w-10 mx-auto mb-3 opacity-40" />
+              <p className="font-medium">No officers linked yet</p>
+              <p className="text-sm mt-1">Click "Link Officer" to connect a system user to the compliance module, or use the Legacy Inspector Linking tool for bulk migration.</p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Inspector Code</TableHead>
-                  <TableHead>Legacy Code</TableHead>
+                  <TableHead>Legacy Inspector</TableHead>
                   <TableHead>Zone</TableHead>
                   <TableHead>Supervisor</TableHead>
                   <TableHead>Caseload</TableHead>
@@ -191,7 +209,14 @@ export default function OfficerManagement() {
                   <TableRow key={o.id}>
                     <TableCell className="font-medium">{o.display_name}</TableCell>
                     <TableCell className="font-mono text-sm">{o.inspector_code || "—"}</TableCell>
-                    <TableCell className="font-mono text-sm">{o.legacy_inspector_code || "—"}</TableCell>
+                    <TableCell>
+                      {o.legacy_inspector_code ? (
+                        <span className="text-sm">
+                          <span className="font-mono">{o.legacy_inspector_code}</span>
+                          {o.legacy_inspector_name && <span className="text-muted-foreground ml-1">— {o.legacy_inspector_name}</span>}
+                        </span>
+                      ) : "—"}
+                    </TableCell>
                     <TableCell>{o.zone_name || "—"}</TableCell>
                     <TableCell>{o.supervisor_name}</TableCell>
                     <TableCell>{o.max_caseload || "—"}</TableCell>
@@ -235,8 +260,22 @@ export default function OfficerManagement() {
                 {errors.inspector_code && <p className="text-xs text-destructive mt-1">{errors.inspector_code}</p>}
               </div>
               <div>
-                <Label>Legacy Code</Label>
-                <Input value={form.legacy_inspector_code} onChange={e => setForm(f => ({ ...f, legacy_inspector_code: e.target.value }))} maxLength={20} />
+                <Label>Legacy Inspector</Label>
+                <Select value={form.legacy_inspector_code || "none"} onValueChange={v => setForm(f => ({ ...f, legacy_inspector_code: v === "none" ? "" : v }))}>
+                  <SelectTrigger><SelectValue placeholder="— None —" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— None —</SelectItem>
+                    {availableLegacyCodes.map(l => (
+                      <SelectItem key={l.code} value={l.code}>{l.code} — {l.insp_name || "Unknown"}</SelectItem>
+                    ))}
+                    {/* Show current value even if already used (it's this record's own) */}
+                    {editing?.legacy_inspector_code && !availableLegacyCodes.find(l => l.code === editing.legacy_inspector_code) && (
+                      <SelectItem value={editing.legacy_inspector_code}>
+                        {editing.legacy_inspector_code} — {editing.legacy_inspector_name || "Unknown"} (current)
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -271,7 +310,7 @@ export default function OfficerManagement() {
                 <Input type="number" value={form.max_caseload} onChange={e => setForm(f => ({ ...f, max_caseload: e.target.value }))} min={1} max={9999} />
               </div>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-6 flex-wrap">
               <div className="flex items-center gap-2">
                 <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} id="off-active" />
                 <Label htmlFor="off-active">Active</Label>

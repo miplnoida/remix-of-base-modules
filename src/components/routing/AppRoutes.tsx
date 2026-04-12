@@ -99,6 +99,7 @@ import VillageZoneMapping from '@/pages/compliance/geography/VillageZoneMapping'
 import OfficerManagement from '@/pages/compliance/staff/OfficerManagement';
 import QueueMembers from '@/pages/compliance/staff/QueueMembers';
 import SupervisorHierarchy from '@/pages/compliance/staff/SupervisorHierarchy';
+import LegacyInspectorLinking from '@/pages/compliance/staff/LegacyInspectorLinking';
 import AssignmentRoutingRules from '@/pages/compliance/settings/AssignmentRoutingRules';
 
 import LevySchemesList from '@/pages/c3/settings/levy/LevySchemesList';
@@ -1015,6 +1016,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/staff/officers" element={<ProtectedLayout><OfficerManagement /></ProtectedLayout>} />
       <Route path="/compliance/staff/queue-members" element={<ProtectedLayout><QueueMembers /></ProtectedLayout>} />
       <Route path="/compliance/staff/supervisors" element={<ProtectedLayout><SupervisorHierarchy /></ProtectedLayout>} />
+      <Route path="/compliance/staff/link-legacy" element={<ProtectedLayout><LegacyInspectorLinking /></ProtectedLayout>} />
 
       {/* Audit Module Routes — Simplified Department Function Audit */}
       <Route path="/audit/dashboard" element={<ProtectedLayout><AuditDashboard /></ProtectedLayout>} />
