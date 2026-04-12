@@ -70,9 +70,9 @@ export function useRunComplianceJob() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ jobCode, dryRun }: { jobCode: string; dryRun: boolean }) => {
+    mutationFn: async ({ jobCode, dryRun, force }: { jobCode: string; dryRun: boolean; force?: boolean }) => {
       const { data, error } = await supabase.functions.invoke('run-compliance-job', {
-        body: { job_code: jobCode, dry_run: dryRun },
+        body: { job_code: jobCode, dry_run: dryRun, force: force ?? false },
       });
       if (error) throw error;
       return data;
@@ -80,10 +80,23 @@ export function useRunComplianceJob() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['ce_employer_compliance_jobs'] });
       queryClient.invalidateQueries({ queryKey: ['ce_job_runs'] });
-      const label = variables.dryRun ? 'Dry run' : 'Job';
-      toast.success(`${label} completed`, {
-        description: `Processed: ${data?.result?.processed ?? 0}, Affected: ${data?.result?.affected ?? 0}`,
-      });
+
+      const scan = data?.scan_details;
+      if (scan) {
+        const isDry = scan.dry_run ?? variables.dryRun;
+        const label = isDry ? '🔍 Dry Run Complete' : '✅ Job Completed';
+        const desc = isDry
+          ? `Scanned ${scan.total_employers_scanned} employers. Would create ${(scan.violations_detected || 0) - (scan.violations_skipped_dedupe || 0)} violations. No data changed.`
+          : `Scanned ${scan.total_employers_scanned} employers. Created ${scan.violations_created} violations.`;
+        toast.success(label, { description: desc, duration: 8000 });
+      } else if (data?.already_completed) {
+        toast.info('Already completed for today', { description: 'Use force re-run if needed.' });
+      } else {
+        const label = variables.dryRun ? 'Dry run' : 'Job';
+        toast.success(`${label} completed`, {
+          description: `Processed: ${data?.result?.processed ?? 0}, Affected: ${data?.result?.affected ?? 0}`,
+        });
+      }
     },
     onError: (error: any) => {
       toast.error('Job execution failed', { description: error.message });
