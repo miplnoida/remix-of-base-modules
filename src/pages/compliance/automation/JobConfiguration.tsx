@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { formatAuditDateTime } from '@/lib/dateFormat';
+import { cronToHumanText } from '@/lib/cronUtils';
 import { JobEditModal } from '@/components/compliance/automation/JobEditModal';
 import { AddCustomJobDialog, CustomJobPayload } from '@/components/compliance/automation/AddCustomJobDialog';
 import { ActivationConfirmDialog } from '@/components/compliance/automation/ActivationConfirmDialog';
@@ -347,9 +348,10 @@ const JobConfiguration = () => {
                   <StatusIcon status={job.last_run_status} />
                   Last: {job.last_run_at ? formatAuditDateTime(job.last_run_at) : 'Never'}
                 </span>
-                {job.frequency && (
-                  <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{job.frequency}</span>
-                )}
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {cronToHumanText(job.schedule_cron)}
+                </span>
                 {params.depends_on?.length > 0 && (
                   <span className="flex items-center gap-1">
                     <ArrowRight className="h-3 w-3" />
