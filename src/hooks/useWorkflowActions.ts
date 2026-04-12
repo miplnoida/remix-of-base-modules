@@ -1327,5 +1327,58 @@ async function updateSourceRecordStatus(
       console.log(`BN claim ${sourceRecordId} status updated to ${newStatus}`);
     }
   }
+
+  // ── Employer Registration ──
+  else if (sourceModule === 'employers') {
+    let newStatus: string | null = null;
+
+    if (configuredResultStatus) {
+      newStatus = configuredResultStatus;
+    } else if (endState === 'Approved') {
+      newStatus = 'V';
+    } else if (endState === 'Rejected') {
+      newStatus = 'R';
+    } else if (endState === 'Query') {
+      newStatus = 'Q';
+    }
+
+    if (newStatus) {
+      const auditFields: Record<string, any> = {
+        status: newStatus,
+        date_modified: new Date().toISOString().split('T')[0],
+        modified_by: userId,
+      };
+
+      if (newStatus === 'V') {
+        auditFields.date_verified = new Date().toISOString().split('T')[0];
+        auditFields.verified_by = userId;
+      }
+
+      const { error } = await supabase
+        .from('er_master')
+        .update(auditFields)
+        .eq('regno', sourceRecordId);
+
+      if (error) {
+        console.error('Error updating er_master status:', error);
+        throw error;
+      }
+
+      console.log(`Employer ${sourceRecordId} status updated to ${newStatus}`);
+
+      // Audit trail
+      try {
+        await supabase.from('system_audit_trail').insert({
+          action: 'workflow_status_change',
+          entity_type: 'er_master',
+          entity_id: sourceRecordId,
+          performed_by: userId,
+          details: { old_status: 'P', new_status: newStatus, workflow_action: endState },
+        });
+      } catch (auditErr) {
+        console.error('Audit trail insert failed (non-critical):', auditErr);
+      }
+    }
+  }
   // Add other module handlers as needed
 }
