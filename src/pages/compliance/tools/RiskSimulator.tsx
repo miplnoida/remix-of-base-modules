@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Play, RotateCcw, AlertTriangle, ArrowRight, TrendingUp, TrendingDown, Minus, Shield, Info, FlaskConical } from 'lucide-react';
-import { useRiskProfiles, useActiveRiskPolicy, useEmployerLiveFactors, useRiskScoreHistory } from '@/hooks/useRiskSimulatorData';
+import { useSimulatorEmployers, useActiveRiskPolicy, useEmployerLiveFactors, useRiskScoreHistory, type SimulatorEmployer } from '@/hooks/useRiskSimulatorData';
 import { runSimulation, getRecommendedAction, getBandStyle, type FactorInput, type SimulationResult } from '@/lib/compliance/riskScoringEngine';
 import { formatDateForDisplay } from '@/lib/format-config';
 
@@ -44,13 +44,13 @@ export default function RiskSimulator() {
   const [simulationResult, setSimulationResult] = useState<SimulationResult | null>(null);
   const [currentResult, setCurrentResult] = useState<SimulationResult | null>(null);
 
-  const { data: profiles = [], isLoading: profilesLoading } = useRiskProfiles();
+  const { data: employers = [], isLoading: employersLoading } = useSimulatorEmployers();
   const { data: policyData, isLoading: policyLoading } = useActiveRiskPolicy();
-  const selectedProfile = useMemo(() => profiles.find((p: any) => p.employer_id === selectedEmployerId), [profiles, selectedEmployerId]);
+  const selectedEmployer = useMemo(() => employers.find((p) => p.employer_id === selectedEmployerId), [employers, selectedEmployerId]);
   const { data: liveFactors, isLoading: liveLoading } = useEmployerLiveFactors(selectedEmployerId);
-  const { data: scoreHistory = [] } = useRiskScoreHistory(selectedProfile?.id || null);
+  const { data: scoreHistory = [] } = useRiskScoreHistory(selectedEmployer?.profile_id || null);
 
-  const isLoading = profilesLoading || policyLoading;
+  const isLoading = employersLoading || policyLoading;
   const isReady = selectedEmployerId && liveFactors && policyData?.policy;
 
   const handleSelectEmployer = useCallback((empId: string) => {
@@ -137,10 +137,11 @@ export default function RiskSimulator() {
                 <SelectTrigger>
                   <SelectValue placeholder="Choose an employer to simulate..." />
                 </SelectTrigger>
-                <SelectContent>
-                  {profiles.map((p: any) => (
-                    <SelectItem key={p.employer_id} value={p.employer_id}>
-                      {p.employer_name} ({p.employer_id}) — {p.risk_band || 'N/A'}
+                <SelectContent className="max-h-[300px]">
+                  {employers.map((emp) => (
+                    <SelectItem key={emp.employer_id} value={emp.employer_id}>
+                      {emp.employer_name} ({emp.employer_id})
+                      {emp.has_risk_profile ? ` — ${emp.risk_band || 'N/A'}` : ' — No profile'}
                     </SelectItem>
                   ))}
                 </SelectContent>
