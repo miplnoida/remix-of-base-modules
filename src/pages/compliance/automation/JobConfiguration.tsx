@@ -172,6 +172,7 @@ const JobConfiguration = () => {
   const [detailJob, setDetailJob] = useState<AutomationJob | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [confirmActivation, setConfirmActivation] = useState<{ job: AutomationJob; enable: boolean } | null>(null);
+  const [runningJobCode, setRunningJobCode] = useState<string | null>(null);
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ['ce_automation_jobs'],
@@ -221,13 +222,16 @@ const JobConfiguration = () => {
 
   const runMutation = useMutation({
     mutationFn: async ({ jobCode, dryRun }: { jobCode: string; dryRun: boolean }) => {
+      setRunningJobCode(jobCode);
       const { data, error } = await supabase.functions.invoke('run-compliance-job', {
         body: { job_code: jobCode, dry_run: dryRun },
       });
       if (error) throw error;
+      if (data?.ok === false) throw new Error(data.error || 'Job execution failed');
       return data;
     },
     onSuccess: (data, variables) => {
+      setRunningJobCode(null);
       queryClient.invalidateQueries({ queryKey: ['ce_automation_jobs'] });
       queryClient.invalidateQueries({ queryKey: ['ce_job_runs_detail'] });
 
@@ -250,6 +254,7 @@ const JobConfiguration = () => {
       }
     },
     onError: (error: any) => {
+      setRunningJobCode(null);
       toast.error('Job execution failed', { description: error.message });
     },
   });
@@ -411,7 +416,7 @@ const JobConfiguration = () => {
                 disabled={isBlocked || !job.is_enabled || runMutation.isPending}
                 onClick={() => runMutation.mutate({ jobCode: job.job_code, dryRun: false })}
               >
-                {runMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                {runningJobCode === job.job_code ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
                 Run
               </Button>
               <Switch

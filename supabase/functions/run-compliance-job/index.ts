@@ -65,8 +65,9 @@ Deno.serve(async (req) => {
 
       const fnData = await fnRes.json();
       if (!fnRes.ok) {
-        return new Response(JSON.stringify({ error: fnData.error || "Edge function failed" }), {
-          status: fnRes.status,
+        // Return 200 with error payload so Supabase client can read the body
+        return new Response(JSON.stringify({ ok: false, error: fnData.error || "Edge function failed", status: fnRes.status }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -109,8 +110,8 @@ Deno.serve(async (req) => {
     });
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 500,
+      return new Response(JSON.stringify({ ok: false, error: error.message }), {
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -119,8 +120,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
+    return new Response(JSON.stringify({ ok: false, error: err.message }), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
