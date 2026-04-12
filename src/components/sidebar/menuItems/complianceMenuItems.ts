@@ -406,6 +406,13 @@ export const complianceMenuItems = [
             icon: Zap,
             requiresPermission: "manage_compliance",
             description: "Dry-run simulation of detection, calculation, and escalation rules"
+          },
+          {
+            title: "Risk Simulator",
+            url: "/compliance/tools/risk-simulator",
+            icon: Zap,
+            requiresPermission: "manage_compliance",
+            description: "Test employer risk scoring with what-if scenarios — no data saved"
           }
         ]
       },
