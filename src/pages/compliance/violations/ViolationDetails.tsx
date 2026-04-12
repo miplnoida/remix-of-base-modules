@@ -219,7 +219,53 @@ export default function ViolationDetails() {
         </Card>
       </div>
 
-      {/* Tabs */}
+      {/* Assignment & Routing Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-5 w-5" />
+            Assignment & Routing
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-4">
+          <div>
+            <div className="text-sm font-medium text-muted-foreground">Zone</div>
+            <div className="text-base font-medium">
+              {(v as any).ce_zones?.zone_name || <span className="text-muted-foreground italic">Unresolved</span>}
+            </div>
+            {(v as any).ce_zones?.zone_code && (
+              <div className="text-xs text-muted-foreground">{(v as any).ce_zones.zone_code}</div>
+            )}
+          </div>
+          <div>
+            <div className="text-sm font-medium text-muted-foreground">Queue</div>
+            <div className="text-base font-medium">
+              {(v as any).ce_assignment_queues?.queue_name || <span className="text-muted-foreground italic">Unassigned</span>}
+            </div>
+            {(v as any).ce_assignment_queues?.queue_type && (
+              <Badge variant="outline" className="mt-1">
+                {(v as any).ce_assignment_queues.queue_type}
+              </Badge>
+            )}
+          </div>
+          <div>
+            <div className="text-sm font-medium text-muted-foreground">Assigned Officer</div>
+            <div className="text-base font-medium">
+              {v.assigned_to_name || <span className="text-muted-foreground italic">Queue-only</span>}
+            </div>
+            {v.assigned_at && (
+              <div className="text-xs text-muted-foreground">Since {formatDate(v.assigned_at)}</div>
+            )}
+          </div>
+          <div>
+            <div className="text-sm font-medium text-muted-foreground">Resolution Method</div>
+            <Badge variant="outline" className="mt-1">
+              {(v as any).assignment_method || 'N/A'}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
           <TabsTrigger value="overview"><FileText className="h-4 w-4 mr-2" />Overview</TabsTrigger>
