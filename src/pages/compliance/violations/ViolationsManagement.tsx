@@ -210,6 +210,7 @@ export default function ViolationsManagement() {
                   <TableHead className="min-w-[90px]">Priority</TableHead>
                   <TableHead className="min-w-[90px]">Period</TableHead>
                   <TableHead className="min-w-[110px]">Amount</TableHead>
+                  <TableHead className="min-w-[100px]">Zone</TableHead>
                   <TableHead className="min-w-[130px]">Assigned To</TableHead>
                   <TableHead className="min-w-[110px]">Discovered</TableHead>
                   <TableHead className="min-w-[80px] sticky right-0 bg-background">Actions</TableHead>
@@ -218,7 +219,7 @@ export default function ViolationsManagement() {
               <TableBody>
                 {violations.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                       No violations found
                     </TableCell>
                   </TableRow>
@@ -251,7 +252,23 @@ export default function ViolationsManagement() {
                         {v.total_amount ? formatCurrency(Number(v.total_amount)) : '-'}
                       </TableCell>
                       <TableCell>
-                        {v.assigned_to_name || (
+                        <div className="text-xs">
+                          {v.ce_zones?.zone_code || <span className="text-muted-foreground">—</span>}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {v.assigned_to_name ? (
+                          <div>
+                            <div className="text-sm">{v.assigned_to_name}</div>
+                            {v.ce_assignment_queues?.queue_code && (
+                              <div className="text-xs text-muted-foreground">{v.ce_assignment_queues.queue_code}</div>
+                            )}
+                          </div>
+                        ) : v.ce_assignment_queues?.queue_code ? (
+                          <div>
+                            <Badge variant="outline" className="text-xs">{v.ce_assignment_queues.queue_code}</Badge>
+                          </div>
+                        ) : (
                           <span className="text-muted-foreground text-xs">Unassigned</span>
                         )}
                       </TableCell>
