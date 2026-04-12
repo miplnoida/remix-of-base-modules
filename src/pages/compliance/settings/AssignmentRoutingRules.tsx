@@ -29,7 +29,7 @@ interface RuleRow {
 }
 
 interface QueueOption { id: string; queue_code: string; queue_name: string; queue_type: string; }
-interface ViolationTypeOption { id: string; type_code: string; type_name: string; }
+interface ViolationTypeOption { id: string; code: string; name: string; }
 interface ZoneOption { id: string; zone_code: string; zone_name: string; }
 
 export default function AssignmentRoutingRules() {
@@ -49,14 +49,14 @@ export default function AssignmentRoutingRules() {
     const [{ data: ruleData }, { data: qData }, { data: vtData }, { data: zData }] = await Promise.all([
       supabase.from("ce_assignment_routing_rules").select("*").order("priority"),
       supabase.from("ce_assignment_queues").select("id, queue_code, queue_name, queue_type").eq("is_active", true).order("queue_name"),
-      supabase.from("ce_violation_types").select("id, type_code, type_name").eq("is_active", true).order("type_code"),
+      supabase.from("ce_violation_types").select("id, code, name").eq("is_active", true).order("code"),
       supabase.from("ce_zones").select("id, zone_code, zone_name").eq("is_active", true).order("zone_code"),
     ]);
     setQueues(qData || []);
     setViolationTypes(vtData || []);
     setZones(zData || []);
     const qMap = Object.fromEntries((qData || []).map(q => [q.id, q]));
-    const vtMap = Object.fromEntries((vtData || []).map(v => [v.id, v.type_name]));
+    const vtMap = Object.fromEntries((vtData || []).map(v => [v.id, v.name]));
     const zMap = Object.fromEntries((zData || []).map(z => [z.id, z.zone_name]));
 
     setRules((ruleData || []).map((r: any) => ({
@@ -229,7 +229,7 @@ export default function AssignmentRoutingRules() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="any">Any Type</SelectItem>
-                    {violationTypes.map(vt => <SelectItem key={vt.id} value={vt.id}>{vt.type_code} – {vt.type_name}</SelectItem>)}
+                    {violationTypes.map(vt => <SelectItem key={vt.id} value={vt.id}>{vt.code} – {vt.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
