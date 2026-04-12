@@ -65,8 +65,9 @@ Deno.serve(async (req) => {
 
       const fnData = await fnRes.json();
       if (!fnRes.ok) {
-        return new Response(JSON.stringify({ error: fnData.error || "Edge function failed" }), {
-          status: fnRes.status,
+        // Return 200 with error payload so Supabase client can read the body
+        return new Response(JSON.stringify({ ok: false, error: fnData.error || "Edge function failed", status: fnRes.status }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
