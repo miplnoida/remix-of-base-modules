@@ -306,8 +306,8 @@ Deno.serve(async (req) => {
           }
 
           case "installment_overdue": {
-            const empArrangements = arrangements.filter(
-              (a: any) => a.employer_id === emp.regno && a.health_status !== "HEALTHY" && a.health_status !== "INACTIVE"
+            const empArrangements = (arrangementMap.get(emp.regno) || []).filter(
+              (a: any) => a.health_status !== "HEALTHY" && a.health_status !== "INACTIVE"
             );
             if (empArrangements.length > 0) {
               const worst = empArrangements[0];
