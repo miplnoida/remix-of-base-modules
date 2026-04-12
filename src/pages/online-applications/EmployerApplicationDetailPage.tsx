@@ -40,6 +40,7 @@ import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDeta
 import { useEmployerCodeResolver } from '@/hooks/useEmployerCodeResolver';
 import { getEmployerStatusVariant } from '@/hooks/useEmployerApplications';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
+import { EmployerApplicationActions } from '@/components/online-applications/EmployerApplicationActions';
 import { MeetingActionButtons } from '@/components/meetings/MeetingActionButtons';
 import { useApplicationMeeting } from '@/hooks/useApplicationMeeting';
 import { supabase } from '@/integrations/supabase/client';
