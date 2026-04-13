@@ -546,5 +546,72 @@ export default function ViolationDetails() {
         </TabsContent>
       </Tabs>
     </div>
+
+      {/* Lifecycle Dialogs */}
+      <ViolationResolutionDialog
+        open={resolveDialogOpen}
+        onOpenChange={setResolveDialogOpen}
+        violationId={id!}
+        violationNumber={v.violation_number}
+        userCode={userCode}
+        onSuccess={invalidateAll}
+      />
+
+      <ViolationActionConfirmDialog
+        open={closeDialogOpen}
+        onOpenChange={setCloseDialogOpen}
+        title="Close Violation"
+        description={`Close ${v.violation_number}? This marks the violation as fully complete.`}
+        actionLabel="Close Violation"
+        onConfirm={async () => {
+          const result = await closeViolation(id!, userCode);
+          if (result.success) { toast.success('Violation closed'); invalidateAll(); }
+          else toast.error(result.error);
+        }}
+      />
+
+      <ViolationActionConfirmDialog
+        open={reopenDialogOpen}
+        onOpenChange={setReopenDialogOpen}
+        title="Reopen Violation"
+        description={`Reopen ${v.violation_number}? This will set the status back to OPEN.`}
+        actionLabel="Reopen"
+        requireReason
+        onConfirm={async (reason) => {
+          const result = await reopenViolation(id!, reason, userCode);
+          if (result.success) { toast.success('Violation reopened'); invalidateAll(); }
+          else toast.error(result.error);
+        }}
+      />
+
+      <ViolationActionConfirmDialog
+        open={cancelDialogOpen}
+        onOpenChange={setCancelDialogOpen}
+        title="Cancel Violation"
+        description={`Cancel ${v.violation_number}? This cannot easily be undone.`}
+        actionLabel="Cancel Violation"
+        variant="destructive"
+        requireReason
+        onConfirm={async (reason) => {
+          const result = await cancelViolation(id!, reason, userCode);
+          if (result.success) { toast.success('Violation cancelled'); invalidateAll(); }
+          else toast.error(result.error);
+        }}
+      />
+
+      <ViolationActionConfirmDialog
+        open={escalateDialogOpen}
+        onOpenChange={setEscalateDialogOpen}
+        title="Escalate Violation"
+        description={`Escalate ${v.violation_number}? This raises priority and notifies supervisors.`}
+        actionLabel="Escalate"
+        requireReason
+        onConfirm={async (reason) => {
+          const result = await escalateViolation(id!, userCode, reason);
+          if (result.success) { toast.success('Violation escalated'); invalidateAll(); }
+          else toast.error(result.error);
+        }}
+      />
+    </>
   );
 }
