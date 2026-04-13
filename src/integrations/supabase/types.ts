@@ -9731,7 +9731,9 @@ export type Database = {
           duration_ms: number | null
           error_details: Json | null
           errors_count: number | null
+          execution_log: Json | null
           id: string
+          idempotency_key: string | null
           is_dry_run: boolean
           job_id: string
           records_affected: number | null
@@ -9747,7 +9749,9 @@ export type Database = {
           duration_ms?: number | null
           error_details?: Json | null
           errors_count?: number | null
+          execution_log?: Json | null
           id?: string
+          idempotency_key?: string | null
           is_dry_run?: boolean
           job_id: string
           records_affected?: number | null
@@ -9763,7 +9767,9 @@ export type Database = {
           duration_ms?: number | null
           error_details?: Json | null
           errors_count?: number | null
+          execution_log?: Json | null
           id?: string
+          idempotency_key?: string | null
           is_dry_run?: boolean
           job_id?: string
           records_affected?: number | null
