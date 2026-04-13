@@ -24,6 +24,55 @@ async function assertC3Editable(recordId: string): Promise<void> {
   }
 }
 
+/**
+ * Find an existing C3 record matching the business key (payer_id, payer_type, sequence_no, period).
+ * Returns { id, posting_status } if found, null otherwise.
+ */
+async function findExistingC3(
+  payerId: string,
+  payerType: string,
+  sequenceNo: number,
+  period: string
+): Promise<{ id: string; posting_status: string } | null> {
+  const { data, error } = await supabase
+    .from('cn_c3_reported')
+    .select('id, posting_status')
+    .eq('payer_id', payerId)
+    .eq('payer_type', payerType)
+    .eq('sequence_no', sequenceNo)
+    .eq('period', period)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error finding existing C3:', error);
+    return null;
+  }
+  return data;
+}
+
+/**
+ * Find the next available schedule number for a payer+period that already has verified records.
+ * Returns the max existing sequence_no + 1.
+ */
+async function getNextScheduleNumber(
+  payerId: string,
+  payerType: string,
+  period: string
+): Promise<number> {
+  const { data, error } = await supabase
+    .from('cn_c3_reported')
+    .select('sequence_no')
+    .eq('payer_id', payerId)
+    .eq('payer_type', payerType)
+    .eq('period', period)
+    .order('sequence_no', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return 1;
+  return (data.sequence_no || 1) + 1;
+}
+
 export interface C3Record {
   id?: string;
   payer_id: string;
