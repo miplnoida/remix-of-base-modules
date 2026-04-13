@@ -23,7 +23,19 @@ import { toast } from 'sonner';
 export default function ViolationDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
+  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
+  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
+  const [reopenDialogOpen, setReopenDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [escalateDialogOpen, setEscalateDialogOpen] = useState(false);
+  const userCode = 'SYS'; // TODO: replace with actual user code from auth context
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['ce_violation', id] });
+    queryClient.invalidateQueries({ queryKey: ['ce_violation_history', id] });
+  };
 
   const { data: violationData, isLoading: loadingCase } = useQuery({
     queryKey: ['ce_violation', id],
