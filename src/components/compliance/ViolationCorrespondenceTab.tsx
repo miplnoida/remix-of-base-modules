@@ -53,6 +53,7 @@ export function ViolationCorrespondenceTab({ violationId, employerId, employerNa
         status: 'Completed',
         summary: callForm.summary,
         contact_person: callForm.contactPerson,
+        created_by: currentUserCode,
       } as any);
       if (error) throw error;
     },
@@ -76,6 +77,7 @@ export function ViolationCorrespondenceTab({ violationId, employerId, employerNa
         status: 'Queued',
         summary: letterForm.notes || `Template: ${letterForm.template}`,
         contact_person: employerName || '',
+        created_by: currentUserCode,
       } as any);
       if (error) throw error;
     },
