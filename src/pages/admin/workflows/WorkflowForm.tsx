@@ -183,6 +183,19 @@ const ACTION_TYPES = [
 
 // NOTIFICATION_TYPES now fetched dynamically via useActiveNotificationTypes hook
 
+const RECIPIENT_TYPES_STEP = [
+  { value: 'step_approver', label: 'Step Approver' },
+  { value: 'initiator', label: 'Workflow Initiator' },
+  { value: 'specific_role', label: 'Specific Role' },
+];
+
+const RECIPIENT_TYPES_ACTION = [
+  { value: 'next_step_approver', label: 'Next Step Approver' },
+  { value: 'initiator', label: 'Workflow Initiator' },
+  { value: 'current_step_approver', label: 'Current Step Approver' },
+  { value: 'specific_role', label: 'Specific Role' },
+];
+
 export default function WorkflowForm() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
