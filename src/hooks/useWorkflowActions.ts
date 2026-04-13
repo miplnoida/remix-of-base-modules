@@ -1073,6 +1073,16 @@ async function updateSourceRecordStatus(
   comments?: string,
   configuredResultStatus?: string | null
 ) {
+  // Resolve user_code for audit fields (per project convention: store UserCode, not UUID)
+  let userCode = 'SYSTEM';
+  if (userId) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('user_code')
+      .eq('id', userId)
+      .maybeSingle();
+    userCode = (profile as any)?.user_code || 'SYSTEM';
+  }
   if (sourceModule === 'insured_person_registration') {
     let newStatus: string;
     const updateData: Record<string, any> = {
