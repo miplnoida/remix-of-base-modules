@@ -198,6 +198,40 @@ export default function ViolationDetails() {
             </div>
           </div>
         </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {v.employer_id && (
+              <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/employer-360/${v.employer_id}`)}>
+                <Building2 className="h-4 w-4 mr-1" />Employer 360
+              </Button>
+            )}
+            {['OPEN', 'UNDER_REVIEW', 'ESCALATED'].includes(v.status) && (
+              <Button size="sm" variant="default" onClick={() => setResolveDialogOpen(true)}>
+                <CheckCircle className="h-4 w-4 mr-1" />Resolve
+              </Button>
+            )}
+            {v.status === 'RESOLVED' && (
+              <Button size="sm" variant="default" onClick={() => setCloseDialogOpen(true)}>
+                <CheckCircle className="h-4 w-4 mr-1" />Close
+              </Button>
+            )}
+            {['OPEN', 'UNDER_REVIEW'].includes(v.status) && (
+              <Button size="sm" variant="outline" className="text-destructive border-destructive" onClick={() => setEscalateDialogOpen(true)}>
+                <ArrowUpCircle className="h-4 w-4 mr-1" />Escalate
+              </Button>
+            )}
+            {['RESOLVED', 'CLOSED', 'CANCELLED'].includes(v.status) && (
+              <Button size="sm" variant="outline" onClick={() => setReopenDialogOpen(true)}>
+                <RotateCcw className="h-4 w-4 mr-1" />Reopen
+              </Button>
+            )}
+            {!['CANCELLED', 'CLOSED'].includes(v.status) && (
+              <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setCancelDialogOpen(true)}>
+                <XCircle className="h-4 w-4 mr-1" />Cancel
+              </Button>
+            )}
+          </div>
+        </CardContent>
       </Card>
 
       {/* Financial Summary */}
