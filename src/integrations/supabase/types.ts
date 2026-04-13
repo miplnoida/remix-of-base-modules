@@ -13986,6 +13986,143 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_scouting_lead_history: {
+        Row: {
+          change_reason: string | null
+          changed_at: string
+          changed_by: string
+          id: string
+          lead_id: string
+          new_status: string
+          old_status: string | null
+        }
+        Insert: {
+          change_reason?: string | null
+          changed_at?: string
+          changed_by: string
+          id?: string
+          lead_id: string
+          new_status: string
+          old_status?: string | null
+        }
+        Update: {
+          change_reason?: string | null
+          changed_at?: string
+          changed_by?: string
+          id?: string
+          lead_id?: string
+          new_status?: string
+          old_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_scouting_lead_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "ce_scouting_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_scouting_leads: {
+        Row: {
+          activity_type: string | null
+          assigned_to_user_id: string | null
+          business_name: string | null
+          confidence_level: string | null
+          created_at: string
+          created_by: string | null
+          estimated_employees: number | null
+          gps_lat: number | null
+          gps_lng: number | null
+          id: string
+          investigation_notes: string | null
+          lead_number: string
+          lead_type: string
+          linked_employer_id: string | null
+          linked_violation_id: string | null
+          location_description: string | null
+          reported_by: string | null
+          reported_date: string
+          source: string | null
+          source_details: string | null
+          status: string
+          territory: string | null
+          updated_at: string
+          updated_by: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          activity_type?: string | null
+          assigned_to_user_id?: string | null
+          business_name?: string | null
+          confidence_level?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimated_employees?: number | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: string
+          investigation_notes?: string | null
+          lead_number: string
+          lead_type: string
+          linked_employer_id?: string | null
+          linked_violation_id?: string | null
+          location_description?: string | null
+          reported_by?: string | null
+          reported_date?: string
+          source?: string | null
+          source_details?: string | null
+          status?: string
+          territory?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          activity_type?: string | null
+          assigned_to_user_id?: string | null
+          business_name?: string | null
+          confidence_level?: string | null
+          created_at?: string
+          created_by?: string | null
+          estimated_employees?: number | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: string
+          investigation_notes?: string | null
+          lead_number?: string
+          lead_type?: string
+          linked_employer_id?: string | null
+          linked_violation_id?: string | null
+          location_description?: string | null
+          reported_by?: string | null
+          reported_date?: string
+          source?: string | null
+          source_details?: string | null
+          status?: string
+          territory?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_scouting_leads_linked_violation_id_fkey"
+            columns: ["linked_violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_scouting_leads_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_settings: {
         Row: {
           category: string | null
@@ -14673,23 +14810,210 @@ export type Database = {
           },
         ]
       }
+      ce_weekly_plan_items: {
+        Row: {
+          area_name: string | null
+          carried_forward_to: string | null
+          check_in_gps_lat: number | null
+          check_in_gps_lng: number | null
+          check_in_time: string | null
+          check_out_gps_lat: number | null
+          check_out_gps_lng: number | null
+          check_out_time: string | null
+          created_at: string
+          created_by: string | null
+          day_of_week: string | null
+          duration: string | null
+          employer_id: string | null
+          employer_name: string | null
+          execution_status: string
+          findings: string | null
+          id: string
+          is_mandatory: boolean | null
+          item_type: string
+          not_done_reason: string | null
+          outcome_notes: string | null
+          plan_id: string
+          priority: string | null
+          purpose: string | null
+          recommendation_score: number | null
+          reschedule_reason: string | null
+          rescheduled_to: string | null
+          scheduled_date: string | null
+          scheduled_end_time: string | null
+          scheduled_start_time: string | null
+          scouting_confidence: string | null
+          scouting_type: string | null
+          source_id: string | null
+          source_ref: string | null
+          source_type: string | null
+          territory: string | null
+          updated_at: string
+          updated_by: string | null
+          visit_type: string | null
+        }
+        Insert: {
+          area_name?: string | null
+          carried_forward_to?: string | null
+          check_in_gps_lat?: number | null
+          check_in_gps_lng?: number | null
+          check_in_time?: string | null
+          check_out_gps_lat?: number | null
+          check_out_gps_lng?: number | null
+          check_out_time?: string | null
+          created_at?: string
+          created_by?: string | null
+          day_of_week?: string | null
+          duration?: string | null
+          employer_id?: string | null
+          employer_name?: string | null
+          execution_status?: string
+          findings?: string | null
+          id?: string
+          is_mandatory?: boolean | null
+          item_type?: string
+          not_done_reason?: string | null
+          outcome_notes?: string | null
+          plan_id: string
+          priority?: string | null
+          purpose?: string | null
+          recommendation_score?: number | null
+          reschedule_reason?: string | null
+          rescheduled_to?: string | null
+          scheduled_date?: string | null
+          scheduled_end_time?: string | null
+          scheduled_start_time?: string | null
+          scouting_confidence?: string | null
+          scouting_type?: string | null
+          source_id?: string | null
+          source_ref?: string | null
+          source_type?: string | null
+          territory?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          visit_type?: string | null
+        }
+        Update: {
+          area_name?: string | null
+          carried_forward_to?: string | null
+          check_in_gps_lat?: number | null
+          check_in_gps_lng?: number | null
+          check_in_time?: string | null
+          check_out_gps_lat?: number | null
+          check_out_gps_lng?: number | null
+          check_out_time?: string | null
+          created_at?: string
+          created_by?: string | null
+          day_of_week?: string | null
+          duration?: string | null
+          employer_id?: string | null
+          employer_name?: string | null
+          execution_status?: string
+          findings?: string | null
+          id?: string
+          is_mandatory?: boolean | null
+          item_type?: string
+          not_done_reason?: string | null
+          outcome_notes?: string | null
+          plan_id?: string
+          priority?: string | null
+          purpose?: string | null
+          recommendation_score?: number | null
+          reschedule_reason?: string | null
+          rescheduled_to?: string | null
+          scheduled_date?: string | null
+          scheduled_end_time?: string | null
+          scheduled_start_time?: string | null
+          scouting_confidence?: string | null
+          scouting_type?: string | null
+          source_id?: string | null
+          source_ref?: string | null
+          source_type?: string | null
+          territory?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          visit_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_weekly_plan_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_wpi_carried_forward"
+            columns: ["carried_forward_to"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plan_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_weekly_plan_reviews: {
+        Row: {
+          action: string
+          comments: string | null
+          id: string
+          performed_at: string
+          performed_by: string
+          plan_id: string
+        }
+        Insert: {
+          action: string
+          comments?: string | null
+          id?: string
+          performed_at?: string
+          performed_by: string
+          plan_id: string
+        }
+        Update: {
+          action?: string
+          comments?: string | null
+          id?: string
+          performed_at?: string
+          performed_by?: string
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_weekly_plan_reviews_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_weekly_plans: {
         Row: {
           approved_by: string | null
           approved_by_name: string | null
           approved_date: string | null
+          carry_forward_from: string | null
           completed_visits: number | null
           created_at: string | null
           created_by: string | null
           id: string
           inspector_id: string | null
           inspector_name: string | null
+          narrative: string | null
+          outcome_narrative: string | null
+          outcome_reviewed_at: string | null
+          outcome_reviewed_by: string | null
+          outcome_submitted_at: string | null
           plan_number: string
+          rejected_date: string | null
+          rejection_count: number | null
+          reviewer_comments: string | null
+          reviewer_id: string | null
           status: string | null
           submitted_date: string | null
           supervisor_comments: string | null
           total_planned_visits: number | null
           updated_at: string | null
+          updated_by: string | null
           week_end_date: string
           week_start_date: string
         }
@@ -14697,18 +15021,29 @@ export type Database = {
           approved_by?: string | null
           approved_by_name?: string | null
           approved_date?: string | null
+          carry_forward_from?: string | null
           completed_visits?: number | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           inspector_id?: string | null
           inspector_name?: string | null
+          narrative?: string | null
+          outcome_narrative?: string | null
+          outcome_reviewed_at?: string | null
+          outcome_reviewed_by?: string | null
+          outcome_submitted_at?: string | null
           plan_number: string
+          rejected_date?: string | null
+          rejection_count?: number | null
+          reviewer_comments?: string | null
+          reviewer_id?: string | null
           status?: string | null
           submitted_date?: string | null
           supervisor_comments?: string | null
           total_planned_visits?: number | null
           updated_at?: string | null
+          updated_by?: string | null
           week_end_date: string
           week_start_date: string
         }
@@ -14716,22 +15051,40 @@ export type Database = {
           approved_by?: string | null
           approved_by_name?: string | null
           approved_date?: string | null
+          carry_forward_from?: string | null
           completed_visits?: number | null
           created_at?: string | null
           created_by?: string | null
           id?: string
           inspector_id?: string | null
           inspector_name?: string | null
+          narrative?: string | null
+          outcome_narrative?: string | null
+          outcome_reviewed_at?: string | null
+          outcome_reviewed_by?: string | null
+          outcome_submitted_at?: string | null
           plan_number?: string
+          rejected_date?: string | null
+          rejection_count?: number | null
+          reviewer_comments?: string | null
+          reviewer_id?: string | null
           status?: string | null
           submitted_date?: string | null
           supervisor_comments?: string | null
           total_planned_visits?: number | null
           updated_at?: string | null
+          updated_by?: string | null
           week_end_date?: string
           week_start_date?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ce_weekly_plans_carry_forward_from_fkey"
+            columns: ["carry_forward_from"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ce_weekly_plans_inspector_id_fkey"
             columns: ["inspector_id"]
@@ -42736,6 +43089,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_v_weekly_plan_candidates: {
+        Row: {
+          assigned_to_user_id: string | null
+          description: string | null
+          due_date: string | null
+          employer_id: string | null
+          employer_name: string | null
+          financial_exposure: number | null
+          priority: string | null
+          source_created_at: string | null
+          source_id: string | null
+          source_ref: string | null
+          source_status: string | null
+          source_type: string | null
+          territory: string | null
+        }
+        Relationships: []
+      }
       dashboard_v_active_alerts: {
         Row: {
           detail: string | null
@@ -43689,6 +44060,23 @@ export type Database = {
         }[]
       }
       fn_ce_route_violation: { Args: { p_violation_id: string }; Returns: Json }
+      fn_ce_score_plan_candidate: {
+        Args: {
+          p_days_overdue?: number
+          p_days_since_last_visit?: number
+          p_financial_exposure?: number
+          p_is_manager_flagged?: boolean
+          p_is_same_zone?: boolean
+          p_notice_days_remaining?: number
+          p_overdue_followup_count?: number
+          p_prior_violation_count?: number
+          p_priority?: string
+          p_risk_band?: string
+          p_scouting_confidence?: string
+          p_source_type: string
+        }
+        Returns: number
+      }
       generate_application_id: { Args: never; Returns: string }
       generate_depend_id: { Args: { p_ssn: string }; Returns: string }
       generate_er_regno: { Args: never; Returns: string }
