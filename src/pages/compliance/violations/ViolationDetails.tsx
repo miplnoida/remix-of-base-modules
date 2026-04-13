@@ -326,6 +326,9 @@ export default function ViolationDetails() {
                 <Badge className={getPriorityColor(v.priority)}>
                   {v.priority}
                 </Badge>
+                {riskProfile && (
+                  <RiskScoreBadge riskBand={riskProfile.risk_band} score={riskProfile.total_score} />
+                )}
               </div>
               <p className="text-sm text-muted-foreground">
                 Discovered: {v.discovered_date ? formatDate(v.discovered_date) : 'N/A'} | Created: {formatDate(v.created_at)}
