@@ -420,6 +420,14 @@ export default function WorkflowForm() {
             fieldUpdates: [],
           },
         ],
+        stepNotifications: [{
+          notification_type: 'In-App',
+          template_id: null,
+          module_id: null,
+          recipient_type: 'step_approver',
+          recipient_role_id: null,
+          is_enabled: true,
+        }],
       },
     ]);
   };
