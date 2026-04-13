@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { caseViolationService } from '@/services/caseViolationService';
 
 // ============================================
 // VIOLATION LIFECYCLE SERVICE
@@ -103,7 +104,7 @@ class ViolationLifecycleService {
     // 1. Fetch current state
     const { data: violation, error: fetchErr } = await supabase
       .from('ce_violations')
-      .select('id, status')
+      .select('id, status, violation_number, employer_id, employer_name, territory, priority, total_amount, summary')
       .eq('id', violationId)
       .single();
 
@@ -177,7 +178,31 @@ class ViolationLifecycleService {
 
     if (historyErr) {
       console.error('Failed to write violation history:', historyErr);
-      // Non-fatal — transition succeeded, audit log failed
+    }
+
+    // 6. Auto-link/create case on ESCALATED transition
+    if (targetStatus === 'ESCALATED' && (violation as any).employer_id) {
+      try {
+        const caseResult = await caseViolationService.findOrCreateCaseForEscalation(
+          {
+            id: violationId,
+            violation_number: (violation as any).violation_number || '',
+            employer_id: (violation as any).employer_id,
+            employer_name: (violation as any).employer_name,
+            territory: (violation as any).territory,
+            priority: (violation as any).priority,
+            total_amount: Number((violation as any).total_amount) || 0,
+            summary: (violation as any).summary,
+          },
+          performedBy
+        );
+        if (!caseResult.success) {
+          console.error('Case auto-link failed:', caseResult.error);
+        }
+      } catch (err) {
+        console.error('Case auto-link error:', err);
+        // Non-fatal — escalation succeeded, case link is best-effort
+      }
     }
 
     return {

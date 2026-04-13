@@ -9,9 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import {
   FileText, Bell, History, AlertCircle, MessageSquare, Mail, ListChecks,
   Loader2, Eye, MapPin, UserCheck, ClipboardCheck,
-  Play, Search, ArrowUpCircle, CheckCircle, XCircle, RotateCcw, Lock, Building2
+  Play, Search, ArrowUpCircle, CheckCircle, XCircle, RotateCcw, Lock, Building2, Briefcase
 } from 'lucide-react';
 import { ViolationNotesTab } from '@/components/compliance/ViolationNotesTab';
+import { caseViolationService } from '@/services/caseViolationService';
 import { ViolationCorrespondenceTab } from '@/components/compliance/ViolationCorrespondenceTab';
 import { ViolationActionPlanTab } from '@/components/compliance/ViolationActionPlanTab';
 import { ViolationFollowUpsTab } from '@/components/compliance/ViolationFollowUpsTab';
@@ -155,12 +156,19 @@ export default function ViolationDetails() {
     enabled: !!id,
   });
 
+  const { data: linkedCase } = useQuery({
+    queryKey: ['ce_violation_linked_case', id],
+    queryFn: () => caseViolationService.getLinkedCase(id!),
+    enabled: !!id,
+  });
+
   // ============================================
   // LIFECYCLE TRANSITION HANDLERS
   // ============================================
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['ce_violation', id] });
     queryClient.invalidateQueries({ queryKey: ['ce_violation_history', id] });
+    queryClient.invalidateQueries({ queryKey: ['ce_violation_linked_case', id] });
   };
 
   const handleActionClick = (action: ActionButtonDef) => {
@@ -327,6 +335,16 @@ export default function ViolationDetails() {
             ))}
             {/* Navigation buttons */}
             <div className="ml-auto flex gap-2">
+              {linkedCase && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/compliance/cases/${linkedCase.id}`)}
+                >
+                  <Briefcase className="h-4 w-4 mr-1" />
+                  Case: {linkedCase.case_number}
+                </Button>
+              )}
               {v.employer_id && (
                 <Button
                   variant="outline"

@@ -61,6 +61,7 @@ import ComplianceInspectorDashboard from '@/pages/compliance/dashboards/Inspecto
 import ComplianceLegalDashboard from '@/pages/compliance/dashboards/LegalDashboard';
 import ComplianceCaseManagement from '@/pages/compliance/cases/CaseManagement';
 import ComplianceCaseQueue from '@/pages/compliance/cases/CaseQueue';
+import ComplianceCaseDetailView from '@/pages/compliance/cases/CaseDetailView';
 
 import ComplianceInspectionManagement from '@/pages/compliance/inspections/InspectionManagement';
 import ComplianceBreachMonitoring from '@/pages/compliance/arrangements/BreachMonitoring';
@@ -992,6 +993,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/dashboard/legal" element={<ProtectedLayout><ComplianceLegalDashboard /></ProtectedLayout>} />
       <Route path="/compliance/cases" element={<ProtectedLayout><ComplianceCaseManagement /></ProtectedLayout>} />
       <Route path="/compliance/cases/queue" element={<ProtectedLayout><ComplianceCaseQueue /></ProtectedLayout>} />
+      <Route path="/compliance/cases/:id" element={<ProtectedLayout><ComplianceCaseDetailView /></ProtectedLayout>} />
       <Route path="/compliance/risk-profiles" element={<Navigate to="/audit/risk-register" replace />} />
       <Route path="/compliance/inspections" element={<ProtectedLayout><ComplianceInspectionManagement /></ProtectedLayout>} />
       <Route path="/compliance/arrangements/breaches" element={<ProtectedLayout><ComplianceBreachMonitoring /></ProtectedLayout>} />
