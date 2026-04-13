@@ -1228,13 +1228,21 @@ async function updateSourceRecordStatus(
       }
 
       // Also update all related ip_wages rows to the same posting_status
+      const wagesUpdateData: Record<string, any> = {
+        posting_status: newPostingStatus,
+        date_modified: new Date().toISOString(),
+        modified_by: userId,
+      };
+      
+      // Set verification audit fields on wages too when approving
+      if (newPostingStatus === 'VAC') {
+        wagesUpdateData.verified_by = userId;
+        wagesUpdateData.date_verified = new Date().toISOString();
+      }
+
       const { error: wagesError } = await supabase
         .from('ip_wages')
-        .update({
-          posting_status: newPostingStatus,
-          date_modified: new Date().toISOString(),
-          modified_by: userId,
-        })
+        .update(wagesUpdateData)
         .eq('c3_id', sourceRecordId);
 
       if (wagesError) {
