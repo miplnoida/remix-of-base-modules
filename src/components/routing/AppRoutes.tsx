@@ -953,10 +953,12 @@ export const AppRoutes = () => {
       <Route path="/compliance/violations" element={<ProtectedLayout><ViolationsManagement /></ProtectedLayout>} />
       <Route path="/compliance/violations/manual-entry" element={<ProtectedLayout><ManualViolationEntry /></ProtectedLayout>} />
       <Route path="/compliance/violations/:id" element={<ProtectedLayout><ViolationDetails /></ProtectedLayout>} />
-      <Route path="/compliance/inspector-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
+      {/* DUP-03: Redirect legacy alias → canonical path */}
+      <Route path="/compliance/inspector-plans" element={<Navigate to="/compliance/audit-planning/my-plans" replace />} />
       <Route path="/compliance/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />
       <Route path="/compliance/arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
-      <Route path="/compliance/payment-arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
+      {/* DUP-02: Redirect alias → canonical /compliance/arrangements */}
+      <Route path="/compliance/payment-arrangements" element={<Navigate to="/compliance/arrangements" replace />} />
       <Route path="/compliance/employer-statements" element={<ProtectedLayout><EmployerStatements /></ProtectedLayout>} />
       <Route path="/compliance/employer-statement/:employerId" element={<ProtectedLayout><EmployerStatementDetail /></ProtectedLayout>} />
       <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
@@ -976,7 +978,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/audit-planning/pending-review" element={<ProtectedLayout><CompliancePendingReview /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/pending-review/:planId" element={<ProtectedLayout><WeeklyPlanReview /></ProtectedLayout>} />
       <Route path="/compliance/violations/weekly-reports" element={<ProtectedLayout><WeeklyReportSubmission /></ProtectedLayout>} />
-      <Route path="/compliance/violations/manual-entry" element={<ProtectedLayout><ManualViolationEntry /></ProtectedLayout>} />
+      {/* DUP-04: Duplicate manual-entry route removed — defined at line 954 */}
       <Route path="/compliance/employers/findings" element={<ProtectedLayout><EmployerFindings /></ProtectedLayout>} />
       <Route path="/compliance/employers/visit/:employerId" element={<ProtectedLayout><EmployerVisitWorkspace /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/field-execution" element={<ProtectedLayout><FieldExecution /></ProtectedLayout>} />
@@ -991,7 +993,8 @@ export const AppRoutes = () => {
       <Route path="/compliance/monitoring" element={<ProtectedLayout><ComplianceMonitoring /></ProtectedLayout>} />
       <Route path="/compliance/employer" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
       <Route path="/compliance/audits" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
-      <Route path="/compliance/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
+      {/* DUP-01: Redirect legacy → canonical /compliance/cases/penalties */}
+      <Route path="/compliance/penalties" element={<Navigate to="/compliance/cases/penalties" replace />} />
 
       {/* New Compliance & Enforcement Routes */}
       <Route path="/compliance/dashboard/manager" element={<ProtectedLayout><ComplianceManagerDashboard /></ProtectedLayout>} />
@@ -1011,8 +1014,10 @@ export const AppRoutes = () => {
       <Route path="/compliance/settings/rule-engine" element={<ProtectedLayout><ComplianceRuleEngine /></ProtectedLayout>} />
       <Route path="/compliance/settings/violation-types" element={<ProtectedLayout><ComplianceViolationTypes /></ProtectedLayout>} />
       <Route path="/compliance/settings/number-templates" element={<ProtectedLayout><ComplianceNumberTemplates /></ProtectedLayout>} />
-      <Route path="/compliance/settings/risk-config" element={<ProtectedLayout><ComplianceRiskScoringConfig /></ProtectedLayout>} />
-      <Route path="/compliance/settings/legal-escalation-policy" element={<ProtectedLayout><LegalEscalationPolicy /></ProtectedLayout>} />
+      {/* DUP-09: Redirect risk-config → consolidated risk-policy */}
+      <Route path="/compliance/settings/risk-config" element={<Navigate to="/compliance/settings/risk-policy" replace />} />
+      {/* DUP-08: Redirect legal-escalation-policy → consolidated risk-policy (has Legal Escalation tab) */}
+      <Route path="/compliance/settings/legal-escalation-policy" element={<Navigate to="/compliance/settings/risk-policy" replace />} />
       <Route path="/compliance/settings/templates" element={<ProtectedLayout><ComplianceTemplates /></ProtectedLayout>} />
       <Route path="/compliance/tools/rule-simulator" element={<ProtectedLayout><ComplianceRuleSimulator /></ProtectedLayout>} />
       <Route path="/compliance/tools/risk-simulator" element={<ProtectedLayout><ComplianceRiskSimulator /></ProtectedLayout>} />
