@@ -133,7 +133,7 @@ export async function fetchInspectors() {
 export async function fetchWeeklyPlans(filters?: { inspectorId?: string }) {
   let query = supabase
     .from("ce_weekly_plans")
-    .select("*, ce_planned_visits(*)")
+    .select("*, ce_weekly_plan_items(*)")
     .order("week_start_date", { ascending: false });
 
   if (filters?.inspectorId && filters.inspectorId !== "ALL") {
