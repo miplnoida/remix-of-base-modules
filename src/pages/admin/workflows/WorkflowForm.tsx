@@ -584,6 +584,7 @@ export default function WorkflowForm() {
     setSteps(newSteps);
   };
 
+  const validateForm = (): boolean => {
     if (!formData.name.trim()) {
       toast({ title: 'Error', description: 'Workflow name is required', variant: 'destructive' });
       return false;
