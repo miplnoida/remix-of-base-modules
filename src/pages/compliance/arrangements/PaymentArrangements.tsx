@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EmployerComplianceSummaryCard } from '@/components/compliance/EmployerComplianceSummaryCard';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
