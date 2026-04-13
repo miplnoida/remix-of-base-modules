@@ -206,6 +206,13 @@ import EmployerComplianceManagement from '@/pages/compliance/employers/EmployerC
 import LegalProceedings from '@/pages/compliance/legal/LegalProceedings';
 import AuditManagement from '@/pages/compliance/audit-planning/AuditManagement';
 import PenaltyManagement from '@/pages/compliance/cases/PenaltyManagement';
+import ComplianceAnalytics from '@/pages/compliance/dashboards/ComplianceAnalytics';
+import EmployerHierarchy from '@/pages/compliance/employers/EmployerHierarchy';
+import EmployerComplianceJobs from '@/pages/compliance/automation/EmployerComplianceJobs';
+import C3LedgerSync from '@/pages/compliance/settings/C3LedgerSync';
+import LedgerAdministration from '@/pages/compliance/settings/LedgerAdministration';
+import PaymentLedgerSync from '@/pages/compliance/settings/PaymentLedgerSync';
+import TrendReports from '@/pages/compliance/reports/TrendReports';
 
 // Legal Module
 const LegalAuth = lazy(() => import('@/pages/legal/LegalAuth'));
