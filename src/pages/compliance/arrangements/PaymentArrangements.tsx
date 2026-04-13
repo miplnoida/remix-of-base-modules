@@ -57,7 +57,7 @@ export default function PaymentArrangements() {
           subtitle="Operational view for compliance officers"
           breadcrumbs={[
             { label: 'Compliance', href: '/compliance/dashboard' },
-            { label: 'Payment Arrangements', href: '#', onClick: () => setSelectedArrangementId(null) },
+            { label: 'Payment Arrangements' },
             { label: 'Detail' },
           ]}
         />
