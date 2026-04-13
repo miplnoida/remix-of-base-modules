@@ -254,6 +254,22 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       // Recalculate schedule number
       if (formData.period) {
         const periodStr = formatPeriodForStorage(formData.period.year, formData.period.month);
+        
+        // Proactive lookup: check for existing editable records (DFT/PEN)
+        const existingRecords = await findAllC3ForPeriod(empId, 'ER', periodStr);
+        if (existingRecords.length > 0) {
+          const editableStatuses = ['DFT', 'PEN'];
+          const editableRecord = existingRecords.find(r => editableStatuses.includes(r.posting_status));
+          if (editableRecord) {
+            toast({
+              title: "Existing Record Found",
+              description: `A ${editableRecord.posting_status === 'DFT' ? 'Draft' : 'Pending'} C3 for this period already exists. Loading existing data for editing.`,
+            });
+            onSave?.({ id: editableRecord.id, autoLoad: true });
+            return;
+          }
+        }
+        
         const scheduleNo = await getScheduleNumber(empId, 'ER', periodStr);
         setFormData(prev => ({ ...prev, schedule: String(scheduleNo) }));
       }
