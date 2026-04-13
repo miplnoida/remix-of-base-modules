@@ -1,101 +1,42 @@
+## Fix: Duplicate Key Violation on C3 Save (SE, ER, VC)
 
+### Problem
 
-# Phase 3 — Notice Automation Implementation Plan
+When saving a C3 form without a `record.id` (treated as "new"), the code does a plain `.insert()` on `cn_c3_reported`. If a record with the same `(payer_id, payer_type, sequence_no, period)` already exists (e.g., user previously saved then returned to create again), the unique constraint `cn_c3_reported_payer_period_unique` rejects it.
 
-## Current State
+All three save functions are affected:
 
-| Component | Status |
-|-----------|--------|
-| `ce_notices` table | Exists — 23 columns, 4 delivered records |
-| `ce_notice_templates` table | Exists — 7 templates seeded |
-| Notices Management UI | Exists — manual create/view at `/compliance/legal/notices` |
-| Notice delivery tracking table | Missing |
-| Auto-generation on violation aging | Missing |
-| Notice status lifecycle (DRAFT→SENT→DELIVERED→ACKNOWLEDGED) | Partial — no transition controls |
-| Response tracking | Schema exists (`response_received`, `response_date`, `response_notes`) — no UI |
-| Violation Detail → Notices tab | Exists — read-only list |
+- `saveC3Draft` (Employer — line 431)
+- `saveSelfContributorC3` (SE — line 1196)
+- `saveVoluntaryContributorC3` (VC — line 1477)
 
-## What Will Be Built
+### Root Cause
 
-### 1. `ce_notice_delivery_log` Table (New)
-Tracks every delivery attempt per notice for full auditability.
+The `record.id` check is the sole mechanism to decide insert vs update. If the UI doesn't pass the existing record's `id` (e.g., navigating to the form fresh for a payer+period that already has a draft), the code always inserts.
 
-```text
-ce_notice_delivery_log
-├── id (UUID PK)
-├── notice_id (FK → ce_notices)
-├── attempt_number (INT)
-├── channel (VARCHAR) — EMAIL, SMS, REGISTERED_MAIL, HAND_DELIVERED
-├── recipient_address (VARCHAR) — email/phone/address used
-├── status (VARCHAR) — PENDING, SENT, DELIVERED, FAILED, BOUNCED
-├── sent_at (TIMESTAMPTZ)
-├── delivered_at (TIMESTAMPTZ)
-├── failure_reason (TEXT)
-├── provider_message_id (VARCHAR) — external tracking ref
-├── created_by (VARCHAR)
-├── created_at (TIMESTAMPTZ)
+### Fix Strategy
+
+For all three functions, before inserting a new record, query `cn_c3_reported` for an existing row matching `(payer_id, payer_type, sequence_no, period)`. If found and editable (DFT/PEN), treat it as an update instead.
+
+### Changes — `src/services/c3Service.ts`
+
+**Add a shared helper function:**
+
+```typescript
+async function findExistingC3(payerId: string, payerType: string, sequenceNo: number, period: string): Promise<string | null>
 ```
 
-### 2. Notice Status Lifecycle Controls
-Add status transition buttons to the Notices Management UI and Violation Detail Notices tab:
-- **DRAFT** → Send (→ SENT)
-- **SENT** → Mark Delivered (→ DELIVERED)
-- **DELIVERED** → Record Acknowledgment (→ ACKNOWLEDGED)
-- **Any active** → Cancel (→ CANCELLED)
-- Each transition inserts a delivery log entry and updates `ce_notices`
+- Queries `cn_c3_reported` for matching `(payer_id, payer_type, sequence_no, period)` with `posting_status` in `('DFT','PEN')`
+- Returns the existing record's `id` if found, else `null`
 
-### 3. Response Tracking UI
-Add "Record Response" action on delivered/acknowledged notices:
-- Captures `response_date`, `response_notes`, sets `response_received = true`
-- Visible in both Notices Management and Violation Detail
+**Update the "else" (new record) branch in all three functions:**
 
-### 4. Auto-Notice Generation on Violation Aging
-Create a new automation job `JOB-NOTICE-GENERATION` with an Edge Function handler:
-- **Rule engine**: Configurable aging thresholds → template mapping
-  - Violation OPEN > 7 days, no notice → generate 1st notice (TPL-VN-001)
-  - Violation OPEN > 21 days, only 1st notice → generate 2nd notice (TPL-VN-002)
-  - Violation OPEN > 45 days, no final → generate Final Warning (TPL-VN-003)
-- **Dedupe**: Skip if an active notice of the same template already exists for that violation
-- **Dry-run support**: Preview what would be generated without creating records
-- **Idempotency**: Uses `NOTICE-GEN-{date}` key pattern
+1. Before inserting, call `findExistingC3(...)`
+2. If an existing editable record is found, switch to the update path (set `modified_by`, `modified_date`, use `.update().eq('id', existingId)`)
+3. If an existing non-editable record is found (VAC/REJ/DEL), return a clear error: "A C3 for this payer/period/schedule already exists and cannot be overwritten"  
+important NOte :- If any c3 for the same period already exists for the same payerid and the sttaus is verified then it should give the pop up to say A c3 for this payer and period already exists you wantt to create a (existing schedule no. +1 ) scheudle for this.  
+basically if the verified c3 is laready exist then it show the create c3 for another schedule basically icresed by 1 if 1 is laready created then it shoudl show for 2.
+4. If no existing record, proceed with insert as before with schedule 1.  
+basically theres a first c3 for any period and payertype then it should always create a schueld 1.
 
-### 5. Notice Service Layer
-New `src/services/noticeService.ts`:
-- `sendNotice(id)` — transitions DRAFT→SENT, creates delivery log
-- `markDelivered(id)` — SENT→DELIVERED
-- `recordAcknowledgment(id)` — DELIVERED→ACKNOWLEDGED
-- `recordResponse(id, notes, date)` — sets response fields
-- `cancelNotice(id, reason)` — any→CANCELLED
-- `fetchDeliveryLog(noticeId)` — returns delivery attempts
-
-### 6. Enhanced Violation Detail Notices Tab
-Upgrade from read-only list to operational:
-- Show notice status with transition buttons
-- Show delivery log per notice (expandable)
-- "Record Response" action
-- Link to full notice body view
-
-### 7. Register Job in `ce_automation_jobs`
-Insert `JOB-NOTICE-GENERATION` as a canonical job with:
-- `job_type: 'employer_compliance'`
-- `frequency: 'daily'`
-- `has_runtime: true`
-
-## Files to Create/Modify
-
-| Action | File |
-|--------|------|
-| Create | `supabase/migrations/xxx_notice_delivery_log.sql` |
-| Create | `supabase/functions/run-notice-generation/index.ts` |
-| Create | `src/services/noticeService.ts` |
-| Modify | `src/pages/compliance/legal/NoticesManagement.tsx` — add status transitions + response recording |
-| Modify | `src/pages/compliance/violations/ViolationDetails.tsx` — enhance Notices tab |
-| Modify | `supabase/functions/run-compliance-job/index.ts` — add routing for `JOB-NOTICE-GENERATION` |
-
-## Phased Delivery Order
-1. Migration: `ce_notice_delivery_log` + seed `JOB-NOTICE-GENERATION` job
-2. Notice service with lifecycle transitions
-3. UI enhancements (Notices Management + Violation Detail)
-4. Edge Function for auto-generation
-5. Wire job dispatcher routing
-
+This approach is the safest — no schema changes needed, preserves the audit trail, and handles all three contributor types identically.
