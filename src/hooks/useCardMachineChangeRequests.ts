@@ -181,7 +181,20 @@ export function useCreateCardMachineChangeRequest() {
         comments: params.comment.trim(),
       });
 
-      // 5. Update request with workflow_instance_id and status to InProgress
+      // 4b. Notify approvers via configurable notification engine (step_entry trigger)
+      try {
+        await supabase.functions.invoke('workflow-process-notifications', {
+          body: {
+            instance_id: instance.id,
+            step_id: FIRST_STEP_ID,
+            trigger: 'step_entry',
+          },
+        });
+        console.log('Card machine change request: approvers notified successfully');
+      } catch (notifyError) {
+        console.error('Failed to process step notifications (non-critical):', notifyError);
+      }
+
       const { error: updError } = await supabase
         .from('cn_card_machine_change_requests')
         .update({
@@ -360,16 +373,18 @@ export function useSkipApprovedChange() {
           metadata: { notification_type: 'approval_skipped', skipped_by: userCode },
         });
 
-        // Notify the requester that the approved change was skipped/cancelled (fire-and-forget)
-        supabase.functions.invoke('workflow-notify-requester', {
+        // Notify via configurable notification engine (action_taken trigger for cancellation)
+        supabase.functions.invoke('workflow-process-notifications', {
           body: {
             instance_id: req.workflow_instance_id,
-            action: 'Cancelled',
+            step_id: FIRST_STEP_ID,
+            trigger: 'action_taken',
+            action_label: 'Cancelled',
             action_by: userCode || 'System',
             comments: params.skipComment.trim(),
           },
         }).then(({ error }) => {
-          if (error) console.error('Requester notification on skip failed (non-blocking):', error);
+          if (error) console.error('Notification processing on skip failed (non-blocking):', error);
         });
       }
     },

@@ -54,6 +54,22 @@ export interface WorkflowActionNotification {
   action_id: string;
   notification_type: string;
   template_id: string | null;
+  recipient_type: string;
+  recipient_role_id: string | null;
+  is_enabled: boolean;
+  module_id: string | null;
+  created_at: string;
+}
+
+export interface WorkflowStepNotification {
+  id: string;
+  step_id: string;
+  notification_type: string;
+  template_id: string | null;
+  module_id: string | null;
+  recipient_type: string;
+  recipient_role_id: string | null;
+  is_enabled: boolean;
   created_at: string;
 }
 
@@ -167,6 +183,12 @@ export function useWorkflowWithSteps(workflowId: string | null) {
             .eq('step_id', step.id)
             .order('display_order', { ascending: true });
           
+          // Fetch step-level notifications
+          const { data: stepNotifications } = await supabase
+            .from('workflow_step_notifications')
+            .select('*')
+            .eq('step_id', step.id);
+          
           // Fetch notifications and field updates for each action
           const actionsWithNotifications = await Promise.all(
             (actions || []).map(async (action: WorkflowStepAction) => {
@@ -185,13 +207,14 @@ export function useWorkflowWithSteps(workflowId: string | null) {
             })
           );
           
-          return { ...step, actions: actionsWithNotifications };
+          return { ...step, actions: actionsWithNotifications, stepNotifications: (stepNotifications || []) as WorkflowStepNotification[] };
         })
       );
       
       return { ...workflow, steps: stepsWithActions } as WorkflowDefinition & { 
         steps: (WorkflowStep & { 
-          actions: (WorkflowStepAction & { notifications: WorkflowActionNotification[] })[] 
+          actions: (WorkflowStepAction & { notifications: WorkflowActionNotification[] })[];
+          stepNotifications: WorkflowStepNotification[];
         })[] 
       };
     },
@@ -486,6 +509,33 @@ export function useSaveWorkflowSteps() {
           stepId = insertedStep.id;
         }
 
+        // Sync step-level notifications
+        const stepNotifications = (step as any).stepNotifications || [];
+        
+        // Delete existing step notifications and replace
+        const { error: deleteStepNotifsError } = await supabase
+          .from('workflow_step_notifications')
+          .delete()
+          .eq('step_id', stepId);
+        if (deleteStepNotifsError) throw deleteStepNotifsError;
+
+        if (stepNotifications.length > 0) {
+          const { error: stepNotifError } = await supabase
+            .from('workflow_step_notifications')
+            .insert(
+              stepNotifications.map((sn: any) => ({
+                step_id: stepId,
+                notification_type: sn.notification_type,
+                template_id: sn.template_id || null,
+                module_id: sn.module_id || null,
+                recipient_type: sn.recipient_type || 'step_approver',
+                recipient_role_id: sn.recipient_role_id || null,
+                is_enabled: sn.is_enabled !== false,
+              }))
+            );
+          if (stepNotifError) throw stepNotifError;
+        }
+
         // Sync actions for this step
         const stepActions = step.actions || [];
 
@@ -569,6 +619,10 @@ export function useSaveWorkflowSteps() {
                   action_id: actionId,
                   notification_type: n.notification_type,
                   template_id: n.template_id,
+                  recipient_type: n.recipient_type || 'next_step_approver',
+                  recipient_role_id: n.recipient_role_id || null,
+                  is_enabled: n.is_enabled !== false,
+                  module_id: n.module_id || null,
                 }))
               );
 

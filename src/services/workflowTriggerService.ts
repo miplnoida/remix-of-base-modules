@@ -215,22 +215,19 @@ export async function triggerIPRegistrationWorkflow({
       details: `Workflow started for IP Registration: ${recordName}`,
     });
 
-    // 9. Notify approvers (non-blocking)
+    // 9. Notify via configurable notification engine (step_entry trigger)
     if (taskData?.id) {
       try {
-        await supabase.functions.invoke('workflow-notify-approvers', {
+        await supabase.functions.invoke('workflow-process-notifications', {
           body: {
             instance_id: instance.id,
             step_id: firstStep.id,
-            task_id: taskData.id,
-            workflow_name: workflowDef.name,
-            source_record_name: recordName,
-            source_module: sourceModule,
+            trigger: 'step_entry',
           },
         });
-        console.log('[workflowTriggerService] Approvers notified successfully');
+        console.log('[workflowTriggerService] Step entry notification processed successfully');
       } catch (notifyError) {
-        console.error('[workflowTriggerService] Failed to notify approvers (non-critical):', notifyError);
+        console.error('[workflowTriggerService] Failed to process step notifications (non-critical):', notifyError);
       }
     }
 

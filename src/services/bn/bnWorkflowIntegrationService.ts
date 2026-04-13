@@ -202,18 +202,15 @@ export async function triggerBnWorkflow(params: BnTriggerWorkflowParams): Promis
       details: `BN workflow started: ${sourceModule} — ${entityName}`,
     });
 
-    // 9. Notify (non-blocking)
+    // 9. Notify via configurable notification engine (step_entry trigger)
     if (taskData?.id) {
-      supabase.functions.invoke('workflow-notify-approvers', {
+      supabase.functions.invoke('workflow-process-notifications', {
         body: {
           instance_id: instance.id,
           step_id: firstStep.id,
-          task_id: taskData.id,
-          workflow_name: workflow.name,
-          source_record_name: entityName,
-          source_module: sourceModule,
+          trigger: 'step_entry',
         },
-      }).catch(err => console.warn('[bnWorkflow] Notify failed (non-critical):', err));
+      }).catch(err => console.warn('[bnWorkflow] Step notification failed (non-critical):', err));
     }
 
     // 10. Log BN audit event

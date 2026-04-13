@@ -41313,21 +41313,33 @@ export type Database = {
           action_id: string
           created_at: string | null
           id: string
+          is_enabled: boolean
+          module_id: string | null
           notification_type: string
+          recipient_role_id: string | null
+          recipient_type: string
           template_id: string | null
         }
         Insert: {
           action_id: string
           created_at?: string | null
           id?: string
+          is_enabled?: boolean
+          module_id?: string | null
           notification_type: string
+          recipient_role_id?: string | null
+          recipient_type?: string
           template_id?: string | null
         }
         Update: {
           action_id?: string
           created_at?: string | null
           id?: string
+          is_enabled?: boolean
+          module_id?: string | null
           notification_type?: string
+          recipient_role_id?: string | null
+          recipient_type?: string
           template_id?: string | null
         }
         Relationships: [
@@ -41336,6 +41348,20 @@ export type Database = {
             columns: ["action_id"]
             isOneToOne: false
             referencedRelation: "workflow_step_actions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_action_notifications_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_action_notifications_recipient_role_id_fkey"
+            columns: ["recipient_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
             referencedColumns: ["id"]
           },
         ]
@@ -42304,6 +42330,71 @@ export type Database = {
             columns: ["step_id"]
             isOneToOne: false
             referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_step_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          module_id: string | null
+          notification_type: string
+          recipient_role_id: string | null
+          recipient_type: string
+          step_id: string
+          template_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          module_id?: string | null
+          notification_type: string
+          recipient_role_id?: string | null
+          recipient_type?: string
+          step_id: string
+          template_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          module_id?: string | null
+          notification_type?: string
+          recipient_role_id?: string | null
+          recipient_type?: string
+          step_id?: string
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_step_notifications_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_step_notifications_recipient_role_id_fkey"
+            columns: ["recipient_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_step_notifications_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_step_notifications_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
             referencedColumns: ["id"]
           },
         ]
