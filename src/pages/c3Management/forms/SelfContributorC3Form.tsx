@@ -80,6 +80,10 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   const [notes, setNotes] = useState(data?.notes || "");
   const [recordId, setRecordId] = useState<string | null>(data?.id || null);
 
+  // Schedule prompt dialog state
+  const [schedulePromptOpen, setSchedulePromptOpen] = useState(false);
+  const [suggestedScheduleNo, setSuggestedScheduleNo] = useState<number>(1);
+
   // Auto-populated fields
   const [name, setName] = useState(data?.payerName || "");
   const [address, setAddress] = useState(data?.payerAddress || "");
@@ -513,6 +517,10 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         }
         toast({ title: "Success", description: "C3 record saved successfully" });
         onSave?.(result.data);
+      } else if (result.data?.promptNextSchedule) {
+        // Show confirmation dialog instead of error
+        setSuggestedScheduleNo(result.data.sequence_no);
+        setSchedulePromptOpen(true);
       } else {
         toast({ title: "Error", description: result.error || "Failed to save record", variant: "destructive" });
       }
