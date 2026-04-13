@@ -161,6 +161,8 @@ export default function PaymentArrangements() {
                   <div className="w-full bg-muted rounded-full h-2"><div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${((selectedArrangement.installments_paid || 0) / (selectedArrangement.number_of_installments || 1)) * 100}%` }} /></div>
                 </CardContent></Card>
               </div>
+              {/* Read-only compliance summary for this employer */}
+              <EmployerComplianceSummaryCard employerId={selectedArrangement.employer_id} compact />
             </div>
           )}
           <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button></DialogFooter>
