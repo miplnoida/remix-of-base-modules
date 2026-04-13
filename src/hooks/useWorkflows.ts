@@ -585,6 +585,10 @@ export function useSaveWorkflowSteps() {
                   action_id: actionId,
                   notification_type: n.notification_type,
                   template_id: n.template_id,
+                  recipient_type: n.recipient_type || 'next_step_approver',
+                  recipient_role_id: n.recipient_role_id || null,
+                  is_enabled: n.is_enabled !== false,
+                  module_id: n.module_id || null,
                 }))
               );
 
