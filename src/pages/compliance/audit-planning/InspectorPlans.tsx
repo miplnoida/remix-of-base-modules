@@ -155,7 +155,7 @@ export default function InspectorPlans() {
                         <span className="flex items-center gap-1">{getStatusIcon(plan.status)}{(plan.status || '').replace('PLAN_', '').replace('_', ' ')}</span>
                       </Badge>
                     </TableCell>
-                    <TableCell>{plan.total_planned_visits || (plan.ce_planned_visits?.length ?? 0)}</TableCell>
+                    <TableCell>{plan.total_planned_visits || (plan.ce_weekly_plan_items?.length ?? 0)}</TableCell>
                     <TableCell>{plan.completed_visits || 0}</TableCell>
                     <TableCell className="text-right"><Button variant="ghost" size="sm" onClick={() => { setSelectedPlan(plan); setViewDialogOpen(true); }}><Eye className="h-4 w-4" /></Button></TableCell>
                   </TableRow>
@@ -221,7 +221,7 @@ export default function InspectorPlans() {
               <div className="grid grid-cols-2 gap-4">
                 <div><Label className="text-muted-foreground">Week Period</Label><p className="font-medium">{selectedPlan.week_start_date} - {selectedPlan.week_end_date}</p></div>
                 <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><Badge className={getStatusColor(selectedPlan.status)}>{(selectedPlan.status || '').replace('PLAN_', '').replace('_', ' ')}</Badge></div></div>
-                <div><Label className="text-muted-foreground">Planned Visits</Label><p className="font-medium">{selectedPlan.total_planned_visits || (selectedPlan.ce_planned_visits?.length ?? 0)}</p></div>
+                <div><Label className="text-muted-foreground">Planned Visits</Label><p className="font-medium">{selectedPlan.total_planned_visits || (selectedPlan.ce_weekly_plan_items?.length ?? 0)}</p></div>
                 <div><Label className="text-muted-foreground">Completed Visits</Label><p className="font-medium text-green-600">{selectedPlan.completed_visits || 0}</p></div>
               </div>
               {selectedPlan.supervisor_comments && (
