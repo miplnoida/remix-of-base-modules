@@ -361,6 +361,15 @@ export default function WorkflowForm() {
             })),
             fieldUpdates: (action as any).fieldUpdates || [],
           })),
+          stepNotifications: ((step as any).stepNotifications || []).map((sn: any) => ({
+            id: sn.id,
+            notification_type: sn.notification_type,
+            template_id: sn.template_id || null,
+            module_id: sn.module_id || null,
+            recipient_type: sn.recipient_type || 'step_approver',
+            recipient_role_id: sn.recipient_role_id || null,
+            is_enabled: sn.is_enabled !== false,
+          })),
         }))
       );
     }
