@@ -39,6 +39,7 @@ const statusColor = (s: string) => {
 const formatStatus = (s: string) => s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
 const CaseManagement = () => {
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
