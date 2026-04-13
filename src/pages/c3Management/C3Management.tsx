@@ -1460,10 +1460,10 @@ export default function C3Management() {
                             e.stopPropagation();
                             handleSubmitFromList(record);
                           }}
-                          disabled={isSubmittingC3}
+                          disabled={submittingC3Id === record.id}
                           className="gap-1"
                         >
-                          {isSubmittingC3 ? (
+                          {submittingC3Id === record.id ? (
                             <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
                             <Send className="h-3 w-3" />
