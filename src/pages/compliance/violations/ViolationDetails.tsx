@@ -6,36 +6,89 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, Bell, DollarSign, History, AlertCircle, MessageSquare, Mail, ListChecks, Loader2, Eye, MapPin, Users, UserCheck, ClipboardCheck, CheckCircle, XCircle, RotateCcw, ArrowUpCircle, Building2 } from 'lucide-react';
+import {
+  FileText, Bell, History, AlertCircle, MessageSquare, Mail, ListChecks,
+  Loader2, Eye, MapPin, UserCheck, ClipboardCheck,
+  Play, Search, ArrowUpCircle, CheckCircle, XCircle, RotateCcw, Lock, Building2
+} from 'lucide-react';
 import { ViolationNotesTab } from '@/components/compliance/ViolationNotesTab';
 import { ViolationCorrespondenceTab } from '@/components/compliance/ViolationCorrespondenceTab';
 import { ViolationActionPlanTab } from '@/components/compliance/ViolationActionPlanTab';
 import { ViolationFollowUpsTab } from '@/components/compliance/ViolationFollowUpsTab';
 import { ViolationNoticesTab } from '@/components/compliance/ViolationNoticesTab';
 import { ViolationResolutionDialog } from '@/components/compliance/ViolationResolutionDialog';
-import { ViolationActionConfirmDialog } from '@/components/compliance/ViolationActionConfirmDialog';
-import { closeViolation, reopenViolation, cancelViolation, escalateViolation } from '@/services/violationLifecycleService';
+import { ViolationActionConfirmDialog, ConfirmActionType } from '@/components/compliance/ViolationActionConfirmDialog';
+import { violationLifecycleService, ViolationStatus } from '@/services/violationLifecycleService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchViolationById } from '@/services/complianceDataService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+// ============================================
+// ACTION BUTTON CONFIGURATION PER STATUS
+// ============================================
+interface ActionButtonDef {
+  label: string;
+  icon: React.ReactNode;
+  targetStatus: ViolationStatus;
+  confirmType?: ConfirmActionType;
+  variant: 'default' | 'destructive' | 'outline' | 'secondary';
+  useResolutionDialog?: 'resolve' | 'close';
+}
+
+const STATUS_ACTIONS: Record<string, ActionButtonDef[]> = {
+  OPEN: [
+    { label: 'Start Work', icon: <Play className="h-4 w-4" />, targetStatus: 'IN_PROGRESS', confirmType: 'start_work', variant: 'default' },
+    { label: 'Move to Review', icon: <Search className="h-4 w-4" />, targetStatus: 'UNDER_REVIEW', confirmType: 'move_to_review', variant: 'outline' },
+    { label: 'Escalate', icon: <ArrowUpCircle className="h-4 w-4" />, targetStatus: 'ESCALATED', confirmType: 'escalate', variant: 'destructive' },
+    { label: 'Resolve', icon: <CheckCircle className="h-4 w-4" />, targetStatus: 'RESOLVED', variant: 'default', useResolutionDialog: 'resolve' },
+    { label: 'Cancel', icon: <XCircle className="h-4 w-4" />, targetStatus: 'CANCELLED', confirmType: 'cancel', variant: 'destructive' },
+  ],
+  IN_PROGRESS: [
+    { label: 'Move to Review', icon: <Search className="h-4 w-4" />, targetStatus: 'UNDER_REVIEW', confirmType: 'move_to_review', variant: 'outline' },
+    { label: 'Escalate', icon: <ArrowUpCircle className="h-4 w-4" />, targetStatus: 'ESCALATED', confirmType: 'escalate', variant: 'destructive' },
+    { label: 'Resolve', icon: <CheckCircle className="h-4 w-4" />, targetStatus: 'RESOLVED', variant: 'default', useResolutionDialog: 'resolve' },
+    { label: 'Cancel', icon: <XCircle className="h-4 w-4" />, targetStatus: 'CANCELLED', confirmType: 'cancel', variant: 'destructive' },
+  ],
+  UNDER_REVIEW: [
+    { label: 'Return to Open', icon: <RotateCcw className="h-4 w-4" />, targetStatus: 'OPEN', confirmType: 'return_to_open', variant: 'outline' },
+    { label: 'Start Work', icon: <Play className="h-4 w-4" />, targetStatus: 'IN_PROGRESS', confirmType: 'start_work', variant: 'default' },
+    { label: 'Escalate', icon: <ArrowUpCircle className="h-4 w-4" />, targetStatus: 'ESCALATED', confirmType: 'escalate', variant: 'destructive' },
+    { label: 'Resolve', icon: <CheckCircle className="h-4 w-4" />, targetStatus: 'RESOLVED', variant: 'default', useResolutionDialog: 'resolve' },
+    { label: 'Cancel', icon: <XCircle className="h-4 w-4" />, targetStatus: 'CANCELLED', confirmType: 'cancel', variant: 'destructive' },
+  ],
+  ESCALATED: [
+    { label: 'De-escalate to Review', icon: <RotateCcw className="h-4 w-4" />, targetStatus: 'UNDER_REVIEW', confirmType: 'de_escalate', variant: 'outline' },
+    { label: 'Resolve', icon: <CheckCircle className="h-4 w-4" />, targetStatus: 'RESOLVED', variant: 'default', useResolutionDialog: 'resolve' },
+    { label: 'Cancel', icon: <XCircle className="h-4 w-4" />, targetStatus: 'CANCELLED', confirmType: 'cancel', variant: 'destructive' },
+  ],
+  RESOLVED: [
+    { label: 'Close', icon: <Lock className="h-4 w-4" />, targetStatus: 'CLOSED', variant: 'default', useResolutionDialog: 'close' },
+    { label: 'Reopen', icon: <RotateCcw className="h-4 w-4" />, targetStatus: 'OPEN', confirmType: 'reopen', variant: 'outline' },
+  ],
+  CLOSED: [
+    { label: 'Reopen', icon: <RotateCcw className="h-4 w-4" />, targetStatus: 'OPEN', confirmType: 'reopen', variant: 'outline' },
+  ],
+  CANCELLED: [
+    { label: 'Reopen', icon: <RotateCcw className="h-4 w-4" />, targetStatus: 'OPEN', confirmType: 'reopen', variant: 'outline' },
+  ],
+};
 
 export default function ViolationDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
-  const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
-  const [closeDialogOpen, setCloseDialogOpen] = useState(false);
-  const [reopenDialogOpen, setReopenDialogOpen] = useState(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [escalateDialogOpen, setEscalateDialogOpen] = useState(false);
-  const userCode = 'SYS'; // TODO: replace with actual user code from auth context
 
-  const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ['ce_violation', id] });
-    queryClient.invalidateQueries({ queryKey: ['ce_violation_history', id] });
-  };
+  // Lifecycle dialog state
+  const [resolutionDialogOpen, setResolutionDialogOpen] = useState(false);
+  const [resolutionMode, setResolutionMode] = useState<'resolve' | 'close'>('resolve');
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [confirmActionType, setConfirmActionType] = useState<ConfirmActionType>('start_work');
+  const [pendingTargetStatus, setPendingTargetStatus] = useState<ViolationStatus>('IN_PROGRESS');
+
+  // TODO: Replace with real auth context
+  const currentUserCode = 'SYSTEM';
 
   const { data: violationData, isLoading: loadingCase } = useQuery({
     queryKey: ['ce_violation', id],
@@ -43,7 +96,6 @@ export default function ViolationDetails() {
     enabled: !!id,
   });
 
-  // Fetch other violations for the same employer
   const { data: otherViolations = [] } = useQuery({
     queryKey: ['ce_violations_employer', violationData?.employer_id, id],
     queryFn: async () => {
@@ -62,7 +114,6 @@ export default function ViolationDetails() {
     enabled: !!violationData?.employer_id,
   });
 
-  // Fetch violation history from ce_violation_history
   const { data: violationHistory = [] } = useQuery({
     queryKey: ['ce_violation_history', id],
     queryFn: async () => {
@@ -77,7 +128,6 @@ export default function ViolationDetails() {
     enabled: !!id,
   });
 
-  // Notices count for tab badge
   const { data: violationNoticesCount = 0 } = useQuery({
     queryKey: ['ce_notices_violation_count', id],
     queryFn: async () => {
@@ -91,7 +141,6 @@ export default function ViolationDetails() {
     enabled: !!id,
   });
 
-  // Fetch assignment history
   const { data: assignmentHistory = [] } = useQuery({
     queryKey: ['ce_violation_assignments', id],
     queryFn: async () => {
@@ -106,6 +155,69 @@ export default function ViolationDetails() {
     enabled: !!id,
   });
 
+  // ============================================
+  // LIFECYCLE TRANSITION HANDLERS
+  // ============================================
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['ce_violation', id] });
+    queryClient.invalidateQueries({ queryKey: ['ce_violation_history', id] });
+  };
+
+  const handleActionClick = (action: ActionButtonDef) => {
+    if (action.useResolutionDialog) {
+      setResolutionMode(action.useResolutionDialog);
+      setResolutionDialogOpen(true);
+    } else if (action.confirmType) {
+      setConfirmActionType(action.confirmType);
+      setPendingTargetStatus(action.targetStatus);
+      setConfirmDialogOpen(true);
+    }
+  };
+
+  const handleResolutionConfirm = async (data: { resolutionType: string; notes: string; resolutionNotes: string }) => {
+    if (resolutionMode === 'resolve') {
+      const result = await violationLifecycleService.resolve(
+        id!, currentUserCode,
+        `[${data.resolutionType}] ${data.resolutionNotes}`,
+        data.notes || `Resolved as ${data.resolutionType}`
+      );
+      if (result.success) {
+        toast.success('Violation resolved', { description: `${result.previousStatus} → RESOLVED` });
+        invalidateAll();
+      } else {
+        toast.error('Failed to resolve', { description: result.error });
+      }
+    } else {
+      const result = await violationLifecycleService.close(id!, currentUserCode, data.notes);
+      if (result.success) {
+        toast.success('Violation closed', { description: 'The violation has been finalised.' });
+        invalidateAll();
+      } else {
+        toast.error('Failed to close', { description: result.error });
+      }
+    }
+  };
+
+  const handleConfirmAction = async (notes: string) => {
+    const result = await violationLifecycleService.transition({
+      violationId: id!,
+      targetStatus: pendingTargetStatus,
+      performedBy: currentUserCode,
+      notes,
+    });
+    if (result.success) {
+      toast.success(`Status updated: ${result.newStatus?.replace(/_/g, ' ')}`, {
+        description: `Transitioned from ${result.previousStatus}`,
+      });
+      invalidateAll();
+    } else {
+      toast.error('Transition failed', { description: result.error });
+    }
+  };
+
+  // ============================================
+  // HELPERS
+  // ============================================
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       OPEN: 'bg-primary/10 text-primary',
@@ -159,9 +271,10 @@ export default function ViolationDetails() {
   const v = violationData as any;
   const typeName = v.ce_violation_types?.name ?? 'Unknown Type';
   const typeCategory = v.ce_violation_types?.category ?? '';
+  const currentStatus = (v.status as string) || 'OPEN';
+  const availableActions = STATUS_ACTIONS[currentStatus] || [];
 
   return (
-    <>
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
         title={`Violation: ${v.violation_number}`}
@@ -173,15 +286,15 @@ export default function ViolationDetails() {
         ]}
       />
 
-      {/* Violation Header */}
+      {/* Violation Header with Action Buttons */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <CardTitle className="text-2xl">{v.violation_number}</CardTitle>
-                <Badge className={getStatusColor(v.status)}>
-                  {v.status?.replace(/_/g, ' ')}
+                <Badge className={getStatusColor(currentStatus)}>
+                  {currentStatus.replace(/_/g, ' ')}
                 </Badge>
                 <Badge className={getPriorityColor(v.priority)}>
                   {v.priority}
@@ -198,41 +311,35 @@ export default function ViolationDetails() {
               </div>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {v.employer_id && (
-              <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/employer-360/${v.employer_id}`)}>
-                <Building2 className="h-4 w-4 mr-1" />Employer 360
+
+          {/* Lifecycle Action Buttons */}
+          <div className="flex items-center gap-2 flex-wrap pt-3 border-t mt-4">
+            {availableActions.map((action) => (
+              <Button
+                key={action.label}
+                variant={action.variant}
+                size="sm"
+                onClick={() => handleActionClick(action)}
+              >
+                {action.icon}
+                <span className="ml-1">{action.label}</span>
               </Button>
-            )}
-            {['OPEN', 'UNDER_REVIEW', 'ESCALATED'].includes(v.status) && (
-              <Button size="sm" variant="default" onClick={() => setResolveDialogOpen(true)}>
-                <CheckCircle className="h-4 w-4 mr-1" />Resolve
-              </Button>
-            )}
-            {v.status === 'RESOLVED' && (
-              <Button size="sm" variant="default" onClick={() => setCloseDialogOpen(true)}>
-                <CheckCircle className="h-4 w-4 mr-1" />Close
-              </Button>
-            )}
-            {['OPEN', 'UNDER_REVIEW'].includes(v.status) && (
-              <Button size="sm" variant="outline" className="text-destructive border-destructive" onClick={() => setEscalateDialogOpen(true)}>
-                <ArrowUpCircle className="h-4 w-4 mr-1" />Escalate
-              </Button>
-            )}
-            {['RESOLVED', 'CLOSED', 'CANCELLED'].includes(v.status) && (
-              <Button size="sm" variant="outline" onClick={() => setReopenDialogOpen(true)}>
-                <RotateCcw className="h-4 w-4 mr-1" />Reopen
-              </Button>
-            )}
-            {!['CANCELLED', 'CLOSED'].includes(v.status) && (
-              <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setCancelDialogOpen(true)}>
-                <XCircle className="h-4 w-4 mr-1" />Cancel
-              </Button>
-            )}
+            ))}
+            {/* Navigation buttons */}
+            <div className="ml-auto flex gap-2">
+              {v.employer_id && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/compliance/employer-360/${v.employer_id}`)}
+                >
+                  <Building2 className="h-4 w-4 mr-1" />
+                  Employer 360
+                </Button>
+              )}
+            </div>
           </div>
-        </CardContent>
+        </CardHeader>
       </Card>
 
       {/* Financial Summary */}
@@ -325,7 +432,7 @@ export default function ViolationDetails() {
           <TabsTrigger value="notes"><MessageSquare className="h-4 w-4 mr-2" />Notes</TabsTrigger>
           <TabsTrigger value="correspondence"><Mail className="h-4 w-4 mr-2" />Correspondence</TabsTrigger>
           <TabsTrigger value="actions"><ListChecks className="h-4 w-4 mr-2" />Action Plan</TabsTrigger>
-          <TabsTrigger value="history"><History className="h-4 w-4 mr-2" />History</TabsTrigger>
+          <TabsTrigger value="history"><History className="h-4 w-4 mr-2" />History ({violationHistory.length})</TabsTrigger>
           <TabsTrigger value="notices"><Bell className="h-4 w-4 mr-2" />Notices ({violationNoticesCount})</TabsTrigger>
           <TabsTrigger value="other-violations"><AlertCircle className="h-4 w-4 mr-2" />Other ({otherViolations.length})</TabsTrigger>
         </TabsList>
@@ -408,11 +515,7 @@ export default function ViolationDetails() {
         </TabsContent>
 
         <TabsContent value="correspondence" className="space-y-4">
-          <ViolationCorrespondenceTab
-            violationId={v.id}
-            employerId={v.employer_id}
-            employerName={v.employer_name}
-          />
+          <ViolationCorrespondenceTab violationId={v.id} employerId={v.employer_id} employerName={v.employer_name} />
         </TabsContent>
 
         <TabsContent value="follow-ups" className="space-y-4">
@@ -435,7 +538,8 @@ export default function ViolationDetails() {
                     <TableRow>
                       <TableHead>Date</TableHead>
                       <TableHead>Action</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>From</TableHead>
+                      <TableHead>To</TableHead>
                       <TableHead>Performed By</TableHead>
                       <TableHead>Notes</TableHead>
                     </TableRow>
@@ -444,13 +548,18 @@ export default function ViolationDetails() {
                     {violationHistory.map((h: any) => (
                       <TableRow key={h.id}>
                         <TableCell>{h.performed_at ? formatDate(h.performed_at) : '-'}</TableCell>
-                        <TableCell>{h.action || '-'}</TableCell>
+                        <TableCell className="font-medium">{h.action || '-'}</TableCell>
                         <TableCell>
-                          <Badge className={getStatusColor(h.new_status || h.status || '')}>
-                            {h.new_status || h.status || '-'}
+                          {h.from_value ? (
+                            <Badge variant="outline">{h.from_value.replace(/_/g, ' ')}</Badge>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(h.to_value || '')}>
+                            {h.to_value?.replace(/_/g, ' ') || '-'}
                           </Badge>
                         </TableCell>
-                        <TableCell>{h.performed_by_name || h.performed_by || '-'}</TableCell>
+                        <TableCell>{h.performed_by || '-'}</TableCell>
                         <TableCell className="max-w-xs truncate">{h.notes || '-'}</TableCell>
                       </TableRow>
                     ))}
@@ -546,73 +655,23 @@ export default function ViolationDetails() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
 
       {/* Lifecycle Dialogs */}
       <ViolationResolutionDialog
-        open={resolveDialogOpen}
-        onOpenChange={setResolveDialogOpen}
-        violationId={id!}
+        open={resolutionDialogOpen}
+        onOpenChange={setResolutionDialogOpen}
         violationNumber={v.violation_number}
-        userCode={userCode}
-        onSuccess={invalidateAll}
+        mode={resolutionMode}
+        onConfirm={handleResolutionConfirm}
       />
 
       <ViolationActionConfirmDialog
-        open={closeDialogOpen}
-        onOpenChange={setCloseDialogOpen}
-        title="Close Violation"
-        description={`Close ${v.violation_number}? This marks the violation as fully complete.`}
-        actionLabel="Close Violation"
-        onConfirm={async () => {
-          const result = await closeViolation(id!, userCode);
-          if (result.success) { toast.success('Violation closed'); invalidateAll(); }
-          else toast.error(result.error);
-        }}
+        open={confirmDialogOpen}
+        onOpenChange={setConfirmDialogOpen}
+        violationNumber={v.violation_number}
+        actionType={confirmActionType}
+        onConfirm={handleConfirmAction}
       />
-
-      <ViolationActionConfirmDialog
-        open={reopenDialogOpen}
-        onOpenChange={setReopenDialogOpen}
-        title="Reopen Violation"
-        description={`Reopen ${v.violation_number}? This will set the status back to OPEN.`}
-        actionLabel="Reopen"
-        requireReason
-        onConfirm={async (reason) => {
-          const result = await reopenViolation(id!, reason, userCode);
-          if (result.success) { toast.success('Violation reopened'); invalidateAll(); }
-          else toast.error(result.error);
-        }}
-      />
-
-      <ViolationActionConfirmDialog
-        open={cancelDialogOpen}
-        onOpenChange={setCancelDialogOpen}
-        title="Cancel Violation"
-        description={`Cancel ${v.violation_number}? This cannot easily be undone.`}
-        actionLabel="Cancel Violation"
-        variant="destructive"
-        requireReason
-        onConfirm={async (reason) => {
-          const result = await cancelViolation(id!, reason, userCode);
-          if (result.success) { toast.success('Violation cancelled'); invalidateAll(); }
-          else toast.error(result.error);
-        }}
-      />
-
-      <ViolationActionConfirmDialog
-        open={escalateDialogOpen}
-        onOpenChange={setEscalateDialogOpen}
-        title="Escalate Violation"
-        description={`Escalate ${v.violation_number}? This raises priority and notifies supervisors.`}
-        actionLabel="Escalate"
-        requireReason
-        onConfirm={async (reason) => {
-          const result = await escalateViolation(id!, userCode, reason);
-          if (result.success) { toast.success('Violation escalated'); invalidateAll(); }
-          else toast.error(result.error);
-        }}
-      />
-    </>
+    </div>
   );
 }

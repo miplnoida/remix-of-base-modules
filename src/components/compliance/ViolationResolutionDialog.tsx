@@ -1,94 +1,130 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, CheckCircle } from 'lucide-react';
-import { resolveViolation, ResolutionType, RESOLUTION_TYPE_LABELS } from '@/services/violationLifecycleService';
-import { toast } from 'sonner';
 
 interface ViolationResolutionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  violationId: string;
   violationNumber: string;
-  userCode: string;
-  onSuccess: () => void;
+  /** 'resolve' = OPEN/IN_PROGRESS/etc → RESOLVED; 'close' = RESOLVED → CLOSED */
+  mode: 'resolve' | 'close';
+  onConfirm: (data: { resolutionType: string; notes: string; resolutionNotes: string }) => Promise<void>;
 }
 
-export function ViolationResolutionDialog({
-  open, onOpenChange, violationId, violationNumber, userCode, onSuccess,
-}: ViolationResolutionDialogProps) {
-  const [resolutionType, setResolutionType] = useState<ResolutionType | ''>('');
+const RESOLUTION_TYPES = [
+  { value: 'PAYMENT_RECEIVED', label: 'Payment Received' },
+  { value: 'FILING_SUBMITTED', label: 'Filing Submitted' },
+  { value: 'EMPLOYER_COMPLIED', label: 'Employer Complied' },
+  { value: 'ARRANGEMENT_ENTERED', label: 'Payment Arrangement Entered' },
+  { value: 'DUPLICATE', label: 'Duplicate — Merged with Another' },
+  { value: 'ERROR', label: 'Created in Error' },
+  { value: 'WAIVED', label: 'Waived / Overridden' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+export function ViolationResolutionDialog({ open, onOpenChange, violationNumber, mode, onConfirm }: ViolationResolutionDialogProps) {
+  const [resolutionType, setResolutionType] = useState('');
   const [notes, setNotes] = useState('');
+  const [resolutionNotes, setResolutionNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const isResolve = mode === 'resolve';
+  const title = isResolve ? `Resolve Violation ${violationNumber}` : `Close Violation ${violationNumber}`;
+
+  const canSubmit = isResolve
+    ? resolutionType && resolutionNotes.trim().length >= 5
+    : notes.trim().length >= 5;
+
   const handleSubmit = async () => {
-    if (!resolutionType) { toast.error('Please select a resolution type'); return; }
-    if (!notes.trim()) { toast.error('Resolution notes are required'); return; }
-
+    if (!canSubmit) return;
     setSubmitting(true);
-    const result = await resolveViolation(violationId, resolutionType, notes.trim(), userCode);
-    setSubmitting(false);
-
-    if (result.success) {
-      toast.success(`Violation ${violationNumber} resolved`);
-      setResolutionType('');
-      setNotes('');
+    try {
+      await onConfirm({ resolutionType, notes, resolutionNotes });
+      resetForm();
       onOpenChange(false);
-      onSuccess();
-    } else {
-      toast.error(result.error || 'Failed to resolve violation');
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  const resetForm = () => {
+    setResolutionType('');
+    setNotes('');
+    setResolutionNotes('');
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={(v) => { if (!submitting) { if (!v) resetForm(); onOpenChange(v); } }}>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-600" />
-            Resolve Violation
+            {title}
           </DialogTitle>
           <DialogDescription>
-            Mark {violationNumber} as resolved. This will stop escalation processing.
+            {isResolve
+              ? 'Provide the resolution details. This action marks the violation as resolved and creates an audit record.'
+              : 'Provide closure notes. This action finalises the violation as closed.'
+            }
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Resolution Type *</Label>
-            <Select value={resolutionType} onValueChange={(v) => setResolutionType(v as ResolutionType)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select resolution type..." />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(RESOLUTION_TYPE_LABELS).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-4 py-2">
+          {isResolve && (
+            <div className="space-y-2">
+              <Label htmlFor="resolution-type">Resolution Type *</Label>
+              <Select value={resolutionType} onValueChange={setResolutionType}>
+                <SelectTrigger id="resolution-type">
+                  <SelectValue placeholder="Select resolution type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {RESOLUTION_TYPES.map(rt => (
+                    <SelectItem key={rt.value} value={rt.value}>{rt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {isResolve && (
+            <div className="space-y-2">
+              <Label htmlFor="resolution-notes">Resolution Notes * <span className="text-xs text-muted-foreground">(min 5 chars)</span></Label>
+              <Textarea
+                id="resolution-notes"
+                placeholder="Describe how this violation was resolved..."
+                value={resolutionNotes}
+                onChange={(e) => setResolutionNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
-            <Label>Resolution Notes *</Label>
+            <Label htmlFor="transition-notes">
+              {isResolve ? 'Additional Notes' : 'Closure Notes *'}
+              {!isResolve && <span className="text-xs text-muted-foreground ml-1">(min 5 chars)</span>}
+            </Label>
             <Textarea
+              id="transition-notes"
+              placeholder={isResolve ? 'Any additional comments...' : 'Provide closure justification...'}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Describe how this violation was resolved..."
-              rows={4}
-              maxLength={500}
+              rows={2}
             />
-            <p className="text-xs text-muted-foreground text-right">{notes.length}/500</p>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || !resolutionType || !notes.trim()}>
-            {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Resolve Violation
+          <Button variant="outline" onClick={() => { resetForm(); onOpenChange(false); }} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={!canSubmit || submitting}>
+            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isResolve ? 'Resolve Violation' : 'Close Violation'}
           </Button>
         </DialogFooter>
       </DialogContent>
