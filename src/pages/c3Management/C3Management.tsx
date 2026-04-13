@@ -52,7 +52,7 @@ export default function C3Management() {
   } = useC3Management();
   
   // C3 Submit Hook for workflow integration
-  const { submitC3Record, isSubmitting: isSubmittingC3 } = useC3Submit();
+  const { submitC3Record, submittingId: submittingC3Id } = useC3Submit();
 
   const [isLoadingRecord, setIsLoadingRecord] = useState(false);
   const [isQueryExpanded, setIsQueryExpanded] = useState(false);

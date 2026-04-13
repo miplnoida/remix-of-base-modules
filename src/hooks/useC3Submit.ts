@@ -289,9 +289,11 @@ const triggerC3Workflow = async (
  * Similar to useIPRegistrationSubmit.
  */
 export function useC3Submit() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingId, setSubmittingId] = useState<string | null>(null);
   const submissionInProgressRef = useRef(false);
   const { userCode, userId } = useUserCode();
+
+  const isSubmitting = !!submittingId;
 
   /**
    * Submit a C3 record - transitions from DFT to PEN and triggers workflow if configured.
@@ -307,7 +309,7 @@ export function useC3Submit() {
     }
 
     submissionInProgressRef.current = true;
-    setIsSubmitting(true);
+    setSubmittingId(c3Id);
 
     try {
       // Call the submit_c3_record RPC
@@ -346,7 +348,7 @@ export function useC3Submit() {
         error: formatDbError(error),
       };
     } finally {
-      setIsSubmitting(false);
+      setSubmittingId(null);
       submissionInProgressRef.current = false;
     }
   }, [userId, userCode]);
@@ -354,5 +356,6 @@ export function useC3Submit() {
   return {
     submitC3Record,
     isSubmitting,
+    submittingId,
   };
 }
