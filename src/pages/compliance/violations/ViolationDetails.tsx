@@ -61,17 +61,16 @@ export default function ViolationDetails() {
     enabled: !!id,
   });
 
-  // Fetch notices linked to this violation
-  const { data: violationNotices = [] } = useQuery({
-    queryKey: ['ce_notices_violation', id],
+  // Notices count for tab badge
+  const { data: violationNoticesCount = 0 } = useQuery({
+    queryKey: ['ce_notices_violation_count', id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from('ce_notices')
-        .select('*')
-        .eq('violation_id', id!)
-        .order('created_at', { ascending: false });
-      if (error) return [];
-      return data ?? [];
+        .select('id', { count: 'exact', head: true })
+        .eq('violation_id', id!);
+      if (error) return 0;
+      return count ?? 0;
     },
     enabled: !!id,
   });
