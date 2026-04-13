@@ -15,7 +15,8 @@ import { useC3Submit } from "@/hooks/useC3Submit";
 import { 
   validateVoluntaryContributorSSN, 
   getNextScheduleNo,
-  saveVoluntaryContributorC3 
+  saveVoluntaryContributorC3,
+  findAllC3ForPeriod
 } from "@/services/c3Service";
 import { getMondaysInMonth } from "@/utils/selfContributorPenaltyCalculations";
 import { postingStatusToDisplayStatus } from "@/hooks/useC3Management";
