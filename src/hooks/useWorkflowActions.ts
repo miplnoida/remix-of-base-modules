@@ -635,17 +635,20 @@ export function useExecuteWorkflowAction() {
           configuredResultStatus
         );
 
-        // Notify the requester about the final outcome (fire-and-forget)
-        supabase.functions.invoke('workflow-notify-requester', {
+        // Notify via configurable notification engine (fire-and-forget)
+        supabase.functions.invoke('workflow-process-notifications', {
           body: {
             instance_id: task.instance_id,
-            action: endState === 'Rejected' ? 'Rejected' : 'Approved',
+            step_id: task.step_id,
+            action_id: actionId,
+            trigger: 'action_taken',
+            action_label: endState === 'Rejected' ? 'Rejected' : 'Approved',
             action_by: profile?.user_code || 'System',
             action_by_name: profile?.full_name || profile?.user_code || 'System',
             comments,
           },
         }).then(({ error }) => {
-          if (error) console.error('Requester notification failed (non-blocking):', error);
+          if (error) console.error('Notification processing failed (non-blocking):', error);
         });
       } else if (nextStepType === 'send_back_to_applicant') {
         // Put workflow in Query state
@@ -694,17 +697,20 @@ export function useExecuteWorkflowAction() {
             configuredResultStatus
           );
 
-          // Notify the requester about approval (fire-and-forget)
-          supabase.functions.invoke('workflow-notify-requester', {
+          // Notify via configurable notification engine (fire-and-forget)
+          supabase.functions.invoke('workflow-process-notifications', {
             body: {
               instance_id: task.instance_id,
-              action: 'Approved',
+              step_id: task.step_id,
+              action_id: actionId,
+              trigger: 'action_taken',
+              action_label: 'Approved',
               action_by: profile?.user_code || 'System',
               action_by_name: profile?.full_name || profile?.user_code || 'System',
               comments,
             },
           }).then(({ error }) => {
-            if (error) console.error('Requester notification failed (non-blocking):', error);
+            if (error) console.error('Notification processing failed (non-blocking):', error);
           });
         } else {
           // Find next step
@@ -1068,22 +1074,19 @@ async function createNextStepTask(instanceId: string, stepId: string) {
     })
     .eq('id', instanceId);
 
-  // Notify approvers for the next step
+  // Notify via configurable notification engine (step_entry trigger)
   if (taskData?.id && instance) {
     try {
-      await supabase.functions.invoke('workflow-notify-approvers', {
+      await supabase.functions.invoke('workflow-process-notifications', {
         body: {
           instance_id: instanceId,
           step_id: step.id,
-          task_id: taskData.id,
-          workflow_name: instance.workflow_name,
-          source_record_name: instance.source_record_name,
-          source_module: instance.source_module,
+          trigger: 'step_entry',
         },
       });
-      console.log('Next step approvers notified successfully');
+      console.log('Next step notification processing completed');
     } catch (notifyError) {
-      console.error('Failed to notify next step approvers (non-critical):', notifyError);
+      console.error('Failed to process step notifications (non-critical):', notifyError);
     }
   }
 }

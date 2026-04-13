@@ -222,22 +222,19 @@ async function bindWorkflowToApplication(
         details: `Workflow auto-started for Online ${applicationType.charAt(0).toUpperCase() + applicationType.slice(1)} Application: ${referenceNumber}`,
       });
 
-    // Try to notify approvers (non-blocking)
+    // Notify via configurable notification engine (step_entry trigger)
     if (taskData?.id) {
       try {
-        await supabase.functions.invoke('workflow-notify-approvers', {
+        await supabase.functions.invoke('workflow-process-notifications', {
           body: {
             instance_id: instance.id,
             step_id: firstStep.id,
-            task_id: taskData.id,
-            workflow_name: config.workflowName,
-            source_record_name: recordName,
-            source_module: config.sourceModule,
+            trigger: 'step_entry',
           },
         });
-        console.log(`[WorkflowBinding:${applicationType}] Notified approvers for ${referenceNumber}`);
+        console.log(`[WorkflowBinding:${applicationType}] Step entry notification processed for ${referenceNumber}`);
       } catch (notifyError) {
-        console.error(`[WorkflowBinding:${applicationType}] Failed to notify approvers (non-critical):`, notifyError);
+        console.error(`[WorkflowBinding:${applicationType}] Failed to process step notifications (non-critical):`, notifyError);
       }
     }
 

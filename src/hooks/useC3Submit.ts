@@ -260,22 +260,19 @@ const triggerC3Workflow = async (
         comments: `Workflow started for C3 Submission: ${recordName}`,
       });
 
-    // Notify approvers via edge function
+    // Notify via configurable notification engine (step_entry trigger)
     if (taskData?.id) {
       try {
-        await supabase.functions.invoke('workflow-notify-approvers', {
+        await supabase.functions.invoke('workflow-process-notifications', {
           body: {
             instance_id: instance.id,
             step_id: firstStep.id,
-            task_id: taskData.id,
-            workflow_name: workflowDef.name,
-            source_record_name: recordName,
-            source_module: `c3_${payerType.toLowerCase()}_submission`,
+            trigger: 'step_entry',
           },
         });
-        console.log('Approvers notified successfully');
+        console.log('Step entry notification processed successfully');
       } catch (notifyError) {
-        console.error('Failed to notify approvers (non-critical):', notifyError);
+        console.error('Failed to process step notifications (non-critical):', notifyError);
       }
     }
 
