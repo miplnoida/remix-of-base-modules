@@ -1,40 +1,51 @@
 
 
-## Fix Plan: Submit Button Loader Isolation + Validation Timing
+## Fix: Week Validation Firing on Schedule Prompt Confirmation
 
-### Issue 1 — All Submit buttons show loader when one C3 is submitted
+### Root Cause
 
-**Root Cause**: `useC3Submit()` exposes a single `isSubmitting` boolean. In `C3Management.tsx` (line 1463-1467), every row's Submit button checks the same `isSubmittingC3` flag. When any record is submitted, all draft rows show the spinner and become disabled.
+In both `SelfContributorC3Form.tsx` (line 940-946) and `VoluntaryC3Form.tsx` (line 906-911), when the user clicks "Create Schedule N" in the confirmation dialog, the `onConfirm` handler does:
 
-**Fix**: Track the ID of the record currently being submitted instead of a boolean.
+```typescript
+setScheduleNo(suggestedScheduleNo);
+setTimeout(() => { handleSave(); }, 100);
+```
 
-**Changes in `src/hooks/useC3Submit.ts`**:
-- Replace `isSubmitting: boolean` with `submittingId: string | null`
-- Set `submittingId = c3Id` when submission starts, reset to `null` on completion
-- Export `submittingId` instead of `isSubmitting`
+This re-triggers `handleSave()`, which runs validation — including the "select at least one week" check (line 508/437). Since the user hasn't filled in the form yet (no weeks selected), it immediately shows the error toast.
 
-**Changes in `src/pages/c3Management/C3Management.tsx`**:
-- Destructure `submittingId` from `useC3Submit()` (line 55)
-- Update Submit button (line 1463): `disabled={submittingId === record.id}`
-- Update loader check (line 1466): `{submittingId === record.id ? <Loader2 ... /> : <Send ... />}`
-- Keep `isSubmitting` as a derived boolean (`!!submittingId`) for backward compatibility in `ViewC3Record.tsx` and other consumers
+The schedule prompt dialog should **only set the schedule number** so the user can continue filling in the form. The actual save should happen when the user clicks the Save button.
 
-### Issue 2 — Week selection validation timing
+The same issue occurs in both places the dialog can appear:
+1. **On form mount** (useEffect, line 442/300) — when SSN+period detects existing VAC records
+2. **On save attempt** (line 553-556/479-481) — when `saveSelfContributorC3` returns `promptNextSchedule`
 
-**Current state**: The "Please select at least one week or mark as Nil Return" validation in SE (line 508) and VC (line 437) only fires inside `handleSave`, which is correct per the user's requirement.
+### Fix
 
-**Observed problem**: The proactive `useEffect` (SE line 412, VC similar) that checks `findAllC3ForPeriod` on SSN+period change fires a toast ("Existing Record Found") or triggers `onSave?.({ autoLoad: true })` immediately when SSN and period are filled. This can cause a form re-render or navigation that the user perceives as premature validation. However, the actual week validation is not triggered early.
+**Files**: `SelfContributorC3Form.tsx`, `VoluntaryC3Form.tsx`
 
-**Confirmation**: No code change needed for week validation logic — it already only fires on save/submit. The user's concern is addressed by confirming this behavior. If they're seeing a toast prematurely, it's the schedule/existing-record check toast (not the week validation), which is intentional and correct per the approved plan.
+In the `ConfirmDialog` `onConfirm` handler, remove the `setTimeout(() => handleSave())` call. Keep only:
+
+```typescript
+onConfirm={() => {
+  setSchedulePromptOpen(false);
+  setScheduleNo(suggestedScheduleNo);
+  toast({ 
+    title: "Schedule Updated", 
+    description: `Schedule set to ${suggestedScheduleNo}. Please fill in the form and click Save.` 
+  });
+}}
+```
+
+This ensures:
+- Schedule number is updated correctly in the UI (already shows as "SCH-3" etc.)
+- User fills in weeks/wages as normal
+- Validation only triggers when Save is clicked
+- No breaking changes to existing save flow
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/hooks/useC3Submit.ts` | Add `submittingId` state; export both `submittingId` and `isSubmitting` (derived) |
-| `src/pages/c3Management/C3Management.tsx` | Use `submittingId` for per-row loader/disabled logic on Submit buttons |
-
-### Summary
-- Single targeted fix: isolate Submit button loader to the specific row being submitted
-- Week validation is already correctly gated behind save/submit — no change needed there
+| `src/pages/c3Management/forms/SelfContributorC3Form.tsx` | Remove `setTimeout(handleSave)` from schedule prompt `onConfirm` |
+| `src/pages/c3Management/forms/VoluntaryC3Form.tsx` | Same change |
 
