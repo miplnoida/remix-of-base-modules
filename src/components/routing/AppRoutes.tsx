@@ -86,6 +86,7 @@ import ManualViolationEntry from '@/pages/compliance/violations/ManualViolationE
 import EmployerFindings from '@/pages/compliance/employers/EmployerFindings';
 import EmployerVisitWorkspace from '@/pages/compliance/employers/EmployerVisitWorkspace';
 import EmployerStatementDetail from '@/pages/compliance/employers/EmployerStatementDetail';
+import Employer360 from '@/pages/compliance/employers/Employer360';
 import ComplianceRuleSimulator from '@/pages/compliance/tools/RuleSimulator';
 import ComplianceRiskSimulator from '@/pages/compliance/tools/RiskSimulator';
 
@@ -975,6 +976,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/audit-planning/weekly-reports" element={<ProtectedLayout><WeeklyReports /></ProtectedLayout>} />
       <Route path="/compliance/my-audits/upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
       <Route path="/compliance/employers/:employerId/risk-profile" element={<ProtectedLayout><EmployerRiskProfile /></ProtectedLayout>} />
+      <Route path="/compliance/employer-360/:employerId" element={<ProtectedLayout><Employer360 /></ProtectedLayout>} />
       {/* Legal Escalation Policy consolidated to /compliance/settings/legal-escalation-policy */}
       <Route path="/compliance/legal-recommendation-queue" element={<ProtectedLayout><LegalRecommendationQueue /></ProtectedLayout>} />
       <Route path="/compliance/settings" element={<ProtectedLayout><ComplianceSettings /></ProtectedLayout>} />

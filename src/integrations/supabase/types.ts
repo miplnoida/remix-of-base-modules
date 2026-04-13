@@ -42602,6 +42602,20 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_v_employer_timeline: {
+        Row: {
+          description: string | null
+          employer_id: string | null
+          event_category: string | null
+          event_date: string | null
+          event_type: string | null
+          reference_id: string | null
+          source_table: string | null
+          status: string | null
+          title: string | null
+        }
+        Relationships: []
+      }
       ce_v_employer_workforce: {
         Row: {
           employee_delta: number | null
