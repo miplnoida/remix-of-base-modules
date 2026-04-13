@@ -940,10 +940,10 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         onConfirm={() => {
           setSchedulePromptOpen(false);
           setScheduleNo(suggestedScheduleNo);
-          // Re-trigger save with new schedule number after state update
-          setTimeout(() => {
-            handleSave();
-          }, 100);
+          toast({
+            title: "Schedule Updated",
+            description: `Schedule set to ${suggestedScheduleNo}. Please fill in the form and click Save.`,
+          });
         }}
       />
     </div>

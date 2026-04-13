@@ -906,9 +906,10 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
         onConfirm={() => {
           setSchedulePromptOpen(false);
           setScheduleNo(suggestedScheduleNo);
-          setTimeout(() => {
-            handleSave();
-          }, 100);
+          toast({
+            title: "Schedule Updated",
+            description: `Schedule set to ${suggestedScheduleNo}. Please fill in the form and click Save.`,
+          });
         }}
       />
     </div>
