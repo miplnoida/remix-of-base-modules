@@ -1609,63 +1609,104 @@ export default function WorkflowForm() {
                                     </div>
 
                                     <div className="space-y-3 p-3 bg-background rounded-md border">
-                                      <Label className="text-sm font-medium">Action Notification</Label>
-                                      <div className="grid grid-cols-3 gap-3">
-                                        <div className="space-y-1">
-                                          <Label className="text-xs">Type</Label>
-                                          <Select
-                                            value={action.notification_type || '__none__'}
-                                            onValueChange={(value) => updateAction(stepIndex, actionIndex, 'notification_type', value === '__none__' ? '' : value)}
-                                          >
-                                            <SelectTrigger className="h-8">
-                                              <SelectValue placeholder="Select type" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="__none__">None</SelectItem>
-                                              {activeNotificationTypes.map((nt) => (
-                                                <SelectItem key={nt.code} value={nt.code}>{nt.display_name}</SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                        <div className="space-y-1">
-                                          <Label className="text-xs">Module</Label>
-                                          <Select
-                                            value={action.notification_module_id || '__none__'}
-                                            onValueChange={(value) => updateAction(stepIndex, actionIndex, 'notification_module_id', value === '__none__' ? null : value)}
-                                          >
-                                            <SelectTrigger className="h-8">
-                                              <SelectValue placeholder="Select module" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="__none__">None</SelectItem>
-                                              {parentModules?.map((m) => (
-                                                <SelectItem key={m.id} value={m.id}>{m.display_name}</SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
-                                        <div className="space-y-1">
-                                          <Label className="text-xs">Template</Label>
-                                          <Select
-                                            value={action.notification_template_id || '__none__'}
-                                            onValueChange={(value) => updateAction(stepIndex, actionIndex, 'notification_template_id', value === '__none__' ? null : value)}
-                                          >
-                                            <SelectTrigger className="h-8">
-                                              <SelectValue placeholder="Select template" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              <SelectItem value="__none__">None</SelectItem>
-                                              {templates?.filter(t => !action.notification_module_id || t.module_id === action.notification_module_id).map((t) => (
-                                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                        </div>
+                                      <div className="flex justify-between items-center">
+                                        <Label className="text-sm font-medium">Action Notifications</Label>
+                                        <Button variant="outline" size="sm" onClick={() => addNotification(stepIndex, actionIndex)}>
+                                          <Plus className="h-3 w-3 mr-1" />
+                                          Add
+                                        </Button>
                                       </div>
                                       <p className="text-xs text-muted-foreground">
-                                        Notification sent when this action is executed.
+                                        Notifications triggered when this action is executed. Configure recipient, channel, and template per notification.
                                       </p>
+                                      {action.notifications.map((notif, notifIndex) => (
+                                        <div key={notifIndex} className="grid grid-cols-5 gap-2 items-end p-2 border rounded bg-muted/20">
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Channel</Label>
+                                            <Select
+                                              value={notif.notification_type || '__none__'}
+                                              onValueChange={(v) => updateNotification(stepIndex, actionIndex, notifIndex, 'notification_type', v === '__none__' ? '' : v)}
+                                            >
+                                              <SelectTrigger className="h-8">
+                                                <SelectValue placeholder="Type" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="__none__">None</SelectItem>
+                                                {activeNotificationTypes.map((nt) => (
+                                                  <SelectItem key={nt.code} value={nt.code}>{nt.display_name}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Recipient</Label>
+                                            <Select
+                                              value={notif.recipient_type}
+                                              onValueChange={(v) => updateNotification(stepIndex, actionIndex, notifIndex, 'recipient_type', v)}
+                                            >
+                                              <SelectTrigger className="h-8">
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {RECIPIENT_TYPES_ACTION.map((rt) => (
+                                                  <SelectItem key={rt.value} value={rt.value}>{rt.label}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                          {notif.recipient_type === 'specific_role' && (
+                                            <div className="space-y-1">
+                                              <Label className="text-xs">Role</Label>
+                                              <Select
+                                                value={notif.recipient_role_id || '__none__'}
+                                                onValueChange={(v) => updateNotification(stepIndex, actionIndex, notifIndex, 'recipient_role_id', v === '__none__' ? null : v)}
+                                              >
+                                                <SelectTrigger className="h-8">
+                                                  <SelectValue placeholder="Role" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  <SelectItem value="__none__">None</SelectItem>
+                                                  {roles?.map((r) => (
+                                                    <SelectItem key={r.id} value={r.id}>{r.role_name}</SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                            </div>
+                                          )}
+                                          <div className="space-y-1">
+                                            <Label className="text-xs">Template</Label>
+                                            <Select
+                                              value={notif.template_id || '__none__'}
+                                              onValueChange={(v) => updateNotification(stepIndex, actionIndex, notifIndex, 'template_id', v === '__none__' ? null : v)}
+                                            >
+                                              <SelectTrigger className="h-8">
+                                                <SelectValue placeholder="Template" />
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                <SelectItem value="__none__">None</SelectItem>
+                                                {templates?.map((t) => (
+                                                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <Switch
+                                              checked={notif.is_enabled}
+                                              onCheckedChange={(checked) => updateNotification(stepIndex, actionIndex, notifIndex, 'is_enabled', checked)}
+                                            />
+                                            <Label className="text-xs">On</Label>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeNotification(stepIndex, actionIndex, notifIndex)}>
+                                              <Trash2 className="h-3 w-3 text-destructive" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      ))}
+                                      {action.notifications.length === 0 && (
+                                        <div className="text-center py-2 text-muted-foreground text-xs border rounded-md border-dashed">
+                                          No action notifications configured.
+                                        </div>
+                                      )}
                                     </div>
 
                                     {/* Meeting Department Config - shown when action type is Schedule Meeting */}
