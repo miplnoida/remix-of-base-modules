@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ export default function ViolationsManagement() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearch = useDebounce(searchTerm, 400);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -46,11 +48,11 @@ export default function ViolationsManagement() {
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [splitTarget, setSplitTarget] = useState<any>(null);
   const { data: violations = [], isLoading } = useQuery({
-    queryKey: ['ce_violations', statusFilter, priorityFilter, searchTerm, monthFilter],
+    queryKey: ['ce_violations', statusFilter, priorityFilter, debouncedSearch, monthFilter],
     queryFn: () => fetchViolations({
       status: statusFilter,
       priority: priorityFilter,
-      search: searchTerm || undefined,
+      search: debouncedSearch || undefined,
       month: monthFilter || undefined,
     }),
   });
