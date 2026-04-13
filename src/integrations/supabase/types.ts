@@ -44596,6 +44596,10 @@ export type Database = {
         }
         Returns: string
       }
+      ce_evaluate_arrangement_breaches: {
+        Args: { p_actor?: string; p_as_of_date?: string; p_grace_days?: number }
+        Returns: Json
+      }
       ce_execute_automation_job: {
         Args: {
           p_dry_run?: boolean
@@ -44727,6 +44731,10 @@ export type Database = {
       ce_recalculate_arrangement_summary: {
         Args: { p_actor?: string; p_arrangement_id: string }
         Returns: undefined
+      }
+      ce_recalculate_breach_state: {
+        Args: { p_actor?: string; p_arrangement_id: string }
+        Returns: Json
       }
       ce_recalculate_period_summary: {
         Args: {

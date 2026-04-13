@@ -1,3 +1,19 @@
+/**
+ * ce-breach-monitor — Arrangement Breach/Default Evaluation
+ *
+ * Passive automation job that evaluates ACTIVE payment arrangements
+ * for overdue installments, breach thresholds, and DEFAULTED transitions.
+ *
+ * Does NOT modify payment screens or posting flows.
+ * Reads ce_installments + ce_payment_arrangements as source of truth.
+ *
+ * Supports:
+ *  - Daily scheduled runs via ce_automation_jobs
+ *  - On-demand invocation with optional parameters
+ *  - Idempotent execution (one run per date)
+ *  - Dry-run mode (no data changes)
+ */
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
@@ -19,73 +35,129 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const asOfDate = body.as_of_date || new Date().toISOString().slice(0, 10);
-    const checkedBy = body.checked_by || "SYSTEM";
+    const graceDays = body.grace_days ?? 5;
+    const actor = body.checked_by || "SYSTEM";
+    const isDryRun = body.dry_run ?? false;
+    const force = body.force ?? false;
 
-    // Generate idempotency key
-    const runKey = `breach-monitor-${asOfDate}`;
+    // ── Idempotency ──────────────────────────────────────
+    const runKey = isDryRun
+      ? `BREACH-MONITOR-DRY-${Date.now()}`
+      : `BREACH-MONITOR-${asOfDate}`;
 
-    const { data: existingRun } = await supabase
-      .from("ce_automation_runs")
-      .select("id")
-      .eq("idempotency_key", runKey)
-      .maybeSingle();
+    if (!force && !isDryRun) {
+      const { data: existingRun } = await supabase
+        .from("ce_automation_runs")
+        .select("id")
+        .eq("idempotency_key", runKey)
+        .eq("status", "Completed")
+        .maybeSingle();
 
-    if (existingRun) {
-      return new Response(
-        JSON.stringify({ message: "Already run today", run_id: existingRun.id }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
-      );
+      if (existingRun) {
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            already_completed: true,
+            run_id: existingRun.id,
+            message: "Already evaluated today",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
-    // Get automation job
+    // ── Auto-heal stale runs ─────────────────────────────
+    if (!isDryRun) {
+      await supabase
+        .from("ce_automation_runs")
+        .delete()
+        .eq("idempotency_key", runKey)
+        .in("status", ["Running", "Failed"]);
+    }
+
+    // ── Resolve automation job ───────────────────────────
     const { data: job } = await supabase
       .from("ce_automation_jobs")
       .select("id")
-      .eq("job_code", "BREACH_MONITOR")
+      .eq("job_code", "JOB-BREACH-MONITOR")
       .maybeSingle();
 
-    // Create run record
+    // ── Create run record ────────────────────────────────
     const { data: run, error: runError } = await supabase
       .from("ce_automation_runs")
       .insert({
         job_id: job?.id,
         started_at: new Date().toISOString(),
         status: "Running",
-        triggered_by: checkedBy,
+        triggered_by: actor,
         idempotency_key: runKey,
+        is_dry_run: isDryRun,
+        parameters: { as_of_date: asOfDate, grace_days: graceDays },
       })
       .select("id")
       .single();
 
     if (runError) throw runError;
 
-    // Call the breach check RPC
-    const { data: breaches, error: breachError } = await supabase
-      .rpc("ce_breach_check_arrangements", {
-        p_as_of_date: asOfDate,
-        p_checked_by: checkedBy,
-      });
+    // ── Execute breach evaluation RPC ────────────────────
+    // In dry-run mode we still call it but wrap in a transaction
+    // that we roll back. Since Supabase RPCs auto-commit,
+    // dry-run just reports what *would* happen by reading state.
+    let result: Record<string, unknown>;
 
-    if (breachError) throw breachError;
+    if (isDryRun) {
+      // Dry run: just count what would be affected without mutations
+      const { data: activeArrangements } = await supabase
+        .from("ce_payment_arrangements")
+        .select("id, arrangement_number, missed_payments, max_missed_before_breach, breach_detected")
+        .eq("status", "ACTIVE");
 
-    const breachCount = breaches?.length || 0;
+      const { data: overdueInstallments } = await supabase
+        .from("ce_installments")
+        .select("id, arrangement_id, due_date, amount, paid_amount, status")
+        .in("status", ["PENDING", "PARTIAL"])
+        .lt("due_date", asOfDate);
 
-    // Update run record
+      result = {
+        dry_run: true,
+        active_arrangements: activeArrangements?.length ?? 0,
+        potentially_overdue_installments: overdueInstallments?.length ?? 0,
+        as_of_date: asOfDate,
+        grace_days: graceDays,
+      };
+    } else {
+      // Live execution
+      const { data, error } = await supabase.rpc(
+        "ce_evaluate_arrangement_breaches",
+        {
+          p_as_of_date: asOfDate,
+          p_grace_days: graceDays,
+          p_actor: actor,
+        }
+      );
+
+      if (error) throw error;
+      result = data as Record<string, unknown>;
+    }
+
+    // ── Finalize run record ──────────────────────────────
+    const affectedCount = isDryRun
+      ? 0
+      : ((result.breaches_created as number) ?? 0) +
+        ((result.arrangements_defaulted as number) ?? 0);
+
     await supabase
       .from("ce_automation_runs")
       .update({
         completed_at: new Date().toISOString(),
         status: "Completed",
-        records_processed: breachCount,
-        records_affected: breachCount,
-        execution_log: {
-          as_of_date: asOfDate,
-          breaches_detected: breachCount,
-          details: breaches?.slice(0, 50),
-        },
+        records_processed: (result.arrangements_scanned as number) ?? 0,
+        records_affected: affectedCount,
+        execution_log: result,
       })
       .eq("id", run.id);
 
+    // Update job last_run metadata
     if (job?.id) {
       await supabase
         .from("ce_automation_jobs")
@@ -97,16 +169,12 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({
-        run_id: run.id,
-        breaches_detected: breachCount,
-        details: breaches,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      JSON.stringify({ ok: true, run_id: run.id, result }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ ok: false, error: error.message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
