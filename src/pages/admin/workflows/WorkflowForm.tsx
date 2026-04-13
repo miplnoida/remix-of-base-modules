@@ -84,6 +84,17 @@ interface StepFormData {
   escalation_module_id: string | null;
   escalation_template_id: string | null;
   actions: ActionFormData[];
+  stepNotifications: StepNotificationFormData[];
+}
+
+interface StepNotificationFormData {
+  id?: string;
+  notification_type: string;
+  template_id: string | null;
+  module_id: string | null;
+  recipient_type: string;
+  recipient_role_id: string | null;
+  is_enabled: boolean;
 }
 
 interface FieldUpdateFormData {
