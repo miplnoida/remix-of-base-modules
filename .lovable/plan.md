@@ -1,51 +1,43 @@
 
 
-## Fix: Period-From/Period-To Filter Not Working on C3 Screens
+## Fix: c3-verify 500 — "column occupation does not exist" on ip_wages
 
 ### Root Cause
 
-All three screens (C3 Contribution, NW Director, Self Employed) construct the period filter as:
+The `process_c3_employer_verification()` trigger fires when `cn_c3_reported.posting_status` changes to `'VAC'` (which happens during c3-verify). On line 27-32, it runs:
 
-```
-periodFrom = `${periodFromMonth}-${periodFromYear}`  →  "Jan-2026"
+```sql
+UPDATE ip_wages
+SET posting_status = 'VAC',
+    verified_by = v_verifier_code,
+    date_verified = NOW(),
+    occupation = COALESCE(v_current_occupation, occupation)  -- THIS LINE
+WHERE id = v_wage_row.id;
 ```
 
-However, the `period` column in the database is a `date` type stored as `2026-01-01`. The external API (wiz-admin-api) likely cannot parse `Jan-2026` into a valid date for comparison, so the period filter is silently ignored and all records are returned unfiltered.
+The `ip_employer` table has an `occupation` column, but `ip_wages` does **not**. The trigger incorrectly tries to write `occupation` to `ip_wages`, causing PostgreSQL error 42703.
 
 ### Fix
 
-Convert the month abbreviation + year into `YYYY-MM-01` format before sending to the API. For example, `Jan` + `2026` → `2026-01-01`.
+**Migration SQL** — Recreate the trigger function, removing the `occupation` assignment from the `ip_wages` UPDATE:
 
-**Files to modify:**
+```sql
+UPDATE ip_wages
+SET posting_status = 'VAC',
+    verified_by = v_verifier_code,
+    date_verified = NOW()
+WHERE id = v_wage_row.id;
+```
+
+The occupation lookup from `ip_employer` and the `v_current_occupation` variable can also be removed since they serve no purpose without a target column.
+
+### Files to Modify
 
 | File | Change |
 |------|--------|
-| `src/pages/c3Management/c3Details/C3ContributionList.tsx` | Convert period format from `Jan-2026` to `2026-01-01` |
-| `src/pages/c3Management/c3Details/NwDirectorList.tsx` | Same conversion |
-| `src/pages/c3Management/c3Details/SelfEmployedContributionList.tsx` | Same conversion |
+| Migration SQL | Recreate `process_c3_employer_verification()` — remove `occupation` references from `ip_wages` UPDATE |
 
-### Technical Detail
+### Impact
 
-Add a helper (or inline) that maps the 3-letter month abbreviation to a zero-padded month number:
-
-```typescript
-function toDatePeriod(month: string, year: string): string {
-  const idx = MONTHS.indexOf(month); // 0-based
-  const mm = String(idx + 1).padStart(2, '0');
-  return `${year}-${mm}-01`;
-}
-```
-
-Then in each `handleSearch`:
-```typescript
-// Before (broken):
-const periodFrom = periodFromMonth && periodFromYear
-  ? `${periodFromMonth}-${periodFromYear}` : undefined;
-
-// After (fixed):
-const periodFrom = periodFromMonth && periodFromYear
-  ? toDatePeriod(periodFromMonth, periodFromYear) : undefined;
-```
-
-This applies identically to all three files. No API or database changes needed.
+Single-function fix. Unblocks all C3 verify calls (ER, SE, NWD) immediately.
 
