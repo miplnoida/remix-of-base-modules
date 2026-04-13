@@ -6,15 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, Bell, DollarSign, History, AlertCircle, MessageSquare, Mail, ListChecks, Loader2, Eye, MapPin, Users, UserCheck, ClipboardCheck } from 'lucide-react';
+import { FileText, Bell, DollarSign, History, AlertCircle, MessageSquare, Mail, ListChecks, Loader2, Eye, MapPin, Users, UserCheck, ClipboardCheck, CheckCircle, XCircle, RotateCcw, ArrowUpCircle, Building2 } from 'lucide-react';
 import { ViolationNotesTab } from '@/components/compliance/ViolationNotesTab';
 import { ViolationCorrespondenceTab } from '@/components/compliance/ViolationCorrespondenceTab';
 import { ViolationActionPlanTab } from '@/components/compliance/ViolationActionPlanTab';
 import { ViolationFollowUpsTab } from '@/components/compliance/ViolationFollowUpsTab';
 import { ViolationNoticesTab } from '@/components/compliance/ViolationNoticesTab';
-import { useQuery } from '@tanstack/react-query';
+import { ViolationResolutionDialog } from '@/components/compliance/ViolationResolutionDialog';
+import { ViolationActionConfirmDialog } from '@/components/compliance/ViolationActionConfirmDialog';
+import { closeViolation, reopenViolation, cancelViolation, escalateViolation } from '@/services/violationLifecycleService';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchViolationById } from '@/services/complianceDataService';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function ViolationDetails() {
   const { id } = useParams();
