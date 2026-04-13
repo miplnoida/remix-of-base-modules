@@ -156,12 +156,19 @@ export default function ViolationDetails() {
     enabled: !!id,
   });
 
+  const { data: linkedCase } = useQuery({
+    queryKey: ['ce_violation_linked_case', id],
+    queryFn: () => caseViolationService.getLinkedCase(id!),
+    enabled: !!id,
+  });
+
   // ============================================
   // LIFECYCLE TRANSITION HANDLERS
   // ============================================
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['ce_violation', id] });
     queryClient.invalidateQueries({ queryKey: ['ce_violation_history', id] });
+    queryClient.invalidateQueries({ queryKey: ['ce_violation_linked_case', id] });
   };
 
   const handleActionClick = (action: ActionButtonDef) => {
