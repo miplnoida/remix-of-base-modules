@@ -1039,6 +1039,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/employers/hierarchy" element={<ProtectedLayout><EmployerHierarchy /></ProtectedLayout>} />
       <Route path="/compliance/employers/management" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
       <Route path="/compliance/inspections/field-operations" element={<ProtectedLayout><FieldOperations /></ProtectedLayout>} />
+      <Route path="/compliance/inspections/field-execution" element={<Navigate to="/compliance/audit-planning/field-execution" replace />} />
       <Route path="/compliance/automation/employer-jobs" element={<ProtectedLayout><EmployerComplianceJobs /></ProtectedLayout>} />
       <Route path="/compliance/audit-planning/all-reports" element={<ProtectedLayout><AllWeeklyReports /></ProtectedLayout>} />
       <Route path="/compliance/settings/c3-ledger-sync" element={<ProtectedLayout><C3LedgerSync /></ProtectedLayout>} />
