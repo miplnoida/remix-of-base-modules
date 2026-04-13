@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUserCode } from '@/hooks/useUserCode';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -89,8 +90,8 @@ export default function ViolationDetails() {
   const [confirmActionType, setConfirmActionType] = useState<ConfirmActionType>('start_work');
   const [pendingTargetStatus, setPendingTargetStatus] = useState<ViolationStatus>('IN_PROGRESS');
 
-  // TODO: Replace with real auth context
-  const currentUserCode = 'SYSTEM';
+  const { userCode } = useUserCode();
+  const currentUserCode = userCode || 'UNKNOWN';
 
   const { data: violationData, isLoading: loadingCase } = useQuery({
     queryKey: ['ce_violation', id],

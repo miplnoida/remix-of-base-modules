@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUserCode } from '@/hooks/useUserCode';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +22,8 @@ interface ViolationCorrespondenceTabProps {
 export function ViolationCorrespondenceTab({ violationId, employerId, employerName }: ViolationCorrespondenceTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { userCode } = useUserCode();
+  const currentUserCode = userCode || 'UNKNOWN';
   const [showLogCallDialog, setShowLogCallDialog] = useState(false);
   const [showSendLetterDialog, setShowSendLetterDialog] = useState(false);
   const [callForm, setCallForm] = useState({ direction: 'Outgoing', contactPerson: '', summary: '' });
@@ -50,6 +53,7 @@ export function ViolationCorrespondenceTab({ violationId, employerId, employerNa
         status: 'Completed',
         summary: callForm.summary,
         contact_person: callForm.contactPerson,
+        created_by: currentUserCode,
       } as any);
       if (error) throw error;
     },
@@ -73,6 +77,7 @@ export function ViolationCorrespondenceTab({ violationId, employerId, employerNa
         status: 'Queued',
         summary: letterForm.notes || `Template: ${letterForm.template}`,
         contact_person: employerName || '',
+        created_by: currentUserCode,
       } as any);
       if (error) throw error;
     },
