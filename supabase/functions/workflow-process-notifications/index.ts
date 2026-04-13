@@ -10,8 +10,7 @@ interface ProcessNotificationsRequest {
   step_id: string;
   action_id?: string;
   trigger: 'step_entry' | 'action_taken';
-  // Optional overrides for backward compat / submission hooks
-  action_label?: string; // e.g. 'Approved', 'Rejected', 'Cancelled'
+  action_label?: string;
   action_by?: string;
   action_by_name?: string;
   comments?: string;
@@ -64,10 +63,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Fetch step info
+    // Fetch step info (including step_number and workflow_id for next_step resolution)
     const { data: step, error: stepError } = await supabase
       .from('workflow_steps')
-      .select('id, step_name, approver_type, approver_role_ids, approver_designation_ids, approver_user_ids')
+      .select('id, step_name, step_number, workflow_id, approver_type, approver_role_ids, approver_designation_ids, approver_user_ids')
       .eq('id', step_id)
       .single();
 
@@ -171,14 +170,14 @@ Deno.serve(async (req) => {
       }
 
       if (notifType === 'email' || notifType === 'in-app' || notifType === 'in_app' || notifType === 'inapp') {
-        // Queue email notifications for all types (In-App also queues email as secondary channel)
+        // Queue email notifications
         const emailLogs = recipientUserIds.map(userId => ({
-          user_id: userId,
-          type: trigger === 'step_entry' ? 'workflow_approval' : 'workflow_result',
+          recipient_user_id: userId,
           channel: 'email',
           subject: title,
           body: bodyText,
           status: 'pending',
+          trigger_source: trigger === 'step_entry' ? 'workflow_approval' : 'workflow_result',
           metadata: {
             workflow_instance_id: instance_id,
             step_id,
@@ -188,19 +187,19 @@ Deno.serve(async (req) => {
           },
         }));
 
-        supabase.from('notification_logs').insert(emailLogs).then(({ error }) => {
+        supabase.from('notification_logs').insert(emailLogs).then(({ error }: any) => {
           if (error) console.log('Email log insert failed (non-critical):', error);
         });
       }
 
       if (notifType === 'sms') {
         const smsLogs = recipientUserIds.map(userId => ({
-          user_id: userId,
-          type: trigger === 'step_entry' ? 'workflow_approval' : 'workflow_result',
+          recipient_user_id: userId,
           channel: 'sms',
           subject: title,
           body: bodyText,
           status: 'pending',
+          trigger_source: trigger === 'step_entry' ? 'workflow_approval' : 'workflow_result',
           metadata: {
             workflow_instance_id: instance_id,
             step_id,
@@ -210,19 +209,19 @@ Deno.serve(async (req) => {
           },
         }));
 
-        supabase.from('notification_logs').insert(smsLogs).then(({ error }) => {
+        supabase.from('notification_logs').insert(smsLogs).then(({ error }: any) => {
           if (error) console.log('SMS log insert failed (non-critical):', error);
         });
       }
 
       if (notifType === 'push') {
         const pushLogs = recipientUserIds.map(userId => ({
-          user_id: userId,
-          type: trigger === 'step_entry' ? 'workflow_approval' : 'workflow_result',
+          recipient_user_id: userId,
           channel: 'push',
           subject: title,
           body: bodyText,
           status: 'pending',
+          trigger_source: trigger === 'step_entry' ? 'workflow_approval' : 'workflow_result',
           metadata: {
             workflow_instance_id: instance_id,
             step_id,
@@ -232,7 +231,7 @@ Deno.serve(async (req) => {
           },
         }));
 
-        supabase.from('notification_logs').insert(pushLogs).then(({ error }) => {
+        supabase.from('notification_logs').insert(pushLogs).then(({ error }: any) => {
           if (error) console.log('Push log insert failed (non-critical):', error);
         });
       }
@@ -266,6 +265,8 @@ Deno.serve(async (req) => {
 
 /**
  * Resolve recipient user IDs based on recipient_type.
+ * Supports all approver types including reporting_manager, department_head, etc.
+ * via a task-based fallback that reuses the already-resolved assignment.
  */
 async function resolveRecipients(
   supabase: any,
@@ -284,43 +285,115 @@ async function resolveRecipients(
   }
 
   if (recipientType === 'specific_role' && recipientRoleId) {
-    // Look up users with this specific role
     return await resolveUsersByRoleIds(supabase, [recipientRoleId]);
   }
 
-  // step_approver, next_step_approver, current_step_approver all resolve from step config
-  if (recipientType === 'step_approver' || recipientType === 'next_step_approver' || recipientType === 'current_step_approver') {
-    const approverType = step.approver_type || 'role';
+  // step_approver / current_step_approver: resolve from current step's approver config
+  if (recipientType === 'step_approver' || recipientType === 'current_step_approver') {
+    await resolveFromStepConfig(supabase, step, userIds);
 
-    if (approverType === 'user' || approverType === 'specific_users') {
-      if (step.approver_user_ids && step.approver_user_ids.length > 0) {
-        const { data: validProfiles } = await supabase
-          .from('profiles')
-          .select('id')
-          .in('id', step.approver_user_ids);
-        if (validProfiles) {
-          userIds.push(...validProfiles.map((p: any) => p.id));
-        }
+    // Fallback: resolve from already-assigned workflow tasks
+    // Handles reporting_manager, department_head, and any future approver types
+    if (userIds.length === 0) {
+      console.log(`Standard resolution returned 0 users for approver_type="${step.approver_type}", falling back to task assignment lookup`);
+      await resolveFromWorkflowTasks(supabase, instance.id, step.id, userIds);
+    }
+  }
+
+  // next_step_approver: resolve from the NEXT step's approver config (not current)
+  if (recipientType === 'next_step_approver') {
+    const nextStepNumber = (step.step_number || 0) + 1;
+    const workflowId = step.workflow_id || instance.workflow_id;
+
+    console.log(`Resolving next_step_approver: looking for step_number=${nextStepNumber} in workflow=${workflowId}`);
+
+    const { data: nextStep } = await supabase
+      .from('workflow_steps')
+      .select('id, step_name, step_number, approver_type, approver_role_ids, approver_designation_ids, approver_user_ids')
+      .eq('workflow_id', workflowId)
+      .eq('step_number', nextStepNumber)
+      .single();
+
+    if (nextStep) {
+      console.log(`Found next step: "${nextStep.step_name}" (approver_type: ${nextStep.approver_type})`);
+      await resolveFromStepConfig(supabase, nextStep, userIds);
+
+      // Fallback: resolve from already-assigned workflow tasks for next step
+      if (userIds.length === 0) {
+        console.log(`Standard resolution returned 0 users for next step approver_type="${nextStep.approver_type}", falling back to task lookup`);
+        await resolveFromWorkflowTasks(supabase, instance.id, nextStep.id, userIds);
       }
-    } else if (approverType === 'role') {
-      if (step.approver_role_ids && step.approver_role_ids.length > 0) {
-        const resolved = await resolveUsersByRoleIds(supabase, step.approver_role_ids);
-        userIds.push(...resolved);
-      }
-    } else if (approverType === 'designation') {
-      if (step.approver_designation_ids && step.approver_designation_ids.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id')
-          .in('designation_id', step.approver_designation_ids);
-        if (profiles) {
-          userIds.push(...profiles.map((p: any) => p.id));
-        }
-      }
+    } else {
+      console.log(`No next step found at step_number=${nextStepNumber}, falling back to current step task lookup`);
+      // If no next step exists, try resolving from current step tasks as a last resort
+      await resolveFromWorkflowTasks(supabase, instance.id, step.id, userIds);
     }
   }
 
   return [...new Set(userIds)];
+}
+
+/**
+ * Resolve users from a step's approver configuration (role, user, designation).
+ */
+async function resolveFromStepConfig(supabase: any, step: any, userIds: string[]): Promise<void> {
+  const approverType = step.approver_type || 'role';
+
+  if (approverType === 'user' || approverType === 'specific_users') {
+    if (step.approver_user_ids && step.approver_user_ids.length > 0) {
+      const { data: validProfiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('id', step.approver_user_ids);
+      if (validProfiles) {
+        userIds.push(...validProfiles.map((p: any) => p.id));
+      }
+    }
+  } else if (approverType === 'role') {
+    if (step.approver_role_ids && step.approver_role_ids.length > 0) {
+      const resolved = await resolveUsersByRoleIds(supabase, step.approver_role_ids);
+      userIds.push(...resolved);
+    }
+  } else if (approverType === 'designation') {
+    if (step.approver_designation_ids && step.approver_designation_ids.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('designation_id', step.approver_designation_ids);
+      if (profiles) {
+        userIds.push(...profiles.map((p: any) => p.id));
+      }
+    }
+  }
+  // For reporting_manager, department_head, etc. — the function intentionally does nothing here;
+  // the caller will fall back to resolveFromWorkflowTasks.
+}
+
+/**
+ * Fallback: resolve recipients from already-assigned workflow tasks.
+ * This handles reporting_manager, department_head, and any custom approver types
+ * where the task creation logic has already resolved and assigned the correct user.
+ */
+async function resolveFromWorkflowTasks(supabase: any, instanceId: string, stepId: string, userIds: string[]): Promise<void> {
+  const { data: tasks, error } = await supabase
+    .from('workflow_tasks')
+    .select('assigned_to')
+    .eq('instance_id', instanceId)
+    .eq('step_id', stepId)
+    .in('status', ['Pending', 'InProgress']);
+
+  if (error) {
+    console.error('Error fetching workflow tasks for fallback resolution:', error);
+    return;
+  }
+
+  if (tasks && tasks.length > 0) {
+    const assignedIds = tasks.map((t: any) => t.assigned_to).filter(Boolean);
+    console.log(`Task-based fallback resolved ${assignedIds.length} recipient(s) from workflow_tasks`);
+    userIds.push(...assignedIds);
+  } else {
+    console.log(`No pending/in-progress tasks found for instance=${instanceId}, step=${stepId}`);
+  }
 }
 
 /**
@@ -398,7 +471,6 @@ function buildNotificationContent(
   const recordRef = instance.source_record_name || instance.source_record_id || '';
 
   if (trigger === 'step_entry') {
-    // Step-entry: notify the step approver
     return {
       title: `Pending Approval: ${workflowName}`,
       bodyText: `Application "${recordRef}" requires your approval at step: ${step.step_name}`,
