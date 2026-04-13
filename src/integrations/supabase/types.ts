@@ -44661,6 +44661,24 @@ export type Database = {
           total_debits: number
         }[]
       }
+      ce_get_employer_compliance_summary: {
+        Args: { p_employer_id: string }
+        Returns: {
+          arrangement_id: string
+          arrangement_number: string
+          arrangement_status: string
+          breach_detected: boolean
+          has_active_arrangement: boolean
+          linked_open_case_count: number
+          next_due_date: string
+          outstanding_installment_amount: number
+          overdue_installment_count: number
+          total_debt: number
+          total_paid: number
+          unresolved_breach_count: number
+          warning_message: string
+        }[]
+      }
       ce_mark_payment_observed: {
         Args: {
           p_employer_id: string
