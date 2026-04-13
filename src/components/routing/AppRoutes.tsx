@@ -1039,7 +1039,6 @@ export const AppRoutes = () => {
       <Route path="/compliance/settings/c3-ledger-sync" element={<ProtectedLayout><C3LedgerSync /></ProtectedLayout>} />
       <Route path="/compliance/settings/ledger-admin" element={<ProtectedLayout><LedgerAdministration /></ProtectedLayout>} />
       <Route path="/compliance/settings/payment-ledger-sync" element={<ProtectedLayout><PaymentLedgerSync /></ProtectedLayout>} />
-      <Route path="/compliance/reports/trends" element={<ProtectedLayout><TrendReports /></ProtectedLayout>} />
       {/* Sampling routes — DB menu uses /compliance/sampling/* paths */}
       <Route path="/compliance/sampling" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />
       <Route path="/compliance/sampling/candidates" element={<ProtectedLayout><MonthlyAuditCandidates /></ProtectedLayout>} />
