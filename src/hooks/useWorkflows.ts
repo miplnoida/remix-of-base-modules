@@ -509,6 +509,33 @@ export function useSaveWorkflowSteps() {
           stepId = insertedStep.id;
         }
 
+        // Sync step-level notifications
+        const stepNotifications = (step as any).stepNotifications || [];
+        
+        // Delete existing step notifications and replace
+        const { error: deleteStepNotifsError } = await supabase
+          .from('workflow_step_notifications')
+          .delete()
+          .eq('step_id', stepId);
+        if (deleteStepNotifsError) throw deleteStepNotifsError;
+
+        if (stepNotifications.length > 0) {
+          const { error: stepNotifError } = await supabase
+            .from('workflow_step_notifications')
+            .insert(
+              stepNotifications.map((sn: any) => ({
+                step_id: stepId,
+                notification_type: sn.notification_type,
+                template_id: sn.template_id || null,
+                module_id: sn.module_id || null,
+                recipient_type: sn.recipient_type || 'step_approver',
+                recipient_role_id: sn.recipient_role_id || null,
+                is_enabled: sn.is_enabled !== false,
+              }))
+            );
+          if (stepNotifError) throw stepNotifError;
+        }
+
         // Sync actions for this step
         const stepActions = step.actions || [];
 
