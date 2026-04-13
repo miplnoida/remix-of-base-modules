@@ -350,6 +350,29 @@ export default function ViolationsManagement() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Merge Dialog */}
+      {mergeDialogOpen && selectedIds.length >= 2 && (
+        <ViolationMergeDialog
+          open={mergeDialogOpen}
+          onOpenChange={setMergeDialogOpen}
+          violations={violations.filter((v: any) => selectedIds.includes(v.id)).map((v: any) => ({
+            id: v.id, violation_number: v.violation_number, status: v.status,
+            period_from: v.period_from, total_amount: v.total_amount,
+          }))}
+          onSuccess={() => { setSelectedIds([]); queryClient.invalidateQueries({ queryKey: ['ce_violations'] }); }}
+        />
+      )}
+
+      {/* Split Dialog */}
+      {splitDialogOpen && splitTarget && (
+        <ViolationSplitDialog
+          open={splitDialogOpen}
+          onOpenChange={setSplitDialogOpen}
+          violation={splitTarget}
+          onSuccess={() => { setSplitTarget(null); queryClient.invalidateQueries({ queryKey: ['ce_violations'] }); }}
+        />
+      )}
     </div>
   );
 }
