@@ -146,7 +146,7 @@ const CaseManagement = () => {
                       {c.risk_band && <Badge variant="outline" className="text-[10px]">{c.risk_band}</Badge>}
                     </td>
                     <td className="py-2 px-3 text-foreground">{c.assigned_officer_name || '—'}</td>
-                    <td className="py-2 px-3 text-right"><Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button></td>
+                    <td className="py-2 px-3 text-right"><Button variant="ghost" size="sm" onClick={() => navigate(`/compliance/cases/${c.id}`)}><Eye className="h-4 w-4" /></Button></td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
