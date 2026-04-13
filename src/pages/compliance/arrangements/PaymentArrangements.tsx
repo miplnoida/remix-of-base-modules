@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { EmployerComplianceSummaryCard } from '@/components/compliance/EmployerComplianceSummaryCard';
+import { ArrangementDetailPanel } from '@/components/compliance/ArrangementDetailPanel';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,8 +20,7 @@ export default function PaymentArrangements() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [selectedArrangement, setSelectedArrangement] = useState<any>(null);
+  const [selectedArrangementId, setSelectedArrangementId] = useState<string | null>(null);
   const [newArrangement, setNewArrangement] = useState({ employerId: '', employerName: '', totalDebt: '', installmentAmount: '', numberOfInstallments: '', frequency: 'MONTHLY', startDate: '' });
 
   const { data: arrangements = [], isLoading } = useQuery({
@@ -50,9 +49,29 @@ export default function PaymentArrangements() {
     return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
+  if (selectedArrangementId) {
+    return (
+      <div className="container mx-auto p-6 space-y-6">
+        <PageHeader
+          title="Arrangement Detail"
+          subtitle="Operational view for compliance officers"
+          breadcrumbs={[
+            { label: 'Compliance', href: '/compliance/dashboard' },
+            { label: 'Payment Arrangements', href: '#', onClick: () => setSelectedArrangementId(null) },
+            { label: 'Detail' },
+          ]}
+        />
+        <ArrangementDetailPanel
+          arrangementId={selectedArrangementId}
+          onBack={() => setSelectedArrangementId(null)}
+        />
+      </div>
+    );
+  }
+
   const activeCount = arrangements.filter((a: any) => a.status === 'ACTIVE').length;
   const defaultedCount = arrangements.filter((a: any) => a.status === 'DEFAULTED').length;
-  const totalOutstanding = arrangements.reduce((sum: number, a: any) => sum + (Number(a.outstanding_balance) || 0), 0);
+  const totalOutstanding = arrangements.reduce((sum: number, a: any) => sum + (Number(a.total_debt ?? 0) - Number(a.total_paid ?? 0)), 0);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -60,8 +79,8 @@ export default function PaymentArrangements() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Total Arrangements</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-foreground">{arrangements.length}</div></CardContent></Card>
-        <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Active</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-green-600">{activeCount}</div></CardContent></Card>
-        <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Defaulted</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-red-600">{defaultedCount}</div></CardContent></Card>
+        <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Active</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-success">{activeCount}</div></CardContent></Card>
+        <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Defaulted</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{defaultedCount}</div></CardContent></Card>
         <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Total Outstanding</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold text-foreground">{formatCurrency(totalOutstanding)}</div></CardContent></Card>
       </div>
 
@@ -95,27 +114,42 @@ export default function PaymentArrangements() {
                   <TableHead className="text-center">Installments</TableHead>
                   <TableHead>Next Due</TableHead>
                   <TableHead className="text-right">Outstanding</TableHead>
+                  <TableHead className="text-center">Breach</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {arrangements.map((arr: any) => (
-                  <TableRow key={arr.id}>
-                    <TableCell className="font-medium">{arr.arrangement_number}</TableCell>
-                    <TableCell>
-                      <Button variant="link" className="h-auto p-0 text-left font-normal hover:text-primary" onClick={() => navigate(`/employers/${arr.employer_id}`)}>
-                        <Building2 className="h-4 w-4 mr-2 inline" />{arr.employer_name}
-                      </Button>
-                    </TableCell>
-                    <TableCell><Badge className={getStatusColor(arr.status)}>{arr.status}</Badge></TableCell>
-                    <TableCell className="text-right">{formatCurrency(Number(arr.total_debt_amount) || 0)}</TableCell>
-                    <TableCell className="text-right">{formatCurrency(Number(arr.installment_amount) || 0)}</TableCell>
-                    <TableCell className="text-center">{arr.installments_paid || 0}/{arr.number_of_installments || 0}</TableCell>
-                    <TableCell>{arr.next_due_date || '-'}</TableCell>
-                    <TableCell className="text-right font-semibold text-red-600">{formatCurrency(Number(arr.outstanding_balance) || 0)}</TableCell>
-                    <TableCell className="text-right"><Button variant="ghost" size="sm" onClick={() => { setSelectedArrangement(arr); setViewDialogOpen(true); }}><Eye className="h-4 w-4" /></Button></TableCell>
-                  </TableRow>
-                ))}
+                {arrangements.map((arr: any) => {
+                  const outstanding = Number(arr.total_debt ?? 0) - Number(arr.total_paid ?? 0);
+                  return (
+                    <TableRow key={arr.id} className={arr.status === 'DEFAULTED' ? 'bg-destructive/5' : ''}>
+                      <TableCell className="font-medium">{arr.arrangement_number}</TableCell>
+                      <TableCell>
+                        <Button variant="link" className="h-auto p-0 text-left font-normal hover:text-primary" onClick={() => navigate(`/employers/${arr.employer_id}`)}>
+                          <Building2 className="h-4 w-4 mr-2 inline" />{arr.employer_name}
+                        </Button>
+                      </TableCell>
+                      <TableCell><Badge className={getStatusColor(arr.status)}>{arr.status}</Badge></TableCell>
+                      <TableCell className="text-right">{formatCurrency(Number(arr.total_debt) || 0)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(Number(arr.installment_amount) || 0)}</TableCell>
+                      <TableCell className="text-center">{arr.installments_paid || 0}/{arr.number_of_installments || 0}</TableCell>
+                      <TableCell>{arr.next_due_date || '-'}</TableCell>
+                      <TableCell className="text-right font-semibold text-destructive">{formatCurrency(outstanding)}</TableCell>
+                      <TableCell className="text-center">
+                        {arr.breach_detected ? (
+                          <Badge variant="destructive" className="text-xs">⚠</Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedArrangementId(arr.id)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
@@ -136,36 +170,6 @@ export default function PaymentArrangements() {
             </div>
           </div>
           <DialogFooter><Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button><Button onClick={handleCreateArrangement}><HandshakeIcon className="h-4 w-4 mr-2" />Create Arrangement</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader><DialogTitle>Payment Arrangement Details</DialogTitle><DialogDescription>{selectedArrangement?.arrangement_number}</DialogDescription></DialogHeader>
-          {selectedArrangement && (
-            <div className="space-y-6 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div><Label className="text-muted-foreground">Employer</Label><p className="font-medium">{selectedArrangement.employer_name}</p></div>
-                <div><Label className="text-muted-foreground">Status</Label><div className="mt-1"><Badge className={getStatusColor(selectedArrangement.status)}>{selectedArrangement.status}</Badge></div></div>
-                <div><Label className="text-muted-foreground">Total Debt</Label><p className="font-medium text-lg">{formatCurrency(Number(selectedArrangement.total_debt_amount) || 0)}</p></div>
-                <div><Label className="text-muted-foreground">Outstanding Balance</Label><p className="font-medium text-lg text-red-600">{formatCurrency(Number(selectedArrangement.outstanding_balance) || 0)}</p></div>
-                <div><Label className="text-muted-foreground">Installment Amount</Label><p className="font-medium">{formatCurrency(Number(selectedArrangement.installment_amount) || 0)}</p></div>
-                <div><Label className="text-muted-foreground">Frequency</Label><p className="font-medium">{selectedArrangement.frequency}</p></div>
-                <div><Label className="text-muted-foreground">Start Date</Label><p className="font-medium">{selectedArrangement.start_date || '-'}</p></div>
-                <div><Label className="text-muted-foreground">Next Due Date</Label><p className="font-medium">{selectedArrangement.next_due_date || 'N/A'}</p></div>
-              </div>
-              <div>
-                <Label className="text-muted-foreground">Payment Progress</Label>
-                <Card className="mt-2"><CardContent className="pt-4">
-                  <div className="flex justify-between items-center mb-2"><span className="text-sm">Installments Paid</span><span className="font-semibold">{selectedArrangement.installments_paid || 0}/{selectedArrangement.number_of_installments || 0}</span></div>
-                  <div className="w-full bg-muted rounded-full h-2"><div className="bg-primary h-2 rounded-full transition-all" style={{ width: `${((selectedArrangement.installments_paid || 0) / (selectedArrangement.number_of_installments || 1)) * 100}%` }} /></div>
-                </CardContent></Card>
-              </div>
-              {/* Read-only compliance summary for this employer */}
-              <EmployerComplianceSummaryCard employerId={selectedArrangement.employer_id} compact />
-            </div>
-          )}
-          <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
