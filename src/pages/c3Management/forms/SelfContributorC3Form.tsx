@@ -476,7 +476,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     setIsSaving(true);
 
     try {
-      const periodStr = new Date(period.year, period.month, 1).toISOString();
+      const periodStr = `${period.year}-${String(period.month + 1).padStart(2, '0')}-01`;
       
       const formDataToSave: any = {
         id: data?.id || recordId,

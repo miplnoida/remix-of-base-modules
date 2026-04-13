@@ -408,7 +408,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     setIsSaving(true);
 
     try {
-      const periodStr = new Date(period.year, period.month, 1).toISOString();
+      const periodStr = `${period.year}-${String(period.month + 1).padStart(2, '0')}-01`;
       
       const formDataToSave: any = {
         id: data?.id || recordId,

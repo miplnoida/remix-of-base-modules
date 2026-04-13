@@ -25,52 +25,91 @@ async function assertC3Editable(recordId: string): Promise<void> {
 }
 
 /**
- * Find an existing C3 record matching the business key (payer_id, payer_type, sequence_no, period).
- * Returns { id, posting_status } if found, null otherwise.
+ * Find ALL existing C3 records for a payer+period (across all sequences).
+ * Returns array of { id, posting_status, sequence_no }.
  */
-async function findExistingC3(
+async function findAllC3ForPeriod(
+  payerId: string,
+  payerType: string,
+  period: string
+): Promise<{ id: string; posting_status: string; sequence_no: number }[]> {
+  const { data, error } = await supabase
+    .from('cn_c3_reported')
+    .select('id, posting_status, sequence_no')
+    .eq('payer_id', payerId)
+    .eq('payer_type', payerType)
+    .eq('period', period)
+    .order('sequence_no', { ascending: true });
+
+  if (error) {
+    console.error('Error finding existing C3 records:', error);
+    return [];
+  }
+  return data || [];
+}
+
+/**
+ * Normalize a period string to YYYY-MM-01 safely, avoiding timezone issues.
+ * Handles ISO strings like "2026-08-31T18:30:00.000Z" and plain "2026-09-01".
+ */
+function normalizePeriod(period: string): string {
+  if (!period) return period;
+  // If it's a clean YYYY-MM-DD without time component, just force day to 01
+  const dateOnly = period.split('T')[0];
+  const parts = dateOnly.split('-');
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[1]}-01`;
+  }
+  return dateOnly;
+}
+
+/**
+ * Determine the correct action for a new C3 save based on existing records.
+ * Returns: { action, existingId?, nextSeq?, error? }
+ */
+async function resolveC3SaveAction(
   payerId: string,
   payerType: string,
   sequenceNo: number,
   period: string
-): Promise<{ id: string; posting_status: string } | null> {
-  const { data, error } = await supabase
-    .from('cn_c3_reported')
-    .select('id, posting_status')
-    .eq('payer_id', payerId)
-    .eq('payer_type', payerType)
-    .eq('sequence_no', sequenceNo)
-    .eq('period', period)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error finding existing C3:', error);
-    return null;
+): Promise<{
+  action: 'insert' | 'update' | 'prompt_next_schedule' | 'blocked';
+  existingId?: string;
+  nextSeq?: number;
+  currentMaxSeq?: number;
+  blockReason?: string;
+}> {
+  const allRecords = await findAllC3ForPeriod(payerId, payerType, period);
+  
+  if (allRecords.length === 0) {
+    return { action: 'insert' };
   }
-  return data;
-}
 
-/**
- * Find the next available schedule number for a payer+period that already has verified records.
- * Returns the max existing sequence_no + 1.
- */
-async function getNextScheduleNumber(
-  payerId: string,
-  payerType: string,
-  period: string
-): Promise<number> {
-  const { data, error } = await supabase
-    .from('cn_c3_reported')
-    .select('sequence_no')
-    .eq('payer_id', payerId)
-    .eq('payer_type', payerType)
-    .eq('period', period)
-    .order('sequence_no', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Check if there's an editable record for the same sequence
+  const sameSeqEditable = allRecords.find(
+    r => r.sequence_no === sequenceNo && EDITABLE_STATUSES.includes(r.posting_status as PostingStatus)
+  );
+  if (sameSeqEditable) {
+    return { action: 'update', existingId: sameSeqEditable.id };
+  }
 
-  if (error || !data) return 1;
-  return (data.sequence_no || 1) + 1;
+  // Check if there's any record (any status) for the same sequence
+  const sameSeqAny = allRecords.find(r => r.sequence_no === sequenceNo);
+  if (sameSeqAny) {
+    if (sameSeqAny.posting_status === 'VAC') {
+      // Verified record exists — suggest next schedule
+      const maxSeq = Math.max(...allRecords.map(r => r.sequence_no));
+      return { action: 'prompt_next_schedule', nextSeq: maxSeq + 1, currentMaxSeq: maxSeq };
+    }
+    // Other non-editable status (REJ, DEL)
+    return { 
+      action: 'blocked', 
+      blockReason: `A C3 for this payer/period/schedule already exists with status ${sameSeqAny.posting_status} and cannot be overwritten.`
+    };
+  }
+
+  // No record for this specific sequence — allow insert
+  return { action: 'insert' };
 }
 
 export interface C3Record {
