@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -21,19 +22,22 @@ import {
 } from '@/components/ui/table';
 import { Eye, Plus, Search, Filter, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchViolations } from '@/services/complianceDataService';
+import { BulkViolationActions } from '@/components/compliance/BulkViolationActions';
 
 const VIOLATION_STATUSES = ['OPEN', 'UNDER_REVIEW', 'IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'CLOSED', 'CANCELLED'];
 const VIOLATION_PRIORITIES = ['Critical', 'High', 'Medium', 'Low'];
 
 export default function ViolationsManagement() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [monthFilter, setMonthFilter] = useState<string>(currentMonth);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const { data: violations = [], isLoading } = useQuery({
     queryKey: ['ce_violations', statusFilter, priorityFilter, searchTerm, monthFilter],
@@ -44,6 +48,18 @@ export default function ViolationsManagement() {
       month: monthFilter || undefined,
     }),
   });
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.length === violations.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(violations.map((v: any) => v.id));
+    }
+  };
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -82,7 +98,6 @@ export default function ViolationsManagement() {
   const openCount = violations.filter((v: any) => v.status === 'OPEN').length;
   const escalatedCount = violations.filter((v: any) => v.status === 'ESCALATED').length;
   const reviewCount = violations.filter((v: any) => v.status === 'UNDER_REVIEW').length;
-  const totalOutstanding = violations.reduce((sum: number, v: any) => sum + (Number(v.total_amount) || 0), 0);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -189,6 +204,14 @@ export default function ViolationsManagement() {
         </CardContent>
       </Card>
 
+      {/* Bulk Actions Bar */}
+      <BulkViolationActions
+        selectedIds={selectedIds}
+        violations={violations}
+        onComplete={() => queryClient.invalidateQueries({ queryKey: ['ce_violations'] })}
+        onClearSelection={() => setSelectedIds([])}
+      />
+
       {/* Violations Table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
@@ -203,6 +226,12 @@ export default function ViolationsManagement() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={violations.length > 0 && selectedIds.length === violations.length}
+                      onCheckedChange={toggleAll}
+                    />
+                  </TableHead>
                   <TableHead className="min-w-[150px]">Violation #</TableHead>
                   <TableHead className="min-w-[200px]">Employer</TableHead>
                   <TableHead className="min-w-[150px]">Type</TableHead>
@@ -219,13 +248,19 @@ export default function ViolationsManagement() {
               <TableBody>
                 {violations.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
                       No violations found
                     </TableCell>
                   </TableRow>
                 ) : (
                   violations.map((v: any) => (
-                    <TableRow key={v.id}>
+                    <TableRow key={v.id} className={selectedIds.includes(v.id) ? 'bg-primary/5' : ''}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.includes(v.id)}
+                          onCheckedChange={() => toggleSelect(v.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium font-mono text-xs">{v.violation_number}</TableCell>
                       <TableCell>
                         <div>

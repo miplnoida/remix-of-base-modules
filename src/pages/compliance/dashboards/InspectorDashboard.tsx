@@ -7,6 +7,7 @@ import {
   UserCheck, MapPin, Calendar, ClipboardCheck, AlertTriangle,
   CheckCircle, Clock, ArrowRight, Loader2, ListChecks
 } from 'lucide-react';
+import { WorkboardCaseloadSummary } from '@/components/compliance/WorkboardCaseloadSummary';
 import { useNavigate } from 'react-router-dom';
 import { useInspectorWorkboard } from '@/hooks/useInspectorWorkboard';
 import { WorkboardActionCard } from '@/components/compliance/workboard/WorkboardActionCard';
@@ -100,6 +101,9 @@ const InspectorDashboard = () => {
           </Card>
         ))}
       </div>
+
+      {/* Caseload Summary */}
+      <WorkboardCaseloadSummary />
 
       {/* Total pending */}
       {c && c.total > 0 && (

@@ -12,6 +12,7 @@ import {
   Play, Search, ArrowUpCircle, CheckCircle, XCircle, RotateCcw, Lock, Building2, Briefcase
 } from 'lucide-react';
 import { ViolationNotesTab } from '@/components/compliance/ViolationNotesTab';
+import { ViolationSLAMetrics } from '@/components/compliance/ViolationSLAMetrics';
 import { caseViolationService } from '@/services/caseViolationService';
 import { ViolationCorrespondenceTab } from '@/components/compliance/ViolationCorrespondenceTab';
 import { ViolationActionPlanTab } from '@/components/compliance/ViolationActionPlanTab';
@@ -395,6 +396,15 @@ export default function ViolationDetails() {
           </CardContent>
         </Card>
       </div>
+
+      {/* SLA Metrics */}
+      <ViolationSLAMetrics
+        violationId={v.id}
+        createdAt={v.created_at}
+        assignedAt={v.assigned_at}
+        dueDate={v.due_date}
+        status={currentStatus}
+      />
 
       {/* Assignment & Routing Info */}
       <Card>
