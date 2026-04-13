@@ -23007,7 +23007,7 @@ export type Database = {
       er_owner: {
         Row: {
           email: string | null
-          location_id: number
+          location_id: number | null
           mobile: string | null
           name: string | null
           owner_id: number
@@ -23018,7 +23018,7 @@ export type Database = {
         }
         Insert: {
           email?: string | null
-          location_id?: number
+          location_id?: number | null
           mobile?: string | null
           name?: string | null
           owner_id?: number
@@ -23029,7 +23029,7 @@ export type Database = {
         }
         Update: {
           email?: string | null
-          location_id?: number
+          location_id?: number | null
           mobile?: string | null
           name?: string | null
           owner_id?: number
@@ -23173,7 +23173,7 @@ export type Database = {
         Row: {
           date_of_visit: string
           inspector_code: string | null
-          location_id: number
+          location_id: number | null
           number_of_jobs: number | null
           operation_code: string | null
           outcome_code: string | null
@@ -23185,7 +23185,7 @@ export type Database = {
         Insert: {
           date_of_visit: string
           inspector_code?: string | null
-          location_id: number
+          location_id?: number | null
           number_of_jobs?: number | null
           operation_code?: string | null
           outcome_code?: string | null
@@ -23197,7 +23197,7 @@ export type Database = {
         Update: {
           date_of_visit?: string
           inspector_code?: string | null
-          location_id?: number
+          location_id?: number | null
           number_of_jobs?: number | null
           operation_code?: string | null
           outcome_code?: string | null
