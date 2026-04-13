@@ -161,6 +161,7 @@ export default function ViolationDetails() {
   const typeCategory = v.ce_violation_types?.category ?? '';
 
   return (
+    <>
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
         title={`Violation: ${v.violation_number}`}
