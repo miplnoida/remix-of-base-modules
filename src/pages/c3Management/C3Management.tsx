@@ -73,6 +73,11 @@ export default function C3Management() {
   const [formMode, setFormMode] = useState<'add' | 'edit' | 'view'>('add');
   const [isSaving, setIsSaving] = useState(false);
 
+  // ER schedule prompt state
+  const [erSchedulePromptOpen, setErSchedulePromptOpen] = useState(false);
+  const [erSuggestedScheduleNo, setErSuggestedScheduleNo] = useState<number>(1);
+  const [erSchedulePromptData, setErSchedulePromptData] = useState<any>(null);
+
   // Default empty filter state
   const emptyFilters = {
     regNo: "",
