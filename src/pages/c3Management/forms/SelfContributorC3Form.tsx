@@ -517,9 +517,9 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         }
         toast({ title: "Success", description: "C3 record saved successfully" });
         onSave?.(result.data);
-      } else if (result.data?.promptNextSchedule) {
+      } else if ((result as any).data?.promptNextSchedule) {
         // Show confirmation dialog instead of error
-        setSuggestedScheduleNo(result.data.sequence_no);
+        setSuggestedScheduleNo((result as any).data.sequence_no);
         setSchedulePromptOpen(true);
       } else {
         toast({ title: "Error", description: result.error || "Failed to save record", variant: "destructive" });
