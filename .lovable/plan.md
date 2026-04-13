@@ -1,142 +1,51 @@
 
 
-## Enhance Workflow Notification System: Configurable Step-Level and Decision-Level Notifications
+## Add Module-Based Template Filtering to Workflow Notification Configuration
 
-### Current State Summary
+### Summary
 
-The system has partial notification infrastructure:
-- **`workflow_action_notifications`** table already exists, storing multiple notification channels per action (action_id, notification_type, template_id)
-- **`workflow-notify-approvers`** edge function hardcodes in-app + email notifications to approvers when a step task is created
-- **`workflow-notify-requester`** edge function hardcodes in-app + email to the initiator on final actions
-- **Admin UI** (`WorkflowForm.tsx`) already allows configuring multiple notifications per action with type and template selection
-- **Missing**: Step-level entry notifications (notify assignee when step is reached), recipient_type configuration (next_step_approver vs initiator vs specific_role), is_enabled flag, and the runtime engine ignoring configured notifications in favor of hardcoded edge function calls
+The `notification_templates` table already has a `module_id` foreign key to `app_modules`, and both `StepNotificationFormData` and `NotificationFormData` already carry a `module_id` field. No schema changes needed. This is a **UI-only enhancement** to add a searchable Module dropdown that filters the Template dropdown.
 
-### What Needs to Change
+### Current State
 
-#### 1. Database Schema Changes (Migration)
+- Both "Step Entry Notifications" and "Action Notifications" show a Template dropdown listing ALL templates unfiltered
+- `module_id` exists in the form data interfaces but is never exposed in the UI for selection
+- `parentModules` (app_modules with no parent) are already fetched in the component
+- The `SearchableSelect` component already exists at `src/components/ui/searchable-select.tsx`
 
-**Extend `workflow_action_notifications` table** with new columns:
-```sql
-ALTER TABLE workflow_action_notifications
-  ADD COLUMN recipient_type TEXT NOT NULL DEFAULT 'next_step_approver',
-  ADD COLUMN is_enabled BOOLEAN NOT NULL DEFAULT true,
-  ADD COLUMN module_id UUID REFERENCES app_modules(id),
-  ADD COLUMN recipient_role_id UUID REFERENCES roles(id);
--- recipient_type values: 'next_step_approver', 'initiator', 'current_step_approver', 'specific_role'
-```
+### Changes
 
-**Create `workflow_step_notifications` table** for step-entry notifications (notify when a step is reached, independent of any action/decision):
-```sql
-CREATE TABLE workflow_step_notifications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  step_id UUID NOT NULL REFERENCES workflow_steps(id) ON DELETE CASCADE,
-  notification_type TEXT NOT NULL,
-  template_id UUID REFERENCES notification_templates(id),
-  module_id UUID REFERENCES app_modules(id),
-  recipient_type TEXT NOT NULL DEFAULT 'step_approver',
-  recipient_role_id UUID REFERENCES roles(id),
-  is_enabled BOOLEAN NOT NULL DEFAULT true,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
--- recipient_type values: 'step_approver', 'initiator', 'specific_role'
-```
+**File: `src/pages/admin/workflows/WorkflowForm.tsx`**
 
-**Seed existing workflows**: Insert default `workflow_action_notifications` rows for existing `end_workflow` actions to preserve current behavior (notify initiator on Approved/Rejected).
+1. **Replace Template `<Select>` with Module + Template pair in Step Entry Notifications** (lines 1373-1389):
+   - Add a "Module" column using `SearchableSelect` bound to `sn.module_id`, populated from `parentModules`
+   - Replace the Template `<Select>` with a `SearchableSelect` that filters `templates` by the selected `module_id`
+   - When Module changes, reset `template_id` to `null`
+   - Adjust grid from `grid-cols-5` to `grid-cols-6` to accommodate the new column
 
-#### 2. New Edge Function: `workflow-process-notifications`
+2. **Replace Template `<Select>` with Module + Template pair in Action Notifications** (lines 1676-1692):
+   - Same pattern: add Module `SearchableSelect` bound to `notif.module_id`
+   - Filter Template `SearchableSelect` by selected `module_id`
+   - When Module changes, reset `template_id` to `null`
+   - Adjust grid from `grid-cols-5` to `grid-cols-6`
 
-Replace the hardcoded notification logic in `workflow-notify-approvers` and `workflow-notify-requester` with a single, configurable notification processor:
+3. **Add helper logic** for filtered templates:
+   - Create a simple inline filter: `templates?.filter(t => !moduleId || t.module_id === moduleId)` for each notification row
+   - Both dropdowns use `SearchableSelect` for search support
 
-- **Input**: `{ instance_id, step_id, action_id?, trigger: 'step_entry' | 'action_taken' }`
-- **Logic**:
-  1. If `trigger = 'step_entry'`: query `workflow_step_notifications` for the step
-  2. If `trigger = 'action_taken'`: query `workflow_action_notifications` for the action
-  3. Filter by `is_enabled = true`
-  4. For each notification config, resolve recipients based on `recipient_type`:
-     - `step_approver` / `next_step_approver`: Use existing approver resolution logic (role/designation/user lookup)
-     - `initiator`: Lookup `workflow_instances.started_by`
-     - `current_step_approver`: Resolve from current step config
-     - `specific_role`: Resolve users with `recipient_role_id`
-  5. For each `notification_type`, dispatch:
-     - `Email`: Insert into `notification_logs` + invoke `send-notification`
-     - `In-App`: Insert into `in_app_notifications`
-     - `SMS` / `Push`: Insert into `notification_logs` with appropriate channel
-  6. Log all attempts with success/failure status
+4. **Backward compatibility**: If `module_id` is `null`, show all templates (unfiltered) — existing configs remain functional
 
-#### 3. Update Runtime Engine (`useWorkflowActions.ts`)
+### No Other File Changes Required
 
-**`createNextStepTask()`** (line 1071-1088): Replace the hardcoded `workflow-notify-approvers` call with:
-```typescript
-await supabase.functions.invoke('workflow-process-notifications', {
-  body: { instance_id: instanceId, step_id: step.id, trigger: 'step_entry' }
-});
-```
+- No migration needed (`module_id` FK already exists on `notification_templates`)
+- No edge function changes (the processor already reads `module_id` from both tables)
+- No `useWorkflows.ts` changes (`module_id` is already persisted in both save paths)
 
-**`end_workflow` block** (line 617-649): Replace the hardcoded `workflow-notify-requester` call with:
-```typescript
-await supabase.functions.invoke('workflow-process-notifications', {
-  body: { instance_id: task.instance_id, step_id: task.step_id, action_id: actionId, trigger: 'action_taken' }
-});
-```
+### Technical Details
 
-**`is_final_step` fallback** (line 696-708): Same replacement pattern.
-
-#### 4. Update All Submission Hooks
-
-Replace direct `workflow-notify-approvers` calls in these files with `workflow-process-notifications`:
-- `src/hooks/useC3Submit.ts`
-- `src/hooks/useOnlineApplicationWorkflowBinding.ts`
-- `src/hooks/useCardMachineChangeRequests.ts`
-- `src/services/employerWorkflowTriggerService.ts`
-- `src/services/workflowTriggerService.ts`
-- `src/services/bn/bnWorkflowIntegrationService.ts`
-
-#### 5. Admin UI Enhancement (`WorkflowForm.tsx`)
-
-**Step-level notification config**: Add a "Step Entry Notifications" section inside each step collapsible, allowing admins to add/remove notification rows with:
-- Notification Type (dropdown from `useActiveNotificationTypes`)
-- Recipient Type (dropdown: Step Approver, Initiator, Specific Role)
-- Template (dropdown from `notification_templates`)
-- Enabled toggle
-
-**Action-level notification config**: Extend the existing action notification section with:
-- Recipient Type dropdown (Next Step Approver, Initiator, Current Step Approver, Specific Role)
-- Enabled toggle per notification row
-
-#### 6. Update `useWorkflows.ts` Save Logic
-
-- Load/save `workflow_step_notifications` alongside step data
-- Include `recipient_type`, `is_enabled`, `module_id` when saving `workflow_action_notifications`
-
-#### 7. Backward Compatibility & Migration
-
-- Keep `workflow-notify-approvers` and `workflow-notify-requester` edge functions as-is (not deleted) for safety
-- Seed `workflow_step_notifications` for all existing workflow steps with `notification_type = 'In-App'` + `recipient_type = 'step_approver'` + `is_enabled = true` to match current hardcoded behavior
-- Seed `workflow_action_notifications` for all existing `end_workflow` actions with `notification_type = 'In-App'` + `recipient_type = 'initiator'` to match current requester notification behavior
-- The new `workflow-process-notifications` function will be the single entry point; existing edge functions remain deployable but unused
-
-#### 8. Audit Logging
-
-- All notification dispatch results logged in `notification_logs` (already happening)
-- Configuration changes tracked via existing `system_audit_trail` triggers
-
-### Files to Create/Modify
-
-| File | Change |
-|------|--------|
-| Migration SQL | Create `workflow_step_notifications`, extend `workflow_action_notifications`, seed existing workflows |
-| `supabase/functions/workflow-process-notifications/index.ts` | **New** - unified configurable notification processor |
-| `src/hooks/useWorkflowActions.ts` | Replace hardcoded edge function calls with `workflow-process-notifications` |
-| `src/hooks/useC3Submit.ts` | Replace `workflow-notify-approvers` call |
-| `src/hooks/useOnlineApplicationWorkflowBinding.ts` | Replace `workflow-notify-approvers` call |
-| `src/hooks/useCardMachineChangeRequests.ts` | Replace `workflow-notify-approvers` call |
-| `src/services/employerWorkflowTriggerService.ts` | Replace `workflow-notify-approvers` call |
-| `src/services/workflowTriggerService.ts` | Replace `workflow-notify-approvers` call |
-| `src/services/bn/bnWorkflowIntegrationService.ts` | Replace `workflow-notify-approvers` call |
-| `src/hooks/useWorkflows.ts` | Add types + CRUD for `workflow_step_notifications`, extend action notification fields |
-| `src/pages/admin/workflows/WorkflowForm.tsx` | Add step-entry notification config UI, extend action notification UI with recipient_type and is_enabled |
-
-### Impact
-
-All existing workflows will continue working identically. The current hardcoded behavior is replicated via seeded database configuration. New workflows will automatically inherit configurable notification behavior without code changes.
+- Import `SearchableSelect` at the top of `WorkflowForm.tsx`
+- Map `parentModules` to `SearchableSelectOption[]` format: `{ value: id, label: display_name }`
+- Map filtered `templates` to `SearchableSelectOption[]`: `{ value: id, label: name }`
+- Use `includeAllOption="All Modules"` on the Module dropdown so users can clear selection
+- Both dropdowns get search-as-you-type via the existing `SearchableSelect` component
 
