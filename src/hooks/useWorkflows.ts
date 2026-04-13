@@ -183,6 +183,12 @@ export function useWorkflowWithSteps(workflowId: string | null) {
             .eq('step_id', step.id)
             .order('display_order', { ascending: true });
           
+          // Fetch step-level notifications
+          const { data: stepNotifications } = await supabase
+            .from('workflow_step_notifications')
+            .select('*')
+            .eq('step_id', step.id);
+          
           // Fetch notifications and field updates for each action
           const actionsWithNotifications = await Promise.all(
             (actions || []).map(async (action: WorkflowStepAction) => {
@@ -201,13 +207,14 @@ export function useWorkflowWithSteps(workflowId: string | null) {
             })
           );
           
-          return { ...step, actions: actionsWithNotifications };
+          return { ...step, actions: actionsWithNotifications, stepNotifications: (stepNotifications || []) as WorkflowStepNotification[] };
         })
       );
       
       return { ...workflow, steps: stepsWithActions } as WorkflowDefinition & { 
         steps: (WorkflowStep & { 
-          actions: (WorkflowStepAction & { notifications: WorkflowActionNotification[] })[] 
+          actions: (WorkflowStepAction & { notifications: WorkflowActionNotification[] })[];
+          stepNotifications: WorkflowStepNotification[];
         })[] 
       };
     },
