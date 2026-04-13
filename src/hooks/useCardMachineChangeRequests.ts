@@ -359,6 +359,18 @@ export function useSkipApprovedChange() {
           comments: params.skipComment.trim(),
           metadata: { notification_type: 'approval_skipped', skipped_by: userCode },
         });
+
+        // Notify the requester that the approved change was skipped/cancelled (fire-and-forget)
+        supabase.functions.invoke('workflow-notify-requester', {
+          body: {
+            instance_id: req.workflow_instance_id,
+            action: 'Cancelled',
+            action_by: userCode || 'System',
+            comments: params.skipComment.trim(),
+          },
+        }).then(({ error }) => {
+          if (error) console.error('Requester notification on skip failed (non-blocking):', error);
+        });
       }
     },
     onSuccess: (_, params) => {
