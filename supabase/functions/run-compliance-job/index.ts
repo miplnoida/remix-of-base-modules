@@ -9,6 +9,8 @@ const corsHeaders = {
 const EDGE_FUNCTION_JOBS: Record<string, string> = {
   'JOB-VIOLATION-SCAN': 'ce-violation-scan',
   'JOB-NOTICE-GENERATION': 'run-notice-generation',
+  'JOB-ESCALATION-ENGINE': 'run-escalation-engine',
+  'JOB-OVERDUE-DETECTION': 'run-overdue-detection',
 };
 
 // Jobs that have RPC handlers
