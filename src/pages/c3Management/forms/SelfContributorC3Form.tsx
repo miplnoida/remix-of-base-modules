@@ -895,6 +895,24 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         variant="destructive"
         onConfirm={handleFieldChangeConfirm}
       />
+
+      {/* Schedule prompt dialog for VAC existing records */}
+      <ConfirmDialog
+        open={schedulePromptOpen}
+        onOpenChange={setSchedulePromptOpen}
+        title="Existing Verified C3 Found"
+        description={`A verified C3 for this payer and period already exists. Would you like to create Schedule ${suggestedScheduleNo}?`}
+        confirmLabel={`Create Schedule ${suggestedScheduleNo}`}
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setSchedulePromptOpen(false);
+          setScheduleNo(suggestedScheduleNo);
+          // Re-trigger save with new schedule number after state update
+          setTimeout(() => {
+            handleSave();
+          }, 100);
+        }}
+      />
     </div>
   );
 }
