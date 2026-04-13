@@ -558,7 +558,32 @@ export default function WorkflowForm() {
     setSteps(newSteps);
   };
 
-  const validateForm = (): boolean => {
+  // Step-level notification helpers
+  const addStepNotification = (stepIndex: number) => {
+    const newSteps = [...steps];
+    newSteps[stepIndex].stepNotifications.push({
+      notification_type: 'In-App',
+      template_id: null,
+      module_id: null,
+      recipient_type: 'step_approver',
+      recipient_role_id: null,
+      is_enabled: true,
+    });
+    setSteps(newSteps);
+  };
+
+  const removeStepNotification = (stepIndex: number, notifIndex: number) => {
+    const newSteps = [...steps];
+    newSteps[stepIndex].stepNotifications = newSteps[stepIndex].stepNotifications.filter((_, i) => i !== notifIndex);
+    setSteps(newSteps);
+  };
+
+  const updateStepNotification = (stepIndex: number, notifIndex: number, field: keyof StepNotificationFormData, value: any) => {
+    const newSteps = [...steps];
+    (newSteps[stepIndex].stepNotifications[notifIndex] as any)[field] = value;
+    setSteps(newSteps);
+  };
+
     if (!formData.name.trim()) {
       toast({ title: 'Error', description: 'Workflow name is required', variant: 'destructive' });
       return false;
