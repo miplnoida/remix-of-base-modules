@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import {
   FileText, Bell, History, AlertCircle, MessageSquare, Mail, ListChecks,
   Loader2, Eye, MapPin, UserCheck, ClipboardCheck,
-  Play, Search, ArrowUpCircle, CheckCircle, XCircle, RotateCcw, Lock, Building2
+  Play, Search, ArrowUpCircle, CheckCircle, XCircle, RotateCcw, Lock, Building2, Briefcase
 } from 'lucide-react';
 import { ViolationNotesTab } from '@/components/compliance/ViolationNotesTab';
 import { caseViolationService } from '@/services/caseViolationService';
