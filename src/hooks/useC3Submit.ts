@@ -255,9 +255,9 @@ const triggerC3Workflow = async (
         step_id: firstStep.id,
         step_name: firstStep.step_name,
         action: 'workflow_started',
-        performed_by: userId,
-        performed_by_name: profile?.full_name || userCode || 'System',
-        details: `Workflow started for C3 Submission: ${recordName}`,
+        user_id: userId,
+        user_name: profile?.full_name || userCode || 'System',
+        comments: `Workflow started for C3 Submission: ${recordName}`,
       });
 
     // Notify approvers via edge function
