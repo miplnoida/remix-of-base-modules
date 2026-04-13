@@ -1,43 +1,38 @@
 
 
-## Fix: c3-verify 500 — "column occupation does not exist" on ip_wages
+## Fix: C3 Payment Screen Shows Full Amount Instead of Component-Level Balances
 
 ### Root Cause
 
-The `process_c3_employer_verification()` trigger fires when `cn_c3_reported.posting_status` changes to `'VAC'` (which happens during c3-verify). On line 27-32, it runs:
+**Format mismatch in `get_c3_component_balances` RPC.**
 
+The `c3_payment_components.period` column stores period as `MM/YYYY` (e.g., `04/2026`), but the RPC parameter `p_period` is passed as `YYYY-MM-01` (e.g., `2026-04-01`).
+
+The comparison on line:
 ```sql
-UPDATE ip_wages
-SET posting_status = 'VAC',
-    verified_by = v_verifier_code,
-    date_verified = NOW(),
-    occupation = COALESCE(v_current_occupation, occupation)  -- THIS LINE
-WHERE id = v_wage_row.id;
+AND cpc.period = p_period
 ```
-
-The `ip_employer` table has an `occupation` column, but `ip_wages` does **not**. The trigger incorrectly tries to write `occupation` to `ip_wages`, causing PostgreSQL error 42703.
+Always fails → paid amounts = 0 → full original amount shown.
 
 ### Fix
 
-**Migration SQL** — Recreate the trigger function, removing the `occupation` assignment from the `ip_wages` UPDATE:
+**Migration SQL** — Convert `p_period` to `MM/YYYY` format inside the RPC before comparing:
 
 ```sql
-UPDATE ip_wages
-SET posting_status = 'VAC',
-    verified_by = v_verifier_code,
-    date_verified = NOW()
-WHERE id = v_wage_row.id;
-```
+-- Change:
+AND cpc.period = p_period
 
-The occupation lookup from `ip_employer` and the `v_current_occupation` variable can also be removed since they serve no purpose without a target column.
+-- To:
+AND cpc.period = LPAD(EXTRACT(MONTH FROM p_period::date)::text, 2, '0') || '/' || EXTRACT(YEAR FROM p_period::date)::text
+```
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| Migration SQL | Recreate `process_c3_employer_verification()` — remove `occupation` references from `ip_wages` UPDATE |
+| Migration SQL | Recreate `get_c3_component_balances` — fix period format conversion in the paid-amount subquery |
 
 ### Impact
 
-Single-function fix. Unblocks all C3 verify calls (ER, SE, NWD) immediately.
+Single-line fix inside the RPC. After this, previously paid component amounts will be correctly deducted and the payment screen will show only outstanding balances per component.
 
