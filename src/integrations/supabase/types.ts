@@ -11866,6 +11866,13 @@ export type Database = {
             referencedColumns: ["reversal_entry_id"]
           },
           {
+            foreignKeyName: "ce_employer_financial_ledger_reversal_of_id_fkey"
+            columns: ["reversal_of_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_unobserved_payment_entries"
+            referencedColumns: ["ledger_entry_id"]
+          },
+          {
             foreignKeyName: "fk_ce_ledger_reversal_of"
             columns: ["reversal_of_id"]
             isOneToOne: false
@@ -11885,6 +11892,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_ledger_reversals_v"
             referencedColumns: ["reversal_entry_id"]
+          },
+          {
+            foreignKeyName: "fk_ce_ledger_reversal_of"
+            columns: ["reversal_of_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_unobserved_payment_entries"
+            referencedColumns: ["ledger_entry_id"]
           },
         ]
       }
@@ -14059,6 +14073,13 @@ export type Database = {
             referencedColumns: ["reversal_entry_id"]
           },
           {
+            foreignKeyName: "ce_payment_allocations_ledger_credit_entry_id_fkey"
+            columns: ["ledger_credit_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_unobserved_payment_entries"
+            referencedColumns: ["ledger_entry_id"]
+          },
+          {
             foreignKeyName: "ce_payment_allocations_target_ledger_debit_entry_id_fkey"
             columns: ["target_ledger_debit_entry_id"]
             isOneToOne: false
@@ -14078,6 +14099,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_ledger_reversals_v"
             referencedColumns: ["reversal_entry_id"]
+          },
+          {
+            foreignKeyName: "ce_payment_allocations_target_ledger_debit_entry_id_fkey"
+            columns: ["target_ledger_debit_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_unobserved_payment_entries"
+            referencedColumns: ["ledger_entry_id"]
           },
         ]
       }
@@ -14270,6 +14298,42 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_payment_observation_log: {
+        Row: {
+          created_at: string
+          employer_id: string
+          id: string
+          idempotency_key: string
+          ledger_entry_id: string
+          notes: string | null
+          observation_type: string
+          observed_at: string
+          observed_by: string
+        }
+        Insert: {
+          created_at?: string
+          employer_id: string
+          id?: string
+          idempotency_key: string
+          ledger_entry_id: string
+          notes?: string | null
+          observation_type?: string
+          observed_at?: string
+          observed_by?: string
+        }
+        Update: {
+          created_at?: string
+          employer_id?: string
+          id?: string
+          idempotency_key?: string
+          ledger_entry_id?: string
+          notes?: string | null
+          observation_type?: string
+          observed_at?: string
+          observed_by?: string
+        }
+        Relationships: []
+      }
       ce_penalty_calculations: {
         Row: {
           calculated_amount: number
@@ -14358,6 +14422,13 @@ export type Database = {
             referencedColumns: ["reversal_entry_id"]
           },
           {
+            foreignKeyName: "ce_penalty_calculations_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_unobserved_payment_entries"
+            referencedColumns: ["ledger_entry_id"]
+          },
+          {
             foreignKeyName: "ce_penalty_calculations_violation_id_fkey"
             columns: ["violation_id"]
             isOneToOne: false
@@ -14384,6 +14455,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_ledger_reversals_v"
             referencedColumns: ["reversal_entry_id"]
+          },
+          {
+            foreignKeyName: "fk_ce_penalty_calculations_ledger_entry"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_unobserved_payment_entries"
+            referencedColumns: ["ledger_entry_id"]
           },
         ]
       }
@@ -44166,6 +44244,24 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_v_unobserved_payment_entries: {
+        Row: {
+          credit_amount: number | null
+          description: string | null
+          employer_id: string | null
+          employer_name: string | null
+          entry_type: Database["public"]["Enums"]["ce_ledger_entry_type"] | null
+          fund_type: Database["public"]["Enums"]["ce_fund_type"] | null
+          ledger_entry_id: string | null
+          ledger_idempotency_key: string | null
+          period: string | null
+          posted_at: string | null
+          posted_by: string | null
+          reference_id: string | null
+          reference_type: string | null
+        }
+        Relationships: []
+      }
       ce_v_violation_trends: {
         Row: {
           created_count: number | null
@@ -44508,6 +44604,24 @@ export type Database = {
         }
         Returns: Json
       }
+      ce_fetch_unobserved_payments: {
+        Args: { p_employer_id?: string; p_limit?: number }
+        Returns: {
+          credit_amount: number
+          description: string
+          employer_id: string
+          employer_name: string
+          entry_type: string
+          fund_type: string
+          ledger_entry_id: string
+          ledger_idempotency_key: string
+          period: string
+          posted_at: string
+          posted_by: string
+          reference_id: string
+          reference_type: string
+        }[]
+      }
       ce_generate_employer_statement: {
         Args: {
           p_employer_id: string
@@ -44546,6 +44660,16 @@ export type Database = {
           total_credits: number
           total_debits: number
         }[]
+      }
+      ce_mark_payment_observed: {
+        Args: {
+          p_employer_id: string
+          p_ledger_entry_id: string
+          p_notes?: string
+          p_observation_type?: string
+          p_observed_by?: string
+        }
+        Returns: string
       }
       ce_post_financial_event: {
         Args: {
