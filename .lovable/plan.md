@@ -1,72 +1,65 @@
 
 
-## Fix: Notification Recipient Resolution for All Approver Types
+## Real-Time Notification System Enhancement
 
-### Problem
+### Current State
+- `in_app_notifications` table exists with all required columns (user_id, title, body, is_read, created_at, notification_type, priority, etc.)
+- Indexes exist on `user_id`, `notification_type`, `module` — but **no composite index on (user_id, is_read)**
+- Table is **NOT** registered with `supabase_realtime` publication
+- Frontend polls every 30 seconds via `refetchInterval: 30000` — no realtime subscription
+- No popup/toast for incoming notifications
 
-The `resolveRecipients` function in `workflow-process-notifications` only handles three step `approver_type` values: `user`, `role`, and `designation`. When a step uses `reporting_manager`, `department_head`, or any other custom approver type, **no recipients are resolved** and notifications silently fail.
+### Changes
 
-Additionally, for **action notifications** with `recipient_type = 'next_step_approver'`, the function currently resolves from the *current* step's approver config instead of the *next* step — which is incorrect for decision-based notifications (e.g., "notify the next reviewer after approval").
+#### 1. Database Migration
+- Enable realtime: `ALTER PUBLICATION supabase_realtime ADD TABLE public.in_app_notifications;`
+- Add composite index: `CREATE INDEX idx_in_app_notif_user_read ON public.in_app_notifications (user_id, is_read);`
 
-### Root Cause
+#### 2. Frontend: `InAppNotificationBell.tsx`
+- **Add realtime subscription**: Subscribe to `postgres_changes` on `in_app_notifications` filtered by `user_id = user.id`. On `INSERT`, prepend the new notification to the cached query data and show a popup toast. On `UPDATE` (read status change), update the cached entry in-place.
+- **Remove polling**: Remove `refetchInterval: 30000` since realtime replaces it.
+- **Popup notification**: When a new notification arrives via realtime, display a small animated popup card above the bell icon using a local state variable. The popup auto-dismisses after 5 seconds and can be clicked to navigate or manually dismissed. Styled consistently with the app's card/toast design.
 
-The task creation logic (in `useWorkflowActions`, `useC3Submit`, etc.) correctly resolves reporting managers and assigns them to `workflow_tasks.assigned_to`. But the edge function never checks this already-resolved assignment.
+#### 3. Frontend: `NotificationCenter.tsx`
+- Add the same realtime subscription pattern so the full notification list page also updates in real time without refresh.
 
-### Fix (single file)
+### Technical Details
 
-**File: `supabase/functions/workflow-process-notifications/index.ts`**
-
-#### 1. Add task-based fallback in `resolveRecipients`
-
-After the existing `step_approver`/`next_step_approver`/`current_step_approver` block (line 321), add a fallback that queries `workflow_tasks` for already-assigned users when the standard resolution returns empty:
-
+**Realtime subscription pattern** (inside `useEffect` in `InAppNotificationBell`):
 ```typescript
-// Fallback: resolve from already-assigned workflow task
-// Handles reporting_manager, department_head, and any future approver types
-if (userIds.length === 0) {
-  const { data: tasks } = await supabase
-    .from('workflow_tasks')
-    .select('assigned_to')
-    .eq('instance_id', instance.id)
-    .eq('step_id', step.id)
-    .in('status', ['Pending', 'InProgress']);
-  if (tasks) {
-    userIds.push(...tasks.map((t: any) => t.assigned_to).filter(Boolean));
-  }
-}
+const channel = supabase
+  .channel(`notifications:${user.id}`)
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'in_app_notifications',
+    filter: `user_id=eq.${user.id}`,
+  }, (payload) => {
+    // Prepend to query cache, show popup
+  })
+  .on('postgres_changes', {
+    event: 'UPDATE',
+    schema: 'public',
+    table: 'in_app_notifications',
+    filter: `user_id=eq.${user.id}`,
+  }, (payload) => {
+    // Update read status in cache
+  })
+  .subscribe();
 ```
 
-This is the most robust approach because:
-- It automatically works for `reporting_manager`, `department_head`, and any future approver types
-- The task assignment logic has already resolved the correct user — we reuse that result
-- No duplication of complex resolution logic (reporting manager chain, etc.)
+**Popup component**: A small floating card rendered via absolute positioning relative to the bell button, showing title + truncated body, with fade-in/out animation via Tailwind `animate-in`/`animate-out`. Auto-dismiss via `setTimeout(5000)`.
 
-#### 2. Handle `next_step_approver` for action notifications
+### Files to Modify
 
-For `recipient_type = 'next_step_approver'`, the function must resolve the *next* step's approver, not the current step. Update `resolveRecipients` to:
-- Accept the full step data including `step_number` and `workflow_id`
-- When `recipient_type === 'next_step_approver'` and `trigger === 'action_taken'`, fetch the next step by `step_number + 1` and resolve from that step's approver config
-- Apply the same task-based fallback if the next step's approver type is unhandled
-
-This requires fetching `step_number` and `workflow_id` in the step query (line 70) and passing them through.
-
-#### 3. Fix `notification_logs` insert schema
-
-The `notification_logs` inserts include a `type` column that may not exist. Check schema and fix column name or remove it to prevent silent insert failures.
-
-### Summary of Changes
-
-| Area | Change |
+| File | Change |
 |------|--------|
-| `resolveRecipients` | Add `workflow_tasks` fallback for all unresolved approver types |
-| `resolveRecipients` | Handle `next_step_approver` by fetching the next workflow step |
-| Step query (line 70) | Include `step_number, workflow_id` in select |
-| `notification_logs` inserts | Fix or remove invalid `type` column |
+| Migration | Enable realtime + add composite index |
+| `src/components/notifications/InAppNotificationBell.tsx` | Add realtime subscription, popup UI, remove polling |
+| `src/pages/notifications/NotificationCenter.tsx` | Add realtime subscription for live list updates |
 
-### Impact
-
-- All existing recipient types (`step_approver`, `initiator`, `specific_role`) continue unchanged
-- `reporting_manager`, `department_head`, and any custom types now resolve via task fallback
-- `next_step_approver` in action notifications correctly targets the next step's assignee
-- Both Step Entry Notifications and Action Notifications benefit from the same fix
+### Backward Compatibility
+- No schema changes to existing columns — only additive (index + realtime publication)
+- Existing notification insert paths (edge functions, services) work unchanged
+- Read/unread mutations continue using the same Supabase client calls
 
