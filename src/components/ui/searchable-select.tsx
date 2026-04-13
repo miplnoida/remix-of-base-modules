@@ -76,7 +76,7 @@ export function SearchableSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+      <PopoverContent className="min-w-[--radix-popover-trigger-width] w-auto max-w-[400px] p-0" align="start">
         <Command
           filter={(value, search) => {
             const option = effectiveOptions.find((o) => o.value === value);
@@ -113,7 +113,7 @@ export function SearchableSelect({
                         isSelected ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    <span className="truncate">{option.label}</span>
+                    <span className="whitespace-normal break-words">{option.label}</span>
                   </CommandItem>
                 );
               })}
