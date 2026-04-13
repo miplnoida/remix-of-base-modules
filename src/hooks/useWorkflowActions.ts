@@ -1073,11 +1073,21 @@ async function updateSourceRecordStatus(
   comments?: string,
   configuredResultStatus?: string | null
 ) {
+  // Resolve user_code for audit fields (per project convention: store UserCode, not UUID)
+  let userCode = 'SYSTEM';
+  if (userId) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('user_code')
+      .eq('id', userId)
+      .maybeSingle();
+    userCode = (profile as any)?.user_code || 'SYSTEM';
+  }
   if (sourceModule === 'insured_person_registration') {
     let newStatus: string;
     const updateData: Record<string, any> = {
       updated_at: new Date().toISOString(),
-      updated_by: userId,
+      updated_by: userCode,
     };
 
     if (configuredResultStatus) {
@@ -1087,12 +1097,12 @@ async function updateSourceRecordStatus(
     } else if (endState === 'Approved') {
       newStatus = 'V'; // Verified
       updateData.status = newStatus;
-      updateData.verified_by = userId;
+      updateData.verified_by = userCode;
       updateData.date_verified = new Date().toISOString();
     } else if (endState === 'Rejected') {
       newStatus = 'R'; // Rejected
       updateData.status = newStatus;
-      updateData.rejected_by = userId;
+      updateData.rejected_by = userCode;
       updateData.date_rejected = new Date().toISOString();
       updateData.rejection_reason = comments || 'Rejected via workflow';
     } else if (endState === 'Query') {
@@ -1192,7 +1202,7 @@ async function updateSourceRecordStatus(
     // C3 submission workflow: update posting_status on cn_c3_reported and ip_wages
     const updateData: Record<string, any> = {
       modified_date: new Date().toISOString(),
-      modified_by: userId,
+      modified_by: userCode,
     };
 
     let newPostingStatus: string | null = null;
@@ -1212,7 +1222,7 @@ async function updateSourceRecordStatus(
 
       // Set verification audit fields when approving (status → VAC)
       if (newPostingStatus === 'VAC') {
-        updateData.verified_by = userId;
+        updateData.verified_by = userCode;
         updateData.date_verified = new Date().toISOString();
       }
 
@@ -1231,12 +1241,12 @@ async function updateSourceRecordStatus(
       const wagesUpdateData: Record<string, any> = {
         posting_status: newPostingStatus,
         date_modified: new Date().toISOString(),
-        modified_by: userId,
+        modified_by: userCode,
       };
       
       // Set verification audit fields on wages too when approving
       if (newPostingStatus === 'VAC') {
-        wagesUpdateData.verified_by = userId;
+        wagesUpdateData.verified_by = userCode;
         wagesUpdateData.date_verified = new Date().toISOString();
       }
 
@@ -1327,7 +1337,7 @@ async function updateSourceRecordStatus(
         .from('bn_claim')
         .update({
           status: newStatus,
-          modified_by: userId,
+          modified_by: userCode,
           modified_at: new Date().toISOString(),
           ...(endState === 'Approved' ? { decision_date: new Date().toISOString() } : {}),
         })
@@ -1360,12 +1370,12 @@ async function updateSourceRecordStatus(
       const auditFields: Record<string, any> = {
         status: newStatus,
         date_modified: new Date().toISOString().split('T')[0],
-        modified_by: userId,
+        modified_by: userCode,
       };
 
       if (newStatus === 'V') {
         auditFields.date_verified = new Date().toISOString().split('T')[0];
-        auditFields.verified_by = userId;
+        auditFields.verified_by = userCode;
       }
 
       const { error } = await supabase
