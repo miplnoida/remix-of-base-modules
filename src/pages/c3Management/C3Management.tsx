@@ -27,6 +27,7 @@ import { WorkflowActionButtons, WorkflowActionButtonsCompact } from "@/component
 import { getC3Statuses, getActiveProfiles, updateWageVerification, verifyAllWagesForC3 } from "@/services/c3Service";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 export default function C3Management() {
   const navigate = useNavigate();
@@ -1522,6 +1523,44 @@ export default function C3Management() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ER Schedule Prompt Dialog */}
+      <ConfirmDialog
+        open={erSchedulePromptOpen}
+        onOpenChange={setErSchedulePromptOpen}
+        title="Existing Verified C3 Found"
+        description={`A verified C3 for this employer and period already exists. Would you like to create Schedule ${erSuggestedScheduleNo}?`}
+        confirmLabel={`Create Schedule ${erSuggestedScheduleNo}`}
+        cancelLabel="Cancel"
+        onConfirm={async () => {
+          setErSchedulePromptOpen(false);
+          if (erSchedulePromptData) {
+            const updatedData = { ...erSchedulePromptData, scheduleNo: erSuggestedScheduleNo };
+            setIsSaving(true);
+            try {
+              const payerType = contributionTypeToPayerType(contributionType);
+              const result = await saveDraft(updatedData, payerType);
+              if (result.success) {
+                toast({
+                  title: "C3 Record Created",
+                  description: `Employer C3 Schedule ${erSuggestedScheduleNo} has been saved as draft.`,
+                });
+                const savedId = result.id;
+                if (savedId) {
+                  setFormMode('edit');
+                  const reloaded = await getRecordWithWages(savedId);
+                  if (reloaded.success && reloaded.data) {
+                    setEditingRecord(reloaded.data);
+                  }
+                }
+              }
+            } finally {
+              setIsSaving(false);
+              setErSchedulePromptData(null);
+            }
+          }
+        }}
+      />
 
 
       </div>
