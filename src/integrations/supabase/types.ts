@@ -44706,6 +44706,10 @@ export type Database = {
         }
         Returns: string
       }
+      ce_recalculate_arrangement_summary: {
+        Args: { p_actor?: string; p_arrangement_id: string }
+        Returns: undefined
+      }
       ce_recalculate_period_summary: {
         Args: {
           p_employer_id: string
@@ -44721,6 +44725,16 @@ export type Database = {
       ce_recompute_employer_risk: {
         Args: { p_employer_id: string; p_triggered_by?: string }
         Returns: Json
+      }
+      ce_reconcile_ledger_payment_to_arrangement: {
+        Args: { p_actor?: string; p_ledger_entry_id: string }
+        Returns: Database["public"]["CompositeTypes"]["ce_reconcile_result"]
+        SetofOptions: {
+          from: "*"
+          to: "ce_reconcile_result"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       ce_reverse_financial_event: {
         Args: {
@@ -46731,7 +46745,14 @@ export type Database = {
         | "Paused"
     }
     CompositeTypes: {
-      [_ in never]: never
+      ce_reconcile_result: {
+        observation_id: string | null
+        arrangement_id: string | null
+        allocated_amount: number | null
+        installments_touched: number | null
+        arrangement_completed: boolean | null
+        was_duplicate: boolean | null
+      }
     }
   }
 }
