@@ -17756,7 +17756,7 @@ export type Database = {
           payer_name: string | null
           payer_type: string
           period: string
-          posting_status: string
+          posting_status: string | null
           received_by: string | null
           sequence_no: number
           total_wages: number | null
@@ -17791,7 +17791,7 @@ export type Database = {
           payer_name?: string | null
           payer_type: string
           period: string
-          posting_status?: string
+          posting_status?: string | null
           received_by?: string | null
           sequence_no?: number
           total_wages?: number | null
@@ -17826,7 +17826,7 @@ export type Database = {
           payer_name?: string | null
           payer_type?: string
           period?: string
-          posting_status?: string
+          posting_status?: string | null
           received_by?: string | null
           sequence_no?: number
           total_wages?: number | null
@@ -29922,7 +29922,7 @@ export type Database = {
           entered_by: string | null
           eyecolor: string | null
           father_name: string | null
-          firstname: string
+          firstname: string | null
           heightfeet: number | null
           heightinches: number | null
           id: string
@@ -29931,14 +29931,14 @@ export type Database = {
           mail_addr1: string | null
           mail_addr2: string | null
           marital_doc_type: string | null
-          marital_status: string
+          marital_status: string | null
           middle_name: string | null
           mobile: string | null
           mother_name: string | null
           name_doc_type: string | null
           name_prefix: string | null
           name_suffix: string | null
-          nationality: string
+          nationality: string | null
           npf: string | null
           old_card_attached: string | null
           perm_card_date: string | null
@@ -29967,7 +29967,7 @@ export type Database = {
           status: string
           submitted_at: string | null
           submitted_by: string | null
-          surname: string
+          surname: string | null
           telephone: string | null
           temp_card_date: string | null
           temp_ssn: string | null
@@ -30034,7 +30034,7 @@ export type Database = {
           entered_by?: string | null
           eyecolor?: string | null
           father_name?: string | null
-          firstname: string
+          firstname?: string | null
           heightfeet?: number | null
           heightinches?: number | null
           id?: string
@@ -30043,14 +30043,14 @@ export type Database = {
           mail_addr1?: string | null
           mail_addr2?: string | null
           marital_doc_type?: string | null
-          marital_status: string
+          marital_status?: string | null
           middle_name?: string | null
           mobile?: string | null
           mother_name?: string | null
           name_doc_type?: string | null
           name_prefix?: string | null
           name_suffix?: string | null
-          nationality: string
+          nationality?: string | null
           npf?: string | null
           old_card_attached?: string | null
           perm_card_date?: string | null
@@ -30079,7 +30079,7 @@ export type Database = {
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
-          surname: string
+          surname?: string | null
           telephone?: string | null
           temp_card_date?: string | null
           temp_ssn?: string | null
@@ -30146,7 +30146,7 @@ export type Database = {
           entered_by?: string | null
           eyecolor?: string | null
           father_name?: string | null
-          firstname?: string
+          firstname?: string | null
           heightfeet?: number | null
           heightinches?: number | null
           id?: string
@@ -30155,14 +30155,14 @@ export type Database = {
           mail_addr1?: string | null
           mail_addr2?: string | null
           marital_doc_type?: string | null
-          marital_status?: string
+          marital_status?: string | null
           middle_name?: string | null
           mobile?: string | null
           mother_name?: string | null
           name_doc_type?: string | null
           name_prefix?: string | null
           name_suffix?: string | null
-          nationality?: string
+          nationality?: string | null
           npf?: string | null
           old_card_attached?: string | null
           perm_card_date?: string | null
@@ -30191,7 +30191,7 @@ export type Database = {
           status?: string
           submitted_at?: string | null
           submitted_by?: string | null
-          surname?: string
+          surname?: string | null
           telephone?: string | null
           temp_card_date?: string | null
           temp_ssn?: string | null
@@ -38978,17 +38978,17 @@ export type Database = {
       tb_relation: {
         Row: {
           code: string
-          description: string
+          description: string | null
           surv_type: string | null
         }
         Insert: {
           code: string
-          description: string
+          description?: string | null
           surv_type?: string | null
         }
         Update: {
           code?: string
-          description?: string
+          description?: string | null
           surv_type?: string | null
         }
         Relationships: []
