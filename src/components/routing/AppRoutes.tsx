@@ -884,25 +884,6 @@ export const AppRoutes = () => {
       <Route path="/c3-management/add" element={<ProtectedLayout><C3InputForm /></ProtectedLayout>} />
       
 
-      {/* Missing compliance routes — aligned to app_modules DB entries */}
-      <Route path="/compliance/dashboard/analytics" element={<ProtectedLayout><ComplianceAnalytics /></ProtectedLayout>} />
-      <Route path="/compliance/cases/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
-      <Route path="/compliance/employers/hierarchy" element={<ProtectedLayout><EmployerHierarchy /></ProtectedLayout>} />
-      <Route path="/compliance/employers/management" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
-      <Route path="/compliance/inspections/field-operations" element={<ProtectedLayout><FieldOperations /></ProtectedLayout>} />
-      <Route path="/compliance/automation/employer-jobs" element={<ProtectedLayout><EmployerComplianceJobs /></ProtectedLayout>} />
-      <Route path="/compliance/audit-planning/all-reports" element={<ProtectedLayout><AllWeeklyReports /></ProtectedLayout>} />
-      <Route path="/compliance/settings/c3-ledger-sync" element={<ProtectedLayout><C3LedgerSync /></ProtectedLayout>} />
-      <Route path="/compliance/settings/ledger-admin" element={<ProtectedLayout><LedgerAdministration /></ProtectedLayout>} />
-      <Route path="/compliance/settings/payment-ledger-sync" element={<ProtectedLayout><PaymentLedgerSync /></ProtectedLayout>} />
-      <Route path="/compliance/reports/trends" element={<ProtectedLayout><TrendReports /></ProtectedLayout>} />
-      {/* Sampling routes — DB uses /compliance/sampling/* paths */}
-      <Route path="/compliance/sampling" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/sampling/candidates" element={<ProtectedLayout><MonthlyAuditCandidates /></ProtectedLayout>} />
-      <Route path="/compliance/sampling/upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
-      <Route path="/compliance/sampling/settings" element={<ProtectedLayout><RiskSamplingSettings /></ProtectedLayout>} />
-
-
       <Route path="/c3-management/input-form" element={<ProtectedLayout><C3InputForm /></ProtectedLayout>} />
       <Route path="/c3-management/reports" element={<ProtectedLayout><C3Reports /></ProtectedLayout>} />
       <Route path="/c3-management/verification" element={<ProtectedLayout><C3Verification /></ProtectedLayout>} />
