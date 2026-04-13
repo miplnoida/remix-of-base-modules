@@ -1,151 +1,109 @@
-## Root Cause Analysis: C3 False "Already Exists" + Incorrect Error UX
+## Fix Plan: C3 Validation, Schedule Handling & Verification Fields
 
-### Bug 1 — False Positive: SE 100039 September 2026
+### Issues Identified
 
-**Root Cause: Timezone-induced period shift**
+**Issue 1 — Schedule not incrementing (SE/VC `fetchScheduleNo` timezone bug)**
 
-In `SelfContributorC3Form.tsx` line 479 and `VoluntaryC3Form.tsx` line 411:
+- `SelfContributorC3Form.tsx` line 414 and `VoluntaryC3Form.tsx` line 274 still use `new Date(period.year, period.month, 1).toISOString()` for the schedule-number lookup (the save path was fixed but the pre-fetch was not).
+- This sends a timezone-shifted period to the `get_next_c3_schedule_no` RPC, which does an exact `period = p_period` match, so it never finds the existing VAC record and returns 1 instead of 2.
 
-```typescript
-const periodStr = new Date(period.year, period.month, 1).toISOString();
-```
+**Issue 2 — ER form missing schedule prompt handling**
 
-`new Date(2026, 8, 1)` creates September 1 in **local time**. For IST (UTC+5:30), `.toISOString()` converts to UTC producing `"2026-08-31T18:30:00.000Z"`.
+- `EmployerC3Form.tsx` delegates save to `C3Management.tsx` → `saveDraft()` → `useC3Management.ts`.
+- `useC3Management.ts` correctly returns `{ promptNextSchedule: true }` but `C3Management.tsx` line 990-1022 only checks `result.success` — the `promptNextSchedule` case is silently dropped, no dialog shown.
 
-Then in `c3Service.ts` line 1232, the normalization:
+**Issue 3 — DFT/PEN existing record not auto-loaded for editing**
 
-```typescript
-record.period.split('T')[0].substring(0, 8) + '01'
-```
+- When a user navigates to "Add New C3" for a payer+period that already has a DFT/PEN record, the form doesn't check for existing records on load. It only detects the conflict at save time (via `resolveC3SaveAction`). The user expects the existing data to be pre-populated.
 
-Extracts `"2026-08-31"` → truncates to `"2026-08-"` → appends `"01"` → result: `"2026-08-01"`.
+**Issue 4 — Verified By / Date Verified NULL for workflow-verified records**
 
-This matches the existing **August** VAC record (`2026-08-01`), triggering the false "already exists" error when filing for **September**.
-
-The same bug affects VC (identical period construction).
-
-**ER** uses a different path (`transformToDBRecord`) where `periodStr` comes directly from UI as a string — less likely to hit the same issue but still uses `toISOString()` elsewhere.
-
-### Bug 2 — Error shown instead of informational dialog
-
-All three forms (SE line 517, VC line 447, ER hook line 501) display the VAC-exists message as a destructive toast error:
-
-```typescript
-toast({ title: "Error", description: result.error, variant: "destructive" });
-```
-
-The business requirement is:
-
-- **DFT/PEN existing**: silently update, show success
-- **VAC existing**: show a confirmation dialog with "Create Schedule N?" action button
-- **Other status**: show blocking error
-
-Currently, all non-success results are treated identically as errors.
-
-### Bug 3 — Schedule logic passes current `sequence_no` to `findExistingC3`
-
-When creating a new C3 with `sequence_no = 1`, the function checks for an existing record with `sequence_no = 1`. If a VAC record exists with seq 1, it correctly suggests seq 2. But it should also handle the case where the user has already been prompted and is now saving with the incremented schedule — currently there's no mechanism for the UI to retry with the new schedule number.
+- The workflow action handler (`useWorkflowActions.ts` line 1193-1217) sets `posting_status = 'VAC'` but does NOT set `verified_by` or `date_verified`.
+- The `verify_c3_record` RPC properly sets both fields, but the workflow path bypasses the RPC entirely.
+- DB confirms: SE 100039 Sep 2026 has `posting_status = 'VAC'` with `verified_by = NULL, date_verified = NULL`.
 
 ---
 
-## Fix Plan
+### Fix Plan
 
-### Step 1 — Fix period construction (SE + VC forms)
+#### Step 1 — Fix `fetchScheduleNo` timezone in SE + VC forms
 
 **Files**: `SelfContributorC3Form.tsx`, `VoluntaryC3Form.tsx`
 
-Replace timezone-unsafe:
+Replace line 414 (SE) and line 274 (VC):
 
 ```typescript
 const periodStr = new Date(period.year, period.month, 1).toISOString();
 ```
 
-With UTC-safe construction:
+With:
 
 ```typescript
 const periodStr = `${period.year}-${String(period.month + 1).padStart(2, '0')}-01`;
 ```
 
-This produces `"2026-09-01"` regardless of timezone.
+#### Step 2 — Fix `get_next_c3_schedule_no` RPC to normalize period
 
-### Step 2 — Fix period normalization in `c3Service.ts`
+The RPC does `period = p_period` exact match. If the input has a time component, it won't match date-only values. Update the RPC to normalize:
 
-**File**: `c3Service.ts`
-
-Update the normalization in `saveSelfContributorC3` (line 1232) and `saveVoluntaryContributorC3` to handle both ISO strings and date strings safely:
-
-```typescript
-// Parse the date properly, extract year-month, always use day 01
-const d = new Date(record.period);
-const yyyy = d.getUTCFullYear ? d.getUTCFullYear() : d.getFullYear();
-const mm = String((d.getUTCMonth ? d.getUTCMonth() : d.getMonth()) + 1).padStart(2, '0');
-period: `${yyyy}-${mm}-01`
+```sql
+WHERE period = p_period::date
 ```
 
-But since Step 1 already sends a clean `YYYY-MM-DD` string, the existing `.split('T')[0].substring(0,8) + '01'` will work correctly on `"2026-09-01"`. The fix in Step 1 is sufficient; Step 2 adds a safety net.
+#### Step 3 — Add schedule prompt dialog for ER in C3Management.tsx
 
-### Step 3 — Return structured response instead of error string
+In the ER `onSave` handler (line 990-1022), after checking `result.success`, add handling for `result.promptNextSchedule`:
 
-**File**: `c3Service.ts`
+- Show a `ConfirmDialog` asking to create next schedule
+- On confirm, set the schedule number on the data and re-call `saveDraft`
 
-Change the return type for the VAC case in all three save functions. Instead of:
+#### Step 4 — Auto-load existing DFT/PEN record on form mount (SE + VC + ER)
+
+Add a check when the form mounts (or when SSN+period are set for a new record):
+
+- Query `findAllC3ForPeriod(payerId, payerType, normalizedPeriod)`
+- If a DFT/PEN record exists, show an informational toast and load that record's data into the form (switch to edit mode)
+- This requires exposing `findAllC3ForPeriod` or adding a new service function `checkExistingC3ForEdit`
+
+#### Step 5 — Fix workflow action handler to set verified_by / date_verified
+
+**File**: `src/hooks/useWorkflowActions.ts`
+
+In the C3 submission workflow block (line 1193-1217), when `newPostingStatus === 'VAC'`:
 
 ```typescript
-return { success: false, error: "A verified C3..." }
-```
-
-Return:
-
-```typescript
-return { 
-  success: false, 
-  error: "...", 
-  data: { sequence_no: nextSeq, existingStatus: 'VAC', promptNextSchedule: true } 
+if (newPostingStatus === 'VAC') {
+  updateData.verified_by = userId;  // UserCode of the approver
+  updateData.date_verified = new Date().toISOString();
 }
 ```
 
-For DFT/PEN cases, the current logic already silently updates — this is correct.
+Apply the same to the `ip_wages` update block below it.
 
-### Step 4 — Replace error toast with confirmation dialog (SE + VC + ER)
+#### Step 6 — Backfill existing NULL verified_by records
 
-**Files**: `SelfContributorC3Form.tsx`, `VoluntaryC3Form.tsx`, `useC3Management.ts`
-
-When `result.success === false` and `result.data?.promptNextSchedule === true`:
-
-- Show a confirmation dialog (not a toast): "A verified C3 for this period already exists (Schedule X). Would you like to create Schedule Y?"
-- On confirm: set `scheduleNo = result.data.sequence_no`, re-trigger save
-- On cancel: do nothing
-
-For other `success === false` cases, keep the destructive toast.
-
-### Step 5 — Add `findExistingC3` broadening for all sequences
-
-Currently `findExistingC3` checks for a specific `sequence_no`. But the "false positive" scenario also comes from checking seq 1 when the user hasn't explicitly set it. Add a broader check: before insert, query **all** sequences for the payer+period to determine the right action:
-
-- If any DFT/PEN exists for **the same sequence**: update it
-- If only VAC records exist: suggest next schedule
-- If no records exist: insert with seq 1
+Create a migration to populate `verified_by` and `date_verified` for existing VAC records that have these fields NULL, using data from `workflow_logs` where available.
 
 ---
 
-## Files to Modify
+### Files to Modify
 
 
-| File                                                     | Change                                                                              |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| `src/pages/c3Management/forms/SelfContributorC3Form.tsx` | Fix period construction; add schedule prompt dialog; handle retry with new schedule |
-| `src/pages/c3Management/forms/VoluntaryC3Form.tsx`       | Same as SE                                                                          |
-| `src/hooks/useC3Management.ts`                           | Add schedule prompt handling for ER save flow                                       |
-| `src/services/c3Service.ts`                              | Add `promptNextSchedule` flag to return type; add safety normalization              |
+| File                                                     | Change                                                              |
+| -------------------------------------------------------- | ------------------------------------------------------------------- |
+| `src/pages/c3Management/forms/SelfContributorC3Form.tsx` | Fix `fetchScheduleNo` period string; add auto-load existing DFT/PEN |
+| `src/pages/c3Management/forms/VoluntaryC3Form.tsx`       | Same as SE                                                          |
+| `src/pages/c3Management/C3Management.tsx`                | Add schedule prompt dialog for ER `onSave`                          |
+| `src/hooks/useWorkflowActions.ts`                        | Set `verified_by` + `date_verified` when status → VAC               |
+| `src/services/c3Service.ts`                              | Export `findAllC3ForPeriod` or add `checkExistingC3ForEdit` helper  |
+| Migration SQL                                            | Fix `get_next_c3_schedule_no` RPC; backfill NULL verified fields    |
 
 
-## Edge Cases Handled
+### Edge Cases
 
-- Timezone offsets (IST, EST, etc.) no longer affect period matching
-- Multiple verified schedules (seq 1 VAC + seq 2 VAC → suggest seq 3)
-- User cancels schedule prompt → no side effects
-- User confirms → clean save with incremented schedule
-- DFT/PEN records silently updated with success toast (no error shown)  
-  
-Note: const periodStr = `${period.year}-${String(period.month + 1).padStart(2, '0')}-01`;  
-I want to know before this plan implementation that why the month is incrementing by the 1?
+- Multiple VAC records for same period and payer → next schedule = max + 1
+- DFT record found on load → auto-populate and switch to edit mode silently
+- Workflow approval vs direct `verify_c3_record` RPC both now populate audit fields
+- Timezone-safe period construction in all paths (fetch, save, schedule lookup)
+
+Note: make sure schedule no. confirmation toast show be show on the fill of payer_id and the period in the add c3 form not on save okey??  
