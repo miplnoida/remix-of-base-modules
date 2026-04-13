@@ -988,6 +988,21 @@ export default function C3Management() {
               setFormMode('add');
             }}
             onSave={async (data) => {
+              // Handle auto-load of existing DFT/PEN record
+              if (data?.autoLoad && data?.id) {
+                setIsLoadingRecord(true);
+                try {
+                  const reloaded = await getRecordWithWages(data.id);
+                  if (reloaded.success && reloaded.data) {
+                    setEditingRecord(reloaded.data);
+                    setFormMode('edit');
+                  }
+                } finally {
+                  setIsLoadingRecord(false);
+                }
+                return;
+              }
+
               setIsSaving(true);
               try {
                 const payerType = contributionTypeToPayerType(contributionType);
@@ -1009,12 +1024,16 @@ export default function C3Management() {
                       setEditingRecord(reloaded.data);
                     }
                   } else {
-                    // New record with no ID returned — go back to list
                     setShowForm(false);
                     setEditingRecord(null);
                     setViewingRecord(null);
                     setFormMode('add');
                   }
+                } else if ((result as any).promptNextSchedule) {
+                  // Show schedule prompt dialog for ER
+                  setErSuggestedScheduleNo((result as any).suggestedScheduleNo);
+                  setErSchedulePromptData(data);
+                  setErSchedulePromptOpen(true);
                 }
               } finally {
                 setIsSaving(false);

@@ -1210,6 +1210,12 @@ async function updateSourceRecordStatus(
     if (newPostingStatus) {
       updateData.posting_status = newPostingStatus;
 
+      // Set verification audit fields when approving (status → VAC)
+      if (newPostingStatus === 'VAC') {
+        updateData.verified_by = userId;
+        updateData.date_verified = new Date().toISOString();
+      }
+
       // Update cn_c3_reported
       const { error: c3Error } = await supabase
         .from('cn_c3_reported')

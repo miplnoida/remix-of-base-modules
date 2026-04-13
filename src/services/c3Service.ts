@@ -28,7 +28,7 @@ async function assertC3Editable(recordId: string): Promise<void> {
  * Find ALL existing C3 records for a payer+period (across all sequences).
  * Returns array of { id, posting_status, sequence_no }.
  */
-async function findAllC3ForPeriod(
+export async function findAllC3ForPeriod(
   payerId: string,
   payerType: string,
   period: string
