@@ -201,15 +201,17 @@ const triggerC3Workflow = async (
 
     if (approverType === 'role' && firstStep.approver_role_ids && firstStep.approver_role_ids.length > 0) {
       const roleIds = firstStep.approver_role_ids;
-      if (roleIds.length === 1) {
+      // Look up the first valid role name from the configured role IDs
+      for (const roleId of roleIds) {
         const { data: roleData } = await supabase
           .from('roles')
           .select('role_name')
-          .eq('id', roleIds[0])
+          .eq('id', roleId)
           .single();
 
         if (roleData) {
           taskAssignment.assigned_role = roleData.role_name;
+          break;
         }
       }
     } else if (approverType === 'designation' && firstStep.approver_designation_ids && firstStep.approver_designation_ids.length > 0) {
