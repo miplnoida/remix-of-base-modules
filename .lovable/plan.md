@@ -1,30 +1,51 @@
 
 
-## Fix: "column 'start_date' does not exist" in C3 Accept Trigger
+## Fix: Period-From/Period-To Filter Not Working on C3 Screens
 
 ### Root Cause
 
-The `process_c3_employer_verification` trigger function contains:
+All three screens (C3 Contribution, NW Director, Self Employed) construct the period filter as:
 
-```sql
-ORDER BY start_date DESC
+```
+periodFrom = `${periodFromMonth}-${periodFromYear}`  →  "Jan-2026"
 ```
 
-But the `ip_employer` table has `term_start_date`, not `start_date`. This was introduced when the trigger was recreated in the earlier migration.
+However, the `period` column in the database is a `date` type stored as `2026-01-01`. The external API (wiz-admin-api) likely cannot parse `Jan-2026` into a valid date for comparison, so the period filter is silently ignored and all records are returned unfiltered.
 
 ### Fix
 
-**Migration SQL** — Recreate the trigger function replacing `start_date` with `term_start_date`:
+Convert the month abbreviation + year into `YYYY-MM-01` format before sending to the API. For example, `Jan` + `2026` → `2026-01-01`.
 
-```sql
-ORDER BY term_start_date DESC
-```
-
-Single-line fix inside the trigger function. No other changes needed.
-
-### Files to Modify
+**Files to modify:**
 
 | File | Change |
 |------|--------|
-| Migration SQL | Fix `process_c3_employer_verification`: `start_date` → `term_start_date` |
+| `src/pages/c3Management/c3Details/C3ContributionList.tsx` | Convert period format from `Jan-2026` to `2026-01-01` |
+| `src/pages/c3Management/c3Details/NwDirectorList.tsx` | Same conversion |
+| `src/pages/c3Management/c3Details/SelfEmployedContributionList.tsx` | Same conversion |
+
+### Technical Detail
+
+Add a helper (or inline) that maps the 3-letter month abbreviation to a zero-padded month number:
+
+```typescript
+function toDatePeriod(month: string, year: string): string {
+  const idx = MONTHS.indexOf(month); // 0-based
+  const mm = String(idx + 1).padStart(2, '0');
+  return `${year}-${mm}-01`;
+}
+```
+
+Then in each `handleSearch`:
+```typescript
+// Before (broken):
+const periodFrom = periodFromMonth && periodFromYear
+  ? `${periodFromMonth}-${periodFromYear}` : undefined;
+
+// After (fixed):
+const periodFrom = periodFromMonth && periodFromYear
+  ? toDatePeriod(periodFromMonth, periodFromYear) : undefined;
+```
+
+This applies identically to all three files. No API or database changes needed.
 
