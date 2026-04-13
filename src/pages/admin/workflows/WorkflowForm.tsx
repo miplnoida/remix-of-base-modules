@@ -118,6 +118,10 @@ interface NotificationFormData {
   id?: string;
   notification_type: string;
   template_id: string | null;
+  recipient_type: string;
+  recipient_role_id: string | null;
+  is_enabled: boolean;
+  module_id: string | null;
 }
 
 const PROCESS_TYPES = [
