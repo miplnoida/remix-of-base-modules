@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
     if (header.payer_type === "SE") {
       payload.ssn = header.payer_id;
     }
-    if (header.payer_type === "ER") {
+    if (header.payer_type === "ER" || header.payer_type === "SE") {
       payload.schedule_number = component?.sequence_no != null
         ? String(component.sequence_no)
         : undefined;
