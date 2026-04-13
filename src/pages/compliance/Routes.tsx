@@ -1,11 +1,10 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 
 // Dashboards
 import ManagerDashboard from './dashboards/ManagerDashboard';
 import InspectorDashboard from './dashboards/InspectorDashboard';
 import LegalDashboard from './dashboards/LegalDashboard';
 import ComplianceMonitoring from './dashboards/ComplianceMonitoring';
-import ComplianceDashboard from './dashboards/ComplianceDashboard';
 import ComplianceAnalytics from './dashboards/ComplianceAnalytics';
 
 // Violations
@@ -43,12 +42,14 @@ import EmployerFindings from './employers/EmployerFindings';
 import EmployerComplianceManagement from './employers/EmployerComplianceManagement';
 import EmployerHierarchy from './employers/EmployerHierarchy';
 import EmployerVisitWorkspace from './employers/EmployerVisitWorkspace';
+import Employer360 from './employers/Employer360';
 
 // Audit Planning
 import WeeklyPlanBuilder from './audit-planning/WeeklyPlanBuilder';
 import MyPlans from './audit-planning/MyPlans';
 import FieldExecution from './audit-planning/FieldExecution';
 import PendingReview from './audit-planning/PendingReview';
+import { WeeklyPlanReview } from './audit-planning/WeeklyPlanReview';
 import WeeklyReports from './audit-planning/WeeklyReports';
 import AllWeeklyReports from './audit-planning/AllWeeklyReports';
 import AuditDetails from './audit-planning/AuditDetails';
@@ -81,7 +82,6 @@ import RuleEngine from './settings/RuleEngine';
 import ViolationTypes from './settings/ViolationTypes';
 import NumberTemplates from './settings/NumberTemplates';
 import RiskRulePolicy from './settings/RiskRulePolicy';
-import RiskScoringConfig from './settings/RiskScoringConfig';
 import ComplianceSettings from './settings/ComplianceSettings';
 import ComplianceTemplates from './settings/ComplianceTemplates';
 import LedgerAdministration from './settings/LedgerAdministration';
@@ -91,126 +91,96 @@ import AssignmentRoutingRules from './settings/AssignmentRoutingRules';
 
 // Tools
 import RuleSimulator from './tools/RuleSimulator';
+import RiskSimulator from './tools/RiskSimulator';
 
-// Operations (NEW)
+// Operations
 import AssignmentQueues from './operations/AssignmentQueues';
 import ReviewQueue from './operations/ReviewQueue';
 import Reassignment from './operations/Reassignment';
 
-// Geography (NEW)
+// Geography
 import ZoneManagement from './geography/ZoneManagement';
 import OfficeZoneMapping from './geography/OfficeZoneMapping';
 import VillageZoneMapping from './geography/VillageZoneMapping';
 
-// Staff (NEW)
+// Staff
 import OfficerManagement from './staff/OfficerManagement';
 import QueueMembers from './staff/QueueMembers';
 import SupervisorHierarchy from './staff/SupervisorHierarchy';
+import LegacyInspectorLinking from './staff/LegacyInspectorLinking';
 
 const ComplianceRoutes = () => {
   return (
     <Routes>
-      {/* Dashboards */}
-      <Route path="/dashboard/manager" element={<ManagerDashboard />} />
-      <Route path="/dashboard/inspector" element={<InspectorDashboard />} />
-      <Route path="/dashboard/legal" element={<LegalDashboard />} />
-      <Route path="/dashboard" element={<ComplianceDashboard />} />
-      <Route path="/monitoring" element={<ComplianceMonitoring />} />
-      <Route path="/dashboard/analytics" element={<ComplianceAnalytics />} />
+      {/* ═══════════════════════════════════════════════════════
+          1. WORKBENCH — dashboards, monitoring, queues
+          ═══════════════════════════════════════════════════════ */}
+      <Route path="/workbench/manager" element={<ManagerDashboard />} />
+      <Route path="/workbench/inspector" element={<InspectorDashboard />} />
+      <Route path="/workbench/legal" element={<LegalDashboard />} />
+      <Route path="/workbench/analytics" element={<ComplianceAnalytics />} />
+      <Route path="/workbench/monitoring" element={<ComplianceMonitoring />} />
+      <Route path="/workbench/queues" element={<AssignmentQueues />} />
+      <Route path="/workbench/review-queue" element={<ReviewQueue />} />
+      <Route path="/workbench/reassignment" element={<Reassignment />} />
 
-      {/* Violations */}
+      {/* ═══════════════════════════════════════════════════════
+          2. VIOLATIONS
+          ═══════════════════════════════════════════════════════ */}
       <Route path="/violations" element={<ViolationsManagement />} />
       <Route path="/violations/manual-entry" element={<ManualViolationEntry />} />
       <Route path="/violations/:id" element={<ViolationDetails />} />
-      <Route path="/violations/weekly-reports" element={<WeeklyReportSubmission />} />
 
-      {/* Cases */}
+      {/* ═══════════════════════════════════════════════════════
+          3. CASES
+          ═══════════════════════════════════════════════════════ */}
       <Route path="/cases" element={<CaseManagement />} />
       <Route path="/cases/queue" element={<CaseQueue />} />
       <Route path="/cases/penalties" element={<PenaltyManagement />} />
 
-      {/* Operations (NEW) */}
-      <Route path="/operations/queues" element={<AssignmentQueues />} />
-      <Route path="/operations/review-queue" element={<ReviewQueue />} />
-      <Route path="/operations/reassignment" element={<Reassignment />} />
+      {/* ═══════════════════════════════════════════════════════
+          4. FIELD — planning, execution, inspections, employers
+          ═══════════════════════════════════════════════════════ */}
+      <Route path="/field/plan-builder" element={<WeeklyPlanBuilder />} />
+      <Route path="/field/my-plans" element={<MyPlans />} />
+      <Route path="/field/pending-review" element={<PendingReview />} />
+      <Route path="/field/pending-review/:planId" element={<WeeklyPlanReview />} />
+      <Route path="/field/execution" element={<FieldExecution />} />
+      <Route path="/field/operations" element={<FieldOperations />} />
+      <Route path="/field/inspections" element={<InspectionManagement />} />
+      <Route path="/field/findings" element={<EmployerFindings />} />
+      <Route path="/field/employer-statements" element={<EmployerStatements />} />
+      <Route path="/field/employer-statement/:employerId" element={<EmployerStatementDetail />} />
+      <Route path="/field/employer-statement/:employerId/financial" element={<EmployerFinancialStatement />} />
+      <Route path="/field/visit/:employerId" element={<EmployerVisitWorkspace />} />
+      <Route path="/field/employer-360/:employerId" element={<Employer360 />} />
+      <Route path="/field/employer-risk/:employerId" element={<EmployerRiskProfile />} />
+      <Route path="/field/employer-hierarchy" element={<EmployerHierarchy />} />
+      <Route path="/field/employer-management" element={<EmployerComplianceManagement />} />
+      <Route path="/field/audit-management" element={<AuditManagement />} />
+      <Route path="/field/audit/:id" element={<AuditDetails />} />
+      <Route path="/field/weekly-report" element={<WeeklyReportSubmission />} />
+      <Route path="/field/weekly-reports" element={<WeeklyReports />} />
+      <Route path="/field/all-reports" element={<AllWeeklyReports />} />
+      <Route path="/field/my-upcoming" element={<MyUpcomingAudits />} />
+      <Route path="/field/sampling" element={<SamplingDashboard />} />
+      <Route path="/field/sampling/candidates" element={<MonthlyAuditCandidates />} />
 
-      {/* Geography (NEW) */}
-      <Route path="/geography/zones" element={<ZoneManagement />} />
-      <Route path="/geography/office-zone-mapping" element={<OfficeZoneMapping />} />
-      <Route path="/geography/village-zone-mapping" element={<VillageZoneMapping />} />
+      {/* ═══════════════════════════════════════════════════════
+          5. ENFORCEMENT — legal, notices, arrangements, waivers
+          ═══════════════════════════════════════════════════════ */}
+      <Route path="/enforcement/recommendation-queue" element={<LegalRecommendationQueue />} />
+      <Route path="/enforcement/legal-queue" element={<LegalQueue />} />
+      <Route path="/enforcement/proceedings" element={<LegalProceedingsPage />} />
+      <Route path="/enforcement/notices" element={<NoticesManagement />} />
+      <Route path="/enforcement/arrangements" element={<PaymentArrangements />} />
+      <Route path="/enforcement/breaches" element={<BreachMonitoring />} />
+      <Route path="/enforcement/waivers" element={<WaiversOverrides />} />
+      <Route path="/enforcement/legal-referral/new" element={<LegalReferralWizard />} />
 
-      {/* Staff (NEW) */}
-      <Route path="/staff/officers" element={<OfficerManagement />} />
-      <Route path="/staff/queue-members" element={<QueueMembers />} />
-      <Route path="/staff/supervisors" element={<SupervisorHierarchy />} />
-
-      {/* Inspections */}
-      <Route path="/inspections" element={<InspectionManagement />} />
-      <Route path="/inspections/field-execution" element={<FieldExecution />} />
-      <Route path="/inspections/field-operations" element={<FieldOperations />} />
-
-      {/* Arrangements */}
-      <Route path="/arrangements" element={<PaymentArrangements />} />
-      <Route path="/arrangements/breaches" element={<BreachMonitoring />} />
-
-      {/* Legal */}
-      <Route path="/legal/queue" element={<LegalQueue />} />
-      <Route path="/legal/proceedings" element={<LegalProceedingsPage />} />
-      <Route path="/notices" element={<NoticesManagement />} />
-      <Route path="/waivers" element={<WaiversOverrides />} />
-      <Route path="/legal-recommendation-queue" element={<LegalRecommendationQueue />} />
-      <Route path="/legal-referral/new" element={<LegalReferralWizard />} />
-
-      {/* Employers */}
-      <Route path="/employer-statements" element={<EmployerStatements />} />
-      <Route path="/employer-statements/:id" element={<EmployerStatementDetail />} />
-      <Route path="/employer-statements/:id/financial" element={<EmployerFinancialStatement />} />
-      <Route path="/employers/findings" element={<EmployerFindings />} />
-      <Route path="/employers/management" element={<EmployerComplianceManagement />} />
-      <Route path="/employers/visit/:id" element={<EmployerVisitWorkspace />} />
-      <Route path="/employers/hierarchy" element={<EmployerHierarchy />} />
-
-      {/* Audit Planning */}
-      <Route path="/audit-planning/weekly-plan-builder" element={<WeeklyPlanBuilder />} />
-      <Route path="/audit-planning/my-plans" element={<MyPlans />} />
-      <Route path="/audit-planning/field-execution" element={<FieldExecution />} />
-      <Route path="/audit-planning/pending-review" element={<PendingReview />} />
-      <Route path="/audit-planning/weekly-reports" element={<WeeklyReports />} />
-      <Route path="/audit-planning/all-reports" element={<AllWeeklyReports />} />
-      <Route path="/audits/:id" element={<AuditDetails />} />
-      <Route path="/audits/management" element={<AuditManagement />} />
-
-      {/* Sampling */}
-      <Route path="/sampling" element={<SamplingDashboard />} />
-      <Route path="/sampling/employer-risk/:id" element={<EmployerRiskProfile />} />
-      <Route path="/sampling/candidates" element={<MonthlyAuditCandidates />} />
-      <Route path="/sampling/upcoming" element={<MyUpcomingAudits />} />
-      <Route path="/sampling/settings" element={<RiskSamplingSettings />} />
-
-      {/* Automation */}
-      <Route path="/automation/jobs" element={<JobConfiguration />} />
-      <Route path="/automation/employer-jobs" element={<EmployerComplianceJobs />} />
-      <Route path="/automation/history" element={<JobHistory />} />
-
-      {/* Settings */}
-      <Route path="/settings" element={<ComplianceSettings />} />
-      <Route path="/settings/rule-engine" element={<RuleEngine />} />
-      <Route path="/settings/violation-types" element={<ViolationTypes />} />
-      <Route path="/settings/number-templates" element={<NumberTemplates />} />
-      <Route path="/settings/risk-config" element={<RiskScoringConfig />} />
-      <Route path="/settings/risk-policy" element={<RiskRulePolicy />} />
-      <Route path="/settings/legal-escalation-policy" element={<RiskRulePolicy />} />
-      <Route path="/settings/templates" element={<ComplianceTemplates />} />
-      <Route path="/settings/ledger-admin" element={<LedgerAdministration />} />
-      <Route path="/settings/c3-ledger-sync" element={<C3LedgerSync />} />
-      <Route path="/settings/payment-ledger-sync" element={<PaymentLedgerSync />} />
-      <Route path="/settings/assignment-routing" element={<AssignmentRoutingRules />} />
-
-      {/* Tools */}
-      <Route path="/tools/rule-simulator" element={<RuleSimulator />} />
-
-      {/* Reports */}
-      <Route path="/reports/case-analytics" element={<CaseAnalytics />} />
+      {/* ═══════════════════════════════════════════════════════
+          6. REPORTS (paths unchanged)
+          ═══════════════════════════════════════════════════════ */}
       <Route path="/reports/violations-analytics" element={<CaseAnalytics />} />
       <Route path="/reports/inspector-performance" element={<InspectorPerformance />} />
       <Route path="/reports/c3-compliance" element={<C3Compliance />} />
@@ -219,6 +189,117 @@ const ComplianceRoutes = () => {
       <Route path="/reports/arrangements" element={<ArrangementReports />} />
       <Route path="/reports/legal" element={<LegalEscalationReports />} />
       <Route path="/reports/trends" element={<TrendReports />} />
+
+      {/* ═══════════════════════════════════════════════════════
+          7. ADMIN — settings, geography, staff, automation, tools
+          ═══════════════════════════════════════════════════════ */}
+      <Route path="/admin/settings" element={<ComplianceSettings />} />
+      <Route path="/admin/settings/rule-engine" element={<RuleEngine />} />
+      <Route path="/admin/settings/violation-types" element={<ViolationTypes />} />
+      <Route path="/admin/settings/assignment-routing" element={<AssignmentRoutingRules />} />
+      <Route path="/admin/settings/number-templates" element={<NumberTemplates />} />
+      <Route path="/admin/settings/risk-policy" element={<RiskRulePolicy />} />
+      <Route path="/admin/settings/templates" element={<ComplianceTemplates />} />
+      <Route path="/admin/settings/sampling" element={<RiskSamplingSettings />} />
+      <Route path="/admin/settings/c3-ledger-sync" element={<C3LedgerSync />} />
+      <Route path="/admin/settings/payment-ledger-sync" element={<PaymentLedgerSync />} />
+      <Route path="/admin/settings/ledger-admin" element={<LedgerAdministration />} />
+      <Route path="/admin/geography/zones" element={<ZoneManagement />} />
+      <Route path="/admin/geography/office-zone-mapping" element={<OfficeZoneMapping />} />
+      <Route path="/admin/geography/village-zone-mapping" element={<VillageZoneMapping />} />
+      <Route path="/admin/staff/officers" element={<OfficerManagement />} />
+      <Route path="/admin/staff/queue-members" element={<QueueMembers />} />
+      <Route path="/admin/staff/supervisors" element={<SupervisorHierarchy />} />
+      <Route path="/admin/staff/link-legacy" element={<LegacyInspectorLinking />} />
+      <Route path="/admin/automation/jobs" element={<JobConfiguration />} />
+      <Route path="/admin/automation/history" element={<JobHistory />} />
+      <Route path="/admin/automation/employer-jobs" element={<EmployerComplianceJobs />} />
+      <Route path="/admin/tools/rule-simulator" element={<RuleSimulator />} />
+      <Route path="/admin/tools/risk-simulator" element={<RiskSimulator />} />
+
+      {/* ═══════════════════════════════════════════════════════
+          LEGACY REDIRECTS — old paths → new canonical paths
+          ═══════════════════════════════════════════════════════ */}
+
+      {/* Workbench legacy */}
+      <Route path="/dashboard" element={<Navigate to="/compliance/workbench/manager" replace />} />
+      <Route path="/dashboard/manager" element={<Navigate to="/compliance/workbench/manager" replace />} />
+      <Route path="/dashboard/inspector" element={<Navigate to="/compliance/workbench/inspector" replace />} />
+      <Route path="/dashboard/legal" element={<Navigate to="/compliance/workbench/legal" replace />} />
+      <Route path="/dashboard/analytics" element={<Navigate to="/compliance/workbench/analytics" replace />} />
+      <Route path="/monitoring" element={<Navigate to="/compliance/workbench/monitoring" replace />} />
+      <Route path="/operations/queues" element={<Navigate to="/compliance/workbench/queues" replace />} />
+      <Route path="/operations/review-queue" element={<Navigate to="/compliance/workbench/review-queue" replace />} />
+      <Route path="/operations/reassignment" element={<Navigate to="/compliance/workbench/reassignment" replace />} />
+
+      {/* Field legacy */}
+      <Route path="/audit-planning/weekly-plan-builder" element={<Navigate to="/compliance/field/plan-builder" replace />} />
+      <Route path="/audit-planning/my-plans" element={<Navigate to="/compliance/field/my-plans" replace />} />
+      <Route path="/inspector-plans" element={<Navigate to="/compliance/field/my-plans" replace />} />
+      <Route path="/audit-planning/pending-review" element={<Navigate to="/compliance/field/pending-review" replace />} />
+      <Route path="/audit-planning/field-execution" element={<Navigate to="/compliance/field/execution" replace />} />
+      <Route path="/inspections" element={<Navigate to="/compliance/field/inspections" replace />} />
+      <Route path="/inspections/field-execution" element={<Navigate to="/compliance/field/execution" replace />} />
+      <Route path="/inspections/field-operations" element={<Navigate to="/compliance/field/operations" replace />} />
+      <Route path="/employers/findings" element={<Navigate to="/compliance/field/findings" replace />} />
+      <Route path="/employer-statements" element={<Navigate to="/compliance/field/employer-statements" replace />} />
+      <Route path="/employers/visit/:id" element={<Navigate to="/compliance/field/employer-management" replace />} />
+      <Route path="/employers/management" element={<Navigate to="/compliance/field/employer-management" replace />} />
+      <Route path="/employers/hierarchy" element={<Navigate to="/compliance/field/employer-hierarchy" replace />} />
+      <Route path="/employer" element={<Navigate to="/compliance/field/employer-management" replace />} />
+      <Route path="/audits/management" element={<Navigate to="/compliance/field/audit-management" replace />} />
+      <Route path="/violations/weekly-reports" element={<Navigate to="/compliance/field/weekly-report" replace />} />
+      <Route path="/audit-planning/weekly-reports" element={<Navigate to="/compliance/field/weekly-reports" replace />} />
+      <Route path="/audit-planning/all-reports" element={<Navigate to="/compliance/field/all-reports" replace />} />
+      <Route path="/my-audits/upcoming" element={<Navigate to="/compliance/field/my-upcoming" replace />} />
+      <Route path="/audit-planning/sampling-dashboard" element={<Navigate to="/compliance/field/sampling" replace />} />
+      <Route path="/sampling" element={<Navigate to="/compliance/field/sampling" replace />} />
+      <Route path="/audit-planning/monthly-candidates" element={<Navigate to="/compliance/field/sampling/candidates" replace />} />
+      <Route path="/sampling/candidates" element={<Navigate to="/compliance/field/sampling/candidates" replace />} />
+      <Route path="/sampling/upcoming" element={<Navigate to="/compliance/field/my-upcoming" replace />} />
+
+      {/* Enforcement legacy */}
+      <Route path="/legal-recommendation-queue" element={<Navigate to="/compliance/enforcement/recommendation-queue" replace />} />
+      <Route path="/legal/queue" element={<Navigate to="/compliance/enforcement/legal-queue" replace />} />
+      <Route path="/legal/proceedings" element={<Navigate to="/compliance/enforcement/proceedings" replace />} />
+      <Route path="/notices" element={<Navigate to="/compliance/enforcement/notices" replace />} />
+      <Route path="/arrangements" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
+      <Route path="/payment-arrangements" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
+      <Route path="/arrangements/breaches" element={<Navigate to="/compliance/enforcement/breaches" replace />} />
+      <Route path="/waivers" element={<Navigate to="/compliance/enforcement/waivers" replace />} />
+      <Route path="/penalties" element={<Navigate to="/compliance/cases/penalties" replace />} />
+      <Route path="/legal-referral/new" element={<Navigate to="/compliance/enforcement/legal-referral/new" replace />} />
+
+      {/* Admin legacy */}
+      <Route path="/settings" element={<Navigate to="/compliance/admin/settings" replace />} />
+      <Route path="/settings/rule-engine" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
+      <Route path="/settings/violation-types" element={<Navigate to="/compliance/admin/settings/violation-types" replace />} />
+      <Route path="/settings/assignment-routing" element={<Navigate to="/compliance/admin/settings/assignment-routing" replace />} />
+      <Route path="/settings/number-templates" element={<Navigate to="/compliance/admin/settings/number-templates" replace />} />
+      <Route path="/settings/risk-policy" element={<Navigate to="/compliance/admin/settings/risk-policy" replace />} />
+      <Route path="/settings/risk-config" element={<Navigate to="/compliance/admin/settings/risk-policy" replace />} />
+      <Route path="/settings/legal-escalation-policy" element={<Navigate to="/compliance/admin/settings/risk-policy" replace />} />
+      <Route path="/settings/templates" element={<Navigate to="/compliance/admin/settings/templates" replace />} />
+      <Route path="/settings/c3-ledger-sync" element={<Navigate to="/compliance/admin/settings/c3-ledger-sync" replace />} />
+      <Route path="/settings/payment-ledger-sync" element={<Navigate to="/compliance/admin/settings/payment-ledger-sync" replace />} />
+      <Route path="/settings/ledger-admin" element={<Navigate to="/compliance/admin/settings/ledger-admin" replace />} />
+      <Route path="/audit-planning/settings" element={<Navigate to="/compliance/admin/settings/sampling" replace />} />
+      <Route path="/sampling/settings" element={<Navigate to="/compliance/admin/settings/sampling" replace />} />
+      <Route path="/geography/zones" element={<Navigate to="/compliance/admin/geography/zones" replace />} />
+      <Route path="/geography/office-zone-mapping" element={<Navigate to="/compliance/admin/geography/office-zone-mapping" replace />} />
+      <Route path="/geography/village-zone-mapping" element={<Navigate to="/compliance/admin/geography/village-zone-mapping" replace />} />
+      <Route path="/staff/officers" element={<Navigate to="/compliance/admin/staff/officers" replace />} />
+      <Route path="/staff/queue-members" element={<Navigate to="/compliance/admin/staff/queue-members" replace />} />
+      <Route path="/staff/supervisors" element={<Navigate to="/compliance/admin/staff/supervisors" replace />} />
+      <Route path="/staff/link-legacy" element={<Navigate to="/compliance/admin/staff/link-legacy" replace />} />
+      <Route path="/automation/jobs" element={<Navigate to="/compliance/admin/automation/jobs" replace />} />
+      <Route path="/automation/history" element={<Navigate to="/compliance/admin/automation/history" replace />} />
+      <Route path="/automation/employer-jobs" element={<Navigate to="/compliance/admin/automation/employer-jobs" replace />} />
+      <Route path="/tools/rule-simulator" element={<Navigate to="/compliance/admin/tools/rule-simulator" replace />} />
+      <Route path="/tools/risk-simulator" element={<Navigate to="/compliance/admin/tools/risk-simulator" replace />} />
+
+      {/* Reports legacy (case-analytics alias) */}
+      <Route path="/reports/case-analytics" element={<Navigate to="/compliance/reports/violations-analytics" replace />} />
     </Routes>
   );
 };
