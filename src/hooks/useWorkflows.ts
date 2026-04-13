@@ -54,6 +54,22 @@ export interface WorkflowActionNotification {
   action_id: string;
   notification_type: string;
   template_id: string | null;
+  recipient_type: string;
+  recipient_role_id: string | null;
+  is_enabled: boolean;
+  module_id: string | null;
+  created_at: string;
+}
+
+export interface WorkflowStepNotification {
+  id: string;
+  step_id: string;
+  notification_type: string;
+  template_id: string | null;
+  module_id: string | null;
+  recipient_type: string;
+  recipient_role_id: string | null;
+  is_enabled: boolean;
   created_at: string;
 }
 
