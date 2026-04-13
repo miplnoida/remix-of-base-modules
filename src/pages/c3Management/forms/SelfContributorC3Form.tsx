@@ -80,6 +80,10 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
   const [notes, setNotes] = useState(data?.notes || "");
   const [recordId, setRecordId] = useState<string | null>(data?.id || null);
 
+  // Schedule prompt dialog state
+  const [schedulePromptOpen, setSchedulePromptOpen] = useState(false);
+  const [suggestedScheduleNo, setSuggestedScheduleNo] = useState<number>(1);
+
   // Auto-populated fields
   const [name, setName] = useState(data?.payerName || "");
   const [address, setAddress] = useState(data?.payerAddress || "");
@@ -476,7 +480,7 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     setIsSaving(true);
 
     try {
-      const periodStr = new Date(period.year, period.month, 1).toISOString();
+      const periodStr = `${period.year}-${String(period.month + 1).padStart(2, '0')}-01`;
       
       const formDataToSave: any = {
         id: data?.id || recordId,
@@ -513,6 +517,10 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         }
         toast({ title: "Success", description: "C3 record saved successfully" });
         onSave?.(result.data);
+      } else if ((result as any).data?.promptNextSchedule) {
+        // Show confirmation dialog instead of error
+        setSuggestedScheduleNo((result as any).data.sequence_no);
+        setSchedulePromptOpen(true);
       } else {
         toast({ title: "Error", description: result.error || "Failed to save record", variant: "destructive" });
       }
@@ -886,6 +894,24 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
         cancelLabel="Cancel"
         variant="destructive"
         onConfirm={handleFieldChangeConfirm}
+      />
+
+      {/* Schedule prompt dialog for VAC existing records */}
+      <ConfirmDialog
+        open={schedulePromptOpen}
+        onOpenChange={setSchedulePromptOpen}
+        title="Existing Verified C3 Found"
+        description={`A verified C3 for this payer and period already exists. Would you like to create Schedule ${suggestedScheduleNo}?`}
+        confirmLabel={`Create Schedule ${suggestedScheduleNo}`}
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setSchedulePromptOpen(false);
+          setScheduleNo(suggestedScheduleNo);
+          // Re-trigger save with new schedule number after state update
+          setTimeout(() => {
+            handleSave();
+          }, 100);
+        }}
       />
     </div>
   );

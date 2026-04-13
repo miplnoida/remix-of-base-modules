@@ -497,6 +497,14 @@ export function useC3Management(initialPayerType?: PayerType): UseC3ManagementRe
         });
         await refreshRecords();
         return { success: true, id: result.data.id };
+      } else if ((result as any).data?.promptNextSchedule) {
+        // Return structured response so the calling UI can show a confirmation dialog
+        return { 
+          success: false, 
+          promptNextSchedule: true, 
+          suggestedScheduleNo: (result as any).data.sequence_no,
+          error: result.error 
+        };
       } else {
         toast({
           title: "Error",

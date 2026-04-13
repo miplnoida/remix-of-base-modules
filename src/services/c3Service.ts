@@ -25,52 +25,91 @@ async function assertC3Editable(recordId: string): Promise<void> {
 }
 
 /**
- * Find an existing C3 record matching the business key (payer_id, payer_type, sequence_no, period).
- * Returns { id, posting_status } if found, null otherwise.
+ * Find ALL existing C3 records for a payer+period (across all sequences).
+ * Returns array of { id, posting_status, sequence_no }.
  */
-async function findExistingC3(
+async function findAllC3ForPeriod(
+  payerId: string,
+  payerType: string,
+  period: string
+): Promise<{ id: string; posting_status: string; sequence_no: number }[]> {
+  const { data, error } = await supabase
+    .from('cn_c3_reported')
+    .select('id, posting_status, sequence_no')
+    .eq('payer_id', payerId)
+    .eq('payer_type', payerType)
+    .eq('period', period)
+    .order('sequence_no', { ascending: true });
+
+  if (error) {
+    console.error('Error finding existing C3 records:', error);
+    return [];
+  }
+  return data || [];
+}
+
+/**
+ * Normalize a period string to YYYY-MM-01 safely, avoiding timezone issues.
+ * Handles ISO strings like "2026-08-31T18:30:00.000Z" and plain "2026-09-01".
+ */
+function normalizePeriod(period: string): string {
+  if (!period) return period;
+  // If it's a clean YYYY-MM-DD without time component, just force day to 01
+  const dateOnly = period.split('T')[0];
+  const parts = dateOnly.split('-');
+  if (parts.length === 3) {
+    return `${parts[0]}-${parts[1]}-01`;
+  }
+  return dateOnly;
+}
+
+/**
+ * Determine the correct action for a new C3 save based on existing records.
+ * Returns: { action, existingId?, nextSeq?, error? }
+ */
+async function resolveC3SaveAction(
   payerId: string,
   payerType: string,
   sequenceNo: number,
   period: string
-): Promise<{ id: string; posting_status: string } | null> {
-  const { data, error } = await supabase
-    .from('cn_c3_reported')
-    .select('id, posting_status')
-    .eq('payer_id', payerId)
-    .eq('payer_type', payerType)
-    .eq('sequence_no', sequenceNo)
-    .eq('period', period)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error finding existing C3:', error);
-    return null;
+): Promise<{
+  action: 'insert' | 'update' | 'prompt_next_schedule' | 'blocked';
+  existingId?: string;
+  nextSeq?: number;
+  currentMaxSeq?: number;
+  blockReason?: string;
+}> {
+  const allRecords = await findAllC3ForPeriod(payerId, payerType, period);
+  
+  if (allRecords.length === 0) {
+    return { action: 'insert' };
   }
-  return data;
-}
 
-/**
- * Find the next available schedule number for a payer+period that already has verified records.
- * Returns the max existing sequence_no + 1.
- */
-async function getNextScheduleNumber(
-  payerId: string,
-  payerType: string,
-  period: string
-): Promise<number> {
-  const { data, error } = await supabase
-    .from('cn_c3_reported')
-    .select('sequence_no')
-    .eq('payer_id', payerId)
-    .eq('payer_type', payerType)
-    .eq('period', period)
-    .order('sequence_no', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Check if there's an editable record for the same sequence
+  const sameSeqEditable = allRecords.find(
+    r => r.sequence_no === sequenceNo && EDITABLE_STATUSES.includes(r.posting_status as PostingStatus)
+  );
+  if (sameSeqEditable) {
+    return { action: 'update', existingId: sameSeqEditable.id };
+  }
 
-  if (error || !data) return 1;
-  return (data.sequence_no || 1) + 1;
+  // Check if there's any record (any status) for the same sequence
+  const sameSeqAny = allRecords.find(r => r.sequence_no === sequenceNo);
+  if (sameSeqAny) {
+    if (sameSeqAny.posting_status === 'VAC') {
+      // Verified record exists — suggest next schedule
+      const maxSeq = Math.max(...allRecords.map(r => r.sequence_no));
+      return { action: 'prompt_next_schedule', nextSeq: maxSeq + 1, currentMaxSeq: maxSeq };
+    }
+    // Other non-editable status (REJ, DEL)
+    return { 
+      action: 'blocked', 
+      blockReason: `A C3 for this payer/period/schedule already exists with status ${sameSeqAny.posting_status} and cannot be overwritten.`
+    };
+  }
+
+  // No record for this specific sequence — allow insert
+  return { action: 'insert' };
 }
 
 export interface C3Record {
@@ -473,39 +512,32 @@ export async function saveC3Draft(
       if (error) throw error;
       c3Record = data;
     } else {
-      // Create new record — check for existing C3 with same business key
-      const periodNorm = record.period ? (typeof record.period === 'string' ? record.period.split('T')[0] : record.period) : record.period;
-      const existing = await findExistingC3(record.payer_id, c3Data.payer_type, record.sequence_no, periodNorm);
+      // Create new record — resolve action based on all existing records for this payer+period
+      const periodNorm = normalizePeriod(record.period || '');
+      c3Data.period = periodNorm;
+      const resolution = await resolveC3SaveAction(record.payer_id, c3Data.payer_type, record.sequence_no || 1, periodNorm);
 
-      if (existing) {
-        if (EDITABLE_STATUSES.includes(existing.posting_status as PostingStatus)) {
-          // Existing editable draft — update instead of insert
-          c3Data.modified_date = currentDate;
-          c3Data.modified_by = effectiveUserCode;
-          const { data, error } = await supabase
-            .from('cn_c3_reported')
-            .update(c3Data)
-            .eq('id', existing.id)
-            .select()
-            .single();
-          if (error) throw error;
-          c3Record = data;
-        } else if (existing.posting_status === 'VAC') {
-          // Verified C3 exists — suggest next schedule
-          const nextSeq = await getNextScheduleNumber(record.payer_id, c3Data.payer_type, periodNorm);
-          return {
-            success: false,
-            error: `A verified C3 for this payer and period already exists (Schedule ${record.sequence_no}). Would you like to create Schedule ${nextSeq}?`,
-            data: { sequence_no: nextSeq } as any
-          };
-        } else {
-          return {
-            success: false,
-            error: `A C3 for this payer/period/schedule already exists with status ${existing.posting_status} and cannot be overwritten.`
-          };
-        }
+      if (resolution.action === 'update' && resolution.existingId) {
+        c3Data.modified_date = currentDate;
+        c3Data.modified_by = effectiveUserCode;
+        const { data, error } = await supabase
+          .from('cn_c3_reported')
+          .update(c3Data)
+          .eq('id', resolution.existingId)
+          .select()
+          .single();
+        if (error) throw error;
+        c3Record = data;
+      } else if (resolution.action === 'prompt_next_schedule') {
+        return {
+          success: false,
+          error: `A verified C3 for this payer and period already exists (Schedule ${resolution.currentMaxSeq}). Would you like to create Schedule ${resolution.nextSeq}?`,
+          data: { sequence_no: resolution.nextSeq, existingStatus: 'VAC', promptNextSchedule: true } as any
+        };
+      } else if (resolution.action === 'blocked') {
+        return { success: false, error: resolution.blockReason || 'Cannot overwrite existing record.' };
       } else {
-        // No existing record — insert with sequence_no defaulting to 1 for first C3
+        // Insert new
         c3Data.sequence_no = record.sequence_no || 1;
         c3Data.entered_by = effectiveUserCode;
         c3Data.date_entered = currentDate;
@@ -1228,8 +1260,7 @@ export async function saveSelfContributorC3(
       payer_id: record.payer_id,
       payer_type: 'SE', // Self-Employed
       sequence_no: record.sequence_no,
-      // Normalize SE period to first-of-month to prevent date mismatch in Detail API lookups
-      period: record.period ? (typeof record.period === 'string' ? record.period.split('T')[0].substring(0, 8) + '01' : record.period) : record.period,
+      period: normalizePeriod(record.period || ''),
       number_employed: 1, // Always 1 for self-contributor
       emp_ss_amt_calc: record.emp_ss_amt_calc || 0,
       emp_levy_amt_calc: 0, // No levy for self-contributors
@@ -1272,37 +1303,30 @@ export async function saveSelfContributorC3(
         console.error('Error deleting existing wage records:', deleteError);
       }
     } else {
-      // Create new record — check for existing C3 with same business key
+      // Create new record — resolve action based on all existing records
       const periodNorm = c3Data.period;
-      const existing = await findExistingC3(record.payer_id, 'SE', record.sequence_no, periodNorm);
+      const resolution = await resolveC3SaveAction(record.payer_id, 'SE', record.sequence_no || 1, periodNorm);
 
-      if (existing) {
-        if (EDITABLE_STATUSES.includes(existing.posting_status as PostingStatus)) {
-          c3Data.modified_date = currentDate;
-          c3Data.modified_by = effectiveUserCode;
-          const { data, error } = await supabase
-            .from('cn_c3_reported')
-            .update(c3Data)
-            .eq('id', existing.id)
-            .select()
-            .single();
-          if (error) throw error;
-          c3Record = data;
-          // Delete existing wage records so they get re-created below
-          await supabase.from('ip_wages').delete().eq('c3_id', existing.id);
-        } else if (existing.posting_status === 'VAC') {
-          const nextSeq = await getNextScheduleNumber(record.payer_id, 'SE', periodNorm);
-          return {
-            success: false,
-            error: `A verified C3 for this payer and period already exists (Schedule ${record.sequence_no}). Would you like to create Schedule ${nextSeq}?`,
-            data: { sequence_no: nextSeq } as any
-          };
-        } else {
-          return {
-            success: false,
-            error: `A C3 for this payer/period/schedule already exists with status ${existing.posting_status} and cannot be overwritten.`
-          };
-        }
+      if (resolution.action === 'update' && resolution.existingId) {
+        c3Data.modified_date = currentDate;
+        c3Data.modified_by = effectiveUserCode;
+        const { data, error } = await supabase
+          .from('cn_c3_reported')
+          .update(c3Data)
+          .eq('id', resolution.existingId)
+          .select()
+          .single();
+        if (error) throw error;
+        c3Record = data;
+        await supabase.from('ip_wages').delete().eq('c3_id', resolution.existingId);
+      } else if (resolution.action === 'prompt_next_schedule') {
+        return {
+          success: false,
+          error: `A verified C3 for this payer and period already exists (Schedule ${resolution.currentMaxSeq}). Would you like to create Schedule ${resolution.nextSeq}?`,
+          data: { sequence_no: resolution.nextSeq, existingStatus: 'VAC', promptNextSchedule: true } as any
+        };
+      } else if (resolution.action === 'blocked') {
+        return { success: false, error: resolution.blockReason || 'Cannot overwrite existing record.' };
       } else {
         c3Data.sequence_no = record.sequence_no || 1;
         c3Data.entered_by = effectiveUserCode;
@@ -1542,8 +1566,7 @@ export async function saveVoluntaryContributorC3(
       payer_id: record.payer_id,
       payer_type: 'VC', // Voluntary Contributor
       sequence_no: record.sequence_no,
-      // Normalize VC period to first-of-month to prevent date mismatch in Detail API lookups
-      period: record.period ? (typeof record.period === 'string' ? record.period.split('T')[0].substring(0, 8) + '01' : record.period) : record.period,
+      period: normalizePeriod(record.period || ''),
       number_employed: 1, // Always 1 for voluntary contributor
       emp_ss_amt_calc: record.emp_ss_amt_calc || 0,
       emp_levy_amt_calc: 0, // No levy for voluntary contributors
@@ -1586,36 +1609,30 @@ export async function saveVoluntaryContributorC3(
         console.error('Error deleting existing wage records:', deleteError);
       }
     } else {
-      // Create new record — check for existing C3 with same business key
+      // Create new record — resolve action based on all existing records
       const periodNorm = c3Data.period;
-      const existing = await findExistingC3(record.payer_id, 'VC', record.sequence_no, periodNorm);
+      const resolution = await resolveC3SaveAction(record.payer_id, 'VC', record.sequence_no || 1, periodNorm);
 
-      if (existing) {
-        if (EDITABLE_STATUSES.includes(existing.posting_status as PostingStatus)) {
-          c3Data.modified_date = currentDate;
-          c3Data.modified_by = effectiveUserCode;
-          const { data, error } = await supabase
-            .from('cn_c3_reported')
-            .update(c3Data)
-            .eq('id', existing.id)
-            .select()
-            .single();
-          if (error) throw error;
-          c3Record = data;
-          await supabase.from('ip_wages').delete().eq('c3_id', existing.id);
-        } else if (existing.posting_status === 'VAC') {
-          const nextSeq = await getNextScheduleNumber(record.payer_id, 'VC', periodNorm);
-          return {
-            success: false,
-            error: `A verified C3 for this payer and period already exists (Schedule ${record.sequence_no}). Would you like to create Schedule ${nextSeq}?`,
-            data: { sequence_no: nextSeq } as any
-          };
-        } else {
-          return {
-            success: false,
-            error: `A C3 for this payer/period/schedule already exists with status ${existing.posting_status} and cannot be overwritten.`
-          };
-        }
+      if (resolution.action === 'update' && resolution.existingId) {
+        c3Data.modified_date = currentDate;
+        c3Data.modified_by = effectiveUserCode;
+        const { data, error } = await supabase
+          .from('cn_c3_reported')
+          .update(c3Data)
+          .eq('id', resolution.existingId)
+          .select()
+          .single();
+        if (error) throw error;
+        c3Record = data;
+        await supabase.from('ip_wages').delete().eq('c3_id', resolution.existingId);
+      } else if (resolution.action === 'prompt_next_schedule') {
+        return {
+          success: false,
+          error: `A verified C3 for this payer and period already exists (Schedule ${resolution.currentMaxSeq}). Would you like to create Schedule ${resolution.nextSeq}?`,
+          data: { sequence_no: resolution.nextSeq, existingStatus: 'VAC', promptNextSchedule: true } as any
+        };
+      } else if (resolution.action === 'blocked') {
+        return { success: false, error: resolution.blockReason || 'Cannot overwrite existing record.' };
       } else {
         c3Data.sequence_no = record.sequence_no || 1;
         c3Data.entered_by = effectiveUserCode;

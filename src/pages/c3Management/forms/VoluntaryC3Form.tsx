@@ -74,7 +74,6 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
   const [receivedBy, setReceivedBy] = useState(data?.received_by || data?.cnc3ReportedReceivedBy || "");
   const [nilReturn, setNilReturn] = useState(data?.nilReturn || false);
   const [scheduleNo, setScheduleNo] = useState<number>(() => {
-    // sequence_no may not be in the transformed data; parse from scheduleNo "SCH-X"
     if (data?.sequence_no) return data.sequence_no;
     if (data?.scheduleNo && typeof data.scheduleNo === 'string') {
       const match = data.scheduleNo.match(/(\d+)$/);
@@ -85,6 +84,10 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
   const [status, setStatus] = useState(data?.postingStatus || 'DFT');
   const [notes, setNotes] = useState(data?.notes || "");
   const [recordId, setRecordId] = useState<string | null>(data?.id || null);
+
+  // Schedule prompt dialog state
+  const [schedulePromptOpen, setSchedulePromptOpen] = useState(false);
+  const [suggestedScheduleNo, setSuggestedScheduleNo] = useState<number>(1);
 
   // Auto-populated fields from ip_vol_contrib
   const [name, setName] = useState(data?.payerName || "");
@@ -408,7 +411,7 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
     setIsSaving(true);
 
     try {
-      const periodStr = new Date(period.year, period.month, 1).toISOString();
+      const periodStr = `${period.year}-${String(period.month + 1).padStart(2, '0')}-01`;
       
       const formDataToSave: any = {
         id: data?.id || recordId,
@@ -436,13 +439,15 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
       const result = await saveVoluntaryContributorC3(formDataToSave, userCode || undefined);
 
       if (result.success) {
-        // Store the record ID for submit capability
         if (result.data?.id) {
           setRecordId(result.data.id);
           setStatus('DFT');
         }
         toast({ title: "Success", description: "C3 record saved successfully" });
         onSave?.(result.data);
+      } else if ((result as any).data?.promptNextSchedule) {
+        setSuggestedScheduleNo((result as any).data.sequence_no);
+        setSchedulePromptOpen(true);
       } else {
         toast({ title: "Error", description: result.error || "Failed to save record", variant: "destructive" });
       }
@@ -857,6 +862,23 @@ export default function VoluntaryC3Form({ data, mode = 'add', resetTrigger, save
         cancelLabel="Cancel"
         variant="destructive"
         onConfirm={handleFieldChangeConfirm}
+      />
+
+      {/* Schedule prompt dialog for VAC existing records */}
+      <ConfirmDialog
+        open={schedulePromptOpen}
+        onOpenChange={setSchedulePromptOpen}
+        title="Existing Verified C3 Found"
+        description={`A verified C3 for this payer and period already exists. Would you like to create Schedule ${suggestedScheduleNo}?`}
+        confirmLabel={`Create Schedule ${suggestedScheduleNo}`}
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setSchedulePromptOpen(false);
+          setScheduleNo(suggestedScheduleNo);
+          setTimeout(() => {
+            handleSave();
+          }, 100);
+        }}
       />
     </div>
   );
