@@ -1,37 +1,86 @@
-## Fix: Overpayment False Positive -- Missing Period Filter in Guard Query
+## Root Cause: SE Payment Sync Failure — "Company not found for registration_number: 100039"
 
-### Root Cause
+### Analysis
 
-The `create_c3_payment_with_receipt` RPC's overpayment guard (lines 121-132) sums paid amounts from `c3_payment_components` filtered by `payment_code` and `sequence_no`, but **does NOT filter by `period**`. This causes it to sum payments across ALL periods for that payer.
+The `sync-c3-payment` edge function sends `registration_number: 100039` (the SSN) in the payload for SE payers. The external C3-Wizard `/receive-payment` endpoint uses `registration_number` to look up the payer — and for SE payers, it expects the **self_ref_no** (e.g., `000002`), not the raw SSN.
 
-For SE 100039, SSE with sequence_no=1:
+**Evidence from sync log:**
 
-- Correct (Sep 2026 only): **paid = 10**
-- Actual (all periods): **paid = 80** (10 × 8 payments across May, Aug, Sep, etc.)
+```
+request_payload: { registration_number: "100039", payer_type: "SE", ssn: "100039", ... }
+response_payload: { success: false, error: "Company not found for registration_number: 100039" }
+```
 
-Since the original amount for Sep 2026 is 80, the guard calculates balance = 80 - 80 = 0, and rejects the new 10 payment as overpayment.
+The `ip_self_employ` table shows SSN `100039` has `self_ref_no = '000002'`. The Wizard registers SE payers using this `self_ref_no` as their identifier — so the payment sync must send it as `registration_number`.
 
-The same bug exists in `get_c3_component_balances` (line 92-106) — it uses `cp.period = p_period::timestamp` on `cn_payment` but that's a different table. The `c3_payment_components` period is stored as `MM/YYYY` format, not as a timestamp.
+**Secondary issue:** The payload omits `schedule_number` for SE payers (line 206-210 of the edge function only includes it for ER). SE records also have `sequence_no` and the Wizard needs it.
 
 ### Fix
 
-**Migration SQL** — Add period filter to both RPCs:
+**File: `supabase/functions/sync-c3-payment/index.ts**`
 
-1. `**create_c3_payment_with_receipt**` overpayment guard (line 121-132): Add `AND cpc.period = v_guard_period` to match the component's period string (e.g., `'09/2026'`).
-2. `**get_c3_component_balances**` paid aggregation (line 89-106): Replace `cp.period = p_period::timestamp` with a filter on `cpc.period` using the correct `MM/YYYY` format derived from the input period, and sum `cpc.component_amount` instead of `cp.payment_amount`.
+1. **For SE payers, look up `self_ref_no` from `ip_self_employ**` and use it as `registration_number` instead of the raw SSN:
 
-### Technical Detail
+```typescript
+// After fetching header (line 103), add SE lookup:
+if (header.payer_type === 'SE') {
+  const { data: seData } = await supabase
+    .from('ip_self_employ')
+    .select('self_ref_no')
+    .eq('ssn', header.payer_id)
+    .eq('status', 'A')
+    .limit(1)
+    .maybeSingle();
+  
+  if (seData?.self_ref_no) {
+    payload.registration_number = seData.self_ref_no;
+  }
+}
+```
 
-The `c3_payment_components.period` column stores period as `MM/YYYY` format (e.g., `'09/2026'`), while `cn_payment.period` stores it as a timestamp. The guard must use `cpc.period` with the matching format.
+2. **Include `schedule_number` for SE payers** (line 206-210):
+
+```typescript
+// Change from ER-only to SE+ER:
+if (header.payer_type === 'ER' || header.payer_type === 'SE') {
+  payload.schedule_number = component?.sequence_no != null
+    ? String(component.sequence_no)
+    : undefined;
+}
+```
 
 ### Files to Modify
 
 
-| File          | Change                                                                                                                                 |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Migration SQL | Update both `create_c3_payment_with_receipt` and `get_c3_component_balances` to add `cpc.period` filter in the paid-amount aggregation |
+| File                                          | Change                                                                |
+| --------------------------------------------- | --------------------------------------------------------------------- |
+| `supabase/functions/sync-c3-payment/index.ts` | Look up `self_ref_no` for SE payers; include `schedule_number` for SE |
 
 
 ### Verification
 
-After fix, the guard query for SE 100039, SSE, seq 1, period 09/2026 will return paid=10 instead of 80, correctly allowing the next partial payment.
+After fix, the payload for SE 100039 will be:
+
+```json
+{
+  "registration_number": "000002",  // self_ref_no (was "100039")
+  "payer_type": "SE",
+  "ssn": "100039",
+  "schedule_number": "1",           // now included for SE
+  "period_month": "9",
+  "period_year": "2026",
+  ...
+}
+```
+
+This matches the identifier the C3-Wizard uses for SE payers, resolving the "Company not found" error. The existing ER flow is unaffected.  
+  
+  
+important NOte :  
+must read this  
+you have to create a refined plan as your assumptions is wrong . this error is not your side . this error needs to resolve from the c3-wizard you must send the ssn 100039 and request the c3-wizard that pls check thhis why this error noccurs .  
+basically you ahve to sahre the message to the c3-wizard team , it itself fix this.  
+you dont need to chnage anything in this project.  
+Also, for the NWD payment this system should give tehe employer id and the is_director true so in the request message include this as well for the verification it is handled there or not.  
+Also, make sure you have to create a plan again.  
+no implementation happen now.
