@@ -646,6 +646,7 @@ export default function WorkflowForm() {
               notifications: action.notifications,
               fieldUpdates: action.fieldUpdates,
             })),
+            stepNotifications: step.stepNotifications,
         })),
       });
 
