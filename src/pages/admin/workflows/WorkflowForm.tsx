@@ -343,6 +343,10 @@ export default function WorkflowForm() {
               id: n.id,
               notification_type: n.notification_type,
               template_id: n.template_id,
+              recipient_type: (n as any).recipient_type || 'next_step_approver',
+              recipient_role_id: (n as any).recipient_role_id || null,
+              is_enabled: (n as any).is_enabled !== false,
+              module_id: (n as any).module_id || null,
             })),
             fieldUpdates: (action as any).fieldUpdates || [],
           })),
@@ -497,8 +501,12 @@ export default function WorkflowForm() {
   const addNotification = (stepIndex: number, actionIndex: number) => {
     const newSteps = [...steps];
     newSteps[stepIndex].actions[actionIndex].notifications.push({
-      notification_type: 'Email',
+      notification_type: 'In-App',
       template_id: null,
+      recipient_type: 'next_step_approver',
+      recipient_role_id: null,
+      is_enabled: true,
+      module_id: null,
     });
     setSteps(newSteps);
   };
