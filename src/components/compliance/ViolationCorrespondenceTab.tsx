@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUserCode } from '@/hooks/useUserCode';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +22,8 @@ interface ViolationCorrespondenceTabProps {
 export function ViolationCorrespondenceTab({ violationId, employerId, employerName }: ViolationCorrespondenceTabProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { userCode } = useUserCode();
+  const currentUserCode = userCode || 'UNKNOWN';
   const [showLogCallDialog, setShowLogCallDialog] = useState(false);
   const [showSendLetterDialog, setShowSendLetterDialog] = useState(false);
   const [callForm, setCallForm] = useState({ direction: 'Outgoing', contactPerson: '', summary: '' });

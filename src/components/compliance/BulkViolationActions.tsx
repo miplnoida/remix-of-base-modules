@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUserCode } from '@/hooks/useUserCode';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -83,7 +84,8 @@ export function BulkViolationActions({ selectedIds, violations, onComplete, onCl
   const [isProcessing, setIsProcessing] = useState(false);
 
   const selectedViolations = violations.filter((v: any) => selectedIds.includes(v.id));
-  const currentUserCode = 'SYSTEM'; // TODO: from auth context
+  const { userCode } = useUserCode();
+  const currentUserCode = userCode || 'UNKNOWN';
 
   if (selectedIds.length === 0) return null;
 

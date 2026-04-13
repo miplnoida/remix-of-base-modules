@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUserCode } from '@/hooks/useUserCode';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,7 +61,8 @@ export default function CaseDetailView() {
   const [cascadeReason, setCascadeReason] = useState('');
   const [cascading, setCascading] = useState(false);
 
-  const currentUserCode = 'SYSTEM';
+  const { userCode } = useUserCode();
+  const currentUserCode = userCode || 'UNKNOWN';
 
   const { data: caseData, isLoading } = useQuery({
     queryKey: ['ce_case_detail', id],
