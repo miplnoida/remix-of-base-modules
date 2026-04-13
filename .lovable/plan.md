@@ -1,39 +1,32 @@
 
 
-## Fix: "column 'status' does not exist" in C3 Accept Trigger
+## Fix: Accept Action Buttons Not Showing for Employer 658852
 
 ### Root Cause
 
-The `process_c3_employer_verification` trigger function queries `ip_employer` with:
+Two separate issues are causing the Accept buttons to be missing for the two records:
 
-```sql
-WHERE ssn = v_wage_row.ssn AND status = 'C'
-```
+**1. Sep 2026 SCH-1 (instance `08240b18`)**: The workflow instance is `InProgress` but its task is `Completed` with `assigned_role: NULL` and `assigned_to: NULL`. The previous migration to reset this either failed or was overwritten. Since the task is `Completed`, the `useWorkflowActions` query (which filters for `Pending`/`InProgress` tasks) finds nothing → no buttons rendered.
 
-But `ip_employer` has **no `status` column** — only `posting_status`. This causes the PostgreSQL error when accepting any C3 record that triggers the VAC transition.
+**2. Mar 2026 SCH-4 (instance `0b6bcf43`)**: The workflow instance itself is `Completed` (with task also `Completed` and `assigned_role: FinanceManager`). However, the `posting_status` is still `PEN` — the workflow completed but the Accept action failed due to the `status` vs `posting_status` trigger bug (now fixed). Since the instance is `Completed`, it's filtered out at line 98 of `useWorkflowActions.ts` → no buttons.
 
-This bug was introduced in the migration `20260413120930` which recreated the trigger with `status` instead of the correct column name.
+**3. Workflow logs are empty** for both instances because `useC3Submit.ts` inserts using wrong column names (`performed_by`, `performed_by_name`, `details`) instead of the actual columns (`user_id`, `user_name`, `comments`). These inserts silently fail.
 
-### Fix
+### Fix Plan
 
-**Migration SQL** — Update `process_c3_employer_verification` to use `posting_status` instead of `status`:
+**1. Migration SQL** — Reset both workflow instances and tasks:
+- Instance `08240b18` (Sep 2026 SCH-1): Keep `InProgress`, reset task `d7f85a25` to `Pending`, set `assigned_role = 'FinanceManager'`
+- Instance `0b6bcf43` (Mar 2026 SCH-4): Reset to `InProgress`, reset task `c3d2f517` to `Pending` (already has `assigned_role = 'FinanceManager'`)
 
-```sql
--- Change this line in the trigger:
-WHERE ssn = v_wage_row.ssn AND status = 'C'
--- To:
-WHERE ssn = v_wage_row.ssn AND posting_status = 'C'
-```
-
-Also reset the workflow instance for SCH-4 Mar 2026 if it got stuck in a failed state.
+**2. Code fix** — `src/hooks/useC3Submit.ts` line 251-261: Fix workflow_logs insert to use correct column names:
+- `performed_by` → `user_id`
+- `performed_by_name` → `user_name`
+- `details` → `comments`
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| Migration SQL | Fix `process_c3_employer_verification`: `status` → `posting_status` on `ip_employer` query |
-
-### Impact
-
-One-line column name fix. No other logic changes. After this, the Accept action will work for all C3 employer records.
+| Migration SQL | Reset both workflow instances/tasks to allow Accept retry |
+| `src/hooks/useC3Submit.ts` | Fix workflow_logs column names (lines 251-261) |
 
