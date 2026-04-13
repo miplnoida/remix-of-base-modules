@@ -25,6 +25,10 @@ import { PaymentReceiptModal } from '@/components/c3/PaymentReceiptModal';
 import { BIMASourceIndicator } from '@/components/c3/BIMASourceIndicator';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const toDatePeriod = (month: string, year: string): string => {
+  const mm = String(MONTHS.indexOf(month) + 1).padStart(2, '0');
+  return `${year}-${mm}-01`;
+};
 const YEARS = Array.from({ length: 10 }, (_, i) => String(new Date().getFullYear() - i));
 
 function formatCurrency(val: number) {
@@ -84,8 +88,8 @@ const NwDirectorList: React.FC = () => {
     if (!selectedCompanyId) { toast.error('Please select a Non Working Director employer'); return; }
     setLoading(true);
     try {
-      const periodFrom = periodFromMonth && periodFromYear ? `${periodFromMonth}-${periodFromYear}` : undefined;
-      const periodTo = periodToMonth && periodToYear ? `${periodToMonth}-${periodToYear}` : undefined;
+      const periodFrom = periodFromMonth && periodFromYear ? toDatePeriod(periodFromMonth, periodFromYear) : undefined;
+      const periodTo = periodToMonth && periodToYear ? toDatePeriod(periodToMonth, periodToYear) : undefined;
       const res = await getNwdContributionList({ company_id: Number(selectedCompanyId), period_from: periodFrom, period_to: periodTo });
       const data = res.data?.contributions || [];
       setContributions(data);
