@@ -948,19 +948,65 @@ export const AppRoutes = () => {
       <Route path="/self-employed/add" element={<ProtectedLayout><AddSelfEmployed /></ProtectedLayout>} />
       <Route path="/self-employed/reports" element={<ProtectedLayout><SelfEmployedReports /></ProtectedLayout>} />
 
-      {/* Compliance & Audit Routes */}
-      <Route path="/compliance/dashboard" element={<ProtectedLayout><ComplianceDashboard /></ProtectedLayout>} />
+      {/* ═══════════════════════════════════════════════════════════════
+          COMPLIANCE MODULE — Canonical Routes (new structure)
+          ═══════════════════════════════════════════════════════════════ */}
+
+      {/* ── Workbench ── */}
+      <Route path="/compliance/workbench/manager" element={<ProtectedLayout><ComplianceManagerDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/workbench/inspector" element={<ProtectedLayout><ComplianceInspectorDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/workbench/legal" element={<ProtectedLayout><ComplianceLegalDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/workbench/analytics" element={<ProtectedLayout><ComplianceAnalytics /></ProtectedLayout>} />
+      <Route path="/compliance/workbench/monitoring" element={<ProtectedLayout><ComplianceMonitoring /></ProtectedLayout>} />
+      <Route path="/compliance/workbench/queues" element={<ProtectedLayout><AssignmentQueues /></ProtectedLayout>} />
+      <Route path="/compliance/workbench/review-queue" element={<ProtectedLayout><ReviewQueue /></ProtectedLayout>} />
+      <Route path="/compliance/workbench/reassignment" element={<ProtectedLayout><Reassignment /></ProtectedLayout>} />
+
+      {/* ── Violations ── */}
       <Route path="/compliance/violations" element={<ProtectedLayout><ViolationsManagement /></ProtectedLayout>} />
       <Route path="/compliance/violations/manual-entry" element={<ProtectedLayout><ManualViolationEntry /></ProtectedLayout>} />
       <Route path="/compliance/violations/:id" element={<ProtectedLayout><ViolationDetails /></ProtectedLayout>} />
-      {/* DUP-03: Redirect legacy alias → canonical path */}
-      <Route path="/compliance/inspector-plans" element={<Navigate to="/compliance/audit-planning/my-plans" replace />} />
-      <Route path="/compliance/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />
-      <Route path="/compliance/arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
-      {/* DUP-02: Redirect alias → canonical /compliance/arrangements */}
-      <Route path="/compliance/payment-arrangements" element={<Navigate to="/compliance/arrangements" replace />} />
-      <Route path="/compliance/employer-statements" element={<ProtectedLayout><EmployerStatements /></ProtectedLayout>} />
-      <Route path="/compliance/employer-statement/:employerId" element={<ProtectedLayout><EmployerStatementDetail /></ProtectedLayout>} />
+
+      {/* ── Cases ── */}
+      <Route path="/compliance/cases" element={<ProtectedLayout><ComplianceCaseManagement /></ProtectedLayout>} />
+      <Route path="/compliance/cases/queue" element={<ProtectedLayout><ComplianceCaseQueue /></ProtectedLayout>} />
+      <Route path="/compliance/cases/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
+      <Route path="/compliance/cases/:id" element={<ProtectedLayout><ComplianceCaseDetailView /></ProtectedLayout>} />
+
+      {/* ── Field — planning, execution, inspections, employer views ── */}
+      <Route path="/compliance/field/plan-builder" element={<ProtectedLayout><WeeklyPlanBuilder /></ProtectedLayout>} />
+      <Route path="/compliance/field/my-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
+      <Route path="/compliance/field/pending-review" element={<ProtectedLayout><CompliancePendingReview /></ProtectedLayout>} />
+      <Route path="/compliance/field/pending-review/:planId" element={<ProtectedLayout><WeeklyPlanReview /></ProtectedLayout>} />
+      <Route path="/compliance/field/execution" element={<ProtectedLayout><FieldExecution /></ProtectedLayout>} />
+      <Route path="/compliance/field/operations" element={<ProtectedLayout><FieldOperations /></ProtectedLayout>} />
+      <Route path="/compliance/field/inspections" element={<ProtectedLayout><ComplianceInspectionManagement /></ProtectedLayout>} />
+      <Route path="/compliance/field/findings" element={<ProtectedLayout><EmployerFindings /></ProtectedLayout>} />
+      <Route path="/compliance/field/employer-statements" element={<ProtectedLayout><EmployerStatements /></ProtectedLayout>} />
+      <Route path="/compliance/field/employer-statement/:employerId" element={<ProtectedLayout><EmployerStatementDetail /></ProtectedLayout>} />
+      <Route path="/compliance/field/visit/:employerId" element={<ProtectedLayout><EmployerVisitWorkspace /></ProtectedLayout>} />
+      <Route path="/compliance/field/employer-360/:employerId" element={<ProtectedLayout><Employer360 /></ProtectedLayout>} />
+      <Route path="/compliance/field/employer-risk/:employerId" element={<ProtectedLayout><EmployerRiskProfile /></ProtectedLayout>} />
+      <Route path="/compliance/field/employer-hierarchy" element={<ProtectedLayout><EmployerHierarchy /></ProtectedLayout>} />
+      <Route path="/compliance/field/employer-management" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
+      <Route path="/compliance/field/audit-management" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
+      <Route path="/compliance/field/weekly-report" element={<ProtectedLayout><WeeklyReportSubmission /></ProtectedLayout>} />
+      <Route path="/compliance/field/weekly-reports" element={<ProtectedLayout><WeeklyReports /></ProtectedLayout>} />
+      <Route path="/compliance/field/all-reports" element={<ProtectedLayout><AllWeeklyReports /></ProtectedLayout>} />
+      <Route path="/compliance/field/my-upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
+      <Route path="/compliance/field/sampling" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/field/sampling/candidates" element={<ProtectedLayout><MonthlyAuditCandidates /></ProtectedLayout>} />
+
+      {/* ── Enforcement — legal, notices, arrangements, waivers ── */}
+      <Route path="/compliance/enforcement/recommendation-queue" element={<ProtectedLayout><LegalRecommendationQueue /></ProtectedLayout>} />
+      <Route path="/compliance/enforcement/legal-queue" element={<ProtectedLayout><ComplianceLegalQueue /></ProtectedLayout>} />
+      <Route path="/compliance/enforcement/proceedings" element={<ProtectedLayout><ComplianceLegalProceedings /></ProtectedLayout>} />
+      <Route path="/compliance/enforcement/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />
+      <Route path="/compliance/enforcement/arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
+      <Route path="/compliance/enforcement/breaches" element={<ProtectedLayout><ComplianceBreachMonitoring /></ProtectedLayout>} />
+      <Route path="/compliance/enforcement/waivers" element={<ProtectedLayout><ComplianceWaivers /></ProtectedLayout>} />
+
+      {/* ── Reports (unchanged paths) ── */}
       <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
       <Route path="/compliance/reports/violations-analytics" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
       <Route path="/compliance/reports/inspector-performance" element={<ProtectedLayout><InspectorPerformance /></ProtectedLayout>} />
@@ -970,86 +1016,116 @@ export const AppRoutes = () => {
       <Route path="/compliance/reports/arrangements" element={<ProtectedLayout><ArrangementReports /></ProtectedLayout>} />
       <Route path="/compliance/reports/legal" element={<ProtectedLayout><LegalEscalationReports /></ProtectedLayout>} />
       <Route path="/compliance/reports/trends" element={<ProtectedLayout><TrendReports /></ProtectedLayout>} />
-      <Route path="/compliance/audit-planning/settings" element={<ProtectedLayout><RiskSamplingSettings /></ProtectedLayout>} />
-      <Route path="/compliance/audit-planning/sampling-dashboard" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/audit-planning/monthly-candidates" element={<ProtectedLayout><MonthlyAuditCandidates /></ProtectedLayout>} />
-      <Route path="/compliance/audit-planning/weekly-plan-builder" element={<ProtectedLayout><WeeklyPlanBuilder /></ProtectedLayout>} />
-      <Route path="/compliance/audit-planning/my-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
-      <Route path="/compliance/audit-planning/pending-review" element={<ProtectedLayout><CompliancePendingReview /></ProtectedLayout>} />
-      <Route path="/compliance/audit-planning/pending-review/:planId" element={<ProtectedLayout><WeeklyPlanReview /></ProtectedLayout>} />
-      <Route path="/compliance/violations/weekly-reports" element={<ProtectedLayout><WeeklyReportSubmission /></ProtectedLayout>} />
-      {/* DUP-04: Duplicate manual-entry route removed — defined at line 954 */}
-      <Route path="/compliance/employers/findings" element={<ProtectedLayout><EmployerFindings /></ProtectedLayout>} />
-      <Route path="/compliance/employers/visit/:employerId" element={<ProtectedLayout><EmployerVisitWorkspace /></ProtectedLayout>} />
-      <Route path="/compliance/audit-planning/field-execution" element={<ProtectedLayout><FieldExecution /></ProtectedLayout>} />
-      <Route path="/compliance/audit-planning/weekly-reports" element={<ProtectedLayout><WeeklyReports /></ProtectedLayout>} />
-      <Route path="/compliance/my-audits/upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
-      <Route path="/compliance/employers/:employerId/risk-profile" element={<ProtectedLayout><EmployerRiskProfile /></ProtectedLayout>} />
-      <Route path="/compliance/employer-360/:employerId" element={<ProtectedLayout><Employer360 /></ProtectedLayout>} />
-      {/* Legal Escalation Policy consolidated to /compliance/settings/legal-escalation-policy */}
-      <Route path="/compliance/legal-recommendation-queue" element={<ProtectedLayout><LegalRecommendationQueue /></ProtectedLayout>} />
-      <Route path="/compliance/settings" element={<ProtectedLayout><ComplianceSettings /></ProtectedLayout>} />
-      <Route path="/compliance/settings/risk-policy" element={<ProtectedLayout><RiskRulePolicy /></ProtectedLayout>} />
-      <Route path="/compliance/monitoring" element={<ProtectedLayout><ComplianceMonitoring /></ProtectedLayout>} />
-      <Route path="/compliance/employer" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
-      <Route path="/compliance/audits" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
-      {/* DUP-01: Redirect legacy → canonical /compliance/cases/penalties */}
+
+      {/* ── Admin — settings, geography, staff, automation, tools ── */}
+      <Route path="/compliance/admin/settings/rule-engine" element={<ProtectedLayout><ComplianceRuleEngine /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/violation-types" element={<ProtectedLayout><ComplianceViolationTypes /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/assignment-routing" element={<ProtectedLayout><AssignmentRoutingRules /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/number-templates" element={<ProtectedLayout><ComplianceNumberTemplates /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/risk-policy" element={<ProtectedLayout><RiskRulePolicy /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/templates" element={<ProtectedLayout><ComplianceTemplates /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/sampling" element={<ProtectedLayout><RiskSamplingSettings /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/c3-ledger-sync" element={<ProtectedLayout><C3LedgerSync /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/payment-ledger-sync" element={<ProtectedLayout><PaymentLedgerSync /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/ledger-admin" element={<ProtectedLayout><LedgerAdministration /></ProtectedLayout>} />
+      <Route path="/compliance/admin/geography/zones" element={<ProtectedLayout><ZoneManagement /></ProtectedLayout>} />
+      <Route path="/compliance/admin/geography/office-zone-mapping" element={<ProtectedLayout><OfficeZoneMapping /></ProtectedLayout>} />
+      <Route path="/compliance/admin/geography/village-zone-mapping" element={<ProtectedLayout><VillageZoneMapping /></ProtectedLayout>} />
+      <Route path="/compliance/admin/staff/officers" element={<ProtectedLayout><OfficerManagement /></ProtectedLayout>} />
+      <Route path="/compliance/admin/staff/queue-members" element={<ProtectedLayout><QueueMembers /></ProtectedLayout>} />
+      <Route path="/compliance/admin/staff/supervisors" element={<ProtectedLayout><SupervisorHierarchy /></ProtectedLayout>} />
+      <Route path="/compliance/admin/staff/link-legacy" element={<ProtectedLayout><LegacyInspectorLinking /></ProtectedLayout>} />
+      <Route path="/compliance/admin/automation/jobs" element={<ProtectedLayout><ComplianceJobConfiguration /></ProtectedLayout>} />
+      <Route path="/compliance/admin/automation/history" element={<ProtectedLayout><ComplianceJobHistory /></ProtectedLayout>} />
+      <Route path="/compliance/admin/automation/employer-jobs" element={<ProtectedLayout><EmployerComplianceJobs /></ProtectedLayout>} />
+      <Route path="/compliance/admin/tools/rule-simulator" element={<ProtectedLayout><ComplianceRuleSimulator /></ProtectedLayout>} />
+      <Route path="/compliance/admin/tools/risk-simulator" element={<ProtectedLayout><ComplianceRiskSimulator /></ProtectedLayout>} />
+
+      {/* ═══════════════════════════════════════════════════════════════
+          COMPLIANCE — Legacy Redirects (old path → new canonical path)
+          All old menu/bookmark URLs continue to work via 301 redirects.
+          ═══════════════════════════════════════════════════════════════ */}
+
+      {/* Workbench redirects */}
+      <Route path="/compliance/dashboard" element={<Navigate to="/compliance/workbench/manager" replace />} />
+      <Route path="/compliance/dashboard/manager" element={<Navigate to="/compliance/workbench/manager" replace />} />
+      <Route path="/compliance/dashboard/inspector" element={<Navigate to="/compliance/workbench/inspector" replace />} />
+      <Route path="/compliance/dashboard/legal" element={<Navigate to="/compliance/workbench/legal" replace />} />
+      <Route path="/compliance/dashboard/analytics" element={<Navigate to="/compliance/workbench/analytics" replace />} />
+      <Route path="/compliance/monitoring" element={<Navigate to="/compliance/workbench/monitoring" replace />} />
+      <Route path="/compliance/operations/queues" element={<Navigate to="/compliance/workbench/queues" replace />} />
+      <Route path="/compliance/operations/review-queue" element={<Navigate to="/compliance/workbench/review-queue" replace />} />
+      <Route path="/compliance/operations/reassignment" element={<Navigate to="/compliance/workbench/reassignment" replace />} />
+
+      {/* Field redirects */}
+      <Route path="/compliance/audit-planning/weekly-plan-builder" element={<Navigate to="/compliance/field/plan-builder" replace />} />
+      <Route path="/compliance/audit-planning/my-plans" element={<Navigate to="/compliance/field/my-plans" replace />} />
+      <Route path="/compliance/inspector-plans" element={<Navigate to="/compliance/field/my-plans" replace />} />
+      <Route path="/compliance/audit-planning/pending-review" element={<Navigate to="/compliance/field/pending-review" replace />} />
+      <Route path="/compliance/audit-planning/pending-review/:planId" element={<Navigate to="/compliance/field/pending-review" replace />} />
+      <Route path="/compliance/audit-planning/field-execution" element={<Navigate to="/compliance/field/execution" replace />} />
+      <Route path="/compliance/inspections/field-execution" element={<Navigate to="/compliance/field/execution" replace />} />
+      <Route path="/compliance/inspections/field-operations" element={<Navigate to="/compliance/field/operations" replace />} />
+      <Route path="/compliance/inspections" element={<Navigate to="/compliance/field/inspections" replace />} />
+      <Route path="/compliance/employers/findings" element={<Navigate to="/compliance/field/findings" replace />} />
+      <Route path="/compliance/employer-statements" element={<Navigate to="/compliance/field/employer-statements" replace />} />
+      <Route path="/compliance/employer-statement/:employerId" element={<Navigate to="/compliance/field/employer-statements" replace />} />
+      <Route path="/compliance/employers/visit/:employerId" element={<Navigate to="/compliance/field/employer-statements" replace />} />
+      <Route path="/compliance/employer-360/:employerId" element={<Navigate to="/compliance/field/employer-statements" replace />} />
+      <Route path="/compliance/employers/:employerId/risk-profile" element={<Navigate to="/compliance/field/employer-statements" replace />} />
+      <Route path="/compliance/employers/hierarchy" element={<Navigate to="/compliance/field/employer-hierarchy" replace />} />
+      <Route path="/compliance/employers/management" element={<Navigate to="/compliance/field/employer-management" replace />} />
+      <Route path="/compliance/employer" element={<Navigate to="/compliance/field/employer-management" replace />} />
+      <Route path="/compliance/audits" element={<Navigate to="/compliance/field/audit-management" replace />} />
+      <Route path="/compliance/violations/weekly-reports" element={<Navigate to="/compliance/field/weekly-report" replace />} />
+      <Route path="/compliance/audit-planning/weekly-reports" element={<Navigate to="/compliance/field/weekly-reports" replace />} />
+      <Route path="/compliance/audit-planning/all-reports" element={<Navigate to="/compliance/field/all-reports" replace />} />
+      <Route path="/compliance/my-audits/upcoming" element={<Navigate to="/compliance/field/my-upcoming" replace />} />
+      <Route path="/compliance/audit-planning/sampling-dashboard" element={<Navigate to="/compliance/field/sampling" replace />} />
+      <Route path="/compliance/sampling" element={<Navigate to="/compliance/field/sampling" replace />} />
+      <Route path="/compliance/audit-planning/monthly-candidates" element={<Navigate to="/compliance/field/sampling/candidates" replace />} />
+      <Route path="/compliance/sampling/candidates" element={<Navigate to="/compliance/field/sampling/candidates" replace />} />
+      <Route path="/compliance/sampling/upcoming" element={<Navigate to="/compliance/field/my-upcoming" replace />} />
+
+      {/* Enforcement redirects */}
+      <Route path="/compliance/legal-recommendation-queue" element={<Navigate to="/compliance/enforcement/recommendation-queue" replace />} />
+      <Route path="/compliance/legal/queue" element={<Navigate to="/compliance/enforcement/legal-queue" replace />} />
+      <Route path="/compliance/legal/proceedings" element={<Navigate to="/compliance/enforcement/proceedings" replace />} />
+      <Route path="/compliance/notices" element={<Navigate to="/compliance/enforcement/notices" replace />} />
+      <Route path="/compliance/arrangements" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
+      <Route path="/compliance/payment-arrangements" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
+      <Route path="/compliance/arrangements/breaches" element={<Navigate to="/compliance/enforcement/breaches" replace />} />
+      <Route path="/compliance/waivers" element={<Navigate to="/compliance/enforcement/waivers" replace />} />
       <Route path="/compliance/penalties" element={<Navigate to="/compliance/cases/penalties" replace />} />
 
-      {/* New Compliance & Enforcement Routes */}
-      <Route path="/compliance/dashboard/manager" element={<ProtectedLayout><ComplianceManagerDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/dashboard/inspector" element={<ProtectedLayout><ComplianceInspectorDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/dashboard/legal" element={<ProtectedLayout><ComplianceLegalDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/cases" element={<ProtectedLayout><ComplianceCaseManagement /></ProtectedLayout>} />
-      <Route path="/compliance/cases/queue" element={<ProtectedLayout><ComplianceCaseQueue /></ProtectedLayout>} />
-      <Route path="/compliance/cases/:id" element={<ProtectedLayout><ComplianceCaseDetailView /></ProtectedLayout>} />
+      {/* Admin redirects */}
+      <Route path="/compliance/settings" element={<ProtectedLayout><ComplianceSettings /></ProtectedLayout>} />
+      <Route path="/compliance/settings/rule-engine" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
+      <Route path="/compliance/settings/violation-types" element={<Navigate to="/compliance/admin/settings/violation-types" replace />} />
+      <Route path="/compliance/settings/assignment-routing" element={<Navigate to="/compliance/admin/settings/assignment-routing" replace />} />
+      <Route path="/compliance/settings/number-templates" element={<Navigate to="/compliance/admin/settings/number-templates" replace />} />
+      <Route path="/compliance/settings/risk-policy" element={<Navigate to="/compliance/admin/settings/risk-policy" replace />} />
+      <Route path="/compliance/settings/risk-config" element={<Navigate to="/compliance/admin/settings/risk-policy" replace />} />
+      <Route path="/compliance/settings/legal-escalation-policy" element={<Navigate to="/compliance/admin/settings/risk-policy" replace />} />
+      <Route path="/compliance/settings/templates" element={<Navigate to="/compliance/admin/settings/templates" replace />} />
+      <Route path="/compliance/settings/c3-ledger-sync" element={<Navigate to="/compliance/admin/settings/c3-ledger-sync" replace />} />
+      <Route path="/compliance/settings/payment-ledger-sync" element={<Navigate to="/compliance/admin/settings/payment-ledger-sync" replace />} />
+      <Route path="/compliance/settings/ledger-admin" element={<Navigate to="/compliance/admin/settings/ledger-admin" replace />} />
+      <Route path="/compliance/audit-planning/settings" element={<Navigate to="/compliance/admin/settings/sampling" replace />} />
+      <Route path="/compliance/sampling/settings" element={<Navigate to="/compliance/admin/settings/sampling" replace />} />
+      <Route path="/compliance/geography/zones" element={<Navigate to="/compliance/admin/geography/zones" replace />} />
+      <Route path="/compliance/geography/office-zone-mapping" element={<Navigate to="/compliance/admin/geography/office-zone-mapping" replace />} />
+      <Route path="/compliance/geography/village-zone-mapping" element={<Navigate to="/compliance/admin/geography/village-zone-mapping" replace />} />
+      <Route path="/compliance/staff/officers" element={<Navigate to="/compliance/admin/staff/officers" replace />} />
+      <Route path="/compliance/staff/queue-members" element={<Navigate to="/compliance/admin/staff/queue-members" replace />} />
+      <Route path="/compliance/staff/supervisors" element={<Navigate to="/compliance/admin/staff/supervisors" replace />} />
+      <Route path="/compliance/staff/link-legacy" element={<Navigate to="/compliance/admin/staff/link-legacy" replace />} />
+      <Route path="/compliance/automation/jobs" element={<Navigate to="/compliance/admin/automation/jobs" replace />} />
+      <Route path="/compliance/automation/history" element={<Navigate to="/compliance/admin/automation/history" replace />} />
+      <Route path="/compliance/automation/employer-jobs" element={<Navigate to="/compliance/admin/automation/employer-jobs" replace />} />
+      <Route path="/compliance/tools/rule-simulator" element={<Navigate to="/compliance/admin/tools/rule-simulator" replace />} />
+      <Route path="/compliance/tools/risk-simulator" element={<Navigate to="/compliance/admin/tools/risk-simulator" replace />} />
       <Route path="/compliance/risk-profiles" element={<Navigate to="/audit/risk-register" replace />} />
-      <Route path="/compliance/inspections" element={<ProtectedLayout><ComplianceInspectionManagement /></ProtectedLayout>} />
-      <Route path="/compliance/arrangements/breaches" element={<ProtectedLayout><ComplianceBreachMonitoring /></ProtectedLayout>} />
-      <Route path="/compliance/legal/queue" element={<ProtectedLayout><ComplianceLegalQueue /></ProtectedLayout>} />
-      <Route path="/compliance/legal/proceedings" element={<ProtectedLayout><ComplianceLegalProceedings /></ProtectedLayout>} />
-      <Route path="/compliance/waivers" element={<ProtectedLayout><ComplianceWaivers /></ProtectedLayout>} />
-      <Route path="/compliance/automation/jobs" element={<ProtectedLayout><ComplianceJobConfiguration /></ProtectedLayout>} />
-      <Route path="/compliance/automation/history" element={<ProtectedLayout><ComplianceJobHistory /></ProtectedLayout>} />
-      <Route path="/compliance/settings/rule-engine" element={<ProtectedLayout><ComplianceRuleEngine /></ProtectedLayout>} />
-      <Route path="/compliance/settings/violation-types" element={<ProtectedLayout><ComplianceViolationTypes /></ProtectedLayout>} />
-      <Route path="/compliance/settings/number-templates" element={<ProtectedLayout><ComplianceNumberTemplates /></ProtectedLayout>} />
-      {/* DUP-09: Redirect risk-config → consolidated risk-policy */}
-      <Route path="/compliance/settings/risk-config" element={<Navigate to="/compliance/settings/risk-policy" replace />} />
-      {/* DUP-08: Redirect legal-escalation-policy → consolidated risk-policy (has Legal Escalation tab) */}
-      <Route path="/compliance/settings/legal-escalation-policy" element={<Navigate to="/compliance/settings/risk-policy" replace />} />
-      <Route path="/compliance/settings/templates" element={<ProtectedLayout><ComplianceTemplates /></ProtectedLayout>} />
-      <Route path="/compliance/tools/rule-simulator" element={<ProtectedLayout><ComplianceRuleSimulator /></ProtectedLayout>} />
-      <Route path="/compliance/tools/risk-simulator" element={<ProtectedLayout><ComplianceRiskSimulator /></ProtectedLayout>} />
-      <Route path="/compliance/settings/assignment-routing" element={<ProtectedLayout><AssignmentRoutingRules /></ProtectedLayout>} />
-      <Route path="/compliance/operations/queues" element={<ProtectedLayout><AssignmentQueues /></ProtectedLayout>} />
-      <Route path="/compliance/operations/review-queue" element={<ProtectedLayout><ReviewQueue /></ProtectedLayout>} />
-      <Route path="/compliance/operations/reassignment" element={<ProtectedLayout><Reassignment /></ProtectedLayout>} />
-      <Route path="/compliance/geography/zones" element={<ProtectedLayout><ZoneManagement /></ProtectedLayout>} />
-      <Route path="/compliance/geography/office-zone-mapping" element={<ProtectedLayout><OfficeZoneMapping /></ProtectedLayout>} />
-      <Route path="/compliance/geography/village-zone-mapping" element={<ProtectedLayout><VillageZoneMapping /></ProtectedLayout>} />
-      <Route path="/compliance/staff/officers" element={<ProtectedLayout><OfficerManagement /></ProtectedLayout>} />
-      <Route path="/compliance/staff/queue-members" element={<ProtectedLayout><QueueMembers /></ProtectedLayout>} />
-      <Route path="/compliance/staff/supervisors" element={<ProtectedLayout><SupervisorHierarchy /></ProtectedLayout>} />
-      <Route path="/compliance/staff/link-legacy" element={<ProtectedLayout><LegacyInspectorLinking /></ProtectedLayout>} />
-
-      {/* Missing compliance routes — aligned to app_modules DB entries */}
-      <Route path="/compliance/dashboard/analytics" element={<ProtectedLayout><ComplianceAnalytics /></ProtectedLayout>} />
-      <Route path="/compliance/cases/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
-      <Route path="/compliance/employers/hierarchy" element={<ProtectedLayout><EmployerHierarchy /></ProtectedLayout>} />
-      <Route path="/compliance/employers/management" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
-      <Route path="/compliance/inspections/field-operations" element={<ProtectedLayout><FieldOperations /></ProtectedLayout>} />
-      <Route path="/compliance/inspections/field-execution" element={<Navigate to="/compliance/audit-planning/field-execution" replace />} />
-      <Route path="/compliance/automation/employer-jobs" element={<ProtectedLayout><EmployerComplianceJobs /></ProtectedLayout>} />
-      <Route path="/compliance/audit-planning/all-reports" element={<ProtectedLayout><AllWeeklyReports /></ProtectedLayout>} />
-      <Route path="/compliance/settings/c3-ledger-sync" element={<ProtectedLayout><C3LedgerSync /></ProtectedLayout>} />
-      <Route path="/compliance/settings/ledger-admin" element={<ProtectedLayout><LedgerAdministration /></ProtectedLayout>} />
-      <Route path="/compliance/settings/payment-ledger-sync" element={<ProtectedLayout><PaymentLedgerSync /></ProtectedLayout>} />
-      {/* Sampling routes — DB menu uses /compliance/sampling/* paths */}
-      <Route path="/compliance/sampling" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/sampling/candidates" element={<ProtectedLayout><MonthlyAuditCandidates /></ProtectedLayout>} />
-      <Route path="/compliance/sampling/upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
-      <Route path="/compliance/sampling/settings" element={<ProtectedLayout><RiskSamplingSettings /></ProtectedLayout>} />
 
       {/* Audit Module Routes — Simplified Department Function Audit */}
       <Route path="/audit/dashboard" element={<ProtectedLayout><AuditDashboard /></ProtectedLayout>} />
