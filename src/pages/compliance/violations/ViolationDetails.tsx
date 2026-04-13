@@ -275,7 +275,7 @@ export default function ViolationDetails() {
           <TabsTrigger value="correspondence"><Mail className="h-4 w-4 mr-2" />Correspondence</TabsTrigger>
           <TabsTrigger value="actions"><ListChecks className="h-4 w-4 mr-2" />Action Plan</TabsTrigger>
           <TabsTrigger value="history"><History className="h-4 w-4 mr-2" />History</TabsTrigger>
-          <TabsTrigger value="notices"><Bell className="h-4 w-4 mr-2" />Notices ({violationNotices.length})</TabsTrigger>
+          <TabsTrigger value="notices"><Bell className="h-4 w-4 mr-2" />Notices ({violationNoticesCount})</TabsTrigger>
           <TabsTrigger value="other-violations"><AlertCircle className="h-4 w-4 mr-2" />Other ({otherViolations.length})</TabsTrigger>
         </TabsList>
 
