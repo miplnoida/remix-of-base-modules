@@ -26,6 +26,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchViolationById } from '@/services/complianceDataService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
+import { FinancialSummaryCard } from '@/components/compliance/FinancialSummaryCard';
 
 // ============================================
 // ACTION BUTTON CONFIGURATION PER STATUS
@@ -162,6 +164,21 @@ export default function ViolationDetails() {
     queryKey: ['ce_violation_linked_case', id],
     queryFn: () => caseViolationService.getLinkedCase(id!),
     enabled: !!id,
+  });
+
+  // Risk profile for employer
+  const { data: riskProfile } = useQuery({
+    queryKey: ['ce_risk_profile_employer', violationData?.employer_id],
+    queryFn: async () => {
+      if (!violationData?.employer_id) return null;
+      const { data } = await supabase
+        .from('ce_risk_profiles')
+        .select('id, risk_band, total_score')
+        .eq('employer_id', violationData.employer_id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!violationData?.employer_id,
   });
 
   // ============================================
@@ -309,6 +326,9 @@ export default function ViolationDetails() {
                 <Badge className={getPriorityColor(v.priority)}>
                   {v.priority}
                 </Badge>
+                {riskProfile && (
+                  <RiskScoreBadge riskBand={riskProfile.risk_band} score={riskProfile.total_score} />
+                )}
               </div>
               <p className="text-sm text-muted-foreground">
                 Discovered: {v.discovered_date ? formatDate(v.discovered_date) : 'N/A'} | Created: {formatDate(v.created_at)}

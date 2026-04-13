@@ -14417,7 +14417,9 @@ export type Database = {
           inspection_id: string | null
           interest_amount: number | null
           is_deleted: boolean | null
+          is_merged: boolean
           is_unlinked: boolean | null
+          merged_into_id: string | null
           penalty_amount: number | null
           period_from: string | null
           period_to: string | null
@@ -14429,6 +14431,7 @@ export type Database = {
           severity: string | null
           source_rule_id: string | null
           source_type: string | null
+          split_from_id: string | null
           status: string | null
           summary: string
           territory: string | null
@@ -14466,7 +14469,9 @@ export type Database = {
           inspection_id?: string | null
           interest_amount?: number | null
           is_deleted?: boolean | null
+          is_merged?: boolean
           is_unlinked?: boolean | null
+          merged_into_id?: string | null
           penalty_amount?: number | null
           period_from?: string | null
           period_to?: string | null
@@ -14478,6 +14483,7 @@ export type Database = {
           severity?: string | null
           source_rule_id?: string | null
           source_type?: string | null
+          split_from_id?: string | null
           status?: string | null
           summary: string
           territory?: string | null
@@ -14515,7 +14521,9 @@ export type Database = {
           inspection_id?: string | null
           interest_amount?: number | null
           is_deleted?: boolean | null
+          is_merged?: boolean
           is_unlinked?: boolean | null
+          merged_into_id?: string | null
           penalty_amount?: number | null
           period_from?: string | null
           period_to?: string | null
@@ -14527,6 +14535,7 @@ export type Database = {
           severity?: string | null
           source_rule_id?: string | null
           source_type?: string | null
+          split_from_id?: string | null
           status?: string | null
           summary?: string
           territory?: string | null
@@ -14543,6 +14552,20 @@ export type Database = {
             columns: ["assigned_queue_id"]
             isOneToOne: false
             referencedRelation: "ce_assignment_queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violations_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violations_split_from_id_fkey"
+            columns: ["split_from_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
             referencedColumns: ["id"]
           },
           {
@@ -42536,6 +42559,26 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_v_compliance_kpis: {
+        Row: {
+          active_cases: number | null
+          avg_resolution_days: number | null
+          cancelled_violations: number | null
+          closed_cases: number | null
+          closed_violations: number | null
+          employers_with_active_violations: number | null
+          escalated_violations: number | null
+          in_progress_violations: number | null
+          notices_responded: number | null
+          open_violations: number | null
+          overdue_violations: number | null
+          resolved_violations: number | null
+          total_notices: number | null
+          total_violations: number | null
+          under_review_violations: number | null
+        }
+        Relationships: []
+      }
       ce_v_compliance_monitoring: {
         Row: {
           active_arrangement_count: number | null
@@ -42635,6 +42678,19 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_v_officer_performance: {
+        Row: {
+          active_count: number | null
+          avg_resolution_days: number | null
+          officer_id: string | null
+          officer_name: string | null
+          overdue_count: number | null
+          overdue_pct: number | null
+          resolved_count: number | null
+          total_assigned: number | null
+        }
+        Relationships: []
+      }
       ce_v_payment_reconciliation_exceptions: {
         Row: {
           allocated_amount: number | null
@@ -42667,6 +42723,16 @@ export type Database = {
           receipt_status: string | null
           source_payment_id: number | null
           sync_key: string | null
+        }
+        Relationships: []
+      }
+      ce_v_violation_trends: {
+        Row: {
+          created_count: number | null
+          escalated_count: number | null
+          month_key: string | null
+          month_label: string | null
+          resolved_count: number | null
         }
         Relationships: []
       }

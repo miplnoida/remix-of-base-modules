@@ -205,6 +205,27 @@ class ViolationLifecycleService {
       }
     }
 
+    // 7. Event-driven risk recalculation on resolution/closure
+    if (['RESOLVED', 'CLOSED'].includes(targetStatus) && (violation as any).employer_id) {
+      try {
+        const { data: riskProfile } = await supabase
+          .from('ce_risk_profiles')
+          .select('id')
+          .eq('employer_id', (violation as any).employer_id)
+          .maybeSingle();
+        if (riskProfile) {
+          console.log(`[Lifecycle] Triggering risk recalculation for employer ${(violation as any).employer_id}`);
+          // Mark profile for recalculation by updating next_review_date
+          await supabase.from('ce_risk_profiles').update({
+            next_review_date: new Date().toISOString(),
+            updated_by: performedBy,
+          }).eq('id', riskProfile.id);
+        }
+      } catch (err) {
+        console.error('Risk recalc trigger error (non-fatal):', err);
+      }
+    }
+
     return {
       success: true,
       previousStatus: currentStatus,

@@ -20,11 +20,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Eye, Plus, Search, Filter, Loader2 } from 'lucide-react';
+import { Eye, Plus, Search, Filter, Loader2, Merge, Split } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchViolations } from '@/services/complianceDataService';
 import { BulkViolationActions } from '@/components/compliance/BulkViolationActions';
+import { ViolationMergeDialog } from '@/components/compliance/ViolationMergeDialog';
+import { ViolationSplitDialog } from '@/components/compliance/ViolationSplitDialog';
+import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
+import { supabase } from '@/integrations/supabase/client';
 
 const VIOLATION_STATUSES = ['OPEN', 'UNDER_REVIEW', 'IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'CLOSED', 'CANCELLED'];
 const VIOLATION_PRIORITIES = ['Critical', 'High', 'Medium', 'Low'];
@@ -38,7 +42,9 @@ export default function ViolationsManagement() {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [monthFilter, setMonthFilter] = useState<string>(currentMonth);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [splitTarget, setSplitTarget] = useState<any>(null);
   const { data: violations = [], isLoading } = useQuery({
     queryKey: ['ce_violations', statusFilter, priorityFilter, searchTerm, monthFilter],
     queryFn: () => fetchViolations({
@@ -216,10 +222,16 @@ export default function ViolationsManagement() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>All Violations ({violations.length})</CardTitle>
-          <Button size="sm" onClick={() => navigate('/compliance/violations/manual-entry')}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Manual Violation
-          </Button>
+          <div className="flex gap-2">
+            {selectedIds.length >= 2 && (
+              <Button size="sm" variant="outline" onClick={() => setMergeDialogOpen(true)}>
+                <Merge className="mr-1 h-4 w-4" /> Merge ({selectedIds.length})
+              </Button>
+            )}
+            <Button size="sm" onClick={() => navigate('/compliance/violations/manual-entry')}>
+              <Plus className="mr-2 h-4 w-4" /> Create Manual Violation
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -311,14 +323,24 @@ export default function ViolationsManagement() {
                         {v.discovered_date ? new Date(v.discovered_date).toLocaleDateString() : '-'}
                       </TableCell>
                       <TableCell className="sticky right-0 bg-background">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => navigate(`/compliance/violations/${v.id}`)}
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => navigate(`/compliance/violations/${v.id}`)}
+                            title="View Details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => { setSplitTarget(v); setSplitDialogOpen(true); }}
+                            title="Split Violation"
+                          >
+                            <Split className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -328,6 +350,29 @@ export default function ViolationsManagement() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Merge Dialog */}
+      {mergeDialogOpen && selectedIds.length >= 2 && (
+        <ViolationMergeDialog
+          open={mergeDialogOpen}
+          onOpenChange={setMergeDialogOpen}
+          violations={violations.filter((v: any) => selectedIds.includes(v.id)).map((v: any) => ({
+            id: v.id, violation_number: v.violation_number, status: v.status,
+            period_from: v.period_from, total_amount: v.total_amount,
+          }))}
+          onSuccess={() => { setSelectedIds([]); queryClient.invalidateQueries({ queryKey: ['ce_violations'] }); }}
+        />
+      )}
+
+      {/* Split Dialog */}
+      {splitDialogOpen && splitTarget && (
+        <ViolationSplitDialog
+          open={splitDialogOpen}
+          onOpenChange={setSplitDialogOpen}
+          violation={splitTarget}
+          onSuccess={() => { setSplitTarget(null); queryClient.invalidateQueries({ queryKey: ['ce_violations'] }); }}
+        />
+      )}
     </div>
   );
 }
