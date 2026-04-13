@@ -634,6 +634,19 @@ export function useExecuteWorkflowAction() {
           comments,
           configuredResultStatus
         );
+
+        // Notify the requester about the final outcome (fire-and-forget)
+        supabase.functions.invoke('workflow-notify-requester', {
+          body: {
+            instance_id: task.instance_id,
+            action: endState === 'Rejected' ? 'Rejected' : 'Approved',
+            action_by: profile?.user_code || 'System',
+            action_by_name: profile?.full_name || profile?.user_code || 'System',
+            comments,
+          },
+        }).then(({ error }) => {
+          if (error) console.error('Requester notification failed (non-blocking):', error);
+        });
       } else if (nextStepType === 'send_back_to_applicant') {
         // Put workflow in Query state
         const existingMetadata = workflowInstance?.metadata || {};
@@ -680,6 +693,19 @@ export function useExecuteWorkflowAction() {
             comments,
             configuredResultStatus
           );
+
+          // Notify the requester about approval (fire-and-forget)
+          supabase.functions.invoke('workflow-notify-requester', {
+            body: {
+              instance_id: task.instance_id,
+              action: 'Approved',
+              action_by: profile?.user_code || 'System',
+              action_by_name: profile?.full_name || profile?.user_code || 'System',
+              comments,
+            },
+          }).then(({ error }) => {
+            if (error) console.error('Requester notification failed (non-blocking):', error);
+          });
         } else {
           // Find next step
           const { data: nextStep } = await supabase
