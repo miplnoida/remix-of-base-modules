@@ -181,7 +181,20 @@ export function useCreateCardMachineChangeRequest() {
         comments: params.comment.trim(),
       });
 
-      // 5. Update request with workflow_instance_id and status to InProgress
+      // 4b. Notify approvers via configurable notification engine (step_entry trigger)
+      try {
+        await supabase.functions.invoke('workflow-process-notifications', {
+          body: {
+            instance_id: instance.id,
+            step_id: FIRST_STEP_ID,
+            trigger: 'step_entry',
+          },
+        });
+        console.log('Card machine change request: approvers notified successfully');
+      } catch (notifyError) {
+        console.error('Failed to process step notifications (non-critical):', notifyError);
+      }
+
       const { error: updError } = await supabase
         .from('cn_card_machine_change_requests')
         .update({
