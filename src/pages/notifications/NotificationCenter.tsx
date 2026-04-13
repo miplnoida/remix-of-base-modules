@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,6 +53,51 @@ export default function NotificationCenter() {
     },
     enabled: !!user?.id,
   });
+
+  // Realtime subscription for live updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`notification-center:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'in_app_notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newNotification = payload.new as NotificationItem;
+          queryClient.setQueryData<NotificationItem[]>(
+            ['in-app-notifications', user.id],
+            (old = []) => [newNotification, ...old]
+          );
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'in_app_notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as NotificationItem;
+          queryClient.setQueryData<NotificationItem[]>(
+            ['in-app-notifications', user.id],
+            (old = []) => old.map(n => n.id === updated.id ? { ...n, ...updated } : n)
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   const markAsRead = useMutation({
     mutationFn: async (id: string) => {
