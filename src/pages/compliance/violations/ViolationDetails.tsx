@@ -11,6 +11,7 @@ import { ViolationNotesTab } from '@/components/compliance/ViolationNotesTab';
 import { ViolationCorrespondenceTab } from '@/components/compliance/ViolationCorrespondenceTab';
 import { ViolationActionPlanTab } from '@/components/compliance/ViolationActionPlanTab';
 import { ViolationFollowUpsTab } from '@/components/compliance/ViolationFollowUpsTab';
+import { ViolationNoticesTab } from '@/components/compliance/ViolationNoticesTab';
 import { useQuery } from '@tanstack/react-query';
 import { fetchViolationById } from '@/services/complianceDataService';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,17 +61,16 @@ export default function ViolationDetails() {
     enabled: !!id,
   });
 
-  // Fetch notices linked to this violation
-  const { data: violationNotices = [] } = useQuery({
-    queryKey: ['ce_notices_violation', id],
+  // Notices count for tab badge
+  const { data: violationNoticesCount = 0 } = useQuery({
+    queryKey: ['ce_notices_violation_count', id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from('ce_notices')
-        .select('*')
-        .eq('violation_id', id!)
-        .order('created_at', { ascending: false });
-      if (error) return [];
-      return data ?? [];
+        .select('id', { count: 'exact', head: true })
+        .eq('violation_id', id!);
+      if (error) return 0;
+      return count ?? 0;
     },
     enabled: !!id,
   });
@@ -275,7 +275,7 @@ export default function ViolationDetails() {
           <TabsTrigger value="correspondence"><Mail className="h-4 w-4 mr-2" />Correspondence</TabsTrigger>
           <TabsTrigger value="actions"><ListChecks className="h-4 w-4 mr-2" />Action Plan</TabsTrigger>
           <TabsTrigger value="history"><History className="h-4 w-4 mr-2" />History</TabsTrigger>
-          <TabsTrigger value="notices"><Bell className="h-4 w-4 mr-2" />Notices ({violationNotices.length})</TabsTrigger>
+          <TabsTrigger value="notices"><Bell className="h-4 w-4 mr-2" />Notices ({violationNoticesCount})</TabsTrigger>
           <TabsTrigger value="other-violations"><AlertCircle className="h-4 w-4 mr-2" />Other ({otherViolations.length})</TabsTrigger>
         </TabsList>
 
@@ -452,48 +452,7 @@ export default function ViolationDetails() {
         </TabsContent>
 
         <TabsContent value="notices" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Notices Issued</CardTitle>
-                <Button size="sm"><Bell className="h-4 w-4 mr-2" />Issue Notice</Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {violationNotices.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No notices issued for this violation</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Notice Number</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Issued Date</TableHead>
-                      <TableHead>Delivery Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {violationNotices.map((notice: any) => (
-                      <TableRow key={notice.id}>
-                        <TableCell className="font-medium">{notice.notice_number}</TableCell>
-                        <TableCell>{(notice.notice_type || '').replace(/_/g, ' ')}</TableCell>
-                        <TableCell>{notice.issued_date ? formatDate(notice.issued_date) : '-'}</TableCell>
-                        <TableCell>
-                          <Badge variant={notice.delivery_status === 'DELIVERED' ? 'default' : 'secondary'}>
-                            {notice.delivery_status || '-'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="ghost">View</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <ViolationNoticesTab violationId={v.id} employerId={v.employer_id} employerName={v.employer_name} />
         </TabsContent>
 
         <TabsContent value="other-violations" className="space-y-4">

@@ -8,6 +8,7 @@ const corsHeaders = {
 // Jobs that are handled by dedicated edge functions instead of the DB RPC
 const EDGE_FUNCTION_JOBS: Record<string, string> = {
   'JOB-VIOLATION-SCAN': 'ce-violation-scan',
+  'JOB-NOTICE-GENERATION': 'run-notice-generation',
 };
 
 // Jobs that have RPC handlers
