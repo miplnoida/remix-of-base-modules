@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { caseViolationService } from '@/services/caseViolationService';
 
 // ============================================
 // VIOLATION LIFECYCLE SERVICE
