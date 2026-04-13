@@ -1,32 +1,30 @@
 
 
-## Fix: Accept Action Buttons Not Showing for Employer 658852
+## Fix: "column 'start_date' does not exist" in C3 Accept Trigger
 
 ### Root Cause
 
-Two separate issues are causing the Accept buttons to be missing for the two records:
+The `process_c3_employer_verification` trigger function contains:
 
-**1. Sep 2026 SCH-1 (instance `08240b18`)**: The workflow instance is `InProgress` but its task is `Completed` with `assigned_role: NULL` and `assigned_to: NULL`. The previous migration to reset this either failed or was overwritten. Since the task is `Completed`, the `useWorkflowActions` query (which filters for `Pending`/`InProgress` tasks) finds nothing → no buttons rendered.
+```sql
+ORDER BY start_date DESC
+```
 
-**2. Mar 2026 SCH-4 (instance `0b6bcf43`)**: The workflow instance itself is `Completed` (with task also `Completed` and `assigned_role: FinanceManager`). However, the `posting_status` is still `PEN` — the workflow completed but the Accept action failed due to the `status` vs `posting_status` trigger bug (now fixed). Since the instance is `Completed`, it's filtered out at line 98 of `useWorkflowActions.ts` → no buttons.
+But the `ip_employer` table has `term_start_date`, not `start_date`. This was introduced when the trigger was recreated in the earlier migration.
 
-**3. Workflow logs are empty** for both instances because `useC3Submit.ts` inserts using wrong column names (`performed_by`, `performed_by_name`, `details`) instead of the actual columns (`user_id`, `user_name`, `comments`). These inserts silently fail.
+### Fix
 
-### Fix Plan
+**Migration SQL** — Recreate the trigger function replacing `start_date` with `term_start_date`:
 
-**1. Migration SQL** — Reset both workflow instances and tasks:
-- Instance `08240b18` (Sep 2026 SCH-1): Keep `InProgress`, reset task `d7f85a25` to `Pending`, set `assigned_role = 'FinanceManager'`
-- Instance `0b6bcf43` (Mar 2026 SCH-4): Reset to `InProgress`, reset task `c3d2f517` to `Pending` (already has `assigned_role = 'FinanceManager'`)
+```sql
+ORDER BY term_start_date DESC
+```
 
-**2. Code fix** — `src/hooks/useC3Submit.ts` line 251-261: Fix workflow_logs insert to use correct column names:
-- `performed_by` → `user_id`
-- `performed_by_name` → `user_name`
-- `details` → `comments`
+Single-line fix inside the trigger function. No other changes needed.
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| Migration SQL | Reset both workflow instances/tasks to allow Accept retry |
-| `src/hooks/useC3Submit.ts` | Fix workflow_logs column names (lines 251-261) |
+| Migration SQL | Fix `process_c3_employer_verification`: `start_date` → `term_start_date` |
 
