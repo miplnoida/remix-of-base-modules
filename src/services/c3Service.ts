@@ -1609,36 +1609,30 @@ export async function saveVoluntaryContributorC3(
         console.error('Error deleting existing wage records:', deleteError);
       }
     } else {
-      // Create new record — check for existing C3 with same business key
+      // Create new record — resolve action based on all existing records
       const periodNorm = c3Data.period;
-      const existing = await findExistingC3(record.payer_id, 'VC', record.sequence_no, periodNorm);
+      const resolution = await resolveC3SaveAction(record.payer_id, 'VC', record.sequence_no || 1, periodNorm);
 
-      if (existing) {
-        if (EDITABLE_STATUSES.includes(existing.posting_status as PostingStatus)) {
-          c3Data.modified_date = currentDate;
-          c3Data.modified_by = effectiveUserCode;
-          const { data, error } = await supabase
-            .from('cn_c3_reported')
-            .update(c3Data)
-            .eq('id', existing.id)
-            .select()
-            .single();
-          if (error) throw error;
-          c3Record = data;
-          await supabase.from('ip_wages').delete().eq('c3_id', existing.id);
-        } else if (existing.posting_status === 'VAC') {
-          const nextSeq = await getNextScheduleNumber(record.payer_id, 'VC', periodNorm);
-          return {
-            success: false,
-            error: `A verified C3 for this payer and period already exists (Schedule ${record.sequence_no}). Would you like to create Schedule ${nextSeq}?`,
-            data: { sequence_no: nextSeq } as any
-          };
-        } else {
-          return {
-            success: false,
-            error: `A C3 for this payer/period/schedule already exists with status ${existing.posting_status} and cannot be overwritten.`
-          };
-        }
+      if (resolution.action === 'update' && resolution.existingId) {
+        c3Data.modified_date = currentDate;
+        c3Data.modified_by = effectiveUserCode;
+        const { data, error } = await supabase
+          .from('cn_c3_reported')
+          .update(c3Data)
+          .eq('id', resolution.existingId)
+          .select()
+          .single();
+        if (error) throw error;
+        c3Record = data;
+        await supabase.from('ip_wages').delete().eq('c3_id', resolution.existingId);
+      } else if (resolution.action === 'prompt_next_schedule') {
+        return {
+          success: false,
+          error: `A verified C3 for this payer and period already exists (Schedule ${resolution.currentMaxSeq}). Would you like to create Schedule ${resolution.nextSeq}?`,
+          data: { sequence_no: resolution.nextSeq, existingStatus: 'VAC', promptNextSchedule: true } as any
+        };
+      } else if (resolution.action === 'blocked') {
+        return { success: false, error: resolution.blockReason || 'Cannot overwrite existing record.' };
       } else {
         c3Data.sequence_no = record.sequence_no || 1;
         c3Data.entered_by = effectiveUserCode;
