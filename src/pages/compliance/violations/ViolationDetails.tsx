@@ -166,6 +166,21 @@ export default function ViolationDetails() {
     enabled: !!id,
   });
 
+  // Risk profile for employer
+  const { data: riskProfile } = useQuery({
+    queryKey: ['ce_risk_profile_employer', violationData?.employer_id],
+    queryFn: async () => {
+      if (!violationData?.employer_id) return null;
+      const { data } = await supabase
+        .from('ce_risk_profiles')
+        .select('id, risk_band, total_score')
+        .eq('employer_id', violationData.employer_id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!violationData?.employer_id,
+  });
+
   // ============================================
   // LIFECYCLE TRANSITION HANDLERS
   // ============================================
