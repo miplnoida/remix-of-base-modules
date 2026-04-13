@@ -14417,7 +14417,9 @@ export type Database = {
           inspection_id: string | null
           interest_amount: number | null
           is_deleted: boolean | null
+          is_merged: boolean
           is_unlinked: boolean | null
+          merged_into_id: string | null
           penalty_amount: number | null
           period_from: string | null
           period_to: string | null
@@ -14429,6 +14431,7 @@ export type Database = {
           severity: string | null
           source_rule_id: string | null
           source_type: string | null
+          split_from_id: string | null
           status: string | null
           summary: string
           territory: string | null
@@ -14466,7 +14469,9 @@ export type Database = {
           inspection_id?: string | null
           interest_amount?: number | null
           is_deleted?: boolean | null
+          is_merged?: boolean
           is_unlinked?: boolean | null
+          merged_into_id?: string | null
           penalty_amount?: number | null
           period_from?: string | null
           period_to?: string | null
@@ -14478,6 +14483,7 @@ export type Database = {
           severity?: string | null
           source_rule_id?: string | null
           source_type?: string | null
+          split_from_id?: string | null
           status?: string | null
           summary: string
           territory?: string | null
@@ -14515,7 +14521,9 @@ export type Database = {
           inspection_id?: string | null
           interest_amount?: number | null
           is_deleted?: boolean | null
+          is_merged?: boolean
           is_unlinked?: boolean | null
+          merged_into_id?: string | null
           penalty_amount?: number | null
           period_from?: string | null
           period_to?: string | null
@@ -14527,6 +14535,7 @@ export type Database = {
           severity?: string | null
           source_rule_id?: string | null
           source_type?: string | null
+          split_from_id?: string | null
           status?: string | null
           summary?: string
           territory?: string | null
@@ -14543,6 +14552,20 @@ export type Database = {
             columns: ["assigned_queue_id"]
             isOneToOne: false
             referencedRelation: "ce_assignment_queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violations_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violations_split_from_id_fkey"
+            columns: ["split_from_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
             referencedColumns: ["id"]
           },
           {
