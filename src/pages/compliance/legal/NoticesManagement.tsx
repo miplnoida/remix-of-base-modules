@@ -6,12 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Bell, Send, FileText, Clock, Search, Filter, Plus, Eye, Download, Loader2, Mail } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Bell, Send, FileText, Clock, Search, Filter, Plus, Eye, Download, Loader2, Mail, CheckCircle, XCircle, MessageSquare, Truck, ChevronDown } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchNotices } from "@/services/complianceDataService";
 import { fetchNoticeTemplates, NoticeTemplateRow } from "@/services/noticeTemplateService";
+import { sendNotice, markDelivered, recordAcknowledgment, recordResponse, cancelNotice, fetchDeliveryLog } from "@/services/noticeService";
 import { supabase } from "@/integrations/supabase/client";
 
 const NOTICE_TYPE_COLORS: Record<string, string> = {
@@ -24,9 +26,11 @@ const NOTICE_TYPE_COLORS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   DELIVERED: "bg-green-500/15 text-green-700 border-green-300",
-  SENT: "bg-green-500/15 text-green-700 border-green-300",
+  SENT: "bg-blue-500/15 text-blue-700 border-blue-300",
+  ACKNOWLEDGED: "bg-emerald-500/15 text-emerald-700 border-emerald-300",
   PENDING: "bg-yellow-500/15 text-yellow-700 border-yellow-300",
   DRAFT: "bg-muted text-muted-foreground border-border",
+  CANCELLED: "bg-destructive/10 text-destructive border-destructive/30",
 };
 
 function formatDate(val: string | null) {
@@ -41,21 +45,19 @@ function resolveTemplate(body: string, vars: Record<string, string>): string {
 export default function NoticesManagement() {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState<any>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [responseDialogOpen, setResponseDialogOpen] = useState(false);
+  const [responseNotes, setResponseNotes] = useState("");
+  const [responseDate, setResponseDate] = useState("");
+  const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({});
+  const userCode = "system";
 
-  // Create notice form state
   const [newNotice, setNewNotice] = useState({
-    template_id: "",
-    employer_id: "",
-    employer_name: "",
-    case_id: "",
-    notice_type: "",
-    delivery_method: "EMAIL",
-    due_response_date: "",
-    subject: "",
-    body: "",
+    template_id: "", employer_id: "", employer_name: "", case_id: "",
+    notice_type: "", delivery_method: "EMAIL", due_response_date: "", subject: "", body: "",
   });
 
   const { data: notices = [], isLoading } = useQuery({
@@ -71,14 +73,75 @@ export default function NoticesManagement() {
     },
   });
 
+  // Fetch delivery logs for visible notices
+  const { data: deliveryLogs = {} } = useQuery({
+    queryKey: ["ce_delivery_logs_all", notices.map((n: any) => n.id).join(",")],
+    queryFn: async () => {
+      const logMap: Record<string, any[]> = {};
+      for (const n of notices) {
+        logMap[n.id] = await fetchDeliveryLog(n.id);
+      }
+      return logMap;
+    },
+    enabled: notices.length > 0,
+  });
+
+  const filteredNotices = useMemo(() => {
+    if (statusFilter === "ALL") return notices;
+    return notices.filter((n: any) => n.status === statusFilter);
+  }, [notices, statusFilter]);
+
   const stats = useMemo(() => ({
-    pending: notices.filter((n: any) => n.status === "PENDING" || n.status === "DRAFT").length,
-    delivered: notices.filter((n: any) => n.status === "DELIVERED" || n.status === "SENT").length,
-    finalWarning: notices.filter((n: any) => n.notice_type === "FINAL_WARNING" || n.notice_type === "FINAL_DEMAND").length,
-    legal: notices.filter((n: any) => n.notice_type === "LEGAL_WARNING").length,
+    draft: notices.filter((n: any) => n.status === "DRAFT").length,
+    sent: notices.filter((n: any) => n.status === "SENT").length,
+    delivered: notices.filter((n: any) => n.status === "DELIVERED" || n.status === "ACKNOWLEDGED").length,
+    responded: notices.filter((n: any) => n.response_received).length,
   }), [notices]);
 
-  // Generate next notice number
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["ce_notices"] });
+    queryClient.invalidateQueries({ queryKey: ["ce_delivery_logs_all"] });
+  };
+
+  // ── Lifecycle Mutations ──
+  const sendMut = useMutation({
+    mutationFn: (id: string) => sendNotice(id, userCode),
+    onSuccess: () => { invalidate(); toast.success("Notice sent"); },
+    onError: (e: any) => toast.error("Failed", { description: e.message }),
+  });
+
+  const deliverMut = useMutation({
+    mutationFn: (id: string) => markDelivered(id, userCode),
+    onSuccess: () => { invalidate(); toast.success("Marked as delivered"); },
+    onError: (e: any) => toast.error("Failed", { description: e.message }),
+  });
+
+  const ackMut = useMutation({
+    mutationFn: (id: string) => recordAcknowledgment(id, userCode),
+    onSuccess: () => { invalidate(); toast.success("Acknowledgment recorded"); },
+    onError: (e: any) => toast.error("Failed", { description: e.message }),
+  });
+
+  const cancelMut = useMutation({
+    mutationFn: (id: string) => cancelNotice(id, "Cancelled from management", userCode),
+    onSuccess: () => { invalidate(); toast.success("Notice cancelled"); },
+    onError: (e: any) => toast.error("Failed", { description: e.message }),
+  });
+
+  const responseMut = useMutation({
+    mutationFn: () => recordResponse(selectedNotice.id, responseNotes, responseDate, userCode),
+    onSuccess: () => {
+      invalidate();
+      toast.success("Response recorded");
+      setResponseDialogOpen(false);
+      setResponseNotes("");
+      setResponseDate("");
+    },
+    onError: (e: any) => toast.error("Failed", { description: e.message }),
+  });
+
+  const isMutating = sendMut.isPending || deliverMut.isPending || ackMut.isPending || cancelMut.isPending;
+
   const generateNoticeNumber = () => {
     const year = new Date().getFullYear();
     const existing = notices.filter((n: any) => n.notice_number?.startsWith(`CN-${year}`));
@@ -89,39 +152,23 @@ export default function NoticesManagement() {
   const handleTemplateSelect = (templateId: string) => {
     const tpl = templates.find(t => t.id === templateId);
     if (!tpl) return;
-    setNewNotice(prev => ({
-      ...prev,
-      template_id: templateId,
-      notice_type: tpl.category,
-      subject: tpl.subject || "",
-      body: tpl.body,
-    }));
+    setNewNotice(prev => ({ ...prev, template_id: templateId, notice_type: tpl.category, subject: tpl.subject || "", body: tpl.body }));
   };
 
   const createNoticeMut = useMutation({
     mutationFn: async () => {
       const noticeNumber = generateNoticeNumber();
       const { error } = await supabase.from("ce_notices").insert({
-        notice_number: noticeNumber,
-        employer_id: newNotice.employer_id,
-        employer_name: newNotice.employer_name,
-        case_id: newNotice.case_id || null,
-        notice_type: newNotice.notice_type,
-        status: "DRAFT",
-        subject: newNotice.subject,
-        body: resolveTemplate(newNotice.body, {
-          employer_name: newNotice.employer_name,
-          current_date: new Date().toLocaleDateString("en-GB"),
-        }),
-        template_id: newNotice.template_id || null,
-        delivery_method: newNotice.delivery_method,
-        due_response_date: newNotice.due_response_date || null,
-        created_by: "system",
+        notice_number: noticeNumber, employer_id: newNotice.employer_id, employer_name: newNotice.employer_name,
+        case_id: newNotice.case_id || null, notice_type: newNotice.notice_type, status: "DRAFT",
+        subject: newNotice.subject, body: resolveTemplate(newNotice.body, { employer_name: newNotice.employer_name, current_date: new Date().toLocaleDateString("en-GB") }),
+        template_id: newNotice.template_id || null, delivery_method: newNotice.delivery_method,
+        due_response_date: newNotice.due_response_date || null, created_by: userCode,
       } as any);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["ce_notices"] });
+      invalidate();
       toast.success("Notice created as Draft");
       setCreateDialogOpen(false);
       setNewNotice({ template_id: "", employer_id: "", employer_name: "", case_id: "", notice_type: "", delivery_method: "EMAIL", due_response_date: "", subject: "", body: "" });
@@ -159,55 +206,128 @@ export default function NoticesManagement() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card><CardContent className="pt-6"><div className="text-2xl font-bold text-foreground">{stats.pending}</div><p className="text-sm text-muted-foreground">Pending / Draft</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-2xl font-bold text-foreground">{stats.delivered}</div><p className="text-sm text-muted-foreground">Delivered</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-2xl font-bold text-foreground">{stats.finalWarning}</div><p className="text-sm text-muted-foreground">Final Warnings</p></CardContent></Card>
-        <Card><CardContent className="pt-6"><div className="text-2xl font-bold text-foreground">{stats.legal}</div><p className="text-sm text-muted-foreground">Legal Escalations</p></CardContent></Card>
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setStatusFilter("DRAFT")}>
+          <CardContent className="pt-6"><div className="text-2xl font-bold text-foreground">{stats.draft}</div><p className="text-sm text-muted-foreground">Drafts</p></CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setStatusFilter("SENT")}>
+          <CardContent className="pt-6"><div className="text-2xl font-bold text-foreground">{stats.sent}</div><p className="text-sm text-muted-foreground">Sent</p></CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setStatusFilter("DELIVERED")}>
+          <CardContent className="pt-6"><div className="text-2xl font-bold text-foreground">{stats.delivered}</div><p className="text-sm text-muted-foreground">Delivered / Acknowledged</p></CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setStatusFilter("ALL")}>
+          <CardContent className="pt-6"><div className="text-2xl font-bold text-foreground">{stats.responded}</div><p className="text-sm text-muted-foreground">Responses Received</p></CardContent>
+        </Card>
       </div>
 
       {/* Notices List */}
       <Card>
-        <CardHeader><CardTitle>Recent Notices</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Notices {statusFilter !== "ALL" && <Badge variant="outline" className="ml-2">{statusFilter}</Badge>}</CardTitle></CardHeader>
         <CardContent>
           <div className="flex gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search by employer or notice number..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
-              </div>
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search by employer or notice number..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
             </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Statuses</SelectItem>
+                <SelectItem value="DRAFT">Draft</SelectItem>
+                <SelectItem value="SENT">Sent</SelectItem>
+                <SelectItem value="DELIVERED">Delivered</SelectItem>
+                <SelectItem value="ACKNOWLEDGED">Acknowledged</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          {notices.length === 0 ? (
+          {filteredNotices.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p className="font-medium">No notices found</p>
-              <p className="text-sm mt-1">Create a new notice to get started</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {notices.map((notice: any) => (
+              {filteredNotices.map((notice: any) => (
                 <div key={notice.id} className="border border-border rounded-lg p-4 hover:border-primary/50 transition-colors">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-semibold text-foreground">{notice.employer_name}</h3>
                         <Badge variant="outline" className="text-xs font-mono">{notice.notice_number}</Badge>
+                        {notice.response_received && (
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-300 text-[10px]">Response</Badge>
+                        )}
                       </div>
-                      {notice.case_id && <p className="text-sm text-muted-foreground">Case: {notice.case_id}</p>}
                     </div>
-                    <Badge variant="outline" className={NOTICE_TYPE_COLORS[notice.notice_type] || ""}>{(notice.notice_type || "").replace(/_/g, " ")}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={NOTICE_TYPE_COLORS[notice.notice_type] || ""}>{(notice.notice_type || "").replace(/_/g, " ")}</Badge>
+                      <Badge variant="outline" className={STATUS_COLORS[notice.status] || ""}>{notice.status}</Badge>
+                    </div>
                   </div>
+
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 p-3 bg-muted/50 rounded-lg">
-                    <div><p className="text-xs text-muted-foreground mb-1">Notice Type</p><p className="text-sm font-medium text-foreground">{(notice.notice_type || "").replace(/_/g, " ")}</p></div>
-                    <div><p className="text-xs text-muted-foreground mb-1">Sent Date</p><p className="text-sm font-medium text-foreground">{formatDate(notice.sent_at)}</p></div>
                     <div><p className="text-xs text-muted-foreground mb-1">Delivery</p><p className="text-sm font-medium text-foreground">{(notice.delivery_method || "-").replace(/_/g, " ")}</p></div>
-                    <div><p className="text-xs text-muted-foreground mb-1">Status</p><Badge variant="outline" className={STATUS_COLORS[notice.status] || ""}>{notice.status || "-"}</Badge></div>
+                    <div><p className="text-xs text-muted-foreground mb-1">Sent</p><p className="text-sm font-medium text-foreground">{formatDate(notice.sent_at)}</p></div>
+                    <div><p className="text-xs text-muted-foreground mb-1">Delivered</p><p className="text-sm font-medium text-foreground">{formatDate(notice.delivered_at)}</p></div>
+                    <div><p className="text-xs text-muted-foreground mb-1">Response Due</p><p className="text-sm font-medium text-foreground">{formatDate(notice.due_response_date)}</p></div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => { setSelectedNotice(notice); setViewDialogOpen(true); }}><Eye className="h-4 w-4 mr-2" />View</Button>
-                    <Button size="sm" variant="outline" onClick={() => toast.info("PDF download coming soon")}><Download className="h-4 w-4 mr-2" />PDF</Button>
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2 flex-wrap">
+                    <Button size="sm" variant="outline" onClick={() => { setSelectedNotice(notice); setViewDialogOpen(true); }}><Eye className="h-3.5 w-3.5 mr-1" />View</Button>
+
+                    {notice.status === "DRAFT" && (
+                      <Button size="sm" variant="outline" onClick={() => sendMut.mutate(notice.id)} disabled={isMutating}>
+                        <Send className="h-3.5 w-3.5 mr-1" />Send
+                      </Button>
+                    )}
+                    {notice.status === "SENT" && (
+                      <Button size="sm" variant="outline" onClick={() => deliverMut.mutate(notice.id)} disabled={isMutating}>
+                        <Truck className="h-3.5 w-3.5 mr-1" />Mark Delivered
+                      </Button>
+                    )}
+                    {notice.status === "DELIVERED" && (
+                      <Button size="sm" variant="outline" onClick={() => ackMut.mutate(notice.id)} disabled={isMutating}>
+                        <CheckCircle className="h-3.5 w-3.5 mr-1" />Acknowledge
+                      </Button>
+                    )}
+                    {["DELIVERED", "ACKNOWLEDGED"].includes(notice.status) && !notice.response_received && (
+                      <Button size="sm" variant="outline" onClick={() => { setSelectedNotice(notice); setResponseDialogOpen(true); }}>
+                        <MessageSquare className="h-3.5 w-3.5 mr-1" />Record Response
+                      </Button>
+                    )}
+                    {!["CANCELLED", "ACKNOWLEDGED"].includes(notice.status) && (
+                      <Button size="sm" variant="destructive" onClick={() => cancelMut.mutate(notice.id)} disabled={isMutating}>
+                        <XCircle className="h-3.5 w-3.5 mr-1" />Cancel
+                      </Button>
+                    )}
                   </div>
+
+                  {/* Delivery Log (collapsible) */}
+                  {(deliveryLogs[notice.id]?.length ?? 0) > 0 && (
+                    <Collapsible open={expandedLogs[notice.id]} onOpenChange={(open) => setExpandedLogs(p => ({ ...p, [notice.id]: open }))}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="text-xs mt-2 p-0 h-auto text-muted-foreground">
+                          <ChevronDown className={`h-3 w-3 mr-1 transition-transform ${expandedLogs[notice.id] ? 'rotate-180' : ''}`} />
+                          Delivery Log ({deliveryLogs[notice.id]?.length})
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2">
+                        <div className="text-xs space-y-1 p-2 bg-muted/30 rounded">
+                          {deliveryLogs[notice.id]?.map((log: any) => (
+                            <div key={log.id} className="flex items-center gap-3">
+                              <Badge variant="outline" className="text-[10px]">{log.status}</Badge>
+                              <span>{log.channel}</span>
+                              <span className="text-muted-foreground">{formatDate(log.created_at)}</span>
+                              <span className="text-muted-foreground">{log.created_by || ''}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
                 </div>
               ))}
             </div>
@@ -217,7 +337,7 @@ export default function NoticesManagement() {
 
       {/* View Notice Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Notice Details</DialogTitle>
             <DialogDescription>{selectedNotice?.notice_number} — {(selectedNotice?.notice_type || "").replace(/_/g, " ")}</DialogDescription>
@@ -226,16 +346,13 @@ export default function NoticesManagement() {
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4">
                 <div><Label className="text-muted-foreground text-xs">Employer</Label><p className="font-medium text-foreground">{selectedNotice.employer_name}</p></div>
-                <div><Label className="text-muted-foreground text-xs">Notice Number</Label><p className="font-medium text-foreground">{selectedNotice.notice_number}</p></div>
-                <div><Label className="text-muted-foreground text-xs">Notice Type</Label><p className="font-medium text-foreground">{(selectedNotice.notice_type || "").replace(/_/g, " ")}</p></div>
-                <div><Label className="text-muted-foreground text-xs">Sent Date</Label><p className="font-medium text-foreground">{formatDate(selectedNotice.sent_at)}</p></div>
+                <div><Label className="text-muted-foreground text-xs">Status</Label><div><Badge variant="outline" className={STATUS_COLORS[selectedNotice.status] || ""}>{selectedNotice.status}</Badge></div></div>
                 <div><Label className="text-muted-foreground text-xs">Delivery Method</Label><p className="font-medium text-foreground">{(selectedNotice.delivery_method || "-").replace(/_/g, " ")}</p></div>
-                <div><Label className="text-muted-foreground text-xs">Status</Label><Badge variant="outline" className={STATUS_COLORS[selectedNotice.status] || ""}>{selectedNotice.status || "-"}</Badge></div>
+                <div><Label className="text-muted-foreground text-xs">Sent</Label><p className="font-medium text-foreground">{formatDate(selectedNotice.sent_at)}</p></div>
+                <div><Label className="text-muted-foreground text-xs">Delivered</Label><p className="font-medium text-foreground">{formatDate(selectedNotice.delivered_at)}</p></div>
+                <div><Label className="text-muted-foreground text-xs">Acknowledged</Label><p className="font-medium text-foreground">{formatDate(selectedNotice.acknowledged_at)}</p></div>
                 {selectedNotice.due_response_date && (
                   <div><Label className="text-muted-foreground text-xs">Response Due</Label><p className="font-medium text-foreground">{formatDate(selectedNotice.due_response_date)}</p></div>
-                )}
-                {selectedNotice.response_received && (
-                  <div><Label className="text-muted-foreground text-xs">Response Date</Label><p className="font-medium text-foreground">{formatDate(selectedNotice.response_date)}</p></div>
                 )}
               </div>
               {selectedNotice.subject && (
@@ -250,16 +367,41 @@ export default function NoticesManagement() {
                   <Card className="mt-1"><CardContent className="pt-3 pb-3"><pre className="text-sm whitespace-pre-wrap text-foreground">{selectedNotice.body}</pre></CardContent></Card>
                 </div>
               )}
-              {selectedNotice.response_notes && (
-                <div>
-                  <Label className="text-muted-foreground text-xs">Response Notes</Label>
-                  <p className="text-sm text-foreground mt-1">{selectedNotice.response_notes}</p>
+              {selectedNotice.response_received && (
+                <div className="p-3 bg-emerald-500/5 border border-emerald-300 rounded-lg">
+                  <Label className="text-xs font-semibold" style={{ color: 'hsl(var(--primary))' }}>Employer Response</Label>
+                  <p className="text-sm mt-1 text-foreground">{selectedNotice.response_notes || 'No notes'}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Received: {formatDate(selectedNotice.response_date)}</p>
                 </div>
               )}
             </div>
           )}
+          <DialogFooter><Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Record Response Dialog */}
+      <Dialog open={responseDialogOpen} onOpenChange={setResponseDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record Employer Response</DialogTitle>
+            <DialogDescription>Notice: {selectedNotice?.notice_number}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Response Date <span className="text-destructive">*</span></Label>
+              <Input type="date" value={responseDate} onChange={e => setResponseDate(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Response Notes <span className="text-destructive">*</span></Label>
+              <Textarea value={responseNotes} onChange={e => setResponseNotes(e.target.value)} rows={4} placeholder="Summary of employer's response..." />
+            </div>
+          </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>Close</Button>
+            <Button variant="outline" onClick={() => setResponseDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => responseMut.mutate()} disabled={!responseDate || !responseNotes || responseMut.isPending}>
+              {responseMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save Response
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -272,9 +414,8 @@ export default function NoticesManagement() {
             <DialogDescription>Compose a new compliance notice using a template or from scratch</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            {/* Template Selection */}
             <div className="space-y-1.5">
-              <Label>Template <span className="text-xs text-muted-foreground">(optional — auto-fills subject & body)</span></Label>
+              <Label>Template <span className="text-xs text-muted-foreground">(optional)</span></Label>
               <Select value={newNotice.template_id || "__none__"} onValueChange={v => handleTemplateSelect(v === "__none__" ? "" : v)}>
                 <SelectTrigger><SelectValue placeholder="Select a template..." /></SelectTrigger>
                 <SelectContent>
@@ -288,7 +429,6 @@ export default function NoticesManagement() {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Employer Name <span className="text-destructive">*</span></Label>
@@ -299,7 +439,6 @@ export default function NoticesManagement() {
                 <Input value={newNotice.employer_id} onChange={e => setNewNotice(p => ({ ...p, employer_id: e.target.value }))} placeholder="e.g. 100001" />
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Notice Type <span className="text-destructive">*</span></Label>
@@ -326,7 +465,6 @@ export default function NoticesManagement() {
                 </Select>
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Case ID</Label>
@@ -337,7 +475,6 @@ export default function NoticesManagement() {
                 <Input type="date" value={newNotice.due_response_date} onChange={e => setNewNotice(p => ({ ...p, due_response_date: e.target.value }))} />
               </div>
             </div>
-
             <div className="space-y-1.5">
               <Label>Subject</Label>
               <Input value={newNotice.subject} onChange={e => setNewNotice(p => ({ ...p, subject: e.target.value }))} placeholder="Notice subject line" />
@@ -351,8 +488,7 @@ export default function NoticesManagement() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleCreateSave} disabled={createNoticeMut.isPending}>
-              {createNoticeMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Create Notice
+              {createNoticeMut.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Create Notice
             </Button>
           </DialogFooter>
         </DialogContent>
