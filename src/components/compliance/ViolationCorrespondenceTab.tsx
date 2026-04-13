@@ -24,6 +24,7 @@ export function ViolationCorrespondenceTab({ violationId, employerId, employerNa
   const [showLogCallDialog, setShowLogCallDialog] = useState(false);
   const [showSendLetterDialog, setShowSendLetterDialog] = useState(false);
   const [callForm, setCallForm] = useState({ direction: 'Outgoing', contactPerson: '', summary: '' });
+  const [letterForm, setLetterForm] = useState({ template: '', deliveryMethod: 'letter', notes: '' });
 
   const { data: correspondence = [], isLoading } = useQuery({
     queryKey: ['ce_violation_correspondence', violationId],
@@ -59,6 +60,29 @@ export function ViolationCorrespondenceTab({ violationId, employerId, employerNa
       setCallForm({ direction: 'Outgoing', contactPerson: '', summary: '' });
     },
     onError: () => toast({ title: 'Error', description: 'Failed to log call', variant: 'destructive' }),
+  });
+
+  const sendLetterMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('ce_violation_correspondence').insert({
+        violation_id: violationId,
+        correspondence_date: new Date().toISOString().split('T')[0],
+        channel: letterForm.deliveryMethod === 'email' ? 'Email' : letterForm.deliveryMethod === 'both' ? 'Letter, Email' : 'Letter',
+        direction: 'Outgoing',
+        subject: letterForm.template || 'Custom Letter',
+        status: 'Queued',
+        summary: letterForm.notes || `Template: ${letterForm.template}`,
+        contact_person: employerName || '',
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ce_violation_correspondence', violationId] });
+      toast({ title: 'Letter Queued', description: 'Correspondence record created and queued for delivery' });
+      setShowSendLetterDialog(false);
+      setLetterForm({ template: '', deliveryMethod: 'letter', notes: '' });
+    },
+    onError: () => toast({ title: 'Error', description: 'Failed to queue letter', variant: 'destructive' }),
   });
 
   return (
@@ -147,20 +171,45 @@ export function ViolationCorrespondenceTab({ violationId, employerId, employerNa
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Template</Label>
-              <Select><SelectTrigger><SelectValue placeholder="Select letter template" /></SelectTrigger>
-                <SelectContent><SelectItem value="registration-notice">Registration Notice</SelectItem><SelectItem value="payment-reminder">Payment Reminder</SelectItem><SelectItem value="compliance-warning">Compliance Warning</SelectItem><SelectItem value="custom">Custom Letter</SelectItem></SelectContent>
+              <Select value={letterForm.template} onValueChange={v => setLetterForm(f => ({ ...f, template: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select letter template" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Registration Notice">Registration Notice</SelectItem>
+                  <SelectItem value="Payment Reminder">Payment Reminder</SelectItem>
+                  <SelectItem value="Compliance Warning">Compliance Warning</SelectItem>
+                  <SelectItem value="Custom Letter">Custom Letter</SelectItem>
+                </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label>Delivery Method</Label>
-              <Select defaultValue="letter"><SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="letter">Physical Letter</SelectItem><SelectItem value="email">Email</SelectItem><SelectItem value="both">Both</SelectItem></SelectContent>
+              <Select value={letterForm.deliveryMethod} onValueChange={v => setLetterForm(f => ({ ...f, deliveryMethod: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="letter">Physical Letter</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="both">Both</SelectItem>
+                </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Additional Notes</Label><Textarea placeholder="Any special instructions or notes..." rows={3} /></div>
+            <div className="space-y-2">
+              <Label>Additional Notes</Label>
+              <Textarea
+                value={letterForm.notes}
+                onChange={e => setLetterForm(f => ({ ...f, notes: e.target.value }))}
+                placeholder="Any special instructions or notes..."
+                rows={3}
+              />
+            </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowSendLetterDialog(false)}>Cancel</Button>
-              <Button onClick={() => { toast({ title: 'Letter Queued', description: 'Letter has been queued for sending' }); setShowSendLetterDialog(false); }}>Queue for Sending</Button>
+              <Button
+                onClick={() => sendLetterMutation.mutate()}
+                disabled={sendLetterMutation.isPending || !letterForm.template}
+              >
+                {sendLetterMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Queue for Sending
+              </Button>
             </div>
           </div>
         </DialogContent>
