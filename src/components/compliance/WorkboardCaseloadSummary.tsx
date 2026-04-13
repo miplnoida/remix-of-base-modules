@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Shield } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useUserCode } from '@/hooks/useUserCode';
 
 interface WorkboardCaseloadSummaryProps {
   inspectorId?: string;
@@ -31,8 +32,12 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export function WorkboardCaseloadSummary({ inspectorId }: WorkboardCaseloadSummaryProps) {
+  const { userId } = useUserCode();
+  // Use explicit prop if provided, otherwise scope to logged-in user
+  const effectiveInspectorId = inspectorId || userId || undefined;
+
   const { data, isLoading } = useQuery({
-    queryKey: ['workboard_caseload', inspectorId],
+    queryKey: ['workboard_caseload', effectiveInspectorId],
     queryFn: async (): Promise<CaseloadData> => {
       // Fetch active violations (assigned or all)
       let query = supabase
@@ -41,8 +46,8 @@ export function WorkboardCaseloadSummary({ inspectorId }: WorkboardCaseloadSumma
         .eq('is_deleted', false)
         .not('status', 'in', '("CLOSED","CANCELLED")');
 
-      if (inspectorId) {
-        // Filter by assigned inspector — for now we skip since inspector filtering is pending
+      if (effectiveInspectorId) {
+        query = query.eq('assigned_to_user_id', effectiveInspectorId);
       }
 
       const { data: rows, error } = await query;
@@ -56,16 +61,23 @@ export function WorkboardCaseloadSummary({ inspectorId }: WorkboardCaseloadSumma
       });
 
       // Also count follow-up overdue
-      const { count: overdueFollowUps } = await supabase
+      let overdueQuery = supabase
         .from('ce_follow_up_actions')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'OVERDUE');
+
+      if (effectiveInspectorId) {
+        overdueQuery = overdueQuery.eq('assigned_to_user_id', effectiveInspectorId);
+      }
+
+      const { count: overdueFollowUps } = await overdueQuery;
 
       byStatus['OVERDUE (Follow-Ups)'] = overdueFollowUps || 0;
 
       return { byStatus, byPriority, total: rows?.length || 0 };
     },
     staleTime: 30000,
+    enabled: !!effectiveInspectorId || !inspectorId, // allow global mode if no prop
   });
 
   if (isLoading) {
