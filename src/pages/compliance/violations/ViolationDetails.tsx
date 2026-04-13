@@ -335,6 +335,16 @@ export default function ViolationDetails() {
             ))}
             {/* Navigation buttons */}
             <div className="ml-auto flex gap-2">
+              {linkedCase && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/compliance/cases/${linkedCase.id}`)}
+                >
+                  <Briefcase className="h-4 w-4 mr-1" />
+                  Case: {linkedCase.case_number}
+                </Button>
+              )}
               {v.employer_id && (
                 <Button
                   variant="outline"
