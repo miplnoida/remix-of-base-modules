@@ -20,11 +20,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Eye, Plus, Search, Filter, Loader2 } from 'lucide-react';
+import { Eye, Plus, Search, Filter, Loader2, Merge, Split } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchViolations } from '@/services/complianceDataService';
 import { BulkViolationActions } from '@/components/compliance/BulkViolationActions';
+import { ViolationMergeDialog } from '@/components/compliance/ViolationMergeDialog';
+import { ViolationSplitDialog } from '@/components/compliance/ViolationSplitDialog';
+import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
+import { supabase } from '@/integrations/supabase/client';
 
 const VIOLATION_STATUSES = ['OPEN', 'UNDER_REVIEW', 'IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'CLOSED', 'CANCELLED'];
 const VIOLATION_PRIORITIES = ['Critical', 'High', 'Medium', 'Low'];

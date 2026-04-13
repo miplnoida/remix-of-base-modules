@@ -6,6 +6,7 @@ import InspectorDashboard from './dashboards/InspectorDashboard';
 import LegalDashboard from './dashboards/LegalDashboard';
 import ComplianceMonitoring from './dashboards/ComplianceMonitoring';
 import ComplianceDashboard from './dashboards/ComplianceDashboard';
+import ComplianceAnalytics from './dashboards/ComplianceAnalytics';
 
 // Violations
 import ViolationsManagement from './violations/ViolationsManagement';
@@ -115,6 +116,7 @@ const ComplianceRoutes = () => {
       <Route path="/dashboard/legal" element={<LegalDashboard />} />
       <Route path="/dashboard" element={<ComplianceDashboard />} />
       <Route path="/monitoring" element={<ComplianceMonitoring />} />
+      <Route path="/dashboard/analytics" element={<ComplianceAnalytics />} />
 
       {/* Violations */}
       <Route path="/violations" element={<ViolationsManagement />} />
