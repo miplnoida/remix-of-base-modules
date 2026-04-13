@@ -10088,6 +10088,289 @@ export type Database = {
           },
         ]
       }
+      ce_case_actions: {
+        Row: {
+          action_type: string
+          attachments: Json | null
+          case_id: string
+          contact_name: string | null
+          contact_role: string | null
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          follow_up_action_id: string | null
+          follow_up_required: boolean | null
+          id: string
+          outcome: string | null
+          performed_by: string
+          performed_by_name: string | null
+          performed_date: string | null
+          scheduled_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          attachments?: Json | null
+          case_id: string
+          contact_name?: string | null
+          contact_role?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          follow_up_action_id?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          outcome?: string | null
+          performed_by: string
+          performed_by_name?: string | null
+          performed_date?: string | null
+          scheduled_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          attachments?: Json | null
+          case_id?: string
+          contact_name?: string | null
+          contact_role?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          follow_up_action_id?: string | null
+          follow_up_required?: boolean | null
+          id?: string
+          outcome?: string | null
+          performed_by?: string
+          performed_by_name?: string | null
+          performed_date?: string | null
+          scheduled_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_actions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_case_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          assigned_by_name: string | null
+          assignment_method: string | null
+          case_id: string
+          effective_from: string | null
+          effective_to: string | null
+          from_officer_id: string | null
+          from_officer_name: string | null
+          id: string
+          is_active: boolean | null
+          reason: string | null
+          to_officer_id: string
+          to_officer_name: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          assigned_by_name?: string | null
+          assignment_method?: string | null
+          case_id: string
+          effective_from?: string | null
+          effective_to?: string | null
+          from_officer_id?: string | null
+          from_officer_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          reason?: string | null
+          to_officer_id: string
+          to_officer_name?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          assigned_by_name?: string | null
+          assignment_method?: string | null
+          case_id?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          from_officer_id?: string | null
+          from_officer_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          reason?: string | null
+          to_officer_id?: string
+          to_officer_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_assignments_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_case_correspondence: {
+        Row: {
+          attachments: Json | null
+          body: string | null
+          case_id: string
+          channel: string
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          created_at: string
+          direction: string
+          id: string
+          received_at: string | null
+          recorded_by: string
+          recorded_by_name: string | null
+          sent_at: string | null
+          subject: string | null
+          updated_at: string
+          violation_id: string | null
+        }
+        Insert: {
+          attachments?: Json | null
+          body?: string | null
+          case_id: string
+          channel: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          direction: string
+          id?: string
+          received_at?: string | null
+          recorded_by: string
+          recorded_by_name?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          updated_at?: string
+          violation_id?: string | null
+        }
+        Update: {
+          attachments?: Json | null
+          body?: string | null
+          case_id?: string
+          channel?: string
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          direction?: string
+          id?: string
+          received_at?: string | null
+          recorded_by?: string
+          recorded_by_name?: string | null
+          sent_at?: string | null
+          subject?: string | null
+          updated_at?: string
+          violation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_correspondence_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_case_correspondence_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_case_documents: {
+        Row: {
+          case_id: string
+          created_at: string
+          description: string | null
+          document_type: string
+          file_name: string | null
+          file_path: string | null
+          file_size_bytes: number | null
+          id: string
+          is_confidential: boolean | null
+          mime_type: string | null
+          storage_bucket: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string
+          uploaded_by_name: string | null
+          verified: boolean | null
+          verified_at: string | null
+          verified_by: string | null
+          violation_id: string | null
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          description?: string | null
+          document_type: string
+          file_name?: string | null
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          is_confidential?: boolean | null
+          mime_type?: string | null
+          storage_bucket?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by: string
+          uploaded_by_name?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
+          violation_id?: string | null
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          description?: string | null
+          document_type?: string
+          file_name?: string | null
+          file_path?: string | null
+          file_size_bytes?: number | null
+          id?: string
+          is_confidential?: boolean | null
+          mime_type?: string | null
+          storage_bucket?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+          uploaded_by_name?: string | null
+          verified?: boolean | null
+          verified_at?: string | null
+          verified_by?: string | null
+          violation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_documents_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_case_documents_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_case_employer_snapshot: {
         Row: {
           case_id: string
@@ -10119,6 +10402,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ce_case_families: {
+        Row: {
+          auto_create_case: boolean
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          escalation_threshold_amount: number | null
+          escalation_threshold_days: number | null
+          id: string
+          is_active: boolean
+          name: string
+          reopen_window_days: number | null
+          severity_weights: Json | null
+          sort_order: number | null
+          updated_at: string
+          updated_by: string | null
+          violation_categories: string[]
+        }
+        Insert: {
+          auto_create_case?: boolean
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          escalation_threshold_amount?: number | null
+          escalation_threshold_days?: number | null
+          id?: string
+          is_active?: boolean
+          name: string
+          reopen_window_days?: number | null
+          severity_weights?: Json | null
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          violation_categories?: string[]
+        }
+        Update: {
+          auto_create_case?: boolean
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          escalation_threshold_amount?: number | null
+          escalation_threshold_days?: number | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          reopen_window_days?: number | null
+          severity_weights?: Json | null
+          sort_order?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          violation_categories?: string[]
+        }
+        Relationships: []
       }
       ce_case_history: {
         Row: {
@@ -10164,6 +10504,595 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_case_merge_history: {
+        Row: {
+          actions_moved: number | null
+          employer_id: string
+          id: string
+          merge_reason: string
+          merge_strategy: string | null
+          merged_at: string
+          merged_by: string
+          merged_by_name: string | null
+          notices_moved: number | null
+          rollback_available: boolean | null
+          rollback_expires_at: string | null
+          source_case_id: string
+          source_case_number: string
+          target_case_id: string
+          target_case_number: string
+          violations_moved: number | null
+        }
+        Insert: {
+          actions_moved?: number | null
+          employer_id: string
+          id?: string
+          merge_reason: string
+          merge_strategy?: string | null
+          merged_at?: string
+          merged_by: string
+          merged_by_name?: string | null
+          notices_moved?: number | null
+          rollback_available?: boolean | null
+          rollback_expires_at?: string | null
+          source_case_id: string
+          source_case_number: string
+          target_case_id: string
+          target_case_number: string
+          violations_moved?: number | null
+        }
+        Update: {
+          actions_moved?: number | null
+          employer_id?: string
+          id?: string
+          merge_reason?: string
+          merge_strategy?: string | null
+          merged_at?: string
+          merged_by?: string
+          merged_by_name?: string | null
+          notices_moved?: number | null
+          rollback_available?: boolean | null
+          rollback_expires_at?: string | null
+          source_case_id?: string
+          source_case_number?: string
+          target_case_id?: string
+          target_case_number?: string
+          violations_moved?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_merge_history_source_case_id_fkey"
+            columns: ["source_case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_case_merge_history_target_case_id_fkey"
+            columns: ["target_case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_case_merge_rules: {
+        Row: {
+          allow_cross_family_merge: boolean | null
+          approval_role: string | null
+          case_family_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          max_violation_count_for_auto_merge: number | null
+          require_approval: boolean | null
+          require_same_employer: boolean | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allow_cross_family_merge?: boolean | null
+          approval_role?: string | null
+          case_family_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          max_violation_count_for_auto_merge?: number | null
+          require_approval?: boolean | null
+          require_same_employer?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allow_cross_family_merge?: boolean | null
+          approval_role?: string | null
+          case_family_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          max_violation_count_for_auto_merge?: number | null
+          require_approval?: boolean | null
+          require_same_employer?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_merge_rules_case_family_id_fkey"
+            columns: ["case_family_id"]
+            isOneToOne: false
+            referencedRelation: "ce_case_families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_case_notices: {
+        Row: {
+          case_id: string
+          created_at: string
+          created_by: string
+          id: string
+          issued_date: string | null
+          notice_id: string | null
+          notice_type: string
+          purpose: string | null
+          response_date: string | null
+          response_due_date: string | null
+          response_received: boolean | null
+          response_summary: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          issued_date?: string | null
+          notice_id?: string | null
+          notice_type: string
+          purpose?: string | null
+          response_date?: string | null
+          response_due_date?: string | null
+          response_received?: boolean | null
+          response_summary?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          issued_date?: string | null
+          notice_id?: string | null
+          notice_type?: string
+          purpose?: string | null
+          response_date?: string | null
+          response_due_date?: string | null
+          response_received?: boolean | null
+          response_summary?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_notices_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_case_notices_notice_id_fkey"
+            columns: ["notice_id"]
+            isOneToOne: false
+            referencedRelation: "ce_notices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_case_recommendation_history: {
+        Row: {
+          action: string
+          from_status: string | null
+          id: string
+          notes: string | null
+          performed_at: string
+          performed_by: string
+          recommendation_id: string
+          to_status: string | null
+        }
+        Insert: {
+          action: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          performed_at?: string
+          performed_by: string
+          recommendation_id: string
+          to_status?: string | null
+        }
+        Update: {
+          action?: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          performed_at?: string
+          performed_by?: string
+          recommendation_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_recommendation_history_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_case_recommendations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_case_recommendations: {
+        Row: {
+          action_history_summary: Json | null
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          approved_by_name: string | null
+          arrangement_summary: Json | null
+          case_id: string
+          correspondence_summary: Json | null
+          created_at: string
+          created_by: string
+          employer_id: string
+          employer_name: string | null
+          employer_snapshot_id: string | null
+          id: string
+          justification: string
+          legal_case_id: string | null
+          legal_case_number: string | null
+          narrative: string | null
+          notice_summary: Json | null
+          recommendation_number: string
+          recommendation_type: string
+          recommended_action: string | null
+          relief_sought: string | null
+          review_decision: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewer_id: string | null
+          reviewer_name: string | null
+          risk_band: string | null
+          risk_score: number | null
+          risk_snapshot_id: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          supporting_facts: string | null
+          total_amount: number | null
+          total_interest: number | null
+          total_penalties: number | null
+          total_principal: number | null
+          total_violations: number | null
+          updated_at: string
+          updated_by: string | null
+          violation_summary: Json | null
+        }
+        Insert: {
+          action_history_summary?: Json | null
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_by_name?: string | null
+          arrangement_summary?: Json | null
+          case_id: string
+          correspondence_summary?: Json | null
+          created_at?: string
+          created_by: string
+          employer_id: string
+          employer_name?: string | null
+          employer_snapshot_id?: string | null
+          id?: string
+          justification: string
+          legal_case_id?: string | null
+          legal_case_number?: string | null
+          narrative?: string | null
+          notice_summary?: Json | null
+          recommendation_number: string
+          recommendation_type: string
+          recommended_action?: string | null
+          relief_sought?: string | null
+          review_decision?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_name?: string | null
+          risk_band?: string | null
+          risk_score?: number | null
+          risk_snapshot_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          supporting_facts?: string | null
+          total_amount?: number | null
+          total_interest?: number | null
+          total_penalties?: number | null
+          total_principal?: number | null
+          total_violations?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          violation_summary?: Json | null
+        }
+        Update: {
+          action_history_summary?: Json | null
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_by_name?: string | null
+          arrangement_summary?: Json | null
+          case_id?: string
+          correspondence_summary?: Json | null
+          created_at?: string
+          created_by?: string
+          employer_id?: string
+          employer_name?: string | null
+          employer_snapshot_id?: string | null
+          id?: string
+          justification?: string
+          legal_case_id?: string | null
+          legal_case_number?: string | null
+          narrative?: string | null
+          notice_summary?: Json | null
+          recommendation_number?: string
+          recommendation_type?: string
+          recommended_action?: string | null
+          relief_sought?: string | null
+          review_decision?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_name?: string | null
+          risk_band?: string | null
+          risk_score?: number | null
+          risk_snapshot_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          supporting_facts?: string | null
+          total_amount?: number | null
+          total_interest?: number | null
+          total_penalties?: number | null
+          total_principal?: number | null
+          total_violations?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          violation_summary?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_recommendations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_case_recommendations_employer_snapshot_id_fkey"
+            columns: ["employer_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_case_recommendations_risk_snapshot_id_fkey"
+            columns: ["risk_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "ce_case_risk_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_case_reopen_rules: {
+        Row: {
+          approval_role: string | null
+          case_family_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          max_reopen_count: number | null
+          reopen_window_days: number | null
+          require_approval: boolean | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approval_role?: string | null
+          case_family_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          max_reopen_count?: number | null
+          reopen_window_days?: number | null
+          require_approval?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approval_role?: string | null
+          case_family_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          max_reopen_count?: number | null
+          reopen_window_days?: number | null
+          require_approval?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_reopen_rules_case_family_id_fkey"
+            columns: ["case_family_id"]
+            isOneToOne: false
+            referencedRelation: "ce_case_families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_case_risk_snapshots: {
+        Row: {
+          active_arrangements: number | null
+          arrears_score: number | null
+          captured_at: string
+          captured_by: string
+          case_id: string
+          employer_id: string
+          employer_snapshot_id: string | null
+          filing_score: number | null
+          id: string
+          legal_score: number | null
+          payment_score: number | null
+          raw_factors: Json | null
+          risk_band: string | null
+          risk_score: number | null
+          snapshot_trigger: string
+          total_arrears: number | null
+          total_violations: number | null
+          violations_score: number | null
+        }
+        Insert: {
+          active_arrangements?: number | null
+          arrears_score?: number | null
+          captured_at?: string
+          captured_by: string
+          case_id: string
+          employer_id: string
+          employer_snapshot_id?: string | null
+          filing_score?: number | null
+          id?: string
+          legal_score?: number | null
+          payment_score?: number | null
+          raw_factors?: Json | null
+          risk_band?: string | null
+          risk_score?: number | null
+          snapshot_trigger: string
+          total_arrears?: number | null
+          total_violations?: number | null
+          violations_score?: number | null
+        }
+        Update: {
+          active_arrangements?: number | null
+          arrears_score?: number | null
+          captured_at?: string
+          captured_by?: string
+          case_id?: string
+          employer_id?: string
+          employer_snapshot_id?: string | null
+          filing_score?: number | null
+          id?: string
+          legal_score?: number | null
+          payment_score?: number | null
+          raw_factors?: Json | null
+          risk_band?: string | null
+          risk_score?: number | null
+          snapshot_trigger?: string
+          total_arrears?: number | null
+          total_violations?: number | null
+          violations_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_risk_snapshots_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_case_risk_snapshots_employer_snapshot_id_fkey"
+            columns: ["employer_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_case_severity_rules: {
+        Row: {
+          age_multiplier_cap: number | null
+          amount_log_base: number | null
+          base_weight: number
+          case_family_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          priority_boost_critical: number | null
+          priority_boost_high: number | null
+          priority_boost_low: number | null
+          priority_boost_medium: number | null
+          updated_at: string
+          updated_by: string | null
+          violation_type_id: string | null
+        }
+        Insert: {
+          age_multiplier_cap?: number | null
+          amount_log_base?: number | null
+          base_weight?: number
+          case_family_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          priority_boost_critical?: number | null
+          priority_boost_high?: number | null
+          priority_boost_low?: number | null
+          priority_boost_medium?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          violation_type_id?: string | null
+        }
+        Update: {
+          age_multiplier_cap?: number | null
+          amount_log_base?: number | null
+          base_weight?: number
+          case_family_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          priority_boost_critical?: number | null
+          priority_boost_high?: number | null
+          priority_boost_low?: number | null
+          priority_boost_medium?: number | null
+          updated_at?: string
+          updated_by?: string | null
+          violation_type_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_case_severity_rules_case_family_id_fkey"
+            columns: ["case_family_id"]
+            isOneToOne: false
+            referencedRelation: "ce_case_families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_case_severity_rules_violation_type_id_fkey"
+            columns: ["violation_type_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violation_types"
             referencedColumns: ["id"]
           },
         ]
@@ -10271,6 +11200,8 @@ export type Database = {
           amount_collected: number | null
           assigned_officer_id: string | null
           assigned_officer_name: string | null
+          case_family: string | null
+          case_family_id: string | null
           case_number: string
           case_type: string | null
           closed_date: string | null
@@ -10280,15 +11211,25 @@ export type Database = {
           deleted_at: string | null
           employer_id: string
           employer_name: string | null
+          escalation_recommendation_id: string | null
+          escalation_recommended: boolean | null
           fund_type: string | null
           id: string
           is_deleted: boolean | null
+          is_merged: boolean | null
+          last_violation_date: string | null
+          legal_case_id: string | null
+          merged_into_case_id: string | null
           opened_date: string | null
           priority: string | null
+          reopened_count: number | null
           risk_band: string | null
           risk_score: number | null
+          severity_score: number | null
           status: string | null
           summary: string | null
+          suspended_at: string | null
+          suspended_reason: string | null
           target_resolution_date: string | null
           territory: string | null
           total_amount: number | null
@@ -10297,11 +11238,14 @@ export type Database = {
           total_principal: number | null
           updated_at: string | null
           updated_by: string | null
+          violation_count: number | null
         }
         Insert: {
           amount_collected?: number | null
           assigned_officer_id?: string | null
           assigned_officer_name?: string | null
+          case_family?: string | null
+          case_family_id?: string | null
           case_number: string
           case_type?: string | null
           closed_date?: string | null
@@ -10311,15 +11255,25 @@ export type Database = {
           deleted_at?: string | null
           employer_id: string
           employer_name?: string | null
+          escalation_recommendation_id?: string | null
+          escalation_recommended?: boolean | null
           fund_type?: string | null
           id?: string
           is_deleted?: boolean | null
+          is_merged?: boolean | null
+          last_violation_date?: string | null
+          legal_case_id?: string | null
+          merged_into_case_id?: string | null
           opened_date?: string | null
           priority?: string | null
+          reopened_count?: number | null
           risk_band?: string | null
           risk_score?: number | null
+          severity_score?: number | null
           status?: string | null
           summary?: string | null
+          suspended_at?: string | null
+          suspended_reason?: string | null
           target_resolution_date?: string | null
           territory?: string | null
           total_amount?: number | null
@@ -10328,11 +11282,14 @@ export type Database = {
           total_principal?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          violation_count?: number | null
         }
         Update: {
           amount_collected?: number | null
           assigned_officer_id?: string | null
           assigned_officer_name?: string | null
+          case_family?: string | null
+          case_family_id?: string | null
           case_number?: string
           case_type?: string | null
           closed_date?: string | null
@@ -10342,15 +11299,25 @@ export type Database = {
           deleted_at?: string | null
           employer_id?: string
           employer_name?: string | null
+          escalation_recommendation_id?: string | null
+          escalation_recommended?: boolean | null
           fund_type?: string | null
           id?: string
           is_deleted?: boolean | null
+          is_merged?: boolean | null
+          last_violation_date?: string | null
+          legal_case_id?: string | null
+          merged_into_case_id?: string | null
           opened_date?: string | null
           priority?: string | null
+          reopened_count?: number | null
           risk_band?: string | null
           risk_score?: number | null
+          severity_score?: number | null
           status?: string | null
           summary?: string | null
+          suspended_at?: string | null
+          suspended_reason?: string | null
           target_resolution_date?: string | null
           territory?: string | null
           total_amount?: number | null
@@ -10359,8 +11326,24 @@ export type Database = {
           total_principal?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          violation_count?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ce_cases_case_family_id_fkey"
+            columns: ["case_family_id"]
+            isOneToOne: false
+            referencedRelation: "ce_case_families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_cases_merged_into_case_id_fkey"
+            columns: ["merged_into_case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ce_compliance_policies: {
         Row: {
@@ -14537,6 +15520,8 @@ export type Database = {
           candidate_activity_type: string | null
           candidate_business_name: string | null
           candidate_location: string | null
+          case_family: string | null
+          case_id: string | null
           created_at: string | null
           created_by: string | null
           deleted_at: string | null
@@ -14589,6 +15574,8 @@ export type Database = {
           candidate_activity_type?: string | null
           candidate_business_name?: string | null
           candidate_location?: string | null
+          case_family?: string | null
+          case_id?: string | null
           created_at?: string | null
           created_by?: string | null
           deleted_at?: string | null
@@ -14641,6 +15628,8 @@ export type Database = {
           candidate_activity_type?: string | null
           candidate_business_name?: string | null
           candidate_location?: string | null
+          case_family?: string | null
+          case_id?: string | null
           created_at?: string | null
           created_by?: string | null
           deleted_at?: string | null
@@ -14689,6 +15678,13 @@ export type Database = {
             columns: ["assigned_queue_id"]
             isOneToOne: false
             referencedRelation: "ce_assignment_queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
             referencedColumns: ["id"]
           },
           {
@@ -44141,6 +45137,21 @@ export type Database = {
         }[]
       }
       fn_ce_backfill_unassigned_violations: { Args: never; Returns: Json }
+      fn_ce_consolidate_violation_to_case: {
+        Args: { p_performed_by?: string; p_violation_id: string }
+        Returns: Json
+      }
+      fn_ce_recalculate_case_severity: {
+        Args: { p_case_id: string }
+        Returns: Json
+      }
+      fn_ce_resolve_case_family: {
+        Args: { p_violation_type_id: string }
+        Returns: {
+          family_code: string
+          family_id: string
+        }[]
+      }
       fn_ce_resolve_zone: {
         Args: { p_office_code?: string; p_village_code?: string }
         Returns: {
