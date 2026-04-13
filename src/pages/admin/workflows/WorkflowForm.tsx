@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { SearchableSelect, SearchableSelectOption } from '@/components/ui/searchable-select';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Plus, Trash2, GripVertical, ChevronDown, ChevronRight, ArrowUp, ArrowDown, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -1317,7 +1318,7 @@ export default function WorkflowForm() {
                             Notifications triggered when the workflow reaches this step.
                           </p>
                           {step.stepNotifications.map((sn, snIndex) => (
-                            <div key={snIndex} className="grid grid-cols-5 gap-3 items-end p-3 bg-background rounded-md border">
+                            <div key={snIndex} className="grid grid-cols-6 gap-3 items-end p-3 bg-background rounded-md border">
                               <div className="space-y-1">
                                 <Label className="text-xs">Channel</Label>
                                 <Select
@@ -1371,21 +1372,34 @@ export default function WorkflowForm() {
                                 </div>
                               )}
                               <div className="space-y-1">
+                                <Label className="text-xs">Module</Label>
+                                <SearchableSelect
+                                  options={(parentModules ?? []).map((m) => ({ value: m.id, label: m.display_name }))}
+                                  value={sn.module_id || ''}
+                                  onValueChange={(v) => {
+                                    updateStepNotification(stepIndex, snIndex, 'module_id', v || null);
+                                    updateStepNotification(stepIndex, snIndex, 'template_id', null);
+                                  }}
+                                  placeholder="Select module"
+                                  searchPlaceholder="Search modules..."
+                                  emptyMessage="No modules found."
+                                  includeAllOption="All Modules"
+                                  className="h-8"
+                                />
+                              </div>
+                              <div className="space-y-1">
                                 <Label className="text-xs">Template</Label>
-                                <Select
-                                  value={sn.template_id || '__none__'}
-                                  onValueChange={(v) => updateStepNotification(stepIndex, snIndex, 'template_id', v === '__none__' ? null : v)}
-                                >
-                                  <SelectTrigger className="h-8">
-                                    <SelectValue placeholder="Select template" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="__none__">None</SelectItem>
-                                    {templates?.map((t) => (
-                                      <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                <SearchableSelect
+                                  options={(templates ?? [])
+                                    .filter((t) => !sn.module_id || t.module_id === sn.module_id)
+                                    .map((t) => ({ value: t.id, label: t.name }))}
+                                  value={sn.template_id || ''}
+                                  onValueChange={(v) => updateStepNotification(stepIndex, snIndex, 'template_id', v || null)}
+                                  placeholder="Select template"
+                                  searchPlaceholder="Search templates..."
+                                  emptyMessage="No templates found."
+                                  className="h-8"
+                                />
                               </div>
                               <div className="flex items-center gap-2">
                                 <Switch
@@ -1620,7 +1634,7 @@ export default function WorkflowForm() {
                                         Notifications triggered when this action is executed. Configure recipient, channel, and template per notification.
                                       </p>
                                       {action.notifications.map((notif, notifIndex) => (
-                                        <div key={notifIndex} className="grid grid-cols-5 gap-2 items-end p-2 border rounded bg-muted/20">
+                                        <div key={notifIndex} className="grid grid-cols-6 gap-2 items-end p-2 border rounded bg-muted/20">
                                           <div className="space-y-1">
                                             <Label className="text-xs">Channel</Label>
                                             <Select
@@ -1674,21 +1688,34 @@ export default function WorkflowForm() {
                                             </div>
                                           )}
                                           <div className="space-y-1">
+                                            <Label className="text-xs">Module</Label>
+                                            <SearchableSelect
+                                              options={(parentModules ?? []).map((m) => ({ value: m.id, label: m.display_name }))}
+                                              value={notif.module_id || ''}
+                                              onValueChange={(v) => {
+                                                updateNotification(stepIndex, actionIndex, notifIndex, 'module_id', v || null);
+                                                updateNotification(stepIndex, actionIndex, notifIndex, 'template_id', null);
+                                              }}
+                                              placeholder="Select module"
+                                              searchPlaceholder="Search modules..."
+                                              emptyMessage="No modules found."
+                                              includeAllOption="All Modules"
+                                              className="h-8"
+                                            />
+                                          </div>
+                                          <div className="space-y-1">
                                             <Label className="text-xs">Template</Label>
-                                            <Select
-                                              value={notif.template_id || '__none__'}
-                                              onValueChange={(v) => updateNotification(stepIndex, actionIndex, notifIndex, 'template_id', v === '__none__' ? null : v)}
-                                            >
-                                              <SelectTrigger className="h-8">
-                                                <SelectValue placeholder="Template" />
-                                              </SelectTrigger>
-                                              <SelectContent>
-                                                <SelectItem value="__none__">None</SelectItem>
-                                                {templates?.map((t) => (
-                                                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                                ))}
-                                              </SelectContent>
-                                            </Select>
+                                            <SearchableSelect
+                                              options={(templates ?? [])
+                                                .filter((t) => !notif.module_id || t.module_id === notif.module_id)
+                                                .map((t) => ({ value: t.id, label: t.name }))}
+                                              value={notif.template_id || ''}
+                                              onValueChange={(v) => updateNotification(stepIndex, actionIndex, notifIndex, 'template_id', v || null)}
+                                              placeholder="Select template"
+                                              searchPlaceholder="Search templates..."
+                                              emptyMessage="No templates found."
+                                              className="h-8"
+                                            />
                                           </div>
                                           <div className="flex items-center gap-2">
                                             <Switch
