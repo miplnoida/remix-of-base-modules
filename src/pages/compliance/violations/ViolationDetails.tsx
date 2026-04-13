@@ -397,6 +397,15 @@ export default function ViolationDetails() {
         </Card>
       </div>
 
+      {/* SLA Metrics */}
+      <ViolationSLAMetrics
+        violationId={v.id}
+        createdAt={v.created_at}
+        assignedAt={v.assigned_at}
+        dueDate={v.due_date}
+        status={currentStatus}
+      />
+
       {/* Assignment & Routing Info */}
       <Card>
         <CardHeader>
