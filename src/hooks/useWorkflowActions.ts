@@ -1210,6 +1210,12 @@ async function updateSourceRecordStatus(
     if (newPostingStatus) {
       updateData.posting_status = newPostingStatus;
 
+      // Set verification audit fields when approving (status → VAC)
+      if (newPostingStatus === 'VAC') {
+        updateData.verified_by = userId;
+        updateData.date_verified = new Date().toISOString();
+      }
+
       // Update cn_c3_reported
       const { error: c3Error } = await supabase
         .from('cn_c3_reported')
@@ -1222,13 +1228,21 @@ async function updateSourceRecordStatus(
       }
 
       // Also update all related ip_wages rows to the same posting_status
+      const wagesUpdateData: Record<string, any> = {
+        posting_status: newPostingStatus,
+        date_modified: new Date().toISOString(),
+        modified_by: userId,
+      };
+      
+      // Set verification audit fields on wages too when approving
+      if (newPostingStatus === 'VAC') {
+        wagesUpdateData.verified_by = userId;
+        wagesUpdateData.date_verified = new Date().toISOString();
+      }
+
       const { error: wagesError } = await supabase
         .from('ip_wages')
-        .update({
-          posting_status: newPostingStatus,
-          date_modified: new Date().toISOString(),
-          modified_by: userId,
-        })
+        .update(wagesUpdateData)
         .eq('c3_id', sourceRecordId);
 
       if (wagesError) {

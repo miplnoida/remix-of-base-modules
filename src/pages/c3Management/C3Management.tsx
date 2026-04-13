@@ -27,6 +27,7 @@ import { WorkflowActionButtons, WorkflowActionButtonsCompact } from "@/component
 import { getC3Statuses, getActiveProfiles, updateWageVerification, verifyAllWagesForC3 } from "@/services/c3Service";
 import MonthYearPicker from "@/components/c3/MonthYearPicker";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 
 export default function C3Management() {
   const navigate = useNavigate();
@@ -72,6 +73,11 @@ export default function C3Management() {
   const [viewingRecord, setViewingRecord] = useState<any>(null);
   const [formMode, setFormMode] = useState<'add' | 'edit' | 'view'>('add');
   const [isSaving, setIsSaving] = useState(false);
+
+  // ER schedule prompt state
+  const [erSchedulePromptOpen, setErSchedulePromptOpen] = useState(false);
+  const [erSuggestedScheduleNo, setErSuggestedScheduleNo] = useState<number>(1);
+  const [erSchedulePromptData, setErSchedulePromptData] = useState<any>(null);
 
   // Default empty filter state
   const emptyFilters = {
@@ -988,6 +994,21 @@ export default function C3Management() {
               setFormMode('add');
             }}
             onSave={async (data) => {
+              // Handle auto-load of existing DFT/PEN record
+              if (data?.autoLoad && data?.id) {
+                setIsLoadingRecord(true);
+                try {
+                  const reloaded = await getRecordWithWages(data.id);
+                  if (reloaded.success && reloaded.data) {
+                    setEditingRecord(reloaded.data);
+                    setFormMode('edit');
+                  }
+                } finally {
+                  setIsLoadingRecord(false);
+                }
+                return;
+              }
+
               setIsSaving(true);
               try {
                 const payerType = contributionTypeToPayerType(contributionType);
@@ -1009,12 +1030,16 @@ export default function C3Management() {
                       setEditingRecord(reloaded.data);
                     }
                   } else {
-                    // New record with no ID returned — go back to list
                     setShowForm(false);
                     setEditingRecord(null);
                     setViewingRecord(null);
                     setFormMode('add');
                   }
+                } else if ((result as any).promptNextSchedule) {
+                  // Show schedule prompt dialog for ER
+                  setErSuggestedScheduleNo((result as any).suggestedScheduleNo);
+                  setErSchedulePromptData(data);
+                  setErSchedulePromptOpen(true);
                 }
               } finally {
                 setIsSaving(false);
@@ -1498,6 +1523,44 @@ export default function C3Management() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ER Schedule Prompt Dialog */}
+      <ConfirmDialog
+        open={erSchedulePromptOpen}
+        onOpenChange={setErSchedulePromptOpen}
+        title="Existing Verified C3 Found"
+        description={`A verified C3 for this employer and period already exists. Would you like to create Schedule ${erSuggestedScheduleNo}?`}
+        confirmLabel={`Create Schedule ${erSuggestedScheduleNo}`}
+        cancelLabel="Cancel"
+        onConfirm={async () => {
+          setErSchedulePromptOpen(false);
+          if (erSchedulePromptData) {
+            const updatedData = { ...erSchedulePromptData, scheduleNo: erSuggestedScheduleNo };
+            setIsSaving(true);
+            try {
+              const payerType = contributionTypeToPayerType(contributionType);
+              const result = await saveDraft(updatedData, payerType);
+              if (result.success) {
+                toast({
+                  title: "C3 Record Created",
+                  description: `Employer C3 Schedule ${erSuggestedScheduleNo} has been saved as draft.`,
+                });
+                const savedId = result.id;
+                if (savedId) {
+                  setFormMode('edit');
+                  const reloaded = await getRecordWithWages(savedId);
+                  if (reloaded.success && reloaded.data) {
+                    setEditingRecord(reloaded.data);
+                  }
+                }
+              }
+            } finally {
+              setIsSaving(false);
+              setErSchedulePromptData(null);
+            }
+          }
+        }}
+      />
 
 
       </div>

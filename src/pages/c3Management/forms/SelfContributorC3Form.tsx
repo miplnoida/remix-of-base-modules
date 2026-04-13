@@ -18,7 +18,8 @@ import {
   getWageCategoryDetails,
   getNextScheduleNo,
   saveSelfContributorC3,
-  validateEmployer 
+  validateEmployer,
+  findAllC3ForPeriod
 } from "@/services/c3Service";
 import {
   calculateSelfContributorPenalty,
@@ -407,16 +408,48 @@ export default function SelfContributorC3Form({ data, mode = 'add', resetTrigger
     }
   }, [fieldChangeConfirm]);
 
-  // Fetch schedule number when SSN or period changes
+  // Fetch schedule number and check existing records when SSN or period changes
   useEffect(() => {
-    const fetchScheduleNo = async () => {
+    const checkExistingAndFetchSchedule = async () => {
       if (ssn && period && !data?.id) {
-        const periodStr = new Date(period.year, period.month, 1).toISOString();
+        const periodStr = `${period.year}-${String(period.month + 1).padStart(2, '0')}-01`;
+        
+        // Check for existing records for this payer+period
+        const existingRecords = await findAllC3ForPeriod(ssn, 'SE', periodStr);
+        
+        if (existingRecords.length > 0) {
+          // Check for editable (DFT/PEN) records
+          const editableRecord = existingRecords.find(
+            r => r.posting_status === 'DFT' || r.posting_status === 'PEN'
+          );
+          
+          if (editableRecord) {
+            // Auto-load existing draft/pending record
+            toast({
+              title: "Existing Record Found",
+              description: `A ${editableRecord.posting_status === 'DFT' ? 'Draft' : 'Pending'} C3 for this period already exists. Loading existing data for editing.`,
+            });
+            // Trigger parent to load the existing record for editing
+            onSave?.({ id: editableRecord.id, autoLoad: true });
+            return;
+          }
+          
+          // Check for VAC records - prompt for next schedule
+          const vacRecords = existingRecords.filter(r => r.posting_status === 'VAC');
+          if (vacRecords.length > 0) {
+            const maxSeq = Math.max(...existingRecords.map(r => r.sequence_no));
+            setSuggestedScheduleNo(maxSeq + 1);
+            setSchedulePromptOpen(true);
+            return;
+          }
+        }
+        
+        // No existing records or only blocked ones — fetch next schedule normally
         const nextSchedule = await getNextScheduleNo(ssn, 'SE', periodStr);
         setScheduleNo(nextSchedule);
       }
     };
-    fetchScheduleNo();
+    checkExistingAndFetchSchedule();
   }, [ssn, period, data?.id]);
 
   // Handle week checkbox change
