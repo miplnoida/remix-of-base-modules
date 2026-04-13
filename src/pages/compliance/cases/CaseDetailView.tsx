@@ -1,0 +1,376 @@
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { PageHeader } from '@/components/shared/PageHeader';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Loader2, Eye, Briefcase, History, AlertCircle, CheckCircle, Building2,
+  ArrowLeft, Link2
+} from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchCaseById } from '@/services/complianceDataService';
+import { caseViolationService } from '@/services/caseViolationService';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+const getStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    ACTIVE: 'bg-primary/10 text-primary',
+    UNDER_REVIEW: 'bg-warning/10 text-warning',
+    ESCALATED_LEGAL: 'bg-destructive/10 text-destructive',
+    RESOLVED: 'bg-green-100 text-green-800',
+    CLOSED: 'bg-muted text-muted-foreground',
+    COMPLETED: 'bg-green-100 text-green-800',
+  };
+  return colors[status] ?? 'bg-muted text-muted-foreground';
+};
+
+const getViolationStatusColor = (status: string) => {
+  const colors: Record<string, string> = {
+    OPEN: 'bg-primary/10 text-primary',
+    IN_PROGRESS: 'bg-accent/10 text-accent-foreground',
+    UNDER_REVIEW: 'bg-warning/10 text-warning',
+    ESCALATED: 'bg-destructive/10 text-destructive',
+    RESOLVED: 'bg-green-100 text-green-800',
+    CLOSED: 'bg-muted text-muted-foreground',
+    CANCELLED: 'bg-muted text-muted-foreground',
+  };
+  return colors[status] ?? 'bg-muted text-muted-foreground';
+};
+
+const formatDate = (d: string) =>
+  new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+const formatCurrency = (amount: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 }).format(amount);
+
+export default function CaseDetailView() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState('violations');
+  const [cascadeDialogOpen, setCascadeDialogOpen] = useState(false);
+  const [cascadeReason, setCascadeReason] = useState('');
+  const [cascading, setCascading] = useState(false);
+
+  const currentUserCode = 'SYSTEM';
+
+  const { data: caseData, isLoading } = useQuery({
+    queryKey: ['ce_case_detail', id],
+    queryFn: () => fetchCaseById(id!),
+    enabled: !!id,
+  });
+
+  const { data: linkedViolations = [], isLoading: loadingViolations } = useQuery({
+    queryKey: ['ce_case_violations', id],
+    queryFn: () => caseViolationService.getCaseViolations(id!),
+    enabled: !!id,
+  });
+
+  const { data: caseHistory = [] } = useQuery({
+    queryKey: ['ce_case_history', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_case_history')
+        .select('*')
+        .eq('case_id', id!)
+        .order('performed_at', { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
+    enabled: !!id,
+  });
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['ce_case_detail', id] });
+    queryClient.invalidateQueries({ queryKey: ['ce_case_violations', id] });
+    queryClient.invalidateQueries({ queryKey: ['ce_case_history', id] });
+  };
+
+  const handleCascadeResolve = async () => {
+    if (!cascadeReason.trim() || !caseData) return;
+    setCascading(true);
+    try {
+      const result = await caseViolationService.cascadeResolveCaseViolations(
+        id!, (caseData as any).case_number, currentUserCode, cascadeReason
+      );
+      if (result.success) {
+        toast.success(`Cascade complete: ${result.transitioned} resolved, ${result.skipped} skipped`);
+        if (result.errors.length > 0) {
+          toast.warning(`${result.errors.length} errors`, { description: result.errors[0] });
+        }
+        invalidateAll();
+      }
+    } catch (err: any) {
+      toast.error('Cascade failed', { description: err.message });
+    } finally {
+      setCascading(false);
+      setCascadeDialogOpen(false);
+      setCascadeReason('');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!caseData) {
+    return (
+      <div className="container mx-auto p-6 text-center">
+        <h2 className="text-2xl font-bold">Case not found</h2>
+        <Button onClick={() => navigate('/compliance/cases')} className="mt-4">Back to Cases</Button>
+      </div>
+    );
+  }
+
+  const c = caseData as any;
+  const activeViolationCount = linkedViolations.filter(
+    (v: any) => ['OPEN', 'IN_PROGRESS', 'UNDER_REVIEW', 'ESCALATED'].includes(v.status)
+  ).length;
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <PageHeader
+        title={`Case: ${c.case_number}`}
+        subtitle={c.employer_name || 'Unknown Employer'}
+        breadcrumbs={[
+          { label: 'Compliance', href: '/compliance' },
+          { label: 'Cases', href: '/compliance/cases' },
+          { label: c.case_number },
+        ]}
+      />
+
+      {/* Case Header */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Briefcase className="h-6 w-6" />
+                <CardTitle className="text-2xl">{c.case_number}</CardTitle>
+                <Badge className={getStatusColor(c.status || '')}>
+                  {(c.status || '').replace(/_/g, ' ')}
+                </Badge>
+                {c.priority && <Badge variant="outline">{c.priority}</Badge>}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Opened: {c.opened_date ? formatDate(c.opened_date) : 'N/A'} | Type: {c.case_type || 'General'}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-muted-foreground">Total Amount</div>
+              <div className="text-2xl font-bold text-destructive">
+                {formatCurrency(Number(c.total_amount) || 0)}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap pt-3 border-t mt-4">
+            <Button variant="outline" size="sm" onClick={() => navigate('/compliance/cases')}>
+              <ArrowLeft className="h-4 w-4 mr-1" />Back to Cases
+            </Button>
+            {c.employer_id && (
+              <Button variant="outline" size="sm" onClick={() => navigate(`/compliance/employer-360/${c.employer_id}`)}>
+                <Building2 className="h-4 w-4 mr-1" />Employer 360
+              </Button>
+            )}
+            {activeViolationCount > 0 && !['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && (
+              <Button variant="destructive" size="sm" onClick={() => setCascadeDialogOpen(true)}>
+                <CheckCircle className="h-4 w-4 mr-1" />
+                Cascade Resolve ({activeViolationCount})
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Case Info Grid */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Linked Violations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">{linkedViolations.length}</div>
+            <div className="text-xs text-muted-foreground">{activeViolationCount} active</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Officer</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-base font-medium">{c.assigned_officer_name || 'Unassigned'}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Risk</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-base font-medium">{c.risk_band || 'N/A'}</div>
+            {c.risk_score != null && <div className="text-xs text-muted-foreground">Score: {c.risk_score}</div>}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Collected</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">{formatCurrency(Number(c.amount_collected) || 0)}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="violations">
+            <Link2 className="h-4 w-4 mr-2" />Violations ({linkedViolations.length})
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            <History className="h-4 w-4 mr-2" />History ({caseHistory.length})
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="violations" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle>Linked Violations</CardTitle></CardHeader>
+            <CardContent>
+              {loadingViolations ? (
+                <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+              ) : linkedViolations.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No violations linked to this case</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Violation #</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Priority</TableHead>
+                      <TableHead>Period</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead>Linked</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {linkedViolations.map((v: any) => (
+                      <TableRow key={v.id}>
+                        <TableCell className="font-mono text-xs font-medium">{v.violation_number}</TableCell>
+                        <TableCell>{(v.ce_violation_types as any)?.name || '-'}</TableCell>
+                        <TableCell>
+                          <Badge className={getViolationStatusColor(v.status)}>
+                            {v.status?.replace(/_/g, ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{v.priority || '-'}</TableCell>
+                        <TableCell>{v.period_from || '-'}</TableCell>
+                        <TableCell>{formatCurrency(Number(v.total_amount) || 0)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {v.linked_at ? formatDate(v.linked_at) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="ghost" onClick={() => navigate(`/compliance/violations/${v.id}`)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle>Case History</CardTitle></CardHeader>
+            <CardContent>
+              {caseHistory.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No history records</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Action</TableHead>
+                      <TableHead>From</TableHead>
+                      <TableHead>To</TableHead>
+                      <TableHead>By</TableHead>
+                      <TableHead>Notes</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {caseHistory.map((h: any) => (
+                      <TableRow key={h.id}>
+                        <TableCell>{h.performed_at ? formatDate(h.performed_at) : '-'}</TableCell>
+                        <TableCell className="font-medium">{h.action || '-'}</TableCell>
+                        <TableCell>
+                          {h.from_status ? <Badge variant="outline">{h.from_status.replace(/_/g, ' ')}</Badge> : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {h.to_status ? <Badge className={getStatusColor(h.to_status)}>{h.to_status.replace(/_/g, ' ')}</Badge> : '-'}
+                        </TableCell>
+                        <TableCell>{h.performed_by || '-'}</TableCell>
+                        <TableCell className="max-w-xs truncate">{h.notes || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Cascade Resolution Dialog */}
+      <Dialog open={cascadeDialogOpen} onOpenChange={setCascadeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Cascade Resolve Violations
+            </DialogTitle>
+            <DialogDescription>
+              This will resolve all {activeViolationCount} active violations linked to case {c.case_number}.
+              Each transition will be fully audited.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Resolution Reason *</label>
+            <Textarea
+              value={cascadeReason}
+              onChange={(e) => setCascadeReason(e.target.value)}
+              placeholder="Provide a reason for cascade resolution..."
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCascadeDialogOpen(false)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={handleCascadeResolve}
+              disabled={!cascadeReason.trim() || cascading}
+            >
+              {cascading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
+              Resolve {activeViolationCount} Violations
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
