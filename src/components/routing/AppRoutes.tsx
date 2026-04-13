@@ -61,6 +61,7 @@ import ComplianceInspectorDashboard from '@/pages/compliance/dashboards/Inspecto
 import ComplianceLegalDashboard from '@/pages/compliance/dashboards/LegalDashboard';
 import ComplianceCaseManagement from '@/pages/compliance/cases/CaseManagement';
 import ComplianceCaseQueue from '@/pages/compliance/cases/CaseQueue';
+import ComplianceCaseDetailView from '@/pages/compliance/cases/CaseDetailView';
 
 import ComplianceInspectionManagement from '@/pages/compliance/inspections/InspectionManagement';
 import ComplianceBreachMonitoring from '@/pages/compliance/arrangements/BreachMonitoring';
