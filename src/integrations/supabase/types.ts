@@ -12688,6 +12688,59 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_notice_delivery_log: {
+        Row: {
+          attempt_number: number
+          channel: string
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          failure_reason: string | null
+          id: string
+          notice_id: string
+          provider_message_id: string | null
+          recipient_address: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          attempt_number?: number
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          notice_id: string
+          provider_message_id?: string | null
+          recipient_address?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempt_number?: number
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          notice_id?: string
+          provider_message_id?: string | null
+          recipient_address?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_notice_delivery_log_notice_id_fkey"
+            columns: ["notice_id"]
+            isOneToOne: false
+            referencedRelation: "ce_notices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_notice_templates: {
         Row: {
           body: string
