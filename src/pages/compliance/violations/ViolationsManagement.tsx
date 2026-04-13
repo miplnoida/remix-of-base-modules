@@ -42,7 +42,9 @@ export default function ViolationsManagement() {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [monthFilter, setMonthFilter] = useState<string>(currentMonth);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [splitDialogOpen, setSplitDialogOpen] = useState(false);
+  const [splitTarget, setSplitTarget] = useState<any>(null);
   const { data: violations = [], isLoading } = useQuery({
     queryKey: ['ce_violations', statusFilter, priorityFilter, searchTerm, monthFilter],
     queryFn: () => fetchViolations({
@@ -220,10 +222,16 @@ export default function ViolationsManagement() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>All Violations ({violations.length})</CardTitle>
-          <Button size="sm" onClick={() => navigate('/compliance/violations/manual-entry')}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create Manual Violation
-          </Button>
+          <div className="flex gap-2">
+            {selectedIds.length >= 2 && (
+              <Button size="sm" variant="outline" onClick={() => setMergeDialogOpen(true)}>
+                <Merge className="mr-1 h-4 w-4" /> Merge ({selectedIds.length})
+              </Button>
+            )}
+            <Button size="sm" onClick={() => navigate('/compliance/violations/manual-entry')}>
+              <Plus className="mr-2 h-4 w-4" /> Create Manual Violation
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -315,14 +323,24 @@ export default function ViolationsManagement() {
                         {v.discovered_date ? new Date(v.discovered_date).toLocaleDateString() : '-'}
                       </TableCell>
                       <TableCell className="sticky right-0 bg-background">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => navigate(`/compliance/violations/${v.id}`)}
-                          title="View Details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => navigate(`/compliance/violations/${v.id}`)}
+                            title="View Details"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => { setSplitTarget(v); setSplitDialogOpen(true); }}
+                            title="Split Violation"
+                          >
+                            <Split className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
