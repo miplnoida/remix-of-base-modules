@@ -269,7 +269,7 @@ export default function EmployerApplicationDetailPage() {
                   if (!result.success) return;
 
                   const employerRegno = result.regno || null;
-                  const employerName = application.name || application.employer_name || employerRegno;
+                  const employerName = application.employer_name || application.trade_name || employerRegno;
 
                   toast.success(
                     result.message || `Employer Registration ${result.regno} created successfully.`,
