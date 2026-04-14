@@ -39,6 +39,7 @@ import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
 import { useEmployerCodeResolver } from '@/hooks/useEmployerCodeResolver';
+import { useCountries } from '@/hooks/useIPMasterLookups';
 import { getEmployerStatusVariant } from '@/hooks/useEmployerApplications';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
 import { MeetingActionButtons } from '@/components/meetings/MeetingActionButtons';
@@ -533,7 +534,9 @@ export default function EmployerApplicationDetailPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <DetailField label="HQ Address 1" value={application.hq_address1} />
                     <DetailField label="HQ Address 2" value={application.hq_address2} />
-                    <DetailField label="Country" value={application.hq_country || application.country} />
+                    <DetailField label="City" value={application.hq_city} />
+                    <DetailField label="State" value={application.hq_state} />
+                    <DetailField label="Country" value={resolveCountryName(application.hq_country)} />
                   </div>
                 </CardContent>
               </Card>
@@ -544,10 +547,9 @@ export default function EmployerApplicationDetailPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <DetailField label="Mailing Address 1" value={application.mailing_address1} />
                     <DetailField label="Mailing Address 2" value={application.mailing_address2} />
-                    {/* <DetailField label="Country" value={application.mailing_country} /> */}
-                    {/* {application.same_as_physical != null && (
-                      <DetailField label="Same as HQ" value={formatBoolean(application.same_as_physical)} />
-                    )} */}
+                    <DetailField label="City" value={application.mailing_city} />
+                    <DetailField label="State" value={application.mailing_state} />
+                    <DetailField label="Country" value={resolveCountryName(application.mailing_country)} />
                   </div>
                 </CardContent>
               </Card>
