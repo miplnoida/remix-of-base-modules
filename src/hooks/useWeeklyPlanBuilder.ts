@@ -165,8 +165,9 @@ export function useWeeklyPlanBuilder() {
   const createPlanMutation = useMutation({
     mutationFn: async () => {
       if (!userId || !fullName) throw new Error('Not authenticated');
+      if (!inspectorId) throw new Error('No inspector profile found for your account. Please contact an administrator.');
       const req: CreateWeeklyPlanRequest = {
-        inspector_id: userId,
+        inspector_id: inspectorId,
         inspector_name: fullName,
         week_start_date: week.weekStart,
         week_end_date: week.weekEndSunday,
