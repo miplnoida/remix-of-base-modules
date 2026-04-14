@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,27 +6,29 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { 
-  Scale, 
-  Search, 
-  AlertTriangle, 
-  DollarSign, 
+import {
+  Scale,
+  Search,
+  AlertTriangle,
+  DollarSign,
   FileText,
-  ChevronRight,
   CheckCircle,
   XCircle,
   Eye,
-  Send
+  Send,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { legalEscalationService } from '@/services/legalEscalationService';
-import { LegalRecommendation, LegalRecommendationQueueStats } from '@/types/legalEscalation';
+import { useAuditFields } from '@/hooks/useAuditTrail';
+import { LegalRecommendation } from '@/types/legalEscalation';
 
 const LegalRecommendationQueue = () => {
   const navigate = useNavigate();
-  const [recommendations, setRecommendations] = useState<LegalRecommendation[]>([]);
-  const [stats, setStats] = useState<LegalRecommendationQueueStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const { userCode } = useAuditFields();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
   const [selectedZone, setSelectedZone] = useState('ALL');
@@ -34,59 +36,55 @@ const LegalRecommendationQueue = () => {
   const [selectedRecommendation, setSelectedRecommendation] = useState<LegalRecommendation | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, [selectedStatus, selectedZone, selectedRiskBand]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [recommendationsData, statsData] = await Promise.all([
-        legalEscalationService.getLegalRecommendations({
-          status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
-          zone: selectedZone !== 'ALL' ? selectedZone : undefined,
-          riskBand: selectedRiskBand !== 'ALL' ? selectedRiskBand : undefined
-        }),
-        legalEscalationService.getQueueStats()
-      ]);
-      setRecommendations(recommendationsData);
-      setStats(statsData);
-    } catch (error) {
-      toast.error('Failed to load legal recommendations');
-    } finally {
-      setLoading(false);
-    }
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['legal-recommendations'] });
+    queryClient.invalidateQueries({ queryKey: ['legal-rec-stats'] });
   };
 
-  const handleApproveForReferral = async (recommendationId: string) => {
-    try {
-      await legalEscalationService.updateRecommendationStatus(
-        recommendationId,
-        'APPROVED_FOR_REFERRAL',
-        'Approved by compliance officer'
-      );
-      toast.success('Recommendation approved for legal referral');
-      loadData();
-    } catch (error) {
-      toast.error('Failed to approve recommendation');
-    }
-  };
+  // Queries
+  const { data: recommendations = [], isLoading } = useQuery({
+    queryKey: ['legal-recommendations', selectedStatus, selectedZone, selectedRiskBand],
+    queryFn: () => legalEscalationService.getLegalRecommendations({
+      status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
+      zone: selectedZone !== 'ALL' ? selectedZone : undefined,
+      riskBand: selectedRiskBand !== 'ALL' ? selectedRiskBand : undefined,
+    }),
+  });
 
-  const handleReject = async (recommendationId: string) => {
+  const { data: stats } = useQuery({
+    queryKey: ['legal-rec-stats'],
+    queryFn: () => legalEscalationService.getQueueStats(),
+  });
+
+  // Mutations
+  const generateMut = useMutation({
+    mutationFn: () => legalEscalationService.generateRecommendations(userCode || 'SYSTEM'),
+    onSuccess: (count) => {
+      invalidateAll();
+      toast.success(`Generated ${count} new recommendation${count !== 1 ? 's' : ''} from compliance data`);
+    },
+    onError: () => toast.error('Failed to generate recommendations'),
+  });
+
+  const approveMut = useMutation({
+    mutationFn: (id: string) => legalEscalationService.updateRecommendationStatus(
+      id, 'APPROVED_FOR_REFERRAL', 'Approved by compliance officer', userCode || 'SYSTEM'
+    ),
+    onSuccess: () => { invalidateAll(); toast.success('Recommendation approved for legal referral'); },
+    onError: () => toast.error('Failed to approve recommendation'),
+  });
+
+  const rejectMut = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      legalEscalationService.updateRecommendationStatus(id, 'REJECTED', reason, userCode || 'SYSTEM'),
+    onSuccess: () => { invalidateAll(); toast.success('Recommendation rejected'); },
+    onError: () => toast.error('Failed to reject recommendation'),
+  });
+
+  const handleReject = (recommendationId: string) => {
     const reason = prompt('Enter rejection reason:');
     if (!reason) return;
-
-    try {
-      await legalEscalationService.updateRecommendationStatus(
-        recommendationId,
-        'REJECTED',
-        reason
-      );
-      toast.success('Recommendation rejected');
-      loadData();
-    } catch (error) {
-      toast.error('Failed to reject recommendation');
-    }
+    rejectMut.mutate({ id: recommendationId, reason });
   };
 
   const handleCreateReferral = (recommendation: LegalRecommendation) => {
@@ -99,38 +97,29 @@ const LegalRecommendationQueue = () => {
   );
 
   const getRiskBadgeColor = (riskBand: string) => {
-    switch (riskBand.toLowerCase()) {
-      case 'critical':
-        return 'bg-red-100 text-red-800 border-red-300';
-      case 'high':
-        return 'bg-orange-100 text-orange-800 border-orange-300';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      default:
-        return 'bg-green-100 text-green-800 border-green-300';
+    switch (riskBand.toUpperCase()) {
+      case 'CRITICAL': return 'bg-red-100 text-red-800 border-red-300';
+      case 'HIGH': return 'bg-orange-100 text-orange-800 border-orange-300';
+      case 'MEDIUM': return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      default: return 'bg-green-100 text-green-800 border-green-300';
     }
   };
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'PENDING_REVIEW':
-        return 'bg-blue-100 text-blue-800';
-      case 'APPROVED_FOR_REFERRAL':
-        return 'bg-green-100 text-green-800';
-      case 'REFERRAL_CREATED':
-        return 'bg-purple-100 text-purple-800';
-      case 'REJECTED':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'PENDING_REVIEW': return 'bg-blue-100 text-blue-800';
+      case 'APPROVED_FOR_REFERRAL': return 'bg-green-100 text-green-800';
+      case 'REFERRAL_CREATED': return 'bg-purple-100 text-purple-800';
+      case 'REJECTED': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Loading recommendations...</p>
         </div>
       </div>
@@ -140,14 +129,27 @@ const LegalRecommendationQueue = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-          <Scale className="h-8 w-8" />
-          Legal Recommendation Queue
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Review employers meeting legal escalation thresholds and create legal referrals
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+            <Scale className="h-8 w-8" />
+            Legal Recommendation Queue
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Review employers meeting legal escalation thresholds and create legal referrals
+          </p>
+        </div>
+        <Button
+          onClick={() => generateMut.mutate()}
+          disabled={generateMut.isPending}
+        >
+          {generateMut.isPending ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4 mr-2" />
+          )}
+          Generate Recommendations
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -205,9 +207,7 @@ const LegalRecommendationQueue = () => {
             />
           </div>
           <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Statuses" />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="All Statuses" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All Statuses</SelectItem>
               <SelectItem value="PENDING_REVIEW">Pending Review</SelectItem>
@@ -217,26 +217,22 @@ const LegalRecommendationQueue = () => {
             </SelectContent>
           </Select>
           <Select value={selectedZone} onValueChange={setSelectedZone}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Zones" />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="All Zones" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All Zones</SelectItem>
-              <SelectItem value="Zone 1 - Basseterre">Zone 1 - Basseterre</SelectItem>
-              <SelectItem value="Zone 2 - Sandy Point">Zone 2 - Sandy Point</SelectItem>
-              <SelectItem value="Zone 3 - Charlestown">Zone 3 - Charlestown</SelectItem>
+              {(stats?.byZone || []).map(z => (
+                <SelectItem key={z.zoneName} value={z.zoneName}>{z.zoneName}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           <Select value={selectedRiskBand} onValueChange={setSelectedRiskBand}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Risk Bands" />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="All Risk Bands" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All Risk Bands</SelectItem>
-              <SelectItem value="Critical">Critical</SelectItem>
-              <SelectItem value="High">High</SelectItem>
-              <SelectItem value="Medium">Medium</SelectItem>
-              <SelectItem value="Low">Low</SelectItem>
+              <SelectItem value="CRITICAL">Critical</SelectItem>
+              <SelectItem value="HIGH">High</SelectItem>
+              <SelectItem value="MEDIUM">Medium</SelectItem>
+              <SelectItem value="LOW">Low</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -263,41 +259,27 @@ const LegalRecommendationQueue = () => {
               </div>
 
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => { setSelectedRecommendation(rec); setShowDetailsDialog(true); }}
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Details
+                <Button variant="outline" size="sm"
+                  onClick={() => { setSelectedRecommendation(rec); setShowDetailsDialog(true); }}>
+                  <Eye className="h-4 w-4 mr-2" /> View Details
                 </Button>
                 {rec.status === 'PENDING_REVIEW' && (
                   <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleApproveForReferral(rec.id)}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Approve
+                    <Button variant="outline" size="sm"
+                      disabled={approveMut.isPending}
+                      onClick={() => approveMut.mutate(rec.id)}>
+                      <CheckCircle className="h-4 w-4 mr-2" /> Approve
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleReject(rec.id)}
-                    >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Reject
+                    <Button variant="outline" size="sm"
+                      disabled={rejectMut.isPending}
+                      onClick={() => handleReject(rec.id)}>
+                      <XCircle className="h-4 w-4 mr-2" /> Reject
                     </Button>
                   </>
                 )}
                 {rec.status === 'APPROVED_FOR_REFERRAL' && (
-                  <Button
-                    size="sm"
-                    onClick={() => handleCreateReferral(rec)}
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    Create Referral
+                  <Button size="sm" onClick={() => handleCreateReferral(rec)}>
+                    <Send className="h-4 w-4 mr-2" /> Create Referral
                   </Button>
                 )}
               </div>
@@ -331,7 +313,7 @@ const LegalRecommendationQueue = () => {
                   <div key={subcase.subcaseId} className="flex justify-between items-center text-sm p-2 bg-muted/50 rounded">
                     <span className="font-medium">{subcase.caseNumber}</span>
                     <span className="text-muted-foreground">{subcase.caseType.replace(/_/g, ' ')}</span>
-                    <span>{subcase.periodFrom} to {subcase.periodTo}</span>
+                    <span>{subcase.periodFrom || '—'} to {subcase.periodTo || '—'}</span>
                     <span className="font-medium">EC${subcase.totalAmount.toLocaleString()}</span>
                   </div>
                 ))}
@@ -355,7 +337,11 @@ const LegalRecommendationQueue = () => {
         {filteredRecommendations.length === 0 && (
           <Card className="p-12 text-center">
             <Scale className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No recommendations found matching your filters</p>
+            <p className="text-muted-foreground">
+              {recommendations.length === 0
+                ? 'No recommendations yet. Click "Generate Recommendations" to evaluate employers against escalation rules.'
+                : 'No recommendations found matching your filters'}
+            </p>
           </Card>
         )}
       </div>
@@ -376,6 +362,9 @@ const LegalRecommendationQueue = () => {
                     {selectedRecommendation.riskBand} Risk
                   </Badge>
                   <Badge>{selectedRecommendation.employerZone}</Badge>
+                  <Badge className={getStatusBadgeColor(selectedRecommendation.status)}>
+                    {selectedRecommendation.status.replace(/_/g, ' ')}
+                  </Badge>
                 </div>
               </div>
 
@@ -390,24 +379,31 @@ const LegalRecommendationQueue = () => {
                 </Card>
               </div>
 
+              {selectedRecommendation.reviewedBy && (
+                <Card className="p-4 bg-muted/50">
+                  <p className="text-sm text-muted-foreground">Reviewed by</p>
+                  <p className="font-medium">{selectedRecommendation.reviewedBy}</p>
+                  {selectedRecommendation.reviewedDate && (
+                    <p className="text-xs text-muted-foreground">
+                      on {new Date(selectedRecommendation.reviewedDate).toLocaleString()}
+                    </p>
+                  )}
+                  {selectedRecommendation.reviewNotes && (
+                    <p className="text-sm mt-1">{selectedRecommendation.reviewNotes}</p>
+                  )}
+                </Card>
+              )}
+
               <div>
                 <h4 className="font-medium mb-2">Qualifying Subcases</h4>
                 <div className="space-y-2">
                   {selectedRecommendation.subcaseSummary.map((subcase) => (
                     <Card key={subcase.subcaseId} className="p-3">
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Case:</span> {subcase.caseNumber}
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Type:</span> {subcase.caseType.replace(/_/g, ' ')}
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Period:</span> {subcase.periodFrom} - {subcase.periodTo}
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Amount:</span> EC${subcase.totalAmount.toLocaleString()}
-                        </div>
+                        <div><span className="text-muted-foreground">Case:</span> {subcase.caseNumber}</div>
+                        <div><span className="text-muted-foreground">Type:</span> {subcase.caseType.replace(/_/g, ' ')}</div>
+                        <div><span className="text-muted-foreground">Period:</span> {subcase.periodFrom || '—'} - {subcase.periodTo || '—'}</div>
+                        <div><span className="text-muted-foreground">Amount:</span> EC${subcase.totalAmount.toLocaleString()}</div>
                       </div>
                     </Card>
                   ))}
@@ -429,9 +425,7 @@ const LegalRecommendationQueue = () => {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
-              Close
-            </Button>
+            <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
