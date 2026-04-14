@@ -63,7 +63,7 @@ export function useWeeklyPlanBuilder() {
         .eq('profile_id', userId)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: string; inspector_code: string } | null;
+      return data as unknown as { id: string; inspector_code: string } | null;
     },
     enabled: !!userId,
     staleTime: 5 * 60 * 1000,
