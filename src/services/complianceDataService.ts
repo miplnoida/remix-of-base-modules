@@ -404,10 +404,6 @@ export async function fetchViolationById(id: string) {
   if (error) throw error;
   return data;
 }
-  const hasActiveFilter = (filters?.status && filters.status !== 'ALL') ||
-    (filters?.priority && filters.priority !== 'ALL') ||
-    searchValue;
-
   const targetMonth = filters?.month || (!hasActiveFilter
     ? new Date().toISOString().slice(0, 7)
     : undefined);
