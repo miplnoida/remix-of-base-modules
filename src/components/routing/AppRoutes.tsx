@@ -88,6 +88,7 @@ import EmployerFindings from '@/pages/compliance/employers/EmployerFindings';
 import EmployerVisitWorkspace from '@/pages/compliance/employers/EmployerVisitWorkspace';
 import EmployerStatementDetail from '@/pages/compliance/employers/EmployerStatementDetail';
 import Employer360 from '@/pages/compliance/employers/Employer360';
+import Employer360Search from '@/pages/compliance/employers/Employer360Search';
 import ComplianceRuleSimulator from '@/pages/compliance/tools/RuleSimulator';
 import ComplianceRiskSimulator from '@/pages/compliance/tools/RiskSimulator';
 
@@ -985,6 +986,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/field/employer-statements" element={<ProtectedLayout><EmployerStatements /></ProtectedLayout>} />
       <Route path="/compliance/field/employer-statement/:employerId" element={<ProtectedLayout><EmployerStatementDetail /></ProtectedLayout>} />
       <Route path="/compliance/field/visit/:employerId" element={<ProtectedLayout><EmployerVisitWorkspace /></ProtectedLayout>} />
+      <Route path="/compliance/field/employer-360" element={<ProtectedLayout><Employer360Search /></ProtectedLayout>} />
       <Route path="/compliance/field/employer-360/:employerId" element={<ProtectedLayout><Employer360 /></ProtectedLayout>} />
       <Route path="/compliance/field/employer-risk/:employerId" element={<ProtectedLayout><EmployerRiskProfile /></ProtectedLayout>} />
       {/* Removed: employer-hierarchy, employer-management (unclear ownership) */}

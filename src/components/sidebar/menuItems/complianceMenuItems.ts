@@ -219,6 +219,13 @@ export const complianceMenuItems = [
             description: "View all findings for employers",
           },
           {
+            title: "Employer 360°",
+            url: "/compliance/field/employer-360",
+            icon: FileText,
+            requiresPermission: "manage_compliance",
+            description: "Comprehensive employer profile and compliance view",
+          },
+          {
             title: "Employer Statements",
             url: "/compliance/field/employer-statements",
             icon: FileText,

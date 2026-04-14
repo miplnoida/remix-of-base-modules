@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -10,12 +10,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import {
   Building2, FileText, Bell, ClipboardCheck, Shield, Clock, DollarSign,
   Users, AlertTriangle, Loader2, Eye, TrendingUp, Scale, ArrowLeft,
+  Briefcase, MessageSquare, FolderOpen, Printer, Plus, Send, CalendarPlus,
+  ChevronUp, StickyNote, Gavel,
 } from 'lucide-react';
 import {
   fetchEmployerMaster, fetchEmployerFiling, fetchEmployerArrears, fetchEmployerPayments,
   fetchEmployerLegal, fetchEmployerWorkforce, fetchEmployerRisk, fetchEmployerViolations,
   fetchEmployerNotices, fetchEmployerFollowUps, fetchEmployerTimeline,
 } from '@/services/employer360Service';
+import {
+  fetchEmployerCases, fetchEmployerPaymentHistory, fetchEmployerCommunications,
+  fetchEmployerDocuments, fetchEmployerArrangements,
+} from '@/services/employer360ExtendedService';
+import {
+  useEmployerStatement, useEmployerArrears as useLedgerArrears,
+} from '@/hooks/useComplianceLedger';
 
 const RISK_BAND_COLORS: Record<string, string> = {
   LOW: 'bg-green-500/15 text-green-700',
@@ -30,6 +39,7 @@ const STATUS_COLORS: Record<string, string> = {
   ESCALATED: 'bg-destructive/10 text-destructive',
   RESOLVED: 'bg-green-500/15 text-green-700',
   CLOSED: 'bg-muted text-muted-foreground',
+  IN_PROGRESS: 'bg-blue-500/15 text-blue-700',
 };
 
 const EVENT_CATEGORY_COLORS: Record<string, string> = {
@@ -37,6 +47,7 @@ const EVENT_CATEGORY_COLORS: Record<string, string> = {
   NOTICE: 'bg-blue-500/15 text-blue-700',
   FOLLOW_UP: 'bg-orange-500/15 text-orange-700',
   RISK: 'bg-purple-500/15 text-purple-700',
+  PAYMENT: 'bg-green-500/15 text-green-700',
 };
 
 const formatDate = (val: string | null) => {
@@ -54,71 +65,31 @@ export default function Employer360() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
 
+  // ── Core queries ──
   const { data: master, isLoading: loadingMaster } = useQuery({
-    queryKey: ['employer360_master', employerId],
-    queryFn: () => fetchEmployerMaster(employerId!),
-    enabled: !!employerId,
+    queryKey: ['employer360_master', employerId], queryFn: () => fetchEmployerMaster(employerId!), enabled: !!employerId,
   });
+  const { data: filing } = useQuery({ queryKey: ['employer360_filing', employerId], queryFn: () => fetchEmployerFiling(employerId!), enabled: !!employerId });
+  const { data: arrears } = useQuery({ queryKey: ['employer360_arrears', employerId], queryFn: () => fetchEmployerArrears(employerId!), enabled: !!employerId });
+  const { data: payments } = useQuery({ queryKey: ['employer360_payments', employerId], queryFn: () => fetchEmployerPayments(employerId!), enabled: !!employerId });
+  const { data: legal } = useQuery({ queryKey: ['employer360_legal', employerId], queryFn: () => fetchEmployerLegal(employerId!), enabled: !!employerId });
+  const { data: workforce } = useQuery({ queryKey: ['employer360_workforce', employerId], queryFn: () => fetchEmployerWorkforce(employerId!), enabled: !!employerId });
+  const { data: risk } = useQuery({ queryKey: ['employer360_risk', employerId], queryFn: () => fetchEmployerRisk(employerId!), enabled: !!employerId });
+  const { data: violations = [] } = useQuery({ queryKey: ['employer360_violations', employerId], queryFn: () => fetchEmployerViolations(employerId!), enabled: !!employerId });
+  const { data: notices = [] } = useQuery({ queryKey: ['employer360_notices', employerId], queryFn: () => fetchEmployerNotices(employerId!), enabled: !!employerId });
+  const { data: followUps = [] } = useQuery({ queryKey: ['employer360_followups', employerId], queryFn: () => fetchEmployerFollowUps(employerId!), enabled: !!employerId });
+  const { data: timeline = [] } = useQuery({ queryKey: ['employer360_timeline', employerId], queryFn: () => fetchEmployerTimeline(employerId!), enabled: !!employerId });
 
-  const { data: filing } = useQuery({
-    queryKey: ['employer360_filing', employerId],
-    queryFn: () => fetchEmployerFiling(employerId!),
-    enabled: !!employerId,
-  });
+  // ── Extended queries ──
+  const { data: cases = [] } = useQuery({ queryKey: ['employer360_cases', employerId], queryFn: () => fetchEmployerCases(employerId!), enabled: !!employerId });
+  const { data: paymentHistory = [] } = useQuery({ queryKey: ['employer360_payment_history', employerId], queryFn: () => fetchEmployerPaymentHistory(employerId!), enabled: !!employerId });
+  const { data: communications = [] } = useQuery({ queryKey: ['employer360_comms', employerId], queryFn: () => fetchEmployerCommunications(employerId!), enabled: !!employerId });
+  const { data: documents = [] } = useQuery({ queryKey: ['employer360_docs', employerId], queryFn: () => fetchEmployerDocuments(employerId!), enabled: !!employerId });
+  const { data: arrangements = [] } = useQuery({ queryKey: ['employer360_arrangements', employerId], queryFn: () => fetchEmployerArrangements(employerId!), enabled: !!employerId });
 
-  const { data: arrears } = useQuery({
-    queryKey: ['employer360_arrears', employerId],
-    queryFn: () => fetchEmployerArrears(employerId!),
-    enabled: !!employerId,
-  });
-
-  const { data: payments } = useQuery({
-    queryKey: ['employer360_payments', employerId],
-    queryFn: () => fetchEmployerPayments(employerId!),
-    enabled: !!employerId,
-  });
-
-  const { data: legal } = useQuery({
-    queryKey: ['employer360_legal', employerId],
-    queryFn: () => fetchEmployerLegal(employerId!),
-    enabled: !!employerId,
-  });
-
-  const { data: workforce } = useQuery({
-    queryKey: ['employer360_workforce', employerId],
-    queryFn: () => fetchEmployerWorkforce(employerId!),
-    enabled: !!employerId,
-  });
-
-  const { data: risk } = useQuery({
-    queryKey: ['employer360_risk', employerId],
-    queryFn: () => fetchEmployerRisk(employerId!),
-    enabled: !!employerId,
-  });
-
-  const { data: violations = [] } = useQuery({
-    queryKey: ['employer360_violations', employerId],
-    queryFn: () => fetchEmployerViolations(employerId!),
-    enabled: !!employerId,
-  });
-
-  const { data: notices = [] } = useQuery({
-    queryKey: ['employer360_notices', employerId],
-    queryFn: () => fetchEmployerNotices(employerId!),
-    enabled: !!employerId,
-  });
-
-  const { data: followUps = [] } = useQuery({
-    queryKey: ['employer360_followups', employerId],
-    queryFn: () => fetchEmployerFollowUps(employerId!),
-    enabled: !!employerId,
-  });
-
-  const { data: timeline = [] } = useQuery({
-    queryKey: ['employer360_timeline', employerId],
-    queryFn: () => fetchEmployerTimeline(employerId!),
-    enabled: !!employerId,
-  });
+  // ── Ledger statement for embedded view ──
+  const { data: ledgerStatement = [] } = useEmployerStatement(employerId);
+  const { data: ledgerArrears = [] } = useLedgerArrears(employerId);
 
   if (loadingMaster) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -128,91 +99,93 @@ export default function Employer360() {
     return (
       <div className="container mx-auto p-6 text-center">
         <h2 className="text-2xl font-bold text-foreground">Employer not found</h2>
-        <p className="text-muted-foreground mt-2">No employer record found for ID: {employerId}</p>
-        <Button onClick={() => navigate(-1)} className="mt-4"><ArrowLeft className="h-4 w-4 mr-2" />Go Back</Button>
+        <p className="text-muted-foreground mt-2">No employer record for ID: {employerId}</p>
+        <Button onClick={() => navigate('/compliance/field/employer-360')} className="mt-4"><ArrowLeft className="h-4 w-4 mr-2" />Back to Search</Button>
       </div>
     );
   }
 
   const activeViolations = violations.filter((v: any) => !['RESOLVED', 'CLOSED', 'CANCELLED'].includes(v.status));
+  const activeCases = cases.filter((c: any) => !['RESOLVED', 'CLOSED'].includes(c.status));
   const riskBand = risk?.override_band || risk?.risk_band || 'N/A';
+  const totalLedgerArrears = ledgerArrears.reduce((sum, a) => sum + (a.net_balance || 0), 0);
+  const activeArrangement = arrangements.find((a: any) => a.status === 'ACTIVE');
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
-        title={`Employer 360: ${master.employer_name}`}
+        title={master.employer_name}
         subtitle={`Registration: ${employerId} | Office: ${master.office_code || '—'} | Status: ${master.status || '—'}`}
         breadcrumbs={[
           { label: 'Compliance', href: '/compliance' },
-          { label: 'Employer 360' },
+          { label: 'Employer 360°', href: '/compliance/field/employer-360' },
+          { label: master.employer_name },
         ]}
+        actions={
+          <div className="flex gap-2 flex-wrap">
+            <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/field/employer-statement/${employerId}`)}>
+              <Printer className="h-4 w-4 mr-1" />Statement
+            </Button>
+            <Button size="sm" variant="outline"><StickyNote className="h-4 w-4 mr-1" />Add Note</Button>
+            <Button size="sm" variant="outline"><Send className="h-4 w-4 mr-1" />Send Notice</Button>
+            <Button size="sm" variant="outline"><CalendarPlus className="h-4 w-4 mr-1" />Follow-Up</Button>
+            <Button size="sm" variant="outline"><ChevronUp className="h-4 w-4 mr-1" />Escalate</Button>
+          </div>
+        }
       />
 
+      {/* Warning Banners */}
+      {(arrears?.has_arrears || activeViolations.length > 0 || legal?.has_active_legal) && (
+        <div className="space-y-2">
+          {arrears?.has_arrears && (
+            <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-lg text-sm text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="font-medium">Outstanding arrears: {formatCurrency(arrears.total_outstanding ?? 0)}</span>
+              {activeArrangement && <Badge variant="outline" className="ml-2 text-xs">Payment arrangement active</Badge>}
+            </div>
+          )}
+          {legal?.has_active_legal && (
+            <div className="flex items-center gap-2 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg text-sm text-orange-700">
+              <Gavel className="h-4 w-4" />
+              <span className="font-medium">Active legal proceedings ({(legal.active_suit_count || 0) + (legal.active_escalation_count || 0)})</span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <div className="text-xs text-muted-foreground">Risk Band</div>
-            <Badge className={`mt-1 ${RISK_BAND_COLORS[riskBand] || 'bg-muted text-muted-foreground'}`}>{riskBand}</Badge>
-            {risk?.total_score != null && <div className="text-lg font-bold mt-1">{risk.total_score.toFixed(1)}</div>}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <div className="text-xs text-muted-foreground">Active Violations</div>
-            <div className="text-2xl font-bold text-foreground">{activeViolations.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <div className="text-xs text-muted-foreground">Outstanding</div>
-            <div className="text-lg font-bold text-destructive">{formatCurrency(arrears?.total_outstanding ?? null)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <div className="text-xs text-muted-foreground">Missed Filings</div>
-            <div className="text-2xl font-bold text-foreground">{filing?.missed_filings_12m ?? '—'}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <div className="text-xs text-muted-foreground">Workforce</div>
-            <div className="text-lg font-bold text-foreground">{workforce?.registered_total ?? '—'}</div>
-            {workforce?.employee_delta != null && workforce.employee_delta !== 0 && (
-              <div className={`text-xs ${workforce.employee_delta > 0 ? 'text-green-600' : 'text-destructive'}`}>
-                Δ {workforce.employee_delta > 0 ? '+' : ''}{workforce.employee_delta}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 pb-3">
-            <div className="text-xs text-muted-foreground">Legal Actions</div>
-            <div className="text-2xl font-bold text-foreground">{(legal?.active_suit_count ?? 0) + (legal?.active_escalation_count ?? 0)}</div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Risk</div><Badge className={`mt-1 ${RISK_BAND_COLORS[riskBand] || 'bg-muted text-muted-foreground'}`}>{riskBand}</Badge></CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Outstanding</div><div className="text-lg font-bold text-destructive">{formatCurrency(arrears?.total_outstanding ?? 0)}</div></CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Violations</div><div className="text-2xl font-bold">{activeViolations.length}</div></CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Cases</div><div className="text-2xl font-bold">{activeCases.length}</div></CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Missed Filings</div><div className="text-2xl font-bold">{filing?.missed_filings_12m ?? '—'}</div></CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Workforce</div><div className="text-lg font-bold">{workforce?.registered_total ?? '—'}</div></CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Paid YTD</div><div className="text-lg font-bold text-green-600">{formatCurrency(payments?.total_amount_12m ?? 0)}</div></CardContent></Card>
+        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Legal</div><div className="text-2xl font-bold">{(legal?.active_suit_count ?? 0) + (legal?.active_escalation_count ?? 0)}</div></CardContent></Card>
       </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-7">
-          <TabsTrigger value="overview"><Building2 className="h-4 w-4 mr-1" />Overview</TabsTrigger>
-          <TabsTrigger value="violations"><AlertTriangle className="h-4 w-4 mr-1" />Violations ({violations.length})</TabsTrigger>
-          <TabsTrigger value="notices"><Bell className="h-4 w-4 mr-1" />Notices ({notices.length})</TabsTrigger>
-          <TabsTrigger value="followups"><ClipboardCheck className="h-4 w-4 mr-1" />Follow-Ups ({followUps.length})</TabsTrigger>
-          <TabsTrigger value="risk"><Shield className="h-4 w-4 mr-1" />Risk</TabsTrigger>
-          <TabsTrigger value="financial"><DollarSign className="h-4 w-4 mr-1" />Financial</TabsTrigger>
-          <TabsTrigger value="timeline"><Clock className="h-4 w-4 mr-1" />Timeline</TabsTrigger>
+        <TabsList className="flex flex-wrap h-auto gap-1">
+          <TabsTrigger value="overview"><Building2 className="h-3.5 w-3.5 mr-1" />Overview</TabsTrigger>
+          <TabsTrigger value="financial"><DollarSign className="h-3.5 w-3.5 mr-1" />Financials</TabsTrigger>
+          <TabsTrigger value="violations"><AlertTriangle className="h-3.5 w-3.5 mr-1" />Violations ({violations.length})</TabsTrigger>
+          <TabsTrigger value="cases"><Briefcase className="h-3.5 w-3.5 mr-1" />Cases ({cases.length})</TabsTrigger>
+          <TabsTrigger value="payments"><DollarSign className="h-3.5 w-3.5 mr-1" />Payments</TabsTrigger>
+          <TabsTrigger value="statement"><FileText className="h-3.5 w-3.5 mr-1" />Statement</TabsTrigger>
+          <TabsTrigger value="communications"><MessageSquare className="h-3.5 w-3.5 mr-1" />Comms ({communications.length})</TabsTrigger>
+          <TabsTrigger value="documents"><FolderOpen className="h-3.5 w-3.5 mr-1" />Docs ({documents.length})</TabsTrigger>
+          <TabsTrigger value="timeline"><Clock className="h-3.5 w-3.5 mr-1" />Timeline</TabsTrigger>
         </TabsList>
 
-        {/* Overview Tab */}
+        {/* ═══ OVERVIEW TAB ═══ */}
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader><CardTitle className="text-sm">Registration Details</CardTitle></CardHeader>
               <CardContent className="grid gap-3 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Registration #</span><span className="font-medium">{employerId}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Registration #</span><span className="font-medium font-mono">{employerId}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Name</span><span className="font-medium">{master.employer_name}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Status</span><Badge variant="outline">{master.status || '—'}</Badge></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Office</span><span className="font-medium">{master.office_code || '—'}</span></div>
@@ -223,13 +196,12 @@ export default function Employer360() {
             <Card>
               <CardHeader><CardTitle className="text-sm">Workforce</CardTitle></CardHeader>
               <CardContent className="grid gap-3 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Males (registered)</span><span className="font-medium">{workforce?.registered_males ?? master.males_employed ?? '—'}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Females (registered)</span><span className="font-medium">{workforce?.registered_females ?? master.females_employed ?? '—'}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Total (registered)</span><span className="font-bold">{workforce?.registered_total ?? '—'}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Last Reported (C3)</span><span className="font-medium">{workforce?.last_reported_employees ?? '—'}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Last Report Period</span><span className="font-medium">{formatDate(workforce?.last_reported_period ?? null)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Males</span><span className="font-medium">{workforce?.registered_males ?? master.males_employed ?? '—'}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Females</span><span className="font-medium">{workforce?.registered_females ?? master.females_employed ?? '—'}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total</span><span className="font-bold">{workforce?.registered_total ?? '—'}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Last Reported</span><span className="font-medium">{workforce?.last_reported_employees ?? '—'}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Delta</span>
-                  <span className={`font-bold ${(workforce?.employee_delta ?? 0) < 0 ? 'text-destructive' : ''}`}>
+                  <span className={`font-bold ${(workforce?.employee_delta ?? 0) < 0 ? 'text-destructive' : 'text-green-600'}`}>
                     {workforce?.employee_delta != null ? (workforce.employee_delta > 0 ? '+' : '') + workforce.employee_delta : '—'}
                   </span>
                 </div>
@@ -241,41 +213,117 @@ export default function Employer360() {
               <CardHeader><CardTitle className="text-sm">Filing Status (12 months)</CardTitle></CardHeader>
               <CardContent className="grid gap-3 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Total Filings</span><span className="font-medium">{filing?.total_filings_12m ?? '—'}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Missed Filings</span><span className={`font-bold ${(filing?.missed_filings_12m ?? 0) > 0 ? 'text-destructive' : ''}`}>{filing?.missed_filings_12m ?? '—'}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Missed</span><span className={`font-bold ${(filing?.missed_filings_12m ?? 0) > 0 ? 'text-destructive' : ''}`}>{filing?.missed_filings_12m ?? '—'}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Last Filed</span><span className="font-medium">{formatDate(filing?.last_filing_date ?? null)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Current?</span><Badge variant={filing?.is_current ? 'default' : 'destructive'}>{filing?.is_current ? 'Yes' : 'No'}</Badge></div>
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle className="text-sm">Legal Status</CardTitle></CardHeader>
-              <CardContent className="grid gap-3 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Active Suits</span><span className="font-bold">{legal?.active_suit_count ?? 0}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Active Escalations</span><span className="font-bold">{legal?.active_escalation_count ?? 0}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Latest Stage</span><span className="font-medium">{legal?.latest_stage || '—'}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Has Active Legal?</span><Badge variant={legal?.has_active_legal ? 'destructive' : 'default'}>{legal?.has_active_legal ? 'Yes' : 'No'}</Badge></div>
+              <CardHeader><CardTitle className="text-sm">Risk Profile</CardTitle></CardHeader>
+              <CardContent>
+                {!risk ? <p className="text-sm text-muted-foreground">No risk profile</p> : (
+                  <div className="flex items-center gap-4">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold">{risk.total_score?.toFixed(1) ?? '—'}</div>
+                      <Badge className={`mt-1 ${RISK_BAND_COLORS[riskBand] || ''}`}>{riskBand}</Badge>
+                    </div>
+                    <div className="flex-1 grid grid-cols-5 gap-2">
+                      {[
+                        { label: 'Arr', score: risk.arrears_score },
+                        { label: 'Viol', score: risk.violation_score },
+                        { label: 'File', score: risk.filing_score },
+                        { label: 'Pay', score: risk.payment_behavior_score },
+                        { label: 'Leg', score: risk.legal_history_score },
+                      ].map(d => (
+                        <div key={d.label} className="text-center p-1.5 bg-muted/50 rounded">
+                          <div className="text-sm font-bold">{d.score?.toFixed(0) ?? '—'}</div>
+                          <div className="text-[9px] text-muted-foreground">{d.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* Violations Tab */}
+        {/* ═══ FINANCIAL TAB ═══ */}
+        <TabsContent value="financial" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Total Outstanding</p><p className="text-2xl font-bold text-destructive">{formatCurrency(arrears?.total_outstanding ?? 0)}</p></CardContent></Card>
+            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Current Arrears</p><p className="text-2xl font-bold">{formatCurrency(arrears?.current_arrears ?? 0)}</p></CardContent></Card>
+            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Penalties</p><p className="text-2xl font-bold text-orange-600">{formatCurrency(arrears?.current_penalty ?? 0)}</p></CardContent></Card>
+            <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Paid (12m)</p><p className="text-2xl font-bold text-green-600">{formatCurrency(payments?.total_amount_12m ?? 0)}</p></CardContent></Card>
+          </div>
+          {/* Arrears by Fund */}
+          {ledgerArrears.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Arrears by Fund</CardTitle></CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fund</TableHead>
+                      <TableHead className="text-right">Principal</TableHead>
+                      <TableHead className="text-right">Penalties</TableHead>
+                      <TableHead className="text-right">Interest</TableHead>
+                      <TableHead className="text-right">Payments</TableHead>
+                      <TableHead className="text-right font-bold">Balance</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ledgerArrears.map(a => (
+                      <TableRow key={a.fund_type}>
+                        <TableCell><Badge variant="outline">{a.fund_type}</Badge></TableCell>
+                        <TableCell className="text-right font-mono text-sm">{formatCurrency(a.principal_due)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm text-orange-600">{formatCurrency(a.penalties)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{formatCurrency(a.interest)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm text-green-600">{formatCurrency(a.payments)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm font-bold text-destructive">{formatCurrency(a.net_balance)}</TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow className="font-bold bg-muted">
+                      <TableCell>Total</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(ledgerArrears.reduce((s, a) => s + a.principal_due, 0))}</TableCell>
+                      <TableCell className="text-right font-mono text-orange-600">{formatCurrency(ledgerArrears.reduce((s, a) => s + a.penalties, 0))}</TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(ledgerArrears.reduce((s, a) => s + a.interest, 0))}</TableCell>
+                      <TableCell className="text-right font-mono text-green-600">{formatCurrency(ledgerArrears.reduce((s, a) => s + a.payments, 0))}</TableCell>
+                      <TableCell className="text-right font-mono text-destructive">{formatCurrency(totalLedgerArrears)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+          {/* Arrangement */}
+          {activeArrangement && (
+            <Card className="border-primary/30">
+              <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Scale className="h-4 w-4" />Active Payment Arrangement</CardTitle></CardHeader>
+              <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div><p className="text-xs text-muted-foreground">Arrangement #</p><p className="font-medium">{activeArrangement.arrangement_number}</p></div>
+                <div><p className="text-xs text-muted-foreground">Total Debt</p><p className="font-medium">{formatCurrency(activeArrangement.total_debt)}</p></div>
+                <div><p className="text-xs text-muted-foreground">Paid</p><p className="font-medium text-green-600">{formatCurrency(activeArrangement.total_paid)}</p></div>
+                <div><p className="text-xs text-muted-foreground">Remaining</p><p className="font-medium text-destructive">{formatCurrency((activeArrangement.total_debt || 0) - (activeArrangement.total_paid || 0))}</p></div>
+              </CardContent>
+            </Card>
+          )}
+          <Button variant="outline" onClick={() => navigate(`/compliance/field/employer-statement/${employerId}`)}>
+            <FileText className="h-4 w-4 mr-2" />View Full Financial Statement
+          </Button>
+        </TabsContent>
+
+        {/* ═══ VIOLATIONS TAB ═══ */}
         <TabsContent value="violations">
           <Card>
             <CardHeader><CardTitle>Violations ({violations.length})</CardTitle></CardHeader>
             <CardContent>
-              {violations.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No violations on record</div>
-              ) : (
+              {violations.length === 0 ? <div className="text-center py-8 text-muted-foreground">No violations on record</div> : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Violation #</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Priority</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead></TableHead>
+                      <TableHead>Violation #</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead>
+                      <TableHead>Priority</TableHead><TableHead>Amount</TableHead><TableHead>Created</TableHead><TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -287,9 +335,7 @@ export default function Employer360() {
                         <TableCell className="text-xs">{v.priority}</TableCell>
                         <TableCell className="text-xs">{formatCurrency(Number(v.total_amount) || 0)}</TableCell>
                         <TableCell className="text-xs">{formatDate(v.created_at)}</TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="ghost" onClick={() => navigate(`/compliance/violations/${v.id}`)}><Eye className="h-3.5 w-3.5" /></Button>
-                        </TableCell>
+                        <TableCell><Button size="sm" variant="ghost" onClick={() => navigate(`/compliance/violations/${v.id}`)}><Eye className="h-3.5 w-3.5" /></Button></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -299,34 +345,29 @@ export default function Employer360() {
           </Card>
         </TabsContent>
 
-        {/* Notices Tab */}
-        <TabsContent value="notices">
+        {/* ═══ CASES TAB ═══ */}
+        <TabsContent value="cases">
           <Card>
-            <CardHeader><CardTitle>Notices ({notices.length})</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Compliance Cases ({cases.length})</CardTitle></CardHeader>
             <CardContent>
-              {notices.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No notices issued</div>
-              ) : (
+              {cases.length === 0 ? <div className="text-center py-8 text-muted-foreground">No compliance cases</div> : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Notice #</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Delivery</TableHead>
-                      <TableHead>Sent</TableHead>
-                      <TableHead>Response</TableHead>
+                      <TableHead>Case #</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead>
+                      <TableHead>Priority</TableHead><TableHead>Created</TableHead><TableHead>Resolved</TableHead><TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {notices.map((n: any) => (
-                      <TableRow key={n.id}>
-                        <TableCell className="font-mono text-xs">{n.notice_number}</TableCell>
-                        <TableCell className="text-xs">{(n.notice_type || '').replace(/_/g, ' ')}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-xs">{n.status}</Badge></TableCell>
-                        <TableCell className="text-xs">{(n.delivery_method || '').replace(/_/g, ' ')}</TableCell>
-                        <TableCell className="text-xs">{formatDate(n.sent_at)}</TableCell>
-                        <TableCell>{n.response_received ? <Badge className="bg-green-500/15 text-green-700 text-[10px]">Yes</Badge> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
+                    {cases.map((c: any) => (
+                      <TableRow key={c.id}>
+                        <TableCell className="font-mono text-xs">{c.case_number}</TableCell>
+                        <TableCell className="text-xs">{(c.case_type || '').replace(/_/g, ' ')}</TableCell>
+                        <TableCell><Badge className={`text-xs ${STATUS_COLORS[c.status] || ''}`}>{c.status?.replace(/_/g, ' ')}</Badge></TableCell>
+                        <TableCell className="text-xs">{c.priority}</TableCell>
+                        <TableCell className="text-xs">{formatDate(c.created_at)}</TableCell>
+                        <TableCell className="text-xs">{formatDate(c.resolved_at)}</TableCell>
+                        <TableCell><Button size="sm" variant="ghost" onClick={() => navigate(`/compliance/cases/${c.id}`)}><Eye className="h-3.5 w-3.5" /></Button></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -336,34 +377,27 @@ export default function Employer360() {
           </Card>
         </TabsContent>
 
-        {/* Follow-Ups Tab */}
-        <TabsContent value="followups">
+        {/* ═══ PAYMENTS TAB ═══ */}
+        <TabsContent value="payments">
           <Card>
-            <CardHeader><CardTitle>Follow-Up Actions ({followUps.length})</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Payment History</CardTitle></CardHeader>
             <CardContent>
-              {followUps.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No follow-up actions</div>
-              ) : (
+              {paymentHistory.length === 0 ? <div className="text-center py-8 text-muted-foreground">No payment records</div> : (
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Priority</TableHead>
-                      <TableHead>Due Date</TableHead>
-                      <TableHead>Assigned To</TableHead>
-                      <TableHead>Outcome</TableHead>
+                      <TableHead>Date</TableHead><TableHead>Period</TableHead><TableHead>Fund</TableHead>
+                      <TableHead>Description</TableHead><TableHead className="text-right">Amount</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {followUps.map((fa: any) => (
-                      <TableRow key={fa.id}>
-                        <TableCell className="text-xs">{(fa.action_type || '').replace(/_/g, ' ')}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-xs">{fa.status}</Badge></TableCell>
-                        <TableCell className="text-xs">{fa.priority}</TableCell>
-                        <TableCell className="text-xs">{formatDate(fa.due_date)}</TableCell>
-                        <TableCell className="text-xs">{fa.assigned_to_name || '—'}</TableCell>
-                        <TableCell className="text-xs max-w-xs truncate">{fa.outcome || '—'}</TableCell>
+                    {paymentHistory.map((p: any) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="text-xs">{formatDate(p.posted_at)}</TableCell>
+                        <TableCell className="font-mono text-xs">{p.period}</TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs">{p.fund_type}</Badge></TableCell>
+                        <TableCell className="text-xs max-w-xs truncate">{p.description}</TableCell>
+                        <TableCell className="text-right font-mono text-sm text-green-600">{formatCurrency(p.credit_amount)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -373,94 +407,119 @@ export default function Employer360() {
           </Card>
         </TabsContent>
 
-        {/* Risk Tab */}
-        <TabsContent value="risk" className="space-y-4">
+        {/* ═══ STATEMENT TAB (embedded preview) ═══ */}
+        <TabsContent value="statement" className="space-y-4">
           <Card>
-            <CardHeader><CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" />Risk Profile</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-sm">Ledger Preview (last 20 entries)</CardTitle>
+              <Button size="sm" onClick={() => navigate(`/compliance/field/employer-statement/${employerId}`)}>
+                <Eye className="h-4 w-4 mr-1" />Full Statement
+              </Button>
+            </CardHeader>
             <CardContent>
-              {!risk ? (
-                <div className="text-center py-8 text-muted-foreground">No risk profile calculated</div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <div className="text-4xl font-bold">{risk.total_score?.toFixed(1) ?? '—'}</div>
-                      <Badge className={`mt-1 ${RISK_BAND_COLORS[risk.override_band || risk.risk_band || ''] || ''}`}>
-                        {risk.override_band || risk.risk_band || '—'}
-                      </Badge>
-                      {risk.override_band && <div className="text-[10px] text-muted-foreground mt-1">Override: {risk.override_reason}</div>}
-                    </div>
-                    <div className="flex-1 grid grid-cols-5 gap-3">
-                      {[
-                        { label: 'Arrears', score: risk.arrears_score },
-                        { label: 'Violations', score: risk.violation_score },
-                        { label: 'Filing', score: risk.filing_score },
-                        { label: 'Payments', score: risk.payment_behavior_score },
-                        { label: 'Legal', score: risk.legal_history_score },
-                      ].map(dim => (
-                        <div key={dim.label} className="text-center p-2 bg-muted/50 rounded-lg">
-                          <div className="text-lg font-bold">{dim.score?.toFixed(1) ?? '—'}</div>
-                          <div className="text-[10px] text-muted-foreground">{dim.label}</div>
+              {ledgerStatement.length === 0 ? <div className="text-center py-8 text-muted-foreground">No ledger entries</div> : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead><TableHead>Period</TableHead><TableHead>Fund</TableHead>
+                      <TableHead>Type</TableHead><TableHead className="text-right">Debit</TableHead>
+                      <TableHead className="text-right">Credit</TableHead><TableHead className="text-right">Balance</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ledgerStatement.slice(0, 20).map((e) => (
+                      <TableRow key={e.entry_id}>
+                        <TableCell className="text-xs">{formatDate(e.posted_at)}</TableCell>
+                        <TableCell className="font-mono text-xs">{e.period}</TableCell>
+                        <TableCell><Badge variant="outline" className="text-[10px]">{e.fund_type}</Badge></TableCell>
+                        <TableCell className="text-xs">{e.entry_type.replace(/_/g, ' ')}</TableCell>
+                        <TableCell className="text-right font-mono text-xs text-destructive">{e.debit_amount > 0 ? formatCurrency(e.debit_amount) : '—'}</TableCell>
+                        <TableCell className="text-right font-mono text-xs text-green-600">{e.credit_amount > 0 ? formatCurrency(e.credit_amount) : '—'}</TableCell>
+                        <TableCell className="text-right font-mono text-xs font-medium">{formatCurrency(e.running_balance)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ═══ COMMUNICATIONS TAB ═══ */}
+        <TabsContent value="communications">
+          <Card>
+            <CardHeader><CardTitle>Communications ({communications.length})</CardTitle></CardHeader>
+            <CardContent>
+              {communications.length === 0 ? <div className="text-center py-8 text-muted-foreground">No communications recorded</div> : (
+                <div className="space-y-3">
+                  {communications.map((c: any) => (
+                    <div key={c.id} className="flex items-start gap-3 p-3 border rounded-lg">
+                      <div className={`p-1.5 rounded ${c.source === 'NOTICE' ? 'bg-blue-500/15' : 'bg-primary/10'}`}>
+                        {c.source === 'NOTICE' ? <Bell className="h-4 w-4 text-blue-600" /> : <MessageSquare className="h-4 w-4 text-primary" />}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{c.title}</span>
+                          <Badge variant="outline" className="text-[10px]">{c.source}</Badge>
                         </div>
-                      ))}
+                        <p className="text-xs text-muted-foreground mt-0.5">{c.detail}</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(c.date)}</span>
                     </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground">Last calculated: {formatDate(risk.last_calculated_at)}</div>
+                  ))}
                 </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Financial Tab */}
-        <TabsContent value="financial" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader><CardTitle className="text-sm">Arrears Summary</CardTitle></CardHeader>
-              <CardContent className="grid gap-3 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Current Arrears</span><span className="font-bold text-destructive">{formatCurrency(arrears?.current_arrears ?? null)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Penalties</span><span className="font-medium">{formatCurrency(arrears?.current_penalty ?? null)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Total Outstanding</span><span className="font-bold text-lg text-destructive">{formatCurrency(arrears?.total_outstanding ?? null)}</span></div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader><CardTitle className="text-sm">Payment Activity (12 months)</CardTitle></CardHeader>
-              <CardContent className="grid gap-3 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Total Payments</span><span className="font-medium">{payments?.total_payments_12m ?? '—'}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Total Amount</span><span className="font-medium">{formatCurrency(payments?.total_amount_12m ?? null)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Last Payment</span><span className="font-medium">{formatDate(payments?.last_payment_date ?? null)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Recent Payment?</span><Badge variant={payments?.has_recent_payment ? 'default' : 'destructive'}>{payments?.has_recent_payment ? 'Yes' : 'No'}</Badge></div>
-              </CardContent>
-            </Card>
-          </div>
-          <Button variant="outline" onClick={() => navigate(`/compliance/employer-statement/${employerId}`)}>
-            <DollarSign className="h-4 w-4 mr-2" />View Full Financial Statement
-          </Button>
+        {/* ═══ DOCUMENTS TAB ═══ */}
+        <TabsContent value="documents">
+          <Card>
+            <CardHeader><CardTitle>Documents ({documents.length})</CardTitle></CardHeader>
+            <CardContent>
+              {documents.length === 0 ? <div className="text-center py-8 text-muted-foreground">No documents</div> : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Document</TableHead><TableHead>Type</TableHead><TableHead>Uploaded</TableHead>
+                      <TableHead>By</TableHead><TableHead>Confidential</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {documents.map((d: any) => (
+                      <TableRow key={d.id}>
+                        <TableCell className="text-sm font-medium">{d.title || d.file_name}</TableCell>
+                        <TableCell className="text-xs">{(d.document_type || '').replace(/_/g, ' ')}</TableCell>
+                        <TableCell className="text-xs">{formatDate(d.created_at)}</TableCell>
+                        <TableCell className="text-xs">{d.uploaded_by_name || '—'}</TableCell>
+                        <TableCell>{d.is_confidential ? <Badge variant="destructive" className="text-xs">Yes</Badge> : <span className="text-xs text-muted-foreground">No</span>}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
-        {/* Timeline Tab */}
+        {/* ═══ TIMELINE TAB ═══ */}
         <TabsContent value="timeline">
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />Activity Timeline</CardTitle></CardHeader>
             <CardContent>
-              {timeline.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">No activity recorded</div>
-              ) : (
+              {timeline.length === 0 ? <div className="text-center py-8 text-muted-foreground">No activity recorded</div> : (
                 <div className="relative">
                   <div className="absolute left-4 top-0 bottom-0 w-px bg-border" />
                   <div className="space-y-4">
                     {timeline.map((event, idx) => (
                       <div key={`${event.reference_id}-${idx}`} className="relative pl-10">
                         <div className="absolute left-2.5 top-1.5 w-3 h-3 rounded-full border-2 border-background bg-primary" />
-                        <div className="p-3 border border-border rounded-lg bg-card">
+                        <div className="p-3 border rounded-lg bg-card">
                           <div className="flex items-center justify-between mb-1">
                             <div className="flex items-center gap-2">
-                              <Badge className={`text-[10px] ${EVENT_CATEGORY_COLORS[event.event_category] || ''}`}>
-                                {event.event_category}
-                              </Badge>
-                              {event.status && (
-                                <Badge variant="outline" className="text-[10px]">{event.status}</Badge>
-                              )}
+                              <Badge className={`text-[10px] ${EVENT_CATEGORY_COLORS[event.event_category] || ''}`}>{event.event_category}</Badge>
+                              {event.status && <Badge variant="outline" className="text-[10px]">{event.status}</Badge>}
                             </div>
                             <span className="text-xs text-muted-foreground">{formatDate(event.event_date)}</span>
                           </div>

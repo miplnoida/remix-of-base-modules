@@ -1,302 +1,475 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Download, Printer, ArrowLeft, Calendar as CalendarIcon, Loader2 } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useState } from "react";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
-import { fetchEmployerStatementTransactions } from "@/services/complianceDataService";
+import { useState, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import {
+  ArrowLeft, Download, Printer, CalendarIcon, Loader2, FileText,
+  TrendingUp, TrendingDown, AlertTriangle, DollarSign,
+} from 'lucide-react';
+import { PageHeader } from '@/components/shared/PageHeader';
+import {
+  useEmployerStatement, useEmployerArrears, type LedgerEntry,
+} from '@/hooks/useComplianceLedger';
+import { fetchEmployerMaster } from '@/services/employer360Service';
+import { useQuery } from '@tanstack/react-query';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
+const formatCurrency = (amt: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 }).format(amt);
+
+const formatDateStr = (val: string | null) => {
+  if (!val) return '—';
+  try { return new Date(val).toLocaleDateString('en-GB'); } catch { return val; }
+};
+
+const entryTypeLabel = (t: string) => t.replace(/_/g, ' ');
 
 export default function EmployerStatementDetail() {
-  const navigate = useNavigate();
   const { employerId } = useParams();
-  const [fromDate, setFromDate] = useState<Date>();
-  const [toDate, setToDate] = useState<Date>();
-  const [reportType, setReportType] = useState<"detailed" | "summary">("detailed");
+  const navigate = useNavigate();
+  const printRef = useRef<HTMLDivElement>(null);
+  const [mode, setMode] = useState<'detailed' | 'summary'>('detailed');
+  const [fundFilter, setFundFilter] = useState('all');
+  const [fromPeriod, setFromPeriod] = useState('');
+  const [toPeriod, setToPeriod] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
 
-  const { data: statement, isLoading } = useQuery({
-    queryKey: ['ce_employer_statement_detail', employerId],
-    queryFn: () => fetchEmployerStatementTransactions(employerId!),
+  const { data: master } = useQuery({
+    queryKey: ['stmt_master', employerId],
+    queryFn: () => fetchEmployerMaster(employerId!),
     enabled: !!employerId,
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const { data: entries = [], isLoading } = useEmployerStatement(
+    employerId,
+    fromPeriod || undefined,
+    toPeriod || undefined,
+    fundFilter !== 'all' ? fundFilter : undefined,
+  );
 
-  if (!statement || (!statement.ssc.length && !statement.lvc.length && !statement.pec.length)) {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-4">No Statement Data Found</h2>
-          <p className="text-muted-foreground mb-4">No financial ledger entries found for this employer.</p>
-          <Button onClick={() => navigate('/compliance/employer-statements')}>Back to Statements</Button>
-        </div>
-      </div>
-    );
-  }
+  const { data: arrears = [] } = useEmployerArrears(employerId);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 }).format(amount);
-  };
-
-  const formatDateStr = (date: string) => {
-    return new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: '2-digit' });
-  };
-
-  const filterTransactionsByDate = (transactions: any[]) => {
-    if (!fromDate && !toDate) return transactions;
-    return transactions.filter(txn => {
-      const txnDate = new Date(txn.date);
-      if (fromDate && txnDate < fromDate) return false;
-      if (toDate && txnDate > toDate) return false;
-      return true;
-    });
-  };
-
-  const getSummaryTransactions = (transactions: any[]) => {
-    const yearlyData: { [key: string]: { debits: number; credits: number } } = {};
-    transactions.forEach(txn => {
-      const year = new Date(txn.date).getFullYear().toString();
-      if (!yearlyData[year]) yearlyData[year] = { debits: 0, credits: 0 };
-      if (txn.transactionType === 'DEBIT') yearlyData[year].debits += txn.amount;
-      else yearlyData[year].credits += txn.amount;
-    });
-    const summaryEntries: any[] = [];
-    let openingBalance = 0;
-    Object.keys(yearlyData).sort().forEach(year => {
-      const yd = yearlyData[year];
-      summaryEntries.push({ date: `${year}-01-01`, period: year, description: `Opening Balance - ${year}`, transactionType: 'OPENING', amount: 0, openingBalance });
-      if (yd.debits > 0) summaryEntries.push({ date: `${year}-12-31`, period: year, description: `Total Amount Due for ${year}`, transactionType: 'DEBIT', amount: yd.debits });
-      if (yd.credits > 0) summaryEntries.push({ date: `${year}-12-31`, period: year, description: `Total Payments Received for ${year}`, transactionType: 'CREDIT', amount: yd.credits });
-      openingBalance += yd.debits - yd.credits;
-    });
-    return summaryEntries;
-  };
-
-  const renderComponentSection = (componentName: string, componentCode: string, transactions: any[]) => {
-    const filteredTransactions = filterTransactionsByDate(transactions);
-    let openingBalance = 0;
-    if (fromDate) {
-      transactions.forEach(txn => {
-        const txnDate = new Date(txn.date);
-        if (txnDate < fromDate) openingBalance += txn.transactionType === 'DEBIT' ? txn.amount : -txn.amount;
-      });
-    }
-    const displayTransactions = reportType === "summary" ? getSummaryTransactions(filteredTransactions) : filteredTransactions;
-    let runningBalance = openingBalance;
-
-    return (
-      <div className="mb-8 border rounded-lg overflow-hidden" key={componentCode}>
-        <div className="bg-primary text-primary-foreground px-4 py-3">
-          <h3 className="text-lg font-semibold">{componentName} ({componentCode})</h3>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="w-[100px]">Date</TableHead>
-              <TableHead className="w-[120px]">Period</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead className="text-right w-[130px]">Debit (XCD)</TableHead>
-              <TableHead className="text-right w-[130px]">Credit (XCD)</TableHead>
-              <TableHead className="text-right w-[150px]">Balance (XCD)</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {(openingBalance !== 0 || fromDate) && (
-              <TableRow className="bg-muted/20 font-semibold border-b-2">
-                <TableCell className="text-sm">{fromDate ? formatDateStr(fromDate.toISOString()) : 'Start'}</TableCell>
-                <TableCell className="text-sm font-mono">-</TableCell>
-                <TableCell className="text-sm">Opening Balance</TableCell>
-                <TableCell className="text-right font-mono text-sm">-</TableCell>
-                <TableCell className="text-right font-mono text-sm">-</TableCell>
-                <TableCell className="text-right font-mono text-sm font-semibold text-info">{formatCurrency(openingBalance)}</TableCell>
-              </TableRow>
-            )}
-            {displayTransactions.map((txn: any, index: number) => {
-              if (txn.transactionType === 'OPENING') {
-                runningBalance = txn.openingBalance;
-                return (
-                  <TableRow key={index} className="bg-muted/20 font-semibold">
-                    <TableCell className="text-sm">{formatDateStr(txn.date)}</TableCell>
-                    <TableCell className="text-sm font-mono">{txn.period}</TableCell>
-                    <TableCell className="text-sm">{txn.description}</TableCell>
-                    <TableCell className="text-right font-mono text-sm">-</TableCell>
-                    <TableCell className="text-right font-mono text-sm">-</TableCell>
-                    <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(runningBalance)}</TableCell>
-                  </TableRow>
-                );
-              }
-              runningBalance = txn.transactionType === 'DEBIT' ? runningBalance + txn.amount : runningBalance - txn.amount;
-              return (
-                <TableRow key={index} className="hover:bg-muted/30">
-                  <TableCell className="text-sm">{formatDateStr(txn.date)}</TableCell>
-                  <TableCell className="text-sm font-mono">{txn.period}</TableCell>
-                  <TableCell className="text-sm">{txn.description}</TableCell>
-                  <TableCell className="text-right font-mono text-sm">{txn.transactionType === 'DEBIT' ? formatCurrency(txn.amount) : '-'}</TableCell>
-                  <TableCell className="text-right font-mono text-sm">{txn.transactionType === 'CREDIT' ? formatCurrency(txn.amount) : '-'}</TableCell>
-                  <TableCell className="text-right font-mono text-sm font-semibold">{formatCurrency(runningBalance)}</TableCell>
-                </TableRow>
-              );
-            })}
-            <TableRow className="bg-muted font-semibold">
-              <TableCell colSpan={3} className="text-right">Component Total:</TableCell>
-              <TableCell className="text-right font-mono">{formatCurrency(displayTransactions.filter((t: any) => t.transactionType === 'DEBIT').reduce((sum: number, t: any) => sum + t.amount, 0))}</TableCell>
-              <TableCell className="text-right font-mono">{formatCurrency(displayTransactions.filter((t: any) => t.transactionType === 'CREDIT').reduce((sum: number, t: any) => sum + t.amount, 0))}</TableCell>
-              <TableCell className="text-right font-mono text-primary">{formatCurrency(runningBalance)}</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-    );
-  };
-
-  const allComponents = [
-    { name: 'SSC', data: statement.ssc }, { name: 'SSF', data: statement.ssf },
-    { name: 'LVC', data: statement.lvc }, { name: 'LVF', data: statement.lvf },
-    { name: 'PEC', data: statement.pec }, { name: 'PEF', data: statement.pef },
-  ];
-  let totalDebits = 0, totalCredits = 0;
-  allComponents.forEach(comp => {
-    const ft = filterTransactionsByDate(comp.data);
-    const dt = reportType === "summary" ? getSummaryTransactions(ft) : ft;
-    totalDebits += dt.filter((t: any) => t.transactionType === 'DEBIT').reduce((s: number, t: any) => s + t.amount, 0);
-    totalCredits += dt.filter((t: any) => t.transactionType === 'CREDIT').reduce((s: number, t: any) => s + t.amount, 0);
+  // Apply type filter
+  const filtered = entries.filter((e) => {
+    if (typeFilter === 'debits') return e.debit_amount > 0;
+    if (typeFilter === 'credits') return e.credit_amount > 0;
+    if (typeFilter === 'penalties') return ['PENALTY_ASSESSED', 'INTEREST_ACCRUED'].includes(e.entry_type);
+    if (typeFilter === 'payments') return e.entry_type === 'PAYMENT_RECEIVED';
+    return true;
   });
-  const balance = totalDebits - totalCredits;
+
+  // Compute summary from detailed data
+  const totalDebits = filtered.reduce((s, e) => s + e.debit_amount, 0);
+  const totalCredits = filtered.reduce((s, e) => s + e.credit_amount, 0);
+  const closingBalance = filtered.length > 0 ? filtered[filtered.length - 1].running_balance : 0;
+  const openingBalance = filtered.length > 0 ? filtered[0].running_balance - filtered[0].debit_amount + filtered[0].credit_amount : 0;
+
+  // Summary aggregation by type
+  const summaryByType = filtered.reduce<Record<string, { debits: number; credits: number; count: number }>>((acc, e) => {
+    if (!acc[e.entry_type]) acc[e.entry_type] = { debits: 0, credits: 0, count: 0 };
+    acc[e.entry_type].debits += e.debit_amount;
+    acc[e.entry_type].credits += e.credit_amount;
+    acc[e.entry_type].count++;
+    return acc;
+  }, {});
+
+  // Summary by fund
+  const summaryByFund = filtered.reduce<Record<string, { debits: number; credits: number }>>((acc, e) => {
+    if (!acc[e.fund_type]) acc[e.fund_type] = { debits: 0, credits: 0 };
+    acc[e.fund_type].debits += e.debit_amount;
+    acc[e.fund_type].credits += e.credit_amount;
+    return acc;
+  }, {});
+
+  const handlePrint = () => window.print();
+
+  const handlePDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const now = new Date().toLocaleString('en-GB');
+    const empName = master?.employer_name || employerId || '';
+
+    // Header
+    doc.setFontSize(16);
+    doc.text('Employer Statement', 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Employer: ${empName} (${employerId})`, 14, 22);
+    doc.text(`Generated: ${now}`, 14, 27);
+    doc.text(`Mode: ${mode === 'summary' ? 'Summary' : 'Detailed'}`, 14, 32);
+    if (fromPeriod || toPeriod) doc.text(`Period: ${fromPeriod || 'Start'} to ${toPeriod || 'Current'}`, 14, 37);
+
+    if (mode === 'detailed') {
+      const tableData = filtered.map(e => [
+        formatDateStr(e.posted_at),
+        e.period,
+        e.fund_type,
+        entryTypeLabel(e.entry_type),
+        e.description?.substring(0, 40) || '',
+        e.debit_amount > 0 ? formatCurrency(e.debit_amount) : '',
+        e.credit_amount > 0 ? formatCurrency(e.credit_amount) : '',
+        formatCurrency(e.running_balance),
+      ]);
+
+      // Opening balance row
+      tableData.unshift(['', '', '', 'OPENING BALANCE', '', '', '', formatCurrency(openingBalance)]);
+
+      autoTable(doc, {
+        startY: fromPeriod || toPeriod ? 42 : 37,
+        head: [['Date', 'Period', 'Fund', 'Type', 'Description', 'Debit (XCD)', 'Credit (XCD)', 'Balance (XCD)']],
+        body: tableData,
+        styles: { fontSize: 7, cellPadding: 1.5 },
+        headStyles: { fillColor: [41, 98, 255], textColor: 255 },
+        columnStyles: {
+          5: { halign: 'right' },
+          6: { halign: 'right' },
+          7: { halign: 'right', fontStyle: 'bold' },
+        },
+        didDrawPage: (data) => {
+          const pageCount = (doc as any).internal.getNumberOfPages();
+          doc.setFontSize(8);
+          doc.text(`Page ${data.pageNumber} of ${pageCount}`, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 8);
+          doc.text(`${empName} — Employer Statement`, 14, doc.internal.pageSize.height - 8);
+        },
+      });
+
+      // Totals row
+      const finalY = (doc as any).lastAutoTable.finalY + 5;
+      doc.setFontSize(9);
+      doc.setFont(undefined as any, 'bold');
+      doc.text(`Total Debits: ${formatCurrency(totalDebits)}`, 14, finalY);
+      doc.text(`Total Credits: ${formatCurrency(totalCredits)}`, 100, finalY);
+      doc.text(`Closing Balance: ${formatCurrency(closingBalance)}`, 190, finalY);
+    } else {
+      // Summary mode
+      const summaryData = Object.entries(summaryByType).map(([type, v]) => [
+        entryTypeLabel(type),
+        String(v.count),
+        v.debits > 0 ? formatCurrency(v.debits) : '',
+        v.credits > 0 ? formatCurrency(v.credits) : '',
+      ]);
+
+      autoTable(doc, {
+        startY: fromPeriod || toPeriod ? 42 : 37,
+        head: [['Transaction Type', 'Count', 'Total Debits', 'Total Credits']],
+        body: summaryData,
+        foot: [['TOTALS', String(filtered.length), formatCurrency(totalDebits), formatCurrency(totalCredits)]],
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [41, 98, 255], textColor: 255 },
+      });
+
+      const fy1 = (doc as any).lastAutoTable.finalY + 10;
+      // Fund breakdown
+      const fundData = Object.entries(summaryByFund).map(([fund, v]) => [
+        fund, formatCurrency(v.debits), formatCurrency(v.credits), formatCurrency(v.debits - v.credits),
+      ]);
+
+      autoTable(doc, {
+        startY: fy1,
+        head: [['Fund', 'Debits', 'Credits', 'Balance']],
+        body: fundData,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [41, 98, 255], textColor: 255 },
+      });
+
+      const fy2 = (doc as any).lastAutoTable.finalY + 10;
+      doc.setFontSize(12);
+      doc.setFont(undefined as any, 'bold');
+      doc.text(`Opening Balance: ${formatCurrency(openingBalance)}`, 14, fy2);
+      doc.text(`Closing Balance: ${formatCurrency(closingBalance)}`, 14, fy2 + 7);
+    }
+
+    doc.save(`statement_${employerId}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/compliance/employer-statements')}><ArrowLeft className="h-5 w-5" /></Button>
-          <div><h1 className="text-3xl font-bold text-foreground">Employer Statement</h1><p className="text-muted-foreground">Banking-style transaction ledger</p></div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-2"><Printer className="h-4 w-4" />Print</Button>
-          <Button className="gap-2"><Download className="h-4 w-4" />Download PDF</Button>
-        </div>
-      </div>
+    <div className="container mx-auto p-6 space-y-6" ref={printRef}>
+      <PageHeader
+        title="Employer Statement"
+        subtitle={master ? `${master.employer_name} (${employerId})` : employerId || ''}
+        breadcrumbs={[
+          { label: 'Compliance', href: '/compliance' },
+          { label: 'Employer 360°', href: `/compliance/field/employer-360/${employerId}` },
+          { label: 'Statement' },
+        ]}
+        actions={
+          <div className="flex gap-2 print:hidden">
+            <Button variant="outline" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" />Print</Button>
+            <Button onClick={handlePDF}><Download className="h-4 w-4 mr-1" />Download PDF</Button>
+          </div>
+        }
+      />
 
-      <Card>
+      {/* Filters */}
+      <Card className="print:hidden">
         <CardContent className="pt-6">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-sm font-medium mb-2 block">From Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !fromDate && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />{fromDate ? format(fromDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={fromDate} onSelect={setFromDate} initialFocus className={cn("p-3 pointer-events-auto")} /></PopoverContent>
-              </Popover>
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-sm font-medium mb-2 block">To Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !toDate && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />{toDate ? format(toDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start"><Calendar mode="single" selected={toDate} onSelect={setToDate} initialFocus className={cn("p-3 pointer-events-auto")} /></PopoverContent>
-              </Popover>
-            </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-sm font-medium mb-2 block">Report Type</label>
-              <Select value={reportType} onValueChange={(v: "detailed" | "summary") => setReportType(v)}>
-                <SelectTrigger><SelectValue placeholder="Select report type" /></SelectTrigger>
-                <SelectContent><SelectItem value="detailed">Detailed Report</SelectItem><SelectItem value="summary">Summary Report</SelectItem></SelectContent>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="min-w-[140px]">
+              <label className="text-sm font-medium mb-1 block">Mode</label>
+              <Select value={mode} onValueChange={(v: 'detailed' | 'summary') => setMode(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="detailed">Detailed Ledger</SelectItem>
+                  <SelectItem value="summary">Summary</SelectItem>
+                </SelectContent>
               </Select>
             </div>
-            <Button variant="outline" onClick={() => { setFromDate(undefined); setToDate(undefined); setReportType("detailed"); }}>Clear Filters</Button>
+            <div className="min-w-[120px]">
+              <label className="text-sm font-medium mb-1 block">Fund</label>
+              <Select value={fundFilter} onValueChange={setFundFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Funds</SelectItem>
+                  <SelectItem value="SS">SS</SelectItem>
+                  <SelectItem value="LEVY">LEVY</SelectItem>
+                  <SelectItem value="EI">EI</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="min-w-[120px]">
+              <label className="text-sm font-medium mb-1 block">Type</label>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="debits">Debits Only</SelectItem>
+                  <SelectItem value="credits">Credits Only</SelectItem>
+                  <SelectItem value="penalties">Penalties Only</SelectItem>
+                  <SelectItem value="payments">Payments Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="min-w-[120px]">
+              <label className="text-sm font-medium mb-1 block">From Period</label>
+              <Input placeholder="YYYYMM" value={fromPeriod} onChange={e => setFromPeriod(e.target.value)} className="w-28" />
+            </div>
+            <div className="min-w-[120px]">
+              <label className="text-sm font-medium mb-1 block">To Period</label>
+              <Input placeholder="YYYYMM" value={toPeriod} onChange={e => setToPeriod(e.target.value)} className="w-28" />
+            </div>
+            <Button variant="outline" onClick={() => { setFundFilter('all'); setTypeFilter('all'); setFromPeriod(''); setToPeriod(''); setMode('detailed'); }}>
+              Clear
+            </Button>
           </div>
         </CardContent>
       </Card>
 
+      {/* Statement Header */}
       <Card>
         <CardHeader className="border-b bg-muted/30">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-2xl mb-2">{statement.employerName}</CardTitle>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <p><span className="font-semibold">Employer ID:</span> {statement.employerId}</p>
-                <p><span className="font-semibold">Statement Period:</span> {statement.statementPeriodFrom} to {statement.statementPeriodTo}</p>
-                <p><span className="font-semibold">Generated On:</span> {formatDateStr(statement.generatedDate)}</p>
+              <CardTitle className="text-xl mb-2">{master?.employer_name || employerId}</CardTitle>
+              <div className="space-y-0.5 text-sm text-muted-foreground">
+                <p><span className="font-semibold">Employer ID:</span> {employerId}</p>
+                <p><span className="font-semibold">Office:</span> {master?.office_code || '—'}</p>
+                <p><span className="font-semibold">Generated:</span> {new Date().toLocaleDateString('en-GB')}</p>
               </div>
             </div>
             <div className="text-right">
-              <Badge variant={balance > 0 ? "destructive" : "default"} className="text-sm px-3 py-1">{balance > 0 ? "OUTSTANDING" : "COMPLIANT"}</Badge>
-              <div className="mt-3 text-sm"><p className="text-muted-foreground">Outstanding Balance</p><p className="text-2xl font-bold text-foreground">{formatCurrency(balance)}</p></div>
+              <Badge variant={closingBalance > 0 ? 'destructive' : 'default'} className="text-sm px-3 py-1">
+                {closingBalance > 0 ? 'OUTSTANDING' : closingBalance < 0 ? 'CREDIT' : 'CLEAR'}
+              </Badge>
+              <div className="mt-3">
+                <p className="text-xs text-muted-foreground">Closing Balance</p>
+                <p className={`text-2xl font-bold ${closingBalance > 0 ? 'text-destructive' : closingBalance < 0 ? 'text-green-600' : 'text-foreground'}`}>
+                  {formatCurrency(closingBalance)}
+                </p>
+              </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-3 gap-6">
-            <div><p className="text-xs text-muted-foreground mb-1">Total Contributions Due</p><p className="text-lg font-semibold text-foreground">{formatCurrency(totalDebits)}</p></div>
-            <div><p className="text-xs text-muted-foreground mb-1">Total Payments Received</p><p className="text-lg font-semibold text-primary">{formatCurrency(totalCredits)}</p></div>
-            <div><p className="text-xs text-muted-foreground mb-1">Net Outstanding</p><p className="text-lg font-semibold text-destructive">{formatCurrency(balance)}</p></div>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+            <div><p className="text-xs text-muted-foreground">Opening Balance</p><p className="text-lg font-semibold">{formatCurrency(openingBalance)}</p></div>
+            <div><p className="text-xs text-muted-foreground">Total Debits</p><p className="text-lg font-semibold text-destructive">{formatCurrency(totalDebits)}</p></div>
+            <div><p className="text-xs text-muted-foreground">Total Credits</p><p className="text-lg font-semibold text-green-600">{formatCurrency(totalCredits)}</p></div>
+            <div><p className="text-xs text-muted-foreground">Penalties</p><p className="text-lg font-semibold text-orange-600">
+              {formatCurrency(filtered.filter(e => ['PENALTY_ASSESSED', 'INTEREST_ACCRUED'].includes(e.entry_type)).reduce((s, e) => s + e.debit_amount, 0))}
+            </p></div>
+            <div><p className="text-xs text-muted-foreground">Closing Balance</p><p className="text-lg font-bold">{formatCurrency(closingBalance)}</p></div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="space-y-6">
-        {statement.ssc.length > 0 && renderComponentSection("Social Security Contributions", "SSC", statement.ssc)}
-        {statement.ssf.length > 0 && renderComponentSection("Social Security Penalties", "SSF", statement.ssf)}
-        {statement.lvc.length > 0 && renderComponentSection("Housing & Social Development Levy Contributions", "LVC", statement.lvc)}
-        {statement.lvf.length > 0 && renderComponentSection("Levy Penalties", "LVF", statement.lvf)}
-        {statement.pec.length > 0 && renderComponentSection("Severance Contributions", "PEC", statement.pec)}
-        {statement.pef.length > 0 && renderComponentSection("Severance Penalties", "PEF", statement.pef)}
-      </div>
-
-      <Card className="border-2 border-primary">
-        <CardHeader className="bg-primary/10"><CardTitle>Statement Summary - All Components</CardTitle></CardHeader>
-        <CardContent className="pt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[200px]">Component</TableHead>
-                <TableHead className="text-right">Total Debits</TableHead>
-                <TableHead className="text-right">Total Credits</TableHead>
-                <TableHead className="text-right">Balance</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {allComponents.filter(c => c.data.length > 0).map(comp => {
-                const ft = filterTransactionsByDate(comp.data);
-                const dt = reportType === "summary" ? getSummaryTransactions(ft) : ft;
-                const d = dt.filter((t: any) => t.transactionType === 'DEBIT').reduce((s: number, t: any) => s + t.amount, 0);
-                const c = dt.filter((t: any) => t.transactionType === 'CREDIT').reduce((s: number, t: any) => s + t.amount, 0);
-                return (
-                  <TableRow key={comp.name}>
-                    <TableCell className="font-medium">{comp.name}</TableCell>
-                    <TableCell className="text-right font-mono">{formatCurrency(d)}</TableCell>
-                    <TableCell className="text-right font-mono">{formatCurrency(c)}</TableCell>
-                    <TableCell className="text-right font-mono">{formatCurrency(d - c)}</TableCell>
+      {/* Content based on mode */}
+      {mode === 'detailed' ? (
+        <Card>
+          <CardHeader><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-4 w-4" />Detailed Ledger ({filtered.length} entries)</CardTitle></CardHeader>
+          <CardContent>
+            {filtered.length === 0 ? <div className="text-center py-8 text-muted-foreground">No transactions found for the selected criteria</div> : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-[90px]">Date</TableHead>
+                    <TableHead className="w-[80px]">Period</TableHead>
+                    <TableHead className="w-[60px]">Fund</TableHead>
+                    <TableHead className="w-[140px]">Type</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right w-[110px]">Debit (XCD)</TableHead>
+                    <TableHead className="text-right w-[110px]">Credit (XCD)</TableHead>
+                    <TableHead className="text-right w-[120px]">Balance (XCD)</TableHead>
                   </TableRow>
-                );
-              })}
-              <TableRow className="font-bold bg-muted">
-                <TableCell>Grand Total</TableCell>
-                <TableCell className="text-right font-mono">{formatCurrency(totalDebits)}</TableCell>
-                <TableCell className="text-right font-mono">{formatCurrency(totalCredits)}</TableCell>
-                <TableCell className="text-right font-mono text-primary">{formatCurrency(balance)}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {/* Opening Balance Row */}
+                  <TableRow className="bg-muted/20 font-semibold border-b-2">
+                    <TableCell className="text-sm">—</TableCell>
+                    <TableCell className="text-sm">—</TableCell>
+                    <TableCell className="text-sm">—</TableCell>
+                    <TableCell className="text-sm">OPENING BALANCE</TableCell>
+                    <TableCell className="text-sm">Balance brought forward</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell className="text-right">—</TableCell>
+                    <TableCell className="text-right font-mono font-bold">{formatCurrency(openingBalance)}</TableCell>
+                  </TableRow>
+                  {filtered.map((e) => (
+                    <TableRow key={e.entry_id} className={e.status === 'REVERSED' ? 'opacity-50 line-through' : 'hover:bg-muted/30'}>
+                      <TableCell className="text-xs">{formatDateStr(e.posted_at)}</TableCell>
+                      <TableCell className="font-mono text-xs">{e.period}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-[10px]">{e.fund_type}</Badge></TableCell>
+                      <TableCell className="text-xs">{entryTypeLabel(e.entry_type)}</TableCell>
+                      <TableCell className="text-xs max-w-[200px] truncate">{e.description}</TableCell>
+                      <TableCell className="text-right font-mono text-xs text-destructive">{e.debit_amount > 0 ? formatCurrency(e.debit_amount) : '—'}</TableCell>
+                      <TableCell className="text-right font-mono text-xs text-green-600">{e.credit_amount > 0 ? formatCurrency(e.credit_amount) : '—'}</TableCell>
+                      <TableCell className="text-right font-mono text-xs font-semibold">{formatCurrency(e.running_balance)}</TableCell>
+                    </TableRow>
+                  ))}
+                  {/* Closing Total Row */}
+                  <TableRow className="bg-muted font-bold border-t-2">
+                    <TableCell colSpan={5} className="text-right">TOTALS</TableCell>
+                    <TableCell className="text-right font-mono text-destructive">{formatCurrency(totalDebits)}</TableCell>
+                    <TableCell className="text-right font-mono text-green-600">{formatCurrency(totalCredits)}</TableCell>
+                    <TableCell className="text-right font-mono">{formatCurrency(closingBalance)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        /* Summary Mode */
+        <div className="space-y-4">
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Summary by Transaction Type</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Transaction Type</TableHead>
+                    <TableHead className="text-right">Count</TableHead>
+                    <TableHead className="text-right">Total Debits</TableHead>
+                    <TableHead className="text-right">Total Credits</TableHead>
+                    <TableHead className="text-right">Net Impact</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(summaryByType).map(([type, v]) => (
+                    <TableRow key={type}>
+                      <TableCell className="font-medium">{entryTypeLabel(type)}</TableCell>
+                      <TableCell className="text-right">{v.count}</TableCell>
+                      <TableCell className="text-right font-mono text-destructive">{v.debits > 0 ? formatCurrency(v.debits) : '—'}</TableCell>
+                      <TableCell className="text-right font-mono text-green-600">{v.credits > 0 ? formatCurrency(v.credits) : '—'}</TableCell>
+                      <TableCell className="text-right font-mono font-semibold">{formatCurrency(v.debits - v.credits)}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="font-bold bg-muted">
+                    <TableCell>TOTAL</TableCell>
+                    <TableCell className="text-right">{filtered.length}</TableCell>
+                    <TableCell className="text-right font-mono text-destructive">{formatCurrency(totalDebits)}</TableCell>
+                    <TableCell className="text-right font-mono text-green-600">{formatCurrency(totalCredits)}</TableCell>
+                    <TableCell className="text-right font-mono">{formatCurrency(totalDebits - totalCredits)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-sm">Summary by Fund</CardTitle></CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fund</TableHead>
+                    <TableHead className="text-right">Total Debits</TableHead>
+                    <TableHead className="text-right">Total Credits</TableHead>
+                    <TableHead className="text-right">Balance</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Object.entries(summaryByFund).map(([fund, v]) => (
+                    <TableRow key={fund}>
+                      <TableCell><Badge variant="outline">{fund}</Badge></TableCell>
+                      <TableCell className="text-right font-mono">{formatCurrency(v.debits)}</TableCell>
+                      <TableCell className="text-right font-mono text-green-600">{formatCurrency(v.credits)}</TableCell>
+                      <TableCell className="text-right font-mono font-bold">{formatCurrency(v.debits - v.credits)}</TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="font-bold bg-muted">
+                    <TableCell>TOTAL</TableCell>
+                    <TableCell className="text-right font-mono text-destructive">{formatCurrency(totalDebits)}</TableCell>
+                    <TableCell className="text-right font-mono text-green-600">{formatCurrency(totalCredits)}</TableCell>
+                    <TableCell className="text-right font-mono">{formatCurrency(closingBalance)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Arrears Breakdown */}
+          {arrears.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle className="text-sm">Current Arrears Breakdown</CardTitle></CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fund</TableHead>
+                      <TableHead className="text-right">Principal</TableHead>
+                      <TableHead className="text-right">Penalties</TableHead>
+                      <TableHead className="text-right">Interest</TableHead>
+                      <TableHead className="text-right">Payments</TableHead>
+                      <TableHead className="text-right">Waivers</TableHead>
+                      <TableHead className="text-right font-bold">Net Balance</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {arrears.map(a => (
+                      <TableRow key={a.fund_type}>
+                        <TableCell><Badge variant="outline">{a.fund_type}</Badge></TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(a.principal_due)}</TableCell>
+                        <TableCell className="text-right font-mono text-orange-600">{formatCurrency(a.penalties)}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(a.interest)}</TableCell>
+                        <TableCell className="text-right font-mono text-green-600">{formatCurrency(a.payments)}</TableCell>
+                        <TableCell className="text-right font-mono">{formatCurrency(a.waivers)}</TableCell>
+                        <TableCell className="text-right font-mono font-bold text-destructive">{formatCurrency(a.net_balance)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Print Footer */}
+      <div className="hidden print:block text-xs text-muted-foreground text-center mt-8 border-t pt-2">
+        Generated on {new Date().toLocaleString('en-GB')} | Employer Statement — {master?.employer_name || employerId} | Confidential
+      </div>
     </div>
   );
 }
