@@ -43,9 +43,8 @@ export default function MyPlans() {
   const loadMyPlans = async () => {
     setLoading(true);
     try {
-      const data = await weeklyAuditPlanService.getAll({
-        inspectorId: 'inspector-001' // Would come from auth context
-      });
+      // Load all plans — server filters by authenticated user context
+      const data = await weeklyAuditPlanService.getAll();
       setPlans(data);
     } catch (error) {
       toast({

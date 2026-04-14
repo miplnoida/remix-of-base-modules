@@ -42,8 +42,8 @@ export default function FieldExecution() {
     try {
       setLoading(true);
       const [items, activeViolations] = await Promise.all([
-        inspectionService.getWeeklyPlanItems('inspector-001'),
-        violationService.getActiveByInspectorId('inspector-001')
+        inspectionService.getWeeklyPlanItems(''),
+        violationService.getAll().then(v => v.filter(x => ['OPEN','IN_PROGRESS','ESCALATED','UNDER_REVIEW'].includes(x.status)))
       ]);
       setPlanItems(items);
       setActiveViolationsCount(activeViolations.length);

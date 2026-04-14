@@ -69,7 +69,7 @@ export function CreateViolationFromFindingDialog({
         candidateLocation: isScouting ? candidateLocation : undefined,
         candidateActivityType: isScouting ? candidateActivityType : undefined,
         estimatedEmployees: isScouting ? parseInt(estimatedEmployees) || undefined : undefined,
-        assignedToUserId: assignToMe ? 'inspector-001' : undefined,
+        assignedToUserId: assignToMe ? undefined : undefined, // TODO: resolve from auth context
         dueDate: dueDate || undefined
       });
 
