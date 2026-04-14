@@ -727,6 +727,9 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                     <TableRow>
                       <TableHead className="w-[200px]">Trade Name</TableHead>
                       <TableHead>Address</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>State</TableHead>
+                      <TableHead>Country</TableHead>
                       <TableHead>Activity Type</TableHead>
                       <TableHead className="text-right w-[100px]">Actions</TableHead>
                     </TableRow>
@@ -736,6 +739,9 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                       <TableRow key={loc.id || idx}>
                         <TableCell className="font-medium">{loc.trade_name || '—'}</TableCell>
                         <TableCell>{[loc.address1, loc.address2].filter(Boolean).join(', ') || '—'}</TableCell>
+                        <TableCell>{loc.city || '—'}</TableCell>
+                        <TableCell>{loc.state || '—'}</TableCell>
+                        <TableCell>{loc.country ? (countries.find(c => c.code?.trim() === loc.country?.trim())?.description?.trim() || loc.country) : '—'}</TableCell>
                         <TableCell>{loc.activity_type || '—'}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -900,6 +906,15 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
             <EditField label="Trade Name *" value={locForm.trade_name} onChange={(v) => handleLocFieldChange('trade_name', v)} maxLength={ER_FIELD_LIMITS.loc_trade_name} className="col-span-2" error={locErrors.trade_name} />
             <EditField label="Address Line 1" value={locForm.address1} onChange={(v) => handleLocFieldChange('address1', v)} maxLength={ER_FIELD_LIMITS.loc_addr1} error={locErrors.address1} />
             <EditField label="Address Line 2" value={locForm.address2} onChange={(v) => handleLocFieldChange('address2', v)} maxLength={ER_FIELD_LIMITS.loc_addr2} error={locErrors.address2} />
+            <EditField label="City" value={locForm.city} onChange={(v) => handleLocFieldChange('city', v)} maxLength={50} />
+            <EditField label="State" value={locForm.state} onChange={(v) => handleLocFieldChange('state', v)} maxLength={50} />
+            <SelectField
+              label="Country"
+              value={locForm.country || ''}
+              onChange={(v) => handleLocFieldChange('country', v)}
+              options={countryOptions}
+              placeholder="Select Country"
+            />
             <EditField label="Activity Type" value={locForm.activity_type} onChange={(v) => handleLocFieldChange('activity_type', v)} maxLength={ER_FIELD_LIMITS.loc_activity_type} className="col-span-2" error={locErrors.activity_type} />
           </div>
           <DialogFooter>
