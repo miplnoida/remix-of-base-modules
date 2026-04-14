@@ -167,7 +167,7 @@ export default function ViolationsManagement() {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by number, employer, or summary..."
+                placeholder="Search by violation #, employer code, employer name, trade name, or summary..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"

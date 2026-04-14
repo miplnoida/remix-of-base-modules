@@ -258,14 +258,38 @@ export async function fetchViolations(filters?: {
   search?: string;
   month?: string; // YYYY-MM
 }) {
-  // Default to current month if no filters active
+  const searchValue = filters?.search?.trim();
+
   const hasActiveFilter = (filters?.status && filters.status !== 'ALL') ||
     (filters?.priority && filters.priority !== 'ALL') ||
-    filters?.search;
+    searchValue;
 
   const targetMonth = filters?.month || (!hasActiveFilter
     ? new Date().toISOString().slice(0, 7)
     : undefined);
+
+  const matchedEmployerIds = new Set<string>();
+
+  if (searchValue) {
+    const [masterResult, locationResult] = await Promise.all([
+      supabase
+        .from('er_master')
+        .select('regno, name')
+        .or(`regno.ilike.%${searchValue}%,name.ilike.%${searchValue}%`)
+        .limit(100),
+      supabase
+        .from('er_locations')
+        .select('regno, trade_name')
+        .ilike('trade_name', `%${searchValue}%`)
+        .limit(100),
+    ]);
+
+    if (masterResult.error) throw masterResult.error;
+    if (locationResult.error) throw locationResult.error;
+
+    masterResult.data?.forEach((row: any) => row.regno && matchedEmployerIds.add(row.regno));
+    locationResult.data?.forEach((row: any) => row.regno && matchedEmployerIds.add(row.regno));
+  }
 
   const allRows: any[] = [];
   const PAGE_SIZE = 1000;
@@ -285,10 +309,21 @@ export async function fetchViolations(filters?: {
     if (filters?.priority && filters.priority !== "ALL") {
       query = query.eq("priority", filters.priority);
     }
-    if (filters?.search) {
-      query = query.or(
-        `violation_number.ilike.%${filters.search}%,employer_name.ilike.%${filters.search}%,summary.ilike.%${filters.search}%`
-      );
+    if (searchValue) {
+      const escaped = searchValue.replace(/,/g, ' ');
+      const employerIds = Array.from(matchedEmployerIds).filter(Boolean);
+      const orParts = [
+        `violation_number.ilike.%${escaped}%`,
+        `employer_id.ilike.%${escaped}%`,
+        `employer_name.ilike.%${escaped}%`,
+        `summary.ilike.%${escaped}%`,
+      ];
+
+      if (employerIds.length > 0) {
+        orParts.push(`employer_id.in.(${employerIds.join(',')})`);
+      }
+
+      query = query.or(orParts.join(','));
     }
     if (targetMonth) {
       const startDate = `${targetMonth}-01`;
