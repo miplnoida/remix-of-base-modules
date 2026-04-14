@@ -1107,7 +1107,7 @@ const RuleEngine = () => {
       </Card>
 
       {/* Dialogs */}
-      <DetectionRuleDialog
+      <EnhancedDetectionRuleDialog
         open={detectionDialogOpen}
         onOpenChange={v => { setDetectionDialogOpen(v); if (!v) setEditingDetection(null); }}
         rule={editingDetection}
