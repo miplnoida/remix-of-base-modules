@@ -32995,16 +32995,47 @@ export type Database = {
       }
       ip_wages: {
         Row: {
+          "0": number | null
+          "0_1": number | null
+          "0_2": number | null
+          "0.00": number | null
+          "0.00_1": number | null
+          "0.00_2": number | null
+          "0.00_3": number | null
+          "1": number | null
+          "1_1": number | null
+          "1_2": number | null
+          "1_3": number | null
+          "1_4": number | null
+          "1_5": number | null
+          "100.00": number | null
+          "100.00_1": number | null
+          "100.00_2": number | null
+          "100.00_3": number | null
+          "157183": number | null
+          "20.00": number | null
+          "20.00_1": number | null
+          "4.00": number | null
+          "4.00_1": number | null
+          "656358": number | null
+          "8.00": number | null
+          administrator: string | null
           bonus_date: string | null
           bonus_exempt_levy: boolean | null
           bonus_holiday_swapped: boolean | null
           c3_id: string | null
+          column27: string | null
+          column28: string | null
+          column29: number | null
+          column30: string | null
+          column31: string | null
           created_at: string
           date_entered: string | null
           date_modified: string | null
           date_verified: string | null
           employee_name: string | null
           entered_by: string | null
+          "ER ": string | null
           er_ei_amt: number | null
           er_levy_amt: number | null
           er_ss_amt: number | null
@@ -33016,6 +33047,8 @@ export type Database = {
           ip_pe_amt: number | null
           ip_ss_amt: number | null
           is_verified: boolean
+          "Jan  1 1986 12:00:00:000AM": string | null
+          "Mar  9 2015  7:28:25:683PM": string | null
           modified_by: string | null
           paid_code1: string | null
           paid_code2: string | null
@@ -33030,9 +33063,10 @@ export type Database = {
           period: string
           posting_status: string | null
           sequence_no: number
-          ssn: string
+          ssn: string | null
           total_wages: number | null
           updated_at: string
+          vac: string | null
           verified_by: string | null
           wages_paid1: number | null
           wages_paid2: number | null
@@ -33043,16 +33077,47 @@ export type Database = {
           wages_paid7: number | null
         }
         Insert: {
+          "0"?: number | null
+          "0_1"?: number | null
+          "0_2"?: number | null
+          "0.00"?: number | null
+          "0.00_1"?: number | null
+          "0.00_2"?: number | null
+          "0.00_3"?: number | null
+          "1"?: number | null
+          "1_1"?: number | null
+          "1_2"?: number | null
+          "1_3"?: number | null
+          "1_4"?: number | null
+          "1_5"?: number | null
+          "100.00"?: number | null
+          "100.00_1"?: number | null
+          "100.00_2"?: number | null
+          "100.00_3"?: number | null
+          "157183"?: number | null
+          "20.00"?: number | null
+          "20.00_1"?: number | null
+          "4.00"?: number | null
+          "4.00_1"?: number | null
+          "656358"?: number | null
+          "8.00"?: number | null
+          administrator?: string | null
           bonus_date?: string | null
           bonus_exempt_levy?: boolean | null
           bonus_holiday_swapped?: boolean | null
           c3_id?: string | null
+          column27?: string | null
+          column28?: string | null
+          column29?: number | null
+          column30?: string | null
+          column31?: string | null
           created_at?: string
           date_entered?: string | null
           date_modified?: string | null
           date_verified?: string | null
           employee_name?: string | null
           entered_by?: string | null
+          "ER "?: string | null
           er_ei_amt?: number | null
           er_levy_amt?: number | null
           er_ss_amt?: number | null
@@ -33064,6 +33129,8 @@ export type Database = {
           ip_pe_amt?: number | null
           ip_ss_amt?: number | null
           is_verified?: boolean
+          "Jan  1 1986 12:00:00:000AM"?: string | null
+          "Mar  9 2015  7:28:25:683PM"?: string | null
           modified_by?: string | null
           paid_code1?: string | null
           paid_code2?: string | null
@@ -33078,9 +33145,10 @@ export type Database = {
           period: string
           posting_status?: string | null
           sequence_no?: number
-          ssn: string
+          ssn?: string | null
           total_wages?: number | null
           updated_at?: string
+          vac?: string | null
           verified_by?: string | null
           wages_paid1?: number | null
           wages_paid2?: number | null
@@ -33091,16 +33159,47 @@ export type Database = {
           wages_paid7?: number | null
         }
         Update: {
+          "0"?: number | null
+          "0_1"?: number | null
+          "0_2"?: number | null
+          "0.00"?: number | null
+          "0.00_1"?: number | null
+          "0.00_2"?: number | null
+          "0.00_3"?: number | null
+          "1"?: number | null
+          "1_1"?: number | null
+          "1_2"?: number | null
+          "1_3"?: number | null
+          "1_4"?: number | null
+          "1_5"?: number | null
+          "100.00"?: number | null
+          "100.00_1"?: number | null
+          "100.00_2"?: number | null
+          "100.00_3"?: number | null
+          "157183"?: number | null
+          "20.00"?: number | null
+          "20.00_1"?: number | null
+          "4.00"?: number | null
+          "4.00_1"?: number | null
+          "656358"?: number | null
+          "8.00"?: number | null
+          administrator?: string | null
           bonus_date?: string | null
           bonus_exempt_levy?: boolean | null
           bonus_holiday_swapped?: boolean | null
           c3_id?: string | null
+          column27?: string | null
+          column28?: string | null
+          column29?: number | null
+          column30?: string | null
+          column31?: string | null
           created_at?: string
           date_entered?: string | null
           date_modified?: string | null
           date_verified?: string | null
           employee_name?: string | null
           entered_by?: string | null
+          "ER "?: string | null
           er_ei_amt?: number | null
           er_levy_amt?: number | null
           er_ss_amt?: number | null
@@ -33112,6 +33211,8 @@ export type Database = {
           ip_pe_amt?: number | null
           ip_ss_amt?: number | null
           is_verified?: boolean
+          "Jan  1 1986 12:00:00:000AM"?: string | null
+          "Mar  9 2015  7:28:25:683PM"?: string | null
           modified_by?: string | null
           paid_code1?: string | null
           paid_code2?: string | null
@@ -33126,9 +33227,10 @@ export type Database = {
           period?: string
           posting_status?: string | null
           sequence_no?: number
-          ssn?: string
+          ssn?: string | null
           total_wages?: number | null
           updated_at?: string
+          vac?: string | null
           verified_by?: string | null
           wages_paid1?: number | null
           wages_paid2?: number | null
