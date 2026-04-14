@@ -10,8 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import {
   Loader2, Eye, Briefcase, History, AlertCircle, CheckCircle, Building2,
-  ArrowLeft, Link2
+  ArrowLeft, Link2, HandshakeIcon
 } from 'lucide-react';
+import { CasePaymentArrangementDialog } from '@/components/compliance/CasePaymentArrangementDialog';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -60,6 +61,7 @@ export default function CaseDetailView() {
   const [cascadeDialogOpen, setCascadeDialogOpen] = useState(false);
   const [cascadeReason, setCascadeReason] = useState('');
   const [cascading, setCascading] = useState(false);
+  const [arrangementDialogOpen, setArrangementDialogOpen] = useState(false);
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
