@@ -36,13 +36,20 @@ import {
   Shield
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
 import { useEmployerCodeResolver } from '@/hooks/useEmployerCodeResolver';
 import { getEmployerStatusVariant } from '@/hooks/useEmployerApplications';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
-import { EmployerApplicationActions } from '@/components/online-applications/EmployerApplicationActions';
 import { MeetingActionButtons } from '@/components/meetings/MeetingActionButtons';
 import { useApplicationMeeting } from '@/hooks/useApplicationMeeting';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { useUserCode } from '@/hooks/useUserCode';
+import {
+  useConvertToEmployerRegistration,
+  validateEmployerApplicationForConversion,
+} from '@/hooks/useConvertToEmployerRegistration';
+import { triggerEmployerRegistrationWorkflow } from '@/services/employerWorkflowTriggerService';
 import { supabase } from '@/integrations/supabase/client';
 import { logAuditTrail } from '@/services/auditService';
 import { toast } from 'sonner';
