@@ -63,7 +63,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { job_code, dry_run = false, force = false } = await req.json();
+    const reqBody = await req.json();
+    const { job_code, dry_run = false, force = false, ...extraParams } = reqBody;
     if (!job_code || typeof job_code !== "string") {
       return new Response(JSON.stringify({ ok: false, error: "job_code is required" }), {
         status: 200,
@@ -122,6 +123,7 @@ Deno.serve(async (req) => {
           "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
         },
         body: JSON.stringify({
+          ...extraParams,
           dry_run,
           force,
           triggered_by: user.email || user.id,
