@@ -14,8 +14,9 @@ import { WeeklyReportSubmitDialog } from '@/components/compliance/WeeklyReportSu
 
 export default function WeeklyReportSubmission() {
   const { toast } = useToast();
-  const [inspectorId] = useState('inspector-001'); // Would come from auth context
-  const [inspectorName] = useState('John Inspector');
+  // Empty string means no inspector filter — loads all items for current context
+  const [inspectorId] = useState('');
+  const [inspectorName] = useState('');
   
   const [weekStartDate, setWeekStartDate] = useState('');
   const [loading, setLoading] = useState(false);

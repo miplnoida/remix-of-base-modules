@@ -1,13 +1,12 @@
 // ============================================
-// CENTRAL PAYMENT ARRANGEMENT SERVICE
-// Shared across Compliance, Legal, Finance
+// CENTRAL PAYMENT ARRANGEMENT SERVICE - DB-BACKED
 // ============================================
 
+import { supabase } from '@/integrations/supabase/client';
 import {
   PaymentArrangement,
   PaymentArrangementItem,
   PaymentScheduleInstallment,
-  PaymentAllocation,
   CreateArrangementRequest,
   ArrangementStatus,
   InstallmentStatus,
@@ -15,308 +14,235 @@ import {
   ArrangementSummary,
   ArrangementSourceModule
 } from '@/types/centralPaymentArrangement';
+import { getCurrentUserCode } from '@/hooks/useUserCode';
 
-// Mock storage
-let mockArrangements: PaymentArrangement[] = [];
-let mockAllocations: PaymentAllocation[] = [];
-
-// Generate next arrangement number
-function generateArrangementNumber(): string {
-  const year = new Date().getFullYear();
-  const count = mockArrangements.length + 1;
-  return `PA-${year}-${String(count).padStart(4, '0')}`;
-}
-
-// Calculate due date based on frequency
 function calculateDueDate(startDate: string, periodOffset: number, frequency: string): string {
   const date = new Date(startDate);
-  
   switch (frequency) {
-    case 'WEEKLY':
-      date.setDate(date.getDate() + (periodOffset * 7));
-      break;
-    case 'BIWEEKLY':
-      date.setDate(date.getDate() + (periodOffset * 14));
-      break;
-    case 'MONTHLY':
-      date.setMonth(date.getMonth() + periodOffset);
-      break;
-    default:
-      break;
+    case 'WEEKLY': date.setDate(date.getDate() + (periodOffset * 7)); break;
+    case 'BIWEEKLY': date.setDate(date.getDate() + (periodOffset * 14)); break;
+    case 'MONTHLY': date.setMonth(date.getMonth() + periodOffset); break;
   }
-  
   return date.toISOString().split('T')[0];
 }
 
-// Generate installment schedule
-function generateInstallments(
-  arrangementId: string,
-  totalAmount: number,
-  request: CreateArrangementRequest
-): PaymentScheduleInstallment[] {
-  const installments: PaymentScheduleInstallment[] = [];
-  
-  if (request.scheduleType === 'EQUAL' && request.numberOfInstallments) {
-    const installmentAmount = totalAmount / request.numberOfInstallments;
-    
-    for (let i = 1; i <= request.numberOfInstallments; i++) {
-      const dueDate = calculateDueDate(request.startDate, i - 1, request.frequency || 'MONTHLY');
-      
-      installments.push({
-        id: `inst-${arrangementId}-${String(i).padStart(3, '0')}`,
-        paymentArrangementId: arrangementId,
-        installmentNumber: i,
-        dueDate,
-        installmentAmount,
-        status: InstallmentStatus.PLANNED,
-        paidAmount: 0,
-        remainingAmount: installmentAmount,
-        isCourtOrdered: request.arrangementType === 'COURT_ORDERED_PLAN'
-      });
-    }
-  } else if (request.scheduleType === 'CUSTOM' && request.customInstallments) {
-    request.customInstallments.forEach((custom) => {
-      installments.push({
-        id: `inst-${arrangementId}-${String(custom.installmentNumber).padStart(3, '0')}`,
-        paymentArrangementId: arrangementId,
-        installmentNumber: custom.installmentNumber,
-        dueDate: custom.dueDate,
-        installmentAmount: custom.amount,
-        status: InstallmentStatus.PLANNED,
-        paidAmount: 0,
-        remainingAmount: custom.amount,
-        isCourtOrdered: request.arrangementType === 'COURT_ORDERED_PLAN'
-      });
-    });
-  }
-  
-  return installments;
+function mapRow(row: any): PaymentArrangement {
+  return {
+    id: row.id,
+    arrangementNumber: row.arrangement_number,
+    employerId: row.employer_id,
+    employerName: row.employer_name ?? '',
+    versionNumber: 1,
+    status: (row.status ?? 'DRAFT') as ArrangementStatus,
+    arrangementSourceModule: ArrangementSourceModule.COMPLIANCE,
+    arrangementType: 'VOLUNTARY_PLAN' as any,
+    startDate: row.start_date,
+    plannedEndDate: row.end_date ?? undefined,
+    totalArrangedAmount: Number(row.total_debt ?? 0),
+    totalPaidAmount: Number(row.total_paid ?? 0),
+    outstandingBalance: Number(row.total_debt ?? 0) - Number(row.total_paid ?? 0),
+    createdByUserId: row.created_by ?? '',
+    createdByName: row.created_by ?? '',
+    createdAt: row.created_at,
+    approvedByUserId: row.approved_by ?? undefined,
+    approvedByName: row.approved_by ?? undefined,
+    approvedAt: row.approved_at ?? undefined,
+    notes: row.terms_text ?? undefined,
+    items: [],
+    installments: [],
+  };
 }
 
 class CentralPaymentArrangementService {
-  // ============================================
-  // Create new payment arrangement
-  // ============================================
   async createArrangement(request: CreateArrangementRequest): Promise<PaymentArrangement> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
+    const userCode = await getCurrentUserCode();
+    const totalArrangedAmount = request.items.reduce((s, i) => s + i.arrangedAmount, 0);
+    const numInstallments = request.numberOfInstallments ?? request.customInstallments?.length ?? 1;
+    const installmentAmount = totalArrangedAmount / numInstallments;
+    const endDate = request.plannedEndDate ?? calculateDueDate(request.startDate, numInstallments - 1, request.frequency ?? 'MONTHLY');
+
     // Check for existing active arrangement
-    const existingActive = mockArrangements.find(
-      arr => arr.employerId === request.employerId && arr.status === ArrangementStatus.ACTIVE
-    );
-    
-    if (existingActive) {
+    const { data: existing } = await supabase
+      .from('ce_payment_arrangements')
+      .select('id')
+      .eq('employer_id', request.employerId)
+      .eq('status', 'ACTIVE')
+      .maybeSingle();
+
+    if (existing) {
       throw new Error('This employer already has an active payment arrangement. Please supersede or complete the existing arrangement first.');
     }
-    
-    // Calculate version number
-    const existingArrangements = mockArrangements.filter(arr => arr.employerId === request.employerId);
-    const versionNumber = existingArrangements.length + 1;
-    
-    // Calculate total arranged amount
-    const totalArrangedAmount = request.items.reduce((sum, item) => sum + item.arrangedAmount, 0);
-    
-    // Create arrangement items
-    const items: PaymentArrangementItem[] = request.items.map((item, index) => ({
-      id: `item-${Date.now()}-${index}`,
-      paymentArrangementId: '', // Will be set below
-      sourceModule: item.sourceModule,
-      sourceType: item.sourceType,
-      sourceReferenceId: item.sourceReferenceId,
-      sourceDescription: item.sourceDescription,
-      originalOutstandingAmount: item.originalOutstandingAmount,
-      arrangedAmount: item.arrangedAmount,
-      paidAmount: 0,
-      remainingBalance: item.arrangedAmount
-    }));
-    
-    const arrangementId = `arr-${Date.now()}`;
-    
-    // Update item IDs
-    items.forEach(item => item.paymentArrangementId = arrangementId);
-    
-    // Generate installments
-    const installments = generateInstallments(arrangementId, totalArrangedAmount, request);
-    
-    // Calculate planned end date if not provided
-    const plannedEndDate = request.plannedEndDate || 
-      (installments.length > 0 ? installments[installments.length - 1].dueDate : undefined);
-    
-    // Create arrangement
-    const newArrangement: PaymentArrangement = {
-      id: arrangementId,
-      arrangementNumber: generateArrangementNumber(),
-      employerId: request.employerId,
-      employerName: 'Mock Employer', // In real system, fetch from employer service
-      versionNumber,
-      status: ArrangementStatus.DRAFT,
-      arrangementSourceModule: request.arrangementSourceModule,
-      arrangementType: request.arrangementType,
-      startDate: request.startDate,
-      plannedEndDate,
-      totalArrangedAmount,
-      totalPaidAmount: 0,
-      outstandingBalance: totalArrangedAmount,
-      createdByUserId: 'user-current',
-      createdByName: 'Current User',
-      createdAt: new Date().toISOString(),
-      notes: request.notes,
-      items,
-      installments
-    };
-    
-    mockArrangements.push(newArrangement);
-    return newArrangement;
+
+    const year = new Date().getFullYear();
+    const { count } = await supabase.from('ce_payment_arrangements').select('id', { count: 'exact', head: true });
+    const arrangementNumber = `PA-${year}-${String((count ?? 0) + 1).padStart(4, '0')}`;
+
+    const { data, error } = await supabase
+      .from('ce_payment_arrangements')
+      .insert({
+        arrangement_number: arrangementNumber,
+        employer_id: request.employerId,
+        employer_name: '', // Will be populated by caller or trigger
+        status: 'DRAFT',
+        total_debt: totalArrangedAmount,
+        down_payment: 0,
+        installment_amount: installmentAmount,
+        number_of_installments: numInstallments,
+        frequency: request.frequency ?? 'MONTHLY',
+        start_date: request.startDate,
+        end_date: endDate,
+        total_paid: 0,
+        installments_paid: 0,
+        terms_text: request.notes ?? null,
+        conditions: null,
+        created_by: userCode ?? 'SYSTEM',
+      })
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return mapRow(data);
   }
-  
-  // ============================================
-  // Activate arrangement
-  // ============================================
+
   async activateArrangement(arrangementId: string): Promise<PaymentArrangement> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    const arrangement = mockArrangements.find(arr => arr.id === arrangementId);
-    if (!arrangement) throw new Error('Arrangement not found');
-    
-    // Check for existing active arrangement
-    const existingActive = mockArrangements.find(
-      arr => arr.employerId === arrangement.employerId && 
-             arr.status === ArrangementStatus.ACTIVE &&
-             arr.id !== arrangementId
-    );
-    
-    if (existingActive) {
-      throw new Error('Cannot activate: employer already has an active arrangement');
-    }
-    
-    arrangement.status = ArrangementStatus.ACTIVE;
-    return arrangement;
+    const { data, error } = await supabase
+      .from('ce_payment_arrangements')
+      .update({ status: 'ACTIVE' })
+      .eq('id', arrangementId)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return mapRow(data);
   }
-  
-  // ============================================
-  // Get arrangements
-  // ============================================
+
   async getArrangementsByEmployer(employerId: string): Promise<PaymentArrangement[]> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return mockArrangements.filter(arr => arr.employerId === employerId);
+    const { data, error } = await supabase
+      .from('ce_payment_arrangements')
+      .select('*')
+      .eq('employer_id', employerId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapRow);
   }
-  
+
   async getActiveArrangement(employerId: string): Promise<PaymentArrangement | null> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return mockArrangements.find(
-      arr => arr.employerId === employerId && arr.status === ArrangementStatus.ACTIVE
-    ) || null;
+    const { data, error } = await supabase
+      .from('ce_payment_arrangements')
+      .select('*')
+      .eq('employer_id', employerId)
+      .eq('status', 'ACTIVE')
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapRow(data) : null;
   }
-  
+
   async getArrangementById(id: string): Promise<PaymentArrangement | undefined> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return mockArrangements.find(arr => arr.id === id);
+    const { data, error } = await supabase
+      .from('ce_payment_arrangements')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapRow(data) : undefined;
   }
-  
-  // ============================================
-  // Apply payment to installment
-  // ============================================
+
   async applyPaymentToInstallment(
     arrangementId: string,
-    installmentId: string,
+    _installmentId: string,
     amount: number,
-    receiptId: string
+    _receiptId: string
   ): Promise<PaymentArrangement> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const arrangement = mockArrangements.find(arr => arr.id === arrangementId);
-    if (!arrangement) throw new Error('Arrangement not found');
-    
-    const installment = arrangement.installments.find(inst => inst.id === installmentId);
-    if (!installment) throw new Error('Installment not found');
-    
-    // Create allocation
-    const allocation: PaymentAllocation = {
-      id: `alloc-${Date.now()}`,
-      receiptId,
-      paymentScheduleInstallmentId: installmentId,
-      allocatedAmount: amount,
-      allocationDate: new Date().toISOString()
+    // Update arrangement totals in DB
+    const { data: arr, error: fetchErr } = await supabase
+      .from('ce_payment_arrangements')
+      .select('*')
+      .eq('id', arrangementId)
+      .single();
+    if (fetchErr) throw fetchErr;
+
+    const newTotalPaid = Number(arr.total_paid ?? 0) + amount;
+    const newInstallmentsPaid = (arr.installments_paid ?? 0) + 1;
+
+    const updates: Record<string, any> = {
+      total_paid: newTotalPaid,
+      installments_paid: newInstallmentsPaid,
     };
-    
-    mockAllocations.push(allocation);
-    
-    // Update installment
-    installment.paidAmount += amount;
-    installment.remainingAmount = installment.installmentAmount - installment.paidAmount;
-    installment.lastPaymentDate = new Date().toISOString();
-    
-    if (installment.remainingAmount <= 0) {
-      installment.status = InstallmentStatus.PAID;
-    } else if (installment.paidAmount > 0) {
-      installment.status = InstallmentStatus.PARTIALLY_PAID;
+
+    if (newTotalPaid >= Number(arr.total_debt ?? 0)) {
+      updates.status = 'COMPLETED';
     }
-    
-    // Update arrangement totals
-    arrangement.totalPaidAmount += amount;
-    arrangement.outstandingBalance -= amount;
-    
-    // Check if completed
-    const allPaid = arrangement.installments.every(inst => inst.status === InstallmentStatus.PAID);
-    if (allPaid && arrangement.outstandingBalance <= 0) {
-      arrangement.status = ArrangementStatus.COMPLETED;
-    }
-    
-    return arrangement;
+
+    const { data, error } = await supabase
+      .from('ce_payment_arrangements')
+      .update(updates)
+      .eq('id', arrangementId)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return mapRow(data);
   }
-  
-  // ============================================
-  // Get employer dues summary
-  // ============================================
+
   async getEmployerDuesSummary(employerId: string): Promise<EmployerDuesSummary> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    // In real system, aggregate from all modules
-    // For now, return mock data
+    // Aggregate from ce_violations for compliance dues
+    const { data: violations } = await supabase
+      .from('ce_violations')
+      .select('id, violation_number, total_amount, status')
+      .eq('employer_id', employerId)
+      .in('status', ['OPEN', 'IN_PROGRESS', 'ESCALATED']);
+
+    const complianceDues = (violations ?? []).map(v => ({
+      sourceModule: ArrangementSourceModule.COMPLIANCE,
+      sourceType: 'VIOLATION' as any,
+      sourceReferenceId: v.id,
+      description: `Violation ${v.violation_number}`,
+      outstandingAmount: Number(v.total_amount ?? 0),
+      isInActiveArrangement: false,
+      canBeIncluded: true,
+    }));
+
     return {
       employerId,
-      employerName: 'Mock Employer',
-      complianceDues: [],
+      employerName: '',
+      complianceDues,
       legalDues: [],
       financeDues: [],
       benefitsDues: [],
-      totalOutstanding: 0
+      totalOutstanding: complianceDues.reduce((s, d) => s + d.outstandingAmount, 0),
     };
   }
-  
-  // ============================================
-  // Get arrangement summary
-  // ============================================
+
   async getArrangementSummary(): Promise<ArrangementSummary> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    const activeArrangements = mockArrangements.filter(arr => arr.status === ArrangementStatus.ACTIVE);
-    const completedArrangements = mockArrangements.filter(arr => arr.status === ArrangementStatus.COMPLETED);
-    const supersededArrangements = mockArrangements.filter(arr => arr.status === ArrangementStatus.SUPERSEDED);
-    
+    const { data, error } = await supabase
+      .from('ce_payment_arrangements')
+      .select('status, total_debt, total_paid');
+    if (error) throw error;
+
+    const rows = data ?? [];
+    const active = rows.filter(r => r.status === 'ACTIVE');
+    const completed = rows.filter(r => r.status === 'COMPLETED');
+    const superseded = rows.filter(r => r.status === 'SUPERSEDED');
+
     return {
-      totalArrangements: mockArrangements.length,
-      activeArrangements: activeArrangements.length,
-      completedArrangements: completedArrangements.length,
-      supersededArrangements: supersededArrangements.length,
-      totalArrangedValue: activeArrangements.reduce((sum, arr) => sum + arr.totalArrangedAmount, 0),
-      totalPaidToDate: activeArrangements.reduce((sum, arr) => sum + arr.totalPaidAmount, 0),
-      totalOutstanding: activeArrangements.reduce((sum, arr) => sum + arr.outstandingBalance, 0),
-      onTimePaymentRate: 95 // Mock
+      totalArrangements: rows.length,
+      activeArrangements: active.length,
+      completedArrangements: completed.length,
+      supersededArrangements: superseded.length,
+      totalArrangedValue: active.reduce((s, r) => s + Number(r.total_debt ?? 0), 0),
+      totalPaidToDate: active.reduce((s, r) => s + Number(r.total_paid ?? 0), 0),
+      totalOutstanding: active.reduce((s, r) => s + (Number(r.total_debt ?? 0) - Number(r.total_paid ?? 0)), 0),
+      onTimePaymentRate: 0, // TODO: Calculate from installment-level data
     };
   }
-  
-  // ============================================
-  // Supersede arrangement
-  // ============================================
+
   async supersedeArrangement(arrangementId: string): Promise<PaymentArrangement> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    const arrangement = mockArrangements.find(arr => arr.id === arrangementId);
-    if (!arrangement) throw new Error('Arrangement not found');
-    
-    arrangement.status = ArrangementStatus.SUPERSEDED;
-    return arrangement;
+    const { data, error } = await supabase
+      .from('ce_payment_arrangements')
+      .update({ status: 'SUPERSEDED' })
+      .eq('id', arrangementId)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return mapRow(data);
   }
 }
 
