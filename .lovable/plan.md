@@ -1,46 +1,45 @@
 
 
-# Fix: NWD Payment Sync — `is_for_director` Sent as String Instead of Boolean
+# Fix: Missing Workflow Action Buttons (Schedule Meeting) on Employer Application Detail Page
 
 ## Root Cause
 
-The `sync-c3-payment` edge function sends `is_for_director: "true"` (a **string**) instead of `is_for_director: true` (a **boolean**).
+The `EmployerApplicationDetailPage` imports `WorkflowActionButtons` but **never renders it**. Instead, it only renders `EmployerApplicationActions`, which has hardcoded Accept and Reject buttons — completely bypassing the workflow engine.
 
-This happens because the payload is typed as `Record<string, string | undefined>` (line 185), forcing all values to strings. When `is_for_director = "true"` reaches C3-Wizard, it fails the boolean check and defaults to searching for standard ER contributions — which don't exist at those schedule numbers — causing the error:
+By contrast, the IP Application Detail page and Doctor Application Detail page both render `<WorkflowActionButtons>` alongside their custom action components, which is how workflow-configured actions like "Schedule a Meeting" appear dynamically.
 
-> "No submitted contribution found for the given period and schedule"
+## Plan
 
-## Fix
+### File: `src/pages/online-applications/EmployerApplicationDetailPage.tsx`
 
-**File:** `supabase/functions/sync-c3-payment/index.ts`
+**Add `<WorkflowActionButtons>` to the header action area** (around line 218, before `<EmployerApplicationActions>`):
 
-1. **Remove `is_for_director` from the string-typed `payload` object** (lines 197-200). Instead, add it directly to the `cleanPayload` object (which is `Record<string, unknown>`) as a proper **boolean `true`**:
-
-```typescript
-// Line ~235, after cleanPayload is built:
-if (header.is_for_director) {
-  cleanPayload.is_for_director = true;  // boolean, not string
-}
+```tsx
+<WorkflowActionButtons
+  sourceModule="online-employer-applications"
+  sourceRecordId={applicationId || application?.registration_id || null}
+  onActionComplete={async (action, endState) => {
+    handleActionComplete();
+    if (endState === 'Approved' || endState === 'Completed') {
+      // Trigger existing accept logic if needed
+    }
+  }}
+/>
 ```
 
-2. **Delete the old string assignment** at lines 197-200 that sets `payload.is_for_director = "true"`.
+This will:
+- Query the workflow engine for the current step's configured actions (including Schedule Meeting)
+- Render them dynamically based on workflow configuration
+- Keep the existing hardcoded Accept/Reject buttons from `EmployerApplicationActions` as-is (they serve as direct action shortcuts)
 
-This ensures the JSON body sent to C3-Wizard contains `"is_for_director": true` (boolean), matching the required contract from the SSB Admin team's specification.
-
-## What Changes
-
+### What changes
 | File | Change |
 |------|--------|
-| `supabase/functions/sync-c3-payment/index.ts` | Move `is_for_director` from string payload to `cleanPayload` as boolean `true` |
+| `src/pages/online-applications/EmployerApplicationDetailPage.tsx` | Add `<WorkflowActionButtons>` rendering in header actions area |
 
-## What Stays Unchanged
-
-- All other payload fields remain as-is
-- Retry logic, logging, idempotency checks — untouched
-- Regular ER and SE sync flows — unaffected (the flag is only added when `header.is_for_director` is truthy)
-- No database or frontend changes needed
-
-## After Deploy
-
-The two failed payments (Schedule 3 and Schedule 6 for March 2026, employer 658852) can be retried via the existing Resync button in the UI.
+### What stays unchanged
+- `EmployerApplicationActions` component — untouched
+- `WorkflowActionButtons` component — already supports employer module
+- All other pages (IP, Doctor) — unaffected
+- Workflow configuration — no database changes needed
 
