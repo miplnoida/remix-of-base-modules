@@ -320,12 +320,12 @@ export default function EmployerRegistrationForm() {
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Trade Name</TableHead><TableHead>Address 1</TableHead><TableHead>Address 2</TableHead><TableHead>Activity Type</TableHead>{!isViewMode && <TableHead></TableHead>}</TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Trade Name</TableHead><TableHead>Address 1</TableHead><TableHead>Address 2</TableHead><TableHead>City</TableHead><TableHead>State</TableHead><TableHead>Country</TableHead><TableHead>Activity Type</TableHead>{!isViewMode && <TableHead></TableHead>}</TableRow></TableHeader>
                 <TableBody>
-                  {locations.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">No locations added</TableCell></TableRow> :
+                  {locations.length === 0 ? <TableRow><TableCell colSpan={isViewMode ? 7 : 8} className="text-center text-muted-foreground">No locations added</TableCell></TableRow> :
                     locations.map((loc, idx) => (
                       <TableRow key={idx}>
-                        <TableCell>{loc.trade_name}</TableCell><TableCell>{loc.loc_addr1}</TableCell><TableCell>{loc.loc_addr2}</TableCell><TableCell>{loc.activity_type}</TableCell>
+                        <TableCell>{loc.trade_name || '—'}</TableCell><TableCell>{loc.loc_addr1 || '—'}</TableCell><TableCell>{loc.loc_addr2 || '—'}</TableCell><TableCell>{(loc as any).city || '—'}</TableCell><TableCell>{(loc as any).state || '—'}</TableCell><TableCell>{resolveCountryName((loc as any).country)}</TableCell><TableCell>{loc.activity_type || '—'}</TableCell>
                         {!isViewMode && <TableCell><Button variant="ghost" size="icon" onClick={() => loc.location_id && deleteLocation(loc.location_id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>}
                       </TableRow>
                     ))}
@@ -483,6 +483,27 @@ export default function EmployerRegistrationForm() {
               <Label className={locationErrors.loc_addr2 ? 'text-destructive' : ''}>Address 2 <span className="text-xs text-muted-foreground">(max 25)</span></Label>
               <Input value={locationForm.loc_addr2} onChange={e => { setLocationForm({ ...locationForm, loc_addr2: e.target.value }); setLocationErrors(prev => ({ ...prev, loc_addr2: '' })); }} maxLength={25} className={locationErrors.loc_addr2 ? 'border-destructive' : ''} />
               {locationErrors.loc_addr2 && <p className="text-xs text-destructive mt-1">{locationErrors.loc_addr2}</p>}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>City <span className="text-xs text-muted-foreground">(max 50)</span></Label>
+                <Input value={locationForm.city} onChange={e => setLocationForm({ ...locationForm, city: e.target.value })} maxLength={50} placeholder="Enter city" />
+              </div>
+              <div>
+                <Label>State <span className="text-xs text-muted-foreground">(max 50)</span></Label>
+                <Input value={locationForm.state} onChange={e => setLocationForm({ ...locationForm, state: e.target.value })} maxLength={50} placeholder="Enter state" />
+              </div>
+              <div>
+                <Label>Country</Label>
+                <SearchableSelect
+                  options={countryOptions}
+                  value={locationForm.country}
+                  onValueChange={(val) => setLocationForm({ ...locationForm, country: val })}
+                  placeholder="Select country"
+                  searchPlaceholder="Search countries..."
+                  emptyMessage="No country found."
+                />
+              </div>
             </div>
             <div>
               <Label className={locationErrors.activity_type ? 'text-destructive' : ''}>Activity Type <span className="text-xs text-muted-foreground">(max 50)</span></Label>
