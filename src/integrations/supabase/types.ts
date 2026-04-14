@@ -13814,6 +13814,259 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_legal_recommendations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employer_id: string
+          employer_name: string
+          employer_zone: string | null
+          grand_total: number | null
+          id: string
+          legal_referral_id: string | null
+          qualifying_case_ids: Json | null
+          recommended_date: string
+          review_notes: string | null
+          reviewed_by: string | null
+          reviewed_date: string | null
+          risk_band: string | null
+          risk_score: number | null
+          status: string
+          subcase_summary: Json | null
+          total_interest: number | null
+          total_penalties: number | null
+          total_principal: number | null
+          triggered_rules: Json | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employer_id: string
+          employer_name: string
+          employer_zone?: string | null
+          grand_total?: number | null
+          id?: string
+          legal_referral_id?: string | null
+          qualifying_case_ids?: Json | null
+          recommended_date?: string
+          review_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_date?: string | null
+          risk_band?: string | null
+          risk_score?: number | null
+          status?: string
+          subcase_summary?: Json | null
+          total_interest?: number | null
+          total_penalties?: number | null
+          total_principal?: number | null
+          triggered_rules?: Json | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employer_id?: string
+          employer_name?: string
+          employer_zone?: string | null
+          grand_total?: number | null
+          id?: string
+          legal_referral_id?: string | null
+          qualifying_case_ids?: Json | null
+          recommended_date?: string
+          review_notes?: string | null
+          reviewed_by?: string | null
+          reviewed_date?: string | null
+          risk_band?: string | null
+          risk_score?: number | null
+          status?: string
+          subcase_summary?: Json | null
+          total_interest?: number | null
+          total_penalties?: number | null
+          total_principal?: number | null
+          triggered_rules?: Json | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ce_legal_referral_lines: {
+        Row: {
+          case_id: string | null
+          case_number: string | null
+          case_type: string | null
+          created_at: string
+          id: string
+          interest_amount: number | null
+          line_notes: string | null
+          penalty_amount: number | null
+          period_from: string | null
+          period_to: string | null
+          principal_amount: number | null
+          referral_id: string
+          total_amount: number | null
+        }
+        Insert: {
+          case_id?: string | null
+          case_number?: string | null
+          case_type?: string | null
+          created_at?: string
+          id?: string
+          interest_amount?: number | null
+          line_notes?: string | null
+          penalty_amount?: number | null
+          period_from?: string | null
+          period_to?: string | null
+          principal_amount?: number | null
+          referral_id: string
+          total_amount?: number | null
+        }
+        Update: {
+          case_id?: string | null
+          case_number?: string | null
+          case_type?: string | null
+          created_at?: string
+          id?: string
+          interest_amount?: number | null
+          line_notes?: string | null
+          penalty_amount?: number | null
+          period_from?: string | null
+          period_to?: string | null
+          principal_amount?: number | null
+          referral_id?: string
+          total_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_legal_referral_lines_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "ce_legal_referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_legal_referrals: {
+        Row: {
+          accepted_by: string | null
+          accepted_date: string | null
+          audit_findings: string | null
+          compliance_history: string | null
+          contact_attempts: string | null
+          court_case_number: string | null
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          employer_id: string
+          employer_name: string
+          employer_zone: string | null
+          grand_total: number | null
+          id: string
+          last_notice_date: string | null
+          legal_case_id: string | null
+          legal_officer_assigned: string | null
+          notices_sent: number | null
+          payment_plan_history: string | null
+          period_from: string | null
+          period_to: string | null
+          periods_count: number | null
+          recommendation_id: string | null
+          referral_number: string
+          rejected_by: string | null
+          rejected_date: string | null
+          rejection_reason: string | null
+          status: string
+          submitted_date: string | null
+          total_interest: number | null
+          total_penalties: number | null
+          total_principal: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          accepted_by?: string | null
+          accepted_date?: string | null
+          audit_findings?: string | null
+          compliance_history?: string | null
+          contact_attempts?: string | null
+          court_case_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          employer_id: string
+          employer_name: string
+          employer_zone?: string | null
+          grand_total?: number | null
+          id?: string
+          last_notice_date?: string | null
+          legal_case_id?: string | null
+          legal_officer_assigned?: string | null
+          notices_sent?: number | null
+          payment_plan_history?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          periods_count?: number | null
+          recommendation_id?: string | null
+          referral_number: string
+          rejected_by?: string | null
+          rejected_date?: string | null
+          rejection_reason?: string | null
+          status?: string
+          submitted_date?: string | null
+          total_interest?: number | null
+          total_penalties?: number | null
+          total_principal?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          accepted_by?: string | null
+          accepted_date?: string | null
+          audit_findings?: string | null
+          compliance_history?: string | null
+          contact_attempts?: string | null
+          court_case_number?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          employer_id?: string
+          employer_name?: string
+          employer_zone?: string | null
+          grand_total?: number | null
+          id?: string
+          last_notice_date?: string | null
+          legal_case_id?: string | null
+          legal_officer_assigned?: string | null
+          notices_sent?: number | null
+          payment_plan_history?: string | null
+          period_from?: string | null
+          period_to?: string | null
+          periods_count?: number | null
+          recommendation_id?: string | null
+          referral_number?: string
+          rejected_by?: string | null
+          rejected_date?: string | null
+          rejection_reason?: string | null
+          status?: string
+          submitted_date?: string | null
+          total_interest?: number | null
+          total_penalties?: number | null
+          total_principal?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_legal_referrals_recommendation_id_fkey"
+            columns: ["recommendation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_legal_recommendations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_manual_rebuild_request: {
         Row: {
           completed_at: string | null
@@ -45839,6 +46092,10 @@ export type Database = {
       fn_ce_consolidate_violation_to_case: {
         Args: { p_performed_by?: string; p_violation_id: string }
         Returns: Json
+      }
+      fn_ce_generate_legal_recommendations: {
+        Args: { p_created_by?: string }
+        Returns: number
       }
       fn_ce_recalculate_case_severity: {
         Args: { p_case_id: string }
