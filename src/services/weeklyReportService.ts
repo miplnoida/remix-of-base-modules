@@ -1,181 +1,175 @@
-import { 
-  WeeklyPlanItem, 
-  InspectionVisit, 
-  InspectionEvidence, 
-  InspectionFinding, 
+// ============================================
+// WEEKLY REPORT SERVICE - DB-BACKED
+// ============================================
+
+import { supabase } from '@/integrations/supabase/client';
+import {
+  WeeklyPlanItem,
+  InspectionVisit,
+  InspectionEvidence,
+  InspectionFinding,
   WeeklyReportSummary,
   InspectionVisitStatus,
   FindingType,
-  EvidenceType,
-  ItemType
 } from '@/types/inspectionTypes';
-import { Violation, ViolationStatus, ViolationType } from '@/types/violation';
+import { Violation } from '@/types/violation';
 
-// Mock data for demonstration
-const mockWeeklyPlanItems: WeeklyPlanItem[] = [
-  {
-    id: 'wpi-001',
-    inspectorUserId: 'inspector-001',
-    inspectorName: 'John Inspector',
-    itemType: ItemType.EMPLOYER_VISIT,
-    visitDate: '2024-01-22',
-    plannedDate: '2024-01-22',
-    employerId: 'EMP-2024-001',
-    employerName: 'ABC Construction Ltd',
-    territory: 'St Kitts',
-    plannedStartTime: '09:00',
-    plannedEndTime: '17:00',
-    status: InspectionVisitStatus.COMPLETED,
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-22T17:30:00Z'
-  },
-  {
-    id: 'wpi-002',
-    inspectorUserId: 'inspector-001',
-    inspectorName: 'John Inspector',
-    itemType: ItemType.EMPLOYER_VISIT,
-    visitDate: '2024-01-23',
-    plannedDate: '2024-01-23',
-    employerId: 'EMP-2024-010',
-    employerName: 'Retail Services Inc',
-    territory: 'St Kitts',
-    plannedStartTime: '09:00',
-    plannedEndTime: '12:00',
-    status: InspectionVisitStatus.PLANNED,
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z'
-  },
-  {
-    id: 'wpi-003',
-    inspectorUserId: 'inspector-001',
-    inspectorName: 'John Inspector',
-    itemType: ItemType.SCOUTING,
-    visitDate: '2024-01-24',
-    plannedDate: '2024-01-24',
-    areaName: 'Basseterre Industrial Zone',
-    territory: 'St Kitts',
-    plannedStartTime: '08:00',
-    plannedEndTime: '16:00',
-    status: InspectionVisitStatus.COMPLETED,
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-24T16:30:00Z'
-  }
-];
+function mapPlanItem(row: any): WeeklyPlanItem {
+  return {
+    id: row.id,
+    inspectorUserId: row.assigned_officer_id ?? '',
+    inspectorName: row.assigned_officer_name ?? '',
+    itemType: row.source_type ?? 'EMPLOYER_VISIT',
+    visitDate: row.scheduled_date ?? '',
+    plannedDate: row.scheduled_date ?? '',
+    employerId: row.employer_id ?? '',
+    employerName: row.employer_name ?? '',
+    territory: row.zone_name ?? '',
+    status: row.execution_status ?? 'PLANNED',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at ?? row.created_at,
+    rescheduleReason: row.notes ?? undefined,
+  };
+}
 
-const mockVisits: InspectionVisit[] = [
-  {
-    id: 'visit-001',
-    weeklyPlanItemId: 'wpi-001',
-    employerId: 'EMP-2024-001',
-    employerName: 'ABC Construction Ltd',
-    inspectorUserId: 'inspector-001',
-    inspectorName: 'John Inspector',
-    territory: 'St Kitts',
-    visitDate: '2024-01-22',
-    checkInTime: '09:15',
-    checkInGPSLat: 17.2945,
-    checkInGPSLng: -62.7267,
-    checkOutTime: '16:45',
-    checkOutGPSLat: 17.2945,
-    checkOutGPSLng: -62.7267,
-    visitStatus: InspectionVisitStatus.COMPLETED,
-    status: InspectionVisitStatus.COMPLETED,
-    visitNotes: 'Conducted full audit. Employer cooperative. Found several issues with wage reporting.',
-    inspectorId: 'inspector-001',
-    createdAt: '2024-01-22T09:15:00Z',
-    updatedAt: '2024-01-22T16:45:00Z'
-  }
-];
-
-const mockEvidence: InspectionEvidence[] = [
-  {
-    id: 'evidence-001',
-    inspectionVisitId: 'visit-001',
-    employerId: 'EMP-2024-001',
-    visitId: 'visit-001',
-    evidenceType: EvidenceType.PHOTO,
-    type: EvidenceType.PHOTO,
-    fileName: 'wage_book_page1.jpg',
-    fileUrl: '/evidence/wage_book_page1.jpg',
-    fileSize: 2048000,
-    description: 'Wage book showing discrepancies in reported wages',
-    capturedAt: '2024-01-22T10:30:00Z',
-    capturedByUserId: 'inspector-001',
-    capturedBy: 'inspector-001',
-    gpsLat: 17.2945,
-    gpsLng: -62.7267
-  },
-  {
-    id: 'evidence-002',
-    inspectionVisitId: 'visit-001',
-    employerId: 'EMP-2024-001',
-    visitId: 'visit-001',
-    evidenceType: EvidenceType.DOCUMENT,
-    type: EvidenceType.DOCUMENT,
-    fileName: 'c3_comparison.pdf',
-    fileUrl: '/evidence/c3_comparison.pdf',
-    fileSize: 512000,
-    description: 'Comparison of C3 submissions vs actual wage records',
-    capturedAt: '2024-01-22T14:15:00Z',
-    capturedByUserId: 'inspector-001',
-    capturedBy: 'inspector-001'
-  }
-];
-
-const mockFindings: InspectionFinding[] = [
-  {
-    id: 'finding-001',
-    inspectionVisitId: 'visit-001',
-    employerId: 'EMP-2024-001',
-    visitId: 'visit-001',
-    findingType: FindingType.POSSIBLE_VIOLATION,
-    category: 'Under-reporting',
-    title: 'Under-reporting of wages',
-    description: 'Employer reported lower wages on C3 form than shown in wage books. Discrepancy of approximately $15,000 over 3 months.',
-    severity: 'High' as const,
-    evidenceIds: ['evidence-001', 'evidence-002'],
-    isViolationCreated: false,
-    inspectorNotes: 'Need to create violation and calculate penalties',
-    createdAt: '2024-01-22T15:00:00Z',
-    createdByUserId: 'inspector-001',
-    createdBy: 'inspector-001'
-  }
-];
-
-const mockViolations: Violation[] = [];
+function mapInspection(row: any): InspectionVisit {
+  return {
+    id: row.id,
+    weeklyPlanItemId: row.plan_item_id ?? '',
+    employerId: row.employer_id ?? '',
+    employerName: row.employer_name ?? '',
+    inspectorUserId: row.inspector_id ?? '',
+    inspectorName: '',
+    territory: row.location_address ?? '',
+    visitDate: row.scheduled_date ?? '',
+    checkInTime: row.check_in_time ?? undefined,
+    checkInGPSLat: row.check_in_lat ?? undefined,
+    checkInGPSLng: row.check_in_lng ?? undefined,
+    checkOutTime: row.check_out_time ?? undefined,
+    checkOutGPSLat: row.check_out_lat ?? undefined,
+    checkOutGPSLng: row.check_out_lng ?? undefined,
+    visitStatus: row.status ?? 'PLANNED',
+    status: row.status ?? 'PLANNED',
+    visitNotes: row.notes ?? '',
+    inspectorId: row.inspector_id ?? '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at ?? row.created_at,
+  };
+}
 
 class WeeklyReportService {
   async getWeeklyPlanItems(inspectorId: string, weekStartDate: string): Promise<WeeklyPlanItem[]> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return mockWeeklyPlanItems.filter(item => 
-      item.visitDate >= weekStartDate && 
-      item.visitDate <= this.getWeekEndDate(weekStartDate)
-    );
+    const weekEnd = this.getWeekEndDate(weekStartDate);
+    let query = supabase
+      .from('ce_weekly_plan_items')
+      .select('*')
+      .gte('scheduled_date', weekStartDate)
+      .lte('scheduled_date', weekEnd)
+      .order('scheduled_date');
+
+    // If inspectorId is provided, filter by it
+    if (inspectorId) {
+      query = query.eq('assigned_officer_id', inspectorId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data ?? []).map(mapPlanItem);
   }
 
   async getVisitById(visitId: string): Promise<InspectionVisit | undefined> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return mockVisits.find(v => v.id === visitId);
+    const { data, error } = await supabase
+      .from('ce_inspections')
+      .select('*')
+      .eq('id', visitId)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapInspection(data) : undefined;
   }
 
   async getVisitByPlanItemId(planItemId: string): Promise<InspectionVisit | undefined> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return mockVisits.find(v => v.weeklyPlanItemId === planItemId);
+    const { data, error } = await supabase
+      .from('ce_inspections')
+      .select('*')
+      .eq('plan_item_id', planItemId)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapInspection(data) : undefined;
   }
 
   async getEvidenceForVisit(visitId: string): Promise<InspectionEvidence[]> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return mockEvidence.filter(e => e.visitId === visitId);
+    const { data, error } = await supabase
+      .from('ce_inspection_findings')
+      .select('*')
+      .eq('inspection_id', visitId)
+      .eq('finding_type', 'EVIDENCE');
+    if (error) throw error;
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      inspectionVisitId: row.inspection_id,
+      employerId: '',
+      visitId: row.inspection_id,
+      evidenceType: row.category ?? 'DOCUMENT',
+      type: row.category ?? 'DOCUMENT',
+      fileName: row.title ?? '',
+      fileUrl: '',
+      fileSize: 0,
+      description: row.description ?? '',
+      capturedAt: row.created_at,
+      capturedByUserId: row.created_by ?? '',
+      capturedBy: row.created_by ?? '',
+    }));
   }
 
   async getFindingsForVisit(visitId: string): Promise<InspectionFinding[]> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return mockFindings.filter(f => f.visitId === visitId);
+    const { data, error } = await supabase
+      .from('ce_inspection_findings')
+      .select('*')
+      .eq('inspection_id', visitId)
+      .neq('finding_type', 'EVIDENCE');
+    if (error) throw error;
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      inspectionVisitId: row.inspection_id,
+      employerId: '',
+      visitId: row.inspection_id,
+      findingType: row.finding_type ?? FindingType.OBSERVATION,
+      category: row.category ?? '',
+      title: row.title ?? '',
+      description: row.description ?? '',
+      severity: row.severity ?? 'Medium',
+      evidenceIds: [],
+      isViolationCreated: row.violation_created ?? false,
+      inspectorNotes: row.inspector_notes ?? '',
+      createdAt: row.created_at,
+      createdByUserId: row.created_by ?? '',
+      createdBy: row.created_by ?? '',
+    }));
   }
 
   async getViolationsForVisit(visitId: string): Promise<Violation[]> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return mockViolations.filter(v => v.inspectionVisitId === visitId);
+    const { data, error } = await supabase
+      .from('ce_violations')
+      .select('*')
+      .eq('inspection_id', visitId);
+    if (error) throw error;
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      violationNumber: row.violation_number,
+      employerId: row.employer_id,
+      employerName: row.employer_name ?? '',
+      violationType: row.violation_type,
+      violationTypeId: row.violation_type_id,
+      status: row.status,
+      severity: row.severity ?? 'Medium',
+      description: row.description ?? '',
+      totalAmount: Number(row.total_amount ?? 0),
+      detectedDate: row.detected_date,
+      detectedBy: row.detected_by ?? '',
+      assignedToUserId: row.assigned_to_user_id ?? '',
+      createdAt: row.created_at,
+      inspectionVisitId: row.inspection_id,
+    }));
   }
 
   async rescheduleVisit(
@@ -184,51 +178,64 @@ class WeeklyReportService {
     newDate: string,
     createFollowUp: boolean
   ): Promise<{ updated: WeeklyPlanItem; followUp?: WeeklyPlanItem }> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const item = mockWeeklyPlanItems.find(i => i.id === planItemId);
-    if (!item) {
-      throw new Error('Plan item not found');
-    }
-
-    // Update original item
-    item.status = InspectionVisitStatus.RESCHEDULED;
-    item.rescheduleReason = reason;
-    item.rescheduledTo = newDate;
-    item.updatedAt = new Date().toISOString();
+    const { data: updated, error } = await supabase
+      .from('ce_weekly_plan_items')
+      .update({
+        execution_status: 'RESCHEDULED',
+        notes: reason,
+      })
+      .eq('id', planItemId)
+      .select('*')
+      .single();
+    if (error) throw error;
 
     let followUp: WeeklyPlanItem | undefined;
-
     if (createFollowUp) {
-      followUp = {
-        ...item,
-        id: `wpi-${Date.now()}`,
-        visitDate: newDate,
-        status: InspectionVisitStatus.PLANNED,
-        rescheduleReason: undefined,
-        rescheduledTo: undefined,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      mockWeeklyPlanItems.push(followUp);
+      // Clone the plan item with the new date
+      const { data: orig } = await supabase
+        .from('ce_weekly_plan_items')
+        .select('*')
+        .eq('id', planItemId)
+        .single();
+
+      if (orig) {
+        const { data: newItem } = await supabase
+          .from('ce_weekly_plan_items')
+          .insert({
+            plan_id: orig.plan_id,
+            employer_id: orig.employer_id,
+            employer_name: orig.employer_name,
+            scheduled_date: newDate,
+            source_type: orig.source_type,
+            source_reference_id: orig.source_reference_id,
+            priority: orig.priority,
+            assigned_officer_id: orig.assigned_officer_id,
+            assigned_officer_name: orig.assigned_officer_name,
+            zone_name: orig.zone_name,
+            execution_status: 'PLANNED',
+            notes: `Follow-up from rescheduled item: ${reason}`,
+          })
+          .select('*')
+          .single();
+        if (newItem) followUp = mapPlanItem(newItem);
+      }
     }
 
-    return { updated: item, followUp };
+    return { updated: mapPlanItem(updated), followUp };
   }
 
   async markAsNotDone(planItemId: string, reason: string): Promise<WeeklyPlanItem> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    const item = mockWeeklyPlanItems.find(i => i.id === planItemId);
-    if (!item) {
-      throw new Error('Plan item not found');
-    }
-
-    item.status = InspectionVisitStatus.NOT_DONE;
-    item.notDoneReason = reason;
-    item.updatedAt = new Date().toISOString();
-
-    return item;
+    const { data, error } = await supabase
+      .from('ce_weekly_plan_items')
+      .update({
+        execution_status: 'NOT_DONE',
+        notes: reason,
+      })
+      .eq('id', planItemId)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return mapPlanItem(data);
   }
 
   async validateWeeklyReport(
@@ -236,99 +243,77 @@ class WeeklyReportService {
     weekStartDate: string
   ): Promise<{
     isValid: boolean;
-    issues: {
-      planItemId: string;
-      employerName?: string;
-      areaName?: string;
-      issue: string;
-    }[];
+    issues: { planItemId: string; employerName?: string; areaName?: string; issue: string }[];
   }> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-
     const items = await this.getWeeklyPlanItems(inspectorId, weekStartDate);
     const issues: { planItemId: string; employerName?: string; areaName?: string; issue: string }[] = [];
 
     for (const item of items) {
-      // Check if visit is completed, rescheduled, or not done
       if (item.status === InspectionVisitStatus.PLANNED || item.status === InspectionVisitStatus.IN_PROGRESS) {
         issues.push({
           planItemId: item.id,
           employerName: item.employerName,
           areaName: item.areaName,
-          issue: 'Visit not completed and not rescheduled'
+          issue: 'Visit not completed and not rescheduled',
         });
         continue;
       }
-
-      // For completed visits, check findings and violations
       if (item.status === InspectionVisitStatus.COMPLETED) {
         const visit = await this.getVisitByPlanItemId(item.id);
         if (visit) {
           const findings = await this.getFindingsForVisit(visit.id);
-          
           if (findings.length === 0) {
             issues.push({
               planItemId: item.id,
               employerName: item.employerName,
-              areaName: item.areaName,
-              issue: 'No findings recorded for completed visit'
+              issue: 'No findings recorded for completed visit',
             });
           }
-
-          // Check for possible violations without created violations
           const possibleViolations = findings.filter(
-            f => f.findingType === FindingType.POSSIBLE_VIOLATION && !f.isViolationCreated
+            (f) => f.findingType === FindingType.POSSIBLE_VIOLATION && !f.isViolationCreated
           );
-
           if (possibleViolations.length > 0) {
             issues.push({
               planItemId: item.id,
               employerName: item.employerName,
-              areaName: item.areaName,
-              issue: `${possibleViolations.length} possible violation(s) not converted to violations`
+              issue: `${possibleViolations.length} possible violation(s) not converted to violations`,
             });
           }
         }
       }
     }
 
-    return {
-      isValid: issues.length === 0,
-      issues
-    };
+    return { isValid: issues.length === 0, issues };
   }
 
   async submitWeeklyReport(inspectorId: string, weekStartDate: string): Promise<WeeklyReportSummary> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-
     const items = await this.getWeeklyPlanItems(inspectorId, weekStartDate);
-    
-    const completedVisits = items.filter(i => i.status === InspectionVisitStatus.COMPLETED).length;
-    const rescheduledVisits = items.filter(i => i.status === InspectionVisitStatus.RESCHEDULED).length;
-    const notDoneVisits = items.filter(i => i.status === InspectionVisitStatus.NOT_DONE).length;
+
+    const completedVisits = items.filter((i) => i.status === InspectionVisitStatus.COMPLETED).length;
+    const rescheduledVisits = items.filter((i) => i.status === InspectionVisitStatus.RESCHEDULED).length;
+    const notDoneVisits = items.filter((i) => i.status === InspectionVisitStatus.NOT_DONE).length;
 
     let totalEvidence = 0;
     let totalFindings = 0;
     let totalViolations = 0;
 
-    for (const item of items.filter(i => i.status === InspectionVisitStatus.COMPLETED)) {
+    for (const item of items.filter((i) => i.status === InspectionVisitStatus.COMPLETED)) {
       const visit = await this.getVisitByPlanItemId(item.id);
       if (visit) {
         const evidence = await this.getEvidenceForVisit(visit.id);
         const findings = await this.getFindingsForVisit(visit.id);
         const violations = await this.getViolationsForVisit(visit.id);
-        
         totalEvidence += evidence.length;
         totalFindings += findings.length;
         totalViolations += violations.length;
       }
     }
 
-    const summary: WeeklyReportSummary = {
+    return {
       weekStartDate,
       weekEndDate: this.getWeekEndDate(weekStartDate),
       inspectorId,
-      inspectorName: 'John Inspector',
+      inspectorName: '', // Resolved by caller
       totalPlannedVisits: items.length,
       completedVisits,
       rescheduledVisits,
@@ -337,10 +322,8 @@ class WeeklyReportService {
       totalFindings,
       totalViolations,
       submittedAt: new Date().toISOString(),
-      status: 'SUBMITTED'
+      status: 'SUBMITTED',
     };
-
-    return summary;
   }
 
   private getWeekEndDate(weekStartDate: string): string {

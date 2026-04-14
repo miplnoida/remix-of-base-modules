@@ -35,15 +35,33 @@ export default function FieldOperations() {
     }
   };
 
-  const handleCheckIn = (activityId: string) => {
-    setCheckedInActivities(prev => new Set(prev).add(activityId));
-    toast({ title: "Check-In Successful", description: "You have checked in to this visit. GPS location recorded." });
+  const handleCheckIn = async (activityId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ce_field_activities')
+        .update({ status: 'checked_in', check_in_time: new Date().toISOString() })
+        .eq('id', activityId);
+      if (error) throw error;
+      setCheckedInActivities(prev => new Set(prev).add(activityId));
+      toast({ title: "Check-In Successful", description: "You have checked in to this visit. GPS location recorded." });
+    } catch {
+      toast({ title: "Check-In Failed", description: "Could not persist check-in.", variant: "destructive" });
+    }
     setCheckInDialogOpen(false);
   };
 
-  const handleCheckOut = (activityId: string) => {
-    setCheckedInActivities(prev => { const n = new Set(prev); n.delete(activityId); return n; });
-    toast({ title: "Check-Out Successful", description: "Visit completed and recorded." });
+  const handleCheckOut = async (activityId: string) => {
+    try {
+      const { error } = await supabase
+        .from('ce_field_activities')
+        .update({ status: 'completed', check_out_time: new Date().toISOString() })
+        .eq('id', activityId);
+      if (error) throw error;
+      setCheckedInActivities(prev => { const n = new Set(prev); n.delete(activityId); return n; });
+      toast({ title: "Check-Out Successful", description: "Visit completed and recorded." });
+    } catch {
+      toast({ title: "Check-Out Failed", description: "Could not persist check-out.", variant: "destructive" });
+    }
   };
 
   if (isLoading) {
