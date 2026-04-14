@@ -68,7 +68,7 @@ export default function EmployerRegistrationForm() {
   const [showLocationDialog, setShowLocationDialog] = useState(false);
   const [ownerForm, setOwnerForm] = useState({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 });
   const [ownerErrors, setOwnerErrors] = useState<Record<string, string>>({});
-  const [locationForm, setLocationForm] = useState({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '' });
+  const [locationForm, setLocationForm] = useState({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '', city: '', state: '', country: '' });
   const [locationErrors, setLocationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -154,7 +154,7 @@ export default function EmployerRegistrationForm() {
     if (Object.keys(errors).length > 0) { setLocationErrors(errors); return; }
     setLocationErrors({});
     await addLocation(locationForm);
-    setLocationForm({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '' });
+    setLocationForm({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '', city: '', state: '', country: '' });
     setShowLocationDialog(false);
   };
 
