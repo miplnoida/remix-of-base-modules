@@ -258,7 +258,7 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
 
   const openAddLocation = () => {
     setLocEditIndex(null);
-    setLocForm({ id: `temp-${Date.now()}`, trade_name: '', address1: '', address2: '', activity_type: '' });
+    setLocForm({ id: `temp-${Date.now()}`, trade_name: '', address1: '', address2: '', activity_type: '', city: '', state: '', country: '' });
     setLocErrors({});
     setLocDialogOpen(true);
   };
