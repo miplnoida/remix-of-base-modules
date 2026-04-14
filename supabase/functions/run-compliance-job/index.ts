@@ -63,7 +63,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { job_code, dry_run = false, force = false } = await req.json();
+    const reqBody = await req.json();
+    const { job_code, dry_run = false, force = false, ...extraParams } = reqBody;
     if (!job_code || typeof job_code !== "string") {
       return new Response(JSON.stringify({ ok: false, error: "job_code is required" }), {
         status: 200,
