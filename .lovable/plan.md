@@ -1,93 +1,84 @@
-# Fix: NWD Balance Mismatch and Missing Differentiation on C3 View
+Goal: make the NWD March 2026 Schedule 6 screen show only levy and levy fine values, with all non-NWD deductions displayed as 0, without changing the existing UI layout.
 
-## Root Cause Analysis
+What I found
 
-### Issue 1: Balance Shows $479.70 Instead of $255.84
+- `EmployerC3Form` already detects NWD and already filters payments by `is_for_director` and `sequence_no`.
+- The remaining problem is that the screen still uses the generic `useC3ServerCalculations()` totals as its display source. That calculator still returns regular ER-style values (including severance / other totals), and those values leak into the summary cards and balance display.
+- The form fixes only the final balance formula in one place, but other displayed totals still read directly from `overall.*`, so NWD can still show severance and an incorrect derived balance like `95.94`.
+- The C3-Wizard guide confirms NWD must use only:
+  - Levy
+  - Levy fine
+  Everything else must be treated as 0.
 
-**Database truth** (Schedule 6, `is_for_director = true`):
+Implementation plan
 
-- `emp_ss_amt_calc = 0.00`
-- `emp_levy_amt_calc = 255.84` (this is the only applicable component for NWD)
-- `emp_pe_amt_calc = 0.00`
+1. Lock NWD display values to NWD-only totals in `EmployerC3Form.tsx`
 
-**What the UI does**: The `EmployerC3Form` uses the local calculation engine (`useC3ServerCalculations`) which computes ALL components (SS + Levy + Severance + penalties) for the 2 employees — it has no concept of NWD. The balance formula is:
+- Add a derived “display totals” layer for NWD.
+- When `isNWD = true`, map values as:
+  - employeeSS = 0
+  - employerSS = 0
+  - employerSeverance = 0
+  - severancePenalty = 0
+  - fines = 0
+  - any SS/PE/composite totals = 0
+  - levy fields only remain active
+- Use these derived values everywhere the form renders amounts, instead of raw generic `overall` values.
 
-```
-Balance = (employeeSS + employerSS + fines) + (employeeLevy + employerLevy + severance + penalties) - payments
-```
+2. Fix the balance source of truth for NWD
 
-This inflates the balance to $479.70 because SS and Severance amounts are included when they should be zero for NWD records.
+- For NWD, calculate balance strictly from:
+`levy total + levy penalty - payments`
+- Do not let any SS, PE, severance, or combined helper totals participate.
+- If available from the loaded record, prefer persisted C3 values for NWD display:
+  - `initialData.empLevyAmtCalc`
+  - `initialData.empLevyPenaltyAmt`
+- This ensures the view matches the synced record truth (`255.84`) instead of the generic calculator’s regular-employee interpretation.
 
-**Fix**: For NWD records (where `is_for_director = true`), the balance calculation must use ONLY the levy-related components (employee levy + employer levy + levy penalty), zeroing out SS, Severance, PE, and their penalties. The form needs to detect NWD status from `initialData` and adjust accordingly.
+3. Zero out non-NWD deductions everywhere on the form
 
-### Issue 2: `is_for_director` Verification
+- Keep the same UI sections/cards/tables.
+- Replace only the values for NWD:
+  - SS contribution due for month → `0`
+  - Employer levy + SS composite card → levy-only-compatible value or `0` if composite wording cannot be supported safely
+  - Employer severance card → `0`
+  - Severance penalty → `0`
+  - Fine on Social Security → `0`
+  - Any combined explanatory subtotals must also reflect zeroed values
 
-**Confirmed**: The record IS correctly saved with `is_for_director = true` in `cn_c3_reported`. No fix needed here.
+4. Keep payment filtering unchanged, but verify NWD payment isolation
 
-### Issue 3: No NWD Visual Differentiation
+- Retain the existing `useC3Payments` filters:
+  - `payer_id`
+  - `payer_type`
+  - `sequence_no`
+  - `is_for_director`
+- Confirm the NWD balance path uses that filtered payment total and no alternative totals.
 
-The `EmployerC3Form` has zero awareness of `is_for_director`. There is no badge, label, or indicator showing that a record is for a Non-Working Director. The C3 Payments screen (`C3Payments.tsx`) does differentiate via `payerType === 'NW'`, but the contribution view/edit form does not.
+5. Preserve current UI structure
 
----
+- No layout, label placement, card arrangement, or badge styling changes.
+- Only value sourcing / calculation logic changes.
+- The existing NWD badge remains as-is.
 
-## Implementation Plan
+6. Verify no regression to regular ER/SE flows
 
-### Step 1: Detect NWD Status in EmployerC3Form
+- Regular ER records must continue using the generic calculation flow.
+- NWD override must be gated strictly behind `is_for_director === true`.
+- Confirm Schedule 6 NWD shows:
+  - Payments: `0.00`
+  - Balance: `255.84`
+  - Severance: `0.00`
+  - SS-related amounts: `0.00`
 
-**File**: `src/pages/c3Management/forms/EmployerC3Form.tsx`
+Files to update
 
-- Read `is_for_director` from `initialData` (passed from the parent when loading a record from `cn_c3_reported`)
-- Store as a boolean state `isNWD`
+- `src/pages/c3Management/forms/EmployerC3Form.tsx`
+- Possibly `src/hooks/useC3ServerCalculations.ts` only if a small helper/type adjustment is needed, but the preferred fix is to keep the change localized to the form.
 
-### Step 2: Fix Balance Calculation for NWD
+Technical note
 
-**File**: `src/pages/c3Management/forms/EmployerC3Form.tsx`
-
-- When `isNWD = true`, adjust the balance formula:
-  - `ssContributionDue = 0` (NWD has no SS)
-  - `totalDueToAG = employeeLevy + employerLevy + levyPenalty` (no Severance, no PE)
-  - This makes balance = Levy total - payments = $255.84 - $0 = $255.84
-
-### Step 3: Add NWD Visual Indicator
-
-**File**: `src/pages/c3Management/forms/EmployerC3Form.tsx`
-
-- Add a badge next to the Schedule label or Employer Name showing "Non-Working Director" when `isNWD = true`
-- Use a distinct color (e.g., amber/orange badge) to differentiate from regular ER submissions
-- Optionally hide the SS and Severance sections from the calculation summary when NWD, since those are always zero
-
-### Step 4: Verify initialData Passes `is_for_director`
-
-**Files**: Parent components that load `cn_c3_reported` and pass data to `EmployerC3Form` (likely `EditC3Record.tsx`, `ViewC3Record.tsx`, or the C3 list handler)
-
-- Ensure the `is_for_director` field is included in the query and passed through to `EmployerC3Form` as part of `initialData`
-
-### Step 5: Pass `is_for_director` to useC3Payments
-
-**File**: `src/hooks/useC3Payments.ts`
-
-- Add `isForDirector: boolean` parameter
-- Filter `cn_payment_header` by `is_for_director` to match NWD vs regular ER payments
-- This ensures NWD payment history is isolated from regular ER payments for the same employer/period
-
----
-
-## Files Changed
-
-
-| File                                              | Change                                                            |
-| ------------------------------------------------- | ----------------------------------------------------------------- |
-| `src/pages/c3Management/forms/EmployerC3Form.tsx` | Detect NWD, fix balance calc, add badge, hide irrelevant sections |
-| `src/hooks/useC3Payments.ts`                      | Add `isForDirector` filter                                        |
-| `src/pages/c3Management/EditC3Record.tsx`         | Pass `is_for_director` in initialData                             |
-| `src/pages/c3Management/ViewC3Record.tsx`         | Pass `is_for_director` in initialData                             |
-
-
-## What This Fixes
-
-- Balance correctly shows $255.84 (levy only) instead of $479.70 (all components) for NWD
-- NWD records are visually identifiable on the contribution form
-- Payment filtering respects NWD flag  
+- The safest approach is not to alter the shared calculation RPC behavior for all contributors.
+- Instead, build an NWD-specific display adapter in `EmployerC3Form` that overrides the generic totals with NWD-compliant values using the synced record fields as the authoritative source when present.  
   
-  
-Make sure - no other functionality ot UI should be impacted from this change.
+Make sure other existing functionality should not be hamper.
