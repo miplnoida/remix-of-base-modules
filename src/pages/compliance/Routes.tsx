@@ -89,6 +89,8 @@ import C3LedgerSync from './settings/C3LedgerSync';
 import PaymentLedgerSync from './settings/PaymentLedgerSync';
 import AssignmentRoutingRules from './settings/AssignmentRoutingRules';
 import LedgerPostingAdmin from './settings/LedgerPostingAdmin';
+import LedgerOperationsDashboard from './settings/LedgerOperationsDashboard';
+import LedgerHelpCenter from './settings/LedgerHelpCenter';
 
 // Tools
 import RuleSimulator from './tools/RuleSimulator';
@@ -206,6 +208,8 @@ const ComplianceRoutes = () => {
       <Route path="/admin/settings/payment-ledger-sync" element={<PaymentLedgerSync />} />
       <Route path="/admin/settings/ledger-admin" element={<LedgerAdministration />} />
       <Route path="/admin/settings/ledger-posting" element={<LedgerPostingAdmin />} />
+      <Route path="/admin/settings/ledger-operations" element={<LedgerOperationsDashboard />} />
+      <Route path="/admin/settings/ledger-help" element={<LedgerHelpCenter />} />
       <Route path="/admin/geography/zones" element={<ZoneManagement />} />
       <Route path="/admin/geography/office-zone-mapping" element={<OfficeZoneMapping />} />
       <Route path="/admin/geography/village-zone-mapping" element={<VillageZoneMapping />} />

@@ -466,6 +466,8 @@ export const complianceMenuItems = [
               { title: "Payment Ledger Sync", url: "/compliance/admin/settings/payment-ledger-sync", icon: DollarSign, requiresPermission: "manage_compliance", description: "Sync payment ledger data" },
               { title: "Ledger Administration", url: "/compliance/admin/settings/ledger-admin", icon: Settings, requiresPermission: "manage_compliance", description: "Ledger administration and reconciliation" },
               { title: "Ledger Posting Framework", url: "/compliance/admin/settings/ledger-posting", icon: Activity, requiresPermission: "manage_compliance", description: "Incremental posting, reconciliation, backfill, and rebuild" },
+              { title: "Ledger Operations", url: "/compliance/admin/settings/ledger-operations", icon: Eye, requiresPermission: "manage_compliance", description: "Operational dashboard for posting health and manual reruns" },
+              { title: "Ledger Help & SOP", url: "/compliance/admin/settings/ledger-help", icon: HelpCircle, requiresPermission: "manage_compliance", description: "Role-based SOPs, help manual, and troubleshooting" },
             ],
           },
           {
