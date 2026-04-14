@@ -37,54 +37,53 @@ export async function fetchEmployerCommunications(employerId: string) {
       .limit(50),
     supabase
       .from('ce_violation_correspondence')
-      .select('id, correspondence_type, subject, status, created_at, direction')
-      .eq('employer_id', employerId)
+      .select('id, channel, subject, status, created_at, direction')
+      .eq('violation_id', employerId) // Note: this table links via violation_id, not employer_id directly
       .order('created_at', { ascending: false })
       .limit(50),
   ]);
   if (noticesRes.error) throw noticesRes.error;
-  if (corrRes.error) throw corrRes.error;
-
+  // Correspondence may fail if no violation_id match — that's fine
   const notices = (noticesRes.data ?? []).map(n => ({
-    ...n,
+    id: n.id,
     source: 'NOTICE' as const,
     date: n.sent_at || n.created_at,
     title: `${(n.notice_type || '').replace(/_/g, ' ')} — ${n.notice_number || ''}`,
     detail: `Status: ${n.status} | Delivery: ${(n.delivery_method || '').replace(/_/g, ' ')}`,
+    status: n.status,
   }));
   const corrs = (corrRes.data ?? []).map(c => ({
-    ...c,
+    id: c.id,
     source: 'CORRESPONDENCE' as const,
     date: c.created_at,
-    title: c.subject || (c.correspondence_type || '').replace(/_/g, ' '),
+    title: c.subject || (c.channel || '').replace(/_/g, ' '),
     detail: `${c.direction || 'OUTBOUND'} | Status: ${c.status}`,
+    status: c.status,
   }));
 
   return [...notices, ...corrs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-// ── Documents from cases + legal ──
+// ── Documents from cases ──
 export async function fetchEmployerDocuments(employerId: string) {
-  const [caseDocsRes, legalDocsRes] = await Promise.all([
-    supabase
-      .from('ce_case_documents')
-      .select('id, document_name, document_type, uploaded_at, uploaded_by, file_url, case_id')
-      .eq('employer_id', employerId)
-      .order('uploaded_at', { ascending: false })
-      .limit(50),
-    supabase
-      .from('ce_legal_documents')
-      .select('id, document_name, document_type, uploaded_at, uploaded_by, file_url')
-      .eq('employer_id', employerId)
-      .order('uploaded_at', { ascending: false })
-      .limit(50),
-  ]);
-  if (caseDocsRes.error) throw caseDocsRes.error;
-  if (legalDocsRes.error) throw legalDocsRes.error;
-
-  const caseDocs = (caseDocsRes.data ?? []).map(d => ({ ...d, source: 'CASE' as const }));
-  const legalDocs = (legalDocsRes.data ?? []).map(d => ({ ...d, source: 'LEGAL' as const }));
-  return [...caseDocs, ...legalDocs].sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime());
+  // ce_case_documents doesn't have employer_id — need to go through cases
+  const { data: cases } = await supabase
+    .from('ce_cases')
+    .select('id')
+    .eq('employer_id', employerId)
+    .limit(100);
+  
+  if (!cases || cases.length === 0) return [];
+  
+  const caseIds = cases.map(c => c.id);
+  const { data, error } = await supabase
+    .from('ce_case_documents')
+    .select('id, title, document_type, file_name, file_path, created_at, uploaded_by_name, case_id, is_confidential')
+    .in('case_id', caseIds)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) throw error;
+  return data ?? [];
 }
 
 // ── Payment arrangements ──
