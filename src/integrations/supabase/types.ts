@@ -20245,6 +20245,84 @@ export type Database = {
           },
         ]
       }
+      cn_head_cashier_default: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          effective_from: string
+          full_name: string | null
+          id: string
+          is_active: boolean
+          office_code: string
+          user_code: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          effective_from?: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          office_code: string
+          user_code: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          effective_from?: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          office_code?: string
+          user_code?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cn_head_cashier_override: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          full_name: string | null
+          id: string
+          is_active: boolean
+          office_code: string
+          override_end: string
+          override_start: string
+          reason: string | null
+          user_code: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          office_code: string
+          override_end: string
+          override_start: string
+          reason?: string | null
+          user_code: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          office_code?: string
+          override_end?: string
+          override_start?: string
+          reason?: string | null
+          user_code?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cn_invoice_lines: {
         Row: {
           amount: number
@@ -32995,16 +33073,47 @@ export type Database = {
       }
       ip_wages: {
         Row: {
+          "0": number | null
+          "0_1": number | null
+          "0_2": number | null
+          "0.00": number | null
+          "0.00_1": number | null
+          "0.00_2": number | null
+          "0.00_3": number | null
+          "1": number | null
+          "1_1": number | null
+          "1_2": number | null
+          "1_3": number | null
+          "1_4": number | null
+          "1_5": number | null
+          "100.00": number | null
+          "100.00_1": number | null
+          "100.00_2": number | null
+          "100.00_3": number | null
+          "157183": number | null
+          "20.00": number | null
+          "20.00_1": number | null
+          "4.00": number | null
+          "4.00_1": number | null
+          "656358": number | null
+          "8.00": number | null
+          administrator: string | null
           bonus_date: string | null
           bonus_exempt_levy: boolean | null
           bonus_holiday_swapped: boolean | null
           c3_id: string | null
+          column27: string | null
+          column28: string | null
+          column29: number | null
+          column30: string | null
+          column31: string | null
           created_at: string
           date_entered: string | null
           date_modified: string | null
           date_verified: string | null
           employee_name: string | null
           entered_by: string | null
+          "ER ": string | null
           er_ei_amt: number | null
           er_levy_amt: number | null
           er_ss_amt: number | null
@@ -33016,6 +33125,8 @@ export type Database = {
           ip_pe_amt: number | null
           ip_ss_amt: number | null
           is_verified: boolean
+          "Jan  1 1986 12:00:00:000AM": string | null
+          "Mar  9 2015  7:28:25:683PM": string | null
           modified_by: string | null
           paid_code1: string | null
           paid_code2: string | null
@@ -33030,9 +33141,10 @@ export type Database = {
           period: string
           posting_status: string | null
           sequence_no: number
-          ssn: string
+          ssn: string | null
           total_wages: number | null
           updated_at: string
+          vac: string | null
           verified_by: string | null
           wages_paid1: number | null
           wages_paid2: number | null
@@ -33043,16 +33155,47 @@ export type Database = {
           wages_paid7: number | null
         }
         Insert: {
+          "0"?: number | null
+          "0_1"?: number | null
+          "0_2"?: number | null
+          "0.00"?: number | null
+          "0.00_1"?: number | null
+          "0.00_2"?: number | null
+          "0.00_3"?: number | null
+          "1"?: number | null
+          "1_1"?: number | null
+          "1_2"?: number | null
+          "1_3"?: number | null
+          "1_4"?: number | null
+          "1_5"?: number | null
+          "100.00"?: number | null
+          "100.00_1"?: number | null
+          "100.00_2"?: number | null
+          "100.00_3"?: number | null
+          "157183"?: number | null
+          "20.00"?: number | null
+          "20.00_1"?: number | null
+          "4.00"?: number | null
+          "4.00_1"?: number | null
+          "656358"?: number | null
+          "8.00"?: number | null
+          administrator?: string | null
           bonus_date?: string | null
           bonus_exempt_levy?: boolean | null
           bonus_holiday_swapped?: boolean | null
           c3_id?: string | null
+          column27?: string | null
+          column28?: string | null
+          column29?: number | null
+          column30?: string | null
+          column31?: string | null
           created_at?: string
           date_entered?: string | null
           date_modified?: string | null
           date_verified?: string | null
           employee_name?: string | null
           entered_by?: string | null
+          "ER "?: string | null
           er_ei_amt?: number | null
           er_levy_amt?: number | null
           er_ss_amt?: number | null
@@ -33064,6 +33207,8 @@ export type Database = {
           ip_pe_amt?: number | null
           ip_ss_amt?: number | null
           is_verified?: boolean
+          "Jan  1 1986 12:00:00:000AM"?: string | null
+          "Mar  9 2015  7:28:25:683PM"?: string | null
           modified_by?: string | null
           paid_code1?: string | null
           paid_code2?: string | null
@@ -33078,9 +33223,10 @@ export type Database = {
           period: string
           posting_status?: string | null
           sequence_no?: number
-          ssn: string
+          ssn?: string | null
           total_wages?: number | null
           updated_at?: string
+          vac?: string | null
           verified_by?: string | null
           wages_paid1?: number | null
           wages_paid2?: number | null
@@ -33091,16 +33237,47 @@ export type Database = {
           wages_paid7?: number | null
         }
         Update: {
+          "0"?: number | null
+          "0_1"?: number | null
+          "0_2"?: number | null
+          "0.00"?: number | null
+          "0.00_1"?: number | null
+          "0.00_2"?: number | null
+          "0.00_3"?: number | null
+          "1"?: number | null
+          "1_1"?: number | null
+          "1_2"?: number | null
+          "1_3"?: number | null
+          "1_4"?: number | null
+          "1_5"?: number | null
+          "100.00"?: number | null
+          "100.00_1"?: number | null
+          "100.00_2"?: number | null
+          "100.00_3"?: number | null
+          "157183"?: number | null
+          "20.00"?: number | null
+          "20.00_1"?: number | null
+          "4.00"?: number | null
+          "4.00_1"?: number | null
+          "656358"?: number | null
+          "8.00"?: number | null
+          administrator?: string | null
           bonus_date?: string | null
           bonus_exempt_levy?: boolean | null
           bonus_holiday_swapped?: boolean | null
           c3_id?: string | null
+          column27?: string | null
+          column28?: string | null
+          column29?: number | null
+          column30?: string | null
+          column31?: string | null
           created_at?: string
           date_entered?: string | null
           date_modified?: string | null
           date_verified?: string | null
           employee_name?: string | null
           entered_by?: string | null
+          "ER "?: string | null
           er_ei_amt?: number | null
           er_levy_amt?: number | null
           er_ss_amt?: number | null
@@ -33112,6 +33289,8 @@ export type Database = {
           ip_pe_amt?: number | null
           ip_ss_amt?: number | null
           is_verified?: boolean
+          "Jan  1 1986 12:00:00:000AM"?: string | null
+          "Mar  9 2015  7:28:25:683PM"?: string | null
           modified_by?: string | null
           paid_code1?: string | null
           paid_code2?: string | null
@@ -33126,9 +33305,10 @@ export type Database = {
           period?: string
           posting_status?: string | null
           sequence_no?: number
-          ssn?: string
+          ssn?: string | null
           total_wages?: number | null
           updated_at?: string
+          vac?: string | null
           verified_by?: string | null
           wages_paid1?: number | null
           wages_paid2?: number | null
@@ -46310,6 +46490,19 @@ export type Database = {
         }
         Returns: Json
       }
+      create_head_cashier_override: {
+        Args: {
+          p_assigned_by?: string
+          p_end?: string
+          p_full_name?: string
+          p_office_code: string
+          p_reason?: string
+          p_start?: string
+          p_user_code: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       create_invoice_with_lines:
         | {
             Args: {
@@ -46393,6 +46586,10 @@ export type Database = {
           p_target_year: number
         }
         Returns: string
+      }
+      delete_head_cashier_override: {
+        Args: { p_deleted_by?: string; p_override_id: string }
+        Returns: Json
       }
       edit_and_verify_batch_cheque: {
         Args: {
@@ -47428,6 +47625,10 @@ export type Database = {
           entity_type: string
         }[]
       }
+      resolve_head_cashier: {
+        Args: { p_date?: string; p_office_code?: string }
+        Returns: Json
+      }
       resolve_holiday_pay_policy: {
         Args: {
           p_month: number
@@ -47484,6 +47685,16 @@ export type Database = {
           p_user_name?: string
           p_workflow_id: string
           p_workflow_instance_id: string
+        }
+        Returns: Json
+      }
+      set_default_head_cashier: {
+        Args: {
+          p_assigned_by?: string
+          p_full_name?: string
+          p_office_code: string
+          p_user_code: string
+          p_user_id: string
         }
         Returns: Json
       }

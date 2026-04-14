@@ -10,6 +10,7 @@ export interface HeadCashierInfo {
   office_code: string;
   assigned_by: string;
   assigned_at: string;
+  source: 'default' | 'override';
 }
 
 export function useHeadCashier(date?: string, officeCode?: string) {
@@ -23,7 +24,7 @@ export function useHeadCashier(date?: string, officeCode?: string) {
       if (officeCode) {
         params.p_office_code = officeCode;
       }
-      const { data: result, error } = await supabase.rpc('get_active_head_cashier' as any, params);
+      const { data: result, error } = await supabase.rpc('resolve_head_cashier' as any, params);
       if (error) throw error;
       const parsed = typeof result === 'string' ? JSON.parse(result) : result;
       if (!parsed?.found) return null;
@@ -38,5 +39,6 @@ export function useHeadCashier(date?: string, officeCode?: string) {
     headCashier: data || null,
     isCurrentUserHeadCashier,
     isLoading,
+    source: data?.source || null,
   };
 }
