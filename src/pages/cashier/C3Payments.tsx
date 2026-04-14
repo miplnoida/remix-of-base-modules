@@ -60,7 +60,11 @@ const C3Payments: React.FC = () => {
   const navState = (location.state || {}) as Record<string, string>;
 
   // Header state
-  const [payerType, setPayerType] = useState(() => navState.payerType || 'ER');
+  const [payerType, setPayerType] = useState(() => {
+    const pt = navState.payerType || 'ER';
+    return pt === 'NW' ? 'ER' : pt; // NWD always uses ER payer type
+  });
+  const [isForDirector] = useState(() => navState.isForDirector === 'true' || navState.payerType === 'NW');
   const [payerId, setPayerId] = useState(() => navState.regNo || '');
   const [payerInfo, setPayerInfo] = useState<PayerInfo | null>(null);
   const [isValidating, setIsValidating] = useState(false);
@@ -214,7 +218,7 @@ const C3Payments: React.FC = () => {
           p_payer_type: pType === 'NW' ? 'ER' : pType,
           p_period: periodDate,
           p_sequence_no: parseInt(schedule, 10),
-          p_is_for_director: pType === 'NW',
+          p_is_for_director: isForDirector,
         });
 
         if (error) {
@@ -399,7 +403,7 @@ const C3Payments: React.FC = () => {
 
       const { data: result, error: rpcErr } = await supabase.rpc('create_c3_payment_with_receipt' as any, {
         p_batch_number: batchSel.selectedBatch.batch_number,
-        p_payer_type: payerType === 'NW' ? 'ER' : payerType,
+        p_payer_type: payerType,
         p_payer_id: payerId.trim(),
         p_date_received: dateRcvd,
         p_remarks: remarks || null,
@@ -407,7 +411,7 @@ const C3Payments: React.FC = () => {
         p_methods: methodsJson,
         p_receipt_total: totalPaymentReceived,
         p_user_code: uCode,
-        p_is_for_director: payerType === 'NW',
+        p_is_for_director: isForDirector,
       });
 
       if (rpcErr) {
