@@ -813,8 +813,14 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
 
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Status</Label><br/>
-                {getStatusBadge(formData.status)}
-              </div>
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(formData.status)}
+                  {isNWD && (
+                    <Badge className="bg-amber-100 text-amber-800 border border-amber-300">
+                      Non-Working Director
+                    </Badge>
+                  )}
+                </div>
 
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Payments</Label>
