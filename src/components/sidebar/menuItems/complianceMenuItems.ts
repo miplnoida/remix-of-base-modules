@@ -443,26 +443,48 @@ export const complianceMenuItems = [
         ],
       },
 
-      // ── 7. Admin — settings, geography, staff, automation, tools ──
+      // ── 7. Admin — policy, automation, ledger, org, diagnostics ──
       {
         title: "Admin",
         icon: Settings,
         requiresPermission: "manage_compliance",
-        description: "System configuration, staff, geography, and automation",
+        description: "Policy, automation, ledger, organization, and diagnostics",
         subItems: [
+          // ── 7.1 Policy & Rules ──
           {
-            title: "Settings",
-            icon: Cog,
+            title: "Policy & Rules",
+            icon: Scale,
             requiresPermission: "manage_compliance",
-            description: "Compliance configuration",
+            description: "Detection rules, violation types, risk policies, and templates",
             subItems: [
               { title: "Rule Engine", url: "/compliance/admin/settings/rule-engine", icon: Cog, requiresPermission: "manage_compliance", description: "Configure detection, calculation, and escalation rules" },
               { title: "Violation Types", url: "/compliance/admin/settings/violation-types", icon: AlertTriangle, requiresPermission: "manage_compliance", description: "Configure violation type definitions" },
               { title: "Assignment Routing", url: "/compliance/admin/settings/assignment-routing", icon: Route, requiresPermission: "manage_compliance", description: "Rules for routing violations to queues" },
-              { title: "Reference Numbering", url: "/compliance/admin/settings/number-templates", icon: Hash, requiresPermission: "manage_compliance", description: "Auto-numbering schemes for violations, cases, notices" },
               { title: "Risk & Escalation Policy", url: "/compliance/admin/settings/risk-policy", icon: TrendingUp, requiresPermission: "manage_compliance", description: "Risk factors, weights, bands, and legal escalation thresholds" },
-              { title: "Templates", url: "/compliance/admin/settings/templates", icon: FileText, requiresPermission: "manage_compliance", description: "Manage compliance notification templates" },
               { title: "Sampling Settings", url: "/compliance/admin/settings/sampling", icon: Target, requiresPermission: "manage_compliance", description: "Risk sampling parameters and configuration" },
+              { title: "Reference Numbering", url: "/compliance/admin/settings/number-templates", icon: Hash, requiresPermission: "manage_compliance", description: "Auto-numbering schemes for violations, cases, notices" },
+              { title: "Templates", url: "/compliance/admin/settings/templates", icon: FileText, requiresPermission: "manage_compliance", description: "Manage compliance notification templates" },
+            ],
+          },
+          // ── 7.2 Automation & Jobs ──
+          {
+            title: "Automation & Jobs",
+            icon: Zap,
+            requiresPermission: "manage_compliance",
+            description: "Scheduled compliance automation jobs",
+            subItems: [
+              { title: "Job Configuration", url: "/compliance/admin/automation/jobs", icon: Cog, requiresPermission: "manage_compliance", description: "Configure and manage automation jobs" },
+              { title: "Job History", url: "/compliance/admin/automation/history", icon: Timer, requiresPermission: "manage_compliance", description: "View job execution history and logs" },
+              { title: "Employer Compliance Jobs", url: "/compliance/admin/automation/employer-jobs", icon: Zap, requiresPermission: "manage_compliance", description: "Employer-specific compliance scan jobs" },
+            ],
+          },
+          // ── 7.3 Integrations & Ledger ──
+          {
+            title: "Integrations & Ledger",
+            icon: ArrowRightLeft,
+            requiresPermission: "manage_compliance",
+            description: "Ledger synchronization, posting framework, and operations",
+            subItems: [
               { title: "C3 Ledger Sync", url: "/compliance/admin/settings/c3-ledger-sync", icon: ClipboardCheck, requiresPermission: "manage_compliance", description: "Sync C3 ledger data" },
               { title: "Payment Ledger Sync", url: "/compliance/admin/settings/payment-ledger-sync", icon: DollarSign, requiresPermission: "manage_compliance", description: "Sync payment ledger data" },
               { title: "Ledger Administration", url: "/compliance/admin/settings/ledger-admin", icon: Settings, requiresPermission: "manage_compliance", description: "Ledger administration and reconciliation" },
@@ -471,6 +493,7 @@ export const complianceMenuItems = [
               { title: "Ledger Help & SOP", url: "/compliance/admin/settings/ledger-help", icon: HelpCircle, requiresPermission: "manage_compliance", description: "Role-based SOPs, help manual, and troubleshooting" },
             ],
           },
+          // ── 7.4 Organization & Routing ──
           {
             title: "Geography",
             icon: Map,
@@ -494,25 +517,16 @@ export const complianceMenuItems = [
               { title: "Link Legacy Inspectors", url: "/compliance/admin/staff/link-legacy", icon: UserCheck, requiresPermission: "manage_compliance", description: "Map legacy inspector records to system profiles" },
             ],
           },
+          // ── 7.5 Testing & Diagnostics ──
           {
-            title: "Automation",
-            icon: Zap,
-            requiresPermission: "manage_compliance",
-            description: "Scheduled compliance automation jobs",
-            subItems: [
-              { title: "Job Configuration", url: "/compliance/admin/automation/jobs", icon: Cog, requiresPermission: "manage_compliance", description: "Configure and manage automation jobs" },
-              { title: "Job History", url: "/compliance/admin/automation/history", icon: Timer, requiresPermission: "manage_compliance", description: "View job execution history and logs" },
-              { title: "Employer Compliance Jobs", url: "/compliance/admin/automation/employer-jobs", icon: Zap, requiresPermission: "manage_compliance", description: "Employer-specific compliance scan jobs" },
-            ],
-          },
-          {
-            title: "Tools",
+            title: "Testing & Diagnostics",
             icon: Search,
             requiresPermission: "manage_compliance",
-            description: "Compliance testing and diagnostic tools",
+            description: "Simulators, diagnostics, and schema tools",
             subItems: [
               { title: "Rule Simulator", url: "/compliance/admin/tools/rule-simulator", icon: Zap, requiresPermission: "manage_compliance", description: "Dry-run simulation of detection, calculation, and escalation rules" },
               { title: "Risk Simulator", url: "/compliance/admin/tools/risk-simulator", icon: Zap, requiresPermission: "manage_compliance", description: "Test employer risk scoring with what-if scenarios" },
+              { title: "DB Diagram", url: "/db-diagram", icon: Network, requiresPermission: "manage_compliance", description: "Visual schema diagram for compliance tables" },
             ],
           },
         ],
