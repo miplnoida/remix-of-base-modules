@@ -44722,6 +44722,63 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_v_plan_candidates_v2: {
+        Row: {
+          any_breach_detected: boolean | null
+          candidate_reason: string | null
+          candidate_source: string | null
+          carry_forward_count: number | null
+          days_since_last_inspection: number | null
+          derived_priority: string | null
+          employer_id: string | null
+          employer_name: string | null
+          escalated_violation_count: number | null
+          financial_exposure: number | null
+          notice_days_remaining: number | null
+          open_violation_count: number | null
+          overdue_followup_count: number | null
+          risk_band: string | null
+          risk_score: number | null
+          territory: string | null
+        }
+        Relationships: []
+      }
+      ce_v_plan_employer_facts: {
+        Row: {
+          active_arrangement_count: number | null
+          active_scouting_leads: number | null
+          any_breach_detected: boolean | null
+          arrears_score: number | null
+          breached_arrangement_count: number | null
+          carry_forward_count: number | null
+          days_oldest_violation: number | null
+          days_since_last_inspection: number | null
+          employer_id: string | null
+          employer_name: string | null
+          enforcement_risk_score: number | null
+          escalated_violation_count: number | null
+          filing_score: number | null
+          last_inspection_date: string | null
+          last_inspection_type: string | null
+          max_missed_payments: number | null
+          nearest_response_due: string | null
+          notice_days_remaining: number | null
+          oldest_open_violation_date: string | null
+          oldest_overdue_followup_date: string | null
+          open_violation_count: number | null
+          overdue_followup_count: number | null
+          payment_behavior_score: number | null
+          pending_notice_count: number | null
+          planned_followup_count: number | null
+          risk_band: string | null
+          risk_score: number | null
+          risk_violation_score: number | null
+          territory: string | null
+          total_arrangement_outstanding: number | null
+          total_violation_exposure: number | null
+        }
+        Relationships: []
+      }
       ce_v_unobserved_payment_entries: {
         Row: {
           credit_amount: number | null
@@ -45804,6 +45861,28 @@ export type Database = {
         }[]
       }
       fn_ce_route_violation: { Args: { p_violation_id: string }; Returns: Json }
+      fn_ce_score_candidates_batch: {
+        Args: { p_limit?: number }
+        Returns: {
+          any_breach_detected: boolean
+          candidate_reason: string
+          candidate_source: string
+          carry_forward_count: number
+          days_since_last_inspection: number
+          derived_priority: string
+          employer_id: string
+          employer_name: string
+          escalated_violation_count: number
+          financial_exposure: number
+          notice_days_remaining: number
+          open_violation_count: number
+          overdue_followup_count: number
+          recommendation_score: number
+          risk_band: string
+          risk_score: number
+          territory: string
+        }[]
+      }
       fn_ce_score_plan_candidate: {
         Args: {
           p_days_overdue?: number
