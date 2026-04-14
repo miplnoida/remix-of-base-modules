@@ -278,9 +278,11 @@ export const legalEscalationService = {
     const totalPenalties = subcases.reduce((s: number, c: any) => s + Number(c.penaltyAmount || 0), 0);
     const totalInterest = subcases.reduce((s: number, c: any) => s + Number(c.interestAmount || 0), 0);
 
-    // Generate referral number
-    const { data: seqData } = await supabase.rpc('nextval' as any, { seq_name: 'ce_legal_referral_seq' });
-    const seqNum = Number(seqData || Date.now());
+    // Generate referral number using count + timestamp for uniqueness
+    const { count } = await supabase
+      .from('ce_legal_referrals' as any)
+      .select('id', { count: 'exact', head: true });
+    const seqNum = (count || 0) + 1;
     const referralNumber = `LR-${new Date().getFullYear()}-${String(seqNum).padStart(3, '0')}`;
 
     // Insert referral
