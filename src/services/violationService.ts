@@ -1,3 +1,4 @@
+import { supabase } from '@/integrations/supabase/client';
 import {
   Violation,
   ViolationStatus,
@@ -7,151 +8,238 @@ import {
   LinkViolationToEmployerRequest
 } from '@/types/violation';
 
-// Mock data
-const mockViolations: Violation[] = [
-  {
-    id: 'viol-001',
-    violationNumber: 'VIOL-2024-001',
-    employerId: 'EMP-2024-001',
-    employerName: 'ABC Construction Ltd',
-    territory: 'St Kitts',
-    violationType: ViolationType.UNDER_REPORTING,
-    status: ViolationStatus.OPEN,
-    priority: 'High',
-    summary: 'Employer under-reporting wages on C3 submissions',
-    description: 'Inspection found discrepancy between wage books and C3 submissions',
-    isUnlinked: false,
-    discoveredDate: '2024-01-20',
-    discoveredBy: 'John Inspector',
-    assignedToUserId: 'inspector-001',
-    assignedToName: 'John Inspector',
-    createdAt: '2024-01-20T10:00:00Z',
-    updatedAt: '2024-01-20T10:00:00Z'
-  }
-];
+// ── Helper: map DB row to Violation type ──────────────────
+function mapRow(row: any): Violation {
+  return {
+    id: row.id,
+    violationNumber: row.violation_number ?? '',
+    employerId: row.employer_id,
+    employerName: row.employer_name,
+    territory: row.territory ?? 'St Kitts',
+    violationType: (row.ce_violation_types?.code ?? row.violation_type_id ?? 'OTHER') as ViolationType,
+    status: (row.status ?? 'OPEN') as ViolationStatus,
+    priority: row.priority ?? 'Medium',
+    severity: row.severity,
+    summary: row.summary ?? '',
+    description: row.description,
+    inspectionVisitId: row.inspection_id,
+    inspectionFindingId: undefined,
+    isUnlinked: row.is_unlinked ?? false,
+    candidateBusinessName: row.candidate_business_name,
+    candidateLocation: row.candidate_location,
+    candidateActivityType: row.candidate_activity_type,
+    estimatedEmployees: row.estimated_employees,
+    assignedToUserId: row.assigned_to_user_id,
+    assignedToName: row.assigned_to_name,
+    discoveredDate: row.discovered_date ?? row.created_at?.slice(0, 10) ?? '',
+    discoveredBy: row.discovered_by ?? 'SYSTEM',
+    dueDate: row.due_date,
+    resolvedAt: row.resolved_at,
+    resolvedBy: row.resolved_by,
+    resolutionNotes: row.resolution_notes,
+    escalatedAt: row.escalated_at,
+    escalatedTo: row.escalated_to,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// ── Violation type code → ID resolution ───────────────────
+async function resolveViolationTypeId(code: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('ce_violation_types')
+    .select('id')
+    .eq('code', code)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+const BASE_SELECT = '*, ce_violation_types(code, name, category)';
 
 class ViolationService {
   async getAll(): Promise<Violation[]> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return mockViolations;
+    const { data, error } = await supabase
+      .from('ce_violations')
+      .select(BASE_SELECT)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    if (error) throw error;
+    return (data || []).map(mapRow);
   }
 
   async getById(id: string): Promise<Violation | undefined> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return mockViolations.find(v => v.id === id);
+    const { data, error } = await supabase
+      .from('ce_violations')
+      .select(BASE_SELECT)
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapRow(data) : undefined;
   }
 
   async getByInspectorId(inspectorId: string): Promise<Violation[]> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return mockViolations.filter(v => v.assignedToUserId === inspectorId);
+    const { data, error } = await supabase
+      .from('ce_violations')
+      .select(BASE_SELECT)
+      .eq('is_deleted', false)
+      .eq('assigned_to_user_id', inspectorId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(mapRow);
   }
 
   async getActiveByInspectorId(inspectorId: string): Promise<Violation[]> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    const activeStatuses = [
-      ViolationStatus.OPEN,
-      ViolationStatus.IN_PROGRESS,
-      ViolationStatus.ESCALATED,
-      ViolationStatus.UNDER_REVIEW
-    ];
-    return mockViolations.filter(
-      v => v.assignedToUserId === inspectorId && activeStatuses.includes(v.status)
-    );
+    const activeStatuses = ['OPEN', 'IN_PROGRESS', 'ESCALATED', 'UNDER_REVIEW'];
+    const { data, error } = await supabase
+      .from('ce_violations')
+      .select(BASE_SELECT)
+      .eq('is_deleted', false)
+      .eq('assigned_to_user_id', inspectorId)
+      .in('status', activeStatuses)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(mapRow);
   }
 
   async getUnlinkedViolations(): Promise<Violation[]> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return mockViolations.filter(v => v.isUnlinked);
+    const { data, error } = await supabase
+      .from('ce_violations')
+      .select(BASE_SELECT)
+      .eq('is_deleted', false)
+      .eq('is_unlinked', true)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(mapRow);
   }
 
   async getByVisitId(visitId: string): Promise<Violation[]> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return mockViolations.filter(v => v.inspectionVisitId === visitId);
+    const { data, error } = await supabase
+      .from('ce_violations')
+      .select(BASE_SELECT)
+      .eq('is_deleted', false)
+      .eq('inspection_id', visitId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(mapRow);
   }
 
   async create(request: CreateViolationRequest): Promise<Violation> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const violationNumber = `VIOL-${new Date().getFullYear()}-${String(mockViolations.length + 1).padStart(3, '0')}`;
-    
-    const newViolation: Violation = {
-      id: `viol-${Date.now()}`,
-      violationNumber,
-      employerId: request.employerId,
-      employerName: request.employerId ? 'Mock Employer Name' : undefined,
-      territory: 'St Kitts',
-      violationType: request.violationType,
-      status: ViolationStatus.OPEN,
-      priority: request.priority,
-      summary: request.summary,
-      description: request.description,
-      inspectionVisitId: request.inspectionVisitId,
-      inspectionFindingId: request.inspectionFindingId,
-      isUnlinked: request.isUnlinked || false,
-      candidateBusinessName: request.candidateBusinessName,
-      candidateLocation: request.candidateLocation,
-      candidateActivityType: request.candidateActivityType,
-      estimatedEmployees: request.estimatedEmployees,
-      assignedToUserId: request.assignedToUserId,
-      assignedToName: 'Mock Inspector',
-      discoveredDate: new Date().toISOString().split('T')[0],
-      discoveredBy: 'John Inspector',
-      dueDate: request.dueDate,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+    // Generate violation number
+    const violationNumber = `VIO-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(16).slice(2, 10).toUpperCase()}`;
 
-    mockViolations.push(newViolation);
-    return newViolation;
+    // Resolve violation type code to ID
+    const violationTypeId = await resolveViolationTypeId(request.violationType);
+
+    // Resolve employer name if ID provided
+    let employerName: string | undefined;
+    if (request.employerId) {
+      const { data: emp } = await supabase
+        .from('er_master')
+        .select('name')
+        .eq('regno', request.employerId)
+        .maybeSingle();
+      employerName = emp?.name ?? undefined;
+    }
+
+    const { data, error } = await supabase
+      .from('ce_violations')
+      .insert({
+        violation_number: violationNumber,
+        employer_id: request.employerId,
+        employer_name: employerName ?? request.candidateBusinessName,
+        violation_type_id: violationTypeId,
+        status: 'OPEN',
+        priority: request.priority,
+        summary: request.summary,
+        description: request.description,
+        inspection_id: request.inspectionVisitId,
+        is_unlinked: request.isUnlinked ?? false,
+        candidate_business_name: request.candidateBusinessName,
+        candidate_location: request.candidateLocation,
+        candidate_activity_type: request.candidateActivityType,
+        estimated_employees: request.estimatedEmployees,
+        assigned_to_user_id: request.assignedToUserId,
+        due_date: request.dueDate,
+        discovered_date: new Date().toISOString().slice(0, 10),
+        discovered_by: 'MANUAL',
+        source_type: 'MANUAL',
+        created_by: 'SYSTEM',
+      })
+      .select(BASE_SELECT)
+      .single();
+
+    if (error) throw error;
+    return mapRow(data);
   }
 
   async update(id: string, request: UpdateViolationRequest): Promise<Violation> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const violation = mockViolations.find(v => v.id === id);
-    if (!violation) throw new Error('Violation not found');
+    const updates: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
 
-    if (request.status) violation.status = request.status;
-    if (request.priority) violation.priority = request.priority;
-    if (request.assignedToUserId) {
-      violation.assignedToUserId = request.assignedToUserId;
-      violation.assignedToName = 'Mock Inspector';
-    }
-    if (request.dueDate) violation.dueDate = request.dueDate;
+    if (request.status) updates.status = request.status;
+    if (request.priority) updates.priority = request.priority;
+    if (request.assignedToUserId) updates.assigned_to_user_id = request.assignedToUserId;
+    if (request.dueDate) updates.due_date = request.dueDate;
     if (request.resolutionNotes) {
-      violation.resolutionNotes = request.resolutionNotes;
+      updates.resolution_notes = request.resolutionNotes;
       if (request.status === ViolationStatus.RESOLVED || request.status === ViolationStatus.CLOSED) {
-        violation.resolvedAt = new Date().toISOString();
-        violation.resolvedBy = 'Mock Inspector';
+        updates.resolved_at = new Date().toISOString();
+        updates.resolved_by = 'SYSTEM';
       }
     }
 
-    violation.updatedAt = new Date().toISOString();
-    return violation;
+    const { data, error } = await supabase
+      .from('ce_violations')
+      .update(updates)
+      .eq('id', id)
+      .select(BASE_SELECT)
+      .single();
+
+    if (error) throw error;
+    return mapRow(data);
   }
 
   async linkToEmployer(request: LinkViolationToEmployerRequest): Promise<Violation> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const violation = mockViolations.find(v => v.id === request.violationId);
-    if (!violation) throw new Error('Violation not found');
+    // Resolve employer name
+    const { data: emp } = await supabase
+      .from('er_master')
+      .select('name')
+      .eq('regno', request.employerId)
+      .maybeSingle();
 
-    violation.employerId = request.employerId;
-    violation.employerName = 'Newly Registered Employer';
-    violation.isUnlinked = false;
-    violation.updatedAt = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('ce_violations')
+      .update({
+        employer_id: request.employerId,
+        employer_name: emp?.name ?? 'Unknown',
+        is_unlinked: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', request.violationId)
+      .select(BASE_SELECT)
+      .single();
 
-    return violation;
+    if (error) throw error;
+    return mapRow(data);
   }
 
   async searchPotentialMatches(territory: string, businessName?: string): Promise<Violation[]> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    return mockViolations.filter(v => 
-      v.isUnlinked && 
-      v.territory === territory &&
-      (!businessName || v.candidateBusinessName?.toLowerCase().includes(businessName.toLowerCase()))
-    );
+    let query = supabase
+      .from('ce_violations')
+      .select(BASE_SELECT)
+      .eq('is_deleted', false)
+      .eq('is_unlinked', true)
+      .eq('territory', territory);
+
+    if (businessName) {
+      query = query.ilike('candidate_business_name', `%${businessName}%`);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data || []).map(mapRow);
   }
 }
 
