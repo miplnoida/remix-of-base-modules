@@ -382,6 +382,18 @@ export default function CaseDetailView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Case-Driven Payment Arrangement Dialog */}
+      <CasePaymentArrangementDialog
+        open={arrangementDialogOpen}
+        onOpenChange={setArrangementDialogOpen}
+        caseId={c.id}
+        caseNumber={c.case_number}
+        employerId={c.employer_id}
+        employerName={c.employer_name || 'Unknown Employer'}
+        totalAmount={Number(c.total_amount) || 0}
+        amountCollected={Number(c.amount_collected) || 0}
+      />
     </div>
   );
 }
