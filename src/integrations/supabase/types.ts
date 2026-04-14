@@ -23567,26 +23567,35 @@ export type Database = {
       er_locations: {
         Row: {
           activity_type: string | null
+          city: string | null
+          country: string | null
           loc_addr1: string | null
           loc_addr2: string | null
           location_id: number
           regno: string
+          state: string | null
           trade_name: string | null
         }
         Insert: {
           activity_type?: string | null
+          city?: string | null
+          country?: string | null
           loc_addr1?: string | null
           loc_addr2?: string | null
           location_id?: number
           regno: string
+          state?: string | null
           trade_name?: string | null
         }
         Update: {
           activity_type?: string | null
+          city?: string | null
+          country?: string | null
           loc_addr1?: string | null
           loc_addr2?: string | null
           location_id?: number
           regno?: string
+          state?: string | null
           trade_name?: string | null
         }
         Relationships: []
@@ -23620,11 +23629,17 @@ export type Database = {
           females_employed: number | null
           hq_addr1: string | null
           hq_addr2: string | null
+          hq_city: string | null
+          hq_country: string | null
+          hq_state: string | null
           industrial_code: string | null
           inspector_code: string | null
           legal_action: string | null
           maddr1: string | null
           maddr2: string | null
+          mailing_city: string | null
+          mailing_country: string | null
+          mailing_state: string | null
           make_model: string | null
           males_employed: number | null
           mobile: string | null
@@ -23675,11 +23690,17 @@ export type Database = {
           females_employed?: number | null
           hq_addr1?: string | null
           hq_addr2?: string | null
+          hq_city?: string | null
+          hq_country?: string | null
+          hq_state?: string | null
           industrial_code?: string | null
           inspector_code?: string | null
           legal_action?: string | null
           maddr1?: string | null
           maddr2?: string | null
+          mailing_city?: string | null
+          mailing_country?: string | null
+          mailing_state?: string | null
           make_model?: string | null
           males_employed?: number | null
           mobile?: string | null
@@ -23730,11 +23751,17 @@ export type Database = {
           females_employed?: number | null
           hq_addr1?: string | null
           hq_addr2?: string | null
+          hq_city?: string | null
+          hq_country?: string | null
+          hq_state?: string | null
           industrial_code?: string | null
           inspector_code?: string | null
           legal_action?: string | null
           maddr1?: string | null
           maddr2?: string | null
+          mailing_city?: string | null
+          mailing_country?: string | null
+          mailing_state?: string | null
           make_model?: string | null
           males_employed?: number | null
           mobile?: string | null
@@ -45814,49 +45841,99 @@ export type Database = {
         }
         Returns: Json
       }
-      convert_application_to_employer: {
-        Args: {
-          p_acquired_code?: string
-          p_activity_type?: string
-          p_application_date?: string
-          p_application_reference?: string
-          p_computer_payroll?: string
-          p_date_incorporated?: string
-          p_date_of_acquisition?: string
-          p_date_wages_first_paid?: string
-          p_documents_json?: string
-          p_email?: string
-          p_employer_name?: string
-          p_entered_by?: string
-          p_fax?: string
-          p_females_employed?: number
-          p_hq_addr1?: string
-          p_hq_addr2?: string
-          p_industrial_code?: string
-          p_inspector_code?: string
-          p_locations_json?: string
-          p_maddr1?: string
-          p_maddr2?: string
-          p_make_model?: string
-          p_males_employed?: number
-          p_mobile?: string
-          p_notes_json?: string
-          p_office_code?: string
-          p_owners_json?: string
-          p_ownership_code?: string
-          p_parent_regno?: string
-          p_phone?: string
-          p_prev_owner_addr1?: string
-          p_prev_owner_addr2?: string
-          p_previous_owner?: string
-          p_registry_num?: string
-          p_sector_code?: string
-          p_trade_name?: string
-          p_user_id?: string
-          p_village_code?: string
-        }
-        Returns: Json
-      }
+      convert_application_to_employer:
+        | {
+            Args: {
+              p_acquired_code?: string
+              p_activity_type?: string
+              p_application_date?: string
+              p_application_reference?: string
+              p_computer_payroll?: string
+              p_date_incorporated?: string
+              p_date_of_acquisition?: string
+              p_date_wages_first_paid?: string
+              p_documents_json?: string
+              p_email?: string
+              p_employer_name?: string
+              p_entered_by?: string
+              p_fax?: string
+              p_females_employed?: number
+              p_hq_addr1?: string
+              p_hq_addr2?: string
+              p_industrial_code?: string
+              p_inspector_code?: string
+              p_locations_json?: string
+              p_maddr1?: string
+              p_maddr2?: string
+              p_make_model?: string
+              p_males_employed?: number
+              p_mobile?: string
+              p_notes_json?: string
+              p_office_code?: string
+              p_owners_json?: string
+              p_ownership_code?: string
+              p_parent_regno?: string
+              p_phone?: string
+              p_prev_owner_addr1?: string
+              p_prev_owner_addr2?: string
+              p_previous_owner?: string
+              p_registry_num?: string
+              p_sector_code?: string
+              p_trade_name?: string
+              p_user_id?: string
+              p_village_code?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_acquired_code?: string
+              p_activity_type?: string
+              p_application_date?: string
+              p_application_reference?: string
+              p_computer_payroll?: string
+              p_date_incorporated?: string
+              p_date_of_acquisition?: string
+              p_date_wages_first_paid?: string
+              p_documents_json?: string
+              p_email?: string
+              p_employer_name?: string
+              p_entered_by?: string
+              p_fax?: string
+              p_females_employed?: number
+              p_hq_addr1?: string
+              p_hq_addr2?: string
+              p_hq_city?: string
+              p_hq_country?: string
+              p_hq_state?: string
+              p_industrial_code?: string
+              p_inspector_code?: string
+              p_locations_json?: string
+              p_maddr1?: string
+              p_maddr2?: string
+              p_mailing_city?: string
+              p_mailing_country?: string
+              p_mailing_state?: string
+              p_make_model?: string
+              p_males_employed?: number
+              p_mobile?: string
+              p_notes_json?: string
+              p_office_code?: string
+              p_owners_json?: string
+              p_ownership_code?: string
+              p_parent_regno?: string
+              p_phone?: string
+              p_prev_owner_addr1?: string
+              p_prev_owner_addr2?: string
+              p_previous_owner?: string
+              p_registry_num?: string
+              p_sector_code?: string
+              p_trade_name?: string
+              p_user_id?: string
+              p_village_code?: string
+            }
+            Returns: Json
+          }
       convert_application_to_ip: {
         Args: {
           p_address_line1?: string

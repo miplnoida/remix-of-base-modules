@@ -39,6 +39,7 @@ import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
 import { useEmployerCodeResolver } from '@/hooks/useEmployerCodeResolver';
+import { useCountries } from '@/hooks/useIPMasterLookups';
 import { getEmployerStatusVariant } from '@/hooks/useEmployerApplications';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
 import { MeetingActionButtons } from '@/components/meetings/MeetingActionButtons';
@@ -125,6 +126,13 @@ export default function EmployerApplicationDetailPage() {
   
   const { data: application, isLoading, error, isFetching, refetch } = useEmployerApplicationDetail(applicationId);
   const resolved = useEmployerCodeResolver(application);
+  const { data: countries = [] } = useCountries();
+  
+  const resolveCountryName = (code: string | null | undefined): string => {
+    if (!code) return '—';
+    const found = countries.find(c => c.code?.trim() === code.trim());
+    return found?.description?.trim() || code;
+  };
 
   // Meeting integration
   const applicationRef = applicationId || application?.id || application?.registration_id;
@@ -533,7 +541,9 @@ export default function EmployerApplicationDetailPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <DetailField label="HQ Address 1" value={application.hq_address1} />
                     <DetailField label="HQ Address 2" value={application.hq_address2} />
-                    <DetailField label="Country" value={application.hq_country || application.country} />
+                    <DetailField label="City" value={application.hq_city} />
+                    <DetailField label="State" value={application.hq_state} />
+                    <DetailField label="Country" value={resolveCountryName(application.hq_country)} />
                   </div>
                 </CardContent>
               </Card>
@@ -544,10 +554,9 @@ export default function EmployerApplicationDetailPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <DetailField label="Mailing Address 1" value={application.mailing_address1} />
                     <DetailField label="Mailing Address 2" value={application.mailing_address2} />
-                    {/* <DetailField label="Country" value={application.mailing_country} /> */}
-                    {/* {application.same_as_physical != null && (
-                      <DetailField label="Same as HQ" value={formatBoolean(application.same_as_physical)} />
-                    )} */}
+                    <DetailField label="City" value={application.mailing_city} />
+                    <DetailField label="State" value={application.mailing_state} />
+                    <DetailField label="Country" value={resolveCountryName(application.mailing_country)} />
                   </div>
                 </CardContent>
               </Card>
@@ -728,6 +737,9 @@ export default function EmployerApplicationDetailPage() {
                     <TableRow>
                       <TableHead className="w-[200px]">Trade Name</TableHead>
                       <TableHead>Address</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>State</TableHead>
+                      <TableHead>Country</TableHead>
                       <TableHead>Activity Type</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -738,6 +750,9 @@ export default function EmployerApplicationDetailPage() {
                         <TableCell>
                           {[location.address1, location.address2].filter(Boolean).join(', ') || '—'}
                         </TableCell>
+                        <TableCell>{location.city || '—'}</TableCell>
+                        <TableCell>{location.state || '—'}</TableCell>
+                        <TableCell>{resolveCountryName(location.country)}</TableCell>
                         <TableCell>{location.activity_type || '—'}</TableCell>
                       </TableRow>
                     ))}

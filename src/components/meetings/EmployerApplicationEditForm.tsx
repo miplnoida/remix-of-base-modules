@@ -37,6 +37,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useERLookups } from '@/hooks/useERLookups';
+import { useCountries } from '@/hooks/useIPMasterLookups';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { supabase } from '@/integrations/supabase/client';
 import { logAuditTrail } from '@/services/auditService';
@@ -163,6 +164,12 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
     activityTypes,
     inspectorCodes,
   } = useERLookups();
+  const { data: countries = [] } = useCountries();
+
+  const countryOptions = countries.map(c => ({
+    code: c.code?.trim() || '',
+    label: `${c.code?.trim() || ''} - ${c.description?.trim() || ''}`,
+  }));
 
   // Owner CRUD state
   const [ownerDialogOpen, setOwnerDialogOpen] = useState(false);
@@ -251,7 +258,7 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
 
   const openAddLocation = () => {
     setLocEditIndex(null);
-    setLocForm({ id: `temp-${Date.now()}`, trade_name: '', address1: '', address2: '', activity_type: '' });
+    setLocForm({ id: `temp-${Date.now()}`, trade_name: '', address1: '', address2: '', activity_type: '', city: '', state: '', country: '' });
     setLocErrors({});
     setLocDialogOpen(true);
   };
@@ -526,7 +533,15 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <EditField label="HQ Address 1" value={data.hq_address1} onChange={(v) => onChange('hq_address1', v)} maxLength={25} />
                     <EditField label="HQ Address 2" value={data.hq_address2} onChange={(v) => onChange('hq_address2', v)} maxLength={25} />
-                    <EditField label="Country" value={data.hq_country || data.country} onChange={(v) => onChange('hq_country', v)} />
+                    <EditField label="City" value={data.hq_city} onChange={(v) => onChange('hq_city', v)} maxLength={50} />
+                    <EditField label="State" value={data.hq_state} onChange={(v) => onChange('hq_state', v)} maxLength={50} />
+                    <SelectField
+                      label="Country"
+                      value={data.hq_country || ''}
+                      onChange={(v) => onChange('hq_country', v)}
+                      options={countryOptions}
+                      placeholder="Select Country"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -537,6 +552,15 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <EditField label="Mailing Address 1" value={data.mailing_address1} onChange={(v) => onChange('mailing_address1', v)} maxLength={25} />
                     <EditField label="Mailing Address 2" value={data.mailing_address2} onChange={(v) => onChange('mailing_address2', v)} maxLength={25} />
+                    <EditField label="City" value={data.mailing_city} onChange={(v) => onChange('mailing_city', v)} maxLength={50} />
+                    <EditField label="State" value={data.mailing_state} onChange={(v) => onChange('mailing_state', v)} maxLength={50} />
+                    <SelectField
+                      label="Country"
+                      value={data.mailing_country || ''}
+                      onChange={(v) => onChange('mailing_country', v)}
+                      options={countryOptions}
+                      placeholder="Select Country"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -703,6 +727,9 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                     <TableRow>
                       <TableHead className="w-[200px]">Trade Name</TableHead>
                       <TableHead>Address</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>State</TableHead>
+                      <TableHead>Country</TableHead>
                       <TableHead>Activity Type</TableHead>
                       <TableHead className="text-right w-[100px]">Actions</TableHead>
                     </TableRow>
@@ -712,6 +739,9 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                       <TableRow key={loc.id || idx}>
                         <TableCell className="font-medium">{loc.trade_name || '—'}</TableCell>
                         <TableCell>{[loc.address1, loc.address2].filter(Boolean).join(', ') || '—'}</TableCell>
+                        <TableCell>{loc.city || '—'}</TableCell>
+                        <TableCell>{loc.state || '—'}</TableCell>
+                        <TableCell>{loc.country ? (countries.find(c => c.code?.trim() === loc.country?.trim())?.description?.trim() || loc.country) : '—'}</TableCell>
                         <TableCell>{loc.activity_type || '—'}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
@@ -876,6 +906,15 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
             <EditField label="Trade Name *" value={locForm.trade_name} onChange={(v) => handleLocFieldChange('trade_name', v)} maxLength={ER_FIELD_LIMITS.loc_trade_name} className="col-span-2" error={locErrors.trade_name} />
             <EditField label="Address Line 1" value={locForm.address1} onChange={(v) => handleLocFieldChange('address1', v)} maxLength={ER_FIELD_LIMITS.loc_addr1} error={locErrors.address1} />
             <EditField label="Address Line 2" value={locForm.address2} onChange={(v) => handleLocFieldChange('address2', v)} maxLength={ER_FIELD_LIMITS.loc_addr2} error={locErrors.address2} />
+            <EditField label="City" value={locForm.city} onChange={(v) => handleLocFieldChange('city', v)} maxLength={50} />
+            <EditField label="State" value={locForm.state} onChange={(v) => handleLocFieldChange('state', v)} maxLength={50} />
+            <SelectField
+              label="Country"
+              value={locForm.country || ''}
+              onChange={(v) => handleLocFieldChange('country', v)}
+              options={countryOptions}
+              placeholder="Select Country"
+            />
             <EditField label="Activity Type" value={locForm.activity_type} onChange={(v) => handleLocFieldChange('activity_type', v)} maxLength={ER_FIELD_LIMITS.loc_activity_type} className="col-span-2" error={locErrors.activity_type} />
           </div>
           <DialogFooter>

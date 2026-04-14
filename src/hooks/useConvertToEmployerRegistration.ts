@@ -195,6 +195,9 @@ export function useConvertToEmployerRegistration() {
         loc_addr1: trim(l.address1 || l.loc_addr1, 25),
         loc_addr2: trim(l.address2 || l.loc_addr2, 25),
         activity_type: trim(l.activity_type, 50),
+        city: trim(l.city, 50),
+        state: trim(l.state, 50),
+        country: trim(l.country, 10),
       }));
 
       // ── Step 4: Build notes JSON ──────────────────────────────────────
@@ -252,6 +255,12 @@ export function useConvertToEmployerRegistration() {
           p_locations_json: JSON.stringify(locationsJson),
           p_notes_json: JSON.stringify(notesJson),
           p_documents_json: JSON.stringify(documentsJson),
+          p_hq_city: trim(app.hq_city, 50),
+          p_hq_state: trim(app.hq_state, 50),
+          p_hq_country: trim(app.hq_country, 10),
+          p_mailing_city: trim(app.mailing_city, 50),
+          p_mailing_state: trim(app.mailing_state, 50),
+          p_mailing_country: trim(app.mailing_country, 10),
         }
       );
 

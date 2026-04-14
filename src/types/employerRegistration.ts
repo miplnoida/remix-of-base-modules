@@ -9,11 +9,17 @@ export interface ERMasterFormData {
   fax: string;
   hq_addr1: string;
   hq_addr2: string;
+  hq_city: string;
+  hq_state: string;
+  hq_country: string;
   office_code: string;
   activity_type: string;
   industrial_code: string;
   maddr1: string;
   maddr2: string;
+  mailing_city: string;
+  mailing_state: string;
+  mailing_country: string;
   village_code: string;
   sector_code: string;
   males_employed: number | null;
@@ -78,6 +84,9 @@ export interface ERLocationData {
   loc_addr1: string;
   loc_addr2: string;
   activity_type: string;
+  city: string;
+  state: string;
+  country: string;
 }
 
 // ER Notes - Internal notes
@@ -166,11 +175,17 @@ export const initialERMasterFormData: ERMasterFormData = {
   fax: '',
   hq_addr1: '',
   hq_addr2: '',
+  hq_city: '',
+  hq_state: '',
+  hq_country: '',
   office_code: 'STK',
   activity_type: '',
   industrial_code: '0000',
   maddr1: '',
   maddr2: '',
+  mailing_city: '',
+  mailing_state: '',
+  mailing_country: '',
   village_code: '000',
   sector_code: 'O',
   males_employed: null,
@@ -231,6 +246,9 @@ export const initialERLocationData: ERLocationData = {
   loc_addr1: '',
   loc_addr2: '',
   activity_type: '',
+  city: '',
+  state: '',
+  country: '',
 };
 
 export const initialERNoteData: ERNoteData = {

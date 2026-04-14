@@ -37,6 +37,9 @@ export interface EmployerLocation {
   address1: string;
   address2?: string;
   activity_type?: string;
+  city?: string;
+  state?: string;
+  country?: string;
 }
 
 /**
@@ -116,8 +119,10 @@ export interface EmployerApplicationDetail {
   acquisition_date: string | null;  // Mapped from date_incorporated
   
   // Step 2: HQ Address
-  hq_address1: string | null;  // Mapped from hq_address1
-  hq_address2: string | null;  // Mapped from hq_address2
+  hq_address1: string | null;
+  hq_address2: string | null;
+  hq_city: string | null;
+  hq_state: string | null;
   hq_country: string | null;
   hq_country_code: string | null;
   city: string | null;
@@ -125,13 +130,11 @@ export interface EmployerApplicationDetail {
   postal_code: string | null;
   
   // Step 2: Mailing Address
-  mailing_address1: string | null;  // Mapped from mailing_address1
-  mailing_address2: string | null;  // Mapped from mailing_address2
-  //mailing_city: string | null;
-  //mailing_parish: string | null;
-  //mailing_country: string | null;
-  //mailing_postal_code: string | null;
-  //same_as_physical: boolean | null;
+  mailing_address1: string | null;
+  mailing_address2: string | null;
+  mailing_city: string | null;
+  mailing_state: string | null;
+  mailing_country: string | null;
   
   // Step 2: Workforce / Employment Details
   application_date: string | null;
@@ -270,6 +273,9 @@ function normalizeLocations(locations: unknown): EmployerLocation[] {
     address1: (location.address1 as string) || '',
     address2: (location.address2 as string) || undefined,
     activity_type: (location.activity_type as string) || undefined,
+    city: (location.city as string) || undefined,
+    state: (location.state as string) || undefined,
+    country: (location.country as string) || undefined,
   }));
 }
 
@@ -331,23 +337,23 @@ function normalizeEmployerDetail(raw: Record<string, unknown>): EmployerApplicat
     //tax_id: (raw.tax_id as string) || null,
     acquisition_date: (raw.acquisition_date as string) || null,
     
-    // Step 2: HQ Address - Map hq_address1 to address_line1
+    // Step 2: HQ Address
     hq_address1: (raw.hq_address1 as string) || null,
     hq_address2: (raw.hq_address2 as string) || null,
+    hq_city: (raw.hq_city as string) || null,
+    hq_state: (raw.hq_state as string) || null,
     hq_country: (raw.hq_country as string) || null,
     hq_country_code: (raw.hq_country_code as string) || null,
     city: (raw.city as string) || null,
     parish: (raw.parish as string) || null,
     postal_code: (raw.postal_code as string) || null,
     
-    // Step 2: Mailing Address - Map mailing_address1 to mailing_address_line1
+    // Step 2: Mailing Address
     mailing_address1: (raw.mailing_address1 as string) || null,
     mailing_address2: (raw.mailing_address2 as string) || null,
-    //mailing_city: (raw.mailing_city as string) || null,
-    //mailing_parish: (raw.mailing_parish as string) || null,
-    //mailing_country: (raw.mailing_country as string) || null,
-    //mailing_postal_code: (raw.mailing_postal_code as string) || null,
-    //same_as_physical: (raw.same_as_physical as boolean) ?? null,
+    mailing_city: (raw.mailing_city as string) || null,
+    mailing_state: (raw.mailing_state as string) || null,
+    mailing_country: (raw.mailing_country as string) || null,
     
     // Step 2: Workforce - Map total_employees to employee_count
     application_date: (raw.application_date as string) || null,
