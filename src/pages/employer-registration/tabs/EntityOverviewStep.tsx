@@ -4,8 +4,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ERMasterFormData } from '@/types/employerRegistration';
 import { useERLookups, LookupItem } from '@/hooks/useERLookups';
+import { useCountries } from '@/hooks/useIPMasterLookups';
 import { Loader2 } from 'lucide-react';
 import { getEmailMaxLength } from '@/lib/contactValidation';
+import { SearchableSelect } from '@/components/ui/searchable-select';
 
 interface EntityOverviewStepProps {
   formData: ERMasterFormData;
@@ -87,6 +89,19 @@ const LookupSelect = ({
 
 export default function EntityOverviewStep({ formData, onChange, isViewMode, errors = {} }: EntityOverviewStepProps) {
   const { officeCodes, ownershipCodes, sectorCodes, industrialCodes, isLoading } = useERLookups();
+  const { data: countries = [], isLoading: countriesLoading } = useCountries();
+
+  const resolveCountryName = (code: string | null | undefined): string => {
+    if (!code) return '';
+    const found = countries.find(c => c.code?.trim() === code?.trim());
+    return found?.description?.trim() || code;
+  };
+
+  const countryOptions = countries.map(c => ({
+    value: c.code,
+    label: c.description || c.code,
+    searchText: c.nationality || '',
+  }));
 
   return (
     <div className="space-y-6">
@@ -133,9 +148,16 @@ export default function EntityOverviewStep({ formData, onChange, isViewMode, err
             />
             {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
           </div>
+        </div>
+      </div>
+
+      {/* Head Quarter Address */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Head Quarter Address</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <Label className={errors.hq_addr1 ? 'text-destructive' : ''}>
-              HQ Address 1 <span className="text-destructive">*</span>
+              Address Line 1 <span className="text-destructive">*</span>
             </Label>
             <InputWithCounter
               value={formData.hq_addr1 || ''}
@@ -148,7 +170,7 @@ export default function EntityOverviewStep({ formData, onChange, isViewMode, err
             {errors.hq_addr1 && <p className="text-xs text-destructive mt-1">{errors.hq_addr1}</p>}
           </div>
           <div>
-            <Label>HQ Address 2</Label>
+            <Label>Address Line 2</Label>
             <InputWithCounter
               value={formData.hq_addr2 || ''}
               onChange={(e) => onChange('hq_addr2', e.target.value)}
@@ -158,8 +180,55 @@ export default function EntityOverviewStep({ formData, onChange, isViewMode, err
             />
           </div>
           <div>
+            <Label>City</Label>
+            <InputWithCounter
+              value={formData.hq_city || ''}
+              onChange={(e) => onChange('hq_city', e.target.value)}
+              disabled={isViewMode}
+              maxLength={50}
+              placeholder="Enter city"
+            />
+          </div>
+          <div>
+            <Label>State</Label>
+            <InputWithCounter
+              value={formData.hq_state || ''}
+              onChange={(e) => onChange('hq_state', e.target.value)}
+              disabled={isViewMode}
+              maxLength={50}
+              placeholder="Enter state"
+            />
+          </div>
+          <div>
+            <Label>Country</Label>
+            {isViewMode ? (
+              <Input
+                value={resolveCountryName(formData.hq_country)}
+                disabled
+                className="bg-muted"
+              />
+            ) : (
+              <SearchableSelect
+                options={countryOptions}
+                value={formData.hq_country || ''}
+                onValueChange={(val) => onChange('hq_country', val)}
+                placeholder="Select country"
+                searchPlaceholder="Search countries..."
+                emptyMessage="No country found."
+                disabled={countriesLoading}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Mailing Address */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Mailing Address</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
             <Label className={errors.maddr1 ? 'text-destructive' : ''}>
-              Mailing Address 1 <span className="text-destructive">*</span>
+              Address Line 1 <span className="text-destructive">*</span>
             </Label>
             <InputWithCounter
               value={formData.maddr1 || ''}
@@ -172,7 +241,7 @@ export default function EntityOverviewStep({ formData, onChange, isViewMode, err
             {errors.maddr1 && <p className="text-xs text-destructive mt-1">{errors.maddr1}</p>}
           </div>
           <div>
-            <Label>Mailing Address 2</Label>
+            <Label>Address Line 2</Label>
             <InputWithCounter
               value={formData.maddr2 || ''}
               onChange={(e) => onChange('maddr2', e.target.value)}
@@ -180,6 +249,46 @@ export default function EntityOverviewStep({ formData, onChange, isViewMode, err
               maxLength={25}
               placeholder="Enter mailing address 2"
             />
+          </div>
+          <div>
+            <Label>City</Label>
+            <InputWithCounter
+              value={formData.mailing_city || ''}
+              onChange={(e) => onChange('mailing_city', e.target.value)}
+              disabled={isViewMode}
+              maxLength={50}
+              placeholder="Enter city"
+            />
+          </div>
+          <div>
+            <Label>State</Label>
+            <InputWithCounter
+              value={formData.mailing_state || ''}
+              onChange={(e) => onChange('mailing_state', e.target.value)}
+              disabled={isViewMode}
+              maxLength={50}
+              placeholder="Enter state"
+            />
+          </div>
+          <div>
+            <Label>Country</Label>
+            {isViewMode ? (
+              <Input
+                value={resolveCountryName(formData.mailing_country)}
+                disabled
+                className="bg-muted"
+              />
+            ) : (
+              <SearchableSelect
+                options={countryOptions}
+                value={formData.mailing_country || ''}
+                onValueChange={(val) => onChange('mailing_country', val)}
+                placeholder="Select country"
+                searchPlaceholder="Search countries..."
+                emptyMessage="No country found."
+                disabled={countriesLoading}
+              />
+            )}
           </div>
         </div>
       </div>
