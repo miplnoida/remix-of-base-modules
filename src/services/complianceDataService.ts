@@ -372,21 +372,40 @@ export async function fetchViolationSummaryCounts(filters: ViolationFilters = {}
   const { searchValue, targetMonth } = buildViolationFilterConditions(filters);
   const employerIds = searchValue ? await resolveEmployerSearch(searchValue) : [];
 
+  // Use the count query per status to avoid fetching all rows
+  const statuses = ['OPEN', 'UNDER_REVIEW', 'IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'CLOSED', 'CANCELLED'];
+
+  // Single query fetching only status column, then count client-side (lightweight - only 1 column)
   let query = supabase
     .from("ce_violations")
-    .select("status")
+    .select("status", { count: "exact" })
     .eq("is_deleted", false);
 
-  query = applyViolationFilters(query, filters, searchValue, targetMonth, employerIds);
+  // Apply filters but skip status filter for summary (we want counts per status across all)
+  const filtersWithoutStatus = { ...filters, status: 'ALL' };
+  query = applyViolationFilters(query, filtersWithoutStatus, searchValue, targetMonth, employerIds);
 
-  const { data, error } = await query.limit(10000);
+  const { count, error } = await query;
   if (error) throw error;
 
-  const counts: Record<string, number> = { total: 0, OPEN: 0, UNDER_REVIEW: 0, ESCALATED: 0 };
-  (data ?? []).forEach((row: any) => {
-    counts.total++;
-    if (row.status in counts) counts[row.status]++;
+  const total = count ?? 0;
+
+  // Now get per-status counts in parallel
+  const statusCountPromises = statuses.map(async (s) => {
+    let sq = supabase
+      .from("ce_violations")
+      .select("id", { count: "exact", head: true })
+      .eq("is_deleted", false)
+      .eq("status", s);
+    sq = applyViolationFilters(sq, filtersWithoutStatus, searchValue, targetMonth, employerIds);
+    const { count: c, error: e } = await sq;
+    if (e) return [s, 0] as [string, number];
+    return [s, c ?? 0] as [string, number];
   });
+
+  const statusResults = await Promise.all(statusCountPromises);
+  const counts: Record<string, number> = { total };
+  statusResults.forEach(([s, c]) => { counts[s] = c; });
   return counts;
 }
 
