@@ -37,10 +37,9 @@ import LegalReferralWizard from './legal/LegalReferralWizard';
 // Employers
 import EmployerStatements from './employers/EmployerStatements';
 import EmployerStatementDetail from './employers/EmployerStatementDetail';
-import EmployerFinancialStatement from './employers/EmployerFinancialStatement';
+// Removed: EmployerFinancialStatement (unclear ownership — will re-add if needed)
 import EmployerFindings from './employers/EmployerFindings';
-import EmployerComplianceManagement from './employers/EmployerComplianceManagement';
-import EmployerHierarchy from './employers/EmployerHierarchy';
+// Removed: EmployerComplianceManagement, EmployerHierarchy (unclear ownership — will re-add if needed)
 import EmployerVisitWorkspace from './employers/EmployerVisitWorkspace';
 import Employer360 from './employers/Employer360';
 
@@ -151,12 +150,11 @@ const ComplianceRoutes = () => {
       <Route path="/field/findings" element={<EmployerFindings />} />
       <Route path="/field/employer-statements" element={<EmployerStatements />} />
       <Route path="/field/employer-statement/:employerId" element={<EmployerStatementDetail />} />
-      <Route path="/field/employer-statement/:employerId/financial" element={<EmployerFinancialStatement />} />
+      {/* Removed: /field/employer-statement/:employerId/financial (EmployerFinancialStatement) */}
       <Route path="/field/visit/:employerId" element={<EmployerVisitWorkspace />} />
       <Route path="/field/employer-360/:employerId" element={<Employer360 />} />
       <Route path="/field/employer-risk/:employerId" element={<EmployerRiskProfile />} />
-      <Route path="/field/employer-hierarchy" element={<EmployerHierarchy />} />
-      <Route path="/field/employer-management" element={<EmployerComplianceManagement />} />
+      {/* Removed: /field/employer-hierarchy (EmployerHierarchy), /field/employer-management (EmployerComplianceManagement) */}
       <Route path="/field/audit-management" element={<AuditManagement />} />
       <Route path="/field/audit/:id" element={<AuditDetails />} />
       <Route path="/field/weekly-report" element={<WeeklyReportSubmission />} />
@@ -243,10 +241,11 @@ const ComplianceRoutes = () => {
       <Route path="/inspections/field-operations" element={<Navigate to="/compliance/field/operations" replace />} />
       <Route path="/employers/findings" element={<Navigate to="/compliance/field/findings" replace />} />
       <Route path="/employer-statements" element={<Navigate to="/compliance/field/employer-statements" replace />} />
-      <Route path="/employers/visit/:id" element={<Navigate to="/compliance/field/employer-management" replace />} />
-      <Route path="/employers/management" element={<Navigate to="/compliance/field/employer-management" replace />} />
-      <Route path="/employers/hierarchy" element={<Navigate to="/compliance/field/employer-hierarchy" replace />} />
-      <Route path="/employer" element={<Navigate to="/compliance/field/employer-management" replace />} />
+      {/* Legacy redirects for removed screens — redirect to employer-statements as fallback */}
+      <Route path="/employers/visit/:id" element={<Navigate to="/compliance/field/employer-statements" replace />} />
+      <Route path="/employers/management" element={<Navigate to="/compliance/field/employer-statements" replace />} />
+      <Route path="/employers/hierarchy" element={<Navigate to="/compliance/field/employer-statements" replace />} />
+      <Route path="/employer" element={<Navigate to="/compliance/field/employer-statements" replace />} />
       <Route path="/audits/management" element={<Navigate to="/compliance/field/audit-management" replace />} />
       <Route path="/violations/weekly-reports" element={<Navigate to="/compliance/field/weekly-report" replace />} />
       <Route path="/audit-planning/weekly-reports" element={<Navigate to="/compliance/field/weekly-reports" replace />} />

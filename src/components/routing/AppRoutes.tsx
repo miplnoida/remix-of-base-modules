@@ -202,12 +202,12 @@ import DeathBenefits from '@/pages/benefits/DeathBenefits';
 import EducationalBenefits from '@/pages/benefits/EducationalBenefits';
 
 // Compliance & Audit (ComplianceDashboard already imported above)
-import EmployerComplianceManagement from '@/pages/compliance/employers/EmployerComplianceManagement';
+// Removed: EmployerComplianceManagement (unclear ownership — will re-add if needed)
 import LegalProceedings from '@/pages/compliance/legal/LegalProceedings';
 import AuditManagement from '@/pages/compliance/audit-planning/AuditManagement';
 import PenaltyManagement from '@/pages/compliance/cases/PenaltyManagement';
 import ComplianceAnalytics from '@/pages/compliance/dashboards/ComplianceAnalytics';
-import EmployerHierarchy from '@/pages/compliance/employers/EmployerHierarchy';
+// Removed: EmployerHierarchy (unclear ownership — will re-add if needed)
 import EmployerComplianceJobs from '@/pages/compliance/automation/EmployerComplianceJobs';
 import C3LedgerSync from '@/pages/compliance/settings/C3LedgerSync';
 import LedgerAdministration from '@/pages/compliance/settings/LedgerAdministration';
@@ -987,8 +987,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/field/visit/:employerId" element={<ProtectedLayout><EmployerVisitWorkspace /></ProtectedLayout>} />
       <Route path="/compliance/field/employer-360/:employerId" element={<ProtectedLayout><Employer360 /></ProtectedLayout>} />
       <Route path="/compliance/field/employer-risk/:employerId" element={<ProtectedLayout><EmployerRiskProfile /></ProtectedLayout>} />
-      <Route path="/compliance/field/employer-hierarchy" element={<ProtectedLayout><EmployerHierarchy /></ProtectedLayout>} />
-      <Route path="/compliance/field/employer-management" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
+      {/* Removed: employer-hierarchy, employer-management (unclear ownership) */}
       <Route path="/compliance/field/audit-management" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
       <Route path="/compliance/field/weekly-report" element={<ProtectedLayout><WeeklyReportSubmission /></ProtectedLayout>} />
       <Route path="/compliance/field/weekly-reports" element={<ProtectedLayout><WeeklyReports /></ProtectedLayout>} />
@@ -1073,9 +1072,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/employers/visit/:employerId" element={<Navigate to="/compliance/field/employer-statements" replace />} />
       <Route path="/compliance/employer-360/:employerId" element={<Navigate to="/compliance/field/employer-statements" replace />} />
       <Route path="/compliance/employers/:employerId/risk-profile" element={<Navigate to="/compliance/field/employer-statements" replace />} />
-      <Route path="/compliance/employers/hierarchy" element={<Navigate to="/compliance/field/employer-hierarchy" replace />} />
-      <Route path="/compliance/employers/management" element={<Navigate to="/compliance/field/employer-management" replace />} />
-      <Route path="/compliance/employer" element={<Navigate to="/compliance/field/employer-management" replace />} />
+      <Route path="/compliance/employers/hierarchy" element={<Navigate to="/compliance/field/employer-statements" replace />} />
+      <Route path="/compliance/employers/management" element={<Navigate to="/compliance/field/employer-statements" replace />} />
+      <Route path="/compliance/employer" element={<Navigate to="/compliance/field/employer-statements" replace />} />
       <Route path="/compliance/audits" element={<Navigate to="/compliance/field/audit-management" replace />} />
       <Route path="/compliance/violations/weekly-reports" element={<Navigate to="/compliance/field/weekly-report" replace />} />
       <Route path="/compliance/audit-planning/weekly-reports" element={<Navigate to="/compliance/field/weekly-reports" replace />} />
