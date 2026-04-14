@@ -44,6 +44,20 @@ export default function EmployerRegistrationForm() {
     addOwner, deleteOwner, addLocation, deleteLocation, addNote, addCommenceDate
   } = useEmployerRegistration({ regno, mode: isNewMode ? 'create' : isViewMode ? 'view' : 'edit' });
 
+  const { data: countries = [] } = useCountries();
+
+  const resolveCountryName = (code: string | null | undefined): string => {
+    if (!code) return '—';
+    const found = countries.find(c => c.code?.trim() === code?.trim());
+    return found?.description?.trim() || code;
+  };
+
+  const countryOptions = countries.map(c => ({
+    value: c.code,
+    label: c.description || c.code,
+    searchText: c.nationality || '',
+  }));
+
   const { submitERRegistration, isSubmitting } = useEmployerRegistrationSubmit();
 
   // Fetch transferred documents for this employer
