@@ -11,6 +11,15 @@ const EDGE_FUNCTION_JOBS: Record<string, string> = {
   'JOB-NOTICE-GENERATION': 'run-notice-generation',
   'JOB-ESCALATION-ENGINE': 'run-escalation-engine',
   'JOB-OVERDUE-DETECTION': 'run-overdue-detection',
+  'EMP-COMPLIANCE-REFRESH': 'ce-compliance-refresh',
+  'EMP-FLAG-GEN': 'ce-flag-generation',
+  'EMP-GROUP-ROLLUP': 'ce-group-rollup',
+  'EMP-NOTICE-VALIDATE': 'ce-notice-validate',
+  'EMP-RECON-EXCEPTION': 'ce-recon-exception',
+  'EMP-SNAPSHOT-GEN': 'ce-snapshot-gen',
+  'EMP-STALE-REVIEW': 'ce-stale-review',
+  'JOB-ESCALATION-REVIEW': 'ce-escalation-review',
+  'JOB-NOTICE-GEN': 'ce-notice-gen',
 };
 
 // Jobs that have RPC handlers
