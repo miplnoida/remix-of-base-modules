@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, FileText, AlertTriangle, Building2, MapPin, Eye, Plus } from 'lucide-react';
+import { Search, FileText, AlertTriangle, Building2, MapPin, Eye, Plus, Loader2 } from 'lucide-react';
 import { InspectionFinding } from '@/types/inspectionTypes';
 import { Violation } from '@/types/violation';
 import { inspectionService } from '@/services/inspectionService';
 import { violationService } from '@/services/violationService';
+import { supabase } from '@/integrations/supabase/client';
 import { CreateViolationFromFindingDialog } from '@/components/compliance/CreateViolationFromFindingDialog';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -21,10 +22,12 @@ export default function EmployerFindings() {
   const employerIdParam = searchParams.get('employerId');
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedEmployer, setSelectedEmployer] = useState<any>(null);
+  const [selectedEmployer, setSelectedEmployer] = useState<{ id: string; name: string; code: string; territory: string } | null>(null);
   const [findings, setFindings] = useState<InspectionFinding[]>([]);
   const [violations, setViolations] = useState<Violation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
   const [selectedFinding, setSelectedFinding] = useState<InspectionFinding | null>(null);
   const [showCreateViolation, setShowCreateViolation] = useState(false);
 
@@ -37,21 +40,28 @@ export default function EmployerFindings() {
   const loadEmployerData = async (employerId: string) => {
     setLoading(true);
     try {
-      // Mock employer data
-      const employer = {
-        id: employerId,
-        name: 'ABC Construction Ltd',
-        code: 'EMP-2024-001',
-        territory: 'St Kitts'
-      };
-      setSelectedEmployer(employer);
+      // Fetch real employer from DB
+      const { data: emp } = await supabase
+        .from('er_master')
+        .select('regno, name, office_code')
+        .eq('regno', employerId)
+        .maybeSingle();
 
-      // Load findings and violations for this employer
-      // In real app, filter by employerId
-      const findingsData = await inspectionService.getFindingsForVisit('all'); // Mock - should filter by employer
+      if (emp) {
+        setSelectedEmployer({
+          id: (emp as any).regno,
+          name: (emp as any).name ?? employerId,
+          code: (emp as any).regno,
+          territory: 'St Kitts',
+        });
+      }
+
+      // Load findings and violations for this employer from DB
+      const [findingsData, violationsData] = await Promise.all([
+        inspectionService.getFindingsByEmployer(employerId),
+        violationService.getAll(),
+      ]);
       setFindings(findingsData);
-
-      const violationsData = await violationService.getAll();
       setViolations(violationsData.filter(v => v.employerId === employerId));
     } catch (error) {
       console.error('Error loading employer data:', error);
@@ -61,13 +71,27 @@ export default function EmployerFindings() {
     }
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchTerm.trim()) {
       toast.error('Please enter an employer name or code');
       return;
     }
-    // Mock search - in real app, search employers
-    loadEmployerData('EMP-2024-001');
+    setSearching(true);
+    try {
+      const { data } = await supabase
+        .from('er_master')
+        .select('regno, name')
+        .or(`regno.ilike.%${searchTerm}%,name.ilike.%${searchTerm}%`)
+        .limit(20);
+      setSearchResults(data ?? []);
+      if (data && data.length === 1) {
+        loadEmployerData((data[0] as any).regno);
+      }
+    } catch {
+      toast.error('Search failed');
+    } finally {
+      setSearching(false);
+    }
   };
 
   const handleCreateViolation = (finding: InspectionFinding) => {
@@ -114,21 +138,35 @@ export default function EmployerFindings() {
           <CardHeader>
             <CardTitle>Search Employer</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex gap-3">
               <div className="flex-1">
                 <Input
-                  placeholder="Enter employer name or code..."
+                  placeholder="Enter employer name or registration code..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 />
               </div>
-              <Button onClick={handleSearch}>
-                <Search className="h-4 w-4 mr-2" />
+              <Button onClick={handleSearch} disabled={searching}>
+                {searching ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
                 Search
               </Button>
             </div>
+            {searchResults.length > 1 && (
+              <div className="border rounded-lg divide-y">
+                {searchResults.map((r: any) => (
+                  <button
+                    key={r.regno}
+                    className="w-full text-left px-4 py-2 hover:bg-accent/50 text-sm"
+                    onClick={() => loadEmployerData(r.regno)}
+                  >
+                    <span className="font-medium">{r.name}</span>
+                    <span className="text-muted-foreground ml-2">({r.regno})</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -152,7 +190,7 @@ export default function EmployerFindings() {
                     </div>
                   </div>
                 </div>
-                <Button variant="outline" onClick={() => setSelectedEmployer(null)}>
+                <Button variant="outline" onClick={() => { setSelectedEmployer(null); setSearchResults([]); }}>
                   Change Employer
                 </Button>
               </div>
@@ -181,8 +219,8 @@ export default function EmployerFindings() {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      Loading findings...
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     </div>
                   ) : findings.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
@@ -193,7 +231,7 @@ export default function EmployerFindings() {
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Visit Date</TableHead>
+                          <TableHead>Date</TableHead>
                           <TableHead>Type</TableHead>
                           <TableHead>Severity</TableHead>
                           <TableHead>Title</TableHead>
@@ -344,7 +382,7 @@ export default function EmployerFindings() {
       )}
 
       {/* Create Violation Dialog */}
-      {selectedFinding && (
+      {selectedFinding && selectedEmployer && (
         <CreateViolationFromFindingDialog
           open={showCreateViolation}
           onOpenChange={setShowCreateViolation}
