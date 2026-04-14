@@ -114,6 +114,11 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     return match ? Number(match[1]) : null;
   }, [initialData?.scheduleNo]);
 
+  // Detect NWD (Non-Working Director) status from initialData
+  const isNWD = useMemo(() => {
+    return initialData?.is_for_director === true || initialData?.isForDirector === true;
+  }, [initialData?.is_for_director, initialData?.isForDirector]);
+
   // Fetch payments from database - uses formData so must be after formData state declaration
   const { 
     totalPayments, 
@@ -125,7 +130,8 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     payerType: 'ER', // Employer type
     periodYear: formData.period?.year ?? null,
     periodMonth: formData.period?.month ?? null,
-    sequenceNo: scheduleNumber
+    sequenceNo: scheduleNumber,
+    isForDirector: isNWD
   });
 
   const [employerError, setEmployerError] = useState<string>('');
