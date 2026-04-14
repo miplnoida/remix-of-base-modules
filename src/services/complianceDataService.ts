@@ -404,11 +404,6 @@ export async function fetchViolationById(id: string) {
   if (error) throw error;
   return data;
 }
-  const targetMonth = filters?.month || (!hasActiveFilter
-    ? new Date().toISOString().slice(0, 7)
-    : undefined);
-
-  const matchedEmployerIds = new Set<string>();
 
   if (searchValue) {
     const [masterResult, locationResult] = await Promise.all([
