@@ -1,176 +1,80 @@
 // ============================================
-// WEEKLY AUDIT PLANNING & EXECUTION - SERVICE LAYER
+// WEEKLY AUDIT PLANNING & EXECUTION - DB-BACKED SERVICE
 // ============================================
 
+import { supabase } from '@/integrations/supabase/client';
 import {
   WeeklyAuditPlan,
   PlannedVisit,
   WeeklyPlanWorkflowStatus,
-  VisitType,
-  VisitDuration,
-  VisitExecutionStatus,
-  PlanItemType,
-  CreateWeeklyPlanRequest,
-  UpdateVisitExecutionRequest,
-  SubmitWeeklyReportRequest,
   ReviewPlanRequest,
+  SubmitWeeklyReportRequest,
   WeeklyReportSummary,
-  Evidence,
-  AuditChecklist
 } from '@/types/weeklyAuditPlan';
 
-// ============================================
-// MOCK DATA
-// ============================================
+// ── Map DB rows to domain types ──
 
-let mockPlans: WeeklyAuditPlan[] = [
-  {
-    id: 'plan-001',
-    planNumber: 'WP-2025-W02-001',
-    inspectorId: 'inspector-001',
-    inspectorName: 'John Smith',
-    weekStartDate: '2025-01-13',
-    weekEndDate: '2025-01-19',
-    status: WeeklyPlanWorkflowStatus.APPROVED,
-    submittedAt: '2025-01-10T09:00:00Z',
-    submittedBy: 'inspector-001',
-    reviewedAt: '2025-01-11T14:30:00Z',
-    reviewedBy: 'senior-001',
-    reviewerRole: 'SENIOR_INSPECTOR',
-    reviewComments: 'Good coverage. Approved.',
-    approvedAt: '2025-01-12T10:00:00Z',
-    approvedBy: 'manager-001',
-    plannedVisits: [
-      {
-        id: 'visit-001',
-        planId: 'plan-001',
-        itemType: PlanItemType.EMPLOYER_VISIT,
-        dayOfWeek: 'Monday',
-        visitDate: '2025-01-13',
-        employerId: 'emp-001',
-        employerName: 'ABC Manufacturing Ltd',
-        visitType: VisitType.AUDIT,
-        duration: VisitDuration.FULL_DAY,
-        purpose: 'Annual compliance audit - Risk Band: High',
-        plannedStartTime: '09:00',
-        plannedEndTime: '15:00',
-        executionStatus: VisitExecutionStatus.COMPLETED,
-        checkInTime: '2025-01-13T09:05:00Z',
-        checkInGPSLat: 17.3578,
-        checkInGPSLng: -62.7830,
-        checkOutTime: '2025-01-13T15:10:00Z',
-        checkOutGPSLat: 17.3580,
-        checkOutGPSLng: -62.7828,
-        visitNotes: 'Full audit conducted. All records reviewed.',
-        findings: 'Minor discrepancies in 2 employee records. C3 submissions up to date.',
-        createdAt: '2025-01-10T09:00:00Z',
-        updatedAt: '2025-01-13T15:10:00Z'
-      },
-      {
-        id: 'visit-002',
-        planId: 'plan-001',
-        itemType: PlanItemType.EMPLOYER_VISIT,
-        dayOfWeek: 'Tuesday',
-        visitDate: '2025-01-14',
-        employerId: 'emp-002',
-        employerName: 'Caribbean Hotel Group',
-        visitType: VisitType.C3_FOLLOW_UP,
-        duration: VisitDuration.HALF_DAY_AM,
-        purpose: 'Follow-up on late C3 submission',
-        plannedStartTime: '09:00',
-        plannedEndTime: '12:00',
-        executionStatus: VisitExecutionStatus.IN_PROGRESS,
-        checkInTime: '2025-01-14T09:00:00Z',
-        checkInGPSLat: 17.3000,
-        checkInGPSLng: -62.7200,
-        createdAt: '2025-01-10T09:00:00Z',
-        updatedAt: '2025-01-14T09:00:00Z'
-      },
-      {
-        id: 'visit-003',
-        planId: 'plan-001',
-        itemType: PlanItemType.EMPLOYER_VISIT,
-        dayOfWeek: 'Wednesday',
-        visitDate: '2025-01-15',
-        employerId: 'emp-003',
-        employerName: 'Island Construction Co',
-        visitType: VisitType.PAYMENT_FOLLOW_UP,
-        duration: VisitDuration.SHORT,
-        purpose: 'Payment arrangement follow-up',
-        plannedStartTime: '10:00',
-        plannedEndTime: '11:30',
-        executionStatus: VisitExecutionStatus.PLANNED,
-        createdAt: '2025-01-10T09:00:00Z',
-        updatedAt: '2025-01-10T09:00:00Z'
-      }
-    ],
-    totalPlannedVisits: 3,
-    completedVisits: 1,
+function mapPlanRow(row: any): WeeklyAuditPlan {
+  return {
+    id: row.id,
+    planNumber: row.plan_number ?? '',
+    inspectorId: row.inspector_id ?? '',
+    inspectorName: row.inspector_name ?? '',
+    weekStartDate: row.week_start_date?.slice(0, 10) ?? '',
+    weekEndDate: row.week_end_date?.slice(0, 10) ?? '',
+    status: (row.status ?? 'DRAFT') as WeeklyPlanWorkflowStatus,
+    submittedAt: row.submitted_date ?? undefined,
+    submittedBy: row.created_by ?? undefined,
+    reviewedAt: row.approved_date ?? row.rejected_date ?? undefined,
+    reviewedBy: row.approved_by ?? undefined,
+    reviewerRole: undefined,
+    reviewComments: row.reviewer_comments ?? row.supervisor_comments ?? undefined,
+    approvedAt: row.approved_date ?? undefined,
+    approvedBy: row.approved_by ?? undefined,
+    weeklyReportNarrative: row.outcome_narrative ?? undefined,
+    weeklyReportSubmittedAt: row.outcome_submitted_at ?? undefined,
+    plannedVisits: (row.ce_weekly_plan_items ?? []).map(mapPlanItemToVisit),
+    totalPlannedVisits: row.total_planned_visits ?? 0,
+    completedVisits: row.completed_visits ?? 0,
     holidays: [],
-    createdAt: '2025-01-10T09:00:00Z',
-    updatedAt: '2025-01-13T15:10:00Z'
-  },
-  {
-    id: 'plan-002',
-    planNumber: 'WP-2025-W02-002',
-    inspectorId: 'inspector-002',
-    inspectorName: 'Sarah Johnson',
-    weekStartDate: '2025-01-13',
-    weekEndDate: '2025-01-19',
-    status: WeeklyPlanWorkflowStatus.SUBMITTED,
-    submittedAt: '2025-01-10T11:00:00Z',
-    submittedBy: 'inspector-002',
-    plannedVisits: [
-      {
-        id: 'visit-004',
-        planId: 'plan-002',
-        itemType: PlanItemType.EMPLOYER_VISIT,
-        dayOfWeek: 'Monday',
-        visitDate: '2025-01-13',
-        employerId: 'emp-004',
-        employerName: 'Tech Solutions Ltd',
-        visitType: VisitType.RISK_BASED_AUDIT,
-        duration: VisitDuration.FULL_DAY,
-        purpose: 'Risk-based audit - High risk score',
-        plannedStartTime: '09:00',
-        plannedEndTime: '16:00',
-        executionStatus: VisitExecutionStatus.PLANNED,
-        createdAt: '2025-01-10T11:00:00Z',
-        updatedAt: '2025-01-10T11:00:00Z'
-      },
-      {
-        id: 'visit-005',
-        planId: 'plan-002',
-        itemType: PlanItemType.SCOUTING,
-        dayOfWeek: 'Thursday',
-        visitDate: '2025-01-16',
-        areaName: 'Basseterre Central Market Area',
-        territory: 'St Kitts',
-        visitType: VisitType.SCOUTING,
-        duration: VisitDuration.HALF_DAY_PM,
-        purpose: 'Zone scouting for unregistered employers',
-        plannedStartTime: '13:00',
-        plannedEndTime: '16:00',
-        focusNotes: 'Focus on retail and restaurant establishments',
-        executionStatus: VisitExecutionStatus.PLANNED,
-        createdAt: '2025-01-10T11:00:00Z',
-        updatedAt: '2025-01-10T11:00:00Z'
-      }
-    ],
-    totalPlannedVisits: 2,
-    completedVisits: 0,
-    holidays: [],
-    createdAt: '2025-01-10T11:00:00Z',
-    updatedAt: '2025-01-10T11:00:00Z'
-  }
-];
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
-let mockEvidence: Evidence[] = [];
-let mockChecklists: AuditChecklist[] = [];
+function mapPlanItemToVisit(item: any): PlannedVisit {
+  return {
+    id: item.id,
+    planId: item.plan_id,
+    itemType: item.item_type ?? 'EMPLOYER_VISIT',
+    dayOfWeek: item.day_of_week ?? '',
+    visitDate: item.scheduled_date?.slice(0, 10) ?? '',
+    employerId: item.employer_id ?? undefined,
+    employerName: item.employer_name ?? undefined,
+    areaName: item.area_name ?? undefined,
+    territory: item.territory ?? 'St Kitts',
+    visitType: item.visit_type ?? 'AUDIT',
+    duration: item.duration ?? 'FULL_DAY',
+    purpose: item.purpose ?? '',
+    plannedStartTime: item.scheduled_start_time ?? undefined,
+    plannedEndTime: item.scheduled_end_time ?? undefined,
+    executionStatus: item.execution_status ?? 'PLANNED',
+    checkInTime: item.check_in_time ?? undefined,
+    checkInGPSLat: item.check_in_gps_lat ? Number(item.check_in_gps_lat) : undefined,
+    checkInGPSLng: item.check_in_gps_lng ? Number(item.check_in_gps_lng) : undefined,
+    checkOutTime: item.check_out_time ?? undefined,
+    checkOutGPSLat: item.check_out_gps_lat ? Number(item.check_out_gps_lat) : undefined,
+    checkOutGPSLng: item.check_out_gps_lng ? Number(item.check_out_gps_lng) : undefined,
+    visitNotes: item.outcome_notes ?? undefined,
+    findings: item.findings ?? undefined,
+    rescheduledTo: item.rescheduled_to ?? undefined,
+    rescheduledReason: item.reschedule_reason ?? undefined,
+    createdAt: item.created_at,
+    updatedAt: item.updated_at,
+  };
+}
 
-// ============================================
-// SERVICE FUNCTIONS
-// ============================================
+const PLAN_SELECT = '*, ce_weekly_plan_items(*)';
 
 export const weeklyAuditPlanService = {
   // Get all plans (with optional filters)
@@ -179,203 +83,157 @@ export const weeklyAuditPlanService = {
     status?: WeeklyPlanWorkflowStatus;
     weekStartDate?: string;
   }): Promise<WeeklyAuditPlan[]> => {
-    let filtered = [...mockPlans];
-    
+    let query = supabase
+      .from('ce_weekly_plans')
+      .select(PLAN_SELECT)
+      .order('week_start_date', { ascending: false });
+
     if (filters?.inspectorId) {
-      filtered = filtered.filter(p => p.inspectorId === filters.inspectorId);
+      query = query.eq('inspector_id', filters.inspectorId);
     }
     if (filters?.status) {
-      filtered = filtered.filter(p => p.status === filters.status);
+      query = query.eq('status', filters.status);
     }
     if (filters?.weekStartDate) {
-      filtered = filtered.filter(p => p.weekStartDate === filters.weekStartDate);
+      query = query.eq('week_start_date', filters.weekStartDate);
     }
-    
-    return filtered;
+
+    const { data, error } = await query.limit(100);
+    if (error) throw error;
+    return (data ?? []).map(mapPlanRow);
   },
 
   // Get plan by ID
   getById: async (id: string): Promise<WeeklyAuditPlan | null> => {
-    return mockPlans.find(p => p.id === id) || null;
-  },
-
-  // Create new plan
-  create: async (request: CreateWeeklyPlanRequest): Promise<WeeklyAuditPlan> => {
-    const newPlan: WeeklyAuditPlan = {
-      id: `plan-${Date.now()}`,
-      planNumber: `WP-${new Date().getFullYear()}-W${Math.floor(Math.random() * 52 + 1).toString().padStart(2, '0')}-${Math.floor(Math.random() * 999).toString().padStart(3, '0')}`,
-      inspectorId: request.inspectorId,
-      inspectorName: 'Inspector Name', // Would be fetched from user service
-      weekStartDate: request.weekStartDate,
-      weekEndDate: request.weekEndDate,
-      status: WeeklyPlanWorkflowStatus.DRAFT,
-      plannedVisits: request.visits.map((v, idx) => ({
-        ...v,
-        id: `visit-${Date.now()}-${idx}`,
-        planId: `plan-${Date.now()}`,
-        executionStatus: VisitExecutionStatus.PLANNED,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      })),
-      totalPlannedVisits: request.visits.length,
-      completedVisits: 0,
-      holidays: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    mockPlans.push(newPlan);
-    return newPlan;
+    const { data, error } = await supabase
+      .from('ce_weekly_plans')
+      .select(PLAN_SELECT)
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? mapPlanRow(data) : null;
   },
 
   // Submit plan for review
   submit: async (planId: string): Promise<WeeklyAuditPlan> => {
-    const plan = mockPlans.find(p => p.id === planId);
-    if (!plan) throw new Error('Plan not found');
-    
-    plan.status = WeeklyPlanWorkflowStatus.SUBMITTED;
-    plan.submittedAt = new Date().toISOString();
-    plan.updatedAt = new Date().toISOString();
-    
-    return plan;
+    const { data, error } = await supabase
+      .from('ce_weekly_plans')
+      .update({
+        status: 'SUBMITTED',
+        submitted_date: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', planId)
+      .select(PLAN_SELECT)
+      .single();
+    if (error) throw error;
+    return mapPlanRow(data);
   },
 
   // Review plan (Senior Inspector or Manager)
   review: async (request: ReviewPlanRequest): Promise<WeeklyAuditPlan> => {
-    const plan = mockPlans.find(p => p.id === request.planId);
-    if (!plan) throw new Error('Plan not found');
-    
-    if (request.approved) {
-      if (request.reviewerRole === 'MANAGER') {
-        plan.status = WeeklyPlanWorkflowStatus.APPROVED;
-        plan.approvedAt = new Date().toISOString();
-        plan.approvedBy = 'current-user-id'; // Would be from auth context
-      } else {
-        plan.status = WeeklyPlanWorkflowStatus.APPROVED;
-      }
-    } else {
-      plan.status = WeeklyPlanWorkflowStatus.NEED_CHANGES;
-    }
-    
-    plan.reviewedAt = new Date().toISOString();
-    plan.reviewedBy = 'current-user-id';
-    plan.reviewerRole = request.reviewerRole;
-    plan.reviewComments = request.comments;
-    plan.updatedAt = new Date().toISOString();
-    
-    return plan;
-  },
+    const updates: Record<string, any> = {
+      reviewer_comments: request.comments,
+      updated_at: new Date().toISOString(),
+    };
 
-  // Update visit execution (check-in, check-out, notes)
-  updateVisitExecution: async (request: UpdateVisitExecutionRequest): Promise<PlannedVisit> => {
-    const plan = mockPlans.find(p => 
-      p.plannedVisits.some(v => v.id === request.visitId)
-    );
-    
-    if (!plan) throw new Error('Visit not found');
-    
-    const visit = plan.plannedVisits.find(v => v.id === request.visitId);
-    if (!visit) throw new Error('Visit not found');
-    
-    if (request.checkInTime) {
-      visit.checkInTime = request.checkInTime;
-      visit.checkInGPSLat = request.checkInGPS?.latitude;
-      visit.checkInGPSLng = request.checkInGPS?.longitude;
-      visit.executionStatus = VisitExecutionStatus.IN_PROGRESS;
+    if (request.approved) {
+      updates.status = 'APPROVED';
+      updates.approved_date = new Date().toISOString();
+      updates.approved_by = 'SYSTEM'; // TODO: use auth user code
+    } else {
+      updates.status = 'NEED_CHANGES';
+      updates.rejected_date = new Date().toISOString();
     }
-    
-    if (request.checkOutTime) {
-      visit.checkOutTime = request.checkOutTime;
-      visit.checkOutGPSLat = request.checkOutGPS?.latitude;
-      visit.checkOutGPSLng = request.checkOutGPS?.longitude;
-      visit.executionStatus = VisitExecutionStatus.COMPLETED;
-      plan.completedVisits = plan.plannedVisits.filter(v => 
-        v.executionStatus === VisitExecutionStatus.COMPLETED
-      ).length;
-    }
-    
-    if (request.visitNotes) visit.visitNotes = request.visitNotes;
-    if (request.findings) visit.findings = request.findings;
-    if (request.executionStatus) visit.executionStatus = request.executionStatus;
-    
-    visit.updatedAt = new Date().toISOString();
-    plan.updatedAt = new Date().toISOString();
-    
-    return visit;
+
+    const { data, error } = await supabase
+      .from('ce_weekly_plans')
+      .update(updates)
+      .eq('id', request.planId)
+      .select(PLAN_SELECT)
+      .single();
+    if (error) throw error;
+    return mapPlanRow(data);
   },
 
   // Submit weekly report
   submitWeeklyReport: async (request: SubmitWeeklyReportRequest): Promise<WeeklyAuditPlan> => {
-    const plan = mockPlans.find(p => p.id === request.planId);
-    if (!plan) throw new Error('Plan not found');
-    
-    plan.weeklyReportNarrative = request.narrative;
-    plan.weeklyReportSubmittedAt = new Date().toISOString();
-    plan.status = WeeklyPlanWorkflowStatus.COMPLETED;
-    plan.updatedAt = new Date().toISOString();
-    
-    return plan;
+    const { data, error } = await supabase
+      .from('ce_weekly_plans')
+      .update({
+        outcome_narrative: request.narrative,
+        outcome_submitted_at: new Date().toISOString(),
+        status: 'COMPLETED',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', request.planId)
+      .select(PLAN_SELECT)
+      .single();
+    if (error) throw error;
+    return mapPlanRow(data);
   },
 
-  // Generate weekly report summary
+  // Generate weekly report summary from DB data
   generateWeeklyReportSummary: async (planId: string): Promise<WeeklyReportSummary> => {
-    const plan = mockPlans.find(p => p.id === planId);
-    if (!plan) throw new Error('Plan not found');
-    
-    const completedVisits = plan.plannedVisits.filter(v => 
-      v.executionStatus === VisitExecutionStatus.COMPLETED
-    );
-    
-    const cancelledVisits = plan.plannedVisits.filter(v => 
-      v.executionStatus === VisitExecutionStatus.CANCELLED
-    );
-    
-    const rescheduledVisits = plan.plannedVisits.filter(v => 
-      v.executionStatus === VisitExecutionStatus.RESCHEDULED
-    );
-    
+    const { data: items, error } = await supabase
+      .from('ce_weekly_plan_items')
+      .select('*')
+      .eq('plan_id', planId);
+    if (error) throw error;
+
+    const allItems = items ?? [];
+    const completed = allItems.filter(i => i.execution_status === 'COMPLETED');
+    const cancelled = allItems.filter(i => i.execution_status === 'CANCELLED');
+    const rescheduled = allItems.filter(i => i.execution_status === 'RESCHEDULED');
+
+    // Calculate total hours from check-in/check-out
+    let totalHours = 0;
+    completed.forEach(i => {
+      if (i.check_in_time && i.check_out_time) {
+        const diff = new Date(i.check_out_time).getTime() - new Date(i.check_in_time).getTime();
+        totalHours += diff / (1000 * 60 * 60);
+      }
+    });
+
+    const { data: plan } = await supabase
+      .from('ce_weekly_plans')
+      .select('outcome_narrative')
+      .eq('id', planId)
+      .maybeSingle();
+
     return {
-      planId: plan.id,
-      plannedVisits: plan.totalPlannedVisits,
-      completedVisits: completedVisits.length,
-      cancelledVisits: cancelledVisits.length,
-      rescheduledVisits: rescheduledVisits.length,
-      totalHoursSpent: completedVisits.length * 4, // Mock calculation
-      evidenceCollected: mockEvidence.filter(e => 
-        completedVisits.some(v => v.id === e.visitId)
-      ).length,
-      violationsOpened: 2, // Mock
-      violationsUpdated: 5, // Mock
-      findingsSummary: completedVisits.map(v => v.findings).filter(Boolean).join('; '),
-      inspectorNarrative: plan.weeklyReportNarrative || '',
-      generatedAt: new Date().toISOString()
+      planId,
+      plannedVisits: allItems.length,
+      completedVisits: completed.length,
+      cancelledVisits: cancelled.length,
+      rescheduledVisits: rescheduled.length,
+      totalHoursSpent: Math.round(totalHours * 10) / 10,
+      evidenceCollected: 0, // TODO: count from ce_inspection_findings
+      violationsOpened: 0, // TODO: count from ce_violations created this week
+      violationsUpdated: 0,
+      findingsSummary: completed.map(i => i.findings).filter(Boolean).join('; '),
+      inspectorNarrative: plan?.outcome_narrative ?? '',
+      generatedAt: new Date().toISOString(),
     };
   },
 
-  // Get plans pending review (for Senior Inspector/Manager)
-  getPendingReview: async (reviewerRole: 'SENIOR_INSPECTOR' | 'MANAGER'): Promise<WeeklyAuditPlan[]> => {
-    return mockPlans.filter(p => 
-      p.status === WeeklyPlanWorkflowStatus.SUBMITTED ||
-      p.status === WeeklyPlanWorkflowStatus.RESUBMITTED
-    );
+  // Get plans pending review
+  getPendingReview: async (_reviewerRole: 'SENIOR_INSPECTOR' | 'MANAGER'): Promise<WeeklyAuditPlan[]> => {
+    const { data, error } = await supabase
+      .from('ce_weekly_plans')
+      .select(PLAN_SELECT)
+      .in('status', ['SUBMITTED', 'RESUBMITTED'])
+      .order('submitted_date', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapPlanRow);
   },
 
-  // Reschedule visit
-  rescheduleVisit: async (visitId: string, newDate: string, reason: string): Promise<PlannedVisit> => {
-    const plan = mockPlans.find(p => 
-      p.plannedVisits.some(v => v.id === visitId)
-    );
-    
-    if (!plan) throw new Error('Visit not found');
-    
-    const visit = plan.plannedVisits.find(v => v.id === visitId);
-    if (!visit) throw new Error('Visit not found');
-    
-    visit.rescheduledTo = newDate;
-    visit.rescheduledReason = reason;
-    visit.executionStatus = VisitExecutionStatus.RESCHEDULED;
-    visit.updatedAt = new Date().toISOString();
-    
-    return visit;
-  }
+  // Update visit execution (check-in, check-out, notes) on plan items
+  updateVisitExecution: async (itemId: string, updates: Record<string, any>): Promise<void> => {
+    const { error } = await supabase
+      .from('ce_weekly_plan_items')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', itemId);
+    if (error) throw error;
+  },
 };
