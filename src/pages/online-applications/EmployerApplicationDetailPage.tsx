@@ -126,6 +126,13 @@ export default function EmployerApplicationDetailPage() {
   
   const { data: application, isLoading, error, isFetching, refetch } = useEmployerApplicationDetail(applicationId);
   const resolved = useEmployerCodeResolver(application);
+  const { data: countries = [] } = useCountries();
+  
+  const resolveCountryName = (code: string | null | undefined): string => {
+    if (!code) return '—';
+    const found = countries.find(c => c.code?.trim() === code.trim());
+    return found?.description?.trim() || code;
+  };
 
   // Meeting integration
   const applicationRef = applicationId || application?.id || application?.registration_id;
