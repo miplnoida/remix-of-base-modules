@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,18 +21,36 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Eye, Plus, Search, Filter, Loader2, Merge, Split } from 'lucide-react';
+import { Eye, Plus, Search, Filter, Loader2, Merge, Split, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchViolations } from '@/services/complianceDataService';
+import { fetchViolationsPaginated, fetchViolationSummaryCounts } from '@/services/complianceDataService';
 import { BulkViolationActions } from '@/components/compliance/BulkViolationActions';
 import { ViolationMergeDialog } from '@/components/compliance/ViolationMergeDialog';
 import { ViolationSplitDialog } from '@/components/compliance/ViolationSplitDialog';
-import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
-import { supabase } from '@/integrations/supabase/client';
 
 const VIOLATION_STATUSES = ['OPEN', 'UNDER_REVIEW', 'IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'CLOSED', 'CANCELLED'];
 const VIOLATION_PRIORITIES = ['Critical', 'High', 'Medium', 'Low'];
+const PAGE_SIZE = 50;
+
+const STATUS_COLORS: Record<string, string> = {
+  OPEN: 'bg-primary/10 text-primary',
+  UNDER_REVIEW: 'bg-warning/10 text-warning',
+  IN_PROGRESS: 'bg-accent/10 text-accent-foreground',
+  ESCALATED: 'bg-destructive/10 text-destructive',
+  RESOLVED: 'bg-green-100 text-green-800',
+  CLOSED: 'bg-muted text-muted-foreground',
+  CANCELLED: 'bg-muted text-muted-foreground',
+};
+
+const PRIORITY_COLORS: Record<string, string> = {
+  Critical: 'bg-destructive/10 text-destructive',
+  High: 'bg-orange-100 text-orange-800',
+  Medium: 'bg-warning/10 text-warning',
+  Low: 'bg-muted text-muted-foreground',
+};
+
+const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 });
 
 export default function ViolationsManagement() {
   const navigate = useNavigate();
@@ -43,69 +61,53 @@ export default function ViolationsManagement() {
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [monthFilter, setMonthFilter] = useState<string>(currentMonth);
+  const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [splitTarget, setSplitTarget] = useState<any>(null);
-  const { data: violations = [], isLoading } = useQuery({
-    queryKey: ['ce_violations', statusFilter, priorityFilter, debouncedSearch, monthFilter],
-    queryFn: () => fetchViolations({
-      status: statusFilter,
-      priority: priorityFilter,
-      search: debouncedSearch || undefined,
-      month: monthFilter || undefined,
-    }),
+
+  const filterParams = useMemo(() => ({
+    status: statusFilter,
+    priority: priorityFilter,
+    search: debouncedSearch || undefined,
+    month: monthFilter || undefined,
+  }), [statusFilter, priorityFilter, debouncedSearch, monthFilter]);
+
+  // Reset to page 1 when filters change
+  const filterKey = JSON.stringify(filterParams);
+
+  // Paginated data query
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ['ce_violations_page', filterKey, page],
+    queryFn: () => fetchViolationsPaginated({ ...filterParams, page, pageSize: PAGE_SIZE }),
+    placeholderData: (prev) => prev, // keep previous data while loading next page
   });
 
-  const toggleSelect = (id: string) => {
+  // Summary counts — separate lightweight query, cached independently
+  const { data: counts } = useQuery({
+    queryKey: ['ce_violations_counts', filterKey],
+    queryFn: () => fetchViolationSummaryCounts(filterParams),
+    staleTime: 30_000, // reuse for 30s
+  });
+
+  const violations = pageData?.rows ?? [];
+  const totalCount = pageData?.totalCount ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  const handleFilterChange = useCallback((setter: (v: string) => void) => (value: string) => {
+    setter(value);
+    setPage(1);
+    setSelectedIds([]);
+  }, []);
+
+  const toggleSelect = useCallback((id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
-  };
+  }, []);
 
-  const toggleAll = () => {
-    if (selectedIds.length === violations.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(violations.map((v: any) => v.id));
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      OPEN: 'bg-primary/10 text-primary',
-      UNDER_REVIEW: 'bg-warning/10 text-warning',
-      IN_PROGRESS: 'bg-accent/10 text-accent-foreground',
-      ESCALATED: 'bg-destructive/10 text-destructive',
-      RESOLVED: 'bg-green-100 text-green-800',
-      CLOSED: 'bg-muted text-muted-foreground',
-      CANCELLED: 'bg-muted text-muted-foreground',
-    };
-    return colors[status] ?? 'bg-muted text-muted-foreground';
-  };
-
-  const getPriorityColor = (priority: string) => {
-    const colors: Record<string, string> = {
-      Critical: 'bg-destructive/10 text-destructive',
-      High: 'bg-orange-100 text-orange-800',
-      Medium: 'bg-warning/10 text-warning',
-      Low: 'bg-muted text-muted-foreground',
-    };
-    return colors[priority] ?? 'bg-muted text-muted-foreground';
-  };
-
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 }).format(amount);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  const openCount = violations.filter((v: any) => v.status === 'OPEN').length;
-  const escalatedCount = violations.filter((v: any) => v.status === 'ESCALATED').length;
-  const reviewCount = violations.filter((v: any) => v.status === 'UNDER_REVIEW').length;
+  const toggleAll = useCallback(() => {
+    setSelectedIds(prev => prev.length === violations.length ? [] : violations.map((v: any) => v.id));
+  }, [violations]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -125,7 +127,7 @@ export default function ViolationsManagement() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Total Violations</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{violations.length}</div>
+            <div className="text-2xl font-bold text-foreground">{counts?.total ?? totalCount}</div>
           </CardContent>
         </Card>
         <Card>
@@ -133,7 +135,7 @@ export default function ViolationsManagement() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Open</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{openCount}</div>
+            <div className="text-2xl font-bold text-primary">{counts?.OPEN ?? 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -141,7 +143,7 @@ export default function ViolationsManagement() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Under Review</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">{reviewCount}</div>
+            <div className="text-2xl font-bold text-warning">{counts?.UNDER_REVIEW ?? 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -149,7 +151,7 @@ export default function ViolationsManagement() {
             <CardTitle className="text-sm font-medium text-muted-foreground">Escalated</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">{escalatedCount}</div>
+            <div className="text-2xl font-bold text-destructive">{counts?.ESCALATED ?? 0}</div>
           </CardContent>
         </Card>
       </div>
@@ -167,13 +169,13 @@ export default function ViolationsManagement() {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by violation #, employer code, employer name, trade name, or summary..."
+                placeholder="Search by violation #, employer code, name, or summary..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
                 className="pl-9"
               />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={handleFilterChange(setStatusFilter)}>
               <SelectTrigger>
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -184,7 +186,7 @@ export default function ViolationsManagement() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <Select value={priorityFilter} onValueChange={handleFilterChange(setPriorityFilter)}>
               <SelectTrigger>
                 <SelectValue placeholder="Filter by priority" />
               </SelectTrigger>
@@ -199,11 +201,11 @@ export default function ViolationsManagement() {
               <Input
                 type="month"
                 value={monthFilter}
-                onChange={(e) => setMonthFilter(e.target.value)}
+                onChange={(e) => { setMonthFilter(e.target.value); setPage(1); }}
                 className="w-full"
               />
               {monthFilter && (
-                <Button variant="link" size="sm" className="px-0 h-6 text-xs" onClick={() => setMonthFilter('')}>
+                <Button variant="link" size="sm" className="px-0 h-6 text-xs" onClick={() => { setMonthFilter(''); setPage(1); }}>
                   Show all months
                 </Button>
               )}
@@ -216,14 +218,17 @@ export default function ViolationsManagement() {
       <BulkViolationActions
         selectedIds={selectedIds}
         violations={violations}
-        onComplete={() => queryClient.invalidateQueries({ queryKey: ['ce_violations'] })}
+        onComplete={() => queryClient.invalidateQueries({ queryKey: ['ce_violations_page'] })}
         onClearSelection={() => setSelectedIds([])}
       />
 
       {/* Violations Table */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>All Violations ({violations.length})</CardTitle>
+          <CardTitle>
+            Violations ({totalCount})
+            {isLoading && <Loader2 className="inline-block ml-2 h-4 w-4 animate-spin" />}
+          </CardTitle>
           <div className="flex gap-2">
             {selectedIds.length >= 2 && (
               <Button size="sm" variant="outline" onClick={() => setMergeDialogOpen(true)}>
@@ -260,7 +265,7 @@ export default function ViolationsManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {violations.length === 0 ? (
+                {violations.length === 0 && !isLoading ? (
                   <TableRow>
                     <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
                       No violations found
@@ -287,18 +292,18 @@ export default function ViolationsManagement() {
                         <div className="text-xs text-muted-foreground">{v.ce_violation_types?.category}</div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={getStatusColor(v.status)}>
+                        <Badge variant="outline" className={STATUS_COLORS[v.status] ?? 'bg-muted text-muted-foreground'}>
                           {v.status?.replace(/_/g, ' ')}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={getPriorityColor(v.priority)}>
+                        <Badge variant="outline" className={PRIORITY_COLORS[v.priority] ?? 'bg-muted text-muted-foreground'}>
                           {v.priority}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">{v.period_from ?? '-'}</TableCell>
                       <TableCell className="font-medium">
-                        {v.total_amount ? formatCurrency(Number(v.total_amount)) : '-'}
+                        {v.total_amount ? currencyFormatter.format(Number(v.total_amount)) : '-'}
                       </TableCell>
                       <TableCell>
                         <div className="text-xs">
@@ -314,9 +319,7 @@ export default function ViolationsManagement() {
                             )}
                           </div>
                         ) : v.ce_assignment_queues?.queue_code ? (
-                          <div>
-                            <Badge variant="outline" className="text-xs">{v.ce_assignment_queues.queue_code}</Badge>
-                          </div>
+                          <Badge variant="outline" className="text-xs">{v.ce_assignment_queues.queue_code}</Badge>
                         ) : (
                           <span className="text-muted-foreground text-xs">Unassigned</span>
                         )}
@@ -350,6 +353,36 @@ export default function ViolationsManagement() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {((page - 1) * PAGE_SIZE) + 1}–{Math.min(page * PAGE_SIZE, totalCount)} of {totalCount}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                </Button>
+                <span className="text-sm font-medium px-2">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                >
+                  Next <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -362,7 +395,7 @@ export default function ViolationsManagement() {
             id: v.id, violation_number: v.violation_number, status: v.status,
             period_from: v.period_from, total_amount: v.total_amount,
           }))}
-          onSuccess={() => { setSelectedIds([]); queryClient.invalidateQueries({ queryKey: ['ce_violations'] }); }}
+          onSuccess={() => { setSelectedIds([]); queryClient.invalidateQueries({ queryKey: ['ce_violations_page'] }); }}
         />
       )}
 
@@ -372,7 +405,7 @@ export default function ViolationsManagement() {
           open={splitDialogOpen}
           onOpenChange={setSplitDialogOpen}
           violation={splitTarget}
-          onSuccess={() => { setSplitTarget(null); queryClient.invalidateQueries({ queryKey: ['ce_violations'] }); }}
+          onSuccess={() => { setSplitTarget(null); queryClient.invalidateQueries({ queryKey: ['ce_violations_page'] }); }}
         />
       )}
     </div>
