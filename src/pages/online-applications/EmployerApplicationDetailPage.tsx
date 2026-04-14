@@ -118,6 +118,10 @@ function SectionHeader({ icon: Icon, title, subtitle }: { icon: React.ElementTyp
 export default function EmployerApplicationDetailPage() {
   const { applicationId } = useParams<{ applicationId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useSupabaseAuth();
+  const { userCode } = useUserCode();
+  const { convert: convertToEmployer, isConverting } = useConvertToEmployerRegistration();
   
   const { data: application, isLoading, error, isFetching, refetch } = useEmployerApplicationDetail(applicationId);
   const resolved = useEmployerCodeResolver(application);
@@ -127,6 +131,13 @@ export default function EmployerApplicationDetailPage() {
   const { meeting, isLoading: isMeetingLoading, invalidate: invalidateMeeting } = useApplicationMeeting(applicationRef);
 
   const handleActionComplete = () => {
+    queryClient.invalidateQueries({ queryKey: ['meetings'] });
+    queryClient.invalidateQueries({ queryKey: ['meeting-details'] });
+    queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+    queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
+    queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
+    queryClient.invalidateQueries({ queryKey: ['online-applications'] });
+    queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
     refetch();
     invalidateMeeting();
   };
