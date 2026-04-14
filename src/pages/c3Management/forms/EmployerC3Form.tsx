@@ -1155,7 +1155,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                     Social Security Contribution due for the month
                   </Label>
                   <div className="text-xl font-bold mt-1 tabular-nums">
-                    {formatMoney(overall.employeeSS + overall.employerSS + overall.fines)}
+                    {formatMoney(ssContributionDue)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Employee SS + Employer SS + SS Fine
@@ -1167,13 +1167,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                     Total due to Accountant General
                   </Label>
                   <div className="text-xl font-bold mt-1 tabular-nums">
-                    {formatMoney(
-                      overall.employeeLevy + 
-                      overall.employerLevy + 
-                      overall.employerSeverance + 
-                      overall.levyPenalty + 
-                      overall.severancePenalty
-                    )}
+                    {formatMoney(totalDueToAG)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Levy + Severance + Penalties
