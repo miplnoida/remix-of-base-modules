@@ -42,6 +42,7 @@ import EmployerFindings from './employers/EmployerFindings';
 // Removed: EmployerComplianceManagement, EmployerHierarchy (unclear ownership — will re-add if needed)
 import EmployerVisitWorkspace from './employers/EmployerVisitWorkspace';
 import Employer360 from './employers/Employer360';
+import Employer360Search from './employers/Employer360Search';
 
 // Audit Planning
 import WeeklyPlanBuilder from './audit-planning/WeeklyPlanBuilder';
@@ -152,6 +153,7 @@ const ComplianceRoutes = () => {
       <Route path="/field/employer-statement/:employerId" element={<EmployerStatementDetail />} />
       {/* Removed: /field/employer-statement/:employerId/financial (EmployerFinancialStatement) */}
       <Route path="/field/visit/:employerId" element={<EmployerVisitWorkspace />} />
+      <Route path="/field/employer-360" element={<Employer360Search />} />
       <Route path="/field/employer-360/:employerId" element={<Employer360 />} />
       <Route path="/field/employer-risk/:employerId" element={<EmployerRiskProfile />} />
       {/* Removed: /field/employer-hierarchy (EmployerHierarchy), /field/employer-management (EmployerComplianceManagement) */}
