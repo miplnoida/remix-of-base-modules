@@ -34,6 +34,7 @@ import {
   Route,
   Activity,
   Hammer,
+  HelpCircle,
 } from "lucide-react";
 
 export const complianceMenuItems = [
