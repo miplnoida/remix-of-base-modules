@@ -216,6 +216,13 @@ export default function EmployerApplicationDetailPage() {
             {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
             Refresh
           </Button>
+          <WorkflowActionButtons
+            sourceModule="online-employer-applications"
+            sourceRecordId={applicationId || application?.registration_id || null}
+            onActionComplete={async (action, endState) => {
+              handleActionComplete();
+            }}
+          />
           <EmployerApplicationActions
             applicationData={application}
             applicationId={applicationId || application.id || application.registration_id || ''}
