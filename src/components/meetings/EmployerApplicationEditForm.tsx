@@ -37,6 +37,7 @@ import {
   Download,
 } from 'lucide-react';
 import { useERLookups } from '@/hooks/useERLookups';
+import { useCountries } from '@/hooks/useIPMasterLookups';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { supabase } from '@/integrations/supabase/client';
 import { logAuditTrail } from '@/services/auditService';
@@ -526,7 +527,15 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <EditField label="HQ Address 1" value={data.hq_address1} onChange={(v) => onChange('hq_address1', v)} maxLength={25} />
                     <EditField label="HQ Address 2" value={data.hq_address2} onChange={(v) => onChange('hq_address2', v)} maxLength={25} />
-                    <EditField label="Country" value={data.hq_country || data.country} onChange={(v) => onChange('hq_country', v)} />
+                    <EditField label="City" value={data.hq_city} onChange={(v) => onChange('hq_city', v)} maxLength={50} />
+                    <EditField label="State" value={data.hq_state} onChange={(v) => onChange('hq_state', v)} maxLength={50} />
+                    <SelectField
+                      label="Country"
+                      value={data.hq_country || ''}
+                      onChange={(v) => onChange('hq_country', v)}
+                      options={countryOptions}
+                      placeholder="Select Country"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -537,6 +546,15 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <EditField label="Mailing Address 1" value={data.mailing_address1} onChange={(v) => onChange('mailing_address1', v)} maxLength={25} />
                     <EditField label="Mailing Address 2" value={data.mailing_address2} onChange={(v) => onChange('mailing_address2', v)} maxLength={25} />
+                    <EditField label="City" value={data.mailing_city} onChange={(v) => onChange('mailing_city', v)} maxLength={50} />
+                    <EditField label="State" value={data.mailing_state} onChange={(v) => onChange('mailing_state', v)} maxLength={50} />
+                    <SelectField
+                      label="Country"
+                      value={data.mailing_country || ''}
+                      onChange={(v) => onChange('mailing_country', v)}
+                      options={countryOptions}
+                      placeholder="Select Country"
+                    />
                   </div>
                 </CardContent>
               </Card>
