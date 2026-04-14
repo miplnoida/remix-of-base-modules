@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Route, Plus, Pencil, Power, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useOfficeCodes } from "@/hooks/compliance/useOfficeCodes";
 
 interface RuleRow {
   id: string;
@@ -212,14 +213,7 @@ export default function AssignmentRoutingRules() {
               </div>
               <div>
                 <Label>Office Code</Label>
-                <Select value={form.office_code || "any"} onValueChange={v => setForm(f => ({ ...f, office_code: v === "any" ? "" : v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="any">Any</SelectItem>
-                    <SelectItem value="STK">STK</SelectItem>
-                    <SelectItem value="NEV">NEV</SelectItem>
-                  </SelectContent>
-                </Select>
+                <OfficeSelect value={form.office_code || ""} onChange={v => setForm(f => ({ ...f, office_code: v }))} allowNone noneLabel="Any" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">

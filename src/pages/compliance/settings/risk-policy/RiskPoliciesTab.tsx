@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { resolveUserCode } from '@/services/complianceSettingsService';
 
 interface PolicyRow {
   id: string;
@@ -161,15 +162,16 @@ export default function RiskPoliciesTab() {
   // Activate policy
   const activateMutation = useMutation({
     mutationFn: async (id: string) => {
+      const userCode = await resolveUserCode();
       // Retire all active
       await supabase
         .from('ce_risk_policies')
-        .update({ status: 'RETIRED', effective_to: new Date().toISOString().split('T')[0] } as any)
+        .update({ status: 'RETIRED', effective_to: new Date().toISOString().split('T')[0], updated_by: userCode } as any)
         .eq('status', 'ACTIVE');
       // Activate selected
       const { error } = await supabase
         .from('ce_risk_policies')
-        .update({ status: 'ACTIVE', activated_at: new Date().toISOString(), activated_by: 'system' } as any)
+        .update({ status: 'ACTIVE', activated_at: new Date().toISOString(), activated_by: userCode, updated_by: userCode } as any)
         .eq('id', id);
       if (error) throw error;
     },

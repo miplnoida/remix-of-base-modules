@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Map, Plus, Pencil, Power } from "lucide-react";
 import { toast } from "sonner";
+import { useOfficeCodes } from "@/hooks/compliance/useOfficeCodes";
 
 interface ZoneRow {
   id: string;
@@ -181,13 +182,7 @@ export default function ZoneManagement() {
             </div>
             <div>
               <Label>Office Code</Label>
-              <Select value={form.office_code || ""} onValueChange={v => setForm(f => ({ ...f, office_code: v }))}>
-                <SelectTrigger><SelectValue placeholder="Select office" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="STK">STK – St. Kitts</SelectItem>
-                  <SelectItem value="NEV">NEV – Nevis</SelectItem>
-                </SelectContent>
-              </Select>
+              <OfficeSelect value={form.office_code || ""} onChange={v => setForm(f => ({ ...f, office_code: v }))} />
             </div>
             <div className="flex items-center gap-2">
               <input type="checkbox" checked={form.is_active ?? true} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} id="zone-active" />

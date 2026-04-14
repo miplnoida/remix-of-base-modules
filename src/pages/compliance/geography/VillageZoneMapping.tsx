@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, MapPin, Plus, Pencil, Power, Search, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { useOfficeCodes } from "@/hooks/compliance/useOfficeCodes";
 
 interface VillageMappingRow {
   id: string;
@@ -220,14 +221,7 @@ export default function VillageZoneMapping() {
             </div>
             <div>
               <Label>Office Code</Label>
-              <Select value={form.office_code || "none"} onValueChange={v => setForm(f => ({ ...f, office_code: v === "none" ? "" : v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— None —</SelectItem>
-                  <SelectItem value="STK">STK</SelectItem>
-                  <SelectItem value="NEV">NEV</SelectItem>
-                </SelectContent>
-              </Select>
+              <OfficeSelect value={form.office_code || ""} onChange={v => setForm(f => ({ ...f, office_code: v }))} allowNone noneLabel="— None —" />
             </div>
             <div className="flex items-center gap-2">
               <input type="checkbox" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} id="vm-active" />
@@ -255,14 +249,7 @@ export default function VillageZoneMapping() {
             </div>
             <div>
               <Label>Office Code (optional)</Label>
-              <Select value={bulkForm.office_code || "none"} onValueChange={v => setBulkForm(f => ({ ...f, office_code: v === "none" ? "" : v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— No change —</SelectItem>
-                  <SelectItem value="STK">STK</SelectItem>
-                  <SelectItem value="NEV">NEV</SelectItem>
-                </SelectContent>
-              </Select>
+              <OfficeSelect value={bulkForm.office_code || ""} onChange={v => setBulkForm(f => ({ ...f, office_code: v }))} allowNone noneLabel="— No change —" />
             </div>
           </div>
           <DialogFooter>
