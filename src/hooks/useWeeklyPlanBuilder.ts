@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useUserCode } from '@/hooks/useUserCode';
+import { supabase } from '@/integrations/supabase/client';
 import { weeklyPlanService, planItemService } from '@/services/weeklyPlanService';
 import { planCandidateService } from '@/services/planCandidateService';
 import {
@@ -51,6 +52,24 @@ export function useWeeklyPlanBuilder() {
   const { userCode, userId, fullName, isLoading: userLoading } = useUserCode();
   const queryClient = useQueryClient();
 
+  // Resolve ce_inspectors.id from the user's profile_id
+  const inspectorQuery = useQuery({
+    queryKey: ['ce-inspector-for-user', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data, error } = await supabase
+        .from('ce_inspectors' as any)
+        .select('id, inspector_code')
+        .eq('profile_id', userId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as unknown as { id: string; inspector_code: string } | null;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const inspectorId = inspectorQuery.data?.id ?? null;
+
   // Week selection
   const [selectedWeekRef, setSelectedWeekRef] = useState(new Date());
   const week = useMemo(() => getWeekDates(selectedWeekRef), [selectedWeekRef]);
@@ -60,16 +79,16 @@ export function useWeeklyPlanBuilder() {
 
   // Check if a plan already exists for this week
   const existingPlanQuery = useQuery({
-    queryKey: ['weekly-plan-existing', week.weekStart, userId],
+    queryKey: ['weekly-plan-existing', week.weekStart, inspectorId],
     queryFn: async () => {
-      if (!userId) return null;
+      if (!inspectorId) return null;
       const plans = await weeklyPlanService.getAll({
-        inspectorId: userId,
+        inspectorId: inspectorId,
         weekStartDate: week.weekStart,
       });
       return plans.length > 0 ? plans[0] : null;
     },
-    enabled: !!userId,
+    enabled: !!inspectorId,
   });
 
   // Set active plan when found
@@ -146,8 +165,9 @@ export function useWeeklyPlanBuilder() {
   const createPlanMutation = useMutation({
     mutationFn: async () => {
       if (!userId || !fullName) throw new Error('Not authenticated');
+      if (!inspectorId) throw new Error('No inspector profile found for your account. Please contact an administrator.');
       const req: CreateWeeklyPlanRequest = {
-        inspector_id: userId,
+        inspector_id: inspectorId,
         inspector_name: fullName,
         week_start_date: week.weekStart,
         week_end_date: week.weekEndSunday,
