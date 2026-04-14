@@ -447,15 +447,21 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
   }, [calculationResult]);
 
   // Calculate SS Contribution due for the month and Total due to Accountant General
+  // For NWD records, only levy-related components apply (no SS, Severance, PE)
   const ssContributionDue = useMemo(() => {
+    if (isNWD) return 0; // NWD has no SS contribution
     return overall.employeeSS + overall.employerSS + overall.fines;
-  }, [overall.employeeSS, overall.employerSS, overall.fines]);
+  }, [overall.employeeSS, overall.employerSS, overall.fines, isNWD]);
 
   const totalDueToAG = useMemo(() => {
+    if (isNWD) {
+      // NWD: only levy + levy penalty (no severance, no PE)
+      return overall.employeeLevy + overall.employerLevy + overall.levyPenalty;
+    }
     return overall.employeeLevy + overall.employerLevy + overall.employerSeverance + 
            overall.levyPenalty + overall.severancePenalty;
   }, [overall.employeeLevy, overall.employerLevy, overall.employerSeverance, 
-      overall.levyPenalty, overall.severancePenalty]);
+      overall.levyPenalty, overall.severancePenalty, isNWD]);
 
   // Calculate Balance = (SS Contribution due + Total due to AG) - Payments
   const calculatedBalance = useMemo(() => {
