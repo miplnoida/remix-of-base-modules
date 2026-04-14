@@ -177,7 +177,7 @@ export default function ViolationsManagement() {
               <Input
                 placeholder="Search by violation #, employer code, name, or summary..."
                 value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
               />
             </div>
