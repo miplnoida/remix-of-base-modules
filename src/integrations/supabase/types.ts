@@ -11790,6 +11790,7 @@ export type Database = {
           fund_type: Database["public"]["Enums"]["ce_fund_type"]
           id: string
           idempotency_key: string
+          job_run_id: string | null
           period: string
           posted_at: string
           posted_by: string
@@ -11798,6 +11799,8 @@ export type Database = {
           reversal_of_id: string | null
           reversal_reason: string | null
           running_balance: number
+          source_pk: string | null
+          source_system: string | null
           status: Database["public"]["Enums"]["ce_ledger_status"]
           territory: string | null
         }
@@ -11811,6 +11814,7 @@ export type Database = {
           fund_type: Database["public"]["Enums"]["ce_fund_type"]
           id?: string
           idempotency_key: string
+          job_run_id?: string | null
           period: string
           posted_at?: string
           posted_by: string
@@ -11819,6 +11823,8 @@ export type Database = {
           reversal_of_id?: string | null
           reversal_reason?: string | null
           running_balance?: number
+          source_pk?: string | null
+          source_system?: string | null
           status?: Database["public"]["Enums"]["ce_ledger_status"]
           territory?: string | null
         }
@@ -11832,6 +11838,7 @@ export type Database = {
           fund_type?: Database["public"]["Enums"]["ce_fund_type"]
           id?: string
           idempotency_key?: string
+          job_run_id?: string | null
           period?: string
           posted_at?: string
           posted_by?: string
@@ -11840,6 +11847,8 @@ export type Database = {
           reversal_of_id?: string | null
           reversal_reason?: string | null
           running_balance?: number
+          source_pk?: string | null
+          source_system?: string | null
           status?: Database["public"]["Enums"]["ce_ledger_status"]
           territory?: string | null
         }
@@ -13347,6 +13356,60 @@ export type Database = {
           },
         ]
       }
+      ce_job_run_log: {
+        Row: {
+          created_at: string
+          id: string
+          job_code: string | null
+          job_name: string
+          parameters: Json | null
+          records_failed: number
+          records_posted: number
+          records_read: number
+          records_skipped: number
+          run_end: string | null
+          run_start: string
+          run_type: string
+          status: string
+          summary_message: string | null
+          triggered_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_code?: string | null
+          job_name: string
+          parameters?: Json | null
+          records_failed?: number
+          records_posted?: number
+          records_read?: number
+          records_skipped?: number
+          run_end?: string | null
+          run_start?: string
+          run_type?: string
+          status?: string
+          summary_message?: string | null
+          triggered_by?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_code?: string | null
+          job_name?: string
+          parameters?: Json | null
+          records_failed?: number
+          records_posted?: number
+          records_read?: number
+          records_skipped?: number
+          run_end?: string | null
+          run_start?: string
+          run_type?: string
+          status?: string
+          summary_message?: string | null
+          triggered_by?: string
+        }
+        Relationships: []
+      }
       ce_ledger_periods: {
         Row: {
           adjustments: number
@@ -13750,6 +13813,62 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      ce_manual_rebuild_request: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          employer_id: string
+          from_period: string | null
+          id: string
+          job_run_id: string | null
+          outcome_summary: string | null
+          request_type: string
+          requested_at: string
+          requested_by: string
+          started_at: string | null
+          status: string
+          to_period: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          employer_id: string
+          from_period?: string | null
+          id?: string
+          job_run_id?: string | null
+          outcome_summary?: string | null
+          request_type?: string
+          requested_at?: string
+          requested_by: string
+          started_at?: string | null
+          status?: string
+          to_period?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          employer_id?: string
+          from_period?: string | null
+          id?: string
+          job_run_id?: string | null
+          outcome_summary?: string | null
+          request_type?: string
+          requested_at?: string
+          requested_by?: string
+          started_at?: string | null
+          status?: string
+          to_period?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_manual_rebuild_request_job_run_id_fkey"
+            columns: ["job_run_id"]
+            isOneToOne: false
+            referencedRelation: "ce_job_run_log"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ce_notice_delivery_log: {
         Row: {
@@ -14627,6 +14746,107 @@ export type Database = {
           },
         ]
       }
+      ce_posting_queue: {
+        Row: {
+          amount: number
+          attempt_count: number
+          created_at: string
+          created_by: string
+          employer_id: string
+          error_message: string | null
+          event_type: string
+          fund_type: string | null
+          id: string
+          idempotency_key: string
+          job_run_id: string | null
+          last_attempt_at: string | null
+          ledger_entry_id: string | null
+          max_attempts: number
+          next_retry_at: string | null
+          period: string | null
+          processed_at: string | null
+          source_pk: string
+          source_system: string
+          source_table: string
+          status: Database["public"]["Enums"]["ce_posting_status"]
+        }
+        Insert: {
+          amount?: number
+          attempt_count?: number
+          created_at?: string
+          created_by?: string
+          employer_id: string
+          error_message?: string | null
+          event_type: string
+          fund_type?: string | null
+          id?: string
+          idempotency_key: string
+          job_run_id?: string | null
+          last_attempt_at?: string | null
+          ledger_entry_id?: string | null
+          max_attempts?: number
+          next_retry_at?: string | null
+          period?: string | null
+          processed_at?: string | null
+          source_pk: string
+          source_system: string
+          source_table: string
+          status?: Database["public"]["Enums"]["ce_posting_status"]
+        }
+        Update: {
+          amount?: number
+          attempt_count?: number
+          created_at?: string
+          created_by?: string
+          employer_id?: string
+          error_message?: string | null
+          event_type?: string
+          fund_type?: string | null
+          id?: string
+          idempotency_key?: string
+          job_run_id?: string | null
+          last_attempt_at?: string | null
+          ledger_entry_id?: string | null
+          max_attempts?: number
+          next_retry_at?: string | null
+          period?: string | null
+          processed_at?: string | null
+          source_pk?: string
+          source_system?: string
+          source_table?: string
+          status?: Database["public"]["Enums"]["ce_posting_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_posting_queue_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_financial_ledger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_posting_queue_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["original_entry_id"]
+          },
+          {
+            foreignKeyName: "ce_posting_queue_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["reversal_entry_id"]
+          },
+          {
+            foreignKeyName: "ce_posting_queue_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_unobserved_payment_entries"
+            referencedColumns: ["ledger_entry_id"]
+          },
+        ]
+      }
       ce_queue_members: {
         Row: {
           created_at: string | null
@@ -14698,12 +14918,14 @@ export type Database = {
           employer_id: string
           employer_name: string | null
           exception_type: string
+          fund_type: string | null
           id: string
           ledger_amount: number | null
           resolution_notes: string | null
           resolved_at: string | null
           resolved_by: string | null
           run_id: string | null
+          severity: string | null
           source_amount: number | null
           source_period: string | null
           source_table: string | null
@@ -14717,12 +14939,14 @@ export type Database = {
           employer_id: string
           employer_name?: string | null
           exception_type: string
+          fund_type?: string | null
           id?: string
           ledger_amount?: number | null
           resolution_notes?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           run_id?: string | null
+          severity?: string | null
           source_amount?: number | null
           source_period?: string | null
           source_table?: string | null
@@ -14736,12 +14960,14 @@ export type Database = {
           employer_id?: string
           employer_name?: string | null
           exception_type?: string
+          fund_type?: string | null
           id?: string
           ledger_amount?: number | null
           resolution_notes?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           run_id?: string | null
+          severity?: string | null
           source_amount?: number | null
           source_period?: string | null
           source_table?: string | null
@@ -46918,6 +47144,12 @@ export type Database = {
         | "officer_delivery"
         | "registered_mail"
         | "courier"
+      ce_posting_status:
+        | "PENDING"
+        | "PROCESSING"
+        | "POSTED"
+        | "FAILED"
+        | "SKIPPED"
       compliance_registration_status:
         | "pending"
         | "approved"
@@ -47294,6 +47526,13 @@ export const Constants = {
         "officer_delivery",
         "registered_mail",
         "courier",
+      ],
+      ce_posting_status: [
+        "PENDING",
+        "PROCESSING",
+        "POSTED",
+        "FAILED",
+        "SKIPPED",
       ],
       compliance_registration_status: [
         "pending",
