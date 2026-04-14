@@ -302,9 +302,9 @@ export default function Employer360() {
               <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Scale className="h-4 w-4" />Active Payment Arrangement</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div><p className="text-xs text-muted-foreground">Arrangement #</p><p className="font-medium">{activeArrangement.arrangement_number}</p></div>
-                <div><p className="text-xs text-muted-foreground">Total</p><p className="font-medium">{formatCurrency(activeArrangement.total_amount)}</p></div>
-                <div><p className="text-xs text-muted-foreground">Paid</p><p className="font-medium text-green-600">{formatCurrency(activeArrangement.paid_amount)}</p></div>
-                <div><p className="text-xs text-muted-foreground">Remaining</p><p className="font-medium text-destructive">{formatCurrency(activeArrangement.remaining_balance)}</p></div>
+                <div><p className="text-xs text-muted-foreground">Total Debt</p><p className="font-medium">{formatCurrency(activeArrangement.total_debt)}</p></div>
+                <div><p className="text-xs text-muted-foreground">Paid</p><p className="font-medium text-green-600">{formatCurrency(activeArrangement.total_paid)}</p></div>
+                <div><p className="text-xs text-muted-foreground">Remaining</p><p className="font-medium text-destructive">{formatCurrency((activeArrangement.total_debt || 0) - (activeArrangement.total_paid || 0))}</p></div>
               </CardContent>
             </Card>
           )}

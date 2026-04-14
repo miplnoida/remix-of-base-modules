@@ -90,7 +90,7 @@ export async function fetchEmployerDocuments(employerId: string) {
 export async function fetchEmployerArrangements(employerId: string) {
   const { data, error } = await supabase
     .from('ce_payment_arrangements')
-    .select('id, arrangement_number, status, total_amount, paid_amount, remaining_balance, start_date, end_date, created_at')
+    .select('id, arrangement_number, status, total_debt, total_paid, start_date, end_date, created_at')
     .eq('employer_id', employerId)
     .order('created_at', { ascending: false })
     .limit(10);
