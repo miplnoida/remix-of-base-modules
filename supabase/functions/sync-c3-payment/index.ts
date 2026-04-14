@@ -234,6 +234,11 @@ Deno.serve(async (req) => {
       cleanPayload.payment_components = payment_components;
     }
 
+    // Add is_for_director as boolean (not string) for NWD records
+    if (header.is_for_director) {
+      cleanPayload.is_for_director = true;
+    }
+
     // Retry logic with exponential backoff
     const MAX_RETRIES = 3;
     const BACKOFF_MS = [1000, 2000, 4000];
