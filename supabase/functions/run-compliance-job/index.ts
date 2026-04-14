@@ -123,6 +123,7 @@ Deno.serve(async (req) => {
           "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
         },
         body: JSON.stringify({
+          ...extraParams,
           dry_run,
           force,
           triggered_by: user.email || user.id,
