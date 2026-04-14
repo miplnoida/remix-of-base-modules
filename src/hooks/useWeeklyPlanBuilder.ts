@@ -79,16 +79,16 @@ export function useWeeklyPlanBuilder() {
 
   // Check if a plan already exists for this week
   const existingPlanQuery = useQuery({
-    queryKey: ['weekly-plan-existing', week.weekStart, userId],
+    queryKey: ['weekly-plan-existing', week.weekStart, inspectorId],
     queryFn: async () => {
-      if (!userId) return null;
+      if (!inspectorId) return null;
       const plans = await weeklyPlanService.getAll({
-        inspectorId: userId,
+        inspectorId: inspectorId,
         weekStartDate: week.weekStart,
       });
       return plans.length > 0 ? plans[0] : null;
     },
-    enabled: !!userId,
+    enabled: !!inspectorId,
   });
 
   // Set active plan when found
