@@ -1,508 +1,166 @@
-import { 
-  LegalEscalationPolicy, 
-  LegalEscalationRule,
+// ============================================
+// LEGAL ESCALATION SERVICE — DB-BACKED
+// ============================================
+
+import { supabase } from '@/integrations/supabase/client';
+import {
   LegalRecommendation,
   LegalReferralHeader,
-  LegalReferralLine,
   LegalRecommendationQueueStats,
-  EscalationRuleType,
-  EscalationTriggerCondition,
-  LegalReferralStatus
+  LegalReferralStatus,
 } from '@/types/legalEscalation';
 
-// ============================================
-// MOCK DATA: Legal Escalation Policies
-// ============================================
+// ── Row type from DB ───────────────────────────────────────
+interface RecommendationRow {
+  id: string;
+  employer_id: string;
+  employer_name: string;
+  employer_zone: string | null;
+  risk_band: string | null;
+  risk_score: number;
+  qualifying_case_ids: any;
+  subcase_summary: any;
+  total_principal: number;
+  total_penalties: number;
+  total_interest: number;
+  grand_total: number;
+  triggered_rules: any;
+  recommended_date: string;
+  status: string;
+  reviewed_by: string | null;
+  reviewed_date: string | null;
+  review_notes: string | null;
+  legal_referral_id: string | null;
+  created_at: string;
+}
 
-const mockEscalationRules: LegalEscalationRule[] = [
-  {
-    id: 'rule-001',
-    ruleName: 'Arrears Over 90 Days',
-    ruleType: EscalationRuleType.AGE_THRESHOLD,
-    description: 'Escalate if contribution arrears exceed 90 days past due',
-    enabled: true,
-    priority: 1,
-    ageDaysOverdue: 90,
-    triggerCondition: EscalationTriggerCondition.AND,
-    autoMarkLegalRecommended: true,
-    notifyComplianceOfficer: true,
-    notifySupervisor: true,
-    createdDate: '2024-01-15',
-    createdBy: 'system'
-  },
-  {
-    id: 'rule-002',
-    ruleName: 'High Amount Threshold',
-    ruleType: EscalationRuleType.AMOUNT_THRESHOLD,
-    description: 'Escalate if total arrears exceed EC$50,000',
-    enabled: true,
-    priority: 2,
-    totalArrearsThreshold: 50000,
-    triggerCondition: EscalationTriggerCondition.OR,
-    autoMarkLegalRecommended: true,
-    notifyComplianceOfficer: true,
-    notifySupervisor: true,
-    createdDate: '2024-01-15',
-    createdBy: 'system'
-  },
-  {
-    id: 'rule-003',
-    ruleName: 'Multiple Notices No Response',
-    ruleType: EscalationRuleType.BEHAVIOUR_THRESHOLD,
-    description: 'Escalate after 3 notices sent with no response for 60 days',
-    enabled: true,
-    priority: 3,
-    noticesSentMinimum: 3,
-    noResponseDays: 60,
-    triggerCondition: EscalationTriggerCondition.AND,
-    autoMarkLegalRecommended: true,
-    notifyComplianceOfficer: true,
-    notifySupervisor: false,
-    createdDate: '2024-01-15',
-    createdBy: 'system'
-  },
-  {
-    id: 'rule-004',
-    ruleName: 'Broken Payment Plans',
-    ruleType: EscalationRuleType.BEHAVIOUR_THRESHOLD,
-    description: 'Escalate if employer breaks payment plan twice',
-    enabled: true,
-    priority: 4,
-    paymentPlanBreachesCount: 2,
-    triggerCondition: EscalationTriggerCondition.OR,
-    autoMarkLegalRecommended: true,
-    notifyComplianceOfficer: true,
-    notifySupervisor: true,
-    createdDate: '2024-01-15',
-    createdBy: 'system'
-  },
-  {
-    id: 'rule-005',
-    ruleName: 'High Risk + Overdue Combination',
-    ruleType: EscalationRuleType.RISK_THRESHOLD,
-    description: 'Escalate high-risk employers with arrears over 60 days',
-    enabled: true,
-    priority: 5,
-    riskBandMinimum: 'High',
-    riskScoreMinimum: 70,
-    combineWithAgeThreshold: true,
-    ageDaysOverdue: 60,
-    triggerCondition: EscalationTriggerCondition.AND,
-    autoMarkLegalRecommended: true,
-    notifyComplianceOfficer: true,
-    notifySupervisor: true,
-    createdDate: '2024-01-15',
-    createdBy: 'system'
-  },
-  {
-    id: 'rule-006',
-    ruleName: 'C3 Not Submitted - 3 Months',
-    ruleType: EscalationRuleType.AGE_THRESHOLD,
-    description: 'Escalate if C3 not submitted for 3 consecutive months',
-    enabled: true,
-    priority: 6,
-    consecutiveMonthsMissing: 3,
-    triggerCondition: EscalationTriggerCondition.OR,
-    autoMarkLegalRecommended: true,
-    notifyComplianceOfficer: true,
-    notifySupervisor: false,
-    createdDate: '2024-01-15',
-    createdBy: 'system'
-  }
-];
+interface ReferralRow {
+  id: string;
+  referral_number: string;
+  recommendation_id: string | null;
+  employer_id: string;
+  employer_name: string;
+  employer_zone: string | null;
+  total_principal: number;
+  total_penalties: number;
+  total_interest: number;
+  grand_total: number;
+  period_from: string | null;
+  period_to: string | null;
+  periods_count: number;
+  compliance_history: string | null;
+  notices_sent: number;
+  last_notice_date: string | null;
+  payment_plan_history: string | null;
+  audit_findings: string | null;
+  contact_attempts: string | null;
+  status: string;
+  submitted_date: string | null;
+  accepted_date: string | null;
+  accepted_by: string | null;
+  rejected_date: string | null;
+  rejected_by: string | null;
+  rejection_reason: string | null;
+  legal_case_id: string | null;
+  court_case_number: string | null;
+  legal_officer_assigned: string | null;
+  created_by: string;
+  created_by_name: string | null;
+  created_at: string;
+}
 
-const mockEscalationPolicies: LegalEscalationPolicy[] = [
-  {
-    id: 'policy-001',
-    policyId: 'POL-LEP-2024-001',
-    policyVersion: 'v1.0',
-    policyName: 'Default Legal Escalation Policy',
-    effectiveFrom: '2024-01-01',
-    effectiveTo: '2024-02-28',
-    isActive: false,
-    rules: mockEscalationRules.map(r => ({...r})),
-    evaluationFrequency: 'WEEKLY',
-    lastEvaluationDate: '2024-02-25',
-    nextEvaluationDate: '2024-03-03',
-    createdDate: '2023-12-20',
-    createdBy: 'System Administrator',
-    activatedBy: 'System Administrator',
-    activatedDate: '2024-01-01',
-    deactivatedBy: 'admin.user',
-    deactivatedDate: '2024-03-01',
-    notes: 'Initial legal escalation policy configuration'
-  },
-  {
-    id: 'policy-002',
-    policyId: 'POL-LEP-2024-002',
-    policyVersion: 'v2.0',
-    policyName: 'Enhanced Legal Escalation Policy',
-    effectiveFrom: '2024-03-01',
-    effectiveTo: null,
-    isActive: true,
-    rules: mockEscalationRules,
-    evaluationFrequency: 'WEEKLY',
-    lastEvaluationDate: '2024-12-15',
-    nextEvaluationDate: '2024-12-22',
-    createdDate: '2024-02-20',
-    createdBy: 'admin.user',
-    activatedBy: 'admin.user',
-    activatedDate: '2024-03-01',
-    notes: 'Updated thresholds for more aggressive legal escalation'
-  }
-];
+// ── Mappers ────────────────────────────────────────────────
 
-// ============================================
-// MOCK DATA: Legal Recommendations
-// ============================================
+function mapRowToRecommendation(row: RecommendationRow): LegalRecommendation {
+  const subcaseSummary = Array.isArray(row.subcase_summary) ? row.subcase_summary : [];
+  const triggeredRules = Array.isArray(row.triggered_rules) ? row.triggered_rules : [];
+  const caseIds = Array.isArray(row.qualifying_case_ids) ? row.qualifying_case_ids : [];
 
-const mockLegalRecommendations: LegalRecommendation[] = [
-  {
-    id: 'rec-001',
-    employerId: 'emp-001',
-    employerName: 'ABC Construction Ltd',
-    employerZone: 'Zone 1 - Basseterre',
-    riskBand: 'High',
-    riskScore: 82,
-    qualifyingSubcaseIds: ['C-001', 'C-002', 'C-003'],
-    subcaseSummary: [
-      {
-        subcaseId: 'C-001',
-        caseNumber: 'COMP-2024-001',
-        caseType: 'ARREARS_CASE',
-        periodFrom: '2024-01',
-        periodTo: '2024-03',
-        principalAmount: 45000,
-        penaltyAmount: 4500,
-        interestAmount: 1200,
-        totalAmount: 50700
-      },
-      {
-        subcaseId: 'C-002',
-        caseNumber: 'COMP-2024-012',
-        caseType: 'ARREARS_CASE',
-        periodFrom: '2024-04',
-        periodTo: '2024-06',
-        principalAmount: 38000,
-        penaltyAmount: 3800,
-        interestAmount: 950,
-        totalAmount: 42750
-      },
-      {
-        subcaseId: 'C-003',
-        caseNumber: 'COMP-2024-025',
-        caseType: 'C3_NOT_SUBMITTED',
-        periodFrom: '2024-07',
-        periodTo: '2024-09',
-        principalAmount: 42000,
-        penaltyAmount: 4200,
-        interestAmount: 0,
-        totalAmount: 46200
-      }
-    ],
-    totalPrincipal: 125000,
-    totalPenalties: 12500,
-    totalInterest: 2150,
-    grandTotal: 139650,
-    triggeredRules: [
-      {
-        ruleId: 'rule-001',
-        ruleName: 'Arrears Over 90 Days',
-        reason: 'Arrears outstanding for 127 days'
-      },
-      {
-        ruleId: 'rule-002',
-        ruleName: 'High Amount Threshold',
-        reason: 'Total arrears EC$139,650 exceeds EC$50,000 threshold'
-      },
-      {
-        ruleId: 'rule-005',
-        ruleName: 'High Risk + Overdue Combination',
-        reason: 'High risk band (82) with 127 days overdue'
-      }
-    ],
-    recommendedDate: '2024-12-10',
-    status: 'PENDING_REVIEW'
-  },
-  {
-    id: 'rec-002',
-    employerId: 'emp-002',
-    employerName: 'XYZ Manufacturing Inc',
-    employerZone: 'Zone 2 - Sandy Point',
-    riskBand: 'Critical',
-    riskScore: 91,
-    qualifyingSubcaseIds: ['C-004', 'C-005'],
-    subcaseSummary: [
-      {
-        subcaseId: 'C-004',
-        caseNumber: 'COMP-2024-008',
-        caseType: 'PAYMENT_ARRANGEMENT_DEFAULT',
-        periodFrom: '2023-10',
-        periodTo: '2024-02',
-        principalAmount: 78000,
-        penaltyAmount: 7800,
-        interestAmount: 3200,
-        totalAmount: 89000
-      },
-      {
-        subcaseId: 'C-005',
-        caseNumber: 'COMP-2024-019',
-        caseType: 'ARREARS_CASE',
-        periodFrom: '2024-03',
-        periodTo: '2024-08',
-        principalAmount: 92000,
-        penaltyAmount: 9200,
-        interestAmount: 2800,
-        totalAmount: 104000
-      }
-    ],
-    totalPrincipal: 170000,
-    totalPenalties: 17000,
-    totalInterest: 6000,
-    grandTotal: 193000,
-    triggeredRules: [
-      {
-        ruleId: 'rule-002',
-        ruleName: 'High Amount Threshold',
-        reason: 'Total arrears EC$193,000 exceeds EC$50,000 threshold'
-      },
-      {
-        ruleId: 'rule-004',
-        ruleName: 'Broken Payment Plans',
-        reason: 'Payment plan broken twice (Oct 2023, Mar 2024)'
-      },
-      {
-        ruleId: 'rule-005',
-        ruleName: 'High Risk + Overdue Combination',
-        reason: 'Critical risk band (91) with ongoing defaults'
-      }
-    ],
-    recommendedDate: '2024-12-08',
-    status: 'PENDING_REVIEW'
-  },
-  {
-    id: 'rec-003',
-    employerId: 'emp-003',
-    employerName: 'Island Retail Group',
-    employerZone: 'Zone 1 - Basseterre',
-    riskBand: 'Medium',
-    riskScore: 65,
-    qualifyingSubcaseIds: ['C-006'],
-    subcaseSummary: [
-      {
-        subcaseId: 'C-006',
-        caseNumber: 'COMP-2024-032',
-        caseType: 'ARREARS_CASE',
-        periodFrom: '2024-03',
-        periodTo: '2024-09',
-        principalAmount: 55000,
-        penaltyAmount: 5500,
-        interestAmount: 1800,
-        totalAmount: 62300
-      }
-    ],
-    totalPrincipal: 55000,
-    totalPenalties: 5500,
-    totalInterest: 1800,
-    grandTotal: 62300,
-    triggeredRules: [
-      {
-        ruleId: 'rule-001',
-        ruleName: 'Arrears Over 90 Days',
-        reason: 'Arrears outstanding for 145 days'
-      },
-      {
-        ruleId: 'rule-002',
-        ruleName: 'High Amount Threshold',
-        reason: 'Total arrears EC$62,300 exceeds EC$50,000 threshold'
-      },
-      {
-        ruleId: 'rule-003',
-        ruleName: 'Multiple Notices No Response',
-        reason: '4 notices sent with no response for 78 days'
-      }
-    ],
-    recommendedDate: '2024-12-12',
-    status: 'APPROVED_FOR_REFERRAL'
-  }
-];
+  return {
+    id: row.id,
+    employerId: row.employer_id,
+    employerName: row.employer_name,
+    employerZone: row.employer_zone || 'Unassigned',
+    riskBand: row.risk_band || 'Low',
+    riskScore: Number(row.risk_score || 0),
+    qualifyingSubcaseIds: caseIds,
+    subcaseSummary: subcaseSummary.map((s: any) => ({
+      subcaseId: s.subcaseId || '',
+      caseNumber: s.caseNumber || '',
+      caseType: s.caseType || '',
+      periodFrom: s.periodFrom || '',
+      periodTo: s.periodTo || '',
+      principalAmount: Number(s.principalAmount || 0),
+      penaltyAmount: Number(s.penaltyAmount || 0),
+      interestAmount: Number(s.interestAmount || 0),
+      totalAmount: Number(s.totalAmount || 0),
+    })),
+    totalPrincipal: Number(row.total_principal || 0),
+    totalPenalties: Number(row.total_penalties || 0),
+    totalInterest: Number(row.total_interest || 0),
+    grandTotal: Number(row.grand_total || 0),
+    triggeredRules: triggeredRules.map((r: any) => ({
+      ruleId: r.ruleId || '',
+      ruleName: r.ruleName || '',
+      reason: r.reason || '',
+    })),
+    recommendedDate: row.recommended_date,
+    status: row.status as LegalRecommendation['status'],
+    reviewedBy: row.reviewed_by || undefined,
+    reviewedDate: row.reviewed_date || undefined,
+    reviewNotes: row.review_notes || undefined,
+    legalReferralId: row.legal_referral_id || undefined,
+  };
+}
 
-// ============================================
-// MOCK DATA: Legal Referrals
-// ============================================
+function mapRowToReferral(row: ReferralRow): LegalReferralHeader {
+  return {
+    id: row.id,
+    referralNumber: row.referral_number,
+    employerId: row.employer_id,
+    employerName: row.employer_name,
+    employerZone: row.employer_zone || 'Unassigned',
+    totalPrincipal: Number(row.total_principal || 0),
+    totalPenalties: Number(row.total_penalties || 0),
+    totalInterest: Number(row.total_interest || 0),
+    grandTotal: Number(row.grand_total || 0),
+    periodFrom: row.period_from || '',
+    periodTo: row.period_to || '',
+    periodsCount: row.periods_count || 0,
+    complianceHistory: row.compliance_history || '',
+    noticesSent: row.notices_sent || 0,
+    lastNoticeDate: row.last_notice_date || undefined,
+    paymentPlanHistory: row.payment_plan_history || undefined,
+    auditFindings: row.audit_findings || undefined,
+    contactAttempts: row.contact_attempts || undefined,
+    status: row.status as LegalReferralStatus,
+    createdDate: row.created_at,
+    createdBy: row.created_by,
+    createdByName: row.created_by_name || '',
+    submittedDate: row.submitted_date || undefined,
+    acceptedDate: row.accepted_date || undefined,
+    acceptedBy: row.accepted_by || undefined,
+    rejectedDate: row.rejected_date || undefined,
+    rejectedBy: row.rejected_by || undefined,
+    rejectionReason: row.rejection_reason || undefined,
+    legalCaseId: row.legal_case_id || undefined,
+    courtCaseNumber: row.court_case_number || undefined,
+    legalOfficerAssigned: row.legal_officer_assigned || undefined,
+    attachments: [],
+  };
+}
 
-const mockLegalReferrals: LegalReferralHeader[] = [
-  {
-    id: 'ref-001',
-    referralNumber: 'LR-2024-001',
-    employerId: 'emp-004',
-    employerName: 'Caribbean Hotels Ltd',
-    employerZone: 'Zone 3 - Charlestown',
-    totalPrincipal: 145000,
-    totalPenalties: 14500,
-    totalInterest: 4200,
-    grandTotal: 163700,
-    periodFrom: '2023-09',
-    periodTo: '2024-09',
-    periodsCount: 13,
-    complianceHistory: `Employer has consistently failed to remit contributions despite multiple interventions:
-- Initial contact made on 15-Oct-2023
-- First Notice issued on 01-Nov-2023
-- Second Notice issued on 15-Dec-2023
-- Final Notice issued on 15-Jan-2024
-- Site inspection conducted on 05-Feb-2024 - employer confirmed financial difficulties
-- Payment arrangement proposed and rejected by employer on 20-Feb-2024
-- Multiple follow-up calls made (Mar-Sep 2024) - no response
-- Inspector visit on 12-Sep-2024 - business still operating with 45+ employees
-
-Employer has refused all attempts at negotiation and continues to operate without compliance.`,
-    noticesSent: 5,
-    lastNoticeDate: '2024-09-01',
-    paymentPlanHistory: 'Payment arrangement proposed on 20-Feb-2024 but rejected by employer',
-    auditFindings: 'Audit conducted Feb 2024 revealed under-reporting of wages for at least 12 employees',
-    contactAttempts: '15+ phone calls, 3 site visits, 5 formal notices',
-    status: LegalReferralStatus.SUBMITTED_TO_LEGAL,
-    createdDate: '2024-11-15',
-    createdBy: 'user-001',
-    createdByName: 'John Smith',
-    submittedDate: '2024-11-18',
-    attachments: [
-      {
-        id: 'att-001',
-        fileName: 'Compliance_History_Caribbean_Hotels.pdf',
-        fileType: 'PDF',
-        uploadedDate: '2024-11-15',
-        uploadedBy: 'John Smith'
-      },
-      {
-        id: 'att-002',
-        fileName: 'Audit_Report_Feb_2024.pdf',
-        fileType: 'PDF',
-        uploadedDate: '2024-11-15',
-        uploadedBy: 'John Smith'
-      }
-    ]
-  }
-];
-
-// ============================================
-// SERVICE METHODS
-// ============================================
+// ── Service ────────────────────────────────────────────────
 
 export const legalEscalationService = {
-  // Get policy history
-  async getPolicyHistory(): Promise<{ policies: LegalEscalationPolicy[]; activePolicy: LegalEscalationPolicy | null }> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const activePolicy = mockEscalationPolicies.find(p => p.isActive) || null;
-    return {
-      policies: [...mockEscalationPolicies].sort((a, b) => 
-        new Date(b.effectiveFrom).getTime() - new Date(a.effectiveFrom).getTime()
-      ),
-      activePolicy
-    };
-  },
-
-  // Get active escalation policy
-  async getActivePolicy(): Promise<LegalEscalationPolicy | null> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return mockEscalationPolicies.find(p => p.isActive) || null;
-  },
-
-  // Update active policy
-  async updateActivePolicy(updates: Partial<LegalEscalationPolicy>): Promise<LegalEscalationPolicy> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    const activePolicy = mockEscalationPolicies.find(p => p.isActive);
-    if (!activePolicy) {
-      throw new Error('No active policy found');
-    }
-    Object.assign(activePolicy, updates, {
-      updatedDate: new Date().toISOString(),
-      updatedBy: 'Current User'
-    });
-    return activePolicy;
-  },
-
-  // Activate new policy
-  async activateNewPolicy(policy: Omit<LegalEscalationPolicy, 'policyId' | 'id' | 'createdDate' | 'isActive'>): Promise<LegalEscalationPolicy> {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Deactivate current policy
-    const currentActive = mockEscalationPolicies.find(p => p.isActive);
-    if (currentActive) {
-      currentActive.isActive = false;
-      currentActive.effectiveTo = policy.effectiveFrom;
-      currentActive.deactivatedBy = policy.createdBy;
-      currentActive.deactivatedDate = new Date().toISOString();
-    }
-    
-    // Create new policy
-    const newPolicy: LegalEscalationPolicy = {
-      ...policy,
-      id: `policy-${Date.now()}`,
-      policyId: `POL-LEP-${Date.now()}`,
-      createdDate: new Date().toISOString(),
-      isActive: true,
-      effectiveTo: null
-    };
-    
-    mockEscalationPolicies.push(newPolicy);
-    
-    return newPolicy;
-  },
-
-  // Update escalation policy (legacy, deprecated)
-  async updatePolicy(policy: Partial<LegalEscalationPolicy>): Promise<LegalEscalationPolicy> {
-    return this.updateActivePolicy(policy);
-  },
-
-  // Add escalation rule
-  async addRule(rule: Omit<LegalEscalationRule, 'id'>): Promise<LegalEscalationRule> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    const activePolicy = mockEscalationPolicies.find(p => p.isActive);
-    if (!activePolicy) {
-      throw new Error('No active policy found');
-    }
-    const newRule: LegalEscalationRule = {
-      ...rule,
-      id: `rule-${Date.now()}`,
-      createdDate: new Date().toISOString(),
-      createdBy: 'Current User'
-    };
-    activePolicy.rules.push(newRule);
-    return newRule;
-  },
-
-  // Update escalation rule
-  async updateRule(ruleId: string, updates: Partial<LegalEscalationRule>): Promise<LegalEscalationRule> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    const activePolicy = mockEscalationPolicies.find(p => p.isActive);
-    if (!activePolicy) {
-      throw new Error('No active policy found');
-    }
-    const ruleIndex = activePolicy.rules.findIndex(r => r.id === ruleId);
-    if (ruleIndex !== -1) {
-      activePolicy.rules[ruleIndex] = {
-        ...activePolicy.rules[ruleIndex],
-        ...updates,
-        updatedDate: new Date().toISOString(),
-        updatedBy: 'Current User'
-      };
-      return activePolicy.rules[ruleIndex];
-    }
-    throw new Error('Rule not found');
-  },
-
-  // Delete escalation rule
-  async deleteRule(ruleId: string): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const activePolicy = mockEscalationPolicies.find(p => p.isActive);
-    if (!activePolicy) {
-      throw new Error('No active policy found');
-    }
-    const ruleIndex = activePolicy.rules.findIndex(r => r.id === ruleId);
-    if (ruleIndex !== -1) {
-      activePolicy.rules.splice(ruleIndex, 1);
-    }
+  // Generate recommendations from real compliance data using DB RPC
+  async generateRecommendations(createdBy: string = 'SYSTEM'): Promise<number> {
+    const { data, error } = await supabase.rpc(
+      'fn_ce_generate_legal_recommendations' as any,
+      { p_created_by: createdBy }
+    );
+    if (error) throw error;
+    return Number(data || 0);
   },
 
   // Get legal recommendations (queue)
@@ -512,116 +170,175 @@ export const legalEscalationService = {
     riskBand?: string;
     minAmount?: number;
   }): Promise<LegalRecommendation[]> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    let results = [...mockLegalRecommendations];
-    
+    let query = supabase
+      .from('ce_legal_recommendations' as any)
+      .select('*')
+      .order('recommended_date', { ascending: false });
+
     if (filters?.status) {
-      results = results.filter(r => r.status === filters.status);
+      query = query.eq('status', filters.status);
     }
     if (filters?.zone) {
-      results = results.filter(r => r.employerZone === filters.zone);
+      query = query.eq('employer_zone', filters.zone);
     }
     if (filters?.riskBand) {
-      results = results.filter(r => r.riskBand === filters.riskBand);
+      query = query.eq('risk_band', filters.riskBand);
     }
     if (filters?.minAmount) {
-      results = results.filter(r => r.grandTotal >= filters.minAmount);
+      query = query.gte('grand_total', filters.minAmount);
     }
-    
-    return results;
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return ((data as any[]) || []).map(mapRowToRecommendation);
   },
 
   // Get queue statistics
   async getQueueStats(): Promise<LegalRecommendationQueueStats> {
-    await new Promise(resolve => setTimeout(resolve, 100));
+    const { data, error } = await supabase
+      .from('ce_legal_recommendations' as any)
+      .select('status, risk_band, employer_zone, grand_total, qualifying_case_ids');
+    if (error) throw error;
+
+    const rows = (data as any[]) || [];
+    const totalSubcases = rows.reduce((sum, r) => {
+      const ids = Array.isArray(r.qualifying_case_ids) ? r.qualifying_case_ids : [];
+      return sum + ids.length;
+    }, 0);
+
+    // Zone aggregation
+    const zoneMap: Record<string, number> = {};
+    for (const r of rows) {
+      const z = r.employer_zone || 'Unassigned';
+      zoneMap[z] = (zoneMap[z] || 0) + 1;
+    }
+
     return {
-      totalEmployers: mockLegalRecommendations.length,
-      totalSubcases: mockLegalRecommendations.reduce((sum, rec) => sum + rec.qualifyingSubcaseIds.length, 0),
-      totalAmountAtRisk: mockLegalRecommendations.reduce((sum, rec) => sum + rec.grandTotal, 0),
+      totalEmployers: rows.length,
+      totalSubcases,
+      totalAmountAtRisk: rows.reduce((s, r) => s + Number(r.grand_total || 0), 0),
       byRiskBand: {
-        critical: mockLegalRecommendations.filter(r => r.riskBand === 'Critical').length,
-        high: mockLegalRecommendations.filter(r => r.riskBand === 'High').length,
-        medium: mockLegalRecommendations.filter(r => r.riskBand === 'Medium').length,
-        low: mockLegalRecommendations.filter(r => r.riskBand === 'Low').length
+        critical: rows.filter(r => (r.risk_band || '').toUpperCase() === 'CRITICAL').length,
+        high: rows.filter(r => (r.risk_band || '').toUpperCase() === 'HIGH').length,
+        medium: rows.filter(r => (r.risk_band || '').toUpperCase() === 'MEDIUM').length,
+        low: rows.filter(r => !['CRITICAL','HIGH','MEDIUM'].includes((r.risk_band || '').toUpperCase())).length,
       },
-      byZone: [
-        { zoneName: 'Zone 1 - Basseterre', count: 2 },
-        { zoneName: 'Zone 2 - Sandy Point', count: 1 }
-      ],
-      pendingReview: mockLegalRecommendations.filter(r => r.status === 'PENDING_REVIEW').length,
-      approvedForReferral: mockLegalRecommendations.filter(r => r.status === 'APPROVED_FOR_REFERRAL').length,
-      referralCreated: mockLegalRecommendations.filter(r => r.status === 'REFERRAL_CREATED').length
+      byZone: Object.entries(zoneMap).map(([zoneName, count]) => ({ zoneName, count })),
+      pendingReview: rows.filter(r => r.status === 'PENDING_REVIEW').length,
+      approvedForReferral: rows.filter(r => r.status === 'APPROVED_FOR_REFERRAL').length,
+      referralCreated: rows.filter(r => r.status === 'REFERRAL_CREATED').length,
     };
   },
 
-  // Update recommendation status
+  // Update recommendation status (approve / reject)
   async updateRecommendationStatus(
     recommendationId: string,
     status: LegalRecommendation['status'],
-    notes?: string
+    notes?: string,
+    reviewerCode?: string,
   ): Promise<LegalRecommendation> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    const recIndex = mockLegalRecommendations.findIndex(r => r.id === recommendationId);
-    if (recIndex !== -1) {
-      mockLegalRecommendations[recIndex] = {
-        ...mockLegalRecommendations[recIndex],
+    const { data, error } = await supabase
+      .from('ce_legal_recommendations' as any)
+      .update({
         status,
-        reviewedBy: 'Current User',
-        reviewedDate: new Date().toISOString(),
-        reviewNotes: notes
-      };
-      return mockLegalRecommendations[recIndex];
-    }
-    throw new Error('Recommendation not found');
+        reviewed_by: reviewerCode || 'SYSTEM',
+        reviewed_date: new Date().toISOString(),
+        review_notes: notes || null,
+        updated_by: reviewerCode || 'SYSTEM',
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq('id', recommendationId)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapRowToRecommendation(data as any);
   },
 
-  // Create legal referral
+  // Create legal referral from approved recommendation
   async createLegalReferral(referralData: {
     recommendationId: string;
     selectedSubcaseIds: string[];
     complianceHistory: string;
-    attachments?: any[];
+    createdBy?: string;
+    createdByName?: string;
   }): Promise<LegalReferralHeader> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    const recommendation = mockLegalRecommendations.find(r => r.id === referralData.recommendationId);
-    if (!recommendation) {
-      throw new Error('Recommendation not found');
+    // Fetch recommendation
+    const { data: recData, error: recErr } = await supabase
+      .from('ce_legal_recommendations' as any)
+      .select('*')
+      .eq('id', referralData.recommendationId)
+      .single();
+    if (recErr) throw recErr;
+    const rec = recData as any;
+
+    const subcases = (Array.isArray(rec.subcase_summary) ? rec.subcase_summary : [])
+      .filter((s: any) => referralData.selectedSubcaseIds.includes(s.subcaseId));
+
+    const totalPrincipal = subcases.reduce((s: number, c: any) => s + Number(c.principalAmount || 0), 0);
+    const totalPenalties = subcases.reduce((s: number, c: any) => s + Number(c.penaltyAmount || 0), 0);
+    const totalInterest = subcases.reduce((s: number, c: any) => s + Number(c.interestAmount || 0), 0);
+
+    // Generate referral number
+    const { data: seqData } = await supabase.rpc('nextval' as any, { seq_name: 'ce_legal_referral_seq' });
+    const seqNum = Number(seqData || Date.now());
+    const referralNumber = `LR-${new Date().getFullYear()}-${String(seqNum).padStart(3, '0')}`;
+
+    // Insert referral
+    const { data: refData, error: refErr } = await supabase
+      .from('ce_legal_referrals' as any)
+      .insert({
+        referral_number: referralNumber,
+        recommendation_id: referralData.recommendationId,
+        employer_id: rec.employer_id,
+        employer_name: rec.employer_name,
+        employer_zone: rec.employer_zone,
+        total_principal: totalPrincipal,
+        total_penalties: totalPenalties,
+        total_interest: totalInterest,
+        grand_total: totalPrincipal + totalPenalties + totalInterest,
+        period_from: subcases[0]?.periodFrom || null,
+        period_to: subcases[subcases.length - 1]?.periodTo || null,
+        periods_count: subcases.length,
+        compliance_history: referralData.complianceHistory,
+        notices_sent: 0,
+        status: 'DRAFT',
+        created_by: referralData.createdBy || 'SYSTEM',
+        created_by_name: referralData.createdByName || 'System',
+      } as any)
+      .select()
+      .single();
+    if (refErr) throw refErr;
+
+    const referral = refData as any;
+
+    // Insert referral lines
+    if (subcases.length > 0) {
+      const lines = subcases.map((s: any) => ({
+        referral_id: referral.id,
+        case_id: s.subcaseId,
+        case_number: s.caseNumber,
+        case_type: s.caseType,
+        period_from: s.periodFrom || null,
+        period_to: s.periodTo || null,
+        principal_amount: Number(s.principalAmount || 0),
+        penalty_amount: Number(s.penaltyAmount || 0),
+        interest_amount: Number(s.interestAmount || 0),
+        total_amount: Number(s.totalAmount || 0),
+      }));
+      await supabase.from('ce_legal_referral_lines' as any).insert(lines as any);
     }
 
-    const selectedSubcases = recommendation.subcaseSummary.filter(s => 
-      referralData.selectedSubcaseIds.includes(s.subcaseId)
-    );
-
-    const newReferral: LegalReferralHeader = {
-      id: `ref-${Date.now()}`,
-      referralNumber: `LR-2024-${String(mockLegalReferrals.length + 1).padStart(3, '0')}`,
-      employerId: recommendation.employerId,
-      employerName: recommendation.employerName,
-      employerZone: recommendation.employerZone,
-      totalPrincipal: selectedSubcases.reduce((sum, s) => sum + s.principalAmount, 0),
-      totalPenalties: selectedSubcases.reduce((sum, s) => sum + s.penaltyAmount, 0),
-      totalInterest: selectedSubcases.reduce((sum, s) => sum + s.interestAmount, 0),
-      grandTotal: selectedSubcases.reduce((sum, s) => sum + s.totalAmount, 0),
-      periodFrom: selectedSubcases[0]?.periodFrom || '',
-      periodTo: selectedSubcases[selectedSubcases.length - 1]?.periodTo || '',
-      periodsCount: selectedSubcases.length,
-      complianceHistory: referralData.complianceHistory,
-      noticesSent: 0, // Would be populated from actual case data
-      status: LegalReferralStatus.DRAFT,
-      createdDate: new Date().toISOString(),
-      createdBy: 'user-001',
-      createdByName: 'Current User',
-      attachments: referralData.attachments || []
-    };
-
-    mockLegalReferrals.push(newReferral);
-    
     // Update recommendation status
-    recommendation.status = 'REFERRAL_CREATED';
-    recommendation.legalReferralId = newReferral.id;
+    await supabase
+      .from('ce_legal_recommendations' as any)
+      .update({
+        status: 'REFERRAL_CREATED',
+        legal_referral_id: referral.id,
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq('id', referralData.recommendationId);
 
-    return newReferral;
+    return mapRowToReferral(referral);
   },
 
   // Get legal referrals
@@ -629,31 +346,37 @@ export const legalEscalationService = {
     status?: LegalReferralStatus;
     employerId?: string;
   }): Promise<LegalReferralHeader[]> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    let results = [...mockLegalReferrals];
-    
+    let query = supabase
+      .from('ce_legal_referrals' as any)
+      .select('*')
+      .order('created_at', { ascending: false });
+
     if (filters?.status) {
-      results = results.filter(r => r.status === filters.status);
+      query = query.eq('status', filters.status);
     }
     if (filters?.employerId) {
-      results = results.filter(r => r.employerId === filters.employerId);
+      query = query.eq('employer_id', filters.employerId);
     }
-    
-    return results;
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return ((data as any[]) || []).map(mapRowToReferral);
   },
 
   // Submit referral to legal
-  async submitReferralToLegal(referralId: string): Promise<LegalReferralHeader> {
-    await new Promise(resolve => setTimeout(resolve, 150));
-    const refIndex = mockLegalReferrals.findIndex(r => r.id === referralId);
-    if (refIndex !== -1) {
-      mockLegalReferrals[refIndex] = {
-        ...mockLegalReferrals[refIndex],
+  async submitReferralToLegal(referralId: string, submittedBy?: string): Promise<LegalReferralHeader> {
+    const { data, error } = await supabase
+      .from('ce_legal_referrals' as any)
+      .update({
         status: LegalReferralStatus.SUBMITTED_TO_LEGAL,
-        submittedDate: new Date().toISOString()
-      };
-      return mockLegalReferrals[refIndex];
-    }
-    throw new Error('Referral not found');
-  }
+        submitted_date: new Date().toISOString(),
+        updated_by: submittedBy || 'SYSTEM',
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq('id', referralId)
+      .select()
+      .single();
+    if (error) throw error;
+    return mapRowToReferral(data as any);
+  },
 };
