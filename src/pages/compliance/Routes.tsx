@@ -205,6 +205,7 @@ const ComplianceRoutes = () => {
       <Route path="/admin/settings/c3-ledger-sync" element={<C3LedgerSync />} />
       <Route path="/admin/settings/payment-ledger-sync" element={<PaymentLedgerSync />} />
       <Route path="/admin/settings/ledger-admin" element={<LedgerAdministration />} />
+      <Route path="/admin/settings/ledger-posting" element={<LedgerPostingAdmin />} />
       <Route path="/admin/geography/zones" element={<ZoneManagement />} />
       <Route path="/admin/geography/office-zone-mapping" element={<OfficeZoneMapping />} />
       <Route path="/admin/geography/village-zone-mapping" element={<VillageZoneMapping />} />
