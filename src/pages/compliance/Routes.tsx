@@ -88,6 +88,7 @@ import LedgerAdministration from './settings/LedgerAdministration';
 import C3LedgerSync from './settings/C3LedgerSync';
 import PaymentLedgerSync from './settings/PaymentLedgerSync';
 import AssignmentRoutingRules from './settings/AssignmentRoutingRules';
+import LedgerPostingAdmin from './settings/LedgerPostingAdmin';
 
 // Tools
 import RuleSimulator from './tools/RuleSimulator';
