@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Building2, Plus, Pencil, Power } from "lucide-react";
 import { toast } from "sonner";
+import { OfficeSelect } from "@/components/compliance/OfficeSelect";
 
 interface MappingRow {
   id: string;
@@ -145,13 +146,7 @@ export default function OfficeZoneMapping() {
           <div className="space-y-4">
             <div>
               <Label>Office Code *</Label>
-              <Select value={form.office_code} onValueChange={v => { setForm(f => ({ ...f, office_code: v })); setErrors(e => ({ ...e, office_code: "" })); }}>
-                <SelectTrigger className={errors.office_code ? "border-destructive" : ""}><SelectValue placeholder="Select office" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="STK">STK – St. Kitts</SelectItem>
-                  <SelectItem value="NEV">NEV – Nevis</SelectItem>
-                </SelectContent>
-              </Select>
+              <OfficeSelect value={form.office_code} onChange={v => { setForm(f => ({ ...f, office_code: v })); setErrors(e => ({ ...e, office_code: "" })); }} error={!!errors.office_code} />
               {errors.office_code && <p className="text-xs text-destructive mt-1">{errors.office_code}</p>}
             </div>
             <div>
