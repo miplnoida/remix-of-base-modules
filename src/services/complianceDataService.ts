@@ -252,96 +252,147 @@ export async function fetchEmployerStatementTransactions(employerId: string) {
 // ============================================
 // VIOLATIONS (ce_violations)
 // ============================================
-export async function fetchViolations(filters?: {
+
+export interface ViolationFilters {
   status?: string;
   priority?: string;
   search?: string;
-  month?: string; // YYYY-MM
-}) {
-  const searchValue = filters?.search?.trim();
+  month?: string;
+  page?: number;
+  pageSize?: number;
+}
 
-  const hasActiveFilter = (filters?.status && filters.status !== 'ALL') ||
-    (filters?.priority && filters.priority !== 'ALL') ||
+export interface ViolationPage {
+  rows: any[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
+function buildViolationFilterConditions(filters: ViolationFilters) {
+  const searchValue = filters.search?.trim();
+  const hasActiveFilter = (filters.status && filters.status !== 'ALL') ||
+    (filters.priority && filters.priority !== 'ALL') ||
     searchValue;
-
-  const targetMonth = filters?.month || (!hasActiveFilter
+  const targetMonth = filters.month || (!hasActiveFilter
     ? new Date().toISOString().slice(0, 7)
     : undefined);
+  return { searchValue, targetMonth };
+}
 
-  const matchedEmployerIds = new Set<string>();
+async function resolveEmployerSearch(searchValue: string): Promise<string[]> {
+  const [masterResult, locationResult] = await Promise.all([
+    supabase
+      .from('er_master')
+      .select('regno')
+      .or(`regno.ilike.%${searchValue}%,name.ilike.%${searchValue}%`)
+      .limit(50),
+    supabase
+      .from('er_locations')
+      .select('regno')
+      .ilike('trade_name', `%${searchValue}%`)
+      .limit(50),
+  ]);
+  const ids = new Set<string>();
+  masterResult.data?.forEach((r: any) => r.regno && ids.add(r.regno));
+  locationResult.data?.forEach((r: any) => r.regno && ids.add(r.regno));
+  return Array.from(ids);
+}
 
+function applyViolationFilters(
+  query: any,
+  filters: ViolationFilters,
+  searchValue: string | undefined,
+  targetMonth: string | undefined,
+  employerIds: string[],
+) {
+  if (filters.status && filters.status !== "ALL") {
+    query = query.eq("status", filters.status);
+  }
+  if (filters.priority && filters.priority !== "ALL") {
+    query = query.eq("priority", filters.priority);
+  }
   if (searchValue) {
-    const [masterResult, locationResult] = await Promise.all([
-      supabase
-        .from('er_master')
-        .select('regno, name')
-        .or(`regno.ilike.%${searchValue}%,name.ilike.%${searchValue}%`)
-        .limit(100),
-      supabase
-        .from('er_locations')
-        .select('regno, trade_name')
-        .ilike('trade_name', `%${searchValue}%`)
-        .limit(100),
-    ]);
-
-    if (masterResult.error) throw masterResult.error;
-    if (locationResult.error) throw locationResult.error;
-
-    masterResult.data?.forEach((row: any) => row.regno && matchedEmployerIds.add(row.regno));
-    locationResult.data?.forEach((row: any) => row.regno && matchedEmployerIds.add(row.regno));
+    const escaped = searchValue.replace(/,/g, ' ');
+    const orParts = [
+      `violation_number.ilike.%${escaped}%`,
+      `employer_id.ilike.%${escaped}%`,
+      `employer_name.ilike.%${escaped}%`,
+      `summary.ilike.%${escaped}%`,
+    ];
+    if (employerIds.length > 0) {
+      orParts.push(`employer_id.in.(${employerIds.join(',')})`);
+    }
+    query = query.or(orParts.join(','));
   }
-
-  const allRows: any[] = [];
-  const PAGE_SIZE = 1000;
-  let from = 0;
-
-  while (true) {
-    let query = supabase
-      .from("ce_violations")
-      .select("*, ce_violation_types(code, name, category), ce_zones(zone_code, zone_name), ce_assignment_queues(queue_code, queue_name, queue_type)")
-      .eq("is_deleted", false)
-      .order("created_at", { ascending: false })
-      .range(from, from + PAGE_SIZE - 1);
-
-    if (filters?.status && filters.status !== "ALL") {
-      query = query.eq("status", filters.status);
-    }
-    if (filters?.priority && filters.priority !== "ALL") {
-      query = query.eq("priority", filters.priority);
-    }
-    if (searchValue) {
-      const escaped = searchValue.replace(/,/g, ' ');
-      const employerIds = Array.from(matchedEmployerIds).filter(Boolean);
-      const orParts = [
-        `violation_number.ilike.%${escaped}%`,
-        `employer_id.ilike.%${escaped}%`,
-        `employer_name.ilike.%${escaped}%`,
-        `summary.ilike.%${escaped}%`,
-      ];
-
-      if (employerIds.length > 0) {
-        orParts.push(`employer_id.in.(${employerIds.join(',')})`);
-      }
-
-      query = query.or(orParts.join(','));
-    }
-    if (targetMonth) {
-      const startDate = `${targetMonth}-01`;
-      const nextMonth = new Date(`${targetMonth}-01T00:00:00Z`);
-      nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
-      const endDate = nextMonth.toISOString().slice(0, 10);
-      query = query.gte("created_at", startDate).lt("created_at", endDate);
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-    if (!data || data.length === 0) break;
-    allRows.push(...data);
-    if (data.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
+  if (targetMonth) {
+    const startDate = `${targetMonth}-01`;
+    const nextMonth = new Date(`${targetMonth}-01T00:00:00Z`);
+    nextMonth.setUTCMonth(nextMonth.getUTCMonth() + 1);
+    const endDate = nextMonth.toISOString().slice(0, 10);
+    query = query.gte("created_at", startDate).lt("created_at", endDate);
   }
+  return query;
+}
 
-  return allRows;
+export async function fetchViolationsPaginated(filters: ViolationFilters = {}): Promise<ViolationPage> {
+  const page = filters.page ?? 1;
+  const pageSize = filters.pageSize ?? 50;
+  const { searchValue, targetMonth } = buildViolationFilterConditions(filters);
+  const employerIds = searchValue ? await resolveEmployerSearch(searchValue) : [];
+
+  let countQuery = supabase
+    .from("ce_violations")
+    .select("id", { count: "exact", head: true })
+    .eq("is_deleted", false);
+
+  let dataQuery = supabase
+    .from("ce_violations")
+    .select("id, violation_number, employer_id, employer_name, status, priority, period_from, total_amount, assigned_to_name, discovered_date, created_at, ce_violation_types(code, name, category), ce_zones(zone_code), ce_assignment_queues(queue_code)")
+    .eq("is_deleted", false)
+    .order("created_at", { ascending: false })
+    .range((page - 1) * pageSize, page * pageSize - 1);
+
+  countQuery = applyViolationFilters(countQuery, filters, searchValue, targetMonth, employerIds);
+  dataQuery = applyViolationFilters(dataQuery, filters, searchValue, targetMonth, employerIds);
+
+  const [countResult, dataResult] = await Promise.all([countQuery, dataQuery]);
+  if (countResult.error) throw countResult.error;
+  if (dataResult.error) throw dataResult.error;
+
+  return {
+    rows: dataResult.data ?? [],
+    totalCount: countResult.count ?? 0,
+    page,
+    pageSize,
+  };
+}
+
+export async function fetchViolationSummaryCounts(filters: ViolationFilters = {}): Promise<Record<string, number>> {
+  const { searchValue, targetMonth } = buildViolationFilterConditions(filters);
+  const employerIds = searchValue ? await resolveEmployerSearch(searchValue) : [];
+
+  let query = supabase
+    .from("ce_violations")
+    .select("status")
+    .eq("is_deleted", false);
+
+  query = applyViolationFilters(query, filters, searchValue, targetMonth, employerIds);
+
+  const { data, error } = await query.limit(10000);
+  if (error) throw error;
+
+  const counts: Record<string, number> = { total: 0, OPEN: 0, UNDER_REVIEW: 0, ESCALATED: 0 };
+  (data ?? []).forEach((row: any) => {
+    counts.total++;
+    if (row.status in counts) counts[row.status]++;
+  });
+  return counts;
+}
+
+export async function fetchViolations(filters?: ViolationFilters) {
+  const result = await fetchViolationsPaginated({ ...filters, page: 1, pageSize: 1000 });
+  return result.rows;
 }
 
 export async function fetchViolationById(id: string) {
@@ -353,3 +404,4 @@ export async function fetchViolationById(id: string) {
   if (error) throw error;
   return data;
 }
+
