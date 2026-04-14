@@ -12820,6 +12820,66 @@ export type Database = {
           },
         ]
       }
+      ce_group_compliance_rollup: {
+        Row: {
+          avg_risk_score: number | null
+          compliant_count: number | null
+          compliant_pct: number | null
+          computed_at: string
+          created_at: string
+          created_by: string | null
+          group_id: string | null
+          group_name: string | null
+          highest_risk_band: string | null
+          id: string
+          member_count: number | null
+          non_compliant_count: number | null
+          parent_regno: string | null
+          run_id: string | null
+          total_arrears: number | null
+          total_penalties: number | null
+          total_violations: number | null
+        }
+        Insert: {
+          avg_risk_score?: number | null
+          compliant_count?: number | null
+          compliant_pct?: number | null
+          computed_at?: string
+          created_at?: string
+          created_by?: string | null
+          group_id?: string | null
+          group_name?: string | null
+          highest_risk_band?: string | null
+          id?: string
+          member_count?: number | null
+          non_compliant_count?: number | null
+          parent_regno?: string | null
+          run_id?: string | null
+          total_arrears?: number | null
+          total_penalties?: number | null
+          total_violations?: number | null
+        }
+        Update: {
+          avg_risk_score?: number | null
+          compliant_count?: number | null
+          compliant_pct?: number | null
+          computed_at?: string
+          created_at?: string
+          created_by?: string | null
+          group_id?: string | null
+          group_name?: string | null
+          highest_risk_band?: string | null
+          id?: string
+          member_count?: number | null
+          non_compliant_count?: number | null
+          parent_regno?: string | null
+          run_id?: string | null
+          total_arrears?: number | null
+          total_penalties?: number | null
+          total_violations?: number | null
+        }
+        Relationships: []
+      }
       ce_inspection_findings: {
         Row: {
           created_at: string | null
@@ -13795,6 +13855,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_notice_validation_log: {
+        Row: {
+          contact_field: string | null
+          contact_value: string | null
+          created_at: string
+          created_by: string | null
+          employer_id: string
+          employer_name: string | null
+          failure_reason: string | null
+          id: string
+          is_valid: boolean
+          run_id: string | null
+          validation_type: string
+        }
+        Insert: {
+          contact_field?: string | null
+          contact_value?: string | null
+          created_at?: string
+          created_by?: string | null
+          employer_id: string
+          employer_name?: string | null
+          failure_reason?: string | null
+          id?: string
+          is_valid?: boolean
+          run_id?: string | null
+          validation_type: string
+        }
+        Update: {
+          contact_field?: string | null
+          contact_value?: string | null
+          created_at?: string
+          created_by?: string | null
+          employer_id?: string
+          employer_name?: string | null
+          failure_reason?: string | null
+          id?: string
+          is_valid?: boolean
+          run_id?: string | null
+          validation_type?: string
+        }
+        Relationships: []
+      }
       ce_notices: {
         Row: {
           acknowledged_at: string | null
@@ -14588,6 +14690,123 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ce_reconciliation_exceptions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employer_id: string
+          employer_name: string | null
+          exception_type: string
+          id: string
+          ledger_amount: number | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          run_id: string | null
+          source_amount: number | null
+          source_period: string | null
+          source_table: string | null
+          status: string
+          variance_amount: number | null
+          variance_pct: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employer_id: string
+          employer_name?: string | null
+          exception_type: string
+          id?: string
+          ledger_amount?: number | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          run_id?: string | null
+          source_amount?: number | null
+          source_period?: string | null
+          source_table?: string | null
+          status?: string
+          variance_amount?: number | null
+          variance_pct?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employer_id?: string
+          employer_name?: string | null
+          exception_type?: string
+          id?: string
+          ledger_amount?: number | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          run_id?: string | null
+          source_amount?: number | null
+          source_period?: string | null
+          source_table?: string | null
+          status?: string
+          variance_amount?: number | null
+          variance_pct?: number | null
+        }
+        Relationships: []
+      }
+      ce_review_queue: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          employer_id: string
+          employer_name: string | null
+          id: string
+          last_activity_at: string | null
+          priority: string | null
+          reason: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          review_type: string
+          run_id: string | null
+          stale_since: string | null
+          status: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          employer_id: string
+          employer_name?: string | null
+          id?: string
+          last_activity_at?: string | null
+          priority?: string | null
+          reason?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_type?: string
+          run_id?: string | null
+          stale_since?: string | null
+          status?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          employer_id?: string
+          employer_name?: string | null
+          id?: string
+          last_activity_at?: string | null
+          priority?: string | null
+          reason?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          review_type?: string
+          run_id?: string | null
+          stale_since?: string | null
+          status?: string
+        }
+        Relationships: []
       }
       ce_risk_bands: {
         Row: {
