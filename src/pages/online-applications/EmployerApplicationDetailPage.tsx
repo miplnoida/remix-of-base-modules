@@ -36,13 +36,20 @@ import {
   Shield
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
 import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
 import { useEmployerCodeResolver } from '@/hooks/useEmployerCodeResolver';
 import { getEmployerStatusVariant } from '@/hooks/useEmployerApplications';
 import { WorkflowActionButtons } from '@/components/workflow/WorkflowActionButtons';
-import { EmployerApplicationActions } from '@/components/online-applications/EmployerApplicationActions';
 import { MeetingActionButtons } from '@/components/meetings/MeetingActionButtons';
 import { useApplicationMeeting } from '@/hooks/useApplicationMeeting';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { useUserCode } from '@/hooks/useUserCode';
+import {
+  useConvertToEmployerRegistration,
+  validateEmployerApplicationForConversion,
+} from '@/hooks/useConvertToEmployerRegistration';
+import { triggerEmployerRegistrationWorkflow } from '@/services/employerWorkflowTriggerService';
 import { supabase } from '@/integrations/supabase/client';
 import { logAuditTrail } from '@/services/auditService';
 import { toast } from 'sonner';
@@ -111,6 +118,10 @@ function SectionHeader({ icon: Icon, title, subtitle }: { icon: React.ElementTyp
 export default function EmployerApplicationDetailPage() {
   const { applicationId } = useParams<{ applicationId: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useSupabaseAuth();
+  const { userCode } = useUserCode();
+  const { convert: convertToEmployer, isConverting } = useConvertToEmployerRegistration();
   
   const { data: application, isLoading, error, isFetching, refetch } = useEmployerApplicationDetail(applicationId);
   const resolved = useEmployerCodeResolver(application);
@@ -120,6 +131,13 @@ export default function EmployerApplicationDetailPage() {
   const { meeting, isLoading: isMeetingLoading, invalidate: invalidateMeeting } = useApplicationMeeting(applicationRef);
 
   const handleActionComplete = () => {
+    queryClient.invalidateQueries({ queryKey: ['meetings'] });
+    queryClient.invalidateQueries({ queryKey: ['meeting-details'] });
+    queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+    queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
+    queryClient.invalidateQueries({ queryKey: ['application-workflow-status'] });
+    queryClient.invalidateQueries({ queryKey: ['online-applications'] });
+    queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
     refetch();
     invalidateMeeting();
   };
@@ -221,13 +239,131 @@ export default function EmployerApplicationDetailPage() {
             sourceRecordId={applicationId || application?.registration_id || null}
             onActionComplete={async (action, endState) => {
               handleActionComplete();
+
+              const effectiveWorkflowInstanceId = meeting?.workflow_instance_id || null;
+
+              if (endState === 'Approved' || action === 'Approve') {
+                // ── ACCEPT: Convert application to employer registration ──
+                if (!application) {
+                  toast.error('Application data is not available');
+                  return;
+                }
+                const validationErrors = validateEmployerApplicationForConversion(application);
+                if (validationErrors.length > 0) {
+                  toast.error('Validation failed', {
+                    description: validationErrors[0].message,
+                    duration: 6000,
+                  });
+                  return;
+                }
+
+                try {
+                  const result = await convertToEmployer({
+                    applicationData: application,
+                    userId: user?.id || '',
+                    userCode: userCode || '',
+                    applicationReference: applicationId || application.id || application.registration_id || '',
+                    meetingId: meeting?.id,
+                  });
+
+                  if (!result.success) return;
+
+                  const employerRegno = result.regno || null;
+                  const employerName = application.employer_name || application.trade_name || employerRegno;
+
+                  toast.success(
+                    result.message || `Employer Registration ${result.regno} created successfully.`,
+                    { duration: 8000 }
+                  );
+
+                  // Close meeting if exists
+                  if (meeting?.id) {
+                    const { error: closeErr } = await supabase.functions.invoke(
+                      'meeting-api-handler',
+                      {
+                        body: {
+                          action: 'close_meeting_approved',
+                          meetingId: meeting.id,
+                          employerRegno,
+                          employerName: employerName || employerRegno,
+                        },
+                      }
+                    );
+                    if (closeErr) console.error('Failed to close meeting:', closeErr);
+                  }
+
+                  // Trigger next workflow (Employer Registration Approval)
+                  if (employerRegno) {
+                    try {
+                      const nextWfId = await triggerEmployerRegistrationWorkflow(
+                        employerRegno,
+                        employerName || employerRegno,
+                        user?.id
+                      );
+                      if (nextWfId) {
+                        toast.success('Employer Registration Approval Workflow initiated automatically.', { duration: 5000 });
+                      }
+                    } catch (triggerErr) {
+                      console.error('Failed to trigger employer approval workflow:', triggerErr);
+                    }
+                  }
+
+                  // Audit
+                  await logAuditTrail({
+                    action: 'employer_application_accepted',
+                    entityType: 'online-employer-application',
+                    entityId: applicationId || '',
+                    afterValue: { regno: employerRegno },
+                  });
+
+                  handleActionComplete();
+
+                  if (employerRegno) {
+                    navigate(`/employer-registration/view/${employerRegno}`);
+                  }
+                } catch (err) {
+                  console.error('Accept failed:', err);
+                  toast.error(err instanceof Error ? err.message : 'Failed to accept application');
+                }
+              } else if (endState === 'Rejected' || action === 'Reject') {
+                // ── REJECT: Close meeting if exists ──
+                const now = new Date().toISOString();
+                if (meeting?.id) {
+                  await supabase
+                    .from('meetings')
+                    .update({
+                      status: 'Closed',
+                      outcome: 'ClosedWithRejection',
+                      outcome_remarks: 'Rejected via workflow',
+                      closed_at: now,
+                      updated_at: now,
+                    })
+                    .eq('id', meeting.id);
+
+                  await supabase.from('meeting_history').insert([{
+                    meeting_id: meeting.id,
+                    old_status: meeting.status as any,
+                    new_status: 'Closed' as const,
+                    action_taken: 'Closed with Rejection',
+                    outcome: 'ClosedWithRejection' as const,
+                    remarks: 'Rejected via workflow',
+                    performed_at: now,
+                  }]);
+                }
+
+                // Audit
+                await logAuditTrail({
+                  action: 'employer_application_rejected',
+                  entityType: 'online-employer-application',
+                  entityId: applicationId || '',
+                  afterValue: { remarks: 'Rejected via workflow' },
+                });
+
+                toast.success('Application rejected successfully');
+                handleActionComplete();
+                navigate(-1 as any);
+              }
             }}
-          />
-          <EmployerApplicationActions
-            applicationData={application}
-            applicationId={applicationId || application.id || application.registration_id || ''}
-            meeting={meeting ? { id: meeting.id, status: meeting.status, workflow_instance_id: meeting.workflow_instance_id } : null}
-            onActionComplete={handleActionComplete}
           />
         </div>
       </div>
