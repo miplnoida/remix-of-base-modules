@@ -1,73 +1,46 @@
-# Fix: Overpayment Error on NWD Payment (Schedule 6, March 2026)
+
+
+# Fix: NWD Payment Sync — `is_for_director` Sent as String Instead of Boolean
 
 ## Root Cause
 
-The error `Overpayment detected for component LVC: requested=100, balance=0 (original=0, paid=0)` occurs because the overpayment guard in `create_c3_payment_with_receipt` cannot find the C3 record.
+The `sync-c3-payment` edge function sends `is_for_director: "true"` (a **string**) instead of `is_for_director: true` (a **boolean**).
 
-**Chain of failure:**
+This happens because the payload is typed as `Record<string, string | undefined>` (line 185), forcing all values to strings. When `is_for_director = "true"` reaches C3-Wizard, it fails the boolean check and defaults to searching for standard ER contributions — which don't exist at those schedule numbers — causing the error:
 
-1. `NwDirectorList.tsx` navigates to `/cashier/c3-payments` with `payerType: 'NW'`
-2. `C3Payments.tsx` initializes state: `payerType = 'NW'`
-3. The `PaymentHeaderForm` dropdown (`PAYER_TYPES`) has no `'NW'` option — only `ER`, `IP`, `SE`, `VC`, `AP`
-4. The `<Select>` shows "Employer" as fallback display, but the user may change it — either way, the `payerType` state determines what gets sent to the RPC
-5. **Balance loading works correctly** (line 214: `p_payer_type: pType === 'NW' ? 'ER' : pType` and line 217: `p_is_for_director: pType === 'NW'`) — it uses `navState.payerType` directly
-6. **Payment submission fails** because it uses `payerType` state (line 402-410), which may have been changed by the dropdown or is `'NW'` which the RPC correctly maps, BUT the dropdown interaction can reset it to `'ER'`
-7. With `payerType = 'ER'` → `p_is_for_director = false` → guard looks for `is_for_director = FALSE` → no record exists → `original = 0` → overpayment error
+> "No submitted contribution found for the given period and schedule"
 
-**Core problem:** The C3 Payments page lacks a dedicated NWD payer type option and does not persist the NWD context independently from the dropdown.
+## Fix
 
-## Implementation Plan
+**File:** `supabase/functions/sync-c3-payment/index.ts`
 
-### Step 1: Add 'NW' option to PAYER_TYPES in PaymentHeaderForm
+1. **Remove `is_for_director` from the string-typed `payload` object** (lines 197-200). Instead, add it directly to the `cleanPayload` object (which is `Record<string, unknown>`) as a proper **boolean `true`**:
 
-**File:** `src/components/payments/PaymentHeaderForm.tsx`
-
-Add `{ value: 'NW', label: 'Non-Working Director' }` to the `PAYER_TYPES` array. This ensures the dropdown correctly displays and retains the NWD selection when navigated from the NWD list.
-
-### Step 2: Verify C3Payments NWD flow is consistent
-
-**File:** `src/pages/cashier/C3Payments.tsx`
-
-The balance-loading effect (line 195-260) and the payment submission (line 400-411) both already have the `'NW' ? 'ER'` mapping and `p_is_for_director` logic. The only issue is that the dropdown was losing the `'NW'` value. With Step 1, this is fixed — the state will remain `'NW'` throughout.
-
-Verify these mappings remain correct:
-
-- `get_c3_component_balances`: `p_payer_type = 'ER'`, `p_is_for_director = true` when NW
-- `create_c3_payment_with_receipt`: `p_payer_type = 'ER'`, `p_is_for_director = true` when NW
-
-### Step 3: Update Payer ID placeholder for NW type
-
-**File:** `src/components/payments/PaymentHeaderForm.tsx`
-
-Update the placeholder logic (line 140) to show "Reg. No." for NW type as well (since NWD uses employer registration numbers):
-
-```
-placeholder={payerType === 'ER' || payerType === 'NW' ? 'Reg. No.' : 'SSN'}
+```typescript
+// Line ~235, after cleanPayload is built:
+if (header.is_for_director) {
+  cleanPayload.is_for_director = true;  // boolean, not string
+}
 ```
 
-## Files Changed
+2. **Delete the old string assignment** at lines 197-200 that sets `payload.is_for_director = "true"`.
 
+This ensures the JSON body sent to C3-Wizard contains `"is_for_director": true` (boolean), matching the required contract from the SSB Admin team's specification.
 
-| File                                            | Change                                         |
-| ----------------------------------------------- | ---------------------------------------------- |
-| `src/components/payments/PaymentHeaderForm.tsx` | Add 'NW' payer type option, update placeholder |
+## What Changes
 
-
-## What This Fixes
-
-- NWD payments will no longer trigger false overpayment errors
-- The payer type dropdown retains the 'NW' selection throughout the payment flow
-- The `is_for_director = true` flag is correctly sent to both the balance RPC and the payment RPC
-- No changes to database functions, no changes to other payment flows (ER, SE, VC)
+| File | Change |
+|------|--------|
+| `supabase/functions/sync-c3-payment/index.ts` | Move `is_for_director` from string payload to `cleanPayload` as boolean `true` |
 
 ## What Stays Unchanged
 
-- All database RPCs (`create_c3_payment_with_receipt`, `get_c3_component_balances`) — no changes needed
-- ER, SE, VC payment flows — completely unaffected
-- UI layout and structure — only one new dropdown option added  
-  
-  
-**Important Note:** Do not implement this plan, as it is completely incorrect.
-  Create a new plan after proper analysis. The **payer_type** should never be **NW**. The payer type is always **ER**, and if **is_for_director = true**, it means the employer is making a payment for a Non-Working Director (NWD).
-  Currently, the plan incorrectly uses **payer_type = NW**, which is not correct. Instead, always use **payer_type = ER**, and use the **is_for_director** flag to determine whether the payment is related to NWD or regular employees.
-  Please review this carefully and create a proper new plan after analysis.
+- All other payload fields remain as-is
+- Retry logic, logging, idempotency checks — untouched
+- Regular ER and SE sync flows — unaffected (the flag is only added when `header.is_for_director` is truthy)
+- No database or frontend changes needed
+
+## After Deploy
+
+The two failed payments (Schedule 3 and Schedule 6 for March 2026, employer 658852) can be retried via the existing Resync button in the UI.
+
