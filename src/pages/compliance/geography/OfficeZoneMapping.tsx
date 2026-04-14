@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Building2, Plus, Pencil, Power } from "lucide-react";
 import { toast } from "sonner";
-import { useOfficeCodes } from "@/hooks/compliance/useOfficeCodes";
+import { OfficeSelect } from "@/components/compliance/OfficeSelect";
 
 interface MappingRow {
   id: string;

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Route, Plus, Pencil, Power, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { useOfficeCodes } from "@/hooks/compliance/useOfficeCodes";
+import { OfficeSelect } from "@/components/compliance/OfficeSelect";
 
 interface RuleRow {
   id: string;
