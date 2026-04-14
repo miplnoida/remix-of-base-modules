@@ -426,24 +426,27 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     }
 
     // NWD: only levy and levy penalty are applicable; everything else is 0
+    // Prefer persisted record values over wage-based calculations
     if (isNWD) {
+      const nwdLevy = initialData?.empLevyAmtCalc != null ? Number(initialData.empLevyAmtCalc) : (totals.employeeLevy + totals.employerLevy);
+      const nwdLevyPenalty = initialData?.empLevyPenaltyAmt != null ? Number(initialData.empLevyPenaltyAmt) : totals.levyPenalty;
       return {
         periodGross: totals.periodGross,
         employeeSS: 0,
-        employeeLevy: totals.employeeLevy,
+        employeeLevy: nwdLevy,
         employerSS: 0,
-        employerLevy: totals.employerLevy,
+        employerLevy: 0,
         employerSeverance: 0,
-        employeeLevySS: totals.employeeLevy, // no SS component
-        employerThreePercent: totals.employerLevy, // levy only, no SS
+        employeeLevySS: nwdLevy, // levy only, no SS
+        employerThreePercent: 0, // already included in employeeLevy (nwdLevy)
         employerOnePercent: 0, // no severance
-        totalWagesPlusEmployeeLevyPlusSS: totals.periodGross + totals.employeeLevy, // no SS
-        employersThreePercentLevyPlusSS: totals.employerLevy, // no SS
+        totalWagesPlusEmployeeLevyPlusSS: totals.periodGross + nwdLevy,
+        employersThreePercentLevyPlusSS: 0,
         employersOnePercentSeverancePay: 0,
-        levyPenalty: totals.levyPenalty,
+        levyPenalty: nwdLevyPenalty,
         severancePenalty: 0,
         fines: 0,
-        totalLateCharges: totals.levyPenalty, // only levy penalty
+        totalLateCharges: nwdLevyPenalty,
         daysLate: totals.daysLate,
         monthsLate: totals.monthsLate || 0
       };
