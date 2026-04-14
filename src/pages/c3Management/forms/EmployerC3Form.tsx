@@ -472,7 +472,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       daysLate: totals.daysLate,
       monthsLate: totals.monthsLate || 0
     };
-  }, [calculationResult, isNWD]);
+  }, [calculationResult, isNWD, initialData?.empLevyAmtCalc, initialData?.empLevyPenaltyAmt]);
 
   // Calculate SS Contribution due for the month and Total due to Accountant General
   // For NWD records, only levy-related components apply (no SS, Severance, PE)
