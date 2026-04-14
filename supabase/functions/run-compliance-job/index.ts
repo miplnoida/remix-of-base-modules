@@ -20,6 +20,13 @@ const EDGE_FUNCTION_JOBS: Record<string, string> = {
   'EMP-STALE-REVIEW': 'ce-stale-review',
   'JOB-ESCALATION-REVIEW': 'ce-escalation-review',
   'JOB-NOTICE-GEN': 'ce-notice-gen',
+  'LEDGER-C3-POST': 'ce-ledger-c3-posting',
+  'LEDGER-PAY-POST': 'ce-ledger-payment-posting',
+  'LEDGER-PENALTY-ACCRUAL': 'ce-ledger-penalty-accrual',
+  'LEDGER-RECONCILE': 'ce-ledger-reconciliation',
+  'LEDGER-BACKFILL': 'ce-ledger-backfill',
+  'LEDGER-REBUILD': 'ce-ledger-rebuild',
+  'LEDGER-REVERSAL': 'ce-ledger-reversal',
 };
 
 // Jobs that have RPC handlers
