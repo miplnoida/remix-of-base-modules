@@ -98,7 +98,7 @@ class InspectionService {
 
   async createWeeklyPlanItem(request: CreateWeeklyPlanItemRequest): Promise<WeeklyPlanItem> {
     // Resolve employer name if needed
-    let employerName = request.employerId ? undefined : undefined;
+    let employerName: string | undefined;
     if (request.employerId) {
       const { data: emp } = await supabase
         .from('er_master')
@@ -108,21 +108,59 @@ class InspectionService {
       employerName = (emp as any)?.name ?? request.employerId;
     }
 
+    // Find or create a draft plan for the current week
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+    const weekStart = monday.toISOString().slice(0, 10);
+
+    let { data: existingPlan } = await supabase
+      .from('ce_weekly_plans')
+      .select('id')
+      .eq('week_start_date', weekStart)
+      .in('status', ['DRAFT', 'APPROVED', 'IN_EXECUTION'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let planId = existingPlan?.id;
+    if (!planId) {
+      const friday = new Date(monday);
+      friday.setDate(monday.getDate() + 4);
+      const { data: newPlan, error: planErr } = await supabase
+        .from('ce_weekly_plans')
+        .insert({
+          plan_number: `WP-${today.getFullYear()}-W${String(Math.ceil((today.getTime() - new Date(today.getFullYear(), 0, 1).getTime()) / (7 * 24 * 60 * 60 * 1000))).padStart(2, '0')}`,
+          week_start_date: weekStart,
+          week_end_date: friday.toISOString().slice(0, 10),
+          status: 'DRAFT',
+          total_planned_visits: 0,
+          completed_visits: 0,
+          created_by: 'SYSTEM',
+        })
+        .select('id')
+        .single();
+      if (planErr) throw planErr;
+      planId = newPlan.id;
+    }
+
     const { data, error } = await supabase
       .from('ce_weekly_plan_items')
       .insert({
+        plan_id: planId,
         item_type: request.itemType,
-        employer_id: request.employerId,
-        employer_name: employerName,
+        employer_id: request.employerId ?? null,
+        employer_name: employerName ?? null,
         territory: request.territory,
         scheduled_date: request.plannedDate,
         scheduled_start_time: request.plannedStartTime || null,
         scheduled_end_time: request.plannedEndTime || null,
-        area_name: request.areaName,
-        purpose: request.focusNotes,
+        area_name: request.areaName ?? null,
+        purpose: request.focusNotes ?? null,
         execution_status: 'NOT_STARTED',
         created_by: 'SYSTEM',
-      })
+      } as any)
       .select('*')
       .single();
     if (error) throw error;
