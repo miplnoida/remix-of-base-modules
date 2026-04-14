@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { EnhancedDetectionRuleDialog } from '@/components/compliance/detection/DetectionRuleDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -463,220 +464,8 @@ const FormulaBuilder = ({ value, onChange, operands }: { value: string; onChange
   );
 };
 
-// ── Parameters Editor (JSONB key-value) ──
+// Detection Rule Dialog is now in src/components/compliance/detection/DetectionRuleDialog.tsx
 
-const ParametersEditor = ({ value, onChange }: { value: Record<string, any>; onChange: (v: Record<string, any>) => void }) => {
-  const entries = Object.entries(value || {});
-  const addParam = () => onChange({ ...value, '': '' });
-  const removeParam = (key: string) => {
-    const copy = { ...value };
-    delete copy[key];
-    onChange(copy);
-  };
-  const updateKey = (oldKey: string, newKey: string) => {
-    const copy: Record<string, any> = {};
-    for (const [k, v] of Object.entries(value)) {
-      copy[k === oldKey ? newKey : k] = v;
-    }
-    onChange(copy);
-  };
-  const updateValue = (key: string, val: string) => onChange({ ...value, [key]: val });
-
-  return (
-    <div className="space-y-2">
-      {entries.length === 0 && <p className="text-xs text-muted-foreground">No parameters configured.</p>}
-      {entries.map(([key, val], idx) => (
-        <div key={idx} className="flex items-center gap-2">
-          <Input className="flex-1 h-8 text-sm font-mono" placeholder="key" value={key} onChange={e => updateKey(key, e.target.value)} />
-          <span className="text-muted-foreground">=</span>
-          <Input className="flex-1 h-8 text-sm" placeholder="value" value={String(val)} onChange={e => updateValue(key, e.target.value)} />
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => removeParam(key)}><X className="h-3.5 w-3.5" /></Button>
-        </div>
-      ))}
-      <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={addParam}><PlusCircle className="h-3.5 w-3.5" /> Add Parameter</Button>
-    </div>
-  );
-};
-
-// ── Detection Rule Dialog ──
-
-const DetectionRuleDialog = ({
-  open, onOpenChange, rule, violationTypes, onSave, saving, existingCodes, conditionVars,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  rule: DetectionRule | null;
-  violationTypes: ViolationType[];
-  onSave: (data: any) => void;
-  saving: boolean;
-  existingCodes: string[];
-  conditionVars: ConditionVar[];
-}) => {
-  const isEdit = !!rule;
-  const [form, setForm] = useState({
-    rule_code: rule?.rule_code || '',
-    name: rule?.name || '',
-    description: rule?.description || '',
-    trigger_event: rule?.trigger_event || '',
-    condition_expression: rule?.condition_expression || '',
-    frequency: rule?.frequency || 'daily',
-    priority: rule?.priority || 'Medium',
-    auto_create_violation: rule?.auto_create_violation ?? true,
-    is_enabled: rule?.is_enabled ?? true,
-    violation_type_id: rule?.violation_type_id || '',
-    parameters: rule?.parameters || {},
-  });
-
-  React.useEffect(() => {
-    if (open) {
-      const autoCode = isEdit ? (rule?.rule_code || '') : generateNextCode(existingCodes, 'DR-');
-      setForm({
-        rule_code: autoCode,
-        name: rule?.name || '',
-        description: rule?.description || '',
-        trigger_event: rule?.trigger_event || '',
-        condition_expression: rule?.condition_expression || '',
-        frequency: rule?.frequency || 'daily',
-        priority: rule?.priority || 'Medium',
-        auto_create_violation: rule?.auto_create_violation ?? true,
-        is_enabled: rule?.is_enabled ?? true,
-        violation_type_id: rule?.violation_type_id || '',
-        parameters: rule?.parameters || {},
-      });
-    }
-  }, [open, rule]);
-
-  const handleTriggerChange = (val: string) => {
-    const ev = TRIGGER_EVENTS.find(e => e.value === val);
-    setForm(p => ({
-      ...p,
-      trigger_event: val === '__pick__' ? '' : val,
-      description: ev ? ev.description : p.description,
-    }));
-  };
-
-  const handleSave = () => {
-    if (!form.name || !form.trigger_event) {
-      toast.error('Please check the form for valid information!', {
-        description: 'Name and Trigger Event are required.',
-        style: { backgroundColor: 'hsl(var(--destructive))', color: 'white', '--description-color': 'white' } as React.CSSProperties,
-        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
-      });
-      return;
-    }
-    onSave({
-      ...form,
-      violation_type_id: form.violation_type_id || null,
-      condition_expression: form.condition_expression || null,
-      parameters: Object.keys(form.parameters).length > 0 ? form.parameters : null,
-    });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{isEdit ? 'Edit Detection Rule' : 'Add Detection Rule'}</DialogTitle>
-          <DialogDescription>Define when a compliance violation should be automatically detected.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Rule Code</Label>
-              <Input value={form.rule_code} readOnly className="bg-muted text-muted-foreground cursor-not-allowed font-mono" />
-              <p className="text-[11px] text-muted-foreground">Auto-generated</p>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Priority</Label>
-              <Select value={form.priority} onValueChange={v => setForm(p => ({ ...p, priority: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {['Low', 'Medium', 'High', 'Critical'].map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Name <span className="text-destructive">*</span></Label>
-            <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="Late C3 Submission" />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Trigger Event <span className="text-destructive">*</span></Label>
-            <Select value={form.trigger_event || '__pick__'} onValueChange={handleTriggerChange}>
-              <SelectTrigger><SelectValue placeholder="Select trigger event..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__pick__">Select trigger event...</SelectItem>
-                {TRIGGER_EVENTS.map(e => (
-                  <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {form.trigger_event && (
-              <p className="text-[11px] text-muted-foreground">{TRIGGER_EVENTS.find(e => e.value === form.trigger_event)?.description}</p>
-            )}
-          </div>
-          <div className="space-y-1.5">
-            <Label>Description</Label>
-            <Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe when this rule triggers..." rows={2} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Frequency</Label>
-            <Select value={form.frequency || 'daily'} onValueChange={v => setForm(p => ({ ...p, frequency: v }))}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {[
-                  { value: 'on_event', label: 'On Event (Real-time)' },
-                  { value: 'hourly', label: 'Hourly' },
-                  { value: 'daily', label: 'Daily' },
-                  { value: 'weekly', label: 'Weekly' },
-                  { value: 'monthly', label: 'Monthly' },
-                ].map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Conditions <span className="text-muted-foreground text-xs font-normal">(when should this trigger?)</span></Label>
-            <ConditionBuilder
-              value={form.condition_expression}
-              onChange={v => setForm(p => ({ ...p, condition_expression: v }))}
-              variables={conditionVars}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Linked Violation Type</Label>
-            <Select value={form.violation_type_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, violation_type_id: v === '__none__' ? '' : v }))}>
-              <SelectTrigger><SelectValue placeholder="Select violation type..." /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">None</SelectItem>
-                {violationTypes.map(vt => <SelectItem key={vt.id} value={vt.id}>{vt.code} – {vt.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Parameters <span className="text-muted-foreground text-xs font-normal">(detection thresholds & config)</span></Label>
-            <ParametersEditor value={form.parameters} onChange={v => setForm(p => ({ ...p, parameters: v }))} />
-          </div>
-          <div className="flex items-center gap-6 pt-2">
-            <div className="flex items-center gap-2">
-              <Checkbox checked={form.auto_create_violation} onCheckedChange={c => setForm(p => ({ ...p, auto_create_violation: !!c }))} />
-              <Label className="font-normal text-sm">Auto-create Violation</Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox checked={form.is_enabled} onCheckedChange={c => setForm(p => ({ ...p, is_enabled: !!c }))} />
-              <Label className="font-normal text-sm">Enabled</Label>
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}{isEdit ? 'Update Rule' : 'Create Rule'}</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// ── Calculation Rule Dialog ──
 
 const CalculationRuleDialog = ({
   open, onOpenChange, rule, violationTypes, onSave, saving, existingCodes, formulaOps,
@@ -1318,7 +1107,7 @@ const RuleEngine = () => {
       </Card>
 
       {/* Dialogs */}
-      <DetectionRuleDialog
+      <EnhancedDetectionRuleDialog
         open={detectionDialogOpen}
         onOpenChange={v => { setDetectionDialogOpen(v); if (!v) setEditingDetection(null); }}
         rule={editingDetection}
