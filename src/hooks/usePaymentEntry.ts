@@ -60,7 +60,7 @@ export function usePaymentEntry() {
     payerId: string
   ): Promise<PayerInfo | null> => {
     try {
-      if (payerType === 'ER' || payerType === 'NW') {
+      if (payerType === 'ER') {
         const { data, error } = await supabase
           .from('er_master')
           .select('regno, name, status')
@@ -118,7 +118,7 @@ export function usePaymentEntry() {
     searchTerm: string
   ): Promise<PayerInfo[]> => {
     try {
-      if (payerType === 'ER' || payerType === 'NW') {
+      if (payerType === 'ER') {
         const { data } = await supabase
           .from('er_master')
           .select('regno, name, status')

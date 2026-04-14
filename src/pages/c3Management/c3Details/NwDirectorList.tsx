@@ -143,7 +143,8 @@ const NwDirectorList: React.FC = () => {
         month: String(record.month_number),
         year: record.year,
         schedule: String(record.schedule),
-        payerType: 'NW',
+        payerType: 'ER',
+        isForDirector: 'true',
       },
     });
   };
