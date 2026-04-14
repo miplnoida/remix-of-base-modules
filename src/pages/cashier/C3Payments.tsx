@@ -265,7 +265,7 @@ const C3Payments: React.FC = () => {
         console.error('Error auto-loading C3 component balances:', err);
       }
     })();
-  }, [navState, c3ComponentsLoaded, paymentTypesAll, ptLoading]);
+  }, [navState, c3ComponentsLoaded, paymentTypesAll, ptLoading, isForDirector]);
 
   const handleSelectComponent = useCallback((code: string) => {
     const pt = c3PaymentTypeDetails.find((p: any) => p.payment_code === code);
@@ -441,7 +441,7 @@ const C3Payments: React.FC = () => {
       setFlowState('entry');
     }
   }, [batchSel.selectedBatch, payerInfo, payerType, payerId, dateReceived, remarks,
-    selectedComponents, c3Amount, methods, totalPaymentReceived, period, userCode, receiptActions]);
+    selectedComponents, c3Amount, methods, totalPaymentReceived, period, userCode, receiptActions, isForDirector]);
 
   /* ── payment sync ─────────────────────── */
 
