@@ -154,15 +154,24 @@ export default function Employer360() {
       )}
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Risk</div><Badge className={`mt-1 ${RISK_BAND_COLORS[riskBand] || 'bg-muted text-muted-foreground'}`}>{riskBand}</Badge></CardContent></Card>
-        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Outstanding</div><div className="text-lg font-bold text-destructive">{formatCurrency(arrears?.total_outstanding ?? 0)}</div></CardContent></Card>
-        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Violations</div><div className="text-2xl font-bold">{activeViolations.length}</div></CardContent></Card>
-        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Cases</div><div className="text-2xl font-bold">{activeCases.length}</div></CardContent></Card>
-        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Missed Filings</div><div className="text-2xl font-bold">{filing?.missed_filings_12m ?? '—'}</div></CardContent></Card>
-        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Workforce</div><div className="text-lg font-bold">{workforce?.registered_total ?? '—'}</div></CardContent></Card>
-        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Paid YTD</div><div className="text-lg font-bold text-green-600">{formatCurrency(payments?.total_amount_12m ?? 0)}</div></CardContent></Card>
-        <Card><CardContent className="pt-4 pb-3"><div className="text-xs text-muted-foreground">Legal</div><div className="text-2xl font-bold">{(legal?.active_suit_count ?? 0) + (legal?.active_escalation_count ?? 0)}</div></CardContent></Card>
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        {[
+          { label: 'Risk', content: <Badge className={`${RISK_BAND_COLORS[riskBand] || 'bg-muted text-muted-foreground'}`}>{riskBand}</Badge> },
+          { label: 'Outstanding', content: <span className="text-sm font-bold text-destructive truncate">{formatCurrency(arrears?.total_outstanding ?? 0)}</span> },
+          { label: 'Violations', content: <span className="text-xl font-bold">{activeViolations.length}</span> },
+          { label: 'Cases', content: <span className="text-xl font-bold">{activeCases.length}</span> },
+          { label: 'Missed Filings', content: <span className="text-xl font-bold">{filing?.missed_filings_12m ?? '—'}</span> },
+          { label: 'Workforce', content: <span className="text-lg font-bold">{workforce?.registered_total ?? '—'}</span> },
+          { label: 'Paid YTD', content: <span className="text-sm font-bold text-green-600 truncate">{formatCurrency(payments?.total_amount_12m ?? 0)}</span> },
+          { label: 'Legal', content: <span className="text-xl font-bold">{(legal?.active_suit_count ?? 0) + (legal?.active_escalation_count ?? 0)}</span> },
+        ].map((kpi, i) => (
+          <Card key={i}>
+            <CardContent className="p-3 flex flex-col items-center justify-center text-center min-h-[72px]">
+              <div className="text-[11px] text-muted-foreground leading-tight mb-1 whitespace-nowrap">{kpi.label}</div>
+              <div className="w-full flex justify-center overflow-hidden">{kpi.content}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Tabs */}
