@@ -53,7 +53,163 @@ function mapRow(row: any): PaymentArrangement {
   };
 }
 
+// ============================================
+// Case-Driven Arrangement Creation Request
+// ============================================
+export interface CreateArrangementFromCaseRequest {
+  caseId: string;
+  caseNumber: string;
+  employerId: string;
+  employerName: string;
+  totalDebtFromCase: number;
+  downPayment: number;
+  numberOfInstallments: number;
+  frequency: string;
+  startDate: string;
+  terms?: string;
+  notes?: string;
+}
+
 class CentralPaymentArrangementService {
+  /**
+   * Case-driven arrangement creation — the primary creation path.
+   * Validates case ownership, creates arrangement + installments,
+   * transitions case status, and records case history.
+   */
+  async createArrangementFromCase(request: CreateArrangementFromCaseRequest): Promise<PaymentArrangement> {
+    const userCode = await getCurrentUserCode();
+
+    // 1. Validate the case exists and belongs to the employer
+    const { data: caseRow, error: caseErr } = await supabase
+      .from('ce_cases')
+      .select('id, employer_id, employer_name, total_amount, amount_collected, status, case_number')
+      .eq('id', request.caseId)
+      .single();
+
+    if (caseErr || !caseRow) throw new Error('Case not found');
+    if (caseRow.employer_id !== request.employerId) {
+      throw new Error('Employer does not match the selected case');
+    }
+
+    const caseOutstanding = Number(caseRow.total_amount ?? 0) - Number(caseRow.amount_collected ?? 0);
+    if (caseOutstanding <= 0) {
+      throw new Error('Case has no outstanding balance to arrange');
+    }
+    if (request.totalDebtFromCase > caseOutstanding) {
+      throw new Error(`Arranged amount (${request.totalDebtFromCase}) exceeds case outstanding balance (${caseOutstanding})`);
+    }
+
+    // 2. Check for existing active arrangement on this employer
+    const { data: existing } = await supabase
+      .from('ce_payment_arrangements')
+      .select('id')
+      .eq('employer_id', request.employerId)
+      .eq('status', 'ACTIVE')
+      .maybeSingle();
+
+    if (existing) {
+      throw new Error('This employer already has an active payment arrangement. Please supersede or complete the existing arrangement first.');
+    }
+
+    // 3. Generate arrangement number
+    const year = new Date().getFullYear();
+    const { count } = await supabase.from('ce_payment_arrangements').select('id', { count: 'exact', head: true });
+    const arrangementNumber = `PA-${year}-${String((count ?? 0) + 1).padStart(4, '0')}`;
+
+    // 4. Calculate installment schedule
+    const financeableAmount = request.totalDebtFromCase - request.downPayment;
+    const installmentAmount = financeableAmount / request.numberOfInstallments;
+    const endDate = calculateDueDate(request.startDate, request.numberOfInstallments - 1, request.frequency);
+    const nextDueDate = request.startDate;
+
+    // 5. Insert arrangement
+    const { data: arrData, error: arrErr } = await supabase
+      .from('ce_payment_arrangements')
+      .insert({
+        arrangement_number: arrangementNumber,
+        case_id: request.caseId,
+        employer_id: request.employerId,
+        employer_name: request.employerName,
+        status: 'DRAFT',
+        total_debt: request.totalDebtFromCase,
+        down_payment: request.downPayment,
+        installment_amount: Number(installmentAmount.toFixed(2)),
+        number_of_installments: request.numberOfInstallments,
+        frequency: request.frequency,
+        start_date: request.startDate,
+        end_date: endDate,
+        next_due_date: nextDueDate,
+        total_paid: 0,
+        installments_paid: 0,
+        terms_text: request.terms ?? null,
+        created_by: userCode ?? 'SYSTEM',
+        updated_by: userCode ?? 'SYSTEM',
+      })
+      .select('*')
+      .single();
+
+    if (arrErr) throw arrErr;
+
+    // 6. Generate installment rows in ce_installments
+    const installmentRows = [];
+    for (let i = 0; i < request.numberOfInstallments; i++) {
+      const dueDate = calculateDueDate(request.startDate, i, request.frequency);
+      // Last installment absorbs rounding difference
+      const amt = i === request.numberOfInstallments - 1
+        ? Number((financeableAmount - installmentAmount * (request.numberOfInstallments - 1)).toFixed(2))
+        : Number(installmentAmount.toFixed(2));
+
+      installmentRows.push({
+        arrangement_id: arrData.id,
+        installment_number: i + 1,
+        amount: amt,
+        due_date: dueDate,
+        status: 'PLANNED',
+        paid_amount: 0,
+      });
+    }
+
+    const { error: instErr } = await supabase
+      .from('ce_installments')
+      .insert(installmentRows);
+
+    if (instErr) {
+      console.error('Failed to create installments:', instErr);
+      // Rollback arrangement
+      await supabase.from('ce_payment_arrangements').delete().eq('id', arrData.id);
+      throw new Error('Failed to create installment schedule');
+    }
+
+    // 7. Update case status to PAYMENT_ARRANGEMENT stage
+    const previousStatus = caseRow.status;
+    await supabase
+      .from('ce_cases')
+      .update({
+        status: 'CSTG_PAYMENT_ARRANGEMENT_ACTIVE',
+        updated_by: userCode ?? 'SYSTEM',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', request.caseId);
+
+    // 8. Insert case history record
+    await supabase
+      .from('ce_case_history')
+      .insert({
+        case_id: request.caseId,
+        action: 'PAYMENT_ARRANGEMENT_CREATED',
+        from_status: previousStatus,
+        to_status: 'CSTG_PAYMENT_ARRANGEMENT_ACTIVE',
+        performed_by: userCode ?? 'SYSTEM',
+        notes: `Payment arrangement ${arrangementNumber} created for ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD' }).format(request.totalDebtFromCase)}. ${request.numberOfInstallments} ${request.frequency.toLowerCase()} installments of ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD' }).format(installmentAmount)}.`,
+        performed_at: new Date().toISOString(),
+      });
+
+    return mapRow(arrData);
+  }
+
+  /**
+   * @deprecated Use createArrangementFromCase instead. Kept for backward compatibility.
+   */
   async createArrangement(request: CreateArrangementRequest): Promise<PaymentArrangement> {
     const userCode = await getCurrentUserCode();
     const totalArrangedAmount = request.items.reduce((s, i) => s + i.arrangedAmount, 0);
@@ -82,7 +238,7 @@ class CentralPaymentArrangementService {
       .insert({
         arrangement_number: arrangementNumber,
         employer_id: request.employerId,
-        employer_name: '', // Will be populated by caller or trigger
+        employer_name: '',
         status: 'DRAFT',
         total_debt: totalArrangedAmount,
         down_payment: 0,

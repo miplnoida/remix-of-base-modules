@@ -10,8 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import {
   Loader2, Eye, Briefcase, History, AlertCircle, CheckCircle, Building2,
-  ArrowLeft, Link2
+  ArrowLeft, Link2, HandshakeIcon
 } from 'lucide-react';
+import { CasePaymentArrangementDialog } from '@/components/compliance/CasePaymentArrangementDialog';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -60,6 +61,7 @@ export default function CaseDetailView() {
   const [cascadeDialogOpen, setCascadeDialogOpen] = useState(false);
   const [cascadeReason, setCascadeReason] = useState('');
   const [cascading, setCascading] = useState(false);
+  const [arrangementDialogOpen, setArrangementDialogOpen] = useState(false);
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
@@ -191,6 +193,13 @@ export default function CaseDetailView() {
               <Button variant="destructive" size="sm" onClick={() => setCascadeDialogOpen(true)}>
                 <CheckCircle className="h-4 w-4 mr-1" />
                 Cascade Resolve ({activeViolationCount})
+              </Button>
+            )}
+            {!['RESOLVED', 'CLOSED', 'COMPLETED', 'CSTG_PAYMENT_ARRANGEMENT_ACTIVE'].includes(c.status) &&
+              (Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0)) > 0 && (
+              <Button size="sm" onClick={() => setArrangementDialogOpen(true)}>
+                <HandshakeIcon className="h-4 w-4 mr-1" />
+                Create Payment Arrangement
               </Button>
             )}
           </div>
@@ -373,6 +382,18 @@ export default function CaseDetailView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Case-Driven Payment Arrangement Dialog */}
+      <CasePaymentArrangementDialog
+        open={arrangementDialogOpen}
+        onOpenChange={setArrangementDialogOpen}
+        caseId={c.id}
+        caseNumber={c.case_number}
+        employerId={c.employer_id}
+        employerName={c.employer_name || 'Unknown Employer'}
+        totalAmount={Number(c.total_amount) || 0}
+        amountCollected={Number(c.amount_collected) || 0}
+      />
     </div>
   );
 }
