@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { useUserCode } from '@/hooks/useUserCode';
+import { supabase } from '@/integrations/supabase/client';
 import { weeklyPlanService, planItemService } from '@/services/weeklyPlanService';
 import { planCandidateService } from '@/services/planCandidateService';
 import {
