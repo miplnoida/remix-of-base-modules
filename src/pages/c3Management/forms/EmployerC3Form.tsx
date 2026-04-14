@@ -821,6 +821,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                     </Badge>
                   )}
                 </div>
+              </div>
 
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Payments</Label>
