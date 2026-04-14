@@ -72,17 +72,16 @@ function useJobRunStatus() {
   return useQuery({
     queryKey: ["ledger_ops_job_status"],
     queryFn: async () => {
-      // Get latest run per job_code
       const { data, error } = await supabase
         .from("ce_job_run_log" as any)
         .select("*")
         .order("run_start", { ascending: false })
         .limit(100);
       if (error) throw error;
-      // Group by job_code, take latest
+      const rows = (data || []) as any[];
       const byJob = new Map<string, any>();
-      for (const run of (data || [])) {
-        if (!byJob.has(run.job_code)) byJob.set(run.job_code, run);
+      for (const run of rows) {
+        if (run.job_code && !byJob.has(run.job_code)) byJob.set(run.job_code, run);
       }
       return Array.from(byJob.values());
     },
