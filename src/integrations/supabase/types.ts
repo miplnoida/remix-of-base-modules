@@ -20245,6 +20245,84 @@ export type Database = {
           },
         ]
       }
+      cn_head_cashier_default: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          effective_from: string
+          full_name: string | null
+          id: string
+          is_active: boolean
+          office_code: string
+          user_code: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          effective_from?: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          office_code: string
+          user_code: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          effective_from?: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          office_code?: string
+          user_code?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      cn_head_cashier_override: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          full_name: string | null
+          id: string
+          is_active: boolean
+          office_code: string
+          override_end: string
+          override_start: string
+          reason: string | null
+          user_code: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          office_code: string
+          override_end: string
+          override_start: string
+          reason?: string | null
+          user_code: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          full_name?: string | null
+          id?: string
+          is_active?: boolean
+          office_code?: string
+          override_end?: string
+          override_start?: string
+          reason?: string | null
+          user_code?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       cn_invoice_lines: {
         Row: {
           amount: number
@@ -46412,6 +46490,19 @@ export type Database = {
         }
         Returns: Json
       }
+      create_head_cashier_override: {
+        Args: {
+          p_assigned_by?: string
+          p_end?: string
+          p_full_name?: string
+          p_office_code: string
+          p_reason?: string
+          p_start?: string
+          p_user_code: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       create_invoice_with_lines:
         | {
             Args: {
@@ -46495,6 +46586,10 @@ export type Database = {
           p_target_year: number
         }
         Returns: string
+      }
+      delete_head_cashier_override: {
+        Args: { p_deleted_by?: string; p_override_id: string }
+        Returns: Json
       }
       edit_and_verify_batch_cheque: {
         Args: {
@@ -47530,6 +47625,10 @@ export type Database = {
           entity_type: string
         }[]
       }
+      resolve_head_cashier: {
+        Args: { p_date?: string; p_office_code?: string }
+        Returns: Json
+      }
       resolve_holiday_pay_policy: {
         Args: {
           p_month: number
@@ -47586,6 +47685,16 @@ export type Database = {
           p_user_name?: string
           p_workflow_id: string
           p_workflow_instance_id: string
+        }
+        Returns: Json
+      }
+      set_default_head_cashier: {
+        Args: {
+          p_assigned_by?: string
+          p_full_name?: string
+          p_office_code: string
+          p_user_code: string
+          p_user_id: string
         }
         Returns: Json
       }
