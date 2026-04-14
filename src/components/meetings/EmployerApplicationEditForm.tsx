@@ -164,6 +164,12 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
     activityTypes,
     inspectorCodes,
   } = useERLookups();
+  const { data: countries = [] } = useCountries();
+
+  const countryOptions = countries.map(c => ({
+    code: c.code?.trim() || '',
+    label: `${c.code?.trim() || ''} - ${c.description?.trim() || ''}`,
+  }));
 
   // Owner CRUD state
   const [ownerDialogOpen, setOwnerDialogOpen] = useState(false);
