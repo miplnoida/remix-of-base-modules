@@ -17,6 +17,7 @@ interface UseC3PaymentsParams {
   payerType: string; // e.g., 'ER' for Employer
   periodYear: number | null;
   periodMonth: number | null; // 0-indexed (0 = January)
+  sequenceNo: number | null; // Schedule number for filtering payments per-schedule
 }
 
 interface UseC3PaymentsResult {
@@ -30,10 +31,11 @@ interface UseC3PaymentsResult {
  * Hook to calculate total payments for a C3 period
  * 
  * This hook queries the database to sum all valid payment amounts for the selected
- * employer and C3 period. The logic follows:
+ * employer, C3 period, AND schedule number. The logic follows:
  * 
  * - Joins cn_payment with cn_payment_header on payment_id
  * - Joins cn_receipt on payment_id where receipt status != 'C' (not cancelled)
+ * - Joins c3_payment_components on payment_id to filter by sequence_no (schedule)
  * - Filters by period month/year matching the C3 period
  * - Filters by payer_id matching the employer registration number
  * - Filters by payer_type matching the employer's payer type
@@ -44,7 +46,8 @@ export function useC3Payments({
   payerId,
   payerType,
   periodYear,
-  periodMonth
+  periodMonth,
+  sequenceNo
 }: UseC3PaymentsParams): UseC3PaymentsResult {
   const [totalPayments, setTotalPayments] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -103,7 +106,30 @@ export function useC3Payments({
         return;
       }
 
-      const validPaymentIds = receipts.map(r => r.payment_id);
+      let validPaymentIds = receipts.map(r => r.payment_id);
+
+      // Filter by schedule number (sequence_no) via c3_payment_components
+      if (sequenceNo !== null && sequenceNo !== undefined) {
+        const { data: componentPayments, error: componentError } = await supabase
+          .from('c3_payment_components')
+          .select('payment_id')
+          .in('payment_id', validPaymentIds)
+          .eq('sequence_no', sequenceNo);
+
+        if (componentError) {
+          console.error('Error fetching c3_payment_components for schedule filter:', componentError);
+          // Fall through without schedule filter if this fails
+        } else if (componentPayments && componentPayments.length > 0) {
+          // Only keep payment IDs that have components for this specific schedule
+          const schedulePaymentIds = new Set(componentPayments.map(c => c.payment_id));
+          validPaymentIds = validPaymentIds.filter(id => schedulePaymentIds.has(id));
+        } else {
+          // No components found for this schedule — no payments for it
+          setTotalPayments(0);
+          setIsLoading(false);
+          return;
+        }
+      }
 
       // Get payments with allowed codes and matching period
       const { data: payments, error: paymentError } = await supabase
@@ -146,7 +172,7 @@ export function useC3Payments({
     } finally {
       setIsLoading(false);
     }
-  }, [payerId, payerType, periodYear, periodMonth]);
+  }, [payerId, payerType, periodYear, periodMonth, sequenceNo]);
 
   // Fetch payments when parameters change
   useEffect(() => {
