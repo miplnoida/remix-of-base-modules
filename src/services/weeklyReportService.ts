@@ -17,18 +17,20 @@ import { Violation } from '@/types/violation';
 function mapPlanItem(row: any): WeeklyPlanItem {
   return {
     id: row.id,
-    inspectorUserId: row.assigned_officer_id ?? '',
-    inspectorName: row.assigned_officer_name ?? '',
-    itemType: row.source_type ?? 'EMPLOYER_VISIT',
+    inspectorUserId: row.created_by ?? '',
+    inspectorName: '',
+    itemType: row.item_type ?? 'EMPLOYER_VISIT',
     visitDate: row.scheduled_date ?? '',
     plannedDate: row.scheduled_date ?? '',
     employerId: row.employer_id ?? '',
     employerName: row.employer_name ?? '',
-    territory: row.zone_name ?? '',
+    territory: row.territory ?? 'St Kitts',
     status: row.execution_status ?? 'PLANNED',
     createdAt: row.created_at,
     updatedAt: row.updated_at ?? row.created_at,
-    rescheduleReason: row.notes ?? undefined,
+    rescheduleReason: row.reschedule_reason ?? undefined,
+    notDoneReason: row.not_done_reason ?? undefined,
+    areaName: row.area_name ?? undefined,
   };
 }
 
@@ -40,7 +42,7 @@ function mapInspection(row: any): InspectionVisit {
     employerName: row.employer_name ?? '',
     inspectorUserId: row.inspector_id ?? '',
     inspectorName: '',
-    territory: row.location_address ?? '',
+    territory: row.location_address ?? 'St Kitts',
     visitDate: row.scheduled_date ?? '',
     checkInTime: row.check_in_time ?? undefined,
     checkInGPSLat: row.check_in_lat ?? undefined,
@@ -61,15 +63,14 @@ class WeeklyReportService {
   async getWeeklyPlanItems(inspectorId: string, weekStartDate: string): Promise<WeeklyPlanItem[]> {
     const weekEnd = this.getWeekEndDate(weekStartDate);
     let query = supabase
-      .from('ce_weekly_plan_items')
+      .from('ce_weekly_plan_items' as any)
       .select('*')
       .gte('scheduled_date', weekStartDate)
       .lte('scheduled_date', weekEnd)
       .order('scheduled_date');
 
-    // If inspectorId is provided, filter by it
     if (inspectorId) {
-      query = query.eq('assigned_officer_id', inspectorId);
+      query = query.eq('created_by', inspectorId);
     }
 
     const { data, error } = await query;
@@ -79,7 +80,7 @@ class WeeklyReportService {
 
   async getVisitById(visitId: string): Promise<InspectionVisit | undefined> {
     const { data, error } = await supabase
-      .from('ce_inspections')
+      .from('ce_inspections' as any)
       .select('*')
       .eq('id', visitId)
       .maybeSingle();
@@ -89,7 +90,7 @@ class WeeklyReportService {
 
   async getVisitByPlanItemId(planItemId: string): Promise<InspectionVisit | undefined> {
     const { data, error } = await supabase
-      .from('ce_inspections')
+      .from('ce_inspections' as any)
       .select('*')
       .eq('plan_item_id', planItemId)
       .maybeSingle();
@@ -99,7 +100,7 @@ class WeeklyReportService {
 
   async getEvidenceForVisit(visitId: string): Promise<InspectionEvidence[]> {
     const { data, error } = await supabase
-      .from('ce_inspection_findings')
+      .from('ce_inspection_findings' as any)
       .select('*')
       .eq('inspection_id', visitId)
       .eq('finding_type', 'EVIDENCE');
@@ -123,7 +124,7 @@ class WeeklyReportService {
 
   async getFindingsForVisit(visitId: string): Promise<InspectionFinding[]> {
     const { data, error } = await supabase
-      .from('ce_inspection_findings')
+      .from('ce_inspection_findings' as any)
       .select('*')
       .eq('inspection_id', visitId)
       .neq('finding_type', 'EVIDENCE');
@@ -133,7 +134,7 @@ class WeeklyReportService {
       inspectionVisitId: row.inspection_id,
       employerId: '',
       visitId: row.inspection_id,
-      findingType: row.finding_type ?? FindingType.OBSERVATION,
+      findingType: row.finding_type ?? FindingType.INFORMATION_ONLY,
       category: row.category ?? '',
       title: row.title ?? '',
       description: row.description ?? '',
@@ -153,22 +154,29 @@ class WeeklyReportService {
       .select('*')
       .eq('inspection_id', visitId);
     if (error) throw error;
-    return (data ?? []).map((row: any) => ({
+    return (data ?? []).map((row: any): Violation => ({
       id: row.id,
-      violationNumber: row.violation_number,
-      employerId: row.employer_id,
+      violationNumber: row.violation_number ?? '',
+      employerId: row.employer_id ?? '',
       employerName: row.employer_name ?? '',
-      violationType: row.violation_type,
+      violationType: row.violation_type ?? 'OTHER',
       violationTypeId: row.violation_type_id,
-      status: row.status,
+      status: row.status ?? 'OPEN',
       severity: row.severity ?? 'Medium',
+      priority: row.severity ?? 'Medium',
       description: row.description ?? '',
+      summary: row.description ?? '',
+      territory: row.territory ?? 'St Kitts',
       totalAmount: Number(row.total_amount ?? 0),
       detectedDate: row.detected_date,
       detectedBy: row.detected_by ?? '',
       assignedToUserId: row.assigned_to_user_id ?? '',
       createdAt: row.created_at,
       inspectionVisitId: row.inspection_id,
+      isUnlinked: false,
+      violationTypeLabel: row.violation_type ?? '',
+      assignedToUserName: '',
+      updatedAt: row.updated_at ?? row.created_at,
     }));
   }
 
@@ -179,10 +187,11 @@ class WeeklyReportService {
     createFollowUp: boolean
   ): Promise<{ updated: WeeklyPlanItem; followUp?: WeeklyPlanItem }> {
     const { data: updated, error } = await supabase
-      .from('ce_weekly_plan_items')
+      .from('ce_weekly_plan_items' as any)
       .update({
         execution_status: 'RESCHEDULED',
-        notes: reason,
+        reschedule_reason: reason,
+        rescheduled_to: newDate,
       })
       .eq('id', planItemId)
       .select('*')
@@ -190,35 +199,27 @@ class WeeklyReportService {
     if (error) throw error;
 
     let followUp: WeeklyPlanItem | undefined;
-    if (createFollowUp) {
-      // Clone the plan item with the new date
-      const { data: orig } = await supabase
-        .from('ce_weekly_plan_items')
+    if (createFollowUp && updated) {
+      const orig = updated as any;
+      const { data: newItem } = await supabase
+        .from('ce_weekly_plan_items' as any)
+        .insert({
+          plan_id: orig.plan_id,
+          employer_id: orig.employer_id,
+          employer_name: orig.employer_name,
+          scheduled_date: newDate,
+          source_type: orig.source_type,
+          source_id: orig.source_id,
+          source_ref: orig.source_ref,
+          priority: orig.priority,
+          created_by: orig.created_by,
+          territory: orig.territory,
+          execution_status: 'PLANNED',
+          outcome_notes: `Follow-up from rescheduled item: ${reason}`,
+        } as any)
         .select('*')
-        .eq('id', planItemId)
         .single();
-
-      if (orig) {
-        const { data: newItem } = await supabase
-          .from('ce_weekly_plan_items')
-          .insert({
-            plan_id: orig.plan_id,
-            employer_id: orig.employer_id,
-            employer_name: orig.employer_name,
-            scheduled_date: newDate,
-            source_type: orig.source_type,
-            source_reference_id: orig.source_reference_id,
-            priority: orig.priority,
-            assigned_officer_id: orig.assigned_officer_id,
-            assigned_officer_name: orig.assigned_officer_name,
-            zone_name: orig.zone_name,
-            execution_status: 'PLANNED',
-            notes: `Follow-up from rescheduled item: ${reason}`,
-          })
-          .select('*')
-          .single();
-        if (newItem) followUp = mapPlanItem(newItem);
-      }
+      if (newItem) followUp = mapPlanItem(newItem);
     }
 
     return { updated: mapPlanItem(updated), followUp };
@@ -226,10 +227,10 @@ class WeeklyReportService {
 
   async markAsNotDone(planItemId: string, reason: string): Promise<WeeklyPlanItem> {
     const { data, error } = await supabase
-      .from('ce_weekly_plan_items')
+      .from('ce_weekly_plan_items' as any)
       .update({
         execution_status: 'NOT_DONE',
-        notes: reason,
+        not_done_reason: reason,
       })
       .eq('id', planItemId)
       .select('*')
@@ -313,7 +314,7 @@ class WeeklyReportService {
       weekStartDate,
       weekEndDate: this.getWeekEndDate(weekStartDate),
       inspectorId,
-      inspectorName: '', // Resolved by caller
+      inspectorName: '',
       totalPlannedVisits: items.length,
       completedVisits,
       rescheduledVisits,

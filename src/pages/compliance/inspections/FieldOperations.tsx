@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { fetchFieldActivities } from "@/services/complianceDataService";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function FieldOperations() {
   const { toast } = useToast();
