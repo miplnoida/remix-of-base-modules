@@ -62,6 +62,12 @@ export default function ViolationsManagement() {
   const currentMonth = new Date().toISOString().slice(0, 7);
   const [monthFilter, setMonthFilter] = useState<string>(currentMonth);
   const [page, setPage] = useState(1);
+  const prevDebouncedRef = useState(debouncedSearch);
+  // Reset page when debounced search changes (not on every keystroke)
+  if (prevDebouncedRef[0] !== debouncedSearch) {
+    prevDebouncedRef[0] = debouncedSearch;
+    if (page !== 1) setPage(1);
+  }
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
@@ -171,7 +177,7 @@ export default function ViolationsManagement() {
               <Input
                 placeholder="Search by violation #, employer code, name, or summary..."
                 value={searchTerm}
-                onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
               />
             </div>
