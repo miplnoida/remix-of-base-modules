@@ -881,6 +881,31 @@ export async function getC3RecordWithWages(c3Id: string): Promise<{ data?: C3Rec
       console.error('Error fetching wages:', wagesError);
     }
 
+    // Fallback: fill missing employee_name from ip_master
+    let enrichedWages = wagesData || [];
+    if (enrichedWages.length > 0) {
+      const missingNameSSNs = enrichedWages
+        .filter(w => !w.employee_name && w.ssn)
+        .map(w => w.ssn);
+      
+      if (missingNameSSNs.length > 0) {
+        const { data: ipMasterData } = await supabase
+          .from('ip_master')
+          .select('ssn, firstname, surname')
+          .in('ssn', missingNameSSNs);
+        
+        if (ipMasterData && ipMasterData.length > 0) {
+          const nameMap = new Map(ipMasterData.map(ip => [ip.ssn, `${ip.firstname || ''} ${ip.surname || ''}`.trim()]));
+          enrichedWages = enrichedWages.map(w => {
+            if (!w.employee_name && w.ssn && nameMap.has(w.ssn)) {
+              return { ...w, employee_name: nameMap.get(w.ssn) };
+            }
+            return w;
+          });
+        }
+      }
+    }
+
     // Load other payments
     const { data: otherPaymentsData } = await (supabase as any)
       .from('ip_other_payments')
@@ -891,7 +916,7 @@ export async function getC3RecordWithWages(c3Id: string): Promise<{ data?: C3Rec
     return {
       data: {
         ...c3Data,
-        wages: wagesData || [],
+        wages: enrichedWages,
         otherPayments: otherPaymentsData || []
       }
     };
