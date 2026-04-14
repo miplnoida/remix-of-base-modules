@@ -1,59 +1,62 @@
-import { ViolationNote, CreateViolationNoteRequest, NoteType } from '@/types/violationNotes';
+// ============================================
+// VIOLATION NOTES SERVICE - DB-BACKED
+// ============================================
 
-// Mock data
-const mockNotes: ViolationNote[] = [
-  {
-    id: 'note-001',
-    violationId: 'VIOA-2024-001',
-    authorUserId: 'user-001',
-    authorName: 'John Inspector',
-    noteType: NoteType.INSPECTOR_COMMENT,
-    noteText: 'Visited employer premises. Business appears to be operating with 5-7 employees but no registration found.',
-    createdAt: '2024-01-15T09:30:00Z'
-  },
-  {
-    id: 'note-002',
-    violationId: 'VIOA-2024-001',
-    authorUserId: 'user-002',
-    authorName: 'Sarah Manager',
-    noteType: NoteType.MANAGER_COMMENT,
-    noteText: 'Recommend sending formal notice and scheduling follow-up visit in 2 weeks.',
-    createdAt: '2024-01-15T14:20:00Z'
-  },
-  {
-    id: 'note-003',
-    violationId: 'VIOA-2024-002',
-    authorUserId: 'user-001',
-    authorName: 'John Inspector',
-    noteType: NoteType.FIELD_NOTE,
-    noteText: 'C3 submitted but payment not received. Called employer - agreed to pay by end of week.',
-    createdAt: '2024-01-18T11:00:00Z'
-  }
-];
+import { supabase } from '@/integrations/supabase/client';
+import { ViolationNote, CreateViolationNoteRequest } from '@/types/violationNotes';
+import { getCurrentUserCode } from '@/hooks/useUserCode';
+
+function mapRow(row: any): ViolationNote {
+  return {
+    id: row.id,
+    violationId: row.violation_id,
+    authorUserId: row.author_user_id,
+    authorName: row.author_name,
+    noteType: row.note_type,
+    noteText: row.note_text,
+    createdAt: row.created_at,
+    linkedWeeklyPlanItemId: row.linked_weekly_plan_item_id ?? undefined,
+  };
+}
 
 class ViolationNotesService {
   async getByViolationId(violationId: string): Promise<ViolationNote[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return mockNotes.filter(note => note.violationId === violationId);
+    const { data, error } = await supabase
+      .from('ce_violation_notes')
+      .select('*')
+      .eq('violation_id', violationId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapRow);
   }
 
   async create(request: CreateViolationNoteRequest): Promise<ViolationNote> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const newNote: ViolationNote = {
-      id: `note-${Date.now()}`,
-      violationId: request.violationId,
-      authorUserId: 'current-user',
-      authorName: 'Current User',
-      noteType: request.noteType,
-      noteText: request.noteText,
-      createdAt: new Date().toISOString(),
-      linkedWeeklyPlanItemId: request.linkedWeeklyPlanItemId
-    };
-    
-    mockNotes.push(newNote);
-    return newNote;
+    // Resolve current user
+    const userCode = await getCurrentUserCode();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, user_code')
+      .eq('user_code', userCode ?? '')
+      .maybeSingle();
+
+    const authorName = (profile as any)?.full_name ?? userCode ?? 'System';
+    const authorUserId = userCode ?? 'SYSTEM';
+
+    const { data, error } = await supabase
+      .from('ce_violation_notes')
+      .insert({
+        violation_id: request.violationId,
+        author_user_id: authorUserId,
+        author_name: authorName,
+        note_type: request.noteType,
+        note_text: request.noteText,
+        linked_weekly_plan_item_id: request.linkedWeeklyPlanItemId ?? null,
+      })
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return mapRow(data);
   }
 }
 

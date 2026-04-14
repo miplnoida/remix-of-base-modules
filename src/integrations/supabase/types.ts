@@ -15530,6 +15530,39 @@ export type Database = {
           },
         ]
       }
+      ce_violation_notes: {
+        Row: {
+          author_name: string
+          author_user_id: string
+          created_at: string
+          id: string
+          linked_weekly_plan_item_id: string | null
+          note_text: string
+          note_type: string
+          violation_id: string
+        }
+        Insert: {
+          author_name: string
+          author_user_id: string
+          created_at?: string
+          id?: string
+          linked_weekly_plan_item_id?: string | null
+          note_text: string
+          note_type?: string
+          violation_id: string
+        }
+        Update: {
+          author_name?: string
+          author_user_id?: string
+          created_at?: string
+          id?: string
+          linked_weekly_plan_item_id?: string | null
+          note_text?: string
+          note_type?: string
+          violation_id?: string
+        }
+        Relationships: []
+      }
       ce_violation_types: {
         Row: {
           applicable_funds: string[] | null

@@ -54,9 +54,7 @@ export default function WeeklyReports() {
 
   const loadCompletedPlans = async () => {
     try {
-      const data = await weeklyAuditPlanService.getAll({
-        inspectorId: 'inspector-001' // Would come from auth
-      });
+      const data = await weeklyAuditPlanService.getAll();
       
       // Filter plans that are IN_EXECUTION or COMPLETED
       const relevantPlans = data.filter(p => 
