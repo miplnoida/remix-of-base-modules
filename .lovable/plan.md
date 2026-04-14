@@ -1,81 +1,48 @@
 
 
-# Add City, State, Country Fields to Employer Application Detail & Database
+# Enhance Employer Registration View: Separate HQ/Mailing Address Sections + Country Resolution
 
 ## Summary
 
-New API properties (`hq_city`, `hq_state`, `hq_country`, `mailing_city`, `mailing_state`, `mailing_country`, and `city`/`state`/`country` inside `locations[]`) need to be supported in the interface, displayed on the detail/edit pages, stored in the database, and passed through the conversion RPC. Country codes must resolve to names from `tb_country` for display, and use a dropdown bound to `tb_country` in edit mode.
+The Entity Overview step currently displays HQ and Mailing address fields in a single combined grid. This plan separates them into two visually distinct sections with the new city/state/country fields, and resolves country codes to names from `tb_country`. The same country resolution is applied to the Locations tab table and Add Location dialog.
 
-## Database Changes (3 migrations)
+## Changes
 
-### Migration 1: Add columns to `er_master`
-```sql
-ALTER TABLE er_master
-  ADD COLUMN IF NOT EXISTS hq_city VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS hq_state VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS hq_country VARCHAR(10),
-  ADD COLUMN IF NOT EXISTS mailing_city VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS mailing_state VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS mailing_country VARCHAR(10);
-```
+### 1. `src/pages/employer-registration/tabs/EntityOverviewStep.tsx`
+- Import `useCountries` from `@/hooks/useIPMasterLookups`
+- Split the current "General Information" section into three sub-sections:
+  - **General Information**: Name, Trade Name, Email
+  - **Head Quarter Address**: HQ Addr1, HQ Addr2, HQ City, HQ State, HQ Country (as `LookupSelect` bound to `tb_country` in edit mode, resolved name in view mode)
+  - **Mailing Address**: Mailing Addr1, Mailing Addr2, Mailing City, Mailing State, Mailing Country (same pattern)
+- Add `InputWithCounter` fields for `hq_city`, `hq_state`, `mailing_city`, `mailing_state` (max 50 chars)
+- In view mode: display country name resolved from `useCountries()` data
+- In edit mode: render `LookupSelect` with country items mapped from `tb_country` (`code` → `description`)
+- Gracefully handle null/empty values with fallback to empty string
 
-### Migration 2: Add columns to `er_locations`
-```sql
-ALTER TABLE er_locations
-  ADD COLUMN IF NOT EXISTS city VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS state VARCHAR(50),
-  ADD COLUMN IF NOT EXISTS country VARCHAR(10);
-```
+### 2. `src/pages/employer-registration/EmployerRegistrationForm.tsx`
+**Locations table** (~line 307):
+- Add City, State, Country columns to the table header and rows
+- Import `useCountries` hook
+- Create a `resolveCountryName` helper to map code → description
+- Display resolved country name in each location row
+- Handle null values gracefully with `|| '—'`
 
-### Migration 3: Update `convert_application_to_employer` RPC
-- Add 6 new parameters: `p_hq_city`, `p_hq_state`, `p_hq_country`, `p_mailing_city`, `p_mailing_state`, `p_mailing_country`
-- Include them in the `INSERT INTO er_master` statement
-- Update location insert to read `city`, `state`, `country` from `v_location` JSON
+**Add Location dialog** (~line 451):
+- Add City (`Input`, max 50), State (`Input`, max 50), Country (`Select` from `tb_country`) fields
+- Update `locationForm` state initialization (already has city/state/country)
+- Pass city/state/country to `addLocation()` call
 
-## Code Changes
+### 3. `src/hooks/useEmployerRegistration.ts`
+- Verify `addLocation` function passes city/state/country fields — the `select('*')` already fetches them since columns were added in the prior migration
+- No changes needed here as `select('*')` already includes the new columns and the insert spreads the full location object
 
-### 1. `src/hooks/useEmployerApplicationDetail.ts`
-- **`EmployerApplicationDetail` interface**: Uncomment/add `hq_city`, `hq_state`, `mailing_city`, `mailing_state`, `mailing_country` fields
-- **`EmployerLocation` interface**: Add `city?`, `state?`, `country?` fields
-- **`normalizeEmployerDetail()`**: Map `hq_city`, `hq_state`, `hq_country`, `mailing_city`, `mailing_state`, `mailing_country` from raw API
-- **`normalizeLocations()`**: Map `city`, `state`, `country` from each location
+## No Database Changes Required
+The columns `hq_city`, `hq_state`, `hq_country`, `mailing_city`, `mailing_state`, `mailing_country` on `er_master` and `city`, `state`, `country` on `er_locations` were already added in the previous migration.
 
-### 2. `src/pages/online-applications/EmployerApplicationDetailPage.tsx`
-- **HQ Address section** (~line 533): Add `DetailField` for City, State; resolve Country code to name using `tb_country` lookup
-- **Mailing Address section** (~line 544): Uncomment and add City, State, Country fields; resolve country code to name
-- **Locations table** (~line 728): Add City, State, Country columns; resolve country code to name
-- Import and use `useCountries` from `useIPMasterLookups` to resolve country codes to descriptions
+## Files to Modify
 
-### 3. `src/components/meetings/EmployerApplicationEditForm.tsx`
-- **HQ Address section** (~line 526): Add City, State edit fields; replace Country text input with `SearchableSelect` bound to `tb_country`
-- **Mailing Address section** (~line 536): Add City, State, Country edit fields (Country as `SearchableSelect`)
-- **Locations edit** (if editable): Add City, State, Country fields to location rows
-- Import `useCountries` and `SearchableSelect`
-
-### 4. `src/hooks/useConvertToEmployerRegistration.ts`
-- **Locations JSON builder** (~line 193): Include `city`, `state`, `country` from location data
-- **RPC call** (~line 214): Pass `p_hq_city`, `p_hq_state`, `p_hq_country`, `p_mailing_city`, `p_mailing_state`, `p_mailing_country`
-
-### 5. `src/types/employerRegistration.ts`
-- Add `hq_city`, `hq_state`, `hq_country`, `mailing_city`, `mailing_state`, `mailing_country` to `ERMasterFormData`
-- Add `city`, `state`, `country` to `ERLocationData`
-- Update initial data objects
-
-## Country Resolution Pattern
-- Use the existing `useCountries()` hook from `src/hooks/useIPMasterLookups.ts` which queries `tb_country`
-- Create a helper: `resolveCountryName(code, countries)` that finds the `description` for a given `code`
-- Display: Show country name (description)
-- Edit: Use `SearchableSelect` populated from `tb_country` with `code` as value and `description` as label
-
-## Files to modify
 | File | Change |
 |------|--------|
-| `src/hooks/useEmployerApplicationDetail.ts` | Add fields to interfaces + normalize functions |
-| `src/pages/online-applications/EmployerApplicationDetailPage.tsx` | Display city/state/country in HQ, Mailing, Locations sections |
-| `src/components/meetings/EmployerApplicationEditForm.tsx` | Add edit fields with country dropdown |
-| `src/hooks/useConvertToEmployerRegistration.ts` | Pass new fields to RPC |
-| `src/types/employerRegistration.ts` | Add fields to type definitions |
-| DB migration: `er_master` | Add 6 columns |
-| DB migration: `er_locations` | Add 3 columns |
-| DB migration: `convert_application_to_employer` | Add parameters and insert logic |
+| `src/pages/employer-registration/tabs/EntityOverviewStep.tsx` | Separate HQ/Mailing into distinct sections; add city/state/country fields with country name resolution |
+| `src/pages/employer-registration/EmployerRegistrationForm.tsx` | Add city/state/country columns to locations table; add fields to Add Location dialog |
 
