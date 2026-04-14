@@ -1,16 +1,94 @@
 // ============================================
-// PLAN CANDIDATE SERVICE - DB-BACKED
-// Loads actionable work from ce_v_weekly_plan_candidates
-// and computes recommendation scores via fn_ce_score_plan_candidate
+// PLAN CANDIDATE SERVICE v2 - FACT-DRIVEN ENGINE
+//
+// Two modes:
+//   1. getScoredCandidatesV2() — calls fn_ce_score_candidates_batch
+//      (single RPC, server-side scoring with real fact inputs)
+//   2. getCandidates() — legacy compat: maps V2 back to PlanCandidate shape
+//      for existing UI components until they are upgraded
 // ============================================
 
 import { supabase } from '@/integrations/supabase/client';
-import { PlanCandidate } from '@/types/weeklyPlan';
+import { PlanCandidate, PlanCandidateV2 } from '@/types/weeklyPlan';
 
-// Recursive fetch to bypass PostgREST 1000-row limit
-async function fetchAllCandidates(
+// ── Candidate Reason labels for UI ─────────────────────────
+
+export const CANDIDATE_REASON_LABELS: Record<string, string> = {
+  ESCALATED_VIOLATION: 'Escalated violation requiring urgent attention',
+  AGING_VIOLATION: 'Open violation aging beyond 90 days',
+  MULTIPLE_VIOLATIONS: '3+ concurrent open violations',
+  OPEN_VIOLATION: 'Open violation pending action',
+  OVERDUE_FOLLOW_UP: 'Follow-up action overdue',
+  ARRANGEMENT_DEFAULT: 'Payment arrangement in default/breach',
+  ARRANGEMENT_AT_RISK: 'Payment arrangement with missed installments',
+  NOTICE_RESPONSE_DUE: 'Notice response deadline approaching',
+  HIGH_RISK_NO_VISIT: 'High-risk employer with no recent visit',
+  LAST_AUDIT_EXCEEDED: 'No audit/visit in 180+ days',
+  CARRY_FORWARD_INCOMPLETE: 'Incomplete work from prior plan',
+  SCOUTING_LEAD: 'Active scouting lead requiring investigation',
+};
+
+// ── V2: Batch-scored candidates from DB ────────────────────
+
+async function fetchScoredCandidatesV2(
+  limit: number = 200,
+): Promise<PlanCandidateV2[]> {
+  const { data, error } = await supabase.rpc(
+    'fn_ce_score_candidates_batch' as any,
+    { p_limit: limit },
+  );
+
+  if (error) throw error;
+
+  return ((data as any[]) ?? []).map((row: any) => ({
+    employer_id: row.employer_id ?? '',
+    employer_name: row.employer_name,
+    territory: row.territory,
+    candidate_source: row.candidate_source ?? '',
+    candidate_reason: row.candidate_reason ?? 'OPEN_VIOLATION',
+    derived_priority: row.derived_priority ?? 'MEDIUM',
+    risk_band: row.risk_band,
+    risk_score: Number(row.risk_score ?? 0),
+    days_since_last_inspection: row.days_since_last_inspection,
+    open_violation_count: Number(row.open_violation_count ?? 0),
+    escalated_violation_count: Number(row.escalated_violation_count ?? 0),
+    overdue_followup_count: Number(row.overdue_followup_count ?? 0),
+    financial_exposure: Number(row.financial_exposure ?? 0),
+    notice_days_remaining: row.notice_days_remaining,
+    any_breach_detected: Boolean(row.any_breach_detected),
+    carry_forward_count: Number(row.carry_forward_count ?? 0),
+    recommendation_score: Number(row.recommendation_score ?? 0),
+  }));
+}
+
+// ── V1-compat mapper: PlanCandidateV2 → PlanCandidate ──────
+
+function mapV2ToLegacy(v2: PlanCandidateV2): PlanCandidate {
+  const reasonLabel = CANDIDATE_REASON_LABELS[v2.candidate_reason] || v2.candidate_reason;
+
+  return {
+    source_type: v2.candidate_source,
+    source_id: `${v2.employer_id}-${v2.candidate_source}`,
+    source_ref: v2.employer_id,
+    employer_id: v2.employer_id,
+    employer_name: v2.employer_name,
+    territory: v2.territory,
+    priority: v2.derived_priority,
+    source_status: v2.candidate_reason,
+    financial_exposure: v2.financial_exposure,
+    due_date: null,
+    assigned_to_user_id: null,
+    source_created_at: new Date().toISOString(),
+    description: reasonLabel,
+    recommendation_score: v2.recommendation_score,
+  };
+}
+
+// ── Legacy view fallback ───────────────────────────────────
+
+async function fetchLegacyCandidates(
   assignedTo?: string,
-  sourceTypes?: string[]
+  sourceTypes?: string[],
 ): Promise<PlanCandidate[]> {
   const PAGE_SIZE = 1000;
   let all: PlanCandidate[] = [];
@@ -43,98 +121,83 @@ async function fetchAllCandidates(
   return all;
 }
 
-// Enrichment: compute recommendation_score for each candidate
-// using the DB scoring function via RPC
-async function scoreCandidate(candidate: PlanCandidate): Promise<number> {
-  // Compute days overdue
-  let daysOverdue = 0;
-  if (candidate.due_date) {
-    const due = new Date(candidate.due_date);
-    const now = new Date();
-    daysOverdue = Math.max(0, Math.floor((now.getTime() - due.getTime()) / 86400000));
-  }
-
-  // Notice days remaining
-  let noticeDaysRemaining: number | null = null;
-  if (candidate.source_type === 'NOTICE' && candidate.due_date) {
-    const due = new Date(candidate.due_date);
-    const now = new Date();
-    noticeDaysRemaining = Math.max(0, Math.ceil((due.getTime() - now.getTime()) / 86400000));
-  }
-
-  const { data, error } = await supabase.rpc('fn_ce_score_plan_candidate', {
-    p_source_type: candidate.source_type,
-    p_priority: candidate.priority || 'MEDIUM',
-    p_risk_band: null, // Could be enriched from ce_risk_profiles
-    p_days_overdue: daysOverdue,
-    p_overdue_followup_count: 0,
-    p_notice_days_remaining: noticeDaysRemaining,
-    p_financial_exposure: candidate.financial_exposure || 0,
-    p_prior_violation_count: 0,
-    p_days_since_last_visit: null,
-    p_is_same_zone: false,
-    p_is_manager_flagged: false,
-    p_scouting_confidence: candidate.source_type === 'SCOUTING_LEAD' ? candidate.priority : null,
-  });
-
-  if (error) {
-    console.error('Scoring error:', error);
-    return 0;
-  }
-
-  return Number(data) || 0;
-}
+// ── Public API ─────────────────────────────────────────────
 
 export const planCandidateService = {
-  // Get all candidates for an officer, optionally filtered by source type
-  async getCandidates(filters?: {
-    assignedToUserId?: string;
-    sourceTypes?: string[];
+  /**
+   * V2: Get fact-driven, server-scored candidates.
+   * Returns PlanCandidateV2[] — employer-level with reason codes.
+   */
+  async getScoredCandidatesV2(options?: {
     limit?: number;
-  }): Promise<PlanCandidate[]> {
-    const candidates = await fetchAllCandidates(
-      filters?.assignedToUserId,
-      filters?.sourceTypes
-    );
-
-    return filters?.limit ? candidates.slice(0, filters.limit) : candidates;
+  }): Promise<PlanCandidateV2[]> {
+    return fetchScoredCandidatesV2(options?.limit ?? 200);
   },
 
-  // Get candidates with scores computed (batch — top N)
+  /**
+   * Legacy-compat: Get scored candidates mapped to PlanCandidate shape.
+   * Uses V2 engine under the hood, then maps to legacy format.
+   */
   async getScoredCandidates(filters?: {
     assignedToUserId?: string;
     sourceTypes?: string[];
     topN?: number;
   }): Promise<PlanCandidate[]> {
-    const candidates = await fetchAllCandidates(
-      filters?.assignedToUserId,
-      filters?.sourceTypes
-    );
+    const v2 = await fetchScoredCandidatesV2(filters?.topN ?? 200);
 
-    // Score top candidates (limit RPC calls for performance)
-    const toScore = candidates.slice(0, filters?.topN || 50);
-    const scored = await Promise.all(
-      toScore.map(async (c) => {
-        const score = await scoreCandidate(c);
-        return { ...c, recommendation_score: score };
-      })
-    );
+    let mapped = v2.map(mapV2ToLegacy);
 
-    // Sort by score descending
-    scored.sort((a, b) => (b.recommendation_score || 0) - (a.recommendation_score || 0));
-    return scored;
+    // Apply source type filter if requested
+    if (filters?.sourceTypes && filters.sourceTypes.length > 0) {
+      mapped = mapped.filter((c) => filters.sourceTypes!.includes(c.source_type));
+    }
+
+    return mapped;
   },
 
-  // Get candidate counts by source type (for dashboard KPIs)
+  /**
+   * Legacy-compat: Get candidates without scoring (uses old view).
+   * Preserved for backward compatibility with assignment-scoped queries.
+   */
+  async getCandidates(filters?: {
+    assignedToUserId?: string;
+    sourceTypes?: string[];
+    limit?: number;
+  }): Promise<PlanCandidate[]> {
+    const candidates = await fetchLegacyCandidates(
+      filters?.assignedToUserId,
+      filters?.sourceTypes,
+    );
+    return filters?.limit ? candidates.slice(0, filters.limit) : candidates;
+  },
+
+  /**
+   * Get candidate counts by source type (for dashboard KPIs).
+   * Uses V2 engine for fact-driven counts.
+   */
   async getCandidateSummary(assignedToUserId?: string): Promise<Record<string, number>> {
-    const candidates = await fetchAllCandidates(assignedToUserId);
+    // For summary, pull a generous batch
+    const v2 = await fetchScoredCandidatesV2(500);
     const summary: Record<string, number> = {};
-    for (const c of candidates) {
-      summary[c.source_type] = (summary[c.source_type] || 0) + 1;
+    for (const c of v2) {
+      const key = c.candidate_source;
+      summary[key] = (summary[key] || 0) + 1;
     }
     return summary;
   },
 
-  // Score a single candidate (for UI display)
-  scoreCandidate,
+  /**
+   * Get candidate counts by reason code (for dashboard).
+   */
+  async getCandidateReasonSummary(): Promise<Record<string, number>> {
+    const v2 = await fetchScoredCandidatesV2(500);
+    const summary: Record<string, number> = {};
+    for (const c of v2) {
+      summary[c.candidate_reason] = (summary[c.candidate_reason] || 0) + 1;
+    }
+    return summary;
+  },
+
+  /** Reason labels for UI display */
+  REASON_LABELS: CANDIDATE_REASON_LABELS,
 };

@@ -262,6 +262,46 @@ export interface PlanCandidate {
 }
 
 // ============================================
+// V2 CANDIDATE — Fact-Driven Engine
+// ============================================
+
+/** Explicit reason codes explaining why a candidate was selected */
+export type CandidateReasonCode =
+  | 'ESCALATED_VIOLATION'
+  | 'AGING_VIOLATION'
+  | 'MULTIPLE_VIOLATIONS'
+  | 'OPEN_VIOLATION'
+  | 'OVERDUE_FOLLOW_UP'
+  | 'ARRANGEMENT_DEFAULT'
+  | 'ARRANGEMENT_AT_RISK'
+  | 'NOTICE_RESPONSE_DUE'
+  | 'HIGH_RISK_NO_VISIT'
+  | 'LAST_AUDIT_EXCEEDED'
+  | 'CARRY_FORWARD_INCOMPLETE'
+  | 'SCOUTING_LEAD';
+
+/** Employer-level candidate with real compliance facts */
+export interface PlanCandidateV2 {
+  employer_id: string;
+  employer_name: string | null;
+  territory: string | null;
+  candidate_source: string;
+  candidate_reason: CandidateReasonCode;
+  derived_priority: string;
+  risk_band: string | null;
+  risk_score: number | null;
+  days_since_last_inspection: number | null;
+  open_violation_count: number;
+  escalated_violation_count: number;
+  overdue_followup_count: number;
+  financial_exposure: number;
+  notice_days_remaining: number | null;
+  any_breach_detected: boolean;
+  carry_forward_count: number;
+  recommendation_score: number;
+}
+
+// ============================================
 // REQUEST TYPES
 // ============================================
 
