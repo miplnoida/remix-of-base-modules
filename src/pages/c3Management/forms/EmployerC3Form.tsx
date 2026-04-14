@@ -398,6 +398,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
   }, [employees, formData.period, formData.dateReceived, formData.nilReturn, calculateServerSide]);
 
   // Derived overall figures from server calculation results
+  // For NWD records, zero out all non-levy components so every display card shows correct values
   const overall = useMemo(() => {
     const totals = calculationResult?.totals;
     
@@ -423,6 +424,30 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
         monthsLate: 0
       };
     }
+
+    // NWD: only levy and levy penalty are applicable; everything else is 0
+    if (isNWD) {
+      return {
+        periodGross: totals.periodGross,
+        employeeSS: 0,
+        employeeLevy: totals.employeeLevy,
+        employerSS: 0,
+        employerLevy: totals.employerLevy,
+        employerSeverance: 0,
+        employeeLevySS: totals.employeeLevy, // no SS component
+        employerThreePercent: totals.employerLevy, // levy only, no SS
+        employerOnePercent: 0, // no severance
+        totalWagesPlusEmployeeLevyPlusSS: totals.periodGross + totals.employeeLevy, // no SS
+        employersThreePercentLevyPlusSS: totals.employerLevy, // no SS
+        employersOnePercentSeverancePay: 0,
+        levyPenalty: totals.levyPenalty,
+        severancePenalty: 0,
+        fines: 0,
+        totalLateCharges: totals.levyPenalty, // only levy penalty
+        daysLate: totals.daysLate,
+        monthsLate: totals.monthsLate || 0
+      };
+    }
     
     return {
       periodGross: totals.periodGross,
@@ -444,7 +469,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
       daysLate: totals.daysLate,
       monthsLate: totals.monthsLate || 0
     };
-  }, [calculationResult]);
+  }, [calculationResult, isNWD]);
 
   // Calculate SS Contribution due for the month and Total due to Accountant General
   // For NWD records, only levy-related components apply (no SS, Severance, PE)
@@ -1130,7 +1155,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                     Social Security Contribution due for the month
                   </Label>
                   <div className="text-xl font-bold mt-1 tabular-nums">
-                    {formatMoney(overall.employeeSS + overall.employerSS + overall.fines)}
+                    {formatMoney(ssContributionDue)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Employee SS + Employer SS + SS Fine
@@ -1142,13 +1167,7 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
                     Total due to Accountant General
                   </Label>
                   <div className="text-xl font-bold mt-1 tabular-nums">
-                    {formatMoney(
-                      overall.employeeLevy + 
-                      overall.employerLevy + 
-                      overall.employerSeverance + 
-                      overall.levyPenalty + 
-                      overall.severancePenalty
-                    )}
+                    {formatMoney(totalDueToAG)}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Levy + Severance + Penalties
