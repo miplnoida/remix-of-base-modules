@@ -114,6 +114,11 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     return match ? Number(match[1]) : null;
   }, [initialData?.scheduleNo]);
 
+  // Detect NWD (Non-Working Director) status from initialData
+  const isNWD = useMemo(() => {
+    return initialData?.is_for_director === true || initialData?.isForDirector === true;
+  }, [initialData?.is_for_director, initialData?.isForDirector]);
+
   // Fetch payments from database - uses formData so must be after formData state declaration
   const { 
     totalPayments, 
@@ -125,7 +130,8 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     payerType: 'ER', // Employer type
     periodYear: formData.period?.year ?? null,
     periodMonth: formData.period?.month ?? null,
-    sequenceNo: scheduleNumber
+    sequenceNo: scheduleNumber,
+    isForDirector: isNWD
   });
 
   const [employerError, setEmployerError] = useState<string>('');
@@ -441,15 +447,21 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
   }, [calculationResult]);
 
   // Calculate SS Contribution due for the month and Total due to Accountant General
+  // For NWD records, only levy-related components apply (no SS, Severance, PE)
   const ssContributionDue = useMemo(() => {
+    if (isNWD) return 0; // NWD has no SS contribution
     return overall.employeeSS + overall.employerSS + overall.fines;
-  }, [overall.employeeSS, overall.employerSS, overall.fines]);
+  }, [overall.employeeSS, overall.employerSS, overall.fines, isNWD]);
 
   const totalDueToAG = useMemo(() => {
+    if (isNWD) {
+      // NWD: only levy + levy penalty (no severance, no PE)
+      return overall.employeeLevy + overall.employerLevy + overall.levyPenalty;
+    }
     return overall.employeeLevy + overall.employerLevy + overall.employerSeverance + 
            overall.levyPenalty + overall.severancePenalty;
   }, [overall.employeeLevy, overall.employerLevy, overall.employerSeverance, 
-      overall.levyPenalty, overall.severancePenalty]);
+      overall.levyPenalty, overall.severancePenalty, isNWD]);
 
   // Calculate Balance = (SS Contribution due + Total due to AG) - Payments
   const calculatedBalance = useMemo(() => {
@@ -801,7 +813,14 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
 
               <div className="space-y-1">
                 <Label className="text-sm font-medium">Status</Label><br/>
-                {getStatusBadge(formData.status)}
+                <div className="flex items-center gap-2">
+                  {getStatusBadge(formData.status)}
+                  {isNWD && (
+                    <Badge className="bg-amber-100 text-amber-800 border border-amber-300">
+                      Non-Working Director
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-1">

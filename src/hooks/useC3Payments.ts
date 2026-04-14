@@ -18,6 +18,7 @@ interface UseC3PaymentsParams {
   periodYear: number | null;
   periodMonth: number | null; // 0-indexed (0 = January)
   sequenceNo: number | null; // Schedule number for filtering payments per-schedule
+  isForDirector?: boolean; // Filter by NWD flag on cn_payment_header
 }
 
 interface UseC3PaymentsResult {
@@ -47,7 +48,8 @@ export function useC3Payments({
   payerType,
   periodYear,
   periodMonth,
-  sequenceNo
+  sequenceNo,
+  isForDirector = false
 }: UseC3PaymentsParams): UseC3PaymentsResult {
   const [totalPayments, setTotalPayments] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -69,12 +71,15 @@ export function useC3Payments({
       const periodStart = new Date(periodYear, periodMonth, 1);
       const periodEnd = new Date(periodYear, periodMonth + 1, 0, 23, 59, 59, 999);
 
-      // First, get payment_ids from cn_payment_header that match payer_id and payer_type
-      const { data: headers, error: headerError } = await supabase
+      // First, get payment_ids from cn_payment_header that match payer_id, payer_type, and is_for_director
+      let headerQuery = supabase
         .from('cn_payment_header')
         .select('payment_id')
         .eq('payer_id', payerId)
-        .eq('payer_type', payerType);
+        .eq('payer_type', payerType)
+        .eq('is_for_director', isForDirector);
+
+      const { data: headers, error: headerError } = await headerQuery;
 
       if (headerError) {
         throw new Error(`Failed to fetch payment headers: ${headerError.message}`);
@@ -172,7 +177,7 @@ export function useC3Payments({
     } finally {
       setIsLoading(false);
     }
-  }, [payerId, payerType, periodYear, periodMonth, sequenceNo]);
+  }, [payerId, payerType, periodYear, periodMonth, sequenceNo, isForDirector]);
 
   // Fetch payments when parameters change
   useEffect(() => {

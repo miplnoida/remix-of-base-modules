@@ -103,6 +103,7 @@ export const transformToUIRecord = (record: C3Record) => {
     isVerified: record.posting_status === 'VAC' || record.posting_status === 'V',
     isRejected: record.posting_status === 'REJ',
     nilReturn: record.nil_return || false,
+    is_for_director: (record as any).is_for_director || false,
     // Contribution breakdown
     empSsAmtCalc: record.emp_ss_amt_calc || 0,
     empLevyAmtCalc: record.emp_levy_amt_calc || 0,
