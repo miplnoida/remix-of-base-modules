@@ -1,60 +1,107 @@
 
-Root cause confirmed:
 
-- The current Live publish failure is no longer the earlier `ce_reconcile_result` issue.
-- The new blocker is that Live is missing these planning objects:
-  - `public.ce_v_plan_employer_facts`
-  - `public.ce_v_plan_candidates_v2`
-  - `public.fn_ce_score_candidates_batch`
-- Test already has all 3 objects.
-- Live already has all base tables those objects depend on:
-  - `ce_risk_profiles`
-  - `ce_inspections`
-  - `ce_violations`
-  - `ce_follow_up_actions`
-  - `ce_notices`
-  - `ce_payment_arrangements`
-  - `ce_scouting_leads`
-  - `ce_weekly_plan_items`
-  - `ce_weekly_plans`
-- So this is a dependency-ordering problem during publish-to-Live, not a missing-source-table problem.
+# Redesign Head Cashier: Default-Per-Branch + Override Model
 
-Implementation plan:
+## Summary
 
-1. Immediate Live unblock
-- Run the exact SQL from `supabase/migrations/20260414043550_0a43d10b-63d8-492b-97d8-60b64de51b2e.sql` on Live, in this order:
-  1. `CREATE OR REPLACE VIEW public.ce_v_plan_employer_facts`
-  2. `CREATE OR REPLACE VIEW public.ce_v_plan_candidates_v2`
-  3. `CREATE OR REPLACE FUNCTION public.fn_ce_score_candidates_batch`
-- This will align Live with Test and remove the missing `ce_v_plan_employer_facts` relation error.
+Replace the daily head cashier assignment model with a **persistent default per branch** plus **temporary date-range overrides**. The default assignment stays active indefinitely until changed. Overrides take precedence for their date range and auto-revert when expired.
 
-2. Durable repo fix
-- Add one new repair migration instead of editing old applied migrations.
-- The new migration will re-declare the same 3 objects in dependency-safe order:
-  - base view first
-  - dependent view second
-  - dependent function last
-- This makes the schema self-healing for future environment alignment.
+## Database Changes
 
-3. Validation
-- Verify both Test and Live contain:
-  - `ce_v_plan_employer_facts`
-  - `ce_v_plan_candidates_v2`
-  - `fn_ce_score_candidates_batch`
-- Re-publish after Live alignment.
-- If publish still fails, inspect the next missing object in the same way.
+### New Table: `cn_head_cashier_default`
+Stores the standing head cashier per branch.
 
-Files involved:
-- Existing source of truth:
-  - `supabase/migrations/20260414043550_0a43d10b-63d8-492b-97d8-60b64de51b2e.sql`
-- New migration to add:
-  - `supabase/migrations/<new_timestamp>_repair_ce_planning_views.sql`
+```sql
+CREATE TABLE cn_head_cashier_default (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  office_code VARCHAR NOT NULL REFERENCES tb_office(code),
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  user_code VARCHAR NOT NULL,
+  effective_from DATE NOT NULL DEFAULT CURRENT_DATE,
+  assigned_by VARCHAR NOT NULL,
+  assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  UNIQUE(office_code)  -- one active default per branch
+);
+```
 
-What stays unchanged:
-- Frontend code
-- Existing employer/compliance data
-- Earlier financial bootstrap migration
+### New Table: `cn_head_cashier_override`
+Stores temporary overrides for a date or date range.
 
-Technical note:
-- Publish applies schema changes to Live via a generated diff, and that diff can create dependent objects in the wrong order even when the original migration file was written correctly.
-- Views/functions with cross-object dependencies are especially prone to this, which is why Live now needs an explicit alignment step.
+```sql
+CREATE TABLE cn_head_cashier_override (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  office_code VARCHAR NOT NULL REFERENCES tb_office(code),
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  user_code VARCHAR NOT NULL,
+  override_start DATE NOT NULL,
+  override_end DATE NOT NULL,
+  reason TEXT,
+  assigned_by VARCHAR NOT NULL,
+  assigned_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  CHECK (override_end >= override_start)
+);
+CREATE INDEX idx_hc_override_lookup ON cn_head_cashier_override(office_code, is_active, override_start, override_end);
+```
+
+### New RPC: `resolve_head_cashier(p_date, p_office_code)`
+Replaces `get_active_head_cashier`. Logic:
+1. Check `cn_head_cashier_override` for an active override where `p_date BETWEEN override_start AND override_end` for the office
+2. If found → return override user + `source = 'override'`
+3. If not → check `cn_head_cashier_default` for the office
+4. Return default user + `source = 'default'` or `found = false`
+
+### New RPC: `set_default_head_cashier(p_office_code, p_user_id, p_assigned_by)`
+Upserts into `cn_head_cashier_default`. Logs to `system_audit_trail`.
+
+### New RPC: `create_head_cashier_override(p_office_code, p_user_id, p_start, p_end, p_reason, p_assigned_by)`
+Validates no overlapping active overrides for the same office. Inserts into `cn_head_cashier_override`. Logs to audit trail.
+
+### New RPC: `delete_head_cashier_override(p_override_id, p_deleted_by)`
+Soft-deletes by setting `is_active = false`. Logs to audit trail.
+
+### Data Migration
+Insert into `cn_head_cashier_default` from existing `cn_head_cashier_assignment` — pick the most recent active assignment per office as the default.
+
+## UI Changes — `HeadCashierAssignment.tsx`
+
+Redesign the page into two sections:
+
+### Section 1: Default Head Cashier Per Branch
+- Table showing all offices with their current default head cashier
+- Each row has an "Edit" action to change the default
+- Inline select + save pattern to assign/change default
+
+### Section 2: Temporary Overrides
+- Table of active/upcoming overrides with columns: Office, Override Cashier, Start Date, End Date, Reason, Assigned By, Actions (Delete)
+- "Add Override" form: select office, select cashier, pick start/end dates, optional reason
+- Visual indicator if an override is currently active vs upcoming vs expired
+- Overlap validation on submit
+
+### Status Display Per Branch
+Each office row in the defaults table shows whether today's effective cashier is the default or an override (badge: "Default" vs "Override until {date}").
+
+## Hook Changes — `useHeadCashier.ts`
+
+Update to call `resolve_head_cashier` instead of `get_active_head_cashier`. The return shape stays the same (`headCashier`, `isCurrentUserHeadCashier`, `isLoading`) plus a new `source: 'default' | 'override'` field.
+
+## Dependent Modules (No Breaking Changes)
+
+All consumers (`BatchCreationModal`, `HeadCashierOfficeAssignment`, `BatchManagement`) use `useHeadCashier` which will transparently resolve via the new RPC. No changes needed in those files beyond the hook update.
+
+## Files
+
+| File | Change |
+|------|--------|
+| **Migration SQL** | Create `cn_head_cashier_default`, `cn_head_cashier_override` tables; create `resolve_head_cashier`, `set_default_head_cashier`, `create_head_cashier_override`, `delete_head_cashier_override` RPCs; migrate existing data |
+| `src/hooks/useHeadCashier.ts` | Call `resolve_head_cashier` RPC; add `source` to return |
+| `src/pages/cashier/HeadCashierAssignment.tsx` | Full redesign: defaults table + overrides table + forms |
+| `src/components/payments/HeadCashierAssignmentSection.tsx` | Update RPC calls to use new endpoints |
+
+## What Stays Unchanged
+- `BatchCreationModal.tsx` — uses `useHeadCashier` (transparent)
+- `HeadCashierOfficeAssignment.tsx` — uses `useHeadCashier` (transparent)
+- `BatchManagement.tsx` — uses `useHeadCashier` (transparent)
+- Existing `cn_head_cashier_assignment` table — kept for historical reference, no longer written to
+
