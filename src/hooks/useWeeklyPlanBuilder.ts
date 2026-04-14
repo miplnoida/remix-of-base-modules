@@ -52,6 +52,24 @@ export function useWeeklyPlanBuilder() {
   const { userCode, userId, fullName, isLoading: userLoading } = useUserCode();
   const queryClient = useQueryClient();
 
+  // Resolve ce_inspectors.id from the user's profile_id
+  const inspectorQuery = useQuery({
+    queryKey: ['ce-inspector-for-user', userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data, error } = await supabase
+        .from('ce_inspectors' as any)
+        .select('id, inspector_code')
+        .eq('profile_id', userId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; inspector_code: string } | null;
+    },
+    enabled: !!userId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const inspectorId = inspectorQuery.data?.id ?? null;
+
   // Week selection
   const [selectedWeekRef, setSelectedWeekRef] = useState(new Date());
   const week = useMemo(() => getWeekDates(selectedWeekRef), [selectedWeekRef]);
