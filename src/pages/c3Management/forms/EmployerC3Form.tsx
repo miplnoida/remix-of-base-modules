@@ -107,6 +107,13 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     }
   }, []);
 
+  // Parse schedule number from initialData for payment filtering
+  const scheduleNumber = useMemo(() => {
+    if (!initialData?.scheduleNo) return null;
+    const match = String(initialData.scheduleNo).match(/(\d+)/);
+    return match ? Number(match[1]) : null;
+  }, [initialData?.scheduleNo]);
+
   // Fetch payments from database - uses formData so must be after formData state declaration
   const { 
     totalPayments, 
@@ -117,7 +124,8 @@ export default function EmployerC3Form({ mode, initialData, onSave, onSubmit, on
     payerId: formData.employerId,
     payerType: 'ER', // Employer type
     periodYear: formData.period?.year ?? null,
-    periodMonth: formData.period?.month ?? null
+    periodMonth: formData.period?.month ?? null,
+    sequenceNo: scheduleNumber
   });
 
   const [employerError, setEmployerError] = useState<string>('');
