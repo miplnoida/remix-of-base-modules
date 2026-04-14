@@ -631,7 +631,7 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                 </div>
                 {(data.computer_payroll === true || data.computer_payroll === 'Y' || data.computer_payroll === 'Yes') && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <EditField label="Make / Model" value={data.make_model} onChange={(v) => onChange('make_model', v)} maxLength={30} />
+                    <EditField label="Application/Software" value={data.make_model} onChange={(v) => onChange('make_model', v)} maxLength={30} />
                   </div>
                 )}
               </div>

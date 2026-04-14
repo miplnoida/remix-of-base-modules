@@ -373,7 +373,7 @@ export function ViewEmployer() {
                     <p className="text-sm">{formatBoolean(sampleEmployerData.computerPayroll)}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Make Model</Label>
+                    <Label className="text-sm font-medium text-muted-foreground">Application/Software</Label>
                     <p className="text-sm">{sampleEmployerData.makeModel}</p>
                   </div>
                 </div>

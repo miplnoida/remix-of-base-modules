@@ -626,7 +626,7 @@ export default function EmployerApplicationDetailPage() {
                 />
                 {application.computer_payroll && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <DetailField label="Make / Model" value={application.make_model} />
+                    <DetailField label="Application/Software" value={application.make_model} />
                     {/* <DetailField label="Disk / Tape" value={application.disk_tape} /> */}
                   </div>
                 )}

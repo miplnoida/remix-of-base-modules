@@ -913,7 +913,7 @@ export const EditEmployer = () => {
                      name="makeModel"
                      render={({ field }) => (
                        <FormItem>
-                         <FormLabel>Make Model</FormLabel>
+                         <FormLabel>Application/Software</FormLabel>
                          <FormControl>
                            <Input {...field} />
                          </FormControl>

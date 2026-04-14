@@ -262,7 +262,7 @@ export const EmployerDetailsDialog: React.FC<EmployerDetailsDialogProps> = ({
                     <Input value="" readOnly />
                   </div>
                   <div>
-                    <Label>Make Model</Label>
+                    <Label>Application/Software</Label>
                     <Input value="" readOnly />
                   </div>
                 </div>

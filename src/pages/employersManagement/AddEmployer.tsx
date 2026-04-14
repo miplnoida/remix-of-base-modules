@@ -991,7 +991,7 @@ const AddEmployer = () => {
                     </Label>
                   </div>
                   <FloatingLabelInput
-                    label="Make Model"
+                    label="Application/Software"
                     value={formData.makeModel}
                     onChange={(e) => setFormData(prev => ({ ...prev, makeModel: e.target.value }))}
                   />

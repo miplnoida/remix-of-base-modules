@@ -37,7 +37,7 @@ export default function TechFinanceStep({ formData, onChange, isViewMode, errors
             />
           </div>
           <div className="md:col-span-2">
-            <Label>Make Model</Label>
+            <Label>Application/Software</Label>
             <Input
               value={formData.make_model || ''}
               onChange={(e) => onChange('make_model', e.target.value)}
