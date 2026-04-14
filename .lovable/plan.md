@@ -1,18 +1,27 @@
 
 
-# Fix: Missing Workflow Action Buttons (Schedule Meeting) on Employer Application Detail Page
+# Fix: Remove Duplicate Accept/Reject Buttons on Employer Application Detail Page
 
-## Root Cause
+## Problem
 
-The `EmployerApplicationDetailPage` imports `WorkflowActionButtons` but **never renders it**. Instead, it only renders `EmployerApplicationActions`, which has hardcoded Accept and Reject buttons — completely bypassing the workflow engine.
+After adding `WorkflowActionButtons`, the page now shows **two** Accept and **two** Reject buttons:
+1. **Workflow buttons** — from `WorkflowActionButtons` (generic workflow engine actions)
+2. **Hardcoded buttons** — from `EmployerApplicationActions` (with employer conversion logic)
 
-By contrast, the IP Application Detail page and Doctor Application Detail page both render `<WorkflowActionButtons>` alongside their custom action components, which is how workflow-configured actions like "Schedule a Meeting" appear dynamically.
+They are **not the same**:
+- The workflow Accept only updates workflow status (Approve step, move to next step)
+- The hardcoded Accept converts the application to an employer registration record (`er_master`), closes the meeting/workflow, triggers the next approval workflow, and navigates to the new employer
 
-## Plan
+## Solution
+
+Remove `EmployerApplicationActions` from rendering and move its critical business logic (employer conversion) into the `WorkflowActionButtons` `onActionComplete` callback. This way:
+- Only one set of Accept/Reject buttons appears (workflow-driven)
+- When the workflow Accept completes, the employer conversion logic runs automatically
+- Schedule Meeting and any other workflow-configured actions continue to work
 
 ### File: `src/pages/online-applications/EmployerApplicationDetailPage.tsx`
 
-**Add `<WorkflowActionButtons>` to the header action area** (around line 218, before `<EmployerApplicationActions>`):
+**Replace** the current `WorkflowActionButtons` + `EmployerApplicationActions` block with a single `WorkflowActionButtons` that handles employer conversion in its `onActionComplete`:
 
 ```tsx
 <WorkflowActionButtons
@@ -20,26 +29,53 @@ By contrast, the IP Application Detail page and Doctor Application Detail page b
   sourceRecordId={applicationId || application?.registration_id || null}
   onActionComplete={async (action, endState) => {
     handleActionComplete();
-    if (endState === 'Approved' || endState === 'Completed') {
-      // Trigger existing accept logic if needed
+    
+    if (endState === 'Approved' || action === 'Approve') {
+      // Trigger the same employer conversion logic that was in EmployerApplicationActions
+      try {
+        const result = await convertToEmployer({
+          applicationData: application,
+          userId: user?.id || '',
+          userCode: userCode || '',
+          applicationReference: applicationId || application?.id || '',
+          meetingId: meeting?.id,
+        });
+        if (result.success && result.regno) {
+          toast.success(`Employer Registration ${result.regno} created successfully.`);
+          // Trigger next workflow
+          await triggerEmployerRegistrationWorkflow(result.regno, ...);
+          navigate(`/employer-registration/view/${result.regno}`);
+        }
+      } catch (err) {
+        toast.error('Failed to convert application');
+      }
+    } else if (endState === 'Rejected' || action === 'Reject') {
+      // Close meeting if exists
+      if (meeting?.id) { /* close meeting with rejection */ }
+      navigate(-1);
     }
   }}
 />
 ```
 
-This will:
-- Query the workflow engine for the current step's configured actions (including Schedule Meeting)
-- Render them dynamically based on workflow configuration
-- Keep the existing hardcoded Accept/Reject buttons from `EmployerApplicationActions` as-is (they serve as direct action shortcuts)
+**Remove** the `<EmployerApplicationActions>` component rendering entirely.
+
+**Add** the necessary imports/hooks that were previously only in `EmployerApplicationActions`:
+- `useConvertToEmployerRegistration` hook
+- `triggerEmployerRegistrationWorkflow` service
+- `useUserCode` hook (if not already imported)
 
 ### What changes
+
 | File | Change |
 |------|--------|
-| `src/pages/online-applications/EmployerApplicationDetailPage.tsx` | Add `<WorkflowActionButtons>` rendering in header actions area |
+| `src/pages/online-applications/EmployerApplicationDetailPage.tsx` | Remove `EmployerApplicationActions` rendering; move conversion logic into `WorkflowActionButtons.onActionComplete` |
 
 ### What stays unchanged
-- `EmployerApplicationActions` component — untouched
-- `WorkflowActionButtons` component — already supports employer module
-- All other pages (IP, Doctor) — unaffected
-- Workflow configuration — no database changes needed
+
+- `EmployerApplicationActions` component file — kept for potential reuse but no longer rendered on this page
+- `WorkflowActionButtons` component — untouched
+- All workflow configuration — no database changes
+- Meeting logic — meeting close is handled in the callback
+- IP and Doctor application pages — unaffected
 
