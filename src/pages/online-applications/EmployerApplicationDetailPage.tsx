@@ -737,6 +737,9 @@ export default function EmployerApplicationDetailPage() {
                     <TableRow>
                       <TableHead className="w-[200px]">Trade Name</TableHead>
                       <TableHead>Address</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>State</TableHead>
+                      <TableHead>Country</TableHead>
                       <TableHead>Activity Type</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -747,6 +750,9 @@ export default function EmployerApplicationDetailPage() {
                         <TableCell>
                           {[location.address1, location.address2].filter(Boolean).join(', ') || '—'}
                         </TableCell>
+                        <TableCell>{location.city || '—'}</TableCell>
+                        <TableCell>{location.state || '—'}</TableCell>
+                        <TableCell>{resolveCountryName(location.country)}</TableCell>
                         <TableCell>{location.activity_type || '—'}</TableCell>
                       </TableRow>
                     ))}
