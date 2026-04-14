@@ -2,11 +2,14 @@
  * Arrangement Detail Panel — Compliance Officer Operational View
  *
  * Read-only + action panel for a single payment arrangement.
- * Tabs: Installments | Breaches | Reconciliation | Case History
+ * Tabs: Installments | Breaches | Reconciliation | Case History | Notices
+ *
+ * RESILIENCE: Each data section loads independently with safe fallbacks.
+ * A failing secondary query never breaks the primary arrangement view.
  *
  * Actions are backed by existing server-side RPCs only:
- *   - reconcileLedgerPayment (manual retry)
  *   - recalculateArrangementSummary (repair totals)
+ *   - recalculateBreachState (re-evaluate breach after payment)
  *
  * Does NOT modify payment posting or arrangement creation flows.
  */
@@ -23,11 +26,16 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertTriangle, ArrowLeft, CalendarDays, CheckCircle2, Clock,
-  FileText, Loader2, RefreshCw, Shield, XCircle,
+  FileText, Loader2, RefreshCw, Shield, XCircle, Activity,
+  ShieldCheck, ShieldAlert, AlertCircle, Bell,
 } from 'lucide-react';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { toast } from 'sonner';
-import { fetchArrangementWithInstallments, recalculateArrangementSummary } from '@/services/compliance/paymentReconciliationService';
+import {
+  fetchArrangementWithInstallments,
+  recalculateArrangementSummary,
+} from '@/services/compliance/paymentReconciliationService';
+import { recalculateBreachState } from '@/services/compliance/breachEvaluationService';
 
 // ── Types ───────────────────────────────────────────────────
 
@@ -42,18 +50,6 @@ const formatCurrency = (amount: number | null | undefined) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 })
     .format(Number(amount ?? 0));
 
-const statusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-  switch (status) {
-    case 'ACTIVE': return 'default';
-    case 'COMPLETED': return 'secondary';
-    case 'DEFAULTED': return 'destructive';
-    case 'PAID': return 'secondary';
-    case 'OVERDUE': return 'destructive';
-    case 'PARTIAL': return 'outline';
-    default: return 'outline';
-  }
-};
-
 const statusColor = (status: string) => {
   const map: Record<string, string> = {
     ACTIVE: 'bg-success/10 text-success',
@@ -61,12 +57,67 @@ const statusColor = (status: string) => {
     DEFAULTED: 'bg-destructive/10 text-destructive',
     DRAFT: 'bg-muted text-muted-foreground',
     CANCELLED: 'bg-muted text-muted-foreground',
+    SUPERSEDED: 'bg-muted text-muted-foreground',
     PAID: 'bg-success/10 text-success',
     OVERDUE: 'bg-destructive/10 text-destructive',
     PARTIAL: 'bg-warning/10 text-warning-foreground',
     PENDING: 'bg-muted text-muted-foreground',
+    PLANNED: 'bg-muted text-muted-foreground',
   };
   return map[status] || 'bg-muted text-muted-foreground';
+};
+
+const observationColor = (type: string) => {
+  switch (type) {
+    case 'PAYMENT_RECEIVED': return 'bg-success/10 text-success border-success/20';
+    case 'ARRANGEMENT_CREDIT': return 'bg-primary/10 text-primary border-primary/20';
+    case 'ALLOCATED': return 'bg-success/10 text-success border-success/20';
+    case 'SKIPPED': return 'bg-muted text-muted-foreground border-border';
+    case 'DETECTED': return 'bg-warning/10 text-warning-foreground border-warning/20';
+    default: return 'bg-muted text-muted-foreground border-border';
+  }
+};
+
+/** Inline error fallback for a section */
+const SectionError: React.FC<{ message?: string }> = ({ message }) => (
+  <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/5 border border-destructive/10 text-xs text-destructive">
+    <AlertCircle className="h-4 w-4 shrink-0" />
+    <span>{message || 'Failed to load this section. The data may be temporarily unavailable.'}</span>
+  </div>
+);
+
+/** Inline empty state for a section */
+const SectionEmpty: React.FC<{ message: string; icon?: React.ReactNode }> = ({ message, icon }) => (
+  <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+    {icon || <FileText className="h-6 w-6 mb-2 opacity-50" />}
+    <p className="text-sm">{message}</p>
+  </div>
+);
+
+// ── Breach Health Indicator ─────────────────────────────────
+
+type BreachHealth = 'healthy' | 'warning' | 'breached' | 'defaulted';
+
+function getBreachHealth(arr: any): { health: BreachHealth; label: string; description: string } {
+  if (arr.status === 'DEFAULTED') {
+    return { health: 'defaulted', label: 'Defaulted', description: arr.breach_reason || 'Arrangement has been defaulted due to breach conditions.' };
+  }
+  if (arr.breach_detected) {
+    return { health: 'breached', label: 'Breach Detected', description: arr.breach_reason || 'Active breach — requires attention.' };
+  }
+  const missed = arr.missed_payments ?? 0;
+  const max = arr.max_missed_before_breach ?? 2;
+  if (missed > 0 && missed < max) {
+    return { health: 'warning', label: 'Warning', description: `${missed} missed payment(s) of ${max} max before breach.` };
+  }
+  return { health: 'healthy', label: 'Healthy', description: 'All payments on track. No breaches detected.' };
+}
+
+const healthConfig: Record<BreachHealth, { icon: React.ReactNode; bg: string; text: string; border: string }> = {
+  healthy: { icon: <ShieldCheck className="h-5 w-5" />, bg: 'bg-success/10', text: 'text-success', border: 'border-success/20' },
+  warning: { icon: <ShieldAlert className="h-5 w-5" />, bg: 'bg-warning/10', text: 'text-warning-foreground', border: 'border-warning/20' },
+  breached: { icon: <AlertTriangle className="h-5 w-5" />, bg: 'bg-destructive/10', text: 'text-destructive', border: 'border-destructive/20' },
+  defaulted: { icon: <XCircle className="h-5 w-5" />, bg: 'bg-destructive/10', text: 'text-destructive', border: 'border-destructive/30' },
 };
 
 // ── Component ───────────────────────────────────────────────
@@ -77,15 +128,15 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
 }) => {
   const queryClient = useQueryClient();
 
-  // ── Arrangement + Installments ────────────────────────────
-  const { data, isLoading } = useQuery({
+  // ── PRIMARY: Arrangement + Installments ───────────────────
+  const { data, isLoading, isError: primaryError } = useQuery({
     queryKey: ['arrangement_detail', arrangementId],
     queryFn: () => fetchArrangementWithInstallments(arrangementId),
     enabled: !!arrangementId,
   });
 
-  // ── Breaches ──────────────────────────────────────────────
-  const { data: breaches = [] } = useQuery({
+  // ── SECONDARY: Breaches (independent, safe fallback) ──────
+  const { data: breaches = [], isError: breachesError } = useQuery({
     queryKey: ['arrangement_breaches', arrangementId],
     queryFn: async () => {
       const { data: b, error } = await supabase
@@ -97,27 +148,12 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
       return b ?? [];
     },
     enabled: !!arrangementId,
+    retry: 1,
   });
 
-  // ── Case History (linked case) ────────────────────────────
+  // ── SECONDARY: Case Info (independent) ────────────────────
   const caseId = data?.arrangement?.case_id;
-  const { data: caseHistory = [] } = useQuery({
-    queryKey: ['arrangement_case_history', caseId],
-    queryFn: async () => {
-      const { data: h, error } = await supabase
-        .from('ce_case_history')
-        .select('*')
-        .eq('case_id', caseId!)
-        .order('performed_at', { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return h ?? [];
-    },
-    enabled: !!caseId,
-  });
-
-  // ── Case info ─────────────────────────────────────────────
-  const { data: linkedCase } = useQuery({
+  const { data: linkedCase, isError: caseError } = useQuery({
     queryKey: ['arrangement_linked_case', caseId],
     queryFn: async () => {
       const { data: c, error } = await supabase
@@ -129,27 +165,46 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
       return c;
     },
     enabled: !!caseId,
+    retry: 1,
   });
 
-  // ── Reconciliation log ────────────────────────────────────
+  // ── SECONDARY: Case History (independent) ─────────────────
+  const { data: caseHistory = [], isError: historyError } = useQuery({
+    queryKey: ['arrangement_case_history', caseId],
+    queryFn: async () => {
+      const { data: h, error } = await supabase
+        .from('ce_case_history')
+        .select('*')
+        .eq('case_id', caseId!)
+        .order('performed_at', { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return h ?? [];
+    },
+    enabled: !!caseId,
+    retry: 1,
+  });
+
+  // ── SECONDARY: Reconciliation log (independent) ───────────
   const employerId = data?.arrangement?.employer_id;
-  const { data: recentReconciliations = [] } = useQuery({
-    queryKey: ['arrangement_reconciliation_log', employerId],
+  const { data: recentReconciliations = [], isError: reconError } = useQuery({
+    queryKey: ['arrangement_reconciliation_log', arrangementId, employerId],
     queryFn: async () => {
       const { data: r, error } = await supabase
         .from('ce_payment_observation_log')
         .select('*')
         .eq('employer_id', employerId!)
         .order('observed_at', { ascending: false })
-        .limit(10);
+        .limit(20);
       if (error) throw error;
       return r ?? [];
     },
     enabled: !!employerId,
+    retry: 1,
   });
 
-  // ── Notices for this case ─────────────────────────────────
-  const { data: notices = [] } = useQuery({
+  // ── SECONDARY: Notices (independent) ──────────────────────
+  const { data: notices = [], isError: noticesError } = useQuery({
     queryKey: ['arrangement_notices', caseId],
     queryFn: async () => {
       if (!caseId) return [];
@@ -163,6 +218,7 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
       return n ?? [];
     },
     enabled: !!caseId,
+    retry: 1,
   });
 
   // ── Actions ───────────────────────────────────────────────
@@ -176,24 +232,49 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
     onError: (e: any) => toast.error('Recalculation failed', { description: e.message }),
   });
 
-  // ── Render ────────────────────────────────────────────────
+  const breachRefreshMutation = useMutation({
+    mutationFn: () => recalculateBreachState(arrangementId),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['arrangement_detail', arrangementId] });
+      queryClient.invalidateQueries({ queryKey: ['arrangement_breaches', arrangementId] });
+      toast.success('Breach state refreshed', {
+        description: `Missed: ${result.current_missed}, Breached: ${result.is_breached ? 'Yes' : 'No'}`,
+      });
+    },
+    onError: (e: any) => toast.error('Breach refresh failed', { description: e.message }),
+  });
+
+  // ── Render: Loading ───────────────────────────────────────
 
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-32 w-full" />
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-6 w-48" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1,2,3,4].map(i => <Skeleton key={i} className="h-24 w-full" />)}
+        </div>
         <Skeleton className="h-64 w-full" />
       </div>
     );
   }
 
-  if (!data?.arrangement) {
+  // ── Render: Not Found ─────────────────────────────────────
+
+  if (primaryError || !data?.arrangement) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <p>Arrangement not found</p>
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+        <XCircle className="h-10 w-10 mb-3 text-destructive/50" />
+        <h3 className="text-lg font-semibold text-foreground">Arrangement Not Found</h3>
+        <p className="text-sm mt-1">
+          {primaryError
+            ? 'Failed to load arrangement data. Please try again.'
+            : 'The requested arrangement does not exist or has been removed.'}
+        </p>
         <Button variant="outline" className="mt-4" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />Back
+          <ArrowLeft className="h-4 w-4 mr-2" />Back to List
         </Button>
       </div>
     );
@@ -206,6 +287,10 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
     ? ((arr.installments_paid ?? 0) / arr.number_of_installments) * 100
     : 0;
 
+  const breachHealthInfo = getBreachHealth(arr);
+  const hCfg = healthConfig[breachHealthInfo.health];
+  const unresolvedBreaches = breaches.filter((b: any) => !b.resolution).length;
+
   return (
     <div className="space-y-6">
       {/* ── Header ──────────────────────────────────────── */}
@@ -216,6 +301,11 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
         <div className="flex-1 min-w-0">
           <h2 className="text-lg font-semibold truncate">{arr.arrangement_number}</h2>
           <p className="text-sm text-muted-foreground">{arr.employer_name} · {arr.employer_id}</p>
+          {linkedCase && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Case: <span className="font-mono">{linkedCase.case_number}</span>
+            </p>
+          )}
         </div>
         <Badge className={statusColor(arr.status)}>{arr.status}</Badge>
         {arr.breach_detected && (
@@ -223,18 +313,33 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
             <AlertTriangle className="h-3 w-3" />BREACH
           </Badge>
         )}
-        <Button
-          variant="outline" size="sm"
-          onClick={() => recalcMutation.mutate()}
-          disabled={recalcMutation.isPending}
-        >
-          {recalcMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}
-          Recalculate
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline" size="sm"
+            onClick={() => breachRefreshMutation.mutate()}
+            disabled={breachRefreshMutation.isPending}
+            title="Re-evaluate breach state from current installment data"
+          >
+            {breachRefreshMutation.isPending
+              ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              : <Shield className="h-4 w-4 mr-1" />}
+            Refresh Breach
+          </Button>
+          <Button
+            variant="outline" size="sm"
+            onClick={() => recalcMutation.mutate()}
+            disabled={recalcMutation.isPending}
+          >
+            {recalcMutation.isPending
+              ? <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              : <RefreshCw className="h-4 w-4 mr-1" />}
+            Recalculate
+          </Button>
+        </div>
       </div>
 
-      {/* ── Summary Cards ───────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* ── Financial Summary Cards ─────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-4 pb-3">
             <p className="text-xs text-muted-foreground">Total Debt</p>
@@ -262,9 +367,44 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
             </div>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <p className="text-xs text-muted-foreground">Next Due</p>
+            <p className="text-lg font-bold flex items-center gap-1">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              {arr.next_due_date ? formatDateForDisplay(arr.next_due_date) : 'N/A'}
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* ── Arrangement Meta ────────────────────────────── */}
+      {/* ── Breach Health Widget ─────────────────────────── */}
+      <Card className={`border ${hCfg.border}`}>
+        <CardContent className="pt-4 pb-3">
+          <div className="flex items-start gap-3">
+            <div className={`p-2 rounded-lg ${hCfg.bg} ${hCfg.text}`}>
+              {hCfg.icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className={`text-sm font-semibold ${hCfg.text}`}>{breachHealthInfo.label}</h4>
+                {unresolvedBreaches > 0 && (
+                  <Badge variant="destructive" className="text-xs">
+                    {unresolvedBreaches} unresolved
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">{breachHealthInfo.description}</p>
+            </div>
+            <div className="text-right text-xs text-muted-foreground space-y-0.5 shrink-0">
+              <p>Missed: <span className={`font-medium ${(arr.missed_payments ?? 0) > 0 ? 'text-destructive' : ''}`}>{arr.missed_payments ?? 0}</span> / {arr.max_missed_before_breach ?? 2}</p>
+              {arr.breach_date && <p>Since: {formatDateForDisplay(arr.breach_date)}</p>}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Arrangement Meta Row ────────────────────────── */}
       <Card>
         <CardContent className="pt-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -277,30 +417,21 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
               <p className="font-medium">{arr.start_date ? formatDateForDisplay(arr.start_date) : '-'}</p>
             </div>
             <div>
-              <p className="text-muted-foreground text-xs">Next Due</p>
-              <p className="font-medium flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {arr.next_due_date ? formatDateForDisplay(arr.next_due_date) : 'N/A'}
-              </p>
+              <p className="text-muted-foreground text-xs">End Date</p>
+              <p className="font-medium">{arr.end_date ? formatDateForDisplay(arr.end_date) : '-'}</p>
             </div>
             <div>
-              <p className="text-muted-foreground text-xs">Missed Payments</p>
-              <p className={`font-medium ${(arr.missed_payments ?? 0) > 0 ? 'text-destructive' : ''}`}>
-                {arr.missed_payments ?? 0} / {arr.max_missed_before_breach ?? 2} max
-              </p>
+              <p className="text-muted-foreground text-xs">Installment Amount</p>
+              <p className="font-medium">{formatCurrency(arr.installment_amount)}</p>
             </div>
           </div>
-          {arr.breach_detected && arr.breach_reason && (
-            <div className="mt-3 flex items-start gap-2 rounded-md bg-destructive/10 p-2.5 text-destructive text-xs">
-              <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>{arr.breach_reason}</span>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* ── Linked Case ─────────────────────────────────── */}
-      {linkedCase && (
+      {/* ── Linked Case (with error fallback) ────────────── */}
+      {caseError ? (
+        <SectionError message="Could not load linked case details." />
+      ) : linkedCase ? (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -316,7 +447,7 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
               </div>
               <div>
                 <p className="text-muted-foreground text-xs">Status</p>
-                <Badge className={statusColor(linkedCase.status ?? '')} >{linkedCase.status}</Badge>
+                <Badge className={statusColor(linkedCase.status ?? '')}>{linkedCase.status}</Badge>
               </div>
               <div>
                 <p className="text-muted-foreground text-xs">Priority</p>
@@ -332,11 +463,11 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
             )}
           </CardContent>
         </Card>
-      )}
+      ) : null}
 
       {/* ── Tabs ────────────────────────────────────────── */}
       <Tabs defaultValue="installments" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="installments">
             Installments ({installments.length})
           </TabsTrigger>
@@ -347,7 +478,10 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
             Reconciliation ({recentReconciliations.length})
           </TabsTrigger>
           <TabsTrigger value="history">
-            Case History ({caseHistory.length})
+            History ({caseHistory.length})
+          </TabsTrigger>
+          <TabsTrigger value="notices">
+            Notices ({notices.length})
           </TabsTrigger>
         </TabsList>
 
@@ -356,7 +490,7 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
           <Card>
             <CardContent className="pt-4">
               {installments.length === 0 ? (
-                <p className="text-center py-6 text-muted-foreground text-sm">No installments found</p>
+                <SectionEmpty message="No installments found for this arrangement." icon={<CalendarDays className="h-6 w-6 mb-2 opacity-50" />} />
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
@@ -368,7 +502,7 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
                         <TableHead className="text-right">Paid</TableHead>
                         <TableHead className="text-right">Remaining</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Overdue Days</TableHead>
+                        <TableHead className="text-right">Overdue</TableHead>
                         <TableHead>Payment Ref</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -415,25 +549,32 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
         <TabsContent value="breaches">
           <Card>
             <CardContent className="pt-4">
-              {breaches.length === 0 ? (
-                <p className="text-center py-6 text-muted-foreground text-sm">No breaches recorded</p>
+              {breachesError ? (
+                <SectionError message="Failed to load breach records." />
+              ) : breaches.length === 0 ? (
+                <SectionEmpty message="No breaches recorded — arrangement is in good standing." icon={<ShieldCheck className="h-6 w-6 mb-2 opacity-50" />} />
               ) : (
                 <div className="space-y-3">
                   {breaches.map((b: any) => (
-                    <div key={b.id} className="rounded-md border p-3 space-y-2">
+                    <div key={b.id} className={`rounded-md border p-3 space-y-2 ${!b.resolution ? 'border-destructive/20 bg-destructive/5' : ''}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <AlertTriangle className={`h-4 w-4 ${b.resolution ? 'text-muted-foreground' : 'text-destructive'}`} />
                           <Badge variant={b.resolution ? 'secondary' : 'destructive'}>
                             {b.breach_type ?? 'STANDARD'}
                           </Badge>
+                          {!b.resolution && (
+                            <Badge variant="outline" className="text-xs border-destructive/30 text-destructive">
+                              Unresolved
+                            </Badge>
+                          )}
                         </div>
                         <span className="text-xs text-muted-foreground">
                           {b.detected_at ? formatDateForDisplay(b.detected_at) : '-'}
                         </span>
                       </div>
                       <p className="text-sm">{b.description}</p>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                         <span>Detected by: {b.detected_by ?? 'SYSTEM'}</span>
                         {b.resolution && (
                           <>
@@ -461,31 +602,58 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
         <TabsContent value="reconciliation">
           <Card>
             <CardContent className="pt-4">
-              {recentReconciliations.length === 0 ? (
-                <p className="text-center py-6 text-muted-foreground text-sm">No recent reconciliation activity</p>
+              {reconError ? (
+                <SectionError message="Failed to load reconciliation log. This does not affect the arrangement." />
+              ) : recentReconciliations.length === 0 ? (
+                <SectionEmpty
+                  message="No reconciliation observations yet. Payment credits appear here after ledger posting."
+                  icon={<Activity className="h-6 w-6 mb-2 opacity-50" />}
+                />
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Observed At</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Ledger Entry</TableHead>
-                      <TableHead>Observed By</TableHead>
-                      <TableHead>Notes</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentReconciliations.map((r: any) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="text-xs">{r.observed_at ? formatDateForDisplay(r.observed_at) : '-'}</TableCell>
-                        <TableCell><Badge variant="outline" className="text-xs">{r.observation_type ?? '-'}</Badge></TableCell>
-                        <TableCell className="font-mono text-xs truncate max-w-[120px]">{r.ledger_entry_id?.slice(0, 8) ?? '-'}</TableCell>
-                        <TableCell className="text-xs">{r.observed_by ?? 'SYSTEM'}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">{r.notes || '-'}</TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Observed At</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Ledger Entry</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>Observer</TableHead>
+                        <TableHead>Notes</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {recentReconciliations.map((r: any) => (
+                        <TableRow key={r.id}>
+                          <TableCell className="text-xs whitespace-nowrap">
+                            {r.observed_at ? formatDateForDisplay(r.observed_at) : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`text-xs ${observationColor(r.observation_type ?? '')}`}>
+                              {r.observation_type ?? '-'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {r.status ?? r.observation_status ?? '-'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="font-mono text-xs truncate max-w-[100px]">
+                            {r.ledger_entry_id?.slice(0, 8) ?? '-'}
+                          </TableCell>
+                          <TableCell className="text-right text-xs">
+                            {r.amount ? formatCurrency(r.amount) : '-'}
+                          </TableCell>
+                          <TableCell className="text-xs">{r.observed_by ?? 'SYSTEM'}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground truncate max-w-[200px]">
+                            {r.notes || '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -495,10 +663,12 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
         <TabsContent value="history">
           <Card>
             <CardContent className="pt-4">
-              {!caseId ? (
-                <p className="text-center py-6 text-muted-foreground text-sm">No linked case</p>
+              {historyError ? (
+                <SectionError message="Failed to load case history." />
+              ) : !caseId ? (
+                <SectionEmpty message="No linked case — history is unavailable." />
               ) : caseHistory.length === 0 ? (
-                <p className="text-center py-6 text-muted-foreground text-sm">No case history entries</p>
+                <SectionEmpty message="No case history entries recorded yet." />
               ) : (
                 <div className="space-y-2">
                   {caseHistory.map((h: any) => (
@@ -517,7 +687,7 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
                         </div>
                         {h.notes && <p className="text-xs text-muted-foreground mt-0.5">{h.notes}</p>}
                       </div>
-                      <div className="text-xs text-muted-foreground whitespace-nowrap">
+                      <div className="text-xs text-muted-foreground whitespace-nowrap text-right">
                         <p>{h.performed_at ? formatDateForDisplay(h.performed_at) : '-'}</p>
                         <p>{h.performed_by ?? 'SYSTEM'}</p>
                       </div>
@@ -528,42 +698,49 @@ export const ArrangementDetailPanel: React.FC<ArrangementDetailPanelProps> = ({
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
 
-      {/* ── Notices (if any exist for linked case) ───────── */}
-      {notices.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Related Notices</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Notice #</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Delivery</TableHead>
-                  <TableHead>Created</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {notices.map((n: any) => (
-                  <TableRow key={n.id}>
-                    <TableCell className="font-mono text-xs">{n.notice_number}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-xs">{n.notice_type}</Badge></TableCell>
-                    <TableCell className="text-xs truncate max-w-[200px]">{n.subject}</TableCell>
-                    <TableCell><Badge className={statusColor(n.status ?? '')}>{n.status}</Badge></TableCell>
-                    <TableCell className="text-xs">{n.delivery_method ?? '-'}</TableCell>
-                    <TableCell className="text-xs">{n.created_at ? formatDateForDisplay(n.created_at) : '-'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+        {/* ── Notices Tab ───────────────────────────────── */}
+        <TabsContent value="notices">
+          <Card>
+            <CardContent className="pt-4">
+              {noticesError ? (
+                <SectionError message="Failed to load related notices." />
+              ) : !caseId ? (
+                <SectionEmpty message="No linked case — notices are unavailable." icon={<Bell className="h-6 w-6 mb-2 opacity-50" />} />
+              ) : notices.length === 0 ? (
+                <SectionEmpty message="No notices have been issued for this case." icon={<Bell className="h-6 w-6 mb-2 opacity-50" />} />
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Notice #</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Subject</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Delivery</TableHead>
+                        <TableHead>Created</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {notices.map((n: any) => (
+                        <TableRow key={n.id}>
+                          <TableCell className="font-mono text-xs">{n.notice_number}</TableCell>
+                          <TableCell><Badge variant="outline" className="text-xs">{n.notice_type}</Badge></TableCell>
+                          <TableCell className="text-xs truncate max-w-[200px]">{n.subject}</TableCell>
+                          <TableCell><Badge className={statusColor(n.status ?? '')}>{n.status}</Badge></TableCell>
+                          <TableCell className="text-xs">{n.delivery_method ?? '-'}</TableCell>
+                          <TableCell className="text-xs">{n.created_at ? formatDateForDisplay(n.created_at) : '-'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
