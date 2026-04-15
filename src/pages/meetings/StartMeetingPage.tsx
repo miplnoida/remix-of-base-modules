@@ -837,6 +837,9 @@ export default function StartMeetingPage() {
               onReplacedDocCategoriesChange={setReplacedDocCategories}
               docVerificationRef={docVerificationRef}
               employerFormRef={employerFormRef}
+              onSaveTab={handleSaveTab}
+              dirtyTabs={dirtyTabs}
+              savingTabs={new Set(Object.entries(tabHooksMap).filter(([, h]) => h.isSaving).map(([k]) => k))}
             />
           ) : (
             <Alert>
