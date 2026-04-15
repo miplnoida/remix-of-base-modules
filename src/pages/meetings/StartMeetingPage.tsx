@@ -1429,6 +1429,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
           <EditableField label="Mobile" value={data.contactMobile} onChange={(v) => onChange('contactMobile', v)} />
           <EditableField label="Email" value={data.contactEmail} onChange={(v) => onChange('contactEmail', v)} type="email" />
         </div>
+        <TabSaveButton tabId="ip-contact" onSave={onSaveTab} isDirty={dirtyTabs?.has('ip-contact')} isSaving={savingTabs?.has('ip-contact')} label="Contact" />
       </TabsContent>
 
       {/* Relations Tab */}
