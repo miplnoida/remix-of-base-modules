@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList, Eye, Download, Upload, Loader2, CheckCircle, RefreshCw, Pencil } from 'lucide-react';
+import { ArrowLeft, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList, Eye, Download, Upload, Loader2, CheckCircle, RefreshCw, Pencil, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployerRegistration } from '@/hooks/useEmployerRegistration';
 import { useEmployerRegistrationSubmit } from '@/hooks/useEmployerRegistrationSubmit';
-import { ERMasterFormData, ER_STATUS_CODES } from '@/types/employerRegistration';
+import { ERMasterFormData, EROwnerData, ERLocationData, ER_STATUS_CODES } from '@/types/employerRegistration';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -41,7 +41,7 @@ export default function EmployerRegistrationForm() {
   const {
     formData, setFormData, owners, locations, notes, commenceDates,
     isLoading, isSaving, isNewRecord, saveEmployer, submitForVerification,
-    addOwner, deleteOwner, addLocation, deleteLocation, addNote, addCommenceDate
+    addOwner, updateOwner, deleteOwner, addLocation, updateLocation, deleteLocation, addNote, addCommenceDate
   } = useEmployerRegistration({ regno, mode: isNewMode ? 'create' : isViewMode ? 'view' : 'edit' });
 
   const { data: countries = [] } = useCountries();
@@ -82,6 +82,8 @@ export default function EmployerRegistrationForm() {
   const [newNote, setNewNote] = useState('');
   const [showOwnerDialog, setShowOwnerDialog] = useState(false);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
+  const [editingOwner, setEditingOwner] = useState<EROwnerData | null>(null);
+  const [editingLocation, setEditingLocation] = useState<ERLocationData | null>(null);
   const [ownerForm, setOwnerForm] = useState({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 });
   const [ownerErrors, setOwnerErrors] = useState<Record<string, string>>({});
   const [locationForm, setLocationForm] = useState({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '', city: '', state: '', country: '' });
@@ -155,9 +157,33 @@ export default function EmployerRegistrationForm() {
     if (ownerForm.ssn && (ownerForm.ssn.length > 6 || !/^\d*$/.test(ownerForm.ssn))) errors.ssn = 'Max 6 digits only';
     if (Object.keys(errors).length > 0) { setOwnerErrors(errors); return; }
     setOwnerErrors({});
-    await addOwner(ownerForm);
-    setOwnerForm({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 });
-    setShowOwnerDialog(false);
+    
+    let success = false;
+    if (editingOwner && editingOwner.owner_id) {
+      success = await updateOwner(editingOwner.owner_id, ownerForm);
+    } else {
+      success = await addOwner(ownerForm);
+    }
+    if (success) {
+      setOwnerForm({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 });
+      setEditingOwner(null);
+      setShowOwnerDialog(false);
+    }
+  };
+
+  const handleEditOwner = (owner: EROwnerData) => {
+    setEditingOwner(owner);
+    setOwnerForm({
+      name: owner.name || '',
+      title: owner.title || '',
+      phone: owner.phone || '',
+      mobile: owner.mobile || '',
+      email: owner.email || '',
+      ssn: owner.ssn || '',
+      location_id: owner.location_id || 0,
+    });
+    setOwnerErrors({});
+    setShowOwnerDialog(true);
   };
 
   const handleAddLocation = async () => {
@@ -169,9 +195,33 @@ export default function EmployerRegistrationForm() {
     if (locationForm.activity_type.length > 50) errors.activity_type = 'Max 50 characters';
     if (Object.keys(errors).length > 0) { setLocationErrors(errors); return; }
     setLocationErrors({});
-    await addLocation(locationForm);
-    setLocationForm({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '', city: '', state: '', country: '' });
-    setShowLocationDialog(false);
+
+    let success = false;
+    if (editingLocation && editingLocation.location_id) {
+      success = await updateLocation(editingLocation.location_id, locationForm);
+    } else {
+      success = await addLocation(locationForm);
+    }
+    if (success) {
+      setLocationForm({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '', city: '', state: '', country: '' });
+      setEditingLocation(null);
+      setShowLocationDialog(false);
+    }
+  };
+
+  const handleEditLocation = (loc: ERLocationData) => {
+    setEditingLocation(loc);
+    setLocationForm({
+      trade_name: loc.trade_name || '',
+      loc_addr1: loc.loc_addr1 || '',
+      loc_addr2: loc.loc_addr2 || '',
+      activity_type: loc.activity_type || '',
+      city: (loc as any).city || '',
+      state: (loc as any).state || '',
+      country: (loc as any).country || '',
+    });
+    setLocationErrors({});
+    setShowLocationDialog(true);
   };
 
   const handleWorkflowActionComplete = (action: string, endState: string | null) => {
@@ -302,17 +352,24 @@ export default function EmployerRegistrationForm() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Owners / Partners</CardTitle>
-              {!isViewMode && <Button onClick={() => setShowOwnerDialog(true)}><Plus className="h-4 w-4 mr-2" />Add Owner</Button>}
+              {!isViewMode && <Button onClick={() => { setEditingOwner(null); setOwnerForm({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 }); setOwnerErrors({}); setShowOwnerDialog(true); }}><Plus className="h-4 w-4 mr-2" />Add Owner</Button>}
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Title</TableHead><TableHead>Phone</TableHead><TableHead>Email</TableHead><TableHead>SSN</TableHead>{!isViewMode && <TableHead></TableHead>}</TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Title</TableHead><TableHead>Phone</TableHead><TableHead>Email</TableHead><TableHead>SSN</TableHead>{!isViewMode && <TableHead>Actions</TableHead>}</TableRow></TableHeader>
                 <TableBody>
                   {owners.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No owners added</TableCell></TableRow> :
                     owners.map((owner, idx) => (
                       <TableRow key={idx}>
                         <TableCell>{owner.name}</TableCell><TableCell>{owner.title}</TableCell><TableCell>{owner.phone}</TableCell><TableCell>{owner.email}</TableCell><TableCell>{owner.ssn}</TableCell>
-                        {!isViewMode && <TableCell><Button variant="ghost" size="icon" onClick={() => owner.owner_id && deleteOwner(owner.owner_id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>}
+                        {!isViewMode && (
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleEditOwner(owner)}><Pencil className="h-4 w-4 text-primary" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => owner.owner_id && deleteOwner(owner.owner_id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                 </TableBody>
@@ -326,17 +383,24 @@ export default function EmployerRegistrationForm() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Business Locations</CardTitle>
-              {!isViewMode && <Button onClick={() => setShowLocationDialog(true)}><Plus className="h-4 w-4 mr-2" />Add Location</Button>}
+              {!isViewMode && <Button onClick={() => { setEditingLocation(null); setLocationForm({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '', city: '', state: '', country: '' }); setLocationErrors({}); setShowLocationDialog(true); }}><Plus className="h-4 w-4 mr-2" />Add Location</Button>}
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Trade Name</TableHead><TableHead>Address 1</TableHead><TableHead>Address 2</TableHead><TableHead>City</TableHead><TableHead>State</TableHead><TableHead>Country</TableHead><TableHead>Activity Type</TableHead>{!isViewMode && <TableHead></TableHead>}</TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Trade Name</TableHead><TableHead>Address 1</TableHead><TableHead>Address 2</TableHead><TableHead>City</TableHead><TableHead>State</TableHead><TableHead>Country</TableHead><TableHead>Activity Type</TableHead>{!isViewMode && <TableHead>Actions</TableHead>}</TableRow></TableHeader>
                 <TableBody>
                   {locations.length === 0 ? <TableRow><TableCell colSpan={isViewMode ? 7 : 8} className="text-center text-muted-foreground">No locations added</TableCell></TableRow> :
                     locations.map((loc, idx) => (
                       <TableRow key={idx}>
                         <TableCell>{loc.trade_name || '—'}</TableCell><TableCell>{loc.loc_addr1 || '—'}</TableCell><TableCell>{loc.loc_addr2 || '—'}</TableCell><TableCell>{(loc as any).city || '—'}</TableCell><TableCell>{(loc as any).state || '—'}</TableCell><TableCell>{resolveCountryName((loc as any).country)}</TableCell><TableCell>{loc.activity_type || '—'}</TableCell>
-                        {!isViewMode && <TableCell><Button variant="ghost" size="icon" onClick={() => loc.location_id && deleteLocation(loc.location_id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>}
+                        {!isViewMode && (
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleEditLocation(loc)}><Pencil className="h-4 w-4 text-primary" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => loc.location_id && deleteLocation(loc.location_id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                 </TableBody>
@@ -435,9 +499,9 @@ export default function EmployerRegistrationForm() {
       </AlertDialog>
 
       {/* Add Owner Dialog */}
-      <Dialog open={showOwnerDialog} onOpenChange={(open) => { setShowOwnerDialog(open); if (!open) setOwnerErrors({}); }}>
+      <Dialog open={showOwnerDialog} onOpenChange={(open) => { setShowOwnerDialog(open); if (!open) { setOwnerErrors({}); setEditingOwner(null); } }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Add Owner</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingOwner ? 'Edit Owner' : 'Add Owner'}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
             <div>
               <Label className={ownerErrors.name ? 'text-destructive' : ''}>Name * <span className="text-xs text-muted-foreground">(max 40)</span></Label>
@@ -470,14 +534,14 @@ export default function EmployerRegistrationForm() {
               {ownerErrors.ssn && <p className="text-xs text-destructive mt-1">{ownerErrors.ssn}</p>}
             </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowOwnerDialog(false)}>Cancel</Button><Button onClick={handleAddOwner}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setShowOwnerDialog(false)}>Cancel</Button><Button onClick={handleAddOwner}>{editingOwner ? 'Save' : 'Add'}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Add Location Dialog */}
-      <Dialog open={showLocationDialog} onOpenChange={(open) => { setShowLocationDialog(open); if (!open) setLocationErrors({}); }}>
+      <Dialog open={showLocationDialog} onOpenChange={(open) => { setShowLocationDialog(open); if (!open) { setLocationErrors({}); setEditingLocation(null); } }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Add Location</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingLocation ? 'Edit Location' : 'Add Location'}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
             <div>
               <Label className={locationErrors.trade_name ? 'text-destructive' : ''}>Trade Name * <span className="text-xs text-muted-foreground">(max 40)</span></Label>
@@ -521,7 +585,7 @@ export default function EmployerRegistrationForm() {
               {locationErrors.activity_type && <p className="text-xs text-destructive mt-1">{locationErrors.activity_type}</p>}
             </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowLocationDialog(false)}>Cancel</Button><Button onClick={handleAddLocation}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setShowLocationDialog(false)}>Cancel</Button><Button onClick={handleAddLocation}>{editingLocation ? 'Save' : 'Add'}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
