@@ -1461,6 +1461,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
           <EditableField label="Witness Name" value={data.witnessName} onChange={(v) => onChange('witnessName', v)} />
           <EditableField label="Witness Date" value={data.witnessDate} onChange={(v) => onChange('witnessDate', v)} type="date" />
         </div>
+        <TabSaveButton tabId="ip-relations" onSave={onSaveTab} isDirty={dirtyTabs?.has('ip-relations')} isSaving={savingTabs?.has('ip-relations')} label="Relations" />
       </TabsContent>
 
       {/* Employment Tab */}
@@ -1530,6 +1531,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
           <EditableField label="Town" value={data.employerTown} onChange={(v) => onChange('employerTown', v)} />
           <EditableField label="Phone" value={data.employerPhone} onChange={(v) => onChange('employerPhone', v)} />
         </div>
+        <TabSaveButton tabId="ip-employment" onSave={onSaveTab} isDirty={dirtyTabs?.has('ip-employment')} isSaving={savingTabs?.has('ip-employment')} label="Employment" />
       </TabsContent>
 
       {/* Dependants Tab */}
@@ -1880,6 +1882,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
             <p>No remarks provided</p>
           </div>
         )}
+        <TabSaveButton tabId="ip-remarks" onSave={onSaveTab} isDirty={dirtyTabs?.has('ip-remarks')} isSaving={savingTabs?.has('ip-remarks')} label="Remarks" />
       </TabsContent>
     </Tabs>
   );
