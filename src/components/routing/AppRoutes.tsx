@@ -720,6 +720,7 @@ import BootstrapAdmin from '@/pages/setup/BootstrapAdmin';
 import FoundationComponentsDemo from '@/pages/FoundationComponentsDemo';
 import FeeConfiguration from '@/pages/admin/FeeConfiguration';
 import IPCardConfiguration from '@/pages/admin/IPCardConfiguration';
+import KnowledgeBaseAdmin from '@/pages/admin/settings/KnowledgeBaseAdmin';
 
 // Report Pages
 import InsuredPersonsSummaryReport from '@/pages/reports/insured-persons/InsuredPersonsSummaryReport';
@@ -1368,6 +1369,7 @@ export const AppRoutes = () => {
       <Route path="/admin/global-settings" element={<ProtectedLayout><GlobalSettings /></ProtectedLayout>} />
       <Route path="/admin/document-configuration" element={<ProtectedLayout><DocumentConfigurationPage /></ProtectedLayout>} />
       <Route path="/admin/ip-card-configuration" element={<ProtectedLayout><IPCardConfiguration /></ProtectedLayout>} />
+      <Route path="/admin/knowledge-base" element={<ProtectedLayout><KnowledgeBaseAdmin /></ProtectedLayout>} />
       
       {/* Workflow Engine Routes */}
       <Route path="/admin/workflows" element={<ProtectedLayout><WorkflowList /></ProtectedLayout>} />
