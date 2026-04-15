@@ -1159,7 +1159,7 @@ const RuleEngine = () => {
         existingCodes={detectionRules.map(r => r.rule_code)}
         conditionVars={conditionVars}
       />
-      <CalculationRuleDialog
+      <EnhancedCalculationRuleDialog
         open={calcDialogOpen}
         onOpenChange={v => { setCalcDialogOpen(v); if (!v) setEditingCalc(null); }}
         rule={editingCalc}
@@ -1167,9 +1167,8 @@ const RuleEngine = () => {
         onSave={data => saveCalc.mutate(data)}
         saving={saveCalc.isPending}
         existingCodes={calculationRules.map(r => r.rule_code)}
-        formulaOps={formulaOps}
       />
-      <EscalationRuleDialog
+      <EnhancedEscalationRuleDialog
         open={escDialogOpen}
         onOpenChange={v => { setEscDialogOpen(v); if (!v) setEditingEsc(null); }}
         rule={editingEsc}
@@ -1177,7 +1176,6 @@ const RuleEngine = () => {
         onSave={data => saveEsc.mutate(data)}
         saving={saveEsc.isPending}
         existingCodes={escalationRules.map(r => r.rule_code)}
-        conditionVars={conditionVars}
       />
     </div>
   );
