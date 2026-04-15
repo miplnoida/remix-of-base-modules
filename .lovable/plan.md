@@ -1,50 +1,59 @@
 
 
-# Employer Registration User Manual — Generation Plan
+# Employer Meeting Form — Required Field Indicators & Validation Highlighting
 
-## What Will Be Produced
+## Problem
+When a user clicks "Accept" on the employer meeting workbench, the `validateEmployerApplicationForConversion` function blocks with a generic error toast (e.g., "Employer name is required"), but the form fields themselves have no visual indicators showing which fields are required or which failed validation.
 
-Two documents delivered to `/mnt/documents/`:
-- `Employer_Registration_User_Manual.docx` (DOCX format)
-- `Employer_Registration_User_Manual.pdf` (PDF converted from DOCX)
+## Root Cause
+1. The `EditField` component supports an `error` prop (red border + message), but the employer meeting form tabs (Employer Profile, Basic Details, Contact & Reach, Tech & Finance) never pass field-level errors — only the Owner/Location dialogs do.
+2. The `validateEmployerApplicationForConversion` function only checks 3 things: `employer_name`, `ownership_code`, and at least one contact method. But the RPC defaults missing values silently (e.g., `office_code` defaults to `'STK'`), so the real validation gap is on the client form UX, not the server.
+3. No required-field asterisk (`*`) indicators exist on any tab fields.
 
-A comprehensive ~30-35 page user manual covering the end-to-end employer registration workflow.
+## Plan
 
-## Document Structure
+### 1. Add validation state to `EmployerApplicationEditForm`
+- Add a `validationErrors: Record<string, string>` state
+- Add a `validateAllTabs()` function that checks all required fields across all tabs
+- Expose a `triggerValidation()` method (via `React.forwardRef` + `useImperativeHandle`) so the parent `StartMeetingPage` can call it on Accept click
 
-1. **Cover Page** — Title, version, date, document reference, SSB branding
-2. **Table of Contents** — Auto-generated heading references
-3. **Introduction & Purpose** — What the employer registration process is, who uses it, and why
-4. **Process Overview / Workflow Diagram** — ASCII flow diagram showing: Online Application → Application Review → Schedule Meeting → Meeting Workbench → Accept/Reject → Employer Registration (Pending) → Approval Workflow → Registration Number Generated
-5. **Screen 1: Online Employer Applications (`/online-applications/employer`)** — Filters (Status, Email, Search, Date Range, Sort), application table columns, View action, status indicators (Connected/Disconnected badge), pagination, refresh
-6. **Screen 2: Application Detail & Review** — Summary card, 8 tabs (Employer Profile, Basic Details, Contact & Reach, Addresses, Ownership, Employment, Documents, Declaration), workflow action buttons (Accept, Reject, Schedule Meeting), meeting status badge
-7. **Screen 3: Manage Meetings (`/meetings`)** — Stat cards, Active/Closed tabs, meeting groups by application reference, status filters (Scheduled, InProgress, Closed), date range filters, meeting detail view dialog, actions (Resume, View, Reschedule, Cancel)
-8. **Screen 4: Meeting Workbench (`/meetings/start/:id`)** — Application data review, document verification tab, employer application edit form, approval/rejection flow with conversion to employer registration
-9. **Screen 5: Employer Registration List (`/employer-registration`)** — 3 tabs (Pending Verification, Registered, Ceased/Suspended), filters, status badges (Draft Z, Pending P, Active A, Verified V), actions (View, Edit, Submit, Delete), workflow action buttons, export (Excel/PDF)
-10. **Screen 6: Employer Registration Form (View/Edit)** — 8 tabs (Form Detail, Owners, Locations, Documents, Notes, Commence, Visits, Suits), Edit button in view mode, sub-steps in Form Detail (Entity Overview, Contact & Reach, Background Info, Tech & Finance), owner/location CRUD operations with validation
-11. **Registration Number Generation** — How a temporary "T" number is assigned during conversion, how the final 6-digit permanent number is generated upon approval, where it is displayed, toast notifications
-12. **Common Scenarios & Edge Cases** — Rejecting an application, rescheduling meetings multiple times, cancelling meetings, re-approving after rejection, duplicate applications
-13. **Troubleshooting** — API disconnected, failed to load applications, meeting not appearing, workflow buttons not showing, registration number not generated
-14. **Glossary** — Key terms (Registration Number, Workflow Instance, SLA, Meeting Workbench, Pending Verification, etc.)
+**Required fields to validate** (matching the conversion function + RPC needs):
+- **Employer Profile tab**: `ownership_code` (required)
+- **Basic Details tab**: `employer_name` (required, max 40), `hq_address1` (recommended), `application_date`
+- **Contact & Reach tab**: at least one of `contact_telephone`, `email`, `mobile`; `village_code`, `activity_type`
 
-## Technical Approach
+### 2. Add required-field indicators (`*`) to labels
+- Update `EditField` and `SelectField` components to accept an `isRequired` prop
+- When `isRequired` is true, append a red asterisk to the label
+- Apply this to: `employer_name`, `ownership_code`, `contact_telephone` (or email/mobile), `village_code`, `activity_type`
 
-- Generate DOCX using Node.js `docx` library with professional formatting
-- US Letter format, consistent headers/footers with page numbers
-- Tables for field descriptions, status codes, and action matrices
-- Convert to PDF via LibreOffice for the second deliverable
-- QA via image inspection of all pages
+### 3. Highlight invalid fields with red borders on Accept
+- When validation fails, set `validationErrors` state with field→message map
+- Pass `error={validationErrors[fieldName]}` to each `EditField` and `SelectField`
+- Fields will show red border + error message below (already supported by `EditField`)
+- Extend `SelectField` to also support the `error` prop (red border + message)
 
-## Implementation Steps
+### 4. Show error badge on tab triggers
+- When validation errors exist in a tab, show a red error count badge on the tab trigger (e.g., "Basic Details ②")
+- Group errors by tab to compute per-tab counts
 
-1. Take screenshots of key screens using browser tools for inclusion
-2. Write generation script to `/tmp/gen_er_manual.js`
-3. Execute to produce DOCX at `/mnt/documents/Employer_Registration_User_Manual.docx`
-4. Convert to PDF at `/mnt/documents/Employer_Registration_User_Manual.pdf`
-5. QA both documents via image inspection
-6. Deliver both artifacts
+### 5. Auto-navigate to first error tab
+- When validation fails on Accept click, auto-switch to the tab containing the first error
+- Show toast with the first error message
 
-## Note on Screenshots
+### 6. Clear errors on field change
+- When a field value changes, remove its entry from `validationErrors`
+- Real-time inline clearing as the user fixes fields
 
-Since the document requests annotated screenshots, I will capture actual UI screenshots from the live preview and embed them in the document. Each screenshot will be accompanied by detailed textual descriptions and field-by-field tables to ensure clarity even without annotations.
+## Files to Modify
+
+1. **`src/components/meetings/EmployerApplicationEditForm.tsx`** — Add validation state, required indicators, error passing, tab error badges, `forwardRef` + imperative handle
+2. **`src/pages/meetings/StartMeetingPage.tsx`** — Call `triggerValidation()` on Accept click before opening confirmation dialog; use ref to the employer form
+3. **`src/hooks/useConvertToEmployerRegistration.ts`** — Enhance `validateEmployerApplicationForConversion` to include all required fields with specific field names matching the form
+
+## Technical Details
+- No database changes needed — this is purely client-side validation UX
+- No new Supabase endpoints required
+- The `EditField` component already supports `error` prop with red border styling
+- `SelectField` needs a minor extension to support `error` prop (add `className` pass-through to SearchableSelect wrapper)
 
