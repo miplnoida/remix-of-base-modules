@@ -123,8 +123,9 @@ export async function checkAllMet(
     .in('prerequisite_key', requiredKeys);
 
   const details: Record<string, boolean> = {};
+  const rows = (data || []) as any[];
   for (const key of requiredKeys) {
-    const found = (data || []).find((p: any) => p.prerequisite_key === key);
+    const found = rows.find((p: any) => p.prerequisite_key === key);
     details[key] = found?.is_satisfied || false;
   }
 
