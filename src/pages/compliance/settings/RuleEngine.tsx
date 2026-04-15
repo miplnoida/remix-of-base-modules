@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { EnhancedDetectionRuleDialog } from '@/components/compliance/detection/DetectionRuleDialog';
 import { EnhancedCalculationRuleDialog } from '@/components/compliance/detection/CalculationRuleDialog';
@@ -21,6 +21,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useUserCode } from '@/hooks/useUserCode';
 import { withAuditFields, checkDuplicateRuleCode, validationToastConfig } from '@/services/complianceSettingsService';
+import { useScreenHelp } from '@/hooks/useScreenHelp';
+import { HelpButton } from '@/components/help/HelpButton';
+import { ScreenFAQPanel } from '@/components/help/ScreenFAQPanel';
+import { HelpSearchDialog } from '@/components/help/HelpSearchDialog';
+import { ShortcutHelpPopover } from '@/components/help/ShortcutHelpPopover';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 // ── Types ──
 
@@ -814,6 +820,11 @@ const RuleEngine = () => {
   const queryClient = useQueryClient();
   const { userCode } = useUserCode();
 
+  // Help & KB state
+  const { article, faqs } = useScreenHelp('compliance', 'rule-engine');
+  const [helpSearchOpen, setHelpSearchOpen] = useState(false);
+  const [showFAQ, setShowFAQ] = useState(false);
+
   // Dialog state
   const [detectionDialogOpen, setDetectionDialogOpen] = useState(false);
   const [editingDetection, setEditingDetection] = useState<DetectionRule | null>(null);
@@ -983,11 +994,33 @@ const RuleEngine = () => {
 
   // ── Add button handler ──
 
-  const handleAddRule = () => {
+  const handleAddRule = useCallback(() => {
     if (activeTab === 'detection') { setEditingDetection(null); setDetectionDialogOpen(true); }
     else if (activeTab === 'calculation') { setEditingCalc(null); setCalcDialogOpen(true); }
     else { setEditingEsc(null); setEscDialogOpen(true); }
-  };
+  }, [activeTab]);
+
+  // ── Keyboard shortcuts ──
+  const shortcutList = [
+    { keys: 'Shift + ?', description: 'Screen help' },
+    { keys: 'Ctrl + K', description: 'Search help' },
+    { keys: 'Alt + F', description: 'Toggle FAQ' },
+    { keys: 'Alt + N', description: 'Add new rule' },
+  ];
+
+  useKeyboardShortcuts([
+    { key: '?', shift: true, description: 'Open screen help', action: () => {
+      // Find and click the help button
+      const helpArticle = article;
+      if (helpArticle) {
+        // Dispatch a custom event the HelpButton can listen to, or directly open
+        document.querySelector<HTMLButtonElement>('[data-help-button]')?.click();
+      }
+    }},
+    { key: 'k', ctrl: true, description: 'Search help', action: () => setHelpSearchOpen(true) },
+    { key: 'f', alt: true, description: 'Toggle FAQ', action: () => setShowFAQ(prev => !prev) },
+    { key: 'n', alt: true, description: 'Add new rule', action: handleAddRule },
+  ]);
 
   const isLoading = loadingDetection || loadingCalc || loadingEsc;
 
@@ -1009,7 +1042,11 @@ const RuleEngine = () => {
           </div>
           <p className="text-muted-foreground">Configure detection, calculation, and escalation rules for automated compliance enforcement</p>
         </div>
-        <Button className="gap-2" onClick={handleAddRule}><Plus className="h-4 w-4" />Add Rule</Button>
+        <div className="flex items-center gap-1">
+          <HelpButton article={article} variant="icon" />
+          <ShortcutHelpPopover shortcuts={shortcutList} />
+          <Button className="gap-2 ml-2" onClick={handleAddRule}><Plus className="h-4 w-4" />Add Rule</Button>
+        </div>
       </div>
 
       <Card className="p-6">
@@ -1176,6 +1213,18 @@ const RuleEngine = () => {
         onSave={data => saveEsc.mutate(data)}
         saving={saveEsc.isPending}
         existingCodes={escalationRules.map(r => r.rule_code)}
+      />
+
+      {/* FAQ Panel - toggleable */}
+      {showFAQ && faqs.length > 0 && (
+        <ScreenFAQPanel faqs={faqs} title="Rule Engine — Frequently Asked Questions" />
+      )}
+
+      {/* Help Search Dialog */}
+      <HelpSearchDialog
+        open={helpSearchOpen}
+        onOpenChange={setHelpSearchOpen}
+        moduleKey="compliance"
       />
     </div>
   );

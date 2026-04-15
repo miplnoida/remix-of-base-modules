@@ -31,7 +31,8 @@ export function HelpButton({ article, variant = 'icon', className }: HelpButtonP
           size="icon"
           onClick={() => setOpen(true)}
           className={className}
-          title="Screen Help"
+          title="Screen Help (Shift+?)"
+          data-help-button="true"
         >
           <BookOpen className="h-4 w-4" />
         </Button>
