@@ -106,7 +106,237 @@ export const SOURCE_CONFIG_OPTIONS = [
   { value: 'manual', label: 'Manual Entry', description: 'Manually specified values' },
 ];
 
-// Generate a formula preview from family + pattern + selected base/rate
+// ── Multi-Factor Formula Builder Types ──
+
+export type FactorType = 'base_metric' | 'rate_source' | 'derived_metric' | 'constant' | 'function';
+export type TermOperator = 'add' | 'subtract';
+export type FactorJoinOp = 'multiply' | 'divide';
+
+export interface FormulaFactor {
+  id: string;
+  type: FactorType;
+  value: string;       // key from catalog, or numeric string for constants
+  label?: string;      // display label (resolved from catalog)
+  joinOp: FactorJoinOp;
+}
+
+export interface FormulaTerm {
+  id: string;
+  operator: TermOperator | null; // null for the first term
+  factors: FormulaFactor[];
+  functionWrapper?: string; // e.g. 'MIN', 'MAX', 'AVG', 'SUM'
+}
+
+// Derived Metrics (usable as factors in formulas)
+export interface DerivedMetricDef {
+  value: string;
+  label: string;
+  description: string;
+  sourceHint: string;
+}
+
+export const DERIVED_METRICS: DerivedMetricDef[] = [
+  { value: 'additional_months', label: 'Additional Months', description: 'Months beyond first month of lateness', sourceHint: 'Computed from due date vs current date' },
+  { value: 'days_late', label: 'Days Late', description: 'Calendar days past the due date', sourceHint: 'Computed from due date vs current/payment date' },
+  { value: 'periods_missing', label: 'Periods Missing', description: 'Count of unfiled C3 periods', sourceHint: 'Gap analysis on cn_c3_reported' },
+  { value: 'case_age_days', label: 'Case Age (Days)', description: 'Days since the case was opened', sourceHint: 'ce_cases.created_at' },
+  { value: 'active_violation_count', label: 'Active Violation Count', description: 'Number of open violations for the employer', sourceHint: 'ce_violations (status=OPEN)' },
+  { value: 'repeat_offender_score', label: 'Repeat Offender Score', description: 'Weighted score based on past violation history', sourceHint: 'Derived from ce_violations history' },
+  { value: 'arrangement_missed_count', label: 'Arrangement Missed Count', description: 'Number of missed installment payments', sourceHint: 'ce_arrangement_installments' },
+  { value: 'notice_wait_days', label: 'Notice Wait Days', description: 'Days since last notice was sent', sourceHint: 'ce_notices.sent_at' },
+  { value: 'is_defaulted', label: 'Is Defaulted', description: 'Whether the arrangement is in default status', sourceHint: 'ce_arrangements.status' },
+  { value: 'risk_score', label: 'Risk Score', description: 'Composite employer risk score', sourceHint: 'ce_employer_risk_profiles' },
+  { value: 'employee_count', label: 'Employee Count', description: 'Number of employees reported', sourceHint: 'cn_c3_reported.number_employed' },
+];
+
+export const FUNCTION_WRAPPERS = [
+  { value: 'none', label: 'None', description: 'No function wrapper' },
+  { value: 'MIN', label: 'MIN()', description: 'Take the minimum (used for caps)' },
+  { value: 'MAX', label: 'MAX()', description: 'Take the maximum (used for floors)' },
+  { value: 'AVG', label: 'AVG()', description: 'Average across records' },
+  { value: 'SUM', label: 'SUM()', description: 'Sum across records' },
+  { value: 'ABS', label: 'ABS()', description: 'Absolute value' },
+];
+
+// ── Factor type display helpers ──
+export const FACTOR_TYPE_CONFIG: Record<FactorType, { label: string; color: string; bgClass: string }> = {
+  base_metric: { label: 'Base', color: 'text-emerald-700 dark:text-emerald-400', bgClass: 'bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700' },
+  rate_source: { label: 'Rate', color: 'text-blue-700 dark:text-blue-400', bgClass: 'bg-blue-100 dark:bg-blue-900/40 border-blue-300 dark:border-blue-700' },
+  derived_metric: { label: 'Derived', color: 'text-amber-700 dark:text-amber-400', bgClass: 'bg-amber-100 dark:bg-amber-900/40 border-amber-300 dark:border-amber-700' },
+  constant: { label: 'Const', color: 'text-slate-700 dark:text-slate-300', bgClass: 'bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600' },
+  function: { label: 'Fn', color: 'text-purple-700 dark:text-purple-400', bgClass: 'bg-purple-100 dark:bg-purple-900/40 border-purple-300 dark:border-purple-700' },
+};
+
+// Resolve a factor's display label
+export function resolveFactorLabel(factor: FormulaFactor): string {
+  if (factor.label) return factor.label;
+  switch (factor.type) {
+    case 'base_metric':
+      return BASE_METRICS.find(m => m.value === factor.value)?.label || factor.value;
+    case 'rate_source':
+      return RATE_SOURCES.find(r => r.value === factor.value)?.label || factor.value;
+    case 'derived_metric':
+      return DERIVED_METRICS.find(d => d.value === factor.value)?.label || factor.value;
+    case 'constant':
+      return factor.value;
+    default:
+      return factor.value;
+  }
+}
+
+// Generate formula preview string from terms
+export function generateFormulaFromTerms(terms: FormulaTerm[]): string {
+  if (!terms.length) return '';
+  return terms.map((term, idx) => {
+    const prefix = idx === 0 ? '' : term.operator === 'subtract' ? ' − ' : ' + ';
+    const factorsStr = term.factors.map((f, fi) => {
+      const joinSymbol = fi === 0 ? '' : f.joinOp === 'divide' ? ' ÷ ' : ' × ';
+      return joinSymbol + resolveFactorLabel(f);
+    }).join('');
+    const inner = factorsStr;
+    if (term.functionWrapper && term.functionWrapper !== 'none') {
+      return `${prefix}${term.functionWrapper}(${inner})`;
+    }
+    return `${prefix}${inner}`;
+  }).join('');
+}
+
+// Generate unique ID
+export function generateId(): string {
+  return Math.random().toString(36).substring(2, 9);
+}
+
+// Create a blank term
+export function createBlankTerm(operator: TermOperator | null): FormulaTerm {
+  return {
+    id: generateId(),
+    operator,
+    factors: [],
+  };
+}
+
+// Create a factor
+export function createFactor(type: FactorType, value: string, joinOp: FactorJoinOp = 'multiply'): FormulaFactor {
+  return { id: generateId(), type, value, joinOp };
+}
+
+// ── Family Templates ──
+// Pre-built term structures for common calculation families
+
+export function getFamilyTemplate(family: string): FormulaTerm[] | null {
+  switch (family) {
+    case 'ss_fine':
+      return [
+        {
+          id: generateId(), operator: null,
+          factors: [
+            createFactor('base_metric', 'shortfall'),
+            createFactor('rate_source', 'ss_fine_initial_rate'),
+          ],
+        },
+        {
+          id: generateId(), operator: 'add',
+          factors: [
+            createFactor('base_metric', 'shortfall'),
+            createFactor('rate_source', 'ss_fine_subsequent_rate'),
+            createFactor('derived_metric', 'additional_months'),
+          ],
+        },
+      ];
+    case 'levy_penalty':
+      return [
+        {
+          id: generateId(), operator: null,
+          factors: [
+            createFactor('base_metric', 'levy_amount'),
+            createFactor('rate_source', 'levy_penalty_initial_rate'),
+          ],
+        },
+        {
+          id: generateId(), operator: 'add',
+          factors: [
+            createFactor('base_metric', 'levy_amount'),
+            createFactor('rate_source', 'levy_penalty_subsequent_rate'),
+            createFactor('derived_metric', 'additional_months'),
+          ],
+        },
+      ];
+    case 'severance_penalty':
+      return [
+        {
+          id: generateId(), operator: null,
+          factors: [
+            createFactor('base_metric', 'severance_amount'),
+            createFactor('rate_source', 'severance_penalty_initial_rate'),
+          ],
+        },
+        {
+          id: generateId(), operator: 'add',
+          factors: [
+            createFactor('base_metric', 'severance_amount'),
+            createFactor('rate_source', 'severance_penalty_subsequent_rate'),
+            createFactor('derived_metric', 'additional_months'),
+          ],
+        },
+      ];
+    case 'interest':
+      return [
+        {
+          id: generateId(), operator: null,
+          factors: [
+            createFactor('base_metric', 'outstanding_balance'),
+            createFactor('rate_source', 'interest_rate_percent'),
+            createFactor('derived_metric', 'days_late'),
+            createFactor('constant', '365', 'divide'),
+          ],
+        },
+      ];
+    case 'estimated_assessment':
+      return [
+        {
+          id: generateId(), operator: null,
+          functionWrapper: 'AVG',
+          factors: [
+            createFactor('base_metric', 'avg_last_3_periods'),
+            createFactor('rate_source', 'estimated_assessment_multiplier'),
+          ],
+        },
+      ];
+    case 'debt_base':
+    case 'case_rollup':
+      return [
+        {
+          id: generateId(), operator: null,
+          functionWrapper: 'SUM',
+          factors: [
+            createFactor('base_metric', 'total_exposure'),
+          ],
+        },
+      ];
+    default:
+      return null;
+  }
+}
+
+// Backward compatibility: convert old single base_metric/rate_source to terms
+export function convertLegacyToTerms(params: Record<string, any>): FormulaTerm[] | null {
+  if (params?.terms) return params.terms as FormulaTerm[];
+  if (params?.base_metric && params?.rate_source) {
+    return [
+      {
+        id: generateId(),
+        operator: null,
+        factors: [
+          createFactor('base_metric', params.base_metric),
+          createFactor('rate_source', params.rate_source),
+        ],
+      },
+    ];
+  }
+  return null;
+}
+
+// Legacy compat: generate simple formula preview (kept for non-builder contexts)
 export function generateFormulaPreview(
   family: string,
   pattern: string,
