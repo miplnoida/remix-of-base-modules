@@ -290,6 +290,78 @@ export default function StartMeetingPage() {
       : applicationData;
   }, [isEmployerMeeting, applicationData, editedData]);
 
+  const employerPreflightErrors = React.useMemo(() => {
+    if (!employerMeetingData) return [];
+    return validateEmployerApplicationForConversion(employerMeetingData);
+  }, [employerMeetingData]);
+
+  const allTabHooksLoading = Object.values(tabHooksMap).some((h) => h.isLoading);
+
+  useEffect(() => {
+    if (!applicationData) return;
+    if (initializedRef.current) return;
+    if (isEmployerMeeting && (locationsEditLoading || ownersEditLoading)) return;
+    if (isIPMeeting && dependantsEditLoading) return;
+    if (allTabHooksLoading) return;
+
+    const merged: Record<string, any> = { ...applicationData };
+
+    if (isEmployerMeeting && hasPersistedLocations && savedLocations) {
+      merged.locations = savedLocations;
+    }
+
+    if (isEmployerMeeting && hasPersistedOwners && savedOwners) {
+      merged.owners = savedOwners;
+    }
+
+    if (isIPMeeting && hasPersistedDependants && savedDependants) {
+      merged.dependants = savedDependants;
+    }
+
+    for (const [, hook] of Object.entries(tabHooksMap)) {
+      if (hook.hasSavedData && hook.savedData && typeof hook.savedData === 'object' && !Array.isArray(hook.savedData)) {
+        Object.assign(merged, hook.savedData);
+      }
+    }
+
+    setEditedData(merged);
+    setBaselineData({ ...merged });
+    initializedRef.current = true;
+  }, [
+    applicationData,
+    isEmployerMeeting,
+    isIPMeeting,
+    locationsEditLoading,
+    ownersEditLoading,
+    dependantsEditLoading,
+    hasPersistedLocations,
+    savedLocations,
+    hasPersistedOwners,
+    savedOwners,
+    hasPersistedDependants,
+    savedDependants,
+    allTabHooksLoading,
+    tabHooksMap,
+  ]);
+
+  const handleFieldChange = (field: string, value: any) => {
+    setEditedData((prev) => ({ ...prev, [field]: value }));
+    setHasChanges(true);
+  };
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      initializedRef.current = false;
+      setEditedData({});
+      setBaselineData({});
+      await refetchApplication();
+      setHasChanges(false);
+      toast.success('Application data refreshed');
+    } catch {
+      toast.error('Failed to refresh application data');
+    }
+  }, [refetchApplication]);
+
   const handleApprove = async () => {
     if (!meetingId) return;
 
