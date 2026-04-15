@@ -339,6 +339,7 @@ export default function StartMeetingPage() {
 
   const handleRefresh = useCallback(async () => {
     try {
+      initializedRef.current = false;
       await refetchApplication();
       setHasChanges(false);
       toast.success('Application data refreshed');
