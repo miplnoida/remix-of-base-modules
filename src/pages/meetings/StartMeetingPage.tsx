@@ -71,7 +71,7 @@ import type { ExternalApplicationDetail, ExternalDependant } from '@/types/exter
 import { useMeetingEditData } from '@/hooks/useMeetingEditData';
 import { IP_TAB_FIELDS, ER_TAB_FIELDS, extractTabFields, getDirtyTabs, TAB_LABELS } from '@/hooks/useMeetingTabPersistence';
 import { logAuditTrail, computeFieldDiff } from '@/services/auditService';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+
 
 const meetingTypeLabels: Record<MeetingType, string> = {
   'IP-Registration': 'Insured Person',
