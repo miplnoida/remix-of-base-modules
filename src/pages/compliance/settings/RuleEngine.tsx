@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { EnhancedDetectionRuleDialog } from '@/components/compliance/detection/DetectionRuleDialog';
 import { EnhancedCalculationRuleDialog } from '@/components/compliance/detection/CalculationRuleDialog';
@@ -1020,18 +1020,18 @@ const RuleEngine = () => {
   }
 
   return (
+    <HelpProvider moduleKey="compliance" screenKey={currentScreenKey} extraShortcuts={extraShortcuts}>
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Cog className="h-6 w-6 text-primary" />
             <h1 className="text-3xl font-semibold text-foreground">Compliance Rule Engine</h1>
           </div>
           <p className="text-muted-foreground">Configure detection, calculation, and escalation rules for automated compliance enforcement</p>
         </div>
-        <div className="flex items-center gap-1">
-          <HelpButton article={article} variant="icon" />
-          <ShortcutHelpPopover shortcuts={shortcutList} />
+        <HelpToolbar extraShortcuts={extraShortcutList}>
+          <Button className="gap-2 ml-2" onClick={handleAddRule}><Plus className="h-4 w-4" />Add Rule</Button>
+        </HelpToolbar>
           <Button className="gap-2 ml-2" onClick={handleAddRule}><Plus className="h-4 w-4" />Add Rule</Button>
         </div>
       </div>
