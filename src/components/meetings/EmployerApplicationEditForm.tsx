@@ -715,6 +715,7 @@ export const EmployerApplicationEditForm = forwardRef<EmployerApplicationEditFor
               </CardContent>
             </Card>
           </div>
+          <TabSaveButton tabId="er-basic-details" onSave={onSaveTab} isDirty={dirtyTabs?.has('er-basic-details')} isSaving={savingTabs?.has('er-basic-details')} label="Basic Details" />
         </TabsContent>
 
         {/* Tab 3: Contact & Reach */}
