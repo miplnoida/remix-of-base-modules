@@ -89,6 +89,7 @@ export default function StartMeetingPage() {
   // Local state for edited application data
   const [editedData, setEditedData] = useState<Record<string, any>>({});
   const [hasChanges, setHasChanges] = useState(false);
+  const initializedRef = useRef(false);
   
   // Dialogs
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -295,6 +296,8 @@ export default function StartMeetingPage() {
   // Initialize edited data when application loads — merge persisted tab data
   useEffect(() => {
     if (!applicationData) return;
+    // Only initialize once — prevent re-running on hook reference changes
+    if (initializedRef.current) return;
     // Wait for persistence hooks to finish loading before deciding
     if (isEmployerMeeting && (locationsEditLoading || ownersEditLoading)) return;
     if (isIPMeeting && dependantsEditLoading) return;
@@ -326,6 +329,7 @@ export default function StartMeetingPage() {
 
     setEditedData(merged);
     setBaselineData({ ...merged });
+    initializedRef.current = true;
   }, [applicationData, isEmployerMeeting, isIPMeeting, locationsEditLoading, ownersEditLoading, dependantsEditLoading, hasPersistedLocations, savedLocations, hasPersistedOwners, savedOwners, hasPersistedDependants, savedDependants, allTabHooksLoading, tabHooksMap]);
 
   const handleFieldChange = (field: string, value: any) => {
@@ -335,6 +339,7 @@ export default function StartMeetingPage() {
 
   const handleRefresh = useCallback(async () => {
     try {
+      initializedRef.current = false;
       await refetchApplication();
       setHasChanges(false);
       toast.success('Application data refreshed');
