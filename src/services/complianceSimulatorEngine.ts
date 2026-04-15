@@ -478,8 +478,8 @@ function evaluateEscalation(
       case 'ER-005':
         applies = facts.riskScore >= 76;
         reason = applies
-          ? `Risk score ${facts.riskScore} ≥ 76 (critical band)`
-          : `Risk score ${facts.riskScore} below critical threshold (76)`;
+          ? `Risk score ${facts.riskScore} ≥ 65 (critical band)`
+          : `Risk score ${facts.riskScore} below critical threshold (65)`;
         break;
       case 'ER-006':
         applies = facts.daysOpen > (rule.days_threshold ?? 60);

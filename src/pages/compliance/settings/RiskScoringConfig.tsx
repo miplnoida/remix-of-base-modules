@@ -24,8 +24,8 @@ interface RiskConfig {
 const bands = [
   { name: 'Low', min: 0, max: 25, color: 'text-success', bg: 'bg-success/10 border-success/20', action: 'Standard monitoring' },
   { name: 'Medium', min: 26, max: 50, color: 'text-warning', bg: 'bg-warning/10 border-warning/20', action: 'Enhanced monitoring, quarterly review' },
-  { name: 'High', min: 51, max: 75, color: 'text-orange-500', bg: 'bg-orange-500/10 border-orange-500/20', action: 'Active case management, inspection priority' },
-  { name: 'Critical', min: 76, max: 100, color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/20', action: 'Immediate escalation, legal review' },
+  { name: 'High', min: 51, max: 64, color: 'text-orange-500', bg: 'bg-orange-500/10 border-orange-500/20', action: 'Active case management, inspection priority' },
+  { name: 'Critical', min: 65, max: 100, color: 'text-destructive', bg: 'bg-destructive/10 border-destructive/20', action: 'Immediate escalation, legal review' },
 ];
 
 const RiskScoringConfig = () => {
