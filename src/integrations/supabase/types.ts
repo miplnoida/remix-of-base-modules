@@ -33467,32 +33467,7 @@ export type Database = {
           wages_paid6?: number | null
           wages_paid7?: number | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "ip_wages_c3_id_fkey"
-            columns: ["payer_id", "payer_type", "sequence_no", "period"]
-            isOneToOne: false
-            referencedRelation: "ce_v_c3_unposted_to_ledger"
-            referencedColumns: [
-              "payer_id",
-              "payer_type",
-              "sequence_no",
-              "period",
-            ]
-          },
-          {
-            foreignKeyName: "ip_wages_c3_id_fkey"
-            columns: ["payer_id", "payer_type", "sequence_no", "period"]
-            isOneToOne: false
-            referencedRelation: "cn_c3_reported"
-            referencedColumns: [
-              "payer_id",
-              "payer_type",
-              "sequence_no",
-              "period",
-            ]
-          },
-        ]
+        Relationships: []
       }
       ip_wages_ann_sum: {
         Row: {
