@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useParams, useNavigate, useBlocker } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -193,20 +193,7 @@ export default function StartMeetingPage() {
 
   const hasUnsavedTabChanges = dirtyTabs.size > 0;
 
-  // Navigation guard for unsaved changes
-  const [showNavGuard, setShowNavGuard] = useState(false);
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      hasUnsavedTabChanges && currentLocation.pathname !== nextLocation.pathname
-  );
-
-  useEffect(() => {
-    if (blocker.state === 'blocked') {
-      setShowNavGuard(true);
-    }
-  }, [blocker.state]);
-
-  // beforeunload guard
+  // beforeunload guard for unsaved changes
   useEffect(() => {
     if (!hasUnsavedTabChanges) return;
     const handler = (e: BeforeUnloadEvent) => {
@@ -1000,25 +987,6 @@ export default function StartMeetingPage() {
         }}
       />
 
-      {/* Navigation Guard Dialog */}
-      <ConfirmDialog
-        open={showNavGuard}
-        onOpenChange={(open) => {
-          if (!open && blocker.state === 'blocked') {
-            blocker.reset();
-          }
-          setShowNavGuard(open);
-        }}
-        title="Unsaved Changes"
-        description={`You have unsaved changes in ${dirtyTabs.size} tab(s): ${Array.from(dirtyTabs).map(t => TAB_LABELS[t] || t).join(', ')}. Are you sure you want to leave without saving?`}
-        confirmLabel="Leave Without Saving"
-        cancelLabel="Stay"
-        variant="destructive"
-        onConfirm={() => {
-          setShowNavGuard(false);
-          if (blocker.state === 'blocked') blocker.proceed();
-        }}
-      />
     </div>
   );
 }
