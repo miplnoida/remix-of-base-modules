@@ -35,6 +35,12 @@ interface EscalationRule {
   requires_approval: boolean | null;
   is_enabled: boolean | null;
   violation_type_id: string | null;
+  prerequisites?: any;
+  execution_mode?: string | null;
+  family?: string | null;
+  approval_role?: string | null;
+  risk_timing_modifier?: any;
+  priority_order?: number | null;
 }
 
 interface ViolationType {
@@ -82,6 +88,9 @@ export const EnhancedEscalationRuleDialog = ({ open, onOpenChange, rule, violati
     condition_expression: '',
     is_enabled: true,
     violation_type_id: '',
+    approval_role: '',
+    risk_timing_modifier: {} as Record<string, number>,
+    priority_order: 100,
   });
 
   useEffect(() => {
