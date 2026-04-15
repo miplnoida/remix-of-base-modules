@@ -89,6 +89,7 @@ export default function StartMeetingPage() {
   // Local state for edited application data
   const [editedData, setEditedData] = useState<Record<string, any>>({});
   const [hasChanges, setHasChanges] = useState(false);
+  const initializedRef = useRef(false);
   
   // Dialogs
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
