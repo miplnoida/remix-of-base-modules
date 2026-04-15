@@ -301,12 +301,16 @@ export default function StartMeetingPage() {
     return validateEmployerApplicationForConversion(dataToValidate);
   }, [isEmployerMeeting, applicationData, editedData, hasChanges]);
 
+  // Check if all per-tab hooks are done loading
+  const allTabHooksLoading = Object.values(tabHooksMap).some(h => h.isLoading);
+
   // Initialize edited data when application loads — merge persisted tab data
   useEffect(() => {
     if (!applicationData) return;
     // Wait for persistence hooks to finish loading before deciding
     if (isEmployerMeeting && (locationsEditLoading || ownersEditLoading)) return;
     if (isIPMeeting && dependantsEditLoading) return;
+    if (allTabHooksLoading) return;
 
     const merged: Record<string, any> = { ...applicationData };
 
@@ -325,8 +329,16 @@ export default function StartMeetingPage() {
       merged.dependants = savedDependants;
     }
 
+    // Overlay per-tab scalar edits from Supabase
+    for (const [tabId, hook] of Object.entries(tabHooksMap)) {
+      if (hook.hasSavedData && hook.savedData && typeof hook.savedData === 'object' && !Array.isArray(hook.savedData)) {
+        Object.assign(merged, hook.savedData);
+      }
+    }
+
     setEditedData(merged);
-  }, [applicationData, isEmployerMeeting, isIPMeeting, locationsEditLoading, ownersEditLoading, dependantsEditLoading, hasPersistedLocations, savedLocations, hasPersistedOwners, savedOwners, hasPersistedDependants, savedDependants]);
+    setBaselineData({ ...merged });
+  }, [applicationData, isEmployerMeeting, isIPMeeting, locationsEditLoading, ownersEditLoading, dependantsEditLoading, hasPersistedLocations, savedLocations, hasPersistedOwners, savedOwners, hasPersistedDependants, savedDependants, allTabHooksLoading, tabHooksMap]);
 
   const handleFieldChange = (field: string, value: any) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
