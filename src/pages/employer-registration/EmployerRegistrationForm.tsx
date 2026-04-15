@@ -157,9 +157,33 @@ export default function EmployerRegistrationForm() {
     if (ownerForm.ssn && (ownerForm.ssn.length > 6 || !/^\d*$/.test(ownerForm.ssn))) errors.ssn = 'Max 6 digits only';
     if (Object.keys(errors).length > 0) { setOwnerErrors(errors); return; }
     setOwnerErrors({});
-    await addOwner(ownerForm);
-    setOwnerForm({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 });
-    setShowOwnerDialog(false);
+    
+    let success = false;
+    if (editingOwner && editingOwner.owner_id) {
+      success = await updateOwner(editingOwner.owner_id, ownerForm);
+    } else {
+      success = await addOwner(ownerForm);
+    }
+    if (success) {
+      setOwnerForm({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 });
+      setEditingOwner(null);
+      setShowOwnerDialog(false);
+    }
+  };
+
+  const handleEditOwner = (owner: EROwnerData) => {
+    setEditingOwner(owner);
+    setOwnerForm({
+      name: owner.name || '',
+      title: owner.title || '',
+      phone: owner.phone || '',
+      mobile: owner.mobile || '',
+      email: owner.email || '',
+      ssn: owner.ssn || '',
+      location_id: owner.location_id || 0,
+    });
+    setOwnerErrors({});
+    setShowOwnerDialog(true);
   };
 
   const handleAddLocation = async () => {
