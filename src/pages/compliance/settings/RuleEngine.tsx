@@ -820,6 +820,11 @@ const RuleEngine = () => {
   const queryClient = useQueryClient();
   const { userCode } = useUserCode();
 
+  // Help & KB state
+  const { article, faqs } = useScreenHelp('compliance', 'rule-engine');
+  const [helpSearchOpen, setHelpSearchOpen] = useState(false);
+  const [showFAQ, setShowFAQ] = useState(false);
+
   // Dialog state
   const [detectionDialogOpen, setDetectionDialogOpen] = useState(false);
   const [editingDetection, setEditingDetection] = useState<DetectionRule | null>(null);
