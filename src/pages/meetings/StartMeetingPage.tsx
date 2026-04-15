@@ -49,7 +49,7 @@ import {
 } from 'lucide-react';
 import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
 import { MeetingDocumentVerificationTab, type MeetingDocumentVerificationTabHandle } from '@/components/meetings/MeetingDocumentVerificationTab';
-import { EmployerApplicationEditForm } from '@/components/meetings/EmployerApplicationEditForm';
+import { EmployerApplicationEditForm, type EmployerApplicationEditFormHandle } from '@/components/meetings/EmployerApplicationEditForm';
 import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithRejection } from '@/hooks/useMeetings';
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
 import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
@@ -104,6 +104,7 @@ export default function StartMeetingPage() {
   const [replacedDocCategories, setReplacedDocCategories] = useState<Set<string>>(new Set());
   // Ref to document verification tab for mismatch validation
   const docVerificationRef = React.useRef<MeetingDocumentVerificationTabHandle>(null);
+  const employerFormRef = React.useRef<EmployerApplicationEditFormHandle>(null);
   
   // Mutations
   const approveMutation = useCloseMeetingWithApproval();
@@ -561,6 +562,20 @@ export default function StartMeetingPage() {
                       );
                       return;
                     }
+                    // For employer meetings, trigger form-level validation with field highlighting
+                    if (isEmployerMeeting && employerFormRef.current) {
+                      const result = employerFormRef.current.triggerValidation();
+                      if (!result.valid) {
+                        const firstError = Object.values(result.errors)[0];
+                        toast.error('Please check the form for valid information!', {
+                          description: firstError,
+                          duration: 6000,
+                          style: { backgroundColor: 'hsl(var(--destructive))', color: 'white', '--description-color': 'white' } as React.CSSProperties,
+                          classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
+                        });
+                        return;
+                      }
+                    }
                     // Validate document-type dropdown matches uploaded document
                     if (docVerificationRef.current) {
                       const mismatches = docVerificationRef.current.validateDocTypeMismatch();
@@ -698,6 +713,7 @@ export default function StartMeetingPage() {
               replacedDocCategories={replacedDocCategories}
               onReplacedDocCategoriesChange={setReplacedDocCategories}
               docVerificationRef={docVerificationRef}
+              employerFormRef={employerFormRef}
             />
           ) : (
             <Alert>
@@ -864,15 +880,16 @@ interface ApplicationEditFormProps {
   replacedDocCategories?: Set<string>;
   onReplacedDocCategoriesChange?: (cats: Set<string>) => void;
   docVerificationRef?: React.RefObject<MeetingDocumentVerificationTabHandle | null>;
+  employerFormRef?: React.RefObject<EmployerApplicationEditFormHandle | null>;
 }
 
-function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef }: ApplicationEditFormProps) {
+function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef, employerFormRef }: ApplicationEditFormProps) {
   if (meetingType === 'IP-Registration') {
     return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} replacedDocCategories={replacedDocCategories} onReplacedDocCategoriesChange={onReplacedDocCategoriesChange} docVerificationRef={docVerificationRef} />;
   }
   
   if (meetingType === 'Employer-Registration') {
-    return <EmployerApplicationEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} />;
+    return <EmployerApplicationEditForm ref={employerFormRef} data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} />;
   }
   
   if (meetingType === 'Doctor-Registration') {

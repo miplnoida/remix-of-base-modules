@@ -64,7 +64,7 @@ export function validateEmployerApplicationForConversion(
   }
 
   if (!app.email?.trim() && !app.business_email?.trim() && !app.contact_telephone?.trim() && !app.mobile?.trim()) {
-    errors.push({ field: 'contact', message: 'At least one contact method (email, phone, or mobile) is required' });
+    errors.push({ field: 'contact_method', message: 'At least one contact method (email, phone, or mobile) is required' });
   }
 
   if (app.employer_name && app.employer_name.trim().length > 40) {
@@ -73,6 +73,14 @@ export function validateEmployerApplicationForConversion(
 
   if (!app.ownership_code?.trim()) {
     errors.push({ field: 'ownership_code', message: 'Ownership type is required' });
+  }
+
+  if (!app.village_code?.trim()) {
+    errors.push({ field: 'village_code', message: 'Village is required' });
+  }
+
+  if (!app.activity_type?.trim()) {
+    errors.push({ field: 'activity_type', message: 'Activity type is required' });
   }
 
   return errors;
