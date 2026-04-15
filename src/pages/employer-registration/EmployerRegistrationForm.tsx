@@ -41,7 +41,7 @@ export default function EmployerRegistrationForm() {
   const {
     formData, setFormData, owners, locations, notes, commenceDates,
     isLoading, isSaving, isNewRecord, saveEmployer, submitForVerification,
-    addOwner, deleteOwner, addLocation, deleteLocation, addNote, addCommenceDate
+    addOwner, updateOwner, deleteOwner, addLocation, updateLocation, deleteLocation, addNote, addCommenceDate
   } = useEmployerRegistration({ regno, mode: isNewMode ? 'create' : isViewMode ? 'view' : 'edit' });
 
   const { data: countries = [] } = useCountries();
