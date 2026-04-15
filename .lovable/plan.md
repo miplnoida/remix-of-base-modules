@@ -1,179 +1,83 @@
 
 
-# Risk & Escalation Hardening — Implementation Plan
+# Self-Hosted Supabase Migration Plan (AWS EC2)
 
-## Current State Analysis
+## Scope
 
-### What Exists
-- **8 escalation rules** (ER-001 to ER-008) in `ce_escalation_rules` table with columns: `from_status`, `to_status`, `days_threshold`, `amount_threshold`, `auto_escalate`, `requires_approval`, `condition_expression`, `is_enabled`
-- **State machine** defined in `escalationConstants.ts` with 16 states and allowed transitions — but this is UI-only, not enforced in backend
-- **Prerequisites UI** exists in `EscalationRuleDialog.tsx` (Section 5) with 9 prerequisite options — but they are **never saved to the database** (not included in `handleSave`)
-- **Execution mode** (AUTO/RECOMMEND/MANUAL) exists in UI — also **never persisted** (mapped back to just `auto_escalate`/`requires_approval` booleans)
-- **Risk scoring** works: 5-factor weighted model in `ce_risk_config`, profiles in `ce_risk_profiles` (1,135 employers: 1,086 LOW, 45 MEDIUM, 4 HIGH, 0 CRITICAL)
-- **Edge function** `ce-escalation-review` only checks `auto_escalate=true` rules, uses age-based matching, no prerequisite checks, no risk integration, no duplicate protection
+Your project contains **810 tables**, **604 migrations**, and **70 edge functions**. Manually assembling a single SQL file from 604 migration files would be error-prone and unnecessary. Instead, the correct approach is a **pg_dump-based export** from your live database combined with structured packaging of edge functions.
 
-### Critical Gaps Confirmed
+## Technical Approach
 
-| # | Gap | Severity |
-|---|-----|----------|
-| G1 | ER-003 (Final Demand → Legal) has `requires_approval: false` | CRITICAL |
-| G2 | Prerequisites selected in UI are never saved to DB | CRITICAL |
-| G3 | Execution mode / family not persisted | HIGH |
-| G4 | Edge function ignores prerequisites, risk, arrangements, disputes | CRITICAL |
-| G5 | MANAGER_REVIEW, PRIORITY_QUEUE, ESCALATED, SUMMONS_ISSUED, LEGAL_ACTION_REQUISITION, LEGAL_ACTION have no outbound escalation rules | HIGH |
-| G6 | UNDER_REVIEW only exits via ER-008 (repeat offender) — no normal path | HIGH |
-| G7 | Risk band CRITICAL (76+) is never reached (max observed: 74) | MEDIUM |
-| G8 | `enforcement_risk_score` column exists but is never populated | LOW |
-| G9 | No duplicate escalation protection in edge function | HIGH |
-| G10 | State machine transitions only enforced in UI dropdown, not in backend | CRITICAL |
+### Deliverable 1: Complete Schema + Data Export Script
 
----
+Rather than concatenating 604 migrations (which contain incremental changes, some conflicting), I will create a **Python export script** that:
 
-## Implementation Plan
+1. Connects to your current Supabase PostgreSQL database via `psql`/`pg_dump`
+2. Generates a **single schema-only SQL file** (`schema.sql`) containing all 810 tables, views, functions, triggers, indexes, constraints — in correct dependency order
+3. Generates a **seed data SQL file** (`seed.sql`) by querying only configuration/master tables (identified by naming patterns: `tb_*`, `*_config`, `*_master`, `*_status_*`, `app_modules`, `role_permissions`, `user_roles`, lookup tables, `ce_automation_jobs`, `ce_detection_rules`, `ce_calculation_rules`, `ce_escalation_rules`, `ce_risk_config`, etc.)
+4. Strips Supabase-specific schema references (`auth.*`, `storage.*`, `realtime.*`, `supabase_functions.*`) and replaces with plain PostgreSQL equivalents where needed
 
-### Phase 1: Database Schema Changes (Migration)
+**Output files** (written to `/mnt/documents/ec2-migration/`):
+- `01_schema.sql` — full DDL in dependency order
+- `02_seed_data.sql` — INSERT statements for master/config tables only
+- `03_functions_and_triggers.sql` — all custom PL/pgSQL functions and triggers
 
-**Add missing columns to `ce_escalation_rules`:**
-- `prerequisites JSONB DEFAULT '[]'` — stores array of prerequisite keys
-- `execution_mode VARCHAR DEFAULT 'RECOMMEND'` — AUTO / RECOMMEND / MANUAL  
-- `family VARCHAR DEFAULT 'case_progression'` — escalation family category
-- `approval_role VARCHAR` — role required for approval (e.g., 'supervisor', 'manager', 'legal_head')
-- `risk_band_filter VARCHAR` — optional risk band that triggers this rule
-- `risk_timing_modifier JSONB` — maps risk bands to day adjustments (e.g., `{"HIGH": -5, "CRITICAL": -10}`)
-- `priority_order INTEGER DEFAULT 100` — controls rule evaluation order for duplicate prevention
+### Deliverable 2: Edge Functions Package
 
-**Create `ce_escalation_prerequisites` table:**
-- `id UUID PRIMARY KEY`
-- `violation_id UUID` / `case_id UUID` — the record being escalated
-- `prerequisite_key VARCHAR NOT NULL` — e.g., 'proof_of_service_complete'
-- `is_satisfied BOOLEAN DEFAULT false`
-- `satisfied_at TIMESTAMPTZ`
-- `satisfied_by VARCHAR`
-- `evidence_reference TEXT` — link to proof document/record
-- `created_at / updated_at` — standard audit
+Package all 70 edge functions into a structured directory with:
+- Each function's `index.ts` preserved as-is (they already use standard Deno patterns)
+- A `README.md` explaining how to deploy them with self-hosted Supabase
+- Note: Edge functions using `LOVABLE_API_KEY` (like `compliance-intelligence`) will need the Lovable AI gateway replaced with a direct OpenAI/Google API call, or kept if you maintain Lovable AI access
 
-**Create `ce_escalation_log` table** (duplicate protection + audit):
-- `id UUID PRIMARY KEY`
-- `violation_id UUID` / `case_id UUID`
-- `rule_id UUID REFERENCES ce_escalation_rules`
-- `rule_code VARCHAR`
-- `from_status VARCHAR`, `to_status VARCHAR`
-- `execution_mode VARCHAR`
-- `risk_band VARCHAR`, `risk_score NUMERIC`
-- `prerequisites_checked JSONB`
-- `prerequisites_met BOOLEAN`
-- `approval_required BOOLEAN`
-- `approved_by VARCHAR`, `approved_at TIMESTAMPTZ`
-- `blocked_reason TEXT` — why escalation was blocked (if applicable)
-- `status VARCHAR` — EXECUTED / PENDING_APPROVAL / BLOCKED / DUPLICATE_SUPPRESSED
-- `idempotency_key VARCHAR UNIQUE` — prevents duplicate firings
-- `created_at TIMESTAMPTZ`
+### Deliverable 3: Environment Configuration
 
-**Update ER-003 data:**
-- Set `requires_approval = true`, `execution_mode = 'MANUAL'`, `approval_role = 'supervisor'`
-- Set `prerequisites = '["proof_of_service","waiting_period_elapsed","no_active_arrangement"]'`
+Generate a `.env.ec2` template file with all required variables:
+```
+POSTGRES_PASSWORD=your-super-secret-password
+JWT_SECRET=your-jwt-secret-at-least-32-chars
+ANON_KEY=generate-new-anon-key
+SERVICE_ROLE_KEY=generate-new-service-role-key
+SUPABASE_URL=http://your-ec2-ip:8000
+DATABASE_URL=postgresql://postgres:password@localhost:5432/postgres
+SITE_URL=http://your-ec2-ip:3000
+LOVABLE_API_KEY=keep-or-replace
+MainAPIBaseURL=your-backend-api-url
+```
 
-### Phase 2: Fix EscalationRuleDialog (Frontend)
+### Deliverable 4: Deployment Guide (Markdown)
 
-**File: `src/components/compliance/detection/EscalationRuleDialog.tsx`**
-- Fix `handleSave` to include `prerequisites`, `execution_mode`, `family`, `approval_role` in the payload sent to DB
-- Load saved prerequisites from rule data on edit (currently always initializes to `[]`)
-- Add `approval_role` dropdown (visible when execution_mode is MANUAL or RECOMMEND)
-- Add risk-timing modifier section: for each risk band, allow configuring day reduction
+A step-by-step guide covering:
+1. **Install Docker + Docker Compose** on EC2
+2. **Clone supabase/supabase** docker setup
+3. **Generate JWT keys** using `supabase` CLI or manually
+4. **Apply schema**: `psql -f 01_schema.sql`
+5. **Apply seed data**: `psql -f 02_seed_data.sql`
+6. **Deploy edge functions**: Copy to `supabase/functions/` and restart
+7. **Configure NGINX** for HTTPS (optional)
+8. **Verify** connectivity from your frontend
 
-**File: `src/components/compliance/detection/escalationConstants.ts`**
-- Add `WARNING_NOTICE` to UNDER_REVIEW's `allowedNextStates` (normal progression path)
-- Add outbound transitions for dead-end states:
-  - ESCALATED → `['MANAGER_REVIEW', 'WARNING_NOTICE', 'LEGAL_ACTION_REQUISITION']`
-  - PRIORITY_QUEUE → `['UNDER_REVIEW', 'WARNING_NOTICE', 'CASE_OPEN', 'MANAGER_REVIEW']`
-  - MANAGER_REVIEW → already has exits (CASE_OPEN, LEGAL_ACTION_REQUISITION, RESOLVED, CLOSED) ✓
-  - SUMMONS_ISSUED → already has exit (LEGAL_ACTION) ✓
-  - LEGAL_ACTION_REQUISITION → already has exits (LEGAL_ACTION, MANAGER_REVIEW) ✓
-  - LEGAL_ACTION → already has exits (RESOLVED, CLOSED) ✓
-- Add `no_open_dispute` to PREREQUISITES list
-- Set `approvalRequired: true` on LEGAL_ACTION_REQUISITION state (already done ✓)
+## Implementation Steps
 
-### Phase 3: Harden Edge Function (`ce-escalation-review`)
+1. **Run pg_dump** against your live Supabase database to extract schema (using the read query tool for table enumeration, then building the DDL from the schema metadata)
+2. **Query master/config tables** for seed data extraction
+3. **Package edge functions** from `supabase/functions/`
+4. **Generate .env template** and deployment guide
+5. **Write all outputs** to `/mnt/documents/ec2-migration/`
 
-**File: `supabase/functions/ce-escalation-review/index.ts`**
+## Important Notes
 
-Rewrite the escalation loop to:
+- Since we cannot run `pg_dump` directly from this sandbox, the schema export will be **reconstructed from the database metadata** (information_schema + pg_catalog queries) which produces equivalent results
+- The first migration file (`20260112103840_remix_migration_from_pg_dump.sql`) appears to be the original pg_dump — this will be used as the base, with subsequent 603 migrations applied on top
+- Edge functions using Supabase-specific features (auth, storage) will work as-is with self-hosted Supabase since it provides the same APIs
+- No RLS policies need conversion — your project explicitly does not use RLS
 
-1. **Load risk profiles** alongside violations (join `ce_risk_profiles` by `employer_id`)
-2. **Check prerequisites** before executing any rule:
-   - Query `ce_escalation_prerequisites` for the violation/case
-   - If rule has prerequisites and they're not all satisfied → log as BLOCKED, skip
-3. **Apply risk-based timing**: Adjust `days_threshold` using `risk_timing_modifier` from rule config
-4. **Check safeguards** before legal transitions:
-   - Query for active payment arrangements (`ce_arrangements` where status = 'ACTIVE')
-   - Query for open disputes/appeals (violations with status containing 'APPEAL')
-   - If safeguard blocks → log as BLOCKED
-5. **Duplicate protection**: Generate idempotency key = `{violation_id}:{rule_code}:{date}`, check `ce_escalation_log` before executing
-6. **Handle execution modes**:
-   - AUTO → execute immediately
-   - RECOMMEND → create log entry with status `PENDING_APPROVAL`, do not change violation status
-   - MANUAL → skip (only triggered by user action)
-7. **Audit every decision** in `ce_escalation_log` regardless of outcome
+## Output
 
-### Phase 4: Add New Escalation Rules (Data Insert)
-
-Add rules for currently dead-end stages:
-
-| Code | Name | From | To | Days | Mode | Approval |
-|------|------|------|----|------|------|----------|
-| ER-009 | Under Review → Warning Notice | UNDER_REVIEW | WARNING_NOTICE | 7 | RECOMMEND | No |
-| ER-010 | Escalated → Manager Review | ESCALATED | MANAGER_REVIEW | 3 | AUTO | No |
-| ER-011 | Priority Queue → Under Review | PRIORITY_QUEUE | UNDER_REVIEW | 1 | AUTO | No |
-| ER-012 | Legal Requisition → Legal Action | LEGAL_ACTION_REQUISITION | LEGAL_ACTION | 0 | MANUAL | Yes (legal_head) |
-| ER-013 | Legal Action → Judgment Pending | LEGAL_ACTION | RESOLVED | 0 | MANUAL | Yes (legal_head) |
-
-### Phase 5: Risk Integration Enhancements
-
-**Update existing rules with risk modifiers:**
-- ER-001 (Warning → Demand): `risk_timing_modifier: {"HIGH": -4, "CRITICAL": -7}` (14 days → 10/7 days)
-- ER-002 (Demand → Final): `risk_timing_modifier: {"HIGH": -4, "CRITICAL": -7}`
-- ER-003 (Final → Legal): `risk_timing_modifier: {"HIGH": -2, "CRITICAL": -4}`
-
-**Update risk band thresholds in `ce_risk_config`:**
-- Lower CRITICAL threshold from 76 to 65 (current max observed is 74, so CRITICAL is reachable)
-- Or adjust factor weights to sum to 100% (currently 25+25+20+20+10 = 100% ✓ — weights are correct, scoring just produces low values)
-
-**Populate `enforcement_risk_score`:** Add logic in the risk calculation job to compute this as a secondary score focused on enforcement urgency.
-
-### Phase 6: Service Layer Updates
-
-**File: `src/services/legalEscalationService.ts`**
-- Add prerequisite check before `updateRecommendationStatus` (ensure proof_of_service, no_active_arrangement)
-- Add duplicate recommendation check in `generateRecommendations`
-
-**New file: `src/services/compliance/escalationPrerequisiteService.ts`**
-- `getPrerequisites(violationId)` — fetch current prerequisite state
-- `satisfyPrerequisite(violationId, key, satisfiedBy, evidence)` — mark as satisfied
-- `checkAllMet(violationId, requiredKeys)` — boolean check
-
-### Phase 7: UI for Prerequisite Management
-
-**Add prerequisite checklist panel** to violation/case detail views:
-- Show required prerequisites for the next escalation step
-- Allow officers to mark prerequisites as satisfied (with evidence link)
-- Block manual escalation button if prerequisites not met
-
----
-
-## Implementation Sequence
-
-1. DB migration (Phase 1) — schema + ER-003 data fix
-2. Frontend dialog fix (Phase 2) — persist prerequisites/mode
-3. State machine updates (Phase 2) — add UNDER_REVIEW normal path
-4. New escalation rules (Phase 4) — fill dead-end gaps
-5. Prerequisite service (Phase 6) — new service file
-6. Edge function hardening (Phase 3) — full rewrite with safeguards
-7. Risk integration (Phase 5) — timing modifiers + threshold adjustment
-8. Prerequisite UI (Phase 7) — checklist in violation detail
-
-## Safety Notes
-- All changes are additive (new columns, new tables, new rules)
-- No existing data is modified except ER-003 approval flag
-- Edge function changes are backward-compatible (new columns have defaults)
-- Rollback: disable new rules via `is_enabled = false`, revert edge function
+All files delivered to `/mnt/documents/ec2-migration/`:
+- `01_schema.sql`
+- `02_seed_data.sql`  
+- `03_functions_and_triggers.sql`
+- `edge-functions/` (directory with all 70 functions)
+- `.env.ec2`
+- `DEPLOYMENT_GUIDE.md`
 
