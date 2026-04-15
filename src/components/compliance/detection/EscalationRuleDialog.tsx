@@ -35,6 +35,12 @@ interface EscalationRule {
   requires_approval: boolean | null;
   is_enabled: boolean | null;
   violation_type_id: string | null;
+  prerequisites?: any;
+  execution_mode?: string | null;
+  family?: string | null;
+  approval_role?: string | null;
+  risk_timing_modifier?: any;
+  priority_order?: number | null;
 }
 
 interface ViolationType {
@@ -82,6 +88,9 @@ export const EnhancedEscalationRuleDialog = ({ open, onOpenChange, rule, violati
     condition_expression: '',
     is_enabled: true,
     violation_type_id: '',
+    approval_role: '',
+    risk_timing_modifier: {} as Record<string, number>,
+    priority_order: 100,
   });
 
   useEffect(() => {
@@ -103,23 +112,42 @@ export const EnhancedEscalationRuleDialog = ({ open, onOpenChange, rule, violati
         triggerVal = condMatch[3].trim();
       }
 
+      // Parse saved prerequisites from DB
+      let savedPrereqs: string[] = [];
+      if (rule?.prerequisites) {
+        try {
+          savedPrereqs = Array.isArray(rule.prerequisites) ? rule.prerequisites : JSON.parse(rule.prerequisites);
+        } catch { savedPrereqs = []; }
+      }
+
+      // Parse saved risk timing modifier
+      let savedRiskMod: Record<string, number> = {};
+      if (rule?.risk_timing_modifier) {
+        try {
+          savedRiskMod = typeof rule.risk_timing_modifier === 'object' ? rule.risk_timing_modifier : JSON.parse(rule.risk_timing_modifier);
+        } catch { savedRiskMod = {}; }
+      }
+
       setForm({
         rule_code: autoCode,
         name: rule?.name || '',
         description: rule?.description || '',
-        family: 'case_progression',
+        family: rule?.family || 'case_progression',
         from_status: rule?.from_status || 'OPEN',
         to_status: rule?.to_status || 'UNDER_REVIEW',
-        execution_mode: mode,
+        execution_mode: rule?.execution_mode as ExecutionMode || mode,
         days_threshold: rule?.days_threshold ?? '',
         amount_threshold: rule?.amount_threshold ?? '',
         trigger_metric: triggerMetric,
         trigger_operator: triggerOp,
         trigger_value: triggerVal,
-        prerequisites: [],
+        prerequisites: savedPrereqs,
         condition_expression: rule?.condition_expression || '',
         is_enabled: rule?.is_enabled ?? true,
         violation_type_id: rule?.violation_type_id || '',
+        approval_role: rule?.approval_role || '',
+        risk_timing_modifier: savedRiskMod,
+        priority_order: rule?.priority_order ?? 100,
       });
     }
   }, [open, rule]);
@@ -174,6 +202,13 @@ export const EnhancedEscalationRuleDialog = ({ open, onOpenChange, rule, violati
       requires_approval: form.execution_mode === 'MANUAL',
       is_enabled: form.is_enabled,
       violation_type_id: form.violation_type_id || null,
+      // New persisted fields
+      prerequisites: form.prerequisites,
+      execution_mode: form.execution_mode,
+      family: form.family,
+      approval_role: form.approval_role || null,
+      risk_timing_modifier: Object.keys(form.risk_timing_modifier).length > 0 ? form.risk_timing_modifier : null,
+      priority_order: form.priority_order,
     });
   };
 
@@ -418,6 +453,61 @@ export const EnhancedEscalationRuleDialog = ({ open, onOpenChange, rule, violati
                   </button>
                 ))}
               </div>
+
+              {/* Approval Role — visible when MANUAL or RECOMMEND */}
+              {(form.execution_mode === 'MANUAL' || form.execution_mode === 'RECOMMEND') && (
+                <div className="space-y-1.5 mt-3">
+                  <Label>Approval Role</Label>
+                  <Select value={form.approval_role || '__none__'} onValueChange={v => setForm(p => ({ ...p, approval_role: v === '__none__' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select approval role..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">No specific role</SelectItem>
+                      <SelectItem value="supervisor">Supervisor</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="legal_head">Legal Head</SelectItem>
+                      <SelectItem value="compliance_head">Compliance Head</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">Role required to approve this escalation</p>
+                </div>
+              )}
+
+              {/* Risk Timing Modifier */}
+              <div className="space-y-2 mt-3">
+                <Label>Risk-Based Timing Adjustment <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+                <p className="text-[10px] text-muted-foreground">Reduce days threshold based on employer risk band. Negative values = faster escalation.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(band => (
+                    <div key={band} className="space-y-1">
+                      <Label className="text-xs">{band}</Label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={form.risk_timing_modifier[band] ?? ''}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setForm(p => ({
+                            ...p,
+                            risk_timing_modifier: {
+                              ...p.risk_timing_modifier,
+                              ...(val === '' ? (() => { const m = { ...p.risk_timing_modifier }; delete m[band]; return m; })() : { [band]: Number(val) }),
+                            },
+                          }));
+                        }}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Priority Order */}
+              <div className="space-y-1.5 mt-3">
+                <Label>Priority Order</Label>
+                <Input type="number" value={form.priority_order} onChange={e => setForm(p => ({ ...p, priority_order: Number(e.target.value) || 100 }))} placeholder="100" className="w-32" />
+                <p className="text-[10px] text-muted-foreground">Lower number = evaluated first. Used for duplicate prevention.</p>
+              </div>
+
               <div className="space-y-1.5 mt-3">
                 <Label>Linked Violation Type <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
                 <Select value={form.violation_type_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, violation_type_id: v === '__none__' ? '' : v }))}>

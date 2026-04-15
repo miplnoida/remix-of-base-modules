@@ -30,16 +30,16 @@ export interface StateMachineState {
 export const STATE_MACHINE: StateMachineState[] = [
   // Violation Stage
   { value: 'OPEN', label: 'Open', stage: 'violation', description: 'Initial violation created', allowedNextStates: ['UNDER_REVIEW', 'CASE_OPEN', 'PRIORITY_QUEUE'], noticePrerequisite: false, approvalRequired: false },
-  { value: 'UNDER_REVIEW', label: 'Under Review', stage: 'violation', description: 'Violation being assessed by officer', allowedNextStates: ['CASE_OPEN', 'PRIORITY_QUEUE', 'MANAGER_REVIEW', 'RESOLVED'], noticePrerequisite: false, approvalRequired: false },
+  { value: 'UNDER_REVIEW', label: 'Under Review', stage: 'violation', description: 'Violation being assessed by officer', allowedNextStates: ['WARNING_NOTICE', 'CASE_OPEN', 'PRIORITY_QUEUE', 'MANAGER_REVIEW', 'RESOLVED'], noticePrerequisite: false, approvalRequired: false },
   // Case Stage
   { value: 'CASE_OPEN', label: 'Case Open', stage: 'case', description: 'Formal case created from violation(s)', allowedNextStates: ['WARNING_NOTICE', 'MANAGER_REVIEW', 'ARRANGEMENT'], noticePrerequisite: false, approvalRequired: false },
   { value: 'WARNING_NOTICE', label: 'Warning Notice', stage: 'case', description: '1st notice sent to employer', allowedNextStates: ['DEMAND_NOTICE', 'ARRANGEMENT', 'MANAGER_REVIEW'], noticePrerequisite: true, approvalRequired: false },
   { value: 'DEMAND_NOTICE', label: 'Demand Notice', stage: 'case', description: '2nd notice — formal demand issued', allowedNextStates: ['FINAL_DEMAND', 'ARRANGEMENT', 'MANAGER_REVIEW'], noticePrerequisite: true, approvalRequired: false },
   { value: 'FINAL_DEMAND', label: 'Final Demand', stage: 'case', description: 'Final warning before legal action', allowedNextStates: ['LEGAL_ACTION_REQUISITION', 'ARRANGEMENT', 'MANAGER_REVIEW'], noticePrerequisite: true, approvalRequired: false },
   { value: 'WARNING_ISSUED', label: 'Warning Issued', stage: 'case', description: 'Generic warning state', allowedNextStates: ['ESCALATED', 'SUMMONS_ISSUED', 'ARRANGEMENT'], noticePrerequisite: true, approvalRequired: false },
-  { value: 'ESCALATED', label: 'Escalated', stage: 'case', description: 'Case escalated for senior attention', allowedNextStates: ['MANAGER_REVIEW', 'LEGAL_ACTION_REQUISITION'], noticePrerequisite: false, approvalRequired: false },
-  { value: 'PRIORITY_QUEUE', label: 'Priority Queue', stage: 'case', description: 'High-priority routing', allowedNextStates: ['CASE_OPEN', 'MANAGER_REVIEW', 'LEGAL_ACTION_REQUISITION'], noticePrerequisite: false, approvalRequired: false },
-  { value: 'MANAGER_REVIEW', label: 'Manager Review', stage: 'case', description: 'Supervisory review required', allowedNextStates: ['CASE_OPEN', 'LEGAL_ACTION_REQUISITION', 'RESOLVED', 'CLOSED'], noticePrerequisite: false, approvalRequired: true },
+  { value: 'ESCALATED', label: 'Escalated', stage: 'case', description: 'Case escalated for senior attention', allowedNextStates: ['MANAGER_REVIEW', 'WARNING_NOTICE', 'LEGAL_ACTION_REQUISITION'], noticePrerequisite: false, approvalRequired: false },
+  { value: 'PRIORITY_QUEUE', label: 'Priority Queue', stage: 'case', description: 'High-priority routing', allowedNextStates: ['UNDER_REVIEW', 'WARNING_NOTICE', 'CASE_OPEN', 'MANAGER_REVIEW', 'LEGAL_ACTION_REQUISITION'], noticePrerequisite: false, approvalRequired: false },
+  { value: 'MANAGER_REVIEW', label: 'Manager Review', stage: 'case', description: 'Supervisory review required', allowedNextStates: ['CASE_OPEN', 'WARNING_NOTICE', 'LEGAL_ACTION_REQUISITION', 'RESOLVED', 'CLOSED'], noticePrerequisite: false, approvalRequired: true },
   { value: 'ARRANGEMENT', label: 'Arrangement Active', stage: 'case', description: 'Payment arrangement in place', allowedNextStates: ['DEMAND_NOTICE', 'LEGAL_ACTION_REQUISITION', 'RESOLVED'], noticePrerequisite: false, approvalRequired: false },
   { value: 'SUMMONS_ISSUED', label: 'Summons Issued', stage: 'case', description: 'Court summons served', allowedNextStates: ['LEGAL_ACTION'], noticePrerequisite: true, approvalRequired: true },
   // Legal Stage
@@ -70,6 +70,7 @@ export const PREREQUISITES: PrerequisiteDef[] = [
   { value: 'waiting_period_elapsed', label: 'Waiting Period Elapsed', description: 'Minimum days have passed since last notice' },
   { value: 'supervisor_approval', label: 'Supervisor Approval', description: 'A supervisor has approved the escalation' },
   { value: 'no_active_arrangement', label: 'No Active Arrangement', description: 'Employer has no current payment arrangement' },
+  { value: 'no_open_dispute', label: 'No Open Dispute', description: 'Employer has no active dispute or appeal pending' },
   { value: 'investigation_complete', label: 'Investigation Complete', description: 'Field investigation or audit has been completed' },
   { value: 'no_response', label: 'No Employer Response', description: 'Employer has not responded within the prescribed period' },
   { value: 'payment_not_received', label: 'Payment Not Received', description: 'No payment has been received since last action' },

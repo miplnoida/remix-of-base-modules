@@ -12552,21 +12552,156 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_escalation_log: {
+        Row: {
+          approval_required: boolean | null
+          approved_at: string | null
+          approved_by: string | null
+          blocked_reason: string | null
+          case_id: string | null
+          created_at: string
+          execution_mode: string | null
+          from_status: string | null
+          id: string
+          idempotency_key: string | null
+          prerequisites_checked: Json | null
+          prerequisites_met: boolean | null
+          risk_band: string | null
+          risk_score: number | null
+          rule_code: string | null
+          rule_id: string | null
+          status: string
+          to_status: string | null
+          violation_id: string | null
+        }
+        Insert: {
+          approval_required?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          blocked_reason?: string | null
+          case_id?: string | null
+          created_at?: string
+          execution_mode?: string | null
+          from_status?: string | null
+          id?: string
+          idempotency_key?: string | null
+          prerequisites_checked?: Json | null
+          prerequisites_met?: boolean | null
+          risk_band?: string | null
+          risk_score?: number | null
+          rule_code?: string | null
+          rule_id?: string | null
+          status?: string
+          to_status?: string | null
+          violation_id?: string | null
+        }
+        Update: {
+          approval_required?: boolean | null
+          approved_at?: string | null
+          approved_by?: string | null
+          blocked_reason?: string | null
+          case_id?: string | null
+          created_at?: string
+          execution_mode?: string | null
+          from_status?: string | null
+          id?: string
+          idempotency_key?: string | null
+          prerequisites_checked?: Json | null
+          prerequisites_met?: boolean | null
+          risk_band?: string | null
+          risk_score?: number | null
+          rule_code?: string | null
+          rule_id?: string | null
+          status?: string
+          to_status?: string | null
+          violation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_escalation_log_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "ce_escalation_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_escalation_log_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_escalation_prerequisites: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          evidence_reference: string | null
+          id: string
+          is_satisfied: boolean
+          prerequisite_key: string
+          satisfied_at: string | null
+          satisfied_by: string | null
+          updated_at: string
+          violation_id: string | null
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          evidence_reference?: string | null
+          id?: string
+          is_satisfied?: boolean
+          prerequisite_key: string
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          updated_at?: string
+          violation_id?: string | null
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          evidence_reference?: string | null
+          id?: string
+          is_satisfied?: boolean
+          prerequisite_key?: string
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          updated_at?: string
+          violation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_escalation_prerequisites_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_escalation_rules: {
         Row: {
           amount_threshold: number | null
+          approval_role: string | null
           auto_escalate: boolean | null
           condition_expression: string | null
           created_at: string | null
           created_by: string | null
           days_threshold: number | null
           description: string | null
+          execution_mode: string | null
+          family: string | null
           from_status: string
           id: string
           is_enabled: boolean | null
           name: string
           notification_template_id: string | null
+          prerequisites: Json | null
+          priority_order: number | null
           requires_approval: boolean | null
+          risk_band_filter: string | null
+          risk_timing_modifier: Json | null
           rule_code: string
           to_status: string
           updated_at: string | null
@@ -12575,18 +12710,25 @@ export type Database = {
         }
         Insert: {
           amount_threshold?: number | null
+          approval_role?: string | null
           auto_escalate?: boolean | null
           condition_expression?: string | null
           created_at?: string | null
           created_by?: string | null
           days_threshold?: number | null
           description?: string | null
+          execution_mode?: string | null
+          family?: string | null
           from_status: string
           id?: string
           is_enabled?: boolean | null
           name: string
           notification_template_id?: string | null
+          prerequisites?: Json | null
+          priority_order?: number | null
           requires_approval?: boolean | null
+          risk_band_filter?: string | null
+          risk_timing_modifier?: Json | null
           rule_code: string
           to_status: string
           updated_at?: string | null
@@ -12595,18 +12737,25 @@ export type Database = {
         }
         Update: {
           amount_threshold?: number | null
+          approval_role?: string | null
           auto_escalate?: boolean | null
           condition_expression?: string | null
           created_at?: string | null
           created_by?: string | null
           days_threshold?: number | null
           description?: string | null
+          execution_mode?: string | null
+          family?: string | null
           from_status?: string
           id?: string
           is_enabled?: boolean | null
           name?: string
           notification_template_id?: string | null
+          prerequisites?: Json | null
+          priority_order?: number | null
           requires_approval?: boolean | null
+          risk_band_filter?: string | null
+          risk_timing_modifier?: Json | null
           rule_code?: string
           to_status?: string
           updated_at?: string | null
