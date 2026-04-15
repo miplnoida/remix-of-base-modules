@@ -273,6 +273,27 @@ export const useEmployerRegistration = ({ regno, mode }: UseEmployerRegistration
     }
   }, [formData.regno]);
 
+  // Update owner
+  const updateOwner = useCallback(async (ownerId: number, ownerData: Partial<EROwnerData>): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('er_owner')
+        .update(ownerData)
+        .eq('owner_id', ownerId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setOwners(prev => prev.map(o => o.owner_id === ownerId ? { ...o, ...data } as EROwnerData : o));
+      toast.success('Owner updated');
+      return true;
+    } catch (error: any) {
+      toast.error('Failed to update owner: ' + error.message);
+      return false;
+    }
+  }, []);
+
   // Delete owner
   const deleteOwner = useCallback(async (ownerId: number): Promise<boolean> => {
     try {
@@ -313,6 +334,30 @@ export const useEmployerRegistration = ({ regno, mode }: UseEmployerRegistration
       return true;
     } catch (error: any) {
       toast.error('Failed to add location: ' + error.message);
+      return false;
+    }
+  }, [formData.regno]);
+
+  // Update location
+  const updateLocation = useCallback(async (locationId: number, locationData: Partial<ERLocationData>): Promise<boolean> => {
+    if (!formData.regno) return false;
+
+    try {
+      const { data, error } = await supabase
+        .from('er_locations')
+        .update(locationData)
+        .eq('regno', formData.regno)
+        .eq('location_id', locationId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setLocations(prev => prev.map(l => l.location_id === locationId ? { ...l, ...data } as ERLocationData : l));
+      toast.success('Location updated');
+      return true;
+    } catch (error: any) {
+      toast.error('Failed to update location: ' + error.message);
       return false;
     }
   }, [formData.regno]);
