@@ -713,6 +713,7 @@ export default function StartMeetingPage() {
               replacedDocCategories={replacedDocCategories}
               onReplacedDocCategoriesChange={setReplacedDocCategories}
               docVerificationRef={docVerificationRef}
+              employerFormRef={employerFormRef}
             />
           ) : (
             <Alert>
