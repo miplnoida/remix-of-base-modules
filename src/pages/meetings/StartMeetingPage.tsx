@@ -283,157 +283,24 @@ export default function StartMeetingPage() {
   }, [isIPMeeting, applicationData]);
 
   // Client-side preflight errors (for Employer meetings)
-  
-  const employerPreflightErrors = React.useMemo(() => {
-    if (!isEmployerMeeting || !applicationData) return [];
-    // Always use editedData when initialized — it already contains merged API + persisted edits
-    const dataToValidate = initializedRef.current && Object.keys(editedData).length > 0
+  const employerMeetingData = React.useMemo(() => {
+    if (!isEmployerMeeting || !applicationData) return null;
+    return initializedRef.current && Object.keys(editedData).length > 0
       ? editedData
       : applicationData;
-    return validateEmployerApplicationForConversion(dataToValidate);
   }, [isEmployerMeeting, applicationData, editedData]);
 
-  // Check if all per-tab hooks are done loading
-  const allTabHooksLoading = Object.values(tabHooksMap).some(h => h.isLoading);
-
-  // Initialize edited data when application loads — merge persisted tab data
-  useEffect(() => {
-    if (!applicationData) return;
-    // Only initialize once — prevent re-running on hook reference changes
-    if (initializedRef.current) return;
-    // Wait for persistence hooks to finish loading before deciding
-    if (isEmployerMeeting && (locationsEditLoading || ownersEditLoading)) return;
-    if (isIPMeeting && dependantsEditLoading) return;
-    if (allTabHooksLoading) return;
-
-    const merged: Record<string, any> = { ...applicationData };
-
-    // Employer: overlay persisted locations
-    if (isEmployerMeeting && hasPersistedLocations && savedLocations) {
-      merged.locations = savedLocations;
-    }
-
-    // Employer: overlay persisted owners
-    if (isEmployerMeeting && hasPersistedOwners && savedOwners) {
-      merged.owners = savedOwners;
-    }
-
-    // IP: overlay persisted dependants
-    if (isIPMeeting && hasPersistedDependants && savedDependants) {
-      merged.dependants = savedDependants;
-    }
-
-    // Overlay per-tab scalar edits from Supabase
-    for (const [tabId, hook] of Object.entries(tabHooksMap)) {
-      if (hook.hasSavedData && hook.savedData && typeof hook.savedData === 'object' && !Array.isArray(hook.savedData)) {
-        Object.assign(merged, hook.savedData);
-      }
-    }
-
-    setEditedData(merged);
-    setBaselineData({ ...merged });
-    initializedRef.current = true;
-  }, [applicationData, isEmployerMeeting, isIPMeeting, locationsEditLoading, ownersEditLoading, dependantsEditLoading, hasPersistedLocations, savedLocations, hasPersistedOwners, savedOwners, hasPersistedDependants, savedDependants, allTabHooksLoading, tabHooksMap]);
-
-  const handleFieldChange = (field: string, value: any) => {
-    setEditedData(prev => ({ ...prev, [field]: value }));
-    setHasChanges(true);
-  };
-
-  const handleRefresh = useCallback(async () => {
-    try {
-      initializedRef.current = false;
-      await refetchApplication();
-      setHasChanges(false);
-      toast.success('Application data refreshed');
-    } catch {
-      toast.error('Failed to refresh application data');
-    }
-  }, [refetchApplication]);
-
-  const handleApprove = async () => {
-    if (!meetingId) return;
-
-    // Block conversion if client-side preflight errors exist (IP meetings only)
-    if (isIPMeeting && preflightErrors.length > 0) {
-      toast.error(
-        `Cannot approve: ${preflightErrors[0].message}. Please resolve validation errors first.`,
-        { duration: 6000 }
-      );
-      return;
-    }
-
-    // Block conversion if server-side validation returned errors
-    if (isIPMeeting && validationResult && validationResult.error_count > 0) {
-      const firstError = validationResult.errors[0];
-      toast.error(
-        `Cannot approve: ${firstError?.message || `${validationResult.error_count} validation error(s) must be resolved`}. See the validation panel above.`,
-        { duration: 6000 }
-      );
-      return;
-    }
-
-    // Block employer conversion if preflight errors exist
-    if (isEmployerMeeting && employerPreflightErrors.length > 0) {
-      toast.error(
-        `Cannot approve: ${employerPreflightErrors[0].message}. Please resolve validation errors first.`,
-        { duration: 6000 }
-      );
-      return;
-    }
-
-    try {
-      // ── For IP-Registration meetings: run atomic conversion FIRST ──────────
-      if (meetingType === 'IP-Registration' && applicationData) {
-        const dataForConversion = hasChanges
-          ? { ...applicationData, ...editedData }
-          : applicationData;
-
-        const result = await convertToIP({
-          applicationDetail: dataForConversion as ExternalApplicationDetail,
-          userId:   user?.id   || '',
-          userCode: userCode   || '',
-          validRelationCodes,
-          sourceRoute: `/meetings/start/${meetingId}`,
-          meetingId,
-          applicationReference,
-        });
-
-        if (!result.success) {
-          return;
-        }
-
-        const depNote = result.dependants_added && result.dependants_added > 0
-          ? ` ${result.dependants_added} dependant(s) linked automatically.`
-          : '';
-        toast.success((result.message || 'IP Registration created successfully.') + depNote, { duration: 8000 });
-
-        // Workflow is now auto-initiated server-side during conversion.
-        if (result.workflow_instance_id) {
-          toast.success('Workflow instance initiated automatically.');
-        } else if (result.ssn && result.unique_uuid) {
-          // No workflow auto-initiated — check eligibility for manual dialog
-          const recordName = `${(dataForConversion as any).firstName || ''} ${(dataForConversion as any).lastName || ''}`.trim();
-          const eligibility = await checkWorkflowEligibility({
-            sourceRecordId: result.unique_uuid,
-          });
-          if (eligibility.eligible) {
-            setPendingConversionResult({ ssn: result.ssn, unique_uuid: result.unique_uuid, recordName });
-            setWorkflowEligibility(eligibility);
-          }
-        }
-      }
-
+  const employerPreflightErrors = React.useMemo(() => {
+    if (!employerMeetingData) return [];
+    return validateEmployerApplicationForConversion(employerMeetingData);
+  }, [employerMeetingData]);
+...
       // ── For Employer-Registration meetings: run employer conversion ────────
       let employerRegno: string | null = null;
       let employerName: string | null = null;
-      if (meetingType === 'Employer-Registration' && applicationData) {
-        const dataForConversion = hasChanges
-          ? { ...applicationData, ...editedData }
-          : applicationData;
-
+      if (meetingType === 'Employer-Registration' && employerMeetingData) {
         const result = await convertToEmployer({
-          applicationData: dataForConversion,
+          applicationData: employerMeetingData,
           userId: user?.id || '',
           userCode: userCode || '',
           applicationReference,
@@ -445,7 +312,7 @@ export default function StartMeetingPage() {
         }
 
         employerRegno = result.regno || null;
-        employerName = (dataForConversion as any)?.name || (dataForConversion as any)?.employer_name || employerRegno;
+        employerName = (employerMeetingData as any)?.name || (employerMeetingData as any)?.employer_name || employerRegno;
         toast.success(result.message || `Employer Registration ${result.regno} created successfully.`, { duration: 8000 });
       }
 
