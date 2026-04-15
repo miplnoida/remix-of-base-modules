@@ -1056,26 +1056,45 @@ const RuleEngine = () => {
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground mb-4">Calculation rules define how penalties, interest, and fines are computed. Financial rates are referenced from C3 Configuration.</p>
               {calculationRules.length === 0 && <p className="text-center text-muted-foreground py-8">No calculation rules configured. Click "Add Rule" to create one.</p>}
-              {calculationRules.map(rule => (
-                <div key={rule.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors">
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-xs text-muted-foreground">{rule.rule_code}</span>
-                      <span className="font-medium text-foreground">{rule.name}</span>
-                      <Badge variant="outline" className="text-[10px]">Applies: {rule.applies_to}</Badge>
-                      {rule.fund_type && <Badge variant="secondary" className="text-[10px]">{rule.fund_type}</Badge>}
-                      <Badge variant="outline" className="text-[10px]">Source: {rule.source_config}</Badge>
-                      {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{vt.code}</Badge> : null; })()}
+              {calculationRules.map(rule => {
+                const params = (rule as any).parameters || {};
+                const family = CALCULATION_FAMILIES.find(f => f.value === params?.family);
+                const pattern = CALCULATION_PATTERNS.find(p => p.value === params?.pattern);
+                const baseMetric = BASE_METRICS.find(m => m.value === params?.base_metric);
+                const rateSource = RATE_SOURCES.find(r => r.value === params?.rate_source);
+                return (
+                  <div key={rule.id} className="p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs text-muted-foreground">{rule.rule_code}</span>
+                          <span className="font-medium text-foreground">{rule.name}</span>
+                          {family && <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">{family.label}</Badge>}
+                          {!family && <Badge variant="outline" className="text-[10px]">Applies: {rule.applies_to}</Badge>}
+                          {rule.fund_type && <Badge variant="secondary" className="text-[10px]">{rule.fund_type}</Badge>}
+                          {pattern && <Badge variant="outline" className="text-[10px]">{pattern.label}</Badge>}
+                          {rateSource?.type === 'c3_config' && <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700 dark:text-blue-400">C3 Linked</Badge>}
+                          {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{vt.code}</Badge> : null; })()}
+                        </div>
+                        {rule.description && <p className="text-xs text-muted-foreground">{rule.description}</p>}
+                        <div className="bg-muted/50 rounded px-3 py-1.5 flex items-center gap-3">
+                          <p className="text-xs font-mono text-primary">{rule.formula_expression}</p>
+                        </div>
+                        {(baseMetric || rateSource) && (
+                          <div className="flex gap-2 flex-wrap">
+                            {baseMetric && <span className="text-[10px] text-muted-foreground">Base: <span className="font-medium text-foreground">{baseMetric.label}</span> <span className="italic">({baseMetric.sourceHint})</span></span>}
+                            {rateSource && <span className="text-[10px] text-muted-foreground">Rate: <span className="font-medium text-foreground">{rateSource.label}</span></span>}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 ml-4">
+                        <Switch checked={rule.is_enabled ?? false} onCheckedChange={(checked) => toggleCalc.mutate({ id: rule.id, is_enabled: checked })} />
+                        <Button variant="ghost" size="icon" onClick={() => { setEditingCalc(rule); setCalcDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                      </div>
                     </div>
-                    <p className="text-xs font-mono text-primary">{rule.formula_expression}</p>
-                    <p className="text-xs text-muted-foreground">{rule.description}</p>
                   </div>
-                  <div className="flex items-center gap-3 ml-4">
-                    <Switch checked={rule.is_enabled ?? false} onCheckedChange={(checked) => toggleCalc.mutate({ id: rule.id, is_enabled: checked })} />
-                    <Button variant="ghost" size="icon" onClick={() => { setEditingCalc(rule); setCalcDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </TabsContent>
 
