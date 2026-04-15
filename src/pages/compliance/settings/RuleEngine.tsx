@@ -1025,6 +1025,7 @@ const RuleEngine = () => {
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
+            <Cog className="h-6 w-6 text-primary" />
             <h1 className="text-3xl font-semibold text-foreground">Compliance Rule Engine</h1>
           </div>
           <p className="text-muted-foreground">Configure detection, calculation, and escalation rules for automated compliance enforcement</p>
@@ -1032,8 +1033,6 @@ const RuleEngine = () => {
         <HelpToolbar extraShortcuts={extraShortcutList}>
           <Button className="gap-2 ml-2" onClick={handleAddRule}><Plus className="h-4 w-4" />Add Rule</Button>
         </HelpToolbar>
-          <Button className="gap-2 ml-2" onClick={handleAddRule}><Plus className="h-4 w-4" />Add Rule</Button>
-        </div>
       </div>
 
       <Card className="p-6">
