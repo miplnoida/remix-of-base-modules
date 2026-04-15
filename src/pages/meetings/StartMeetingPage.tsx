@@ -1050,7 +1050,7 @@ function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetin
 }
 
 // Insured Person Edit Form — aligned with ApplicationDetailPage
-function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void; meetingId?: string; applicationReference?: string; replacedDocCategories?: Set<string>; onReplacedDocCategoriesChange?: (cats: Set<string>) => void; docVerificationRef?: React.RefObject<MeetingDocumentVerificationTabHandle | null> }) {
+function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef, onSaveTab, dirtyTabs, savingTabs }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void; meetingId?: string; applicationReference?: string; replacedDocCategories?: Set<string>; onReplacedDocCategoriesChange?: (cats: Set<string>) => void; docVerificationRef?: React.RefObject<MeetingDocumentVerificationTabHandle | null>; onSaveTab?: (tabId: string) => Promise<void>; dirtyTabs?: Set<string>; savingTabs?: Set<string> }) {
   // Master table lookups
   const { data: countries } = useCountries();
   const { data: districts } = useDistricts();
