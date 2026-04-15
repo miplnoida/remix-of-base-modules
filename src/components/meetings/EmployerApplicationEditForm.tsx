@@ -752,6 +752,7 @@ export const EmployerApplicationEditForm = forwardRef<EmployerApplicationEditFor
               </CardContent>
             </Card>
           </div>
+          <TabSaveButton tabId="er-contact-reach" onSave={onSaveTab} isDirty={dirtyTabs?.has('er-contact-reach')} isSaving={savingTabs?.has('er-contact-reach')} label="Contact & Reach" />
         </TabsContent>
 
         {/* Tab 4: Tech & Finance */}
@@ -780,6 +781,7 @@ export const EmployerApplicationEditForm = forwardRef<EmployerApplicationEditFor
               </div>
             </CardContent>
           </Card>
+          <TabSaveButton tabId="er-tech-finance" onSave={onSaveTab} isDirty={dirtyTabs?.has('er-tech-finance')} isSaving={savingTabs?.has('er-tech-finance')} label="Tech & Finance" />
         </TabsContent>
 
         {/* Tab 5: Owners */}
