@@ -246,7 +246,7 @@ interface EmployerApplicationEditFormProps {
 }
 
 export const EmployerApplicationEditForm = forwardRef<EmployerApplicationEditFormHandle, EmployerApplicationEditFormProps>(
-  function EmployerApplicationEditForm({ data, onChange, onDataChange, meetingId, applicationReference }, ref) {
+  function EmployerApplicationEditForm({ data, onChange, onDataChange, meetingId, applicationReference, onSaveTab, dirtyTabs, savingTabs }, ref) {
   const {
     officeCodes,
     ownershipCodes,
