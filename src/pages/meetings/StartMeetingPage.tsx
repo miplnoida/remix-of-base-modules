@@ -987,6 +987,26 @@ export default function StartMeetingPage() {
           navigate('/meetings/manage');
         }}
       />
+
+      {/* Navigation Guard Dialog */}
+      <ConfirmDialog
+        open={showNavGuard}
+        onOpenChange={(open) => {
+          if (!open && blocker.state === 'blocked') {
+            blocker.reset();
+          }
+          setShowNavGuard(open);
+        }}
+        title="Unsaved Changes"
+        description={`You have unsaved changes in ${dirtyTabs.size} tab(s): ${Array.from(dirtyTabs).map(t => TAB_LABELS[t] || t).join(', ')}. Are you sure you want to leave without saving?`}
+        confirmLabel="Leave Without Saving"
+        cancelLabel="Stay"
+        variant="destructive"
+        onConfirm={() => {
+          setShowNavGuard(false);
+          if (blocker.state === 'blocked') blocker.proceed();
+        }}
+      />
     </div>
   );
 }
@@ -1003,11 +1023,14 @@ interface ApplicationEditFormProps {
   onReplacedDocCategoriesChange?: (cats: Set<string>) => void;
   docVerificationRef?: React.RefObject<MeetingDocumentVerificationTabHandle | null>;
   employerFormRef?: React.RefObject<EmployerApplicationEditFormHandle | null>;
+  onSaveTab?: (tabId: string) => Promise<void>;
+  dirtyTabs?: Set<string>;
+  savingTabs?: Set<string>;
 }
 
-function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef, employerFormRef }: ApplicationEditFormProps) {
+function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef, employerFormRef, onSaveTab, dirtyTabs, savingTabs }: ApplicationEditFormProps) {
   if (meetingType === 'IP-Registration') {
-    return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} replacedDocCategories={replacedDocCategories} onReplacedDocCategoriesChange={onReplacedDocCategoriesChange} docVerificationRef={docVerificationRef} />;
+    return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} replacedDocCategories={replacedDocCategories} onReplacedDocCategoriesChange={onReplacedDocCategoriesChange} docVerificationRef={docVerificationRef} onSaveTab={onSaveTab} dirtyTabs={dirtyTabs} savingTabs={savingTabs} />;
   }
   
   if (meetingType === 'Employer-Registration') {
