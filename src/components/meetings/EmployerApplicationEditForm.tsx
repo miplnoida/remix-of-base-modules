@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -91,6 +91,7 @@ function EditField({
   maxLength,
   className,
   error,
+  isRequired,
 }: {
   label: string;
   value: any;
@@ -99,10 +100,14 @@ function EditField({
   maxLength?: number;
   className?: string;
   error?: string;
+  isRequired?: boolean;
 }) {
   return (
     <div className={`space-y-1.5 ${className || ''}`}>
-      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</Label>
+      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        {label}
+        {isRequired && <span className="text-destructive ml-0.5">*</span>}
+      </Label>
       <Input
         type={type}
         value={value ?? ''}
@@ -123,25 +128,108 @@ function SelectField({
   onChange,
   options,
   placeholder,
+  error,
+  isRequired,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: { code: string; label: string }[];
   placeholder?: string;
+  error?: string;
+  isRequired?: boolean;
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</Label>
-      <SearchableSelect
-        options={options.map(o => ({ value: o.code, label: o.label }))}
-        value={value || ''}
-        onValueChange={onChange}
-        placeholder={placeholder || `Select ${label}`}
-        searchPlaceholder={`Search ${label.toLowerCase()}...`}
-      />
+      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        {label}
+        {isRequired && <span className="text-destructive ml-0.5">*</span>}
+      </Label>
+      <div className={error ? 'rounded-md ring-1 ring-destructive' : ''}>
+        <SearchableSelect
+          options={options.map(o => ({ value: o.code, label: o.label }))}
+          value={value || ''}
+          onValueChange={onChange}
+          placeholder={placeholder || `Select ${label}`}
+          searchPlaceholder={`Search ${label.toLowerCase()}...`}
+        />
+      </div>
+      {error && <p className="text-xs text-destructive mt-1">{error}</p>}
     </div>
   );
+}
+
+// ─── Validation logic ───────────────────────────────────────────────────────
+
+// Map fields to tabs for error grouping
+const FIELD_TAB_MAP: Record<string, string> = {
+  ownership_code: 'employer-profile',
+  employer_name: 'basic-details',
+  hq_address1: 'basic-details',
+  application_date: 'basic-details',
+  contact_telephone: 'contact-reach',
+  email: 'contact-reach',
+  mobile: 'contact-reach',
+  contact_method: 'contact-reach',
+  village_code: 'contact-reach',
+  activity_type: 'contact-reach',
+};
+
+function validateAllFields(data: Record<string, any>): Record<string, string> {
+  const errors: Record<string, string> = {};
+
+  // Employer Profile tab
+  if (!data.ownership_code?.trim()) {
+    errors.ownership_code = 'Ownership type is required';
+  }
+
+  // Basic Details tab
+  if (!data.employer_name?.trim()) {
+    errors.employer_name = 'Employer name is required';
+  } else if (data.employer_name.trim().length > 40) {
+    errors.employer_name = `Employer name exceeds 40 characters (${data.employer_name.trim().length})`;
+  }
+
+  // Contact & Reach tab
+  const hasContact = data.contact_telephone?.trim() || data.email?.trim() || data.business_email?.trim() || data.mobile?.trim();
+  if (!hasContact) {
+    errors.contact_method = 'At least one contact method (phone, email, or mobile) is required';
+  }
+
+  if (!data.village_code?.trim()) {
+    errors.village_code = 'Village is required';
+  }
+
+  if (!data.activity_type?.trim()) {
+    errors.activity_type = 'Activity type is required';
+  }
+
+  return errors;
+}
+
+function getTabErrorCounts(errors: Record<string, string>): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const field of Object.keys(errors)) {
+    const tab = FIELD_TAB_MAP[field] || 'unknown';
+    counts[tab] = (counts[tab] || 0) + 1;
+  }
+  return counts;
+}
+
+function getFirstErrorTab(errors: Record<string, string>): string | null {
+  const tabOrder = ['employer-profile', 'basic-details', 'contact-reach'];
+  for (const tab of tabOrder) {
+    for (const field of Object.keys(errors)) {
+      if (FIELD_TAB_MAP[field] === tab) return tab;
+    }
+  }
+  return null;
+}
+
+// ─── Imperative Handle ──────────────────────────────────────────────────────
+
+export interface EmployerApplicationEditFormHandle {
+  triggerValidation: () => { valid: boolean; errors: Record<string, string> };
 }
 
 // ─── Main Component ─────────────────────────────────────────────────────────
@@ -154,7 +242,8 @@ interface EmployerApplicationEditFormProps {
   applicationReference?: string;
 }
 
-export function EmployerApplicationEditForm({ data, onChange, onDataChange, meetingId, applicationReference }: EmployerApplicationEditFormProps) {
+export const EmployerApplicationEditForm = forwardRef<EmployerApplicationEditFormHandle, EmployerApplicationEditFormProps>(
+  function EmployerApplicationEditForm({ data, onChange, onDataChange, meetingId, applicationReference }, ref) {
   const {
     officeCodes,
     ownershipCodes,
@@ -170,6 +259,42 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
     code: c.code?.trim() || '',
     label: `${c.code?.trim() || ''} - ${c.description?.trim() || ''}`,
   }));
+
+  // Validation errors state
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState('employer-profile');
+
+  // Expose triggerValidation to parent
+  useImperativeHandle(ref, () => ({
+    triggerValidation: () => {
+      const errors = validateAllFields(data);
+      setValidationErrors(errors);
+      if (Object.keys(errors).length > 0) {
+        const firstTab = getFirstErrorTab(errors);
+        if (firstTab) setActiveTab(firstTab);
+      }
+      return { valid: Object.keys(errors).length === 0, errors };
+    },
+  }), [data]);
+
+  // Wrap onChange to clear validation errors
+  const handleFieldChange = useCallback((field: string, value: any) => {
+    onChange(field, value);
+    setValidationErrors(prev => {
+      if (!prev[field]) {
+        // For contact_method composite error, clear when any contact field changes
+        if (['contact_telephone', 'email', 'business_email', 'mobile'].includes(field) && prev.contact_method) {
+          const next = { ...prev };
+          delete next.contact_method;
+          return next;
+        }
+        return prev;
+      }
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }, [onChange]);
 
   // Owner CRUD state
   const [ownerDialogOpen, setOwnerDialogOpen] = useState(false);
@@ -189,6 +314,9 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
   const locations: any[] = Array.isArray(data.locations) ? data.locations : [];
   const documents: any[] = Array.isArray(data.documents) ? data.documents : [];
   const remarks: any[] = Array.isArray(data.remarks) ? data.remarks : [];
+
+  // Tab error counts
+  const tabErrorCounts = getTabErrorCounts(validationErrors);
 
   // ─── Owner CRUD ─────────────────────────────────────────────────────────
 
@@ -411,30 +539,33 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
     }
   };
 
+  // Helper to render tab trigger with error badge
+  const renderTabTrigger = (value: string, icon: React.ElementType, label: string, shortLabel?: string) => {
+    const Icon = icon;
+    const errorCount = tabErrorCounts[value] || 0;
+    return (
+      <TabsTrigger value={value} className="gap-1.5 text-xs px-2 py-2 relative">
+        <Icon className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">{label}</span>
+        {shortLabel && <span className="sm:hidden">{shortLabel}</span>}
+        {!shortLabel && <span className="sm:hidden">{label}</span>}
+        {errorCount > 0 && (
+          <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+            {errorCount}
+          </span>
+        )}
+      </TabsTrigger>
+    );
+  };
+
   return (
     <>
-      <Tabs defaultValue="employer-profile" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="w-full grid grid-cols-4 lg:grid-cols-8 h-auto gap-0">
-          <TabsTrigger value="employer-profile" className="gap-1.5 text-xs px-2 py-2">
-            <Factory className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Employer Profile</span>
-            <span className="sm:hidden">Profile</span>
-          </TabsTrigger>
-          <TabsTrigger value="basic-details" className="gap-1.5 text-xs px-2 py-2">
-            <Building2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Basic Details</span>
-            <span className="sm:hidden">Basic</span>
-          </TabsTrigger>
-          <TabsTrigger value="contact-reach" className="gap-1.5 text-xs px-2 py-2">
-            <Phone className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Contact & Reach</span>
-            <span className="sm:hidden">Contact</span>
-          </TabsTrigger>
-          <TabsTrigger value="tech-finance" className="gap-1.5 text-xs px-2 py-2">
-            <Monitor className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Tech & Finance</span>
-            <span className="sm:hidden">Tech</span>
-          </TabsTrigger>
+          {renderTabTrigger('employer-profile', Factory, 'Employer Profile', 'Profile')}
+          {renderTabTrigger('basic-details', Building2, 'Basic Details', 'Basic')}
+          {renderTabTrigger('contact-reach', Phone, 'Contact & Reach', 'Contact')}
+          {renderTabTrigger('tech-finance', Monitor, 'Tech & Finance', 'Tech')}
           <TabsTrigger value="owners" className="gap-1.5 text-xs px-2 py-2">
             <UserCircle className="h-3.5 w-3.5" />
             Owners
@@ -460,9 +591,9 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
               <CardContent className="p-6">
                 <SectionHeader icon={Users} title="Previous Owner Information" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <EditField label="Previous Owner" value={data.previous_owner} onChange={(v) => onChange('previous_owner', v)} maxLength={40} />
-                  <EditField label="Previous Owner Address" value={data.prev_owner_address1} onChange={(v) => onChange('prev_owner_address1', v)} maxLength={25} />
-                  <EditField label="Previous Owner Address 2" value={data.prev_owner_address2} onChange={(v) => onChange('prev_owner_address2', v)} maxLength={25} />
+                  <EditField label="Previous Owner" value={data.previous_owner} onChange={(v) => handleFieldChange('previous_owner', v)} maxLength={40} />
+                  <EditField label="Previous Owner Address" value={data.prev_owner_address1} onChange={(v) => handleFieldChange('prev_owner_address1', v)} maxLength={25} />
+                  <EditField label="Previous Owner Address 2" value={data.prev_owner_address2} onChange={(v) => handleFieldChange('prev_owner_address2', v)} maxLength={25} />
                 </div>
               </CardContent>
             </Card>
@@ -476,15 +607,15 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                     <div className="flex items-center gap-2 h-9">
                       <Switch
                         checked={data.is_acquired === true || data.is_acquired === 'Y'}
-                        onCheckedChange={(checked) => onChange('is_acquired', checked)}
+                        onCheckedChange={(checked) => handleFieldChange('is_acquired', checked)}
                       />
                       <Badge variant={data.is_acquired ? 'default' : 'secondary'}>
                         {data.is_acquired ? 'Yes' : 'No'}
                       </Badge>
                     </div>
                   </div>
-                  <EditField label="Acquisition Date" value={formatDate(data.date_acquired)} onChange={(v) => onChange('date_acquired', v)} type="date" />
-                  <EditField label="Incorporated Date" value={formatDate(data.incorporated_date)} onChange={(v) => onChange('incorporated_date', v)} type="date" />
+                  <EditField label="Acquisition Date" value={formatDate(data.date_acquired)} onChange={(v) => handleFieldChange('date_acquired', v)} type="date" />
+                  <EditField label="Incorporated Date" value={formatDate(data.incorporated_date)} onChange={(v) => handleFieldChange('incorporated_date', v)} type="date" />
                 </div>
               </CardContent>
             </Card>
@@ -493,8 +624,8 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
               <CardContent className="p-6">
                 <SectionHeader icon={Shield} title="Organization Classification" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <SelectField label="Ownership Type" value={data.ownership_code || ''} onChange={(v) => onChange('ownership_code', v)} options={ownershipCodes} placeholder="Select Ownership Type" />
-                  <SelectField label="Sector" value={data.sector_code || ''} onChange={(v) => onChange('sector_code', v)} options={sectorCodes} placeholder="Select Sector" />
+                  <SelectField label="Ownership Type" value={data.ownership_code || ''} onChange={(v) => handleFieldChange('ownership_code', v)} options={ownershipCodes} placeholder="Select Ownership Type" isRequired error={validationErrors.ownership_code} />
+                  <SelectField label="Sector" value={data.sector_code || ''} onChange={(v) => handleFieldChange('sector_code', v)} options={sectorCodes} placeholder="Select Sector" />
                 </div>
               </CardContent>
             </Card>
@@ -503,9 +634,9 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
               <CardContent className="p-6">
                 <SectionHeader icon={Building2} title="Organization Details" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <EditField label="Parent Registration Number" value={data.parent_reg_no} onChange={(v) => onChange('parent_reg_no', v)} maxLength={6} />
-                  <SelectField label="Office" value={data.office_code || ''} onChange={(v) => onChange('office_code', v)} options={officeCodes} placeholder="Select Office" />
-                  <SelectField label="Industry" value={data.industrial_code || data.industry_code || ''} onChange={(v) => onChange('industrial_code', v)} options={industrialCodes} placeholder="Select Industry" />
+                  <EditField label="Parent Registration Number" value={data.parent_reg_no} onChange={(v) => handleFieldChange('parent_reg_no', v)} maxLength={6} />
+                  <SelectField label="Office" value={data.office_code || ''} onChange={(v) => handleFieldChange('office_code', v)} options={officeCodes} placeholder="Select Office" />
+                  <SelectField label="Industry" value={data.industrial_code || data.industry_code || ''} onChange={(v) => handleFieldChange('industrial_code', v)} options={industrialCodes} placeholder="Select Industry" />
                 </div>
               </CardContent>
             </Card>
@@ -519,9 +650,9 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
               <CardContent className="p-6">
                 <SectionHeader icon={Building2} title="Business Identity" subtitle="Core employer information" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <EditField label="Employer Name" value={data.employer_name} onChange={(v) => onChange('employer_name', v)} maxLength={40} />
-                  <EditField label="Trade Name" value={data.trade_name} onChange={(v) => onChange('trade_name', v)} maxLength={40} />
-                  <EditField label="E-Mail Address" value={data.business_email || data.email} onChange={(v) => onChange('business_email', v)} type="email" maxLength={40} />
+                  <EditField label="Employer Name" value={data.employer_name} onChange={(v) => handleFieldChange('employer_name', v)} maxLength={40} isRequired error={validationErrors.employer_name} />
+                  <EditField label="Trade Name" value={data.trade_name} onChange={(v) => handleFieldChange('trade_name', v)} maxLength={40} />
+                  <EditField label="E-Mail Address" value={data.business_email || data.email} onChange={(v) => handleFieldChange('business_email', v)} type="email" maxLength={40} />
                 </div>
               </CardContent>
             </Card>
@@ -531,14 +662,14 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                 <CardContent className="p-6">
                   <SectionHeader icon={MapPin} title="HQ Address" subtitle="Headquarters / Physical address" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <EditField label="HQ Address 1" value={data.hq_address1} onChange={(v) => onChange('hq_address1', v)} maxLength={25} />
-                    <EditField label="HQ Address 2" value={data.hq_address2} onChange={(v) => onChange('hq_address2', v)} maxLength={25} />
-                    <EditField label="City" value={data.hq_city} onChange={(v) => onChange('hq_city', v)} maxLength={50} />
-                    <EditField label="State" value={data.hq_state} onChange={(v) => onChange('hq_state', v)} maxLength={50} />
+                    <EditField label="HQ Address 1" value={data.hq_address1} onChange={(v) => handleFieldChange('hq_address1', v)} maxLength={25} />
+                    <EditField label="HQ Address 2" value={data.hq_address2} onChange={(v) => handleFieldChange('hq_address2', v)} maxLength={25} />
+                    <EditField label="City" value={data.hq_city} onChange={(v) => handleFieldChange('hq_city', v)} maxLength={50} />
+                    <EditField label="State" value={data.hq_state} onChange={(v) => handleFieldChange('hq_state', v)} maxLength={50} />
                     <SelectField
                       label="Country"
                       value={data.hq_country || ''}
-                      onChange={(v) => onChange('hq_country', v)}
+                      onChange={(v) => handleFieldChange('hq_country', v)}
                       options={countryOptions}
                       placeholder="Select Country"
                     />
@@ -550,14 +681,14 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                 <CardContent className="p-6">
                   <SectionHeader icon={Mail} title="Mailing Address" subtitle="Postal / Mailing address" />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <EditField label="Mailing Address 1" value={data.mailing_address1} onChange={(v) => onChange('mailing_address1', v)} maxLength={25} />
-                    <EditField label="Mailing Address 2" value={data.mailing_address2} onChange={(v) => onChange('mailing_address2', v)} maxLength={25} />
-                    <EditField label="City" value={data.mailing_city} onChange={(v) => onChange('mailing_city', v)} maxLength={50} />
-                    <EditField label="State" value={data.mailing_state} onChange={(v) => onChange('mailing_state', v)} maxLength={50} />
+                    <EditField label="Mailing Address 1" value={data.mailing_address1} onChange={(v) => handleFieldChange('mailing_address1', v)} maxLength={25} />
+                    <EditField label="Mailing Address 2" value={data.mailing_address2} onChange={(v) => handleFieldChange('mailing_address2', v)} maxLength={25} />
+                    <EditField label="City" value={data.mailing_city} onChange={(v) => handleFieldChange('mailing_city', v)} maxLength={50} />
+                    <EditField label="State" value={data.mailing_state} onChange={(v) => handleFieldChange('mailing_state', v)} maxLength={50} />
                     <SelectField
                       label="Country"
                       value={data.mailing_country || ''}
-                      onChange={(v) => onChange('mailing_country', v)}
+                      onChange={(v) => handleFieldChange('mailing_country', v)}
                       options={countryOptions}
                       placeholder="Select Country"
                     />
@@ -570,11 +701,11 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
               <CardContent className="p-6">
                 <SectionHeader icon={Calendar} title="Dates & Employees" subtitle="Important dates and workforce information" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <EditField label="Date of Application" value={formatDate(data.application_date)} onChange={(v) => onChange('application_date', v)} type="date" />
-                  <EditField label="Date Wages First Paid" value={formatDate(data.wages_first_paid_date)} onChange={(v) => onChange('wages_first_paid_date', v)} type="date" />
+                  <EditField label="Date of Application" value={formatDate(data.application_date)} onChange={(v) => handleFieldChange('application_date', v)} type="date" />
+                  <EditField label="Date Wages First Paid" value={formatDate(data.wages_first_paid_date)} onChange={(v) => handleFieldChange('wages_first_paid_date', v)} type="date" />
                   <div /> {/* spacer */}
-                  <EditField label="Male Employees" value={data.male_count} onChange={(v) => onChange('male_count', v)} type="number" />
-                  <EditField label="Female Employees" value={data.female_count} onChange={(v) => onChange('female_count', v)} type="number" />
+                  <EditField label="Male Employees" value={data.male_count} onChange={(v) => handleFieldChange('male_count', v)} type="number" />
+                  <EditField label="Female Employees" value={data.female_count} onChange={(v) => handleFieldChange('female_count', v)} type="number" />
                 </div>
               </CardContent>
             </Card>
@@ -584,16 +715,22 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
         {/* Tab 3: Contact & Reach */}
         <TabsContent value="contact-reach">
           <div className="space-y-6">
+            {/* Show contact_method composite error at top */}
+            {validationErrors.contact_method && (
+              <div className="rounded-md border border-destructive bg-destructive/5 p-3">
+                <p className="text-sm text-destructive font-medium">{validationErrors.contact_method}</p>
+              </div>
+            )}
             <Card>
               <CardContent className="p-6">
                 <SectionHeader icon={Phone} title="Contact Information" subtitle="Business telephone and fax" />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <EditField label="Contact Telephone" value={data.contact_telephone} onChange={(v) => onChange('contact_telephone', v)} maxLength={10} />
-                  <EditField label="Contact Fax" value={data.contact_fax} onChange={(v) => onChange('contact_fax', v)} maxLength={10} />
-                  <EditField label="Contact Name" value={data.contact_name} onChange={(v) => onChange('contact_name', v)} maxLength={40} />
-                  <EditField label="Mobile" value={data.mobile} onChange={(v) => onChange('mobile', v)} maxLength={10} />
-                  <EditField label="Email" value={data.email} onChange={(v) => onChange('email', v)} type="email" maxLength={40} />
-                  <EditField label="Country" value={data.country} onChange={(v) => onChange('country', v)} />
+                  <EditField label="Contact Telephone" value={data.contact_telephone} onChange={(v) => handleFieldChange('contact_telephone', v)} maxLength={10} isRequired error={validationErrors.contact_telephone} />
+                  <EditField label="Contact Fax" value={data.contact_fax} onChange={(v) => handleFieldChange('contact_fax', v)} maxLength={10} />
+                  <EditField label="Contact Name" value={data.contact_name} onChange={(v) => handleFieldChange('contact_name', v)} maxLength={40} />
+                  <EditField label="Mobile" value={data.mobile} onChange={(v) => handleFieldChange('mobile', v)} maxLength={10} isRequired />
+                  <EditField label="Email" value={data.email} onChange={(v) => handleFieldChange('email', v)} type="email" maxLength={40} isRequired />
+                  <EditField label="Country" value={data.country} onChange={(v) => handleFieldChange('country', v)} />
                 </div>
               </CardContent>
             </Card>
@@ -602,9 +739,9 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
               <CardContent className="p-6">
                 <SectionHeader icon={MapPin} title="Location Information" subtitle="Business location and activity" />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <SelectField label="Village" value={data.village_code || ''} onChange={(v) => onChange('village_code', v)} options={villageCodes} placeholder="Select Village" />
-                  <SelectField label="Activity Type" value={data.activity_type || ''} onChange={(v) => onChange('activity_type', v)} options={activityTypes} placeholder="Select Activity Type" />
-                  <SelectField label="Inspector" value={data.inspector_code || ''} onChange={(v) => onChange('inspector_code', v)} options={inspectorCodes} placeholder="Select Inspector" />
+                  <SelectField label="Village" value={data.village_code || ''} onChange={(v) => handleFieldChange('village_code', v)} options={villageCodes} placeholder="Select Village" isRequired error={validationErrors.village_code} />
+                  <SelectField label="Activity Type" value={data.activity_type || ''} onChange={(v) => handleFieldChange('activity_type', v)} options={activityTypes} placeholder="Select Activity Type" isRequired error={validationErrors.activity_type} />
+                  <SelectField label="Inspector" value={data.inspector_code || ''} onChange={(v) => handleFieldChange('inspector_code', v)} options={inspectorCodes} placeholder="Select Inspector" />
                 </div>
               </CardContent>
             </Card>
@@ -622,7 +759,7 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                   <div className="flex items-center gap-2 h-9">
                     <Switch
                       checked={data.computer_payroll === true || data.computer_payroll === 'Y' || data.computer_payroll === 'Yes'}
-                      onCheckedChange={(checked) => onChange('computer_payroll', checked)}
+                      onCheckedChange={(checked) => handleFieldChange('computer_payroll', checked)}
                     />
                     <Badge variant={data.computer_payroll ? 'default' : 'secondary'}>
                       {data.computer_payroll ? 'Yes' : 'No'}
@@ -631,7 +768,7 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
                 </div>
                 {(data.computer_payroll === true || data.computer_payroll === 'Y' || data.computer_payroll === 'Yes') && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <EditField label="Application/Software" value={data.make_model} onChange={(v) => onChange('make_model', v)} maxLength={30} />
+                    <EditField label="Application/Software" value={data.make_model} onChange={(v) => handleFieldChange('make_model', v)} maxLength={30} />
                   </div>
                 )}
               </div>
@@ -939,4 +1076,4 @@ export function EmployerApplicationEditForm({ data, onChange, onDataChange, meet
       </Dialog>
     </>
   );
-}
+});
