@@ -994,11 +994,33 @@ const RuleEngine = () => {
 
   // ── Add button handler ──
 
-  const handleAddRule = () => {
+  const handleAddRule = useCallback(() => {
     if (activeTab === 'detection') { setEditingDetection(null); setDetectionDialogOpen(true); }
     else if (activeTab === 'calculation') { setEditingCalc(null); setCalcDialogOpen(true); }
     else { setEditingEsc(null); setEscDialogOpen(true); }
-  };
+  }, [activeTab]);
+
+  // ── Keyboard shortcuts ──
+  const shortcutList = [
+    { keys: 'Shift + ?', description: 'Screen help' },
+    { keys: 'Ctrl + K', description: 'Search help' },
+    { keys: 'Alt + F', description: 'Toggle FAQ' },
+    { keys: 'Alt + N', description: 'Add new rule' },
+  ];
+
+  useKeyboardShortcuts([
+    { key: '?', shift: true, description: 'Open screen help', action: () => {
+      // Find and click the help button
+      const helpArticle = article;
+      if (helpArticle) {
+        // Dispatch a custom event the HelpButton can listen to, or directly open
+        document.querySelector<HTMLButtonElement>('[data-help-button]')?.click();
+      }
+    }},
+    { key: 'k', ctrl: true, description: 'Search help', action: () => setHelpSearchOpen(true) },
+    { key: 'f', alt: true, description: 'Toggle FAQ', action: () => setShowFAQ(prev => !prev) },
+    { key: 'n', alt: true, description: 'Add new rule', action: handleAddRule },
+  ]);
 
   const isLoading = loadingDetection || loadingCalc || loadingEsc;
 
@@ -1020,7 +1042,11 @@ const RuleEngine = () => {
           </div>
           <p className="text-muted-foreground">Configure detection, calculation, and escalation rules for automated compliance enforcement</p>
         </div>
-        <Button className="gap-2" onClick={handleAddRule}><Plus className="h-4 w-4" />Add Rule</Button>
+        <div className="flex items-center gap-1">
+          <HelpButton article={article} variant="icon" />
+          <ShortcutHelpPopover shortcuts={shortcutList} />
+          <Button className="gap-2 ml-2" onClick={handleAddRule}><Plus className="h-4 w-4" />Add Rule</Button>
+        </div>
       </div>
 
       <Card className="p-6">
