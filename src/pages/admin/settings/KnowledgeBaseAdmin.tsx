@@ -39,7 +39,7 @@ export default function KnowledgeBaseAdmin() {
       <div className="flex items-center justify-between">
         <PageHeader
           title="Knowledge Base Management"
-          description="Create and manage help articles, FAQs, field help, and process guides for all modules"
+          subtitle="Create and manage help articles, FAQs, field help, and process guides for all modules"
           icon={BookOpen}
         />
         <Button onClick={() => setAiDialogOpen(true)} className="gap-2">
