@@ -147,6 +147,113 @@ export default function StartMeetingPage() {
     save: saveOwnersEdit,
   } = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'owners');
 
+  // ─── Per-tab scalar field persistence hooks ─────────────────────────────
+  // IP tabs
+  const ipPersonalHook = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'ip-personal');
+  const ipContactHook = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'ip-contact');
+  const ipRelationsHook = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'ip-relations');
+  const ipEmploymentHook = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'ip-employment');
+  const ipRemarksHook = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'ip-remarks');
+
+  // Employer tabs
+  const erProfileHook = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'er-employer-profile');
+  const erBasicHook = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'er-basic-details');
+  const erContactHook = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'er-contact-reach');
+  const erTechHook = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'er-tech-finance');
+
+  // Collect all tab hooks into a map for easy access
+  const tabHooksMap = useMemo(() => {
+    const map: Record<string, ReturnType<typeof useMeetingEditData>> = {};
+    if (isIPMeeting) {
+      map['ip-personal'] = ipPersonalHook;
+      map['ip-contact'] = ipContactHook;
+      map['ip-relations'] = ipRelationsHook;
+      map['ip-employment'] = ipEmploymentHook;
+      map['ip-remarks'] = ipRemarksHook;
+    }
+    if (isEmployerMeeting) {
+      map['er-employer-profile'] = erProfileHook;
+      map['er-basic-details'] = erBasicHook;
+      map['er-contact-reach'] = erContactHook;
+      map['er-tech-finance'] = erTechHook;
+    }
+    return map;
+  }, [isIPMeeting, isEmployerMeeting, ipPersonalHook, ipContactHook, ipRelationsHook, ipEmploymentHook, ipRemarksHook, erProfileHook, erBasicHook, erContactHook, erTechHook]);
+
+  // Track baseline data (API + initial overlays) for dirty detection
+  const [baselineData, setBaselineData] = useState<Record<string, any>>({});
+
+  // Dirty tabs computed from current editedData vs baseline
+  const activeTabFields = isIPMeeting ? IP_TAB_FIELDS : isEmployerMeeting ? ER_TAB_FIELDS : {};
+  const dirtyTabs = useMemo(() => {
+    if (!baselineData || Object.keys(baselineData).length === 0) return new Set<string>();
+    return getDirtyTabs(editedData, baselineData, activeTabFields);
+  }, [editedData, baselineData, activeTabFields]);
+
+  const hasUnsavedTabChanges = dirtyTabs.size > 0;
+
+  // Navigation guard for unsaved changes
+  const [showNavGuard, setShowNavGuard] = useState(false);
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasUnsavedTabChanges && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      setShowNavGuard(true);
+    }
+  }, [blocker.state]);
+
+  // beforeunload guard
+  useEffect(() => {
+    if (!hasUnsavedTabChanges) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasUnsavedTabChanges]);
+
+  // Per-tab save handler
+  const handleSaveTab = useCallback(async (tabId: string) => {
+    const tabFields = activeTabFields[tabId];
+    if (!tabFields) return;
+
+    const hook = tabHooksMap[tabId];
+    if (!hook) return;
+
+    const tabData = extractTabFields(editedData, tabFields);
+    const originalTabData = extractTabFields(baselineData, tabFields);
+
+    try {
+      await hook.save(tabData, originalTabData, userCode || undefined);
+
+      // Audit log
+      const diffs = computeFieldDiff(originalTabData, tabData);
+      if (diffs && diffs.length > 0) {
+        logAuditTrail({
+          action: 'UPDATE',
+          entityType: 'meeting_edit_data',
+          entityId: meetingId,
+          module: 'meetings',
+          beforeValue: originalTabData,
+          afterValue: tabData,
+          userCode: userCode || undefined,
+          metadata: { tab: tabId, tabLabel: TAB_LABELS[tabId] || tabId },
+        });
+      }
+
+      // Update baseline for this tab so it's no longer dirty
+      setBaselineData(prev => ({ ...prev, ...tabData }));
+      toast.success(`${TAB_LABELS[tabId] || tabId} saved successfully`);
+    } catch (err) {
+      console.error(`Failed to save tab ${tabId}:`, err);
+      toast.error(`Failed to save ${TAB_LABELS[tabId] || tabId}`);
+    }
+  }, [activeTabFields, tabHooksMap, editedData, baselineData, userCode, meetingId]);
+
   // Fetch application data based on meeting type — only one hook is enabled at a time
   const {
     data: ipApplicationData,
