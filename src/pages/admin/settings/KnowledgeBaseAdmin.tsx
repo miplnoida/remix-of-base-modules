@@ -40,7 +40,6 @@ export default function KnowledgeBaseAdmin() {
         <PageHeader
           title="Knowledge Base Management"
           subtitle="Create and manage help articles, FAQs, field help, and process guides for all modules"
-          icon={BookOpen}
         />
         <Button onClick={() => setAiDialogOpen(true)} className="gap-2">
           <Sparkles className="h-4 w-4" />
