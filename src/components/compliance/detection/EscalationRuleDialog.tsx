@@ -112,23 +112,42 @@ export const EnhancedEscalationRuleDialog = ({ open, onOpenChange, rule, violati
         triggerVal = condMatch[3].trim();
       }
 
+      // Parse saved prerequisites from DB
+      let savedPrereqs: string[] = [];
+      if (rule?.prerequisites) {
+        try {
+          savedPrereqs = Array.isArray(rule.prerequisites) ? rule.prerequisites : JSON.parse(rule.prerequisites);
+        } catch { savedPrereqs = []; }
+      }
+
+      // Parse saved risk timing modifier
+      let savedRiskMod: Record<string, number> = {};
+      if (rule?.risk_timing_modifier) {
+        try {
+          savedRiskMod = typeof rule.risk_timing_modifier === 'object' ? rule.risk_timing_modifier : JSON.parse(rule.risk_timing_modifier);
+        } catch { savedRiskMod = {}; }
+      }
+
       setForm({
         rule_code: autoCode,
         name: rule?.name || '',
         description: rule?.description || '',
-        family: 'case_progression',
+        family: rule?.family || 'case_progression',
         from_status: rule?.from_status || 'OPEN',
         to_status: rule?.to_status || 'UNDER_REVIEW',
-        execution_mode: mode,
+        execution_mode: rule?.execution_mode as ExecutionMode || mode,
         days_threshold: rule?.days_threshold ?? '',
         amount_threshold: rule?.amount_threshold ?? '',
         trigger_metric: triggerMetric,
         trigger_operator: triggerOp,
         trigger_value: triggerVal,
-        prerequisites: [],
+        prerequisites: savedPrereqs,
         condition_expression: rule?.condition_expression || '',
         is_enabled: rule?.is_enabled ?? true,
         violation_type_id: rule?.violation_type_id || '',
+        approval_role: rule?.approval_role || '',
+        risk_timing_modifier: savedRiskMod,
+        priority_order: rule?.priority_order ?? 100,
       });
     }
   }, [open, rule]);
