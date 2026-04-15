@@ -202,6 +202,13 @@ export const EnhancedEscalationRuleDialog = ({ open, onOpenChange, rule, violati
       requires_approval: form.execution_mode === 'MANUAL',
       is_enabled: form.is_enabled,
       violation_type_id: form.violation_type_id || null,
+      // New persisted fields
+      prerequisites: form.prerequisites,
+      execution_mode: form.execution_mode,
+      family: form.family,
+      approval_role: form.approval_role || null,
+      risk_timing_modifier: Object.keys(form.risk_timing_modifier).length > 0 ? form.risk_timing_modifier : null,
+      priority_order: form.priority_order,
     });
   };
 
