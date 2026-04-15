@@ -240,6 +240,9 @@ interface EmployerApplicationEditFormProps {
   onDataChange: (newData: Record<string, any>) => void;
   meetingId?: string;
   applicationReference?: string;
+  onSaveTab?: (tabId: string) => Promise<void>;
+  dirtyTabs?: Set<string>;
+  savingTabs?: Set<string>;
 }
 
 export const EmployerApplicationEditForm = forwardRef<EmployerApplicationEditFormHandle, EmployerApplicationEditFormProps>(
