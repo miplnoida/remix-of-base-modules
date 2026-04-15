@@ -49,7 +49,7 @@ import {
 } from 'lucide-react';
 import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
 import { MeetingDocumentVerificationTab, type MeetingDocumentVerificationTabHandle } from '@/components/meetings/MeetingDocumentVerificationTab';
-import { EmployerApplicationEditForm } from '@/components/meetings/EmployerApplicationEditForm';
+import { EmployerApplicationEditForm, type EmployerApplicationEditFormHandle } from '@/components/meetings/EmployerApplicationEditForm';
 import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithRejection } from '@/hooks/useMeetings';
 import { useExternalApplicationDetail } from '@/hooks/useExternalApplicationDetail';
 import { useEmployerApplicationDetail } from '@/hooks/useEmployerApplicationDetail';
@@ -104,6 +104,7 @@ export default function StartMeetingPage() {
   const [replacedDocCategories, setReplacedDocCategories] = useState<Set<string>>(new Set());
   // Ref to document verification tab for mismatch validation
   const docVerificationRef = React.useRef<MeetingDocumentVerificationTabHandle>(null);
+  const employerFormRef = React.useRef<EmployerApplicationEditFormHandle>(null);
   
   // Mutations
   const approveMutation = useCloseMeetingWithApproval();
@@ -560,6 +561,20 @@ export default function StartMeetingPage() {
                         { duration: 5000 }
                       );
                       return;
+                    }
+                    // For employer meetings, trigger form-level validation with field highlighting
+                    if (isEmployerMeeting && employerFormRef.current) {
+                      const result = employerFormRef.current.triggerValidation();
+                      if (!result.valid) {
+                        const firstError = Object.values(result.errors)[0];
+                        toast.error('Please check the form for valid information!', {
+                          description: firstError,
+                          duration: 6000,
+                          style: { backgroundColor: 'hsl(var(--destructive))', color: 'white', '--description-color': 'white' } as React.CSSProperties,
+                          classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
+                        });
+                        return;
+                      }
                     }
                     // Validate document-type dropdown matches uploaded document
                     if (docVerificationRef.current) {
