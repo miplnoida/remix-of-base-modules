@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { EnhancedDetectionRuleDialog } from '@/components/compliance/detection/DetectionRuleDialog';
+import { EnhancedCalculationRuleDialog } from '@/components/compliance/detection/CalculationRuleDialog';
+import { EnhancedEscalationRuleDialog } from '@/components/compliance/detection/EscalationRuleDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +13,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Cog, Plus, Zap, Calculator, TrendingUp, Edit, Loader2, Trash2, PlusCircle, X } from 'lucide-react';
+import { Cog, Plus, Zap, Calculator, TrendingUp, Edit, Loader2, Trash2, PlusCircle, X, ArrowRight } from 'lucide-react';
+import { CALCULATION_FAMILIES, CALCULATION_PATTERNS, BASE_METRICS, RATE_SOURCES } from '@/components/compliance/detection/calculationConstants';
+import { ESCALATION_FAMILIES, STATE_MACHINE, getStageColor } from '@/components/compliance/detection/escalationConstants';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -1052,55 +1056,93 @@ const RuleEngine = () => {
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground mb-4">Calculation rules define how penalties, interest, and fines are computed. Financial rates are referenced from C3 Configuration.</p>
               {calculationRules.length === 0 && <p className="text-center text-muted-foreground py-8">No calculation rules configured. Click "Add Rule" to create one.</p>}
-              {calculationRules.map(rule => (
-                <div key={rule.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors">
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-xs text-muted-foreground">{rule.rule_code}</span>
-                      <span className="font-medium text-foreground">{rule.name}</span>
-                      <Badge variant="outline" className="text-[10px]">Applies: {rule.applies_to}</Badge>
-                      {rule.fund_type && <Badge variant="secondary" className="text-[10px]">{rule.fund_type}</Badge>}
-                      <Badge variant="outline" className="text-[10px]">Source: {rule.source_config}</Badge>
-                      {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{vt.code}</Badge> : null; })()}
+              {calculationRules.map(rule => {
+                const params = (rule as any).parameters || {};
+                const family = CALCULATION_FAMILIES.find(f => f.value === params?.family);
+                const pattern = CALCULATION_PATTERNS.find(p => p.value === params?.pattern);
+                const baseMetric = BASE_METRICS.find(m => m.value === params?.base_metric);
+                const rateSource = RATE_SOURCES.find(r => r.value === params?.rate_source);
+                return (
+                  <div key={rule.id} className="p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs text-muted-foreground">{rule.rule_code}</span>
+                          <span className="font-medium text-foreground">{rule.name}</span>
+                          {family && <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">{family.label}</Badge>}
+                          {!family && <Badge variant="outline" className="text-[10px]">Applies: {rule.applies_to}</Badge>}
+                          {rule.fund_type && <Badge variant="secondary" className="text-[10px]">{rule.fund_type}</Badge>}
+                          {pattern && <Badge variant="outline" className="text-[10px]">{pattern.label}</Badge>}
+                          {rateSource?.type === 'c3_config' && <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700 dark:text-blue-400">C3 Linked</Badge>}
+                          {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{vt.code}</Badge> : null; })()}
+                        </div>
+                        {rule.description && <p className="text-xs text-muted-foreground">{rule.description}</p>}
+                        <div className="bg-muted/50 rounded px-3 py-1.5 flex items-center gap-3">
+                          <p className="text-xs font-mono text-primary">{rule.formula_expression}</p>
+                        </div>
+                        {(baseMetric || rateSource) && (
+                          <div className="flex gap-2 flex-wrap">
+                            {baseMetric && <span className="text-[10px] text-muted-foreground">Base: <span className="font-medium text-foreground">{baseMetric.label}</span> <span className="italic">({baseMetric.sourceHint})</span></span>}
+                            {rateSource && <span className="text-[10px] text-muted-foreground">Rate: <span className="font-medium text-foreground">{rateSource.label}</span></span>}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 ml-4">
+                        <Switch checked={rule.is_enabled ?? false} onCheckedChange={(checked) => toggleCalc.mutate({ id: rule.id, is_enabled: checked })} />
+                        <Button variant="ghost" size="icon" onClick={() => { setEditingCalc(rule); setCalcDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                      </div>
                     </div>
-                    <p className="text-xs font-mono text-primary">{rule.formula_expression}</p>
-                    <p className="text-xs text-muted-foreground">{rule.description}</p>
                   </div>
-                  <div className="flex items-center gap-3 ml-4">
-                    <Switch checked={rule.is_enabled ?? false} onCheckedChange={(checked) => toggleCalc.mutate({ id: rule.id, is_enabled: checked })} />
-                    <Button variant="ghost" size="icon" onClick={() => { setEditingCalc(rule); setCalcDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </TabsContent>
 
           <TabsContent value="escalation">
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground mb-4">Escalation rules define when violations or cases are automatically escalated based on time, amount, or status conditions.</p>
+              <p className="text-sm text-muted-foreground mb-4">Escalation rules govern progression through the enforcement lifecycle using a controlled state machine. Transitions require prerequisites and follow defined execution modes.</p>
               {escalationRules.length === 0 && <p className="text-center text-muted-foreground py-8">No escalation rules configured. Click "Add Rule" to create one.</p>}
-              {escalationRules.map(rule => (
-                <div key={rule.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors">
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-xs text-muted-foreground">{rule.rule_code}</span>
-                      <span className="font-medium text-foreground">{rule.name}</span>
-                      {rule.auto_escalate && <Badge variant="outline" className="text-[10px] text-primary border-primary/30">Auto-Execute</Badge>}
-                      {rule.requires_approval && <Badge variant="outline" className="text-[10px]">Approval Required</Badge>}
-                      {rule.days_threshold && <Badge variant="secondary" className="text-[10px]">{rule.days_threshold} days</Badge>}
-                      {rule.amount_threshold && <Badge variant="secondary" className="text-[10px]">${rule.amount_threshold.toLocaleString()}</Badge>}
-                      {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{vt.code}</Badge> : null; })()}
+              {escalationRules.map(rule => {
+                const fromState = STATE_MACHINE.find(s => s.value === rule.from_status);
+                const toState = STATE_MACHINE.find(s => s.value === rule.to_status);
+                const execMode = rule.auto_escalate ? 'AUTO' : rule.requires_approval ? 'MANUAL' : 'RECOMMEND';
+                return (
+                  <div key={rule.id} className="p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs text-muted-foreground">{rule.rule_code}</span>
+                          <span className="font-medium text-foreground">{rule.name}</span>
+                          <Badge variant={execMode === 'AUTO' ? 'default' : execMode === 'MANUAL' ? 'destructive' : 'secondary'} className="text-[10px]">
+                            {execMode === 'AUTO' ? '⚡ Auto' : execMode === 'MANUAL' ? '🔒 Manual' : '💡 Recommend'}
+                          </Badge>
+                          {rule.days_threshold && <Badge variant="outline" className="text-[10px]">{rule.days_threshold} days</Badge>}
+                          {rule.amount_threshold && <Badge variant="outline" className="text-[10px]">${Number(rule.amount_threshold).toLocaleString()}</Badge>}
+                          {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{vt.code}</Badge> : null; })()}
+                        </div>
+                        {rule.description && <p className="text-xs text-muted-foreground">{rule.description}</p>}
+                        {/* Stage transition visual */}
+                        <div className="flex items-center gap-2 text-xs">
+                          <Badge variant="outline" className={fromState ? getStageColor(fromState.stage) : ''}>{fromState?.label || rule.from_status}</Badge>
+                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Badge variant="outline" className={toState ? getStageColor(toState.stage) : ''}>{toState?.label || rule.to_status}</Badge>
+                          {toState?.noticePrerequisite && <span className="text-[10px] text-amber-600 dark:text-amber-400 italic">Notice required</span>}
+                          {toState?.approvalRequired && <span className="text-[10px] text-red-600 dark:text-red-400 italic">Approval required</span>}
+                        </div>
+                        {rule.condition_expression && (
+                          <div className="bg-muted/50 rounded px-3 py-1.5">
+                            <p className="text-xs font-mono text-primary/80">{rule.condition_expression}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 ml-4">
+                        <Switch checked={rule.is_enabled ?? false} onCheckedChange={(checked) => toggleEsc.mutate({ id: rule.id, is_enabled: checked })} />
+                        <Button variant="ghost" size="icon" onClick={() => { setEditingEsc(rule); setEscDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">{rule.description}</p>
-                    <p className="text-xs text-muted-foreground"><span className="font-medium">Transition:</span> {rule.from_status} → <span className="text-foreground font-medium">{rule.to_status}</span></p>
-                    {rule.condition_expression && <p className="text-xs font-mono text-primary/80">{rule.condition_expression}</p>}
                   </div>
-                  <div className="flex items-center gap-3 ml-4">
-                    <Switch checked={rule.is_enabled ?? false} onCheckedChange={(checked) => toggleEsc.mutate({ id: rule.id, is_enabled: checked })} />
-                    <Button variant="ghost" size="icon" onClick={() => { setEditingEsc(rule); setEscDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </TabsContent>
         </Tabs>
@@ -1117,7 +1159,7 @@ const RuleEngine = () => {
         existingCodes={detectionRules.map(r => r.rule_code)}
         conditionVars={conditionVars}
       />
-      <CalculationRuleDialog
+      <EnhancedCalculationRuleDialog
         open={calcDialogOpen}
         onOpenChange={v => { setCalcDialogOpen(v); if (!v) setEditingCalc(null); }}
         rule={editingCalc}
@@ -1125,9 +1167,8 @@ const RuleEngine = () => {
         onSave={data => saveCalc.mutate(data)}
         saving={saveCalc.isPending}
         existingCodes={calculationRules.map(r => r.rule_code)}
-        formulaOps={formulaOps}
       />
-      <EscalationRuleDialog
+      <EnhancedEscalationRuleDialog
         open={escDialogOpen}
         onOpenChange={v => { setEscDialogOpen(v); if (!v) setEditingEsc(null); }}
         rule={editingEsc}
@@ -1135,7 +1176,6 @@ const RuleEngine = () => {
         onSave={data => saveEsc.mutate(data)}
         saving={saveEsc.isPending}
         existingCodes={escalationRules.map(r => r.rule_code)}
-        conditionVars={conditionVars}
       />
     </div>
   );
