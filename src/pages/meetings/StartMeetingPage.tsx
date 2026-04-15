@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import { format } from 'date-fns';
 import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -68,6 +68,9 @@ import { triggerIPRegistrationWorkflow } from '@/services/workflowTriggerService
 import { WorkflowInitiationDialog } from '@/components/workflow/WorkflowInitiationDialog';
 import type { ExternalApplicationDetail, ExternalDependant } from '@/types/externalApplication';
 import { useMeetingEditData } from '@/hooks/useMeetingEditData';
+import { IP_TAB_FIELDS, ER_TAB_FIELDS, extractTabFields, getDirtyTabs, TAB_LABELS } from '@/hooks/useMeetingTabPersistence';
+import { logAuditTrail, computeFieldDiff } from '@/services/auditService';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 const meetingTypeLabels: Record<MeetingType, string> = {
   'IP-Registration': 'Insured Person',
