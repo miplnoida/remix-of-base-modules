@@ -779,7 +779,15 @@ export default function StartMeetingPage() {
             </Button>
           </div>
           
-          {hasChanges && (
+          {hasUnsavedTabChanges && (
+            <Alert className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                You have unsaved changes in: {Array.from(dirtyTabs).map(t => TAB_LABELS[t] || t).join(', ')}. Use the Save button at the bottom of each tab to persist your edits.
+              </AlertDescription>
+            </Alert>
+          )}
+          {hasChanges && !hasUnsavedTabChanges && (
             <Alert className="mt-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
