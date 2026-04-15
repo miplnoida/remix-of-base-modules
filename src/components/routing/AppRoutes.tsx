@@ -720,6 +720,7 @@ import BootstrapAdmin from '@/pages/setup/BootstrapAdmin';
 import FoundationComponentsDemo from '@/pages/FoundationComponentsDemo';
 import FeeConfiguration from '@/pages/admin/FeeConfiguration';
 import IPCardConfiguration from '@/pages/admin/IPCardConfiguration';
+import KnowledgeBaseAdmin from '@/pages/admin/settings/KnowledgeBaseAdmin';
 
 // Report Pages
 import InsuredPersonsSummaryReport from '@/pages/reports/insured-persons/InsuredPersonsSummaryReport';
