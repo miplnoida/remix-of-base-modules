@@ -195,9 +195,33 @@ export default function EmployerRegistrationForm() {
     if (locationForm.activity_type.length > 50) errors.activity_type = 'Max 50 characters';
     if (Object.keys(errors).length > 0) { setLocationErrors(errors); return; }
     setLocationErrors({});
-    await addLocation(locationForm);
-    setLocationForm({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '', city: '', state: '', country: '' });
-    setShowLocationDialog(false);
+
+    let success = false;
+    if (editingLocation && editingLocation.location_id) {
+      success = await updateLocation(editingLocation.location_id, locationForm);
+    } else {
+      success = await addLocation(locationForm);
+    }
+    if (success) {
+      setLocationForm({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '', city: '', state: '', country: '' });
+      setEditingLocation(null);
+      setShowLocationDialog(false);
+    }
+  };
+
+  const handleEditLocation = (loc: ERLocationData) => {
+    setEditingLocation(loc);
+    setLocationForm({
+      trade_name: loc.trade_name || '',
+      loc_addr1: loc.loc_addr1 || '',
+      loc_addr2: loc.loc_addr2 || '',
+      activity_type: loc.activity_type || '',
+      city: (loc as any).city || '',
+      state: (loc as any).state || '',
+      country: (loc as any).country || '',
+    });
+    setLocationErrors({});
+    setShowLocationDialog(true);
   };
 
   const handleWorkflowActionComplete = (action: string, endState: string | null) => {
