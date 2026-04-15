@@ -33786,6 +33786,376 @@ export type Database = {
         }
         Relationships: []
       }
+      kb_article_links: {
+        Row: {
+          created_at: string
+          id: string
+          link_label: string | null
+          source_id: string
+          source_type: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link_label?: string | null
+          source_id: string
+          source_type: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link_label?: string | null
+          source_id?: string
+          source_type?: string
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: []
+      }
+      kb_articles: {
+        Row: {
+          article_type: Database["public"]["Enums"]["kb_content_type"]
+          audience: Database["public"]["Enums"]["kb_audience"] | null
+          content: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_stale: boolean
+          module_key: string
+          screen_key: string | null
+          search_vector: unknown
+          sort_order: number
+          stale_reason: string | null
+          stale_since: string | null
+          status: Database["public"]["Enums"]["kb_content_status"]
+          submodule_key: string | null
+          summary: string | null
+          tags: string[] | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          article_type?: Database["public"]["Enums"]["kb_content_type"]
+          audience?: Database["public"]["Enums"]["kb_audience"] | null
+          content: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_stale?: boolean
+          module_key: string
+          screen_key?: string | null
+          search_vector?: unknown
+          sort_order?: number
+          stale_reason?: string | null
+          stale_since?: string | null
+          status?: Database["public"]["Enums"]["kb_content_status"]
+          submodule_key?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          article_type?: Database["public"]["Enums"]["kb_content_type"]
+          audience?: Database["public"]["Enums"]["kb_audience"] | null
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_stale?: boolean
+          module_key?: string
+          screen_key?: string | null
+          search_vector?: unknown
+          sort_order?: number
+          stale_reason?: string | null
+          stale_since?: string | null
+          status?: Database["public"]["Enums"]["kb_content_status"]
+          submodule_key?: string | null
+          summary?: string | null
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
+      kb_faqs: {
+        Row: {
+          answer: string
+          audience: Database["public"]["Enums"]["kb_audience"] | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_stale: boolean
+          module_key: string
+          question: string
+          related_article_id: string | null
+          related_field_key: string | null
+          screen_key: string | null
+          search_vector: unknown
+          sort_order: number
+          status: Database["public"]["Enums"]["kb_content_status"]
+          tags: string[] | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          answer: string
+          audience?: Database["public"]["Enums"]["kb_audience"] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_stale?: boolean
+          module_key: string
+          question: string
+          related_article_id?: string | null
+          related_field_key?: string | null
+          screen_key?: string | null
+          search_vector?: unknown
+          sort_order?: number
+          status?: Database["public"]["Enums"]["kb_content_status"]
+          tags?: string[] | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          answer?: string
+          audience?: Database["public"]["Enums"]["kb_audience"] | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_stale?: boolean
+          module_key?: string
+          question?: string
+          related_article_id?: string | null
+          related_field_key?: string | null
+          screen_key?: string | null
+          search_vector?: unknown
+          sort_order?: number
+          status?: Database["public"]["Enums"]["kb_content_status"]
+          tags?: string[] | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_faqs_related_article_id_fkey"
+            columns: ["related_article_id"]
+            isOneToOne: false
+            referencedRelation: "kb_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_field_help: {
+        Row: {
+          component_key: string | null
+          created_at: string
+          created_by: string | null
+          example_value: string | null
+          field_key: string
+          field_label: string
+          full_help: string | null
+          id: string
+          impact_of_change: string | null
+          is_stale: boolean
+          module_key: string
+          related_article_id: string | null
+          related_rules: string[] | null
+          screen_key: string
+          short_help: string
+          source_type: Database["public"]["Enums"]["kb_source_type"] | null
+          status: Database["public"]["Enums"]["kb_content_status"]
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          component_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          example_value?: string | null
+          field_key: string
+          field_label: string
+          full_help?: string | null
+          id?: string
+          impact_of_change?: string | null
+          is_stale?: boolean
+          module_key: string
+          related_article_id?: string | null
+          related_rules?: string[] | null
+          screen_key: string
+          short_help: string
+          source_type?: Database["public"]["Enums"]["kb_source_type"] | null
+          status?: Database["public"]["Enums"]["kb_content_status"]
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          component_key?: string | null
+          created_at?: string
+          created_by?: string | null
+          example_value?: string | null
+          field_key?: string
+          field_label?: string
+          full_help?: string | null
+          id?: string
+          impact_of_change?: string | null
+          is_stale?: boolean
+          module_key?: string
+          related_article_id?: string | null
+          related_rules?: string[] | null
+          screen_key?: string
+          short_help?: string
+          source_type?: Database["public"]["Enums"]["kb_source_type"] | null
+          status?: Database["public"]["Enums"]["kb_content_status"]
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kb_field_help_related_article_id_fkey"
+            columns: ["related_article_id"]
+            isOneToOne: false
+            referencedRelation: "kb_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kb_process_guides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estimated_duration: string | null
+          expected_outcome: string | null
+          id: string
+          is_stale: boolean
+          module_key: string
+          prerequisites: string[] | null
+          process_name: string
+          related_article_ids: string[] | null
+          roles_involved: string[] | null
+          search_vector: unknown
+          sort_order: number
+          status: Database["public"]["Enums"]["kb_content_status"]
+          steps: Json
+          submodule_key: string | null
+          tags: string[] | null
+          trigger_description: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estimated_duration?: string | null
+          expected_outcome?: string | null
+          id?: string
+          is_stale?: boolean
+          module_key: string
+          prerequisites?: string[] | null
+          process_name: string
+          related_article_ids?: string[] | null
+          roles_involved?: string[] | null
+          search_vector?: unknown
+          sort_order?: number
+          status?: Database["public"]["Enums"]["kb_content_status"]
+          steps?: Json
+          submodule_key?: string | null
+          tags?: string[] | null
+          trigger_description?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estimated_duration?: string | null
+          expected_outcome?: string | null
+          id?: string
+          is_stale?: boolean
+          module_key?: string
+          prerequisites?: string[] | null
+          process_name?: string
+          related_article_ids?: string[] | null
+          roles_involved?: string[] | null
+          search_vector?: unknown
+          sort_order?: number
+          status?: Database["public"]["Enums"]["kb_content_status"]
+          steps?: Json
+          submodule_key?: string | null
+          tags?: string[] | null
+          trigger_description?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      kb_release_notes: {
+        Row: {
+          change_details: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          impacted_article_ids: string[] | null
+          impacted_faq_ids: string[] | null
+          impacted_field_help_ids: string[] | null
+          release_date: string
+          release_version: string
+          status: Database["public"]["Enums"]["kb_content_status"]
+          summary: string
+          title: string
+          update_completed: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          change_details?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          impacted_article_ids?: string[] | null
+          impacted_faq_ids?: string[] | null
+          impacted_field_help_ids?: string[] | null
+          release_date: string
+          release_version: string
+          status?: Database["public"]["Enums"]["kb_content_status"]
+          summary: string
+          title: string
+          update_completed?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          change_details?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          impacted_article_ids?: string[] | null
+          impacted_faq_ids?: string[] | null
+          impacted_field_help_ids?: string[] | null
+          release_date?: string
+          release_version?: string
+          status?: Database["public"]["Enums"]["kb_content_status"]
+          summary?: string
+          title?: string
+          update_completed?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       legal_admin_audit: {
         Row: {
           action: string
@@ -47303,6 +47673,18 @@ export type Database = {
       is_insured_person: { Args: { p_ssn: string }; Returns: boolean }
       is_self_employed: { Args: { p_ssn: string }; Returns: boolean }
       is_voluntary_contributor: { Args: { p_ssn: string }; Returns: boolean }
+      kb_search: {
+        Args: { p_module?: string; p_query: string }
+        Returns: {
+          content_type: string
+          id: string
+          module_key: string
+          rank: number
+          screen_key: string
+          summary: string
+          title: string
+        }[]
+      }
       log_audit_event: {
         Args: {
           _action_type: string
@@ -48069,6 +48451,35 @@ export type Database = {
         | "scouting"
         | "education"
         | "notice_service"
+      kb_audience:
+        | "all_users"
+        | "admin"
+        | "officer"
+        | "supervisor"
+        | "legal"
+        | "technical"
+      kb_content_status:
+        | "draft"
+        | "in_review"
+        | "published"
+        | "stale"
+        | "archived"
+      kb_content_type:
+        | "module_overview"
+        | "screen_help"
+        | "field_help"
+        | "faq"
+        | "process_guide"
+        | "troubleshooting"
+        | "release_note"
+        | "best_practice"
+      kb_source_type:
+        | "database"
+        | "c3_config"
+        | "derived"
+        | "manual_entry"
+        | "system_calculated"
+        | "external_api"
       meeting_outcome:
         | "ClosedWithApproval"
         | "ClosedWithRejection"
@@ -48456,6 +48867,39 @@ export const Constants = {
         "scouting",
         "education",
         "notice_service",
+      ],
+      kb_audience: [
+        "all_users",
+        "admin",
+        "officer",
+        "supervisor",
+        "legal",
+        "technical",
+      ],
+      kb_content_status: [
+        "draft",
+        "in_review",
+        "published",
+        "stale",
+        "archived",
+      ],
+      kb_content_type: [
+        "module_overview",
+        "screen_help",
+        "field_help",
+        "faq",
+        "process_guide",
+        "troubleshooting",
+        "release_note",
+        "best_practice",
+      ],
+      kb_source_type: [
+        "database",
+        "c3_config",
+        "derived",
+        "manual_entry",
+        "system_calculated",
+        "external_api",
       ],
       meeting_outcome: [
         "ClosedWithApproval",
