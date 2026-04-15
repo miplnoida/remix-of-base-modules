@@ -286,9 +286,12 @@ export default function StartMeetingPage() {
   
   const employerPreflightErrors = React.useMemo(() => {
     if (!isEmployerMeeting || !applicationData) return [];
-    const dataToValidate = hasChanges ? { ...applicationData, ...editedData } : applicationData;
+    // Always use editedData when initialized — it already contains merged API + persisted edits
+    const dataToValidate = initializedRef.current && Object.keys(editedData).length > 0
+      ? editedData
+      : applicationData;
     return validateEmployerApplicationForConversion(dataToValidate);
-  }, [isEmployerMeeting, applicationData, editedData, hasChanges]);
+  }, [isEmployerMeeting, applicationData, editedData]);
 
   // Check if all per-tab hooks are done loading
   const allTabHooksLoading = Object.values(tabHooksMap).some(h => h.isLoading);
