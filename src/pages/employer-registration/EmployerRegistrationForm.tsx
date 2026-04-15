@@ -215,6 +215,16 @@ export default function EmployerRegistrationForm() {
           </div>
         </div>
         <div className="flex gap-2 self-start lg:self-center">
+          {/* Edit button in View mode */}
+          {isViewMode && (
+            <Button 
+              onClick={() => navigate(`/employer-registration/edit/${regno}`)}
+              className="flex items-center gap-2 border-r-4 border-r-primary"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Button>
+          )}
           {/* Submit button for Draft status */}
           {showSubmitButton && (
             <Button 
