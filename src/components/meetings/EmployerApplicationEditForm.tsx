@@ -44,6 +44,7 @@ import { logAuditTrail } from '@/services/auditService';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { EmployerMeetingDocumentsTab as EmployerMeetingDocumentsTabComponent } from './EmployerMeetingDocumentsTab';
+import { TabSaveButton } from './TabSaveButton';
 import { ER_FIELD_LIMITS } from '@/validations/employerValidationSchema';
 import { validateField, validateForm } from '@/lib/fieldValidationRegistry';
 import { sanitizePhoneInput } from '@/lib/contactValidation';
@@ -644,6 +645,7 @@ export const EmployerApplicationEditForm = forwardRef<EmployerApplicationEditFor
               </CardContent>
             </Card>
           </div>
+          <TabSaveButton tabId="er-employer-profile" onSave={onSaveTab} isDirty={dirtyTabs?.has('er-employer-profile')} isSaving={savingTabs?.has('er-employer-profile')} label="Employer Profile" />
         </TabsContent>
 
         {/* Tab 2: Basic Details */}
