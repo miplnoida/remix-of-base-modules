@@ -1368,6 +1368,7 @@ export const AppRoutes = () => {
       <Route path="/admin/global-settings" element={<ProtectedLayout><GlobalSettings /></ProtectedLayout>} />
       <Route path="/admin/document-configuration" element={<ProtectedLayout><DocumentConfigurationPage /></ProtectedLayout>} />
       <Route path="/admin/ip-card-configuration" element={<ProtectedLayout><IPCardConfiguration /></ProtectedLayout>} />
+      <Route path="/admin/knowledge-base" element={<ProtectedLayout><KnowledgeBaseAdmin /></ProtectedLayout>} />
       
       {/* Workflow Engine Routes */}
       <Route path="/admin/workflows" element={<ProtectedLayout><WorkflowList /></ProtectedLayout>} />
