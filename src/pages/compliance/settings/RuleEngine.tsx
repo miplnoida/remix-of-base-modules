@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { EnhancedDetectionRuleDialog } from '@/components/compliance/detection/DetectionRuleDialog';
 import { EnhancedCalculationRuleDialog } from '@/components/compliance/detection/CalculationRuleDialog';
@@ -21,6 +21,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useUserCode } from '@/hooks/useUserCode';
 import { withAuditFields, checkDuplicateRuleCode, validationToastConfig } from '@/services/complianceSettingsService';
+import { useScreenHelp } from '@/hooks/useScreenHelp';
+import { HelpButton } from '@/components/help/HelpButton';
+import { ScreenFAQPanel } from '@/components/help/ScreenFAQPanel';
+import { HelpSearchDialog } from '@/components/help/HelpSearchDialog';
+import { ShortcutHelpPopover } from '@/components/help/ShortcutHelpPopover';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 // ── Types ──
 
