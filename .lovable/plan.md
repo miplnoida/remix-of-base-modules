@@ -1,47 +1,50 @@
 
 
-# Risk Policy & Escalation Integration Document — Generation Plan
+# Employer Registration User Manual — Generation Plan
 
 ## What Will Be Produced
 
-A formal DOCX document (~25-30 pages) titled **"SSB Compliance Risk Policy & Integration Document v2.0"** covering all 12 sections requested, grounded entirely in the current system implementation (post-hardening).
+Two documents delivered to `/mnt/documents/`:
+- `Employer_Registration_User_Manual.docx` (DOCX format)
+- `Employer_Registration_User_Manual.pdf` (PDF converted from DOCX)
 
-## Data Sources (Already Gathered)
-
-- **5 risk factors** from `ce_risk_config`: Arrears (25%), Violations (25%), Filings (20%), Payment Behavior (20%), Legal History (10%)
-- **13 escalation rules** (ER-001 to ER-013) with full metadata including prerequisites, execution modes, approval roles, risk timing modifiers
-- **Risk profile distribution**: 1,086 LOW, 45 MEDIUM, 4 HIGH, 0 CRITICAL
-- **3 new tables**: `ce_escalation_log`, `ce_escalation_prerequisites`, plus hardened `ce_escalation_rules` schema
-- **Edge function**: Full hardened `ce-escalation-review` with prerequisite checks, safeguards, duplicate protection, risk-based timing
-- **State machine**: 16 states with defined transitions, prerequisite and approval flags
+A comprehensive ~30-35 page user manual covering the end-to-end employer registration workflow.
 
 ## Document Structure
 
-1. **Executive Summary** — Purpose, scope, recent improvements summary
-2. **Risk Model Overview** — 5-factor weighted scoring, calculation frequency, data sources
-3. **Risk Bands & Classification** — LOW/MEDIUM/HIGH/CRITICAL with ranges, profiles, system behavior; CRITICAL reachability analysis (threshold 76, max observed 74)
-4. **Risk Integration with Escalation** — Timing modifiers (ER-001/002/003), queue priority (ER-005), review urgency mapping
-5. **Escalation Safeguards & Controls** — ER-003 hardening (supervisor approval, 3 prerequisites), arrangement/dispute checks, duplicate prevention via idempotency keys
-6. **State Machine & Risk Interaction** — 16-state model, 4 stages, fast-track paths (ER-008), legal gate controls
-7. **Data Model & Fields** — risk_profiles columns, escalation_log schema, prerequisites schema, computed vs stored
-8. **Auditability & Traceability** — ce_escalation_log (every decision logged), violation_history, job run tracking
-9. **Current Implementation Assessment** — Post-hardening strengths, recent changes inventory
-10. **Identified Gaps & Risks** — CRITICAL band unreachable, enforcement_risk_score unused, some rules lack risk modifiers
-11. **Recommendations** — Threshold tuning, enforcement_risk_score population, risk modifier expansion
-12. **Conclusion** — Readiness level, approval recommendations
+1. **Cover Page** — Title, version, date, document reference, SSB branding
+2. **Table of Contents** — Auto-generated heading references
+3. **Introduction & Purpose** — What the employer registration process is, who uses it, and why
+4. **Process Overview / Workflow Diagram** — ASCII flow diagram showing: Online Application → Application Review → Schedule Meeting → Meeting Workbench → Accept/Reject → Employer Registration (Pending) → Approval Workflow → Registration Number Generated
+5. **Screen 1: Online Employer Applications (`/online-applications/employer`)** — Filters (Status, Email, Search, Date Range, Sort), application table columns, View action, status indicators (Connected/Disconnected badge), pagination, refresh
+6. **Screen 2: Application Detail & Review** — Summary card, 8 tabs (Employer Profile, Basic Details, Contact & Reach, Addresses, Ownership, Employment, Documents, Declaration), workflow action buttons (Accept, Reject, Schedule Meeting), meeting status badge
+7. **Screen 3: Manage Meetings (`/meetings`)** — Stat cards, Active/Closed tabs, meeting groups by application reference, status filters (Scheduled, InProgress, Closed), date range filters, meeting detail view dialog, actions (Resume, View, Reschedule, Cancel)
+8. **Screen 4: Meeting Workbench (`/meetings/start/:id`)** — Application data review, document verification tab, employer application edit form, approval/rejection flow with conversion to employer registration
+9. **Screen 5: Employer Registration List (`/employer-registration`)** — 3 tabs (Pending Verification, Registered, Ceased/Suspended), filters, status badges (Draft Z, Pending P, Active A, Verified V), actions (View, Edit, Submit, Delete), workflow action buttons, export (Excel/PDF)
+10. **Screen 6: Employer Registration Form (View/Edit)** — 8 tabs (Form Detail, Owners, Locations, Documents, Notes, Commence, Visits, Suits), Edit button in view mode, sub-steps in Form Detail (Entity Overview, Contact & Reach, Background Info, Tech & Finance), owner/location CRUD operations with validation
+11. **Registration Number Generation** — How a temporary "T" number is assigned during conversion, how the final 6-digit permanent number is generated upon approval, where it is displayed, toast notifications
+12. **Common Scenarios & Edge Cases** — Rejecting an application, rescheduling meetings multiple times, cancelling meetings, re-approving after rejection, duplicate applications
+13. **Troubleshooting** — API disconnected, failed to load applications, meeting not appearing, workflow buttons not showing, registration number not generated
+14. **Glossary** — Key terms (Registration Number, Workflow Instance, SLA, Meeting Workbench, Pending Verification, etc.)
 
 ## Technical Approach
 
-- Generate via Node.js `docx` library
-- US Letter format, professional styling with branded header/footer
-- Tables for risk bands, escalation rules matrix, state machine, data model
-- Output to `/mnt/documents/SSB_Risk_Policy_Integration_v2.docx`
-- QA via LibreOffice PDF conversion + image inspection
+- Generate DOCX using Node.js `docx` library with professional formatting
+- US Letter format, consistent headers/footers with page numbers
+- Tables for field descriptions, status codes, and action matrices
+- Convert to PDF via LibreOffice for the second deliverable
+- QA via image inspection of all pages
 
 ## Implementation Steps
 
-1. Write generation script to `/tmp/gen_risk_policy.js`
-2. Execute to produce DOCX
-3. Convert to PDF/images for QA
-4. Deliver artifact
+1. Take screenshots of key screens using browser tools for inclusion
+2. Write generation script to `/tmp/gen_er_manual.js`
+3. Execute to produce DOCX at `/mnt/documents/Employer_Registration_User_Manual.docx`
+4. Convert to PDF at `/mnt/documents/Employer_Registration_User_Manual.pdf`
+5. QA both documents via image inspection
+6. Deliver both artifacts
+
+## Note on Screenshots
+
+Since the document requests annotated screenshots, I will capture actual UI screenshots from the live preview and embed them in the document. Each screenshot will be accompanied by detailed textual descriptions and field-by-field tables to ensure clarity even without annotations.
 
