@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList, Eye, Download, Upload, Loader2, CheckCircle, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList, Eye, Download, Upload, Loader2, CheckCircle, RefreshCw, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployerRegistration } from '@/hooks/useEmployerRegistration';
@@ -215,6 +215,16 @@ export default function EmployerRegistrationForm() {
           </div>
         </div>
         <div className="flex gap-2 self-start lg:self-center">
+          {/* Edit button in View mode */}
+          {isViewMode && (
+            <Button 
+              onClick={() => navigate(`/employer-registration/edit/${regno}`)}
+              className="flex items-center gap-2 border-r-4 border-r-primary"
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Button>
+          )}
           {/* Submit button for Draft status */}
           {showSubmitButton && (
             <Button 
