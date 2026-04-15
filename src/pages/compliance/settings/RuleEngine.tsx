@@ -1000,27 +1000,14 @@ const RuleEngine = () => {
     else { setEditingEsc(null); setEscDialogOpen(true); }
   }, [activeTab]);
 
-  // ── Keyboard shortcuts ──
-  const shortcutList = [
-    { keys: 'Shift + ?', description: 'Screen help' },
-    { keys: 'Ctrl + K', description: 'Search help' },
-    { keys: 'Alt + F', description: 'Toggle FAQ' },
+  // Extra screen-specific shortcut
+  const extraShortcuts = useMemo(() => [
+    { key: 'n', alt: true, description: 'Add new rule', action: handleAddRule },
+  ], [handleAddRule]);
+
+  const extraShortcutList = [
     { keys: 'Alt + N', description: 'Add new rule' },
   ];
-
-  useKeyboardShortcuts([
-    { key: '?', shift: true, description: 'Open screen help', action: () => {
-      // Find and click the help button
-      const helpArticle = article;
-      if (helpArticle) {
-        // Dispatch a custom event the HelpButton can listen to, or directly open
-        document.querySelector<HTMLButtonElement>('[data-help-button]')?.click();
-      }
-    }},
-    { key: 'k', ctrl: true, description: 'Search help', action: () => setHelpSearchOpen(true) },
-    { key: 'f', alt: true, description: 'Toggle FAQ', action: () => setShowFAQ(prev => !prev) },
-    { key: 'n', alt: true, description: 'Add new rule', action: handleAddRule },
-  ]);
 
   const isLoading = loadingDetection || loadingCalc || loadingEsc;
 
