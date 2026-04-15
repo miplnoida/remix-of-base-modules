@@ -227,14 +227,14 @@ Only include the requested content types. Make content professional, detailed, a
           </div>
 
           {results.length > 0 && (
-            <div className="rounded-md border border-green-200 bg-green-50 dark:bg-green-950/20 p-4">
-              <div className="flex items-center gap-2 font-medium text-green-800 dark:text-green-200 mb-2">
+            <div className="rounded-md border border-primary/20 bg-primary/5 p-4">
+              <div className="flex items-center gap-2 font-medium text-primary mb-2">
                 <CheckCircle2 className="h-4 w-4" />
                 Generated Successfully
               </div>
               <div className="space-y-1">
                 {results.map(r => (
-                  <p key={r.type} className="text-sm text-green-700 dark:text-green-300">
+                  <p key={r.type} className="text-sm text-muted-foreground">
                     {r.count} {r.type} created as drafts
                   </p>
                 ))}
