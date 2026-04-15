@@ -290,12 +290,73 @@ export default function StartMeetingPage() {
       : applicationData;
   }, [isEmployerMeeting, applicationData, editedData]);
 
-  const employerPreflightErrors = React.useMemo(() => {
-    if (!employerMeetingData) return [];
-    return validateEmployerApplicationForConversion(employerMeetingData);
-  }, [employerMeetingData]);
-...
-      // ── For Employer-Registration meetings: run employer conversion ────────
+  const handleApprove = async () => {
+    if (!meetingId) return;
+
+    if (isIPMeeting && preflightErrors.length > 0) {
+      toast.error(
+        `Cannot approve: ${preflightErrors[0].message}. Please resolve validation errors first.`,
+        { duration: 6000 }
+      );
+      return;
+    }
+
+    if (isIPMeeting && validationResult && validationResult.error_count > 0) {
+      const firstError = validationResult.errors[0];
+      toast.error(
+        `Cannot approve: ${firstError?.message || `${validationResult.error_count} validation error(s) must be resolved`}. See the validation panel above.`,
+        { duration: 6000 }
+      );
+      return;
+    }
+
+    if (isEmployerMeeting && employerPreflightErrors.length > 0) {
+      toast.error(
+        `Cannot approve: ${employerPreflightErrors[0].message}. Please resolve validation errors first.`,
+        { duration: 6000 }
+      );
+      return;
+    }
+
+    try {
+      if (meetingType === 'IP-Registration' && applicationData) {
+        const dataForConversion = hasChanges
+          ? { ...applicationData, ...editedData }
+          : applicationData;
+
+        const result = await convertToIP({
+          applicationDetail: dataForConversion as ExternalApplicationDetail,
+          userId: user?.id || '',
+          userCode: userCode || '',
+          validRelationCodes,
+          sourceRoute: `/meetings/start/${meetingId}`,
+          meetingId,
+          applicationReference,
+        });
+
+        if (!result.success) {
+          return;
+        }
+
+        const depNote = result.dependants_added && result.dependants_added > 0
+          ? ` ${result.dependants_added} dependant(s) linked automatically.`
+          : '';
+        toast.success((result.message || 'IP Registration created successfully.') + depNote, { duration: 8000 });
+
+        if (result.workflow_instance_id) {
+          toast.success('Workflow instance initiated automatically.');
+        } else if (result.ssn && result.unique_uuid) {
+          const recordName = `${(dataForConversion as any).firstName || ''} ${(dataForConversion as any).lastName || ''}`.trim();
+          const eligibility = await checkWorkflowEligibility({
+            sourceRecordId: result.unique_uuid,
+          });
+          if (eligibility.eligible) {
+            setPendingConversionResult({ ssn: result.ssn, unique_uuid: result.unique_uuid, recordName });
+            setWorkflowEligibility(eligibility);
+          }
+        }
+      }
+
       let employerRegno: string | null = null;
       let employerName: string | null = null;
       if (meetingType === 'Employer-Registration' && employerMeetingData) {
@@ -316,14 +377,12 @@ export default function StartMeetingPage() {
         toast.success(result.message || `Employer Registration ${result.regno} created successfully.`, { duration: 8000 });
       }
 
-      // ── Close the meeting as approved ──────────────────────────────────────
-      // For employer meetings, use the edge function to also trigger the next workflow
       if (isEmployerMeeting && employerRegno) {
         const { data: closeResult, error: closeErr } = await supabase.functions.invoke('meeting-api-handler', {
           body: {
             action: 'close_meeting_approved',
             meetingId,
-            applicationData: hasChanges ? editedData : undefined,
+            applicationData: employerMeetingData || undefined,
             remarks: approvalRemarks || undefined,
             employerRegno,
             employerName: employerName || employerRegno,
@@ -341,17 +400,12 @@ export default function StartMeetingPage() {
         });
       }
 
-      // Trigger query invalidation
       refetchMeeting();
-
       setApprovalDialogOpen(false);
-      
-      // Navigate to the appropriate destination
+
       if (isEmployerMeeting && employerRegno) {
-        // Navigate to newly created employer registration
         navigate(`/employer-registration/view/${employerRegno}`);
       } else if (workflowEligibility?.eligible && pendingConversionResult) {
-        // If workflow is eligible, show dialog before navigating
         setWorkflowDialogOpen(true);
       } else {
         navigate('/meetings/manage');
