@@ -879,15 +879,16 @@ interface ApplicationEditFormProps {
   replacedDocCategories?: Set<string>;
   onReplacedDocCategoriesChange?: (cats: Set<string>) => void;
   docVerificationRef?: React.RefObject<MeetingDocumentVerificationTabHandle | null>;
+  employerFormRef?: React.RefObject<EmployerApplicationEditFormHandle | null>;
 }
 
-function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef }: ApplicationEditFormProps) {
+function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef, employerFormRef }: ApplicationEditFormProps) {
   if (meetingType === 'IP-Registration') {
     return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} replacedDocCategories={replacedDocCategories} onReplacedDocCategoriesChange={onReplacedDocCategoriesChange} docVerificationRef={docVerificationRef} />;
   }
   
   if (meetingType === 'Employer-Registration') {
-    return <EmployerApplicationEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} />;
+    return <EmployerApplicationEditForm ref={employerFormRef} data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} />;
   }
   
   if (meetingType === 'Doctor-Registration') {
