@@ -1214,6 +1214,18 @@ const RuleEngine = () => {
         saving={saveEsc.isPending}
         existingCodes={escalationRules.map(r => r.rule_code)}
       />
+
+      {/* FAQ Panel - toggleable */}
+      {showFAQ && faqs.length > 0 && (
+        <ScreenFAQPanel faqs={faqs} title="Rule Engine — Frequently Asked Questions" />
+      )}
+
+      {/* Help Search Dialog */}
+      <HelpSearchDialog
+        open={helpSearchOpen}
+        onOpenChange={setHelpSearchOpen}
+        moduleKey="compliance"
+      />
     </div>
   );
 };
