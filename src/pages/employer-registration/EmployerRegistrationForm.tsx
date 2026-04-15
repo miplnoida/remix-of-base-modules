@@ -539,9 +539,9 @@ export default function EmployerRegistrationForm() {
       </Dialog>
 
       {/* Add Location Dialog */}
-      <Dialog open={showLocationDialog} onOpenChange={(open) => { setShowLocationDialog(open); if (!open) setLocationErrors({}); }}>
+      <Dialog open={showLocationDialog} onOpenChange={(open) => { setShowLocationDialog(open); if (!open) { setLocationErrors({}); setEditingLocation(null); } }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Add Location</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingLocation ? 'Edit Location' : 'Add Location'}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
             <div>
               <Label className={locationErrors.trade_name ? 'text-destructive' : ''}>Trade Name * <span className="text-xs text-muted-foreground">(max 40)</span></Label>
@@ -585,7 +585,7 @@ export default function EmployerRegistrationForm() {
               {locationErrors.activity_type && <p className="text-xs text-destructive mt-1">{locationErrors.activity_type}</p>}
             </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowLocationDialog(false)}>Cancel</Button><Button onClick={handleAddLocation}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setShowLocationDialog(false)}>Cancel</Button><Button onClick={handleAddLocation}>{editingLocation ? 'Save' : 'Add'}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
