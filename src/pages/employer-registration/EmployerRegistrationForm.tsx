@@ -499,9 +499,9 @@ export default function EmployerRegistrationForm() {
       </AlertDialog>
 
       {/* Add Owner Dialog */}
-      <Dialog open={showOwnerDialog} onOpenChange={(open) => { setShowOwnerDialog(open); if (!open) setOwnerErrors({}); }}>
+      <Dialog open={showOwnerDialog} onOpenChange={(open) => { setShowOwnerDialog(open); if (!open) { setOwnerErrors({}); setEditingOwner(null); } }}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Add Owner</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingOwner ? 'Edit Owner' : 'Add Owner'}</DialogTitle></DialogHeader>
           <div className="grid gap-4 py-4">
             <div>
               <Label className={ownerErrors.name ? 'text-destructive' : ''}>Name * <span className="text-xs text-muted-foreground">(max 40)</span></Label>
@@ -534,7 +534,7 @@ export default function EmployerRegistrationForm() {
               {ownerErrors.ssn && <p className="text-xs text-destructive mt-1">{ownerErrors.ssn}</p>}
             </div>
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setShowOwnerDialog(false)}>Cancel</Button><Button onClick={handleAddOwner}>Add</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setShowOwnerDialog(false)}>Cancel</Button><Button onClick={handleAddOwner}>{editingOwner ? 'Save' : 'Add'}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
