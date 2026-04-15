@@ -1100,30 +1100,49 @@ const RuleEngine = () => {
 
           <TabsContent value="escalation">
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground mb-4">Escalation rules define when violations or cases are automatically escalated based on time, amount, or status conditions.</p>
+              <p className="text-sm text-muted-foreground mb-4">Escalation rules govern progression through the enforcement lifecycle using a controlled state machine. Transitions require prerequisites and follow defined execution modes.</p>
               {escalationRules.length === 0 && <p className="text-center text-muted-foreground py-8">No escalation rules configured. Click "Add Rule" to create one.</p>}
-              {escalationRules.map(rule => (
-                <div key={rule.id} className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors">
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono text-xs text-muted-foreground">{rule.rule_code}</span>
-                      <span className="font-medium text-foreground">{rule.name}</span>
-                      {rule.auto_escalate && <Badge variant="outline" className="text-[10px] text-primary border-primary/30">Auto-Execute</Badge>}
-                      {rule.requires_approval && <Badge variant="outline" className="text-[10px]">Approval Required</Badge>}
-                      {rule.days_threshold && <Badge variant="secondary" className="text-[10px]">{rule.days_threshold} days</Badge>}
-                      {rule.amount_threshold && <Badge variant="secondary" className="text-[10px]">${rule.amount_threshold.toLocaleString()}</Badge>}
-                      {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{vt.code}</Badge> : null; })()}
+              {escalationRules.map(rule => {
+                const fromState = STATE_MACHINE.find(s => s.value === rule.from_status);
+                const toState = STATE_MACHINE.find(s => s.value === rule.to_status);
+                const execMode = rule.auto_escalate ? 'AUTO' : rule.requires_approval ? 'MANUAL' : 'RECOMMEND';
+                return (
+                  <div key={rule.id} className="p-4 border border-border rounded-lg hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono text-xs text-muted-foreground">{rule.rule_code}</span>
+                          <span className="font-medium text-foreground">{rule.name}</span>
+                          <Badge variant={execMode === 'AUTO' ? 'default' : execMode === 'MANUAL' ? 'destructive' : 'secondary'} className="text-[10px]">
+                            {execMode === 'AUTO' ? '⚡ Auto' : execMode === 'MANUAL' ? '🔒 Manual' : '💡 Recommend'}
+                          </Badge>
+                          {rule.days_threshold && <Badge variant="outline" className="text-[10px]">{rule.days_threshold} days</Badge>}
+                          {rule.amount_threshold && <Badge variant="outline" className="text-[10px]">${Number(rule.amount_threshold).toLocaleString()}</Badge>}
+                          {rule.violation_type_id && (() => { const vt = violationTypes.find(v => v.id === rule.violation_type_id); return vt ? <Badge variant="outline" className="text-[10px] text-primary border-primary/30">{vt.code}</Badge> : null; })()}
+                        </div>
+                        {rule.description && <p className="text-xs text-muted-foreground">{rule.description}</p>}
+                        {/* Stage transition visual */}
+                        <div className="flex items-center gap-2 text-xs">
+                          <Badge variant="outline" className={fromState ? getStageColor(fromState.stage) : ''}>{fromState?.label || rule.from_status}</Badge>
+                          <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Badge variant="outline" className={toState ? getStageColor(toState.stage) : ''}>{toState?.label || rule.to_status}</Badge>
+                          {toState?.noticePrerequisite && <span className="text-[10px] text-amber-600 dark:text-amber-400 italic">Notice required</span>}
+                          {toState?.approvalRequired && <span className="text-[10px] text-red-600 dark:text-red-400 italic">Approval required</span>}
+                        </div>
+                        {rule.condition_expression && (
+                          <div className="bg-muted/50 rounded px-3 py-1.5">
+                            <p className="text-xs font-mono text-primary/80">{rule.condition_expression}</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 ml-4">
+                        <Switch checked={rule.is_enabled ?? false} onCheckedChange={(checked) => toggleEsc.mutate({ id: rule.id, is_enabled: checked })} />
+                        <Button variant="ghost" size="icon" onClick={() => { setEditingEsc(rule); setEscDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                      </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">{rule.description}</p>
-                    <p className="text-xs text-muted-foreground"><span className="font-medium">Transition:</span> {rule.from_status} → <span className="text-foreground font-medium">{rule.to_status}</span></p>
-                    {rule.condition_expression && <p className="text-xs font-mono text-primary/80">{rule.condition_expression}</p>}
                   </div>
-                  <div className="flex items-center gap-3 ml-4">
-                    <Switch checked={rule.is_enabled ?? false} onCheckedChange={(checked) => toggleEsc.mutate({ id: rule.id, is_enabled: checked })} />
-                    <Button variant="ghost" size="icon" onClick={() => { setEditingEsc(rule); setEscDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </TabsContent>
         </Tabs>
