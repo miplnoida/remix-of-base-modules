@@ -48,6 +48,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
+import { TabSaveButton } from '@/components/meetings/TabSaveButton';
 import { MeetingDocumentVerificationTab, type MeetingDocumentVerificationTabHandle } from '@/components/meetings/MeetingDocumentVerificationTab';
 import { EmployerApplicationEditForm, type EmployerApplicationEditFormHandle } from '@/components/meetings/EmployerApplicationEditForm';
 import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithRejection } from '@/hooks/useMeetings';
@@ -1346,6 +1347,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
             </Select>
           </div>
         </div>
+        <TabSaveButton tabId="ip-personal" onSave={onSaveTab} isDirty={dirtyTabs?.has('ip-personal')} isSaving={savingTabs?.has('ip-personal')} label="Personal" />
       </TabsContent>
 
       {/* Contact Information Tab */}
