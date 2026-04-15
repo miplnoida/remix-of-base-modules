@@ -453,6 +453,61 @@ export const EnhancedEscalationRuleDialog = ({ open, onOpenChange, rule, violati
                   </button>
                 ))}
               </div>
+
+              {/* Approval Role — visible when MANUAL or RECOMMEND */}
+              {(form.execution_mode === 'MANUAL' || form.execution_mode === 'RECOMMEND') && (
+                <div className="space-y-1.5 mt-3">
+                  <Label>Approval Role</Label>
+                  <Select value={form.approval_role || '__none__'} onValueChange={v => setForm(p => ({ ...p, approval_role: v === '__none__' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select approval role..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">No specific role</SelectItem>
+                      <SelectItem value="supervisor">Supervisor</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="legal_head">Legal Head</SelectItem>
+                      <SelectItem value="compliance_head">Compliance Head</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">Role required to approve this escalation</p>
+                </div>
+              )}
+
+              {/* Risk Timing Modifier */}
+              <div className="space-y-2 mt-3">
+                <Label>Risk-Based Timing Adjustment <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
+                <p className="text-[10px] text-muted-foreground">Reduce days threshold based on employer risk band. Negative values = faster escalation.</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map(band => (
+                    <div key={band} className="space-y-1">
+                      <Label className="text-xs">{band}</Label>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        value={form.risk_timing_modifier[band] ?? ''}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setForm(p => ({
+                            ...p,
+                            risk_timing_modifier: {
+                              ...p.risk_timing_modifier,
+                              ...(val === '' ? (() => { const m = { ...p.risk_timing_modifier }; delete m[band]; return m; })() : { [band]: Number(val) }),
+                            },
+                          }));
+                        }}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Priority Order */}
+              <div className="space-y-1.5 mt-3">
+                <Label>Priority Order</Label>
+                <Input type="number" value={form.priority_order} onChange={e => setForm(p => ({ ...p, priority_order: Number(e.target.value) || 100 }))} placeholder="100" className="w-32" />
+                <p className="text-[10px] text-muted-foreground">Lower number = evaluated first. Used for duplicate prevention.</p>
+              </div>
+
               <div className="space-y-1.5 mt-3">
                 <Label>Linked Violation Type <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
                 <Select value={form.violation_type_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, violation_type_id: v === '__none__' ? '' : v }))}>
