@@ -352,17 +352,24 @@ export default function EmployerRegistrationForm() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Owners / Partners</CardTitle>
-              {!isViewMode && <Button onClick={() => setShowOwnerDialog(true)}><Plus className="h-4 w-4 mr-2" />Add Owner</Button>}
+              {!isViewMode && <Button onClick={() => { setEditingOwner(null); setOwnerForm({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 }); setOwnerErrors({}); setShowOwnerDialog(true); }}><Plus className="h-4 w-4 mr-2" />Add Owner</Button>}
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Title</TableHead><TableHead>Phone</TableHead><TableHead>Email</TableHead><TableHead>SSN</TableHead>{!isViewMode && <TableHead></TableHead>}</TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Title</TableHead><TableHead>Phone</TableHead><TableHead>Email</TableHead><TableHead>SSN</TableHead>{!isViewMode && <TableHead>Actions</TableHead>}</TableRow></TableHeader>
                 <TableBody>
                   {owners.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">No owners added</TableCell></TableRow> :
                     owners.map((owner, idx) => (
                       <TableRow key={idx}>
                         <TableCell>{owner.name}</TableCell><TableCell>{owner.title}</TableCell><TableCell>{owner.phone}</TableCell><TableCell>{owner.email}</TableCell><TableCell>{owner.ssn}</TableCell>
-                        {!isViewMode && <TableCell><Button variant="ghost" size="icon" onClick={() => owner.owner_id && deleteOwner(owner.owner_id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>}
+                        {!isViewMode && (
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleEditOwner(owner)}><Pencil className="h-4 w-4 text-primary" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => owner.owner_id && deleteOwner(owner.owner_id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                 </TableBody>
@@ -376,17 +383,24 @@ export default function EmployerRegistrationForm() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Business Locations</CardTitle>
-              {!isViewMode && <Button onClick={() => setShowLocationDialog(true)}><Plus className="h-4 w-4 mr-2" />Add Location</Button>}
+              {!isViewMode && <Button onClick={() => { setEditingLocation(null); setLocationForm({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '', city: '', state: '', country: '' }); setLocationErrors({}); setShowLocationDialog(true); }}><Plus className="h-4 w-4 mr-2" />Add Location</Button>}
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Trade Name</TableHead><TableHead>Address 1</TableHead><TableHead>Address 2</TableHead><TableHead>City</TableHead><TableHead>State</TableHead><TableHead>Country</TableHead><TableHead>Activity Type</TableHead>{!isViewMode && <TableHead></TableHead>}</TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Trade Name</TableHead><TableHead>Address 1</TableHead><TableHead>Address 2</TableHead><TableHead>City</TableHead><TableHead>State</TableHead><TableHead>Country</TableHead><TableHead>Activity Type</TableHead>{!isViewMode && <TableHead>Actions</TableHead>}</TableRow></TableHeader>
                 <TableBody>
                   {locations.length === 0 ? <TableRow><TableCell colSpan={isViewMode ? 7 : 8} className="text-center text-muted-foreground">No locations added</TableCell></TableRow> :
                     locations.map((loc, idx) => (
                       <TableRow key={idx}>
                         <TableCell>{loc.trade_name || '—'}</TableCell><TableCell>{loc.loc_addr1 || '—'}</TableCell><TableCell>{loc.loc_addr2 || '—'}</TableCell><TableCell>{(loc as any).city || '—'}</TableCell><TableCell>{(loc as any).state || '—'}</TableCell><TableCell>{resolveCountryName((loc as any).country)}</TableCell><TableCell>{loc.activity_type || '—'}</TableCell>
-                        {!isViewMode && <TableCell><Button variant="ghost" size="icon" onClick={() => loc.location_id && deleteLocation(loc.location_id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>}
+                        {!isViewMode && (
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleEditLocation(loc)}><Pencil className="h-4 w-4 text-primary" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => loc.location_id && deleteLocation(loc.location_id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                 </TableBody>
