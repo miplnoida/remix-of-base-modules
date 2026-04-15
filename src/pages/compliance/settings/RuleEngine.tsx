@@ -818,16 +818,12 @@ const RuleEngine = () => {
   const queryClient = useQueryClient();
   const { userCode } = useUserCode();
 
-  // Help & KB state — screen key changes per active tab
   const screenKeyMap: Record<string, string> = {
     detection: 'rule-engine-detection',
     calculation: 'rule-engine-calculation',
     escalation: 'rule-engine-escalation',
   };
   const currentScreenKey = screenKeyMap[activeTab] ?? 'rule-engine-detection';
-  const { article, faqs } = useScreenHelp('compliance', currentScreenKey);
-  const [helpSearchOpen, setHelpSearchOpen] = useState(false);
-  const [showFAQ, setShowFAQ] = useState(false);
 
   // Dialog state
   const [detectionDialogOpen, setDetectionDialogOpen] = useState(false);
