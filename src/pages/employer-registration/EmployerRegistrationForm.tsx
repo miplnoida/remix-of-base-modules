@@ -82,6 +82,8 @@ export default function EmployerRegistrationForm() {
   const [newNote, setNewNote] = useState('');
   const [showOwnerDialog, setShowOwnerDialog] = useState(false);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
+  const [editingOwner, setEditingOwner] = useState<EROwnerData | null>(null);
+  const [editingLocation, setEditingLocation] = useState<ERLocationData | null>(null);
   const [ownerForm, setOwnerForm] = useState({ name: '', title: '', phone: '', mobile: '', email: '', ssn: '', location_id: 0 });
   const [ownerErrors, setOwnerErrors] = useState<Record<string, string>>({});
   const [locationForm, setLocationForm] = useState({ trade_name: '', loc_addr1: '', loc_addr2: '', activity_type: '', city: '', state: '', country: '' });
