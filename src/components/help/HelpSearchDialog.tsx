@@ -35,8 +35,15 @@ export function HelpSearchDialog({ open, onOpenChange, moduleKey, onSelectResult
   const debouncedQuery = useDebounce(searchInput, 300);
   const { data: results, isLoading } = useKBSearch(debouncedQuery, moduleKey);
 
+  const handleSelect = (result: KBSearchResult) => {
+    if (onSelectResult) {
+      onSelectResult(result);
+    }
+    setSearchInput('');
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) setSearchInput(''); onOpenChange(o); }}>
       <DialogContent className="sm:max-w-[550px] max-h-[70vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-base">Search Help & Knowledge Base</DialogTitle>
@@ -64,7 +71,7 @@ export function HelpSearchDialog({ open, onOpenChange, moduleKey, onSelectResult
           {results?.map((result) => (
             <button
               key={`${result.content_type}-${result.id}`}
-              onClick={() => onSelectResult?.(result)}
+              onClick={() => handleSelect(result)}
               className="w-full text-left p-3 rounded-md hover:bg-muted transition-colors flex items-start gap-3"
             >
               <div className="flex-shrink-0 mt-0.5 text-muted-foreground">
@@ -80,9 +87,6 @@ export function HelpSearchDialog({ open, onOpenChange, moduleKey, onSelectResult
                 {result.summary && (
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{result.summary}</p>
                 )}
-                {result.module_key && (
-                  <span className="text-[10px] text-muted-foreground">{result.module_key}</span>
-                )}
               </div>
             </button>
           ))}
@@ -91,3 +95,6 @@ export function HelpSearchDialog({ open, onOpenChange, moduleKey, onSelectResult
     </Dialog>
   );
 }
+
+/** Convenience wrapper that auto-connects to HelpContext */
+export { HelpSearchDialog as default };
