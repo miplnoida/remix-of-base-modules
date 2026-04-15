@@ -23884,6 +23884,60 @@ export type Database = {
         }
         Relationships: []
       }
+      er_documents: {
+        Row: {
+          created_at: string
+          doc_code: string | null
+          document_description: string | null
+          document_type: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          is_supportive: boolean | null
+          metadata: Json | null
+          mime_type: string | null
+          regno: string
+          storage_url: string | null
+          uploaded_by: string | null
+          uploaded_by_code: string | null
+        }
+        Insert: {
+          created_at?: string
+          doc_code?: string | null
+          document_description?: string | null
+          document_type?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          is_supportive?: boolean | null
+          metadata?: Json | null
+          mime_type?: string | null
+          regno: string
+          storage_url?: string | null
+          uploaded_by?: string | null
+          uploaded_by_code?: string | null
+        }
+        Update: {
+          created_at?: string
+          doc_code?: string | null
+          document_description?: string | null
+          document_type?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          is_supportive?: boolean | null
+          metadata?: Json | null
+          mime_type?: string | null
+          regno?: string
+          storage_url?: string | null
+          uploaded_by?: string | null
+          uploaded_by_code?: string | null
+        }
+        Relationships: []
+      }
       er_last_regno: {
         Row: {
           date_issued: string
