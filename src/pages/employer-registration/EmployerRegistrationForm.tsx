@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployerRegistration } from '@/hooks/useEmployerRegistration';
 import { useEmployerRegistrationSubmit } from '@/hooks/useEmployerRegistrationSubmit';
-import { ERMasterFormData, ER_STATUS_CODES } from '@/types/employerRegistration';
+import { ERMasterFormData, EROwnerData, ERLocationData, ER_STATUS_CODES } from '@/types/employerRegistration';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
