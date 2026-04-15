@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList, Eye, Download, Upload, Loader2, CheckCircle, RefreshCw, Pencil } from 'lucide-react';
+import { ArrowLeft, Send, Building2, Users, MapPin, FileText, Calendar, Scale, ClipboardList, Eye, Download, Upload, Loader2, CheckCircle, RefreshCw, Pencil, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmployerRegistration } from '@/hooks/useEmployerRegistration';
