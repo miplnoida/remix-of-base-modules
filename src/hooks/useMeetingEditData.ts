@@ -1,17 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+/** Data can be an array (owners, dependants) or a plain object (scalar tab fields). */
+type EditDataPayload = any[] | Record<string, any>;
+
 interface UseMeetingEditDataReturn {
-  savedData: any[] | null;
+  savedData: EditDataPayload | null;
   hasSavedData: boolean;
   isLoading: boolean;
   isSaving: boolean;
-  save: (data: any[], originalData?: any[], modifiedBy?: string) => Promise<void>;
+  save: (data: EditDataPayload, originalData?: EditDataPayload, modifiedBy?: string) => Promise<void>;
 }
 
 /**
- * Reusable hook for persisting user-edited tab data (locations, dependants, etc.)
- * during the meeting review process.
+ * Reusable hook for persisting user-edited tab data (locations, dependants,
+ * scalar fields, etc.) during the meeting review process.
  *
  * On first load from the external API, call `save(apiData, apiData, userCode)` to
  * snapshot the original. On subsequent visits, `savedData` will be non-null and
@@ -50,8 +53,8 @@ export function useMeetingEditData(
       originalApiJson,
       modifiedBy,
     }: {
-      dataJson: any[];
-      originalApiJson?: any[];
+      dataJson: EditDataPayload;
+      originalApiJson?: EditDataPayload;
       modifiedBy?: string;
     }) => {
       if (!meetingId) throw new Error('meetingId is required');
@@ -80,7 +83,7 @@ export function useMeetingEditData(
     },
   });
 
-  const save = async (data: any[], originalData?: any[], modifiedBy?: string) => {
+  const save = async (data: EditDataPayload, originalData?: EditDataPayload, modifiedBy?: string) => {
     await mutation.mutateAsync({
       dataJson: data,
       originalApiJson: originalData,

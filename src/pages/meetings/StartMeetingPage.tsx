@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useParams, useNavigate, useBlocker } from 'react-router-dom';
 import { format } from 'date-fns';
 import { formatDisplayDate, parseDateSafe } from '@/lib/dateFormat';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -48,6 +48,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { ApplicationDocumentsTab } from '@/components/online-applications/ApplicationDocumentsTab';
+import { TabSaveButton } from '@/components/meetings/TabSaveButton';
 import { MeetingDocumentVerificationTab, type MeetingDocumentVerificationTabHandle } from '@/components/meetings/MeetingDocumentVerificationTab';
 import { EmployerApplicationEditForm, type EmployerApplicationEditFormHandle } from '@/components/meetings/EmployerApplicationEditForm';
 import { useMeetingDetails, useCloseMeetingWithApproval, useCloseMeetingWithRejection } from '@/hooks/useMeetings';
@@ -68,6 +69,9 @@ import { triggerIPRegistrationWorkflow } from '@/services/workflowTriggerService
 import { WorkflowInitiationDialog } from '@/components/workflow/WorkflowInitiationDialog';
 import type { ExternalApplicationDetail, ExternalDependant } from '@/types/externalApplication';
 import { useMeetingEditData } from '@/hooks/useMeetingEditData';
+import { IP_TAB_FIELDS, ER_TAB_FIELDS, extractTabFields, getDirtyTabs, TAB_LABELS } from '@/hooks/useMeetingTabPersistence';
+import { logAuditTrail, computeFieldDiff } from '@/services/auditService';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 
 const meetingTypeLabels: Record<MeetingType, string> = {
   'IP-Registration': 'Insured Person',
@@ -144,6 +148,113 @@ export default function StartMeetingPage() {
     save: saveOwnersEdit,
   } = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'owners');
 
+  // ─── Per-tab scalar field persistence hooks ─────────────────────────────
+  // IP tabs
+  const ipPersonalHook = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'ip-personal');
+  const ipContactHook = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'ip-contact');
+  const ipRelationsHook = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'ip-relations');
+  const ipEmploymentHook = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'ip-employment');
+  const ipRemarksHook = useMeetingEditData(isIPMeeting ? meetingId : undefined, 'ip-remarks');
+
+  // Employer tabs
+  const erProfileHook = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'er-employer-profile');
+  const erBasicHook = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'er-basic-details');
+  const erContactHook = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'er-contact-reach');
+  const erTechHook = useMeetingEditData(isEmployerMeeting ? meetingId : undefined, 'er-tech-finance');
+
+  // Collect all tab hooks into a map for easy access
+  const tabHooksMap = useMemo(() => {
+    const map: Record<string, ReturnType<typeof useMeetingEditData>> = {};
+    if (isIPMeeting) {
+      map['ip-personal'] = ipPersonalHook;
+      map['ip-contact'] = ipContactHook;
+      map['ip-relations'] = ipRelationsHook;
+      map['ip-employment'] = ipEmploymentHook;
+      map['ip-remarks'] = ipRemarksHook;
+    }
+    if (isEmployerMeeting) {
+      map['er-employer-profile'] = erProfileHook;
+      map['er-basic-details'] = erBasicHook;
+      map['er-contact-reach'] = erContactHook;
+      map['er-tech-finance'] = erTechHook;
+    }
+    return map;
+  }, [isIPMeeting, isEmployerMeeting, ipPersonalHook, ipContactHook, ipRelationsHook, ipEmploymentHook, ipRemarksHook, erProfileHook, erBasicHook, erContactHook, erTechHook]);
+
+  // Track baseline data (API + initial overlays) for dirty detection
+  const [baselineData, setBaselineData] = useState<Record<string, any>>({});
+
+  // Dirty tabs computed from current editedData vs baseline
+  const activeTabFields = isIPMeeting ? IP_TAB_FIELDS : isEmployerMeeting ? ER_TAB_FIELDS : {};
+  const dirtyTabs = useMemo(() => {
+    if (!baselineData || Object.keys(baselineData).length === 0) return new Set<string>();
+    return getDirtyTabs(editedData, baselineData, activeTabFields);
+  }, [editedData, baselineData, activeTabFields]);
+
+  const hasUnsavedTabChanges = dirtyTabs.size > 0;
+
+  // Navigation guard for unsaved changes
+  const [showNavGuard, setShowNavGuard] = useState(false);
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      hasUnsavedTabChanges && currentLocation.pathname !== nextLocation.pathname
+  );
+
+  useEffect(() => {
+    if (blocker.state === 'blocked') {
+      setShowNavGuard(true);
+    }
+  }, [blocker.state]);
+
+  // beforeunload guard
+  useEffect(() => {
+    if (!hasUnsavedTabChanges) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasUnsavedTabChanges]);
+
+  // Per-tab save handler
+  const handleSaveTab = useCallback(async (tabId: string) => {
+    const tabFields = activeTabFields[tabId];
+    if (!tabFields) return;
+
+    const hook = tabHooksMap[tabId];
+    if (!hook) return;
+
+    const tabData = extractTabFields(editedData, tabFields);
+    const originalTabData = extractTabFields(baselineData, tabFields);
+
+    try {
+      await hook.save(tabData, originalTabData, userCode || undefined);
+
+      // Audit log
+      const diffs = computeFieldDiff(originalTabData, tabData);
+      if (diffs && diffs.length > 0) {
+        logAuditTrail({
+          action: 'UPDATE',
+          entityType: 'meeting_edit_data',
+          entityId: meetingId,
+          module: 'meetings',
+          beforeValue: originalTabData,
+          afterValue: tabData,
+          userCode: userCode || undefined,
+          metadata: { tab: tabId, tabLabel: TAB_LABELS[tabId] || tabId },
+        });
+      }
+
+      // Update baseline for this tab so it's no longer dirty
+      setBaselineData(prev => ({ ...prev, ...tabData }));
+      toast.success(`${TAB_LABELS[tabId] || tabId} saved successfully`);
+    } catch (err) {
+      console.error(`Failed to save tab ${tabId}:`, err);
+      toast.error(`Failed to save ${TAB_LABELS[tabId] || tabId}`);
+    }
+  }, [activeTabFields, tabHooksMap, editedData, baselineData, userCode, meetingId]);
+
   // Fetch application data based on meeting type — only one hook is enabled at a time
   const {
     data: ipApplicationData,
@@ -191,12 +302,16 @@ export default function StartMeetingPage() {
     return validateEmployerApplicationForConversion(dataToValidate);
   }, [isEmployerMeeting, applicationData, editedData, hasChanges]);
 
+  // Check if all per-tab hooks are done loading
+  const allTabHooksLoading = Object.values(tabHooksMap).some(h => h.isLoading);
+
   // Initialize edited data when application loads — merge persisted tab data
   useEffect(() => {
     if (!applicationData) return;
     // Wait for persistence hooks to finish loading before deciding
     if (isEmployerMeeting && (locationsEditLoading || ownersEditLoading)) return;
     if (isIPMeeting && dependantsEditLoading) return;
+    if (allTabHooksLoading) return;
 
     const merged: Record<string, any> = { ...applicationData };
 
@@ -215,8 +330,16 @@ export default function StartMeetingPage() {
       merged.dependants = savedDependants;
     }
 
+    // Overlay per-tab scalar edits from Supabase
+    for (const [tabId, hook] of Object.entries(tabHooksMap)) {
+      if (hook.hasSavedData && hook.savedData && typeof hook.savedData === 'object' && !Array.isArray(hook.savedData)) {
+        Object.assign(merged, hook.savedData);
+      }
+    }
+
     setEditedData(merged);
-  }, [applicationData, isEmployerMeeting, isIPMeeting, locationsEditLoading, ownersEditLoading, dependantsEditLoading, hasPersistedLocations, savedLocations, hasPersistedOwners, savedOwners, hasPersistedDependants, savedDependants]);
+    setBaselineData({ ...merged });
+  }, [applicationData, isEmployerMeeting, isIPMeeting, locationsEditLoading, ownersEditLoading, dependantsEditLoading, hasPersistedLocations, savedLocations, hasPersistedOwners, savedOwners, hasPersistedDependants, savedDependants, allTabHooksLoading, tabHooksMap]);
 
   const handleFieldChange = (field: string, value: any) => {
     setEditedData(prev => ({ ...prev, [field]: value }));
@@ -656,7 +779,15 @@ export default function StartMeetingPage() {
             </Button>
           </div>
           
-          {hasChanges && (
+          {hasUnsavedTabChanges && (
+            <Alert className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                You have unsaved changes in: {Array.from(dirtyTabs).map(t => TAB_LABELS[t] || t).join(', ')}. Use the Save button at the bottom of each tab to persist your edits.
+              </AlertDescription>
+            </Alert>
+          )}
+          {hasChanges && !hasUnsavedTabChanges && (
             <Alert className="mt-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
@@ -714,6 +845,9 @@ export default function StartMeetingPage() {
               onReplacedDocCategoriesChange={setReplacedDocCategories}
               docVerificationRef={docVerificationRef}
               employerFormRef={employerFormRef}
+              onSaveTab={handleSaveTab}
+              dirtyTabs={dirtyTabs}
+              savingTabs={new Set(Object.entries(tabHooksMap).filter(([, h]) => h.isSaving).map(([k]) => k))}
             />
           ) : (
             <Alert>
@@ -865,6 +999,26 @@ export default function StartMeetingPage() {
           navigate('/meetings/manage');
         }}
       />
+
+      {/* Navigation Guard Dialog */}
+      <ConfirmDialog
+        open={showNavGuard}
+        onOpenChange={(open) => {
+          if (!open && blocker.state === 'blocked') {
+            blocker.reset();
+          }
+          setShowNavGuard(open);
+        }}
+        title="Unsaved Changes"
+        description={`You have unsaved changes in ${dirtyTabs.size} tab(s): ${Array.from(dirtyTabs).map(t => TAB_LABELS[t] || t).join(', ')}. Are you sure you want to leave without saving?`}
+        confirmLabel="Leave Without Saving"
+        cancelLabel="Stay"
+        variant="destructive"
+        onConfirm={() => {
+          setShowNavGuard(false);
+          if (blocker.state === 'blocked') blocker.proceed();
+        }}
+      />
     </div>
   );
 }
@@ -881,15 +1035,18 @@ interface ApplicationEditFormProps {
   onReplacedDocCategoriesChange?: (cats: Set<string>) => void;
   docVerificationRef?: React.RefObject<MeetingDocumentVerificationTabHandle | null>;
   employerFormRef?: React.RefObject<EmployerApplicationEditFormHandle | null>;
+  onSaveTab?: (tabId: string) => Promise<void>;
+  dirtyTabs?: Set<string>;
+  savingTabs?: Set<string>;
 }
 
-function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef, employerFormRef }: ApplicationEditFormProps) {
+function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef, employerFormRef, onSaveTab, dirtyTabs, savingTabs }: ApplicationEditFormProps) {
   if (meetingType === 'IP-Registration') {
-    return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} replacedDocCategories={replacedDocCategories} onReplacedDocCategoriesChange={onReplacedDocCategoriesChange} docVerificationRef={docVerificationRef} />;
+    return <InsuredPersonEditForm data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} replacedDocCategories={replacedDocCategories} onReplacedDocCategoriesChange={onReplacedDocCategoriesChange} docVerificationRef={docVerificationRef} onSaveTab={onSaveTab} dirtyTabs={dirtyTabs} savingTabs={savingTabs} />;
   }
   
   if (meetingType === 'Employer-Registration') {
-    return <EmployerApplicationEditForm ref={employerFormRef} data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} />;
+    return <EmployerApplicationEditForm ref={employerFormRef} data={data} onChange={onChange} onDataChange={onDataChange} meetingId={meetingId} applicationReference={applicationReference} onSaveTab={onSaveTab} dirtyTabs={dirtyTabs} savingTabs={savingTabs} />;
   }
   
   if (meetingType === 'Doctor-Registration') {
@@ -905,7 +1062,7 @@ function ApplicationEditForm({ meetingType, data, onChange, onDataChange, meetin
 }
 
 // Insured Person Edit Form — aligned with ApplicationDetailPage
-function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void; meetingId?: string; applicationReference?: string; replacedDocCategories?: Set<string>; onReplacedDocCategoriesChange?: (cats: Set<string>) => void; docVerificationRef?: React.RefObject<MeetingDocumentVerificationTabHandle | null> }) {
+function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applicationReference, replacedDocCategories = new Set<string>(), onReplacedDocCategoriesChange, docVerificationRef, onSaveTab, dirtyTabs, savingTabs }: { data: Record<string, any>; onChange: (field: string, value: any) => void; onDataChange: (newData: Record<string, any>) => void; meetingId?: string; applicationReference?: string; replacedDocCategories?: Set<string>; onReplacedDocCategoriesChange?: (cats: Set<string>) => void; docVerificationRef?: React.RefObject<MeetingDocumentVerificationTabHandle | null>; onSaveTab?: (tabId: string) => Promise<void>; dirtyTabs?: Set<string>; savingTabs?: Set<string> }) {
   // Master table lookups
   const { data: countries } = useCountries();
   const { data: districts } = useDistricts();
@@ -1201,6 +1358,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
             </Select>
           </div>
         </div>
+        <TabSaveButton tabId="ip-personal" onSave={onSaveTab} isDirty={dirtyTabs?.has('ip-personal')} isSaving={savingTabs?.has('ip-personal')} label="Personal" />
       </TabsContent>
 
       {/* Contact Information Tab */}
@@ -1282,6 +1440,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
           <EditableField label="Mobile" value={data.contactMobile} onChange={(v) => onChange('contactMobile', v)} />
           <EditableField label="Email" value={data.contactEmail} onChange={(v) => onChange('contactEmail', v)} type="email" />
         </div>
+        <TabSaveButton tabId="ip-contact" onSave={onSaveTab} isDirty={dirtyTabs?.has('ip-contact')} isSaving={savingTabs?.has('ip-contact')} label="Contact" />
       </TabsContent>
 
       {/* Relations Tab */}
@@ -1313,6 +1472,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
           <EditableField label="Witness Name" value={data.witnessName} onChange={(v) => onChange('witnessName', v)} />
           <EditableField label="Witness Date" value={data.witnessDate} onChange={(v) => onChange('witnessDate', v)} type="date" />
         </div>
+        <TabSaveButton tabId="ip-relations" onSave={onSaveTab} isDirty={dirtyTabs?.has('ip-relations')} isSaving={savingTabs?.has('ip-relations')} label="Relations" />
       </TabsContent>
 
       {/* Employment Tab */}
@@ -1382,6 +1542,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
           <EditableField label="Town" value={data.employerTown} onChange={(v) => onChange('employerTown', v)} />
           <EditableField label="Phone" value={data.employerPhone} onChange={(v) => onChange('employerPhone', v)} />
         </div>
+        <TabSaveButton tabId="ip-employment" onSave={onSaveTab} isDirty={dirtyTabs?.has('ip-employment')} isSaving={savingTabs?.has('ip-employment')} label="Employment" />
       </TabsContent>
 
       {/* Dependants Tab */}
@@ -1732,6 +1893,7 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
             <p>No remarks provided</p>
           </div>
         )}
+        <TabSaveButton tabId="ip-remarks" onSave={onSaveTab} isDirty={dirtyTabs?.has('ip-remarks')} isSaving={savingTabs?.has('ip-remarks')} label="Remarks" />
       </TabsContent>
     </Tabs>
   );

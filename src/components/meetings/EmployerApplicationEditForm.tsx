@@ -44,6 +44,7 @@ import { logAuditTrail } from '@/services/auditService';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { EmployerMeetingDocumentsTab as EmployerMeetingDocumentsTabComponent } from './EmployerMeetingDocumentsTab';
+import { TabSaveButton } from './TabSaveButton';
 import { ER_FIELD_LIMITS } from '@/validations/employerValidationSchema';
 import { validateField, validateForm } from '@/lib/fieldValidationRegistry';
 import { sanitizePhoneInput } from '@/lib/contactValidation';
@@ -240,10 +241,13 @@ interface EmployerApplicationEditFormProps {
   onDataChange: (newData: Record<string, any>) => void;
   meetingId?: string;
   applicationReference?: string;
+  onSaveTab?: (tabId: string) => Promise<void>;
+  dirtyTabs?: Set<string>;
+  savingTabs?: Set<string>;
 }
 
 export const EmployerApplicationEditForm = forwardRef<EmployerApplicationEditFormHandle, EmployerApplicationEditFormProps>(
-  function EmployerApplicationEditForm({ data, onChange, onDataChange, meetingId, applicationReference }, ref) {
+  function EmployerApplicationEditForm({ data, onChange, onDataChange, meetingId, applicationReference, onSaveTab, dirtyTabs, savingTabs }, ref) {
   const {
     officeCodes,
     ownershipCodes,
@@ -641,6 +645,7 @@ export const EmployerApplicationEditForm = forwardRef<EmployerApplicationEditFor
               </CardContent>
             </Card>
           </div>
+          <TabSaveButton tabId="er-employer-profile" onSave={onSaveTab} isDirty={dirtyTabs?.has('er-employer-profile')} isSaving={savingTabs?.has('er-employer-profile')} label="Employer Profile" />
         </TabsContent>
 
         {/* Tab 2: Basic Details */}
@@ -710,6 +715,7 @@ export const EmployerApplicationEditForm = forwardRef<EmployerApplicationEditFor
               </CardContent>
             </Card>
           </div>
+          <TabSaveButton tabId="er-basic-details" onSave={onSaveTab} isDirty={dirtyTabs?.has('er-basic-details')} isSaving={savingTabs?.has('er-basic-details')} label="Basic Details" />
         </TabsContent>
 
         {/* Tab 3: Contact & Reach */}
@@ -746,6 +752,7 @@ export const EmployerApplicationEditForm = forwardRef<EmployerApplicationEditFor
               </CardContent>
             </Card>
           </div>
+          <TabSaveButton tabId="er-contact-reach" onSave={onSaveTab} isDirty={dirtyTabs?.has('er-contact-reach')} isSaving={savingTabs?.has('er-contact-reach')} label="Contact & Reach" />
         </TabsContent>
 
         {/* Tab 4: Tech & Finance */}
@@ -774,6 +781,7 @@ export const EmployerApplicationEditForm = forwardRef<EmployerApplicationEditFor
               </div>
             </CardContent>
           </Card>
+          <TabSaveButton tabId="er-tech-finance" onSave={onSaveTab} isDirty={dirtyTabs?.has('er-tech-finance')} isSaving={savingTabs?.has('er-tech-finance')} label="Tech & Finance" />
         </TabsContent>
 
         {/* Tab 5: Owners */}
