@@ -255,6 +255,13 @@ export const complianceMenuItems = [
             description: "Supervisor view of all officer weekly reports",
           },
           {
+            title: "Weekly Report Review",
+            url: "/compliance/field/weekly-report-review",
+            icon: FileText,
+            requiresPermission: "manage_compliance",
+            description: "Supervisor review of submitted weekly reports",
+          },
+          {
             title: "My Upcoming Audits",
             url: "/compliance/field/my-upcoming",
             icon: Calendar,

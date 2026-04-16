@@ -4,9 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, CheckCircle2, Clock, XCircle, AlertCircle, FileText } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, XCircle, AlertCircle, FileText, Camera, ListChecks, ShieldAlert } from 'lucide-react';
 import { weeklyReportService } from '@/services/weeklyReportService';
+import { fieldAuditService, type AccurateWeeklySummary } from '@/services/fieldAuditService';
+import { supabase } from '@/integrations/supabase/client';
 import { WeeklyPlanItem, InspectionVisitStatus } from '@/types/inspectionTypes';
 import { WeeklyReportVisitRow } from '@/components/compliance/WeeklyReportVisitRow';
 import { WeeklyReportVisitDetail } from '@/components/compliance/WeeklyReportVisitDetail';
@@ -23,6 +26,8 @@ export default function WeeklyReportSubmission() {
   const [planItems, setPlanItems] = useState<WeeklyPlanItem[]>([]);
   const [selectedPlanItem, setSelectedPlanItem] = useState<WeeklyPlanItem | null>(null);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [accurateSummary, setAccurateSummary] = useState<AccurateWeeklySummary | null>(null);
+  const [planId, setPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     // Set default to current week's Monday
@@ -45,6 +50,27 @@ export default function WeeklyReportSubmission() {
     try {
       const items = await weeklyReportService.getWeeklyPlanItems(inspectorId, weekStartDate);
       setPlanItems(items);
+
+      // Resolve current plan_id for the week, then load accurate KPIs
+      const { data: plan } = await supabase
+        .from('ce_weekly_plans')
+        .select('id')
+        .eq('week_start_date', weekStartDate)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+      if (plan?.id) {
+        setPlanId(plan.id);
+        try {
+          const summary = await fieldAuditService.getAccurateWeeklySummary(plan.id);
+          setAccurateSummary(summary);
+        } catch (err) {
+          console.error('Failed to load accurate summary', err);
+          setAccurateSummary(null);
+        }
+      } else {
+        setPlanId(null);
+        setAccurateSummary(null);
+      }
     } catch (error) {
       toast({
         title: 'Error',
@@ -190,6 +216,45 @@ export default function WeeklyReportSubmission() {
         </div>
       )}
 
+      {/* Accurate Audit KPIs (live from fieldAuditService) */}
+      {accurateSummary && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5" />
+              Audit Outcomes (live)
+              {planId && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="ml-auto"
+                  onClick={() => window.open(`/compliance/field/execution-dashboard/${planId}`, '_self')}
+                >
+                  Open Execution Dashboard →
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <KpiBox icon={<Camera className="h-4 w-4" />} label="Evidence" value={accurateSummary.evidenceCollected} />
+              <KpiBox icon={<ListChecks className="h-4 w-4" />} label="Findings" value={accurateSummary.totalFindings} />
+              <KpiBox icon={<FileText className="h-4 w-4" />} label="Reports" value={accurateSummary.reportsGenerated} />
+              <KpiBox icon={<ShieldAlert className="h-4 w-4" />} label="Violations Opened" value={accurateSummary.violationsOpened} />
+              <KpiBox icon={<ShieldAlert className="h-4 w-4" />} label="Violations Updated" value={accurateSummary.violationsUpdated} />
+              <KpiBox icon={<Clock className="h-4 w-4" />} label="Hours" value={accurateSummary.totalHoursSpent} />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge variant="outline">Low: {accurateSummary.findingsByseverity.Low}</Badge>
+              <Badge variant="secondary">Medium: {accurateSummary.findingsByseverity.Medium}</Badge>
+              <Badge className="bg-warning/20 text-warning hover:bg-warning/20">High: {accurateSummary.findingsByseverity.High}</Badge>
+              <Badge variant="destructive">Critical: {accurateSummary.findingsByseverity.Critical}</Badge>
+              <Badge variant="outline" className="ml-auto">Follow-ups created: {accurateSummary.followUpsCreated}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Visits List */}
       <Card>
         <CardHeader>
@@ -246,6 +311,18 @@ export default function WeeklyReportSubmission() {
           onConfirm={handleConfirmSubmit}
         />
       )}
+    </div>
+  );
+}
+
+function KpiBox({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
+  return (
+    <div className="p-3 border rounded-md flex items-center gap-2">
+      <div className="text-muted-foreground">{icon}</div>
+      <div>
+        <div className="text-xl font-bold">{value}</div>
+        <div className="text-xs text-muted-foreground">{label}</div>
+      </div>
     </div>
   );
 }
