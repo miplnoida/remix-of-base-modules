@@ -357,7 +357,7 @@ export default function ViolationDetails() {
             ))}
             {/* Navigation buttons */}
             <div className="ml-auto flex gap-2">
-              {linkedCase && (
+              {linkedCase ? (
                 <Button
                   variant="outline"
                   size="sm"
@@ -366,7 +366,40 @@ export default function ViolationDetails() {
                   <Briefcase className="h-4 w-4 mr-1" />
                   Case: {linkedCase.case_number}
                 </Button>
-              )}
+              ) : v.employer_id && !['RESOLVED', 'CLOSED', 'CANCELLED'].includes(currentStatus) ? (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      const result = await caseViolationService.findOrCreateCaseForEscalation(
+                        {
+                          id: v.id,
+                          violation_number: v.violation_number,
+                          employer_id: v.employer_id,
+                          employer_name: v.employer_name,
+                          territory: v.territory,
+                          priority: v.priority,
+                          total_amount: Number(v.total_amount) || 0,
+                        },
+                        currentUserCode
+                      );
+                      if (result.success && result.caseId) {
+                        toast.success(result.action === 'created_new' ? 'Case created & violation linked' : 'Violation linked to existing case');
+                        invalidateAll();
+                        navigate(`/compliance/cases/${result.caseId}`);
+                      } else {
+                        toast.error('Failed', { description: result.error });
+                      }
+                    } catch (err: any) {
+                      toast.error('Failed to create case', { description: err.message });
+                    }
+                  }}
+                >
+                  <Briefcase className="h-4 w-4 mr-1" />
+                  Create / Link Case
+                </Button>
+              ) : null}
               {v.employer_id && (
                 <Button
                   variant="outline"
