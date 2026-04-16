@@ -376,9 +376,11 @@ export default function WeeklyPlanBuilder() {
       <Dialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Submit Weekly Plan</DialogTitle>
+            <DialogTitle>{builder.isNeedsChanges ? 'Resubmit Weekly Plan' : 'Submit Weekly Plan'}</DialogTitle>
             <DialogDescription>
-              Submit your plan with {builder.planItems.length} items for supervisor review.
+              {builder.isNeedsChanges
+                ? `Resubmit your updated plan with ${builder.planItems.length} items for supervisor review.`
+                : `Submit your plan with ${builder.planItems.length} items for supervisor review.`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
