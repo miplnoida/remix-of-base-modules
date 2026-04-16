@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 
 export default function ManualViolationEntry() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [entryType, setEntryType] = useState<'employer' | 'scouting'>('employer');
   
   // Common fields
