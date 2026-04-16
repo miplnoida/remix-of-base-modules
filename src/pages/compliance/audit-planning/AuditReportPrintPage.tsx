@@ -70,7 +70,16 @@ export default function AuditReportPrintPage() {
   const handlePrint = () => window.print();
 
   if (loading) return <div className="p-8 text-muted-foreground">Loading report…</div>;
-  if (!report) return <div className="p-8 text-destructive">Report not found.</div>;
+  if (loadError || !report)
+    return (
+      <div className="p-8 max-w-2xl mx-auto space-y-3">
+        <div className="text-destructive font-medium">Unable to load audit report</div>
+        <div className="text-sm text-muted-foreground">{loadError ?? 'Report not found.'}</div>
+        <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back
+        </Button>
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-muted/30">
