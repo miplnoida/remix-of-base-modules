@@ -73,12 +73,18 @@ const InspectorDashboard = () => {
           </div>
           <p className="text-muted-foreground">Manage your assigned follow-up actions and field work</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/compliance/violations')}>
-            <AlertTriangle className="h-4 w-4 mr-2" /> Violations
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate('/compliance/field/my-plans')}>
+            <Calendar className="h-4 w-4 mr-1" /> My Plans
           </Button>
-          <Button onClick={() => navigate('/compliance/inspections/field-execution')}>
-            <MapPin className="h-4 w-4 mr-2" /> Start Field Visit
+          <Button variant="outline" size="sm" onClick={() => navigate('/compliance/violations')}>
+            <AlertTriangle className="h-4 w-4 mr-1" /> Violations
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/compliance/field/employer-360')}>
+            <Building2 className="h-4 w-4 mr-1" /> Employer 360
+          </Button>
+          <Button size="sm" onClick={() => navigate('/compliance/field/execution')}>
+            <MapPin className="h-4 w-4 mr-1" /> Start Field Visit
           </Button>
         </div>
       </div>

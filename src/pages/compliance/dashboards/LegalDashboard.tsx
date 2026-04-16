@@ -53,13 +53,21 @@ const LegalDashboard = () => {
           </div>
           <p className="text-muted-foreground">Legal escalation pipeline, court proceedings, and enforcement tracking</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/compliance/legal/queue')}>
-            <Scale className="h-4 w-4 mr-2" />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate('/compliance/enforcement/recommendation-queue')}>
+            <Scale className="h-4 w-4 mr-1" />
+            Recommendations
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/compliance/enforcement/legal-queue')}>
+            <Scale className="h-4 w-4 mr-1" />
             Legal Queue
           </Button>
-          <Button onClick={() => navigate('/compliance/legal/proceedings')}>
-            <Gavel className="h-4 w-4 mr-2" />
+          <Button variant="outline" size="sm" onClick={() => navigate('/compliance/enforcement/notices')}>
+            <FileText className="h-4 w-4 mr-1" />
+            Notices
+          </Button>
+          <Button size="sm" onClick={() => navigate('/compliance/enforcement/proceedings')}>
+            <Gavel className="h-4 w-4 mr-1" />
             Proceedings
           </Button>
         </div>
