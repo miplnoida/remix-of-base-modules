@@ -330,10 +330,24 @@ export const auditReportPdfService = {
       y = startY + 140;
     }
 
-    // ── Repeating header & footer on all pages ──
+    // ── Repeating header, footer & DRAFT watermark on all pages ──
     const totalPages = (doc as any).internal.getNumberOfPages();
+    const isDraft = report.status !== 'FINAL';
     for (let p = 1; p <= totalPages; p++) {
       doc.setPage(p);
+
+      // DRAFT watermark — every page when not FINAL
+      if (isDraft) {
+        doc.saveGraphicsState();
+        // @ts-expect-error - GState exists at runtime
+        doc.setGState(new doc.GState({ opacity: 0.10 }));
+        doc.setTextColor(220, 38, 38);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(140);
+        doc.text('DRAFT', pageWidth / 2, pageHeight / 2 + 50, { align: 'center', angle: -30 });
+        doc.restoreGraphicsState();
+      }
+
       if (p > 1) {
         // Header
         doc.setFontSize(8);
