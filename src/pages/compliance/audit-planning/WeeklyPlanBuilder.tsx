@@ -282,10 +282,10 @@ export default function WeeklyPlanBuilder() {
         </CardContent>
       </Card>
 
-      {/* Three-panel layout: Suggestions (left) + Board (center) + Day Detail (right) */}
+      {/* Two-panel layout: Suggestions (left) + Board + Detail (right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left: Suggestions panel */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 xl:col-span-3">
           <CandidateQueuePanel
             candidates={builder.candidates}
             addedSourceIds={builder.addedSourceIds}
@@ -295,22 +295,33 @@ export default function WeeklyPlanBuilder() {
           />
         </div>
 
-        {/* Center: Weekly Board + Narrative */}
-        <div className="lg:col-span-6 space-y-4">
+        {/* Right: Weekly Board + Day Detail + Narrative */}
+        <div className="lg:col-span-9 xl:col-span-9 space-y-4">
           {builder.isLoading ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <WeeklyBoardPanel
-              days={builder.week.days}
-              itemsByDay={builder.itemsByDay}
-              onRemoveItem={builder.removeItem}
-              canEdit={builder.canEdit}
-              totalItems={builder.planItems.length}
-              selectedDay={selectedDay}
-              onSelectDay={setSelectedDay}
-            />
+            <>
+              <WeeklyBoardPanel
+                days={builder.week.days}
+                itemsByDay={builder.itemsByDay}
+                onRemoveItem={builder.removeItem}
+                canEdit={builder.canEdit}
+                totalItems={builder.planItems.length}
+                selectedDay={selectedDay}
+                onSelectDay={setSelectedDay}
+              />
+
+              {/* Day Detail - shows when a day is selected */}
+              {selectedDay && (
+                <DayDetailPanel
+                  selectedDay={selectedDay}
+                  items={selectedDayItems}
+                  dateLabel={selectedDayLabel}
+                />
+              )}
+            </>
           )}
 
           {/* Plan Narrative */}
@@ -334,15 +345,6 @@ export default function WeeklyPlanBuilder() {
               </CardContent>
             </Card>
           )}
-        </div>
-
-        {/* Right: Day Detail */}
-        <div className="lg:col-span-3">
-          <DayDetailPanel
-            selectedDay={selectedDay}
-            items={selectedDayItems}
-            dateLabel={selectedDayLabel}
-          />
         </div>
       </div>
 
