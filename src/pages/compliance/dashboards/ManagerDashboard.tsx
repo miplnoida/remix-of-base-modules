@@ -172,12 +172,24 @@ const ManagerDashboard = () => {
           </div>
           <p className="text-muted-foreground">Overview of compliance operations, enforcement pipeline, and key performance indicators</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate('/compliance/cases')}>
-            <Eye className="h-4 w-4 mr-2" />View Cases
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => navigate('/compliance/violations')}>
+            <AlertTriangle className="h-4 w-4 mr-1" />Violations
           </Button>
-          <Button onClick={() => navigate('/compliance/reports/case-analytics')}>
-            <TrendingUp className="h-4 w-4 mr-2" />Full Reports
+          <Button variant="outline" size="sm" onClick={() => navigate('/compliance/cases')}>
+            <Briefcase className="h-4 w-4 mr-1" />Cases
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/compliance/enforcement/notices')}>
+            <Scale className="h-4 w-4 mr-1" />Notices
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/compliance/field/employer-360')}>
+            <Eye className="h-4 w-4 mr-1" />Employer 360
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/compliance/reports')}>
+            <BarChart3 className="h-4 w-4 mr-1" />Reports
+          </Button>
+          <Button size="sm" onClick={() => navigate('/compliance/reports/trends')}>
+            <TrendingUp className="h-4 w-4 mr-1" />Trend Analysis
           </Button>
         </div>
       </div>
