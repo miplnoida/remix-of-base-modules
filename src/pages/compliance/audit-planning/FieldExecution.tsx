@@ -193,7 +193,7 @@ export default function FieldExecution() {
                       {item.status === InspectionVisitStatus.NOT_STARTED && (
                         <Button
                           size="sm"
-                          onClick={() => setExecutingItem(item)}
+                          onClick={() => navigate(`/compliance/field/audit-visit/${item.id}`)}
                         >
                           <PlayCircle className="h-4 w-4 mr-2" />
                           Start Visit
@@ -203,7 +203,7 @@ export default function FieldExecution() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setExecutingItem(item)}
+                          onClick={() => navigate(`/compliance/field/audit-visit/${item.id}`)}
                         >
                           Continue
                         </Button>
