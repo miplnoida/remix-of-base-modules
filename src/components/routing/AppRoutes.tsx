@@ -37,6 +37,7 @@ import FieldOperations from '@/pages/compliance/inspections/FieldOperations';
 import NoticesManagement from '@/pages/compliance/legal/NoticesManagement';
 import EmployerStatements from '@/pages/compliance/employers/EmployerStatements';
 import ComplianceSettings from '@/pages/compliance/settings/ComplianceSettings';
+import CompletionGateSettings from '@/pages/compliance/settings/CompletionGateSettings';
 import ComplianceDashboard from '@/pages/compliance/dashboards/ComplianceDashboard';
 import ComplianceReports from '@/pages/compliance/reports/ComplianceReports';
 import CaseAnalytics from '@/pages/compliance/reports/CaseAnalytics';
