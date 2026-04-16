@@ -126,10 +126,22 @@ export default function Employer360() {
             <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/field/employer-statement/${employerId}`)}>
               <Printer className="h-4 w-4 mr-1" />Statement
             </Button>
-            <Button size="sm" variant="outline"><StickyNote className="h-4 w-4 mr-1" />Add Note</Button>
-            <Button size="sm" variant="outline"><Send className="h-4 w-4 mr-1" />Send Notice</Button>
-            <Button size="sm" variant="outline"><CalendarPlus className="h-4 w-4 mr-1" />Follow-Up</Button>
-            <Button size="sm" variant="outline"><ChevronUp className="h-4 w-4 mr-1" />Escalate</Button>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/field/visit/${employerId}`)}>
+              <ClipboardCheck className="h-4 w-4 mr-1" />Visit Workspace
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate('/compliance/enforcement/notices', {
+              state: { prefill: { employer_id: employerId, employer_name: master.employer_name } }
+            })}>
+              <Send className="h-4 w-4 mr-1" />Send Notice
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate('/compliance/violations/manual-entry', {
+              state: { prefill: { employer_id: employerId, employer_name: master.employer_name } }
+            })}>
+              <AlertTriangle className="h-4 w-4 mr-1" />New Violation
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/field/employer-risk/${employerId}`)}>
+              <TrendingUp className="h-4 w-4 mr-1" />Risk Profile
+            </Button>
           </div>
         }
       />
