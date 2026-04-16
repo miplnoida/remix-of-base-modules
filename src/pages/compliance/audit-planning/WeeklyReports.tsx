@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,124 +28,109 @@ import {
   Calendar,
   TrendingUp,
   TrendingDown,
-  Eye
+  Eye,
+  Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import {
-  WeeklyAuditPlan,
-  WeeklyPlanWorkflowStatus,
-  WeeklyReportSummary,
-  SubmitWeeklyReportRequest
-} from '@/types/weeklyAuditPlan';
-import { weeklyAuditPlanService } from '@/services/weeklyAuditPlanService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { weeklyPlanService, WeeklyReportSummary } from '@/services/weeklyPlanService';
+import { WeeklyPlan, WeeklyPlanStatus } from '@/types/weeklyPlan';
+import { useUserCode } from '@/hooks/useUserCode';
 
 export default function WeeklyReports() {
   const { toast } = useToast();
-  const [plans, setPlans] = useState<WeeklyAuditPlan[]>([]);
-  const [selectedPlan, setSelectedPlan] = useState<WeeklyAuditPlan | null>(null);
+  const queryClient = useQueryClient();
+  const { userCode, userId } = useUserCode();
+  const [selectedPlan, setSelectedPlan] = useState<WeeklyPlan | null>(null);
   const [reportSummary, setReportSummary] = useState<WeeklyReportSummary | null>(null);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [narrative, setNarrative] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
-  useEffect(() => {
-    loadCompletedPlans();
-  }, []);
-
-  const loadCompletedPlans = async () => {
-    try {
-      const data = await weeklyAuditPlanService.getAll();
-      
-      // Filter plans that are IN_EXECUTION or COMPLETED
-      const relevantPlans = data.filter(p => 
-        p.status === WeeklyPlanWorkflowStatus.IN_EXECUTION ||
-        p.status === WeeklyPlanWorkflowStatus.COMPLETED ||
-        p.status === WeeklyPlanWorkflowStatus.APPROVED
+  const plansQuery = useQuery({
+    queryKey: ['weekly-report-plans'],
+    queryFn: async () => {
+      const data = await weeklyPlanService.getAll();
+      return data.filter(p =>
+        p.status === WeeklyPlanStatus.IN_EXECUTION ||
+        p.status === WeeklyPlanStatus.OUTCOME_SUBMITTED ||
+        p.status === WeeklyPlanStatus.COMPLETED ||
+        p.status === WeeklyPlanStatus.APPROVED
       );
-      
-      setPlans(relevantPlans);
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load plans',
-        variant: 'destructive'
-      });
-    }
-  };
+    },
+  });
 
-  const handleOpenReport = async (plan: WeeklyAuditPlan) => {
+  const plans = plansQuery.data ?? [];
+
+  const handleOpenReport = async (plan: WeeklyPlan) => {
     setSelectedPlan(plan);
-    setNarrative(plan.weeklyReportNarrative || '');
-    
+    setNarrative(plan.outcome_narrative || '');
+    setLoadingSummary(true);
+
     try {
-      const summary = await weeklyAuditPlanService.generateWeeklyReportSummary(plan.id);
+      const summary = await weeklyPlanService.getReportSummary(plan.id);
       setReportSummary(summary);
       setReportDialogOpen(true);
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to generate report summary',
-        variant: 'destructive'
-      });
+      toast({ title: 'Error', description: 'Failed to generate report summary', variant: 'destructive' });
+    } finally {
+      setLoadingSummary(false);
     }
   };
 
-  const handleSubmitReport = async () => {
-    if (!selectedPlan || !narrative.trim()) {
-      toast({
-        title: 'Missing Narrative',
-        description: 'Please provide a weekly narrative',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const request: SubmitWeeklyReportRequest = {
-        planId: selectedPlan.id,
-        narrative
-      };
-
-      await weeklyAuditPlanService.submitWeeklyReport(request);
-
-      toast({
-        title: 'Report Submitted',
-        description: 'Weekly report submitted for review'
-      });
-
+  const submitReportMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedPlan || !narrative.trim()) throw new Error('Please provide a weekly narrative');
+      await weeklyPlanService.submitWeeklyReport(selectedPlan.id, userCode || userId || '', narrative);
+    },
+    onSuccess: () => {
+      toast({ title: 'Report Submitted', description: 'Weekly report submitted for supervisor review.' });
       setReportDialogOpen(false);
       setSelectedPlan(null);
       setNarrative('');
-      await loadCompletedPlans();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to submit report',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: ['weekly-report-plans'] });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
 
-  const getStatusColor = (status: WeeklyPlanWorkflowStatus) => {
-    const colors: Record<WeeklyPlanWorkflowStatus, string> = {
-      [WeeklyPlanWorkflowStatus.DRAFT]: 'bg-gray-100 text-gray-800',
-      [WeeklyPlanWorkflowStatus.SUBMITTED]: 'bg-blue-100 text-blue-800',
-      [WeeklyPlanWorkflowStatus.NEED_CHANGES]: 'bg-yellow-100 text-yellow-800',
-      [WeeklyPlanWorkflowStatus.RESUBMITTED]: 'bg-purple-100 text-purple-800',
-      [WeeklyPlanWorkflowStatus.APPROVED]: 'bg-green-100 text-green-800',
-      [WeeklyPlanWorkflowStatus.IN_EXECUTION]: 'bg-cyan-100 text-cyan-800',
-      [WeeklyPlanWorkflowStatus.COMPLETED]: 'bg-gray-100 text-gray-800',
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      [WeeklyPlanStatus.APPROVED]: 'bg-green-100 text-green-800',
+      [WeeklyPlanStatus.IN_EXECUTION]: 'bg-cyan-100 text-cyan-800',
+      [WeeklyPlanStatus.OUTCOME_SUBMITTED]: 'bg-indigo-100 text-indigo-800',
+      [WeeklyPlanStatus.COMPLETED]: 'bg-gray-100 text-gray-800',
     };
-    return colors[status];
+    return colors[status] || 'bg-muted text-muted-foreground';
   };
 
-  const completionRate = (plan: WeeklyAuditPlan) => {
-    if (plan.totalPlannedVisits === 0) return 0;
-    return Math.round((plan.completedVisits / plan.totalPlannedVisits) * 100);
+  const completionRate = (plan: WeeklyPlan) => {
+    if (plan.total_planned_visits === 0) return 0;
+    return Math.round((plan.completed_visits / plan.total_planned_visits) * 100);
   };
+
+  // Validation warnings for report submission
+  const getReportWarnings = (summary: WeeklyReportSummary | null) => {
+    const warnings: { text: string; blocking: boolean }[] = [];
+    if (!summary) return warnings;
+
+    if (summary.still_planned > 0) {
+      warnings.push({ text: `${summary.still_planned} plan item(s) still in PLANNED status`, blocking: true });
+    }
+    if (summary.completed_visits > 0 && summary.findings_count === 0) {
+      warnings.push({ text: 'Completed visits have no findings recorded', blocking: true });
+    }
+    if (summary.evidence_count === 0 && summary.completed_visits > 0) {
+      warnings.push({ text: 'No evidence collected for completed visits', blocking: false });
+    }
+    return warnings;
+  };
+
+  const reportWarnings = getReportWarnings(reportSummary);
+  const hasBlockingWarnings = reportWarnings.some(w => w.blocking);
+  const isAlreadySubmitted = selectedPlan?.status === WeeklyPlanStatus.OUTCOME_SUBMITTED || selectedPlan?.status === WeeklyPlanStatus.COMPLETED;
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -163,51 +148,41 @@ export default function WeeklyReports() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Plans
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Active Plans</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-cyan-600">
-              {plans.filter(p => p.status === WeeklyPlanWorkflowStatus.IN_EXECUTION).length}
+              {plans.filter(p => p.status === WeeklyPlanStatus.IN_EXECUTION).length}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Completed
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Outcome Submitted</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-indigo-600">
+              {plans.filter(p => p.status === WeeklyPlanStatus.OUTCOME_SUBMITTED).length}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {plans.filter(p => p.status === WeeklyPlanWorkflowStatus.COMPLETED).length}
+              {plans.filter(p => p.status === WeeklyPlanStatus.COMPLETED).length}
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Visits
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Visits</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              {plans.reduce((sum, p) => sum + p.completedVisits, 0)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Avg Completion
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {plans.length > 0 
-                ? Math.round(plans.reduce((sum, p) => sum + completionRate(p), 0) / plans.length)
-                : 0}%
+              {plans.reduce((sum, p) => sum + p.completed_visits, 0)}
             </div>
           </CardContent>
         </Card>
@@ -219,7 +194,11 @@ export default function WeeklyReports() {
           <CardTitle>Weekly Plans & Reports</CardTitle>
         </CardHeader>
         <CardContent>
-          {plans.length === 0 ? (
+          {plansQuery.isLoading ? (
+            <div className="text-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+            </div>
+          ) : plans.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg font-medium">No active or completed plans</p>
@@ -243,11 +222,11 @@ export default function WeeklyReports() {
                   const rate = completionRate(plan);
                   return (
                     <TableRow key={plan.id}>
-                      <TableCell className="font-medium">{plan.planNumber}</TableCell>
+                      <TableCell className="font-medium">{plan.plan_number}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{plan.weekStartDate} - {plan.weekEndDate}</span>
+                          <span className="text-sm">{plan.week_start_date} - {plan.week_end_date}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -256,7 +235,7 @@ export default function WeeklyReports() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {plan.completedVisits} / {plan.totalPlannedVisits}
+                        {plan.completed_visits} / {plan.total_planned_visits}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -271,10 +250,10 @@ export default function WeeklyReports() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {plan.weeklyReportSubmittedAt ? (
+                        {plan.status === WeeklyPlanStatus.OUTCOME_SUBMITTED || plan.status === WeeklyPlanStatus.COMPLETED ? (
                           <Badge variant="secondary">
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            Submitted
+                            {plan.status === WeeklyPlanStatus.COMPLETED ? 'Approved' : 'Submitted'}
                           </Badge>
                         ) : (
                           <Badge variant="outline">Pending</Badge>
@@ -285,8 +264,9 @@ export default function WeeklyReports() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleOpenReport(plan)}
+                          disabled={loadingSummary}
                         >
-                          {plan.weeklyReportSubmittedAt ? (
+                          {plan.status === WeeklyPlanStatus.OUTCOME_SUBMITTED || plan.status === WeeklyPlanStatus.COMPLETED ? (
                             <>
                               <Eye className="h-4 w-4 mr-2" />
                               View
@@ -314,61 +294,68 @@ export default function WeeklyReports() {
           <DialogHeader>
             <DialogTitle>Weekly Report</DialogTitle>
             <DialogDescription>
-              {selectedPlan?.planNumber} - Week of {selectedPlan?.weekStartDate}
+              {selectedPlan?.plan_number} — Week of {selectedPlan?.week_start_date}
             </DialogDescription>
           </DialogHeader>
 
           {selectedPlan && reportSummary && (
             <div className="space-y-6 py-4">
-              {/* Summary Stats */}
+              {/* Auto-Generated Summary Stats */}
               <div className="grid grid-cols-4 gap-4">
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="text-2xl font-bold text-foreground">{reportSummary.plannedVisits}</div>
+                    <div className="text-2xl font-bold text-foreground">{reportSummary.total_planned}</div>
                     <p className="text-xs text-muted-foreground mt-1">Planned</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="text-2xl font-bold text-green-600">{reportSummary.completedVisits}</div>
+                    <div className="text-2xl font-bold text-green-600">{reportSummary.completed_visits}</div>
                     <p className="text-xs text-muted-foreground mt-1">Completed</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="text-2xl font-bold text-yellow-600">{reportSummary.rescheduledVisits}</div>
+                    <div className="text-2xl font-bold text-yellow-600">{reportSummary.rescheduled_visits}</div>
                     <p className="text-xs text-muted-foreground mt-1">Rescheduled</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="text-2xl font-bold text-red-600">{reportSummary.cancelledVisits}</div>
+                    <div className="text-2xl font-bold text-red-600">{reportSummary.cancelled_visits}</div>
                     <p className="text-xs text-muted-foreground mt-1">Cancelled</p>
                   </CardContent>
                 </Card>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div className="border rounded-lg p-4">
                   <Label className="text-sm text-muted-foreground">Total Hours</Label>
-                  <p className="text-2xl font-bold">{reportSummary.totalHoursSpent}</p>
+                  <p className="text-2xl font-bold">{reportSummary.total_hours}</p>
                 </div>
                 <div className="border rounded-lg p-4">
                   <Label className="text-sm text-muted-foreground">Evidence Collected</Label>
-                  <p className="text-2xl font-bold">{reportSummary.evidenceCollected}</p>
+                  <p className="text-2xl font-bold">{reportSummary.evidence_count}</p>
                 </div>
                 <div className="border rounded-lg p-4">
-                  <Label className="text-sm text-muted-foreground">Violations Updated</Label>
-                  <p className="text-2xl font-bold">{reportSummary.violationsUpdated}</p>
+                  <Label className="text-sm text-muted-foreground">Findings</Label>
+                  <p className="text-2xl font-bold">{reportSummary.findings_count}</p>
+                </div>
+                <div className="border rounded-lg p-4">
+                  <Label className="text-sm text-muted-foreground">Violations Created</Label>
+                  <p className="text-2xl font-bold">{reportSummary.violations_created}</p>
                 </div>
               </div>
 
-              {reportSummary.findingsSummary && (
+              {/* Validation Warnings */}
+              {reportWarnings.length > 0 && !isAlreadySubmitted && (
                 <div className="space-y-2">
-                  <Label>Findings Summary</Label>
-                  <div className="border rounded-lg p-3 bg-muted/50 text-sm">
-                    {reportSummary.findingsSummary}
-                  </div>
+                  {reportWarnings.map((w, idx) => (
+                    <div key={idx} className={`flex items-start gap-2 p-3 rounded-md text-sm ${w.blocking ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}`}>
+                      <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                      <span>{w.text}{w.blocking ? ' (blocking)' : ' (warning)'}</span>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -379,14 +366,14 @@ export default function WeeklyReports() {
                   value={narrative}
                   onChange={(e) => setNarrative(e.target.value)}
                   rows={6}
-                  disabled={!!selectedPlan.weeklyReportSubmittedAt}
+                  disabled={isAlreadySubmitted}
                 />
               </div>
 
-              {selectedPlan.weeklyReportSubmittedAt && (
+              {isAlreadySubmitted && (
                 <div className="border-l-4 border-green-500 bg-green-50 p-4">
                   <p className="text-sm font-medium text-green-800">
-                    Report submitted on {new Date(selectedPlan.weeklyReportSubmittedAt).toLocaleString()}
+                    Report submitted on {selectedPlan.outcome_submitted_at ? new Date(selectedPlan.outcome_submitted_at).toLocaleString() : 'N/A'}
                   </p>
                 </div>
               )}
@@ -397,9 +384,16 @@ export default function WeeklyReports() {
             <Button variant="outline" onClick={() => setReportDialogOpen(false)}>
               Close
             </Button>
-            {selectedPlan && !selectedPlan.weeklyReportSubmittedAt && (
-              <Button onClick={handleSubmitReport} disabled={loading}>
-                <Send className="h-4 w-4 mr-2" />
+            {selectedPlan && !isAlreadySubmitted && (
+              <Button
+                onClick={() => submitReportMutation.mutate()}
+                disabled={submitReportMutation.isPending || hasBlockingWarnings || !narrative.trim()}
+              >
+                {submitReportMutation.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
                 Submit Weekly Report
               </Button>
             )}

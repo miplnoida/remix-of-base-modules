@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import {
   Calendar,
   Eye,
   Edit,
@@ -21,104 +31,91 @@ import {
   XCircle,
   AlertCircle,
   FileText,
-  Play
+  Play,
+  Undo2,
+  Loader2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { WeeklyAuditPlan, WeeklyPlanWorkflowStatus } from '@/types/weeklyAuditPlan';
-import { weeklyAuditPlanService } from '@/services/weeklyAuditPlanService';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { weeklyPlanService } from '@/services/weeklyPlanService';
+import { WeeklyPlan, WeeklyPlanStatus } from '@/types/weeklyPlan';
 import { useNavigate } from 'react-router-dom';
-import { PlanExecutionDialog } from '@/components/compliance/PlanExecutionDialog';
+import { useUserCode } from '@/hooks/useUserCode';
 
 export default function MyPlans() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [plans, setPlans] = useState<WeeklyAuditPlan[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [executingPlan, setExecutingPlan] = useState<WeeklyAuditPlan | null>(null);
+  const queryClient = useQueryClient();
+  const { userCode, userId } = useUserCode();
+  const [withdrawDialogPlan, setWithdrawDialogPlan] = useState<WeeklyPlan | null>(null);
+  const [withdrawReason, setWithdrawReason] = useState('');
 
-  useEffect(() => {
-    loadMyPlans();
-  }, []);
+  const plansQuery = useQuery({
+    queryKey: ['my-weekly-plans'],
+    queryFn: () => weeklyPlanService.getAll(),
+  });
 
-  const loadMyPlans = async () => {
-    setLoading(true);
-    try {
-      // Load all plans — server filters by authenticated user context
-      const data = await weeklyAuditPlanService.getAll();
-      setPlans(data);
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load plans',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const plans = plansQuery.data ?? [];
+  const loading = plansQuery.isLoading;
 
-  const handleSubmitPlan = async (planId: string) => {
-    try {
-      await weeklyAuditPlanService.submit(planId);
-      toast({
-        title: 'Plan Submitted',
-        description: 'Weekly plan submitted for review'
-      });
-      await loadMyPlans();
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to submit plan',
-        variant: 'destructive'
-      });
-    }
-  };
+  const withdrawMutation = useMutation({
+    mutationFn: async () => {
+      if (!withdrawDialogPlan) throw new Error('No plan selected');
+      await weeklyPlanService.withdraw(withdrawDialogPlan.id, userCode || userId || '', withdrawReason);
+    },
+    onSuccess: () => {
+      toast({ title: 'Plan Withdrawn', description: 'Your plan has been withdrawn and is now editable.' });
+      setWithdrawDialogPlan(null);
+      setWithdrawReason('');
+      queryClient.invalidateQueries({ queryKey: ['my-weekly-plans'] });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
 
-  const getStatusIcon = (status: WeeklyPlanWorkflowStatus) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
-      case WeeklyPlanWorkflowStatus.DRAFT:
-        return <Edit className="h-4 w-4" />;
-      case WeeklyPlanWorkflowStatus.SUBMITTED:
-        return <Clock className="h-4 w-4" />;
-      case WeeklyPlanWorkflowStatus.NEED_CHANGES:
-        return <AlertCircle className="h-4 w-4" />;
-      case WeeklyPlanWorkflowStatus.RESUBMITTED:
-        return <Send className="h-4 w-4" />;
-      case WeeklyPlanWorkflowStatus.APPROVED:
-        return <CheckCircle className="h-4 w-4" />;
-      case WeeklyPlanWorkflowStatus.IN_EXECUTION:
-        return <Clock className="h-4 w-4" />;
-      case WeeklyPlanWorkflowStatus.COMPLETED:
-        return <CheckCircle className="h-4 w-4" />;
-      default:
-        return <FileText className="h-4 w-4" />;
+      case WeeklyPlanStatus.DRAFT: return <Edit className="h-4 w-4" />;
+      case WeeklyPlanStatus.SUBMITTED: return <Clock className="h-4 w-4" />;
+      case WeeklyPlanStatus.NEEDS_CHANGES: return <AlertCircle className="h-4 w-4" />;
+      case WeeklyPlanStatus.RESUBMITTED: return <Send className="h-4 w-4" />;
+      case WeeklyPlanStatus.APPROVED: return <CheckCircle className="h-4 w-4" />;
+      case WeeklyPlanStatus.IN_EXECUTION: return <Play className="h-4 w-4" />;
+      case WeeklyPlanStatus.OUTCOME_SUBMITTED: return <FileText className="h-4 w-4" />;
+      case WeeklyPlanStatus.COMPLETED: return <CheckCircle className="h-4 w-4" />;
+      case WeeklyPlanStatus.WITHDRAWN: return <Undo2 className="h-4 w-4" />;
+      default: return <FileText className="h-4 w-4" />;
     }
   };
 
-  const getStatusColor = (status: WeeklyPlanWorkflowStatus) => {
-    const colors: Record<WeeklyPlanWorkflowStatus, string> = {
-      [WeeklyPlanWorkflowStatus.DRAFT]: 'bg-gray-100 text-gray-800',
-      [WeeklyPlanWorkflowStatus.SUBMITTED]: 'bg-blue-100 text-blue-800',
-      [WeeklyPlanWorkflowStatus.NEED_CHANGES]: 'bg-yellow-100 text-yellow-800',
-      [WeeklyPlanWorkflowStatus.RESUBMITTED]: 'bg-purple-100 text-purple-800',
-      [WeeklyPlanWorkflowStatus.APPROVED]: 'bg-green-100 text-green-800',
-      [WeeklyPlanWorkflowStatus.IN_EXECUTION]: 'bg-cyan-100 text-cyan-800',
-      [WeeklyPlanWorkflowStatus.COMPLETED]: 'bg-gray-100 text-gray-800',
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      [WeeklyPlanStatus.DRAFT]: 'bg-gray-100 text-gray-800',
+      [WeeklyPlanStatus.SUBMITTED]: 'bg-blue-100 text-blue-800',
+      [WeeklyPlanStatus.NEEDS_CHANGES]: 'bg-yellow-100 text-yellow-800',
+      [WeeklyPlanStatus.RESUBMITTED]: 'bg-purple-100 text-purple-800',
+      [WeeklyPlanStatus.APPROVED]: 'bg-green-100 text-green-800',
+      [WeeklyPlanStatus.IN_EXECUTION]: 'bg-cyan-100 text-cyan-800',
+      [WeeklyPlanStatus.OUTCOME_SUBMITTED]: 'bg-indigo-100 text-indigo-800',
+      [WeeklyPlanStatus.COMPLETED]: 'bg-gray-100 text-gray-800',
+      [WeeklyPlanStatus.WITHDRAWN]: 'bg-red-50 text-red-600',
     };
-    return colors[status];
+    return colors[status] || 'bg-muted text-muted-foreground';
   };
 
-  const needsChangesPlans = plans.filter(p => p.status === WeeklyPlanWorkflowStatus.NEED_CHANGES);
-  const draftPlans = plans.filter(p => p.status === WeeklyPlanWorkflowStatus.DRAFT);
-  const pendingPlans = plans.filter(p => 
-    p.status === WeeklyPlanWorkflowStatus.SUBMITTED || 
-    p.status === WeeklyPlanWorkflowStatus.RESUBMITTED
+  const activePlans = plans.filter(p => p.status !== WeeklyPlanStatus.WITHDRAWN);
+  const needsChangesPlans = activePlans.filter(p => p.status === WeeklyPlanStatus.NEEDS_CHANGES);
+  const draftPlans = activePlans.filter(p => p.status === WeeklyPlanStatus.DRAFT);
+  const pendingPlans = activePlans.filter(p =>
+    p.status === WeeklyPlanStatus.SUBMITTED ||
+    p.status === WeeklyPlanStatus.RESUBMITTED
   );
-  const approvedPlans = plans.filter(p => 
-    p.status === WeeklyPlanWorkflowStatus.APPROVED ||
-    p.status === WeeklyPlanWorkflowStatus.IN_EXECUTION
+  const approvedPlans = activePlans.filter(p =>
+    p.status === WeeklyPlanStatus.APPROVED ||
+    p.status === WeeklyPlanStatus.IN_EXECUTION
   );
-  const completedPlans = plans.filter(p => p.status === WeeklyPlanWorkflowStatus.COMPLETED);
+  const completedPlans = activePlans.filter(p => p.status === WeeklyPlanStatus.COMPLETED);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -180,9 +177,9 @@ export default function MyPlans() {
         <CardContent>
           {loading ? (
             <div className="text-center py-12">
-              <p className="text-muted-foreground">Loading plans...</p>
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
             </div>
-          ) : plans.length === 0 ? (
+          ) : activePlans.length === 0 ? (
             <div className="text-center py-12">
               <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-lg font-medium">No plans found</p>
@@ -206,13 +203,13 @@ export default function MyPlans() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {plans.map((plan) => (
+                {activePlans.map((plan) => (
                   <TableRow key={plan.id}>
-                    <TableCell className="font-medium">{plan.planNumber}</TableCell>
+                    <TableCell className="font-medium">{plan.plan_number}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>{plan.weekStartDate} - {plan.weekEndDate}</span>
+                        <span>{plan.week_start_date} - {plan.week_end_date}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -223,58 +220,57 @@ export default function MyPlans() {
                         </span>
                       </Badge>
                     </TableCell>
-                    <TableCell>{plan.totalPlannedVisits}</TableCell>
+                    <TableCell>{plan.total_planned_visits}</TableCell>
                     <TableCell>
-                      {plan.completedVisits} / {plan.totalPlannedVisits}
+                      {plan.completed_visits} / {plan.total_planned_visits}
                     </TableCell>
                     <TableCell>
-                      {plan.submittedAt ? new Date(plan.submittedAt).toLocaleDateString() : '-'}
+                      {plan.submitted_date ? new Date(plan.submitted_date).toLocaleDateString() : '-'}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end">
-                        {plan.status === WeeklyPlanWorkflowStatus.DRAFT && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate('/compliance/audit-planning/weekly-plan-builder')}
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleSubmitPlan(plan.id)}
-                            >
-                              <Send className="h-4 w-4 mr-2" />
-                              Submit
-                            </Button>
-                          </>
-                        )}
-                        {plan.status === WeeklyPlanWorkflowStatus.NEED_CHANGES && (
+                      <div className="flex gap-2 justify-end flex-wrap">
+                        {plan.status === WeeklyPlanStatus.DRAFT && (
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => navigate('/compliance/audit-planning/weekly-plan-builder')}
                           >
-                            <Edit className="h-4 w-4 mr-2" />
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                        )}
+                        {plan.status === WeeklyPlanStatus.NEEDS_CHANGES && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate('/compliance/audit-planning/weekly-plan-builder')}
+                          >
+                            <Edit className="h-4 w-4 mr-1" />
                             Update & Resubmit
                           </Button>
                         )}
-                        {(plan.status === WeeklyPlanWorkflowStatus.APPROVED || 
-                          plan.status === WeeklyPlanWorkflowStatus.IN_EXECUTION) && (
+                        {(plan.status === WeeklyPlanStatus.SUBMITTED || plan.status === WeeklyPlanStatus.RESUBMITTED) && (
                           <Button
+                            variant="outline"
                             size="sm"
-                            onClick={() => setExecutingPlan(plan)}
+                            className="text-destructive border-destructive/30 hover:bg-destructive/5"
+                            onClick={() => setWithdrawDialogPlan(plan)}
                           >
-                            <Play className="h-4 w-4 mr-2" />
-                            Execute Plan
+                            <Undo2 className="h-4 w-4 mr-1" />
+                            Withdraw
                           </Button>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                        >
+                        {(plan.status === WeeklyPlanStatus.APPROVED ||
+                          plan.status === WeeklyPlanStatus.IN_EXECUTION) && (
+                          <Button
+                            size="sm"
+                            onClick={() => navigate(`/compliance/field/inspections`)}
+                          >
+                            <Play className="h-4 w-4 mr-1" />
+                            Execute
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
                       </div>
@@ -288,7 +284,7 @@ export default function MyPlans() {
       </Card>
 
       {/* Need Changes Section */}
-      {plans.some(p => p.status === WeeklyPlanWorkflowStatus.NEED_CHANGES) && (
+      {needsChangesPlans.length > 0 && (
         <Card className="border-yellow-200 bg-yellow-50">
           <CardHeader>
             <CardTitle className="text-yellow-800 flex items-center gap-2">
@@ -298,48 +294,67 @@ export default function MyPlans() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {plans
-                .filter(p => p.status === WeeklyPlanWorkflowStatus.NEED_CHANGES)
-                .map(plan => (
-                  <div key={plan.id} className="bg-white p-4 rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium">{plan.planNumber}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Week: {plan.weekStartDate} - {plan.weekEndDate}
+              {needsChangesPlans.map(plan => (
+                <div key={plan.id} className="bg-white p-4 rounded-lg">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{plan.plan_number}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Week: {plan.week_start_date} - {plan.week_end_date}
+                      </p>
+                      {plan.reviewer_comments && (
+                        <p className="text-sm mt-2 text-yellow-800">
+                          <span className="font-medium">Feedback:</span> {plan.reviewer_comments}
                         </p>
-                        {plan.reviewComments && (
-                          <p className="text-sm mt-2 text-yellow-800">
-                            <span className="font-medium">Feedback:</span> {plan.reviewComments}
-                          </p>
-                        )}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate('/compliance/audit-planning/weekly-plan-builder')}
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Update Plan
-                      </Button>
+                      )}
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate('/compliance/audit-planning/weekly-plan-builder')}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Update Plan
+                    </Button>
                   </div>
-                ))}
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Execution Dialog */}
-      {executingPlan && (
-        <PlanExecutionDialog
-          visits={executingPlan.plannedVisits}
-          planNumber={executingPlan.planNumber}
-          weekPeriod={`${executingPlan.weekStartDate} - ${executingPlan.weekEndDate}`}
-          onClose={() => setExecutingPlan(null)}
-          onRefresh={loadMyPlans}
-        />
-      )}
+      {/* Withdraw Confirmation Dialog */}
+      <Dialog open={!!withdrawDialogPlan} onOpenChange={(open) => !open && setWithdrawDialogPlan(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Withdraw Plan</DialogTitle>
+            <DialogDescription>
+              Withdraw {withdrawDialogPlan?.plan_number} from review? It will become editable again.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label>Reason (optional)</Label>
+            <Textarea
+              value={withdrawReason}
+              onChange={(e) => setWithdrawReason(e.target.value)}
+              placeholder="Why are you withdrawing this plan?"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWithdrawDialogPlan(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => withdrawMutation.mutate()}
+              disabled={withdrawMutation.isPending}
+            >
+              {withdrawMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Undo2 className="h-4 w-4 mr-1" />}
+              Withdraw Plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
