@@ -7,598 +7,358 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { AlertTriangle, CheckCircle, XCircle, Calendar, Building2, MapPin, AlertCircle, Clock, FileText } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle,
+  Calendar,
+  Building2,
+  MapPin,
+  AlertCircle,
+  Clock,
+  FileText,
+  Loader2,
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-interface PlanItem {
-  id: string;
-  dayOfWeek: string;
-  employerName: string;
-  territory: string;
-  visitType: string;
-  purpose: string;
-  plannedStartTime: string;
-  plannedEndTime: string;
-}
-
-interface RiskItem {
-  id: string;
-  employerName: string;
-  territory: string;
-  riskLevel: 'Critical' | 'High' | 'Medium';
-  riskScore: number;
-  reason: string;
-  inPlan: boolean;
-}
-
-interface PendingAction {
-  id: string;
-  violationNumber: string;
-  employerName: string;
-  territory: string;
-  actionType: string;
-  priority: 'Urgent' | 'High' | 'Normal';
-  dueDate: string;
-  inPlan: boolean;
-}
-
-interface PendingViolation {
-  id: string;
-  violationNumber: string;
-  employerName: string;
-  territory: string;
-  violationType: string;
-  status: string;
-  createdDate: string;
-  inPlan: boolean;
-}
+import { useUserCode } from '@/hooks/useUserCode';
+import { weeklyPlanService } from '@/services/weeklyPlanService';
+import { WeeklyPlan, WeeklyPlanItem, WeeklyPlanReview as PlanReview } from '@/types/weeklyPlan';
 
 export function WeeklyPlanReview() {
   const navigate = useNavigate();
   const { planId } = useParams();
   const { toast } = useToast();
+  const { userCode } = useUserCode();
+  const [plan, setPlan] = useState<WeeklyPlan | null>(null);
   const [managerComments, setManagerComments] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isActioning, setIsActioning] = useState(false);
 
-  // Mock data
-  const planDetails = {
-    inspectorName: 'John Inspector',
-    weekStart: '2024-01-22',
-    weekEnd: '2024-01-28',
-    status: 'Submitted',
-    submittedAt: '2024-01-19T15:30:00Z'
-  };
+  useEffect(() => {
+    if (planId) loadPlan();
+  }, [planId]);
 
-  const planItems: PlanItem[] = [
-    {
-      id: 'item-1',
-      dayOfWeek: 'Monday',
-      employerName: 'Retail Services Inc',
-      territory: 'St Kitts',
-      visitType: 'Regular Audit',
-      purpose: 'Annual compliance audit',
-      plannedStartTime: '08:00',
-      plannedEndTime: '10:00'
-    },
-    {
-      id: 'item-2',
-      dayOfWeek: 'Tuesday',
-      employerName: 'Tech Solutions Ltd',
-      territory: 'St Kitts',
-      visitType: 'Follow-up Visit',
-      purpose: 'Verify C3 submission',
-      plannedStartTime: '09:00',
-      plannedEndTime: '10:00'
-    }
-  ];
-
-  const highRiskItems: RiskItem[] = [
-    {
-      id: 'risk-1',
-      employerName: 'ABC Construction Ltd',
-      territory: 'St Kitts',
-      riskLevel: 'Critical',
-      riskScore: 95,
-      reason: 'Arrears >XCD 200k, 6+ months missed C3, High-risk sector',
-      inPlan: false
-    },
-    {
-      id: 'risk-2',
-      employerName: 'Retail Services Inc',
-      territory: 'St Kitts',
-      riskLevel: 'High',
-      riskScore: 78,
-      reason: 'Not audited in 24 months, Moderate arrears',
-      inPlan: true
-    },
-    {
-      id: 'risk-3',
-      employerName: 'Paradise Hotel Group',
-      territory: 'Nevis',
-      riskLevel: 'Critical',
-      riskScore: 92,
-      reason: 'Payment arrangement defaulted twice, Arrears >XCD 150k',
-      inPlan: false
-    }
-  ];
-
-  const pendingActions: PendingAction[] = [
-    {
-      id: 'action-1',
-      violationNumber: 'VIOA-2024-001',
-      employerName: 'ABC Construction Ltd',
-      territory: 'St Kitts',
-      actionType: 'Employer Visit',
-      priority: 'Urgent',
-      dueDate: '2024-01-23',
-      inPlan: false
-    },
-    {
-      id: 'action-2',
-      violationNumber: 'VIOA-2024-005',
-      employerName: 'Tech Solutions Ltd',
-      territory: 'St Kitts',
-      actionType: 'Follow-up Payment',
-      priority: 'High',
-      dueDate: '2024-01-24',
-      inPlan: true
-    }
-  ];
-
-  const pendingViolations: PendingViolation[] = [
-    {
-      id: 'viol-1',
-      violationNumber: 'VIOA-2024-001',
-      employerName: 'ABC Construction Ltd',
-      territory: 'St Kitts',
-      violationType: 'C3 Not Submitted',
-      status: 'Open',
-      createdDate: '2024-01-10',
-      inPlan: false
-    },
-    {
-      id: 'viol-2',
-      violationNumber: 'VIOA-2024-002',
-      employerName: 'Retail Services Inc',
-      territory: 'St Kitts',
-      violationType: 'Late C3 Submission',
-      status: 'Under Investigation',
-      createdDate: '2024-01-12',
-      inPlan: true
-    }
-  ];
-
-  const handleApprove = () => {
+  const loadPlan = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      toast({
-        title: 'Plan Approved',
-        description: 'The weekly plan has been approved successfully'
-      });
+    try {
+      const data = await weeklyPlanService.getById(planId!);
+      setPlan(data);
+    } catch {
+      toast({ title: 'Error', description: 'Failed to load plan', variant: 'destructive' });
+    } finally {
       setIsLoading(false);
-      navigate('/compliance/audit-planning/pending-review');
-    }, 1000);
+    }
   };
 
-  const handleRequestChanges = () => {
+  const planItems: WeeklyPlanItem[] = plan?.ce_weekly_plan_items ?? [];
+  const reviewHistory: PlanReview[] = plan?.ce_weekly_plan_reviews ?? [];
+
+  const handleApprove = async () => {
+    if (!planId || !userCode) return;
+    setIsActioning(true);
+    try {
+      await weeklyPlanService.approve(planId, userCode, managerComments || undefined);
+      toast({ title: 'Plan Approved', description: 'The weekly plan has been approved successfully.' });
+      navigate('/compliance/field/pending-review');
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to approve plan', variant: 'destructive' });
+    } finally {
+      setIsActioning(false);
+    }
+  };
+
+  const handleRequestChanges = async () => {
+    if (!planId || !userCode) return;
     if (!managerComments.trim()) {
       toast({
         title: 'Comments Required',
-        description: 'Please provide comments explaining the requested changes',
-        variant: 'destructive'
+        description: 'Please provide comments explaining the requested changes.',
+        variant: 'destructive',
       });
       return;
     }
-
-    setIsLoading(true);
-    setTimeout(() => {
-      toast({
-        title: 'Changes Requested',
-        description: 'The plan has been sent back to the inspector with your comments'
-      });
-      setIsLoading(false);
-      navigate('/compliance/audit-planning/pending-review');
-    }, 1000);
-  };
-
-  const getRiskBadgeColor = (level: string) => {
-    switch (level) {
-      case 'Critical':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'High':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'Medium':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+    setIsActioning(true);
+    try {
+      await weeklyPlanService.reject(planId, userCode, managerComments);
+      toast({ title: 'Changes Requested', description: 'The plan has been sent back to the inspector with your comments.' });
+      navigate('/compliance/field/pending-review');
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message || 'Failed to request changes', variant: 'destructive' });
+    } finally {
+      setIsActioning(false);
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'Urgent':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'High':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'SUBMITTED': return <Badge className="bg-blue-100 text-blue-800">Submitted</Badge>;
+      case 'RESUBMITTED': return <Badge className="bg-purple-100 text-purple-800">Resubmitted</Badge>;
+      case 'APPROVED': return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+      case 'NEEDS_CHANGES': return <Badge variant="destructive">Needs Changes</Badge>;
+      default: return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  const unaddressedRisks = highRiskItems.filter(r => !r.inPlan && (r.riskLevel === 'Critical' || r.riskLevel === 'High'));
-  const unaddressedActions = pendingActions.filter(a => !a.inPlan && (a.priority === 'Urgent' || a.priority === 'High'));
-  const unaddressedViolations = pendingViolations.filter(v => !v.inPlan);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!plan) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <AlertCircle className="h-10 w-10 text-destructive" />
+        <p className="text-muted-foreground">Plan not found.</p>
+        <Button variant="outline" onClick={() => navigate('/compliance/field/pending-review')}>
+          Back to Pending Review
+        </Button>
+      </div>
+    );
+  }
+
+  // Group items by day
+  const dayGroups: Record<string, WeeklyPlanItem[]> = {};
+  for (const item of planItems) {
+    const day = item.day_of_week || 'Unassigned';
+    if (!dayGroups[day]) dayGroups[day] = [];
+    dayGroups[day].push(item);
+  }
+  const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Unassigned'];
+  const orderedDays = dayOrder.filter(d => dayGroups[d]?.length > 0);
+
+  const isResubmission = plan.status === 'RESUBMITTED';
+  const canAction = plan.status === 'SUBMITTED' || plan.status === 'RESUBMITTED';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 container mx-auto p-4 md:p-6">
       <PageHeader
         title="Review Weekly Plan"
         breadcrumbs={[
-          { label: 'Compliance' },
-          { label: 'Audit Planning' },
-          { label: 'Pending Review' },
-          { label: 'Review Plan' }
+          { label: 'Compliance', href: '/compliance/dashboard' },
+          { label: 'Pending Review', href: '/compliance/field/pending-review' },
+          { label: 'Review Plan' },
         ]}
       />
+
+      {/* Resubmission notice */}
+      {isResubmission && (
+        <Card className="border-purple-200 bg-purple-50 dark:bg-purple-900/10">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-purple-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-purple-800 dark:text-purple-300">
+                  Resubmission — This plan was returned for changes and has been updated by the inspector.
+                </p>
+                {plan.rejection_count > 0 && (
+                  <p className="text-xs text-purple-600 mt-1">
+                    This plan has been returned {plan.rejection_count} time{plan.rejection_count > 1 ? 's' : ''}.
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Plan Summary */}
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between">
             <div>
-              <CardTitle>Plan Details</CardTitle>
+              <CardTitle>{plan.plan_number}</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Week of {planDetails.weekStart} to {planDetails.weekEnd}
+                Week of {plan.week_start_date} to {plan.week_end_date}
               </p>
             </div>
-            <Badge variant="outline">{planDetails.status}</Badge>
+            {getStatusBadge(plan.status)}
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Inspector</p>
-              <p className="font-semibold">{planDetails.inspectorName}</p>
+              <p className="font-semibold">{plan.inspector_name || '—'}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Submitted</p>
-              <p className="font-semibold">{new Date(planDetails.submittedAt).toLocaleString()}</p>
+              <p className="font-semibold">
+                {plan.submitted_date ? new Date(plan.submitted_date).toLocaleString() : '—'}
+              </p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Items</p>
               <p className="font-semibold">{planItems.length} visits planned</p>
             </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Rejections</p>
+              <p className="font-semibold">{plan.rejection_count || 0}</p>
+            </div>
           </div>
+          {plan.narrative && (
+            <div className="mt-4 p-3 bg-muted/40 rounded-md">
+              <p className="text-xs text-muted-foreground mb-1">Inspector Narrative</p>
+              <p className="text-sm">{plan.narrative}</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Vetting Dashboard */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
-              Unaddressed Risks
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-orange-600">{unaddressedRisks.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">High/Critical risk employers not in plan</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="h-4 w-4 text-red-500" />
-              Pending Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-600">{unaddressedActions.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Urgent/High priority actions not in plan</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-blue-500" />
-              Open Violations
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-blue-600">{unaddressedViolations.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Violations without planned follow-up</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Guidance Alert */}
-      {(unaddressedRisks.length > 0 || unaddressedActions.length > 0) && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-800">
-              <AlertCircle className="h-5 w-5" />
-              Manager Guidance
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {unaddressedRisks.length > 0 && (
-              <p>• {unaddressedRisks.length} high-risk employer{unaddressedRisks.length > 1 ? 's' : ''} not included in this week's plan. Consider requesting inspector to add these for priority coverage.</p>
-            )}
-            {unaddressedActions.length > 0 && (
-              <p>• {unaddressedActions.length} urgent/high priority action{unaddressedActions.length > 1 ? 's' : ''} not scheduled. These should be addressed this week if possible.</p>
-            )}
-            {unaddressedViolations.length > 0 && (
-              <p>• {unaddressedViolations.length} open violation{unaddressedViolations.length > 1 ? 's' : ''} without planned follow-up. Review if follow-up actions are needed.</p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Tabbed Vetting Details */}
+      {/* Plan Items by Day */}
       <Tabs defaultValue="plan" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="plan">Planned Items ({planItems.length})</TabsTrigger>
-          <TabsTrigger value="risks">
-            High Risks ({highRiskItems.length})
-            {unaddressedRisks.length > 0 && (
-              <Badge variant="destructive" className="ml-2">{unaddressedRisks.length}</Badge>
-            )}
+        <TabsList>
+          <TabsTrigger value="plan">
+            <Calendar className="h-4 w-4 mr-1" />
+            Planned Items ({planItems.length})
           </TabsTrigger>
-          <TabsTrigger value="actions">
-            Pending Actions ({pendingActions.length})
-            {unaddressedActions.length > 0 && (
-              <Badge variant="destructive" className="ml-2">{unaddressedActions.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="violations">
-            Violations ({pendingViolations.length})
-            {unaddressedViolations.length > 0 && (
-              <Badge variant="destructive" className="ml-2">{unaddressedViolations.length}</Badge>
-            )}
+          <TabsTrigger value="history">
+            <FileText className="h-4 w-4 mr-1" />
+            Review History ({reviewHistory.length})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="plan" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Planned Visits</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {planItems.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-3 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">{item.employerName}</span>
+          {orderedDays.map(day => (
+            <Card key={day}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  {day}
+                  <Badge variant="outline" className="ml-1 text-xs">{dayGroups[day].length} items</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {dayGroups[day].map(item => (
+                    <div key={item.id} className="border rounded-lg p-3 space-y-1">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-primary" />
+                          <span className="font-medium text-sm">{item.employer_name || item.area_name || 'Unnamed'}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {item.priority && (
+                            <Badge variant={item.priority === 'CRITICAL' || item.priority === 'HIGH' ? 'destructive' : 'secondary'} className="text-xs">
+                              {item.priority}
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className="text-xs">{item.item_type?.replace(/_/g, ' ')}</Badge>
+                        </div>
                       </div>
-                      <Badge variant="outline">{item.dayOfWeek}</Badge>
+                      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                        {item.territory && (
+                          <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{item.territory}</span>
+                        )}
+                        {item.scheduled_start_time && (
+                          <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{item.scheduled_start_time}{item.scheduled_end_time ? ` – ${item.scheduled_end_time}` : ''}</span>
+                        )}
+                        {item.visit_type && <span>{item.visit_type.replace(/_/g, ' ')}</span>}
+                      </div>
+                      {item.purpose && <p className="text-xs text-muted-foreground">{item.purpose}</p>}
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        <span>{item.territory}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>{item.plannedStartTime} - {item.plannedEndTime}</span>
-                      </div>
-                      <div>
-                        <Badge variant="secondary" className="text-xs">{item.visitType}</Badge>
-                      </div>
-                    </div>
-                    <p className="text-sm">{item.purpose}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {planItems.length === 0 && (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                No items in this plan.
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
-        <TabsContent value="risks" className="space-y-4">
+        <TabsContent value="history" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>High-Risk Employers</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Employers with elevated risk scores that may require attention
-              </p>
+              <CardTitle className="text-sm">Review History</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {highRiskItems.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-3 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">{item.employerName}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getRiskBadgeColor(item.riskLevel)}>
-                          {item.riskLevel} ({item.riskScore})
-                        </Badge>
-                        {item.inPlan ? (
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-red-600" />
+              {reviewHistory.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No review history yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {reviewHistory
+                    .sort((a, b) => new Date(b.performed_at).getTime() - new Date(a.performed_at).getTime())
+                    .map(review => (
+                      <div key={review.id} className="border rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className="text-xs">{review.action}</Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(review.performed_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">By: {review.performed_by}</p>
+                        {review.comments && (
+                          <p className="text-sm mt-1 bg-muted/30 p-2 rounded">{review.comments}</p>
                         )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <MapPin className="h-3 w-3" />
-                      <span>{item.territory}</span>
-                    </div>
-                    <p className="text-sm">{item.reason}</p>
-                    <div className="text-xs">
-                      {item.inPlan ? (
-                        <span className="text-green-600 font-medium">✓ Included in plan</span>
-                      ) : (
-                        <span className="text-red-600 font-medium">✗ Not in plan - Consider adding</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="actions" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Pending Actions</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Outstanding follow-up actions assigned to this inspector
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {pendingActions.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-3 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="font-mono text-xs">
-                            {item.violationNumber}
-                          </Badge>
-                          <Badge className={getPriorityColor(item.priority)}>
-                            {item.priority}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-semibold">{item.employerName}</span>
-                        </div>
-                      </div>
-                      {item.inPlan ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-600" />
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        <span>{item.territory}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>Due: {new Date(item.dueDate).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                    <Badge variant="secondary" className="text-xs">{item.actionType}</Badge>
-                    <div className="text-xs">
-                      {item.inPlan ? (
-                        <span className="text-green-600 font-medium">✓ Included in plan</span>
-                      ) : (
-                        <span className="text-red-600 font-medium">✗ Not in plan - Should be addressed</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="violations" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Open Violations</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Violations in inspector's zone requiring follow-up
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {pendingViolations.map((item) => (
-                  <div key={item.id} className="border rounded-lg p-3 space-y-2">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <Badge variant="outline" className="font-mono text-xs">
-                          {item.violationNumber}
-                        </Badge>
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-semibold">{item.employerName}</span>
-                        </div>
-                      </div>
-                      {item.inPlan ? (
-                        <CheckCircle className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <XCircle className="h-4 w-4 text-red-600" />
-                      )}
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        <span>{item.territory}</span>
-                      </div>
-                      <div>
-                        <Badge variant="secondary" className="text-xs">{item.status}</Badge>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        <span>{new Date(item.createdDate).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                    <p className="text-sm">{item.violationType}</p>
-                    <div className="text-xs">
-                      {item.inPlan ? (
-                        <span className="text-green-600 font-medium">✓ Follow-up planned</span>
-                      ) : (
-                        <span className="text-orange-600 font-medium">⚠ No follow-up scheduled</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
       {/* Manager Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Manager Review & Comments</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="comments">Comments / Feedback</Label>
-            <Textarea
-              id="comments"
-              placeholder="Provide feedback or guidance for the inspector..."
-              value={managerComments}
-              onChange={(e) => setManagerComments(e.target.value)}
-              rows={4}
-              className="mt-2"
-            />
-          </div>
+      {canAction && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Manager Review & Comments</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="comments">Comments / Feedback</Label>
+              <Textarea
+                id="comments"
+                placeholder="Provide feedback or guidance for the inspector..."
+                value={managerComments}
+                onChange={(e) => setManagerComments(e.target.value)}
+                rows={4}
+                className="mt-2"
+              />
+            </div>
 
-          <div className="flex gap-3 justify-end">
-            <Button
-              variant="outline"
-              onClick={() => navigate('/compliance/audit-planning/pending-review')}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleRequestChanges}
-              disabled={isLoading}
-            >
-              Request Changes
-            </Button>
-            <Button onClick={handleApprove} disabled={isLoading}>
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve Plan
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/compliance/field/pending-review')}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleRequestChanges}
+                disabled={isActioning}
+              >
+                {isActioning && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                Request Changes
+              </Button>
+              <Button onClick={handleApprove} disabled={isActioning}>
+                {isActioning ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                Approve Plan
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Already reviewed */}
+      {!canAction && plan.status !== 'DRAFT' && (
+        <Card>
+          <CardContent className="py-4 text-center text-muted-foreground">
+            This plan has been {plan.status === 'APPROVED' ? 'approved' : plan.status === 'NEEDS_CHANGES' ? 'returned for changes' : plan.status.toLowerCase()}.
+            {plan.reviewer_comments && (
+              <p className="mt-2 text-sm"><strong>Comments:</strong> {plan.reviewer_comments}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
