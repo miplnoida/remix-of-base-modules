@@ -314,3 +314,15 @@ export default function WeeklyReportSubmission() {
     </div>
   );
 }
+
+function KpiBox({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
+  return (
+    <div className="p-3 border rounded-md flex items-center gap-2">
+      <div className="text-muted-foreground">{icon}</div>
+      <div>
+        <div className="text-xl font-bold">{value}</div>
+        <div className="text-xs text-muted-foreground">{label}</div>
+      </div>
+    </div>
+  );
+}
