@@ -33564,80 +33564,16 @@ export type Database = {
       }
       ip_wages: {
         Row: {
-          " date_entered": string | null
-          " date_modified": string | null
-          " date_verified": string | null
-          " entered_by": string | null
-          " er_ei_amt": number | null
-          " er_levy_amt": number | null
-          " er_ss_amt": number | null
-          " input_seq_no": number | null
-          " ip_levy_amt": number | null
-          " ip_pe_amt": number | null
-          " ip_ss_amt": number | null
-          " modified_by": string | null
-          " paid_code1": number | null
-          " paid_code2": number | null
-          " paid_code3": number | null
-          " paid_code4": number | null
-          " paid_code5": number | null
-          " paid_code6": number | null
-          " paid_code7": number | null
-          " pay_period": number | null
-          " payer_id": number | null
-          " payer_type": string | null
-          " period": string | null
-          " posting_status ": string | null
-          " sequence_no": number | null
-          " verified_by": string | null
-          " wages_paid1": number | null
-          " wages_paid2": number | null
-          " wages_paid3": number | null
-          " wages_paid4": number | null
-          " wages_paid5": number | null
-          " wages_paid6": number | null
-          " wages_paid7": number | null
-          "0": number | null
-          "0_1": number | null
-          "0_2": number | null
-          "0.00": number | null
-          "0.00_1": number | null
-          "0.00_2": number | null
-          "0.00_3": number | null
-          "1": number | null
-          "1_1": number | null
-          "1_2": number | null
-          "1_3": number | null
-          "1_4": number | null
-          "1_5": number | null
-          "100.00": number | null
-          "100.00_1": number | null
-          "100.00_2": number | null
-          "100.00_3": number | null
-          "157183": number | null
-          "20.00": number | null
-          "20.00_1": number | null
-          "4.00": number | null
-          "4.00_1": number | null
-          "656358": number | null
-          "8.00": number | null
-          administrator: string | null
           bonus_date: string | null
           bonus_exempt_levy: boolean | null
           bonus_holiday_swapped: boolean | null
           c3_id: string | null
-          column27: string | null
-          column28: string | null
-          column29: number | null
-          column30: string | null
-          column31: string | null
           created_at: string
           date_entered: string | null
           date_modified: string | null
           date_verified: string | null
           employee_name: string | null
           entered_by: string | null
-          "ER ": string | null
           er_ei_amt: number | null
           er_levy_amt: number | null
           er_ss_amt: number | null
@@ -33649,8 +33585,6 @@ export type Database = {
           ip_pe_amt: number | null
           ip_ss_amt: number | null
           is_verified: boolean
-          "Jan  1 1986 12:00:00:000AM": string | null
-          "Mar  9 2015  7:28:25:683PM": string | null
           modified_by: string | null
           paid_code1: string | null
           paid_code2: string | null
@@ -33668,7 +33602,6 @@ export type Database = {
           ssn: string | null
           total_wages: number | null
           updated_at: string
-          vac: string | null
           verified_by: string | null
           wages_paid1: number | null
           wages_paid2: number | null
@@ -33679,80 +33612,16 @@ export type Database = {
           wages_paid7: number | null
         }
         Insert: {
-          " date_entered"?: string | null
-          " date_modified"?: string | null
-          " date_verified"?: string | null
-          " entered_by"?: string | null
-          " er_ei_amt"?: number | null
-          " er_levy_amt"?: number | null
-          " er_ss_amt"?: number | null
-          " input_seq_no"?: number | null
-          " ip_levy_amt"?: number | null
-          " ip_pe_amt"?: number | null
-          " ip_ss_amt"?: number | null
-          " modified_by"?: string | null
-          " paid_code1"?: number | null
-          " paid_code2"?: number | null
-          " paid_code3"?: number | null
-          " paid_code4"?: number | null
-          " paid_code5"?: number | null
-          " paid_code6"?: number | null
-          " paid_code7"?: number | null
-          " pay_period"?: number | null
-          " payer_id"?: number | null
-          " payer_type"?: string | null
-          " period"?: string | null
-          " posting_status "?: string | null
-          " sequence_no"?: number | null
-          " verified_by"?: string | null
-          " wages_paid1"?: number | null
-          " wages_paid2"?: number | null
-          " wages_paid3"?: number | null
-          " wages_paid4"?: number | null
-          " wages_paid5"?: number | null
-          " wages_paid6"?: number | null
-          " wages_paid7"?: number | null
-          "0"?: number | null
-          "0_1"?: number | null
-          "0_2"?: number | null
-          "0.00"?: number | null
-          "0.00_1"?: number | null
-          "0.00_2"?: number | null
-          "0.00_3"?: number | null
-          "1"?: number | null
-          "1_1"?: number | null
-          "1_2"?: number | null
-          "1_3"?: number | null
-          "1_4"?: number | null
-          "1_5"?: number | null
-          "100.00"?: number | null
-          "100.00_1"?: number | null
-          "100.00_2"?: number | null
-          "100.00_3"?: number | null
-          "157183"?: number | null
-          "20.00"?: number | null
-          "20.00_1"?: number | null
-          "4.00"?: number | null
-          "4.00_1"?: number | null
-          "656358"?: number | null
-          "8.00"?: number | null
-          administrator?: string | null
           bonus_date?: string | null
           bonus_exempt_levy?: boolean | null
           bonus_holiday_swapped?: boolean | null
           c3_id?: string | null
-          column27?: string | null
-          column28?: string | null
-          column29?: number | null
-          column30?: string | null
-          column31?: string | null
           created_at?: string
           date_entered?: string | null
           date_modified?: string | null
           date_verified?: string | null
           employee_name?: string | null
           entered_by?: string | null
-          "ER "?: string | null
           er_ei_amt?: number | null
           er_levy_amt?: number | null
           er_ss_amt?: number | null
@@ -33764,8 +33633,6 @@ export type Database = {
           ip_pe_amt?: number | null
           ip_ss_amt?: number | null
           is_verified?: boolean
-          "Jan  1 1986 12:00:00:000AM"?: string | null
-          "Mar  9 2015  7:28:25:683PM"?: string | null
           modified_by?: string | null
           paid_code1?: string | null
           paid_code2?: string | null
@@ -33783,7 +33650,6 @@ export type Database = {
           ssn?: string | null
           total_wages?: number | null
           updated_at?: string
-          vac?: string | null
           verified_by?: string | null
           wages_paid1?: number | null
           wages_paid2?: number | null
@@ -33794,80 +33660,16 @@ export type Database = {
           wages_paid7?: number | null
         }
         Update: {
-          " date_entered"?: string | null
-          " date_modified"?: string | null
-          " date_verified"?: string | null
-          " entered_by"?: string | null
-          " er_ei_amt"?: number | null
-          " er_levy_amt"?: number | null
-          " er_ss_amt"?: number | null
-          " input_seq_no"?: number | null
-          " ip_levy_amt"?: number | null
-          " ip_pe_amt"?: number | null
-          " ip_ss_amt"?: number | null
-          " modified_by"?: string | null
-          " paid_code1"?: number | null
-          " paid_code2"?: number | null
-          " paid_code3"?: number | null
-          " paid_code4"?: number | null
-          " paid_code5"?: number | null
-          " paid_code6"?: number | null
-          " paid_code7"?: number | null
-          " pay_period"?: number | null
-          " payer_id"?: number | null
-          " payer_type"?: string | null
-          " period"?: string | null
-          " posting_status "?: string | null
-          " sequence_no"?: number | null
-          " verified_by"?: string | null
-          " wages_paid1"?: number | null
-          " wages_paid2"?: number | null
-          " wages_paid3"?: number | null
-          " wages_paid4"?: number | null
-          " wages_paid5"?: number | null
-          " wages_paid6"?: number | null
-          " wages_paid7"?: number | null
-          "0"?: number | null
-          "0_1"?: number | null
-          "0_2"?: number | null
-          "0.00"?: number | null
-          "0.00_1"?: number | null
-          "0.00_2"?: number | null
-          "0.00_3"?: number | null
-          "1"?: number | null
-          "1_1"?: number | null
-          "1_2"?: number | null
-          "1_3"?: number | null
-          "1_4"?: number | null
-          "1_5"?: number | null
-          "100.00"?: number | null
-          "100.00_1"?: number | null
-          "100.00_2"?: number | null
-          "100.00_3"?: number | null
-          "157183"?: number | null
-          "20.00"?: number | null
-          "20.00_1"?: number | null
-          "4.00"?: number | null
-          "4.00_1"?: number | null
-          "656358"?: number | null
-          "8.00"?: number | null
-          administrator?: string | null
           bonus_date?: string | null
           bonus_exempt_levy?: boolean | null
           bonus_holiday_swapped?: boolean | null
           c3_id?: string | null
-          column27?: string | null
-          column28?: string | null
-          column29?: number | null
-          column30?: string | null
-          column31?: string | null
           created_at?: string
           date_entered?: string | null
           date_modified?: string | null
           date_verified?: string | null
           employee_name?: string | null
           entered_by?: string | null
-          "ER "?: string | null
           er_ei_amt?: number | null
           er_levy_amt?: number | null
           er_ss_amt?: number | null
@@ -33879,8 +33681,6 @@ export type Database = {
           ip_pe_amt?: number | null
           ip_ss_amt?: number | null
           is_verified?: boolean
-          "Jan  1 1986 12:00:00:000AM"?: string | null
-          "Mar  9 2015  7:28:25:683PM"?: string | null
           modified_by?: string | null
           paid_code1?: string | null
           paid_code2?: string | null
@@ -33898,7 +33698,6 @@ export type Database = {
           ssn?: string | null
           total_wages?: number | null
           updated_at?: string
-          vac?: string | null
           verified_by?: string | null
           wages_paid1?: number | null
           wages_paid2?: number | null
@@ -34341,6 +34140,153 @@ export type Database = {
           period?: string
           sequence_no?: number
           susp_id?: number
+          wages_paid1?: number | null
+          wages_paid2?: number | null
+          wages_paid3?: number | null
+          wages_paid4?: number | null
+          wages_paid5?: number | null
+          wages_paid6?: number | null
+          wages_paid7?: number | null
+        }
+        Relationships: []
+      }
+      ip_wages_tmp: {
+        Row: {
+          bonus_date: string | null
+          bonus_exempt_levy: boolean | null
+          bonus_holiday_swapped: boolean | null
+          c3_id: string | null
+          created_at: string | null
+          date_entered: string | null
+          date_modified: string | null
+          date_verified: string | null
+          employee_name: string | null
+          entered_by: string | null
+          er_ei_amt: number | null
+          er_levy_amt: number | null
+          er_ss_amt: number | null
+          holiday_end_date: string | null
+          holiday_start_date: string | null
+          id: string | null
+          input_seq_no: number | null
+          ip_levy_amt: number | null
+          ip_pe_amt: number | null
+          ip_ss_amt: number | null
+          is_verified: boolean | null
+          modified_by: string | null
+          paid_code1: string | null
+          paid_code2: string | null
+          paid_code3: string | null
+          paid_code4: string | null
+          paid_code5: string | null
+          paid_code6: string | null
+          paid_code7: string | null
+          pay_period: string | null
+          payer_id: string | null
+          payer_type: string | null
+          period: string | null
+          posting_status: string | null
+          sequence_no: number | null
+          ssn: string | null
+          total_wages: number | null
+          updated_at: string | null
+          verified_by: string | null
+          wages_paid1: number | null
+          wages_paid2: number | null
+          wages_paid3: number | null
+          wages_paid4: number | null
+          wages_paid5: number | null
+          wages_paid6: number | null
+          wages_paid7: number | null
+        }
+        Insert: {
+          bonus_date?: string | null
+          bonus_exempt_levy?: boolean | null
+          bonus_holiday_swapped?: boolean | null
+          c3_id?: string | null
+          created_at?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          date_verified?: string | null
+          employee_name?: string | null
+          entered_by?: string | null
+          er_ei_amt?: number | null
+          er_levy_amt?: number | null
+          er_ss_amt?: number | null
+          holiday_end_date?: string | null
+          holiday_start_date?: string | null
+          id?: string | null
+          input_seq_no?: number | null
+          ip_levy_amt?: number | null
+          ip_pe_amt?: number | null
+          ip_ss_amt?: number | null
+          is_verified?: boolean | null
+          modified_by?: string | null
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          paid_code7?: string | null
+          pay_period?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          period?: string | null
+          posting_status?: string | null
+          sequence_no?: number | null
+          ssn?: string | null
+          total_wages?: number | null
+          updated_at?: string | null
+          verified_by?: string | null
+          wages_paid1?: number | null
+          wages_paid2?: number | null
+          wages_paid3?: number | null
+          wages_paid4?: number | null
+          wages_paid5?: number | null
+          wages_paid6?: number | null
+          wages_paid7?: number | null
+        }
+        Update: {
+          bonus_date?: string | null
+          bonus_exempt_levy?: boolean | null
+          bonus_holiday_swapped?: boolean | null
+          c3_id?: string | null
+          created_at?: string | null
+          date_entered?: string | null
+          date_modified?: string | null
+          date_verified?: string | null
+          employee_name?: string | null
+          entered_by?: string | null
+          er_ei_amt?: number | null
+          er_levy_amt?: number | null
+          er_ss_amt?: number | null
+          holiday_end_date?: string | null
+          holiday_start_date?: string | null
+          id?: string | null
+          input_seq_no?: number | null
+          ip_levy_amt?: number | null
+          ip_pe_amt?: number | null
+          ip_ss_amt?: number | null
+          is_verified?: boolean | null
+          modified_by?: string | null
+          paid_code1?: string | null
+          paid_code2?: string | null
+          paid_code3?: string | null
+          paid_code4?: string | null
+          paid_code5?: string | null
+          paid_code6?: string | null
+          paid_code7?: string | null
+          pay_period?: string | null
+          payer_id?: string | null
+          payer_type?: string | null
+          period?: string | null
+          posting_status?: string | null
+          sequence_no?: number | null
+          ssn?: string | null
+          total_wages?: number | null
+          updated_at?: string | null
+          verified_by?: string | null
           wages_paid1?: number | null
           wages_paid2?: number | null
           wages_paid3?: number | null
