@@ -33471,6 +33471,39 @@ export type Database = {
       }
       ip_wages: {
         Row: {
+          " date_entered": string | null
+          " date_modified": string | null
+          " date_verified": string | null
+          " entered_by": string | null
+          " er_ei_amt": number | null
+          " er_levy_amt": number | null
+          " er_ss_amt": number | null
+          " input_seq_no": number | null
+          " ip_levy_amt": number | null
+          " ip_pe_amt": number | null
+          " ip_ss_amt": number | null
+          " modified_by": string | null
+          " paid_code1": number | null
+          " paid_code2": number | null
+          " paid_code3": number | null
+          " paid_code4": number | null
+          " paid_code5": number | null
+          " paid_code6": number | null
+          " paid_code7": number | null
+          " pay_period": number | null
+          " payer_id": number | null
+          " payer_type": string | null
+          " period": string | null
+          " posting_status ": string | null
+          " sequence_no": number | null
+          " verified_by": string | null
+          " wages_paid1": number | null
+          " wages_paid2": number | null
+          " wages_paid3": number | null
+          " wages_paid4": number | null
+          " wages_paid5": number | null
+          " wages_paid6": number | null
+          " wages_paid7": number | null
           "0": number | null
           "0_1": number | null
           "0_2": number | null
@@ -33553,6 +33586,39 @@ export type Database = {
           wages_paid7: number | null
         }
         Insert: {
+          " date_entered"?: string | null
+          " date_modified"?: string | null
+          " date_verified"?: string | null
+          " entered_by"?: string | null
+          " er_ei_amt"?: number | null
+          " er_levy_amt"?: number | null
+          " er_ss_amt"?: number | null
+          " input_seq_no"?: number | null
+          " ip_levy_amt"?: number | null
+          " ip_pe_amt"?: number | null
+          " ip_ss_amt"?: number | null
+          " modified_by"?: string | null
+          " paid_code1"?: number | null
+          " paid_code2"?: number | null
+          " paid_code3"?: number | null
+          " paid_code4"?: number | null
+          " paid_code5"?: number | null
+          " paid_code6"?: number | null
+          " paid_code7"?: number | null
+          " pay_period"?: number | null
+          " payer_id"?: number | null
+          " payer_type"?: string | null
+          " period"?: string | null
+          " posting_status "?: string | null
+          " sequence_no"?: number | null
+          " verified_by"?: string | null
+          " wages_paid1"?: number | null
+          " wages_paid2"?: number | null
+          " wages_paid3"?: number | null
+          " wages_paid4"?: number | null
+          " wages_paid5"?: number | null
+          " wages_paid6"?: number | null
+          " wages_paid7"?: number | null
           "0"?: number | null
           "0_1"?: number | null
           "0_2"?: number | null
@@ -33635,6 +33701,39 @@ export type Database = {
           wages_paid7?: number | null
         }
         Update: {
+          " date_entered"?: string | null
+          " date_modified"?: string | null
+          " date_verified"?: string | null
+          " entered_by"?: string | null
+          " er_ei_amt"?: number | null
+          " er_levy_amt"?: number | null
+          " er_ss_amt"?: number | null
+          " input_seq_no"?: number | null
+          " ip_levy_amt"?: number | null
+          " ip_pe_amt"?: number | null
+          " ip_ss_amt"?: number | null
+          " modified_by"?: string | null
+          " paid_code1"?: number | null
+          " paid_code2"?: number | null
+          " paid_code3"?: number | null
+          " paid_code4"?: number | null
+          " paid_code5"?: number | null
+          " paid_code6"?: number | null
+          " paid_code7"?: number | null
+          " pay_period"?: number | null
+          " payer_id"?: number | null
+          " payer_type"?: string | null
+          " period"?: string | null
+          " posting_status "?: string | null
+          " sequence_no"?: number | null
+          " verified_by"?: string | null
+          " wages_paid1"?: number | null
+          " wages_paid2"?: number | null
+          " wages_paid3"?: number | null
+          " wages_paid4"?: number | null
+          " wages_paid5"?: number | null
+          " wages_paid6"?: number | null
+          " wages_paid7"?: number | null
           "0"?: number | null
           "0_1"?: number | null
           "0_2"?: number | null
