@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock supabase client BEFORE importing service
 vi.mock('@/integrations/supabase/client', async () => {
-  const m = await import('../mocks/supabaseClientMock');
+  const m = await import('@/test/mocks/supabaseClientMock');
   return { supabase: m.supabase };
 });
 vi.mock('@/hooks/useUserCode', () => ({
@@ -22,7 +22,7 @@ import {
   registerTable,
   getInserts,
   getUpdates,
-} from '../mocks/supabaseClientMock';
+} from '@/test/mocks/supabaseClientMock';
 
 beforeEach(() => resetSupabaseMock());
 
