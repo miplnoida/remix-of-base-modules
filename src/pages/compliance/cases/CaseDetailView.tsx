@@ -93,6 +93,34 @@ export default function CaseDetailView() {
     enabled: !!id,
   });
 
+  const { data: caseNotices = [] } = useQuery({
+    queryKey: ['ce_case_notices', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_notices')
+        .select('*')
+        .eq('case_id', id!)
+        .order('created_at', { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
+    enabled: !!id,
+  });
+
+  const { data: caseArrangements = [] } = useQuery({
+    queryKey: ['ce_case_arrangements', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_payment_arrangements')
+        .select('*')
+        .eq('case_id', id!)
+        .order('created_at', { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
+    enabled: !!id,
+  });
+
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['ce_case_detail', id] });
     queryClient.invalidateQueries({ queryKey: ['ce_case_violations', id] });
