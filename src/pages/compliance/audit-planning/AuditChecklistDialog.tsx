@@ -239,12 +239,12 @@ export function AuditChecklistDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} disabled={saving}>
             <FileText className="h-4 w-4 mr-2" />
-            Save Checklist
+            {saving ? 'Saving...' : 'Save Checklist'}
           </Button>
         </DialogFooter>
       </DialogContent>
