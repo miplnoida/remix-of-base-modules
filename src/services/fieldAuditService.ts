@@ -918,6 +918,339 @@ export const fieldAuditService = {
     if (error) throw error;
     return data ?? [];
   },
+
+  // ── Audit Session Lifecycle (P2) ───────────────
+
+  /**
+   * Start an audit session for a plan item.
+   * - Creates a ce_inspections row if one doesn't already exist for this plan item.
+   * - Records execution mode + optional GPS (non-blocking; never required).
+   * - Idempotent: returns existing inspection if a session is already started.
+   */
+  async startAuditSession(req: StartAuditSessionRequest): Promise<{ inspectionId: string; resumed: boolean }> {
+    const userCode = await whoami();
+
+    const { data: planItem, error: piErr } = await supabase
+      .from('ce_weekly_plan_items')
+      .select('*')
+      .eq('id', req.planItemId)
+      .maybeSingle();
+    if (piErr) throw piErr;
+    if (!planItem) throw new Error('Plan item not found');
+
+    const { data: existing } = await supabase
+      .from('ce_inspections')
+      .select('*')
+      .eq('plan_item_id', req.planItemId)
+      .maybeSingle();
+
+    if (existing) {
+      if (!(existing as any).session_started_at) {
+        await supabase
+          .from('ce_inspections')
+          .update({
+            execution_mode: req.executionMode,
+            gps_unavailable_reason: req.gpsUnavailableReason ?? null,
+            session_started_at: nowIso(),
+            check_in_time: (existing as any).check_in_time ?? nowIso(),
+            check_in_gps_lat: req.gpsLat ?? null,
+            check_in_gps_lng: req.gpsLng ?? null,
+            status: 'IN_PROGRESS',
+            updated_by: userCode,
+            updated_at: nowIso(),
+          } as any)
+          .eq('id', (existing as any).id);
+      }
+      return { inspectionId: (existing as any).id, resumed: true };
+    }
+
+    const { data: created, error } = await supabase
+      .from('ce_inspections')
+      .insert({
+        plan_item_id: req.planItemId,
+        employer_id: (planItem as any).employer_id ?? null,
+        employer_name: (planItem as any).employer_name ?? null,
+        inspector_id: (planItem as any).inspector_id ?? userCode,
+        inspector_name: (planItem as any).inspector_name ?? null,
+        territory: (planItem as any).territory ?? 'St Kitts',
+        visit_date: (planItem as any).scheduled_date ?? new Date().toISOString().slice(0, 10),
+        check_in_time: nowIso(),
+        check_in_gps_lat: req.gpsLat ?? null,
+        check_in_gps_lng: req.gpsLng ?? null,
+        execution_mode: req.executionMode,
+        gps_unavailable_reason: req.gpsUnavailableReason ?? null,
+        session_started_at: nowIso(),
+        status: 'IN_PROGRESS',
+        notes: req.startNotes ?? null,
+        created_by: userCode,
+        updated_by: userCode,
+      } as any)
+      .select('id')
+      .single();
+    if (error) throw error;
+
+    await supabase
+      .from('ce_weekly_plan_items')
+      .update({
+        execution_status: 'IN_PROGRESS',
+        updated_by: userCode,
+        updated_at: nowIso(),
+      } as any)
+      .eq('id', req.planItemId);
+
+    return { inspectionId: created.id, resumed: false };
+  },
+
+  // ── Completion Gate Configuration ──────────────
+
+  async getCompletionGateConfig(scope: string = 'GLOBAL'): Promise<CompletionGateConfig> {
+    const { data, error } = await supabase
+      .from('ce_completion_gate_config' as any)
+      .select('*')
+      .eq('scope', scope)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (error) throw error;
+
+    if (!data) {
+      return {
+        id: 'default',
+        scope: 'GLOBAL',
+        enforcementMode: 'STRICT',
+        requireChecklistComplete: true,
+        requireFindingsRecorded: true,
+        requireReportSaved: true,
+        requireFollowupsForSeverity: 'MEDIUM',
+        requireEvidenceMinCount: 0,
+        overrideRequiresRole: 'COMPLIANCE_SUPERVISOR',
+        isActive: true,
+      };
+    }
+    const r: any = data;
+    return {
+      id: r.id,
+      scope: r.scope,
+      enforcementMode: r.enforcement_mode,
+      requireChecklistComplete: !!r.require_checklist_complete,
+      requireFindingsRecorded: !!r.require_findings_recorded,
+      requireReportSaved: !!r.require_report_saved,
+      requireFollowupsForSeverity: r.require_followups_for_severity ?? null,
+      requireEvidenceMinCount: r.require_evidence_min_count ?? 0,
+      overrideRequiresRole: r.override_requires_role ?? null,
+      isActive: !!r.is_active,
+    };
+  },
+
+  async updateCompletionGateConfig(
+    scope: string,
+    patch: Partial<Omit<CompletionGateConfig, 'id' | 'scope'>>
+  ): Promise<CompletionGateConfig> {
+    const userCode = await whoami();
+    const update: any = { updated_by: userCode };
+    if (patch.enforcementMode !== undefined) update.enforcement_mode = patch.enforcementMode;
+    if (patch.requireChecklistComplete !== undefined) update.require_checklist_complete = patch.requireChecklistComplete;
+    if (patch.requireFindingsRecorded !== undefined) update.require_findings_recorded = patch.requireFindingsRecorded;
+    if (patch.requireReportSaved !== undefined) update.require_report_saved = patch.requireReportSaved;
+    if (patch.requireFollowupsForSeverity !== undefined) update.require_followups_for_severity = patch.requireFollowupsForSeverity;
+    if (patch.requireEvidenceMinCount !== undefined) update.require_evidence_min_count = patch.requireEvidenceMinCount;
+    if (patch.overrideRequiresRole !== undefined) update.override_requires_role = patch.overrideRequiresRole;
+    if (patch.isActive !== undefined) update.is_active = patch.isActive;
+
+    const { error } = await supabase
+      .from('ce_completion_gate_config' as any)
+      .update(update)
+      .eq('scope', scope);
+    if (error) throw error;
+    return this.getCompletionGateConfig(scope);
+  },
+
+  // ── Completion Gate Evaluation ─────────────────
+
+  async evaluateCompletionGate(inspectionId: string): Promise<CompletionGateResult> {
+    const cfg = await this.getCompletionGateConfig('GLOBAL');
+    const metrics: any = (await this.getVisitMetrics(inspectionId)) ?? {};
+    const findings = await this.getFindingsForVisit(inspectionId);
+    const { data: report } = await supabase
+      .from('ce_employer_audit_reports')
+      .select('id,status')
+      .eq('inspection_id', inspectionId)
+      .maybeSingle();
+
+    const checklistTotal = metrics.checklist_total ?? 0;
+    const checklistAnswered = metrics.checklist_answered ?? 0;
+    const checklistComplete = checklistTotal > 0 && checklistAnswered >= checklistTotal;
+
+    const findingsCount = findings.length;
+    const evidenceCount = metrics.evidence_count ?? 0;
+
+    const sevOrder = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 } as const;
+    const threshold = cfg.requireFollowupsForSeverity ? sevOrder[cfg.requireFollowupsForSeverity] : null;
+    const findingsNeedingFollowup = threshold
+      ? findings.filter((f) => {
+          const sevKey = (f.severity ?? 'Medium').toUpperCase() as keyof typeof sevOrder;
+          return (sevOrder[sevKey] ?? 0) >= threshold;
+        })
+      : [];
+    const followupsCovered =
+      findingsNeedingFollowup.length === 0 ||
+      findingsNeedingFollowup.every((f) => f.followUpRequired);
+
+    const checks: CompletionGateResult['checks'] = [
+      {
+        key: 'checklist',
+        label: 'Checklist completed',
+        required: cfg.requireChecklistComplete,
+        passed: checklistComplete,
+        detail: checklistTotal === 0 ? 'No checklist questions found' : `${checklistAnswered}/${checklistTotal} answered`,
+      },
+      {
+        key: 'findings',
+        label: 'At least one finding recorded',
+        required: cfg.requireFindingsRecorded,
+        passed: findingsCount > 0,
+        detail: `${findingsCount} finding(s)`,
+      },
+      {
+        key: 'evidence',
+        label: `Minimum evidence (${cfg.requireEvidenceMinCount})`,
+        required: cfg.requireEvidenceMinCount > 0,
+        passed: evidenceCount >= cfg.requireEvidenceMinCount,
+        detail: `${evidenceCount} evidence item(s)`,
+      },
+      {
+        key: 'report',
+        label: 'Audit report saved',
+        required: cfg.requireReportSaved,
+        passed: !!report,
+        detail: report ? `Status: ${(report as any).status}` : 'Not generated',
+      },
+      {
+        key: 'followups',
+        label: `Follow-ups for ${cfg.requireFollowupsForSeverity ?? 'N/A'}+ severity findings`,
+        required: !!cfg.requireFollowupsForSeverity,
+        passed: followupsCovered,
+        detail:
+          findingsNeedingFollowup.length === 0
+            ? 'No qualifying findings'
+            : `${findingsNeedingFollowup.filter((f) => f.followUpRequired).length}/${findingsNeedingFollowup.length} covered`,
+      },
+    ];
+
+    const missingRequired = checks.filter((c) => c.required && !c.passed).map((c) => c.label);
+    const ready = missingRequired.length === 0;
+
+    return { ready, enforcementMode: cfg.enforcementMode, checks, missingRequired };
+  },
+
+  // ── Close Audit Session ────────────────────────
+
+  /**
+   * Close an audit session, honoring the configured enforcement mode:
+   *   STRICT       — blocks if gate fails unless overrideReason is supplied
+   *   SELF_SERVICE — allows close with overrideReason if gate fails
+   *   SOFT_WARNING — never blocks
+   */
+  async closeAuditSession(
+    req: CloseAuditSessionRequest
+  ): Promise<{ closed: boolean; gate: CompletionGateResult }> {
+    const userCode = await whoami();
+    const gate = await this.evaluateCompletionGate(req.inspectionId);
+
+    const needsOverride = !gate.ready && gate.enforcementMode !== 'SOFT_WARNING';
+    if (needsOverride && !req.overrideReason) {
+      return { closed: false, gate };
+    }
+
+    const update: any = {
+      check_out_time: nowIso(),
+      check_out_gps_lat: req.gpsLat ?? null,
+      check_out_gps_lng: req.gpsLng ?? null,
+      session_closed_at: nowIso(),
+      status: 'COMPLETED',
+      updated_by: userCode,
+      updated_at: nowIso(),
+    };
+    if (req.closeNotes) update.notes = req.closeNotes;
+    if (needsOverride && req.overrideReason) {
+      update.completion_gate_overridden_by = userCode;
+      update.completion_gate_override_reason = req.overrideReason;
+      update.completion_gate_overridden_at = nowIso();
+    }
+
+    const { error } = await supabase
+      .from('ce_inspections')
+      .update(update)
+      .eq('id', req.inspectionId);
+    if (error) throw error;
+
+    const { data: insp } = await supabase
+      .from('ce_inspections')
+      .select('plan_item_id')
+      .eq('id', req.inspectionId)
+      .maybeSingle();
+    if ((insp as any)?.plan_item_id) {
+      await supabase
+        .from('ce_weekly_plan_items')
+        .update({
+          execution_status: 'COMPLETED',
+          updated_by: userCode,
+          updated_at: nowIso(),
+        } as any)
+        .eq('id', (insp as any).plan_item_id);
+    }
+
+    return { closed: true, gate };
+  },
+
+  // ── Visit Workspace Aggregator ─────────────────
+
+  /**
+   * Single call returning everything the Audit Visit Workspace screen needs.
+   */
+  async getVisitWorkspaceData(planItemId: string) {
+    const { data: planItem, error: piErr } = await supabase
+      .from('ce_weekly_plan_items')
+      .select('*, ce_weekly_plans(*)')
+      .eq('id', planItemId)
+      .maybeSingle();
+    if (piErr) throw piErr;
+
+    const { data: inspection } = await supabase
+      .from('ce_inspections')
+      .select('*')
+      .eq('plan_item_id', planItemId)
+      .maybeSingle();
+
+    const inspectionId = (inspection as any)?.id;
+
+    let metrics: any = null;
+    let evidence: InspectionEvidence[] = [];
+    let findings: InspectionFinding[] = [];
+    let report: EmployerAuditReportRow | null = null;
+    let gate: CompletionGateResult | null = null;
+
+    if (inspectionId) {
+      [metrics, evidence, findings, report, gate] = await Promise.all([
+        this.getVisitMetrics(inspectionId),
+        this.getEvidenceForVisit(inspectionId),
+        this.getFindingsForVisit(inspectionId),
+        this.getEmployerAuditReport(inspectionId),
+        this.evaluateCompletionGate(inspectionId),
+      ]);
+    }
+
+    return {
+      planItem,
+      plan: (planItem as any)?.ce_weekly_plans ?? null,
+      inspection,
+      inspectionId,
+      metrics,
+      evidence,
+      findings,
+      report,
+      gate,
+    };
+  },
 };
 
 function mapReport(r: any): EmployerAuditReportRow {
