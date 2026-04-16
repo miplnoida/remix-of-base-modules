@@ -137,8 +137,6 @@ function FeatureFlagsTab() {
       rollout_state: 'hidden' as RolloutState,
       pilot_user_ids: [],
       pilot_role_ids: [],
-      created_by: null,
-      updated_by: null,
     }, {
       onSuccess: () => {
         setShowCreate(false);
@@ -202,7 +200,7 @@ function FeatureFlagsTab() {
                   <Switch checked={f.is_enabled} onCheckedChange={(v) => updateMutation.mutate({ id: f.id, updates: { is_enabled: v } })} />
                 </TableCell>
                 <TableCell>
-                  <Select value={f.rollout_state} onValueChange={(v) => updateMutation.mutate({ id: f.id, updates: { rollout_state: v } })}>
+                  <Select value={f.rollout_state} onValueChange={(v) => updateMutation.mutate({ id: f.id, updates: { rollout_state: v as RolloutState } })}>
                     <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="hidden">Hidden</SelectItem>
