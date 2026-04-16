@@ -54,6 +54,9 @@ import WeeklyReports from './audit-planning/WeeklyReports';
 import AllWeeklyReports from './audit-planning/AllWeeklyReports';
 import AuditDetails from './audit-planning/AuditDetails';
 import AuditManagement from './audit-planning/AuditManagement';
+import PlanExecutionDashboard from './audit-planning/PlanExecutionDashboard';
+import EmployerAuditReportViewer from './audit-planning/EmployerAuditReportViewer';
+import WeeklyReportReview from './audit-planning/WeeklyReportReview';
 
 // Sampling
 import SamplingDashboard from './sampling/SamplingDashboard';
@@ -165,6 +168,9 @@ const ComplianceRoutes = () => {
       <Route path="/field/weekly-report" element={<WeeklyReportSubmission />} />
       <Route path="/field/weekly-reports" element={<WeeklyReports />} />
       <Route path="/field/all-reports" element={<AllWeeklyReports />} />
+      <Route path="/field/execution-dashboard/:planId" element={<PlanExecutionDashboard />} />
+      <Route path="/field/audit-report/:inspectionId" element={<EmployerAuditReportViewer />} />
+      <Route path="/field/weekly-report-review" element={<WeeklyReportReview />} />
       <Route path="/field/my-upcoming" element={<MyUpcomingAudits />} />
       <Route path="/field/sampling" element={<SamplingDashboard />} />
       <Route path="/field/sampling/candidates" element={<MonthlyAuditCandidates />} />
