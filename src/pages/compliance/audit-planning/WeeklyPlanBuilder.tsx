@@ -128,9 +128,13 @@ export default function WeeklyPlanBuilder() {
 
   const confirmSubmit = async () => {
     try {
-      await builder.submitPlan(narrative || undefined);
+      if (builder.isNeedsChanges) {
+        await builder.resubmitPlan(narrative || undefined);
+      } else {
+        await builder.submitPlan(narrative || undefined);
+      }
       setSubmitDialogOpen(false);
-      navigate('/compliance/audit-planning/my-plans');
+      navigate('/compliance/field/my-plans');
     } catch {
       // Error handled in hook
     }
