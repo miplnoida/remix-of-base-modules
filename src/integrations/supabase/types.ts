@@ -8912,6 +8912,7 @@ export type Database = {
           description: string | null
           environment: string | null
           id: string
+          is_active: boolean
           is_deleted: boolean
           is_synced: boolean
           last_synced_at: string | null
@@ -8928,6 +8929,7 @@ export type Database = {
           description?: string | null
           environment?: string | null
           id?: string
+          is_active?: boolean
           is_deleted?: boolean
           is_synced?: boolean
           last_synced_at?: string | null
@@ -8944,6 +8946,7 @@ export type Database = {
           description?: string | null
           environment?: string | null
           id?: string
+          is_active?: boolean
           is_deleted?: boolean
           is_synced?: boolean
           last_synced_at?: string | null
