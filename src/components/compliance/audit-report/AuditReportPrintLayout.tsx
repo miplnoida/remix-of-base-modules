@@ -207,9 +207,22 @@ export function AuditReportPrintLayout({
         <p>{report.complianceConclusion || report.conclusions || 'No conclusion recorded.'}</p>
       </Section>
 
-      {/* ── SIGNATURE BLOCK (kept together) ── */}
+      {/* ── AUDIT CONTACT vs SIGNATORY identity block ── */}
       <section className="signature-block">
         <h2 className="section-title">{isEmployer ? '8. Acknowledgment & Signatures' : '9. Sign-off'}</h2>
+
+        {/* Audit Contact recorded during audit */}
+        {report.auditContactName && (
+          <div className="audit-contact-card">
+            <div className="audit-contact-label">Audit Contact (recorded during audit visit)</div>
+            <div className="audit-contact-name">{report.auditContactName}</div>
+            {report.auditContactDesignation && <div className="audit-contact-meta">{report.auditContactDesignation}</div>}
+            {report.auditContactRelationship && <div className="audit-contact-meta">Relationship: {report.auditContactRelationship}</div>}
+            <div className="audit-contact-meta">
+              Present during audit: <strong>{report.auditContactPresent === false ? 'No' : 'Yes'}</strong>
+            </div>
+          </div>
+        )}
 
         {isEmployer && (
           <p className="ack-statement">
@@ -221,7 +234,7 @@ export function AuditReportPrintLayout({
         )}
 
         <div className="signature-grid">
-          <SignatureBlock title="Employer Representative" sig={empSig} />
+          <SignatureBlock title="Employer Representative — Signatory" sig={empSig} auditContactName={report.auditContactName} />
           <SignatureBlock title="Lead Inspector" sig={inspSig} />
           {(witSig || isEmployer) && <SignatureBlock title="Witness" sig={witSig} />}
           {(supSig || !isEmployer) && <SignatureBlock title="Supervisor" sig={supSig} />}
@@ -255,7 +268,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function SignatureBlock({ title, sig }: { title: string; sig?: AuditReportSignature }) {
+function SignatureBlock({ title, sig, auditContactName }: { title: string; sig?: AuditReportSignature; auditContactName?: string }) {
   if (!sig) {
     return (
       <div className="sig-block">
@@ -270,10 +283,13 @@ function SignatureBlock({ title, sig }: { title: string; sig?: AuditReportSignat
   }
 
   const isRefused = sig.signatureType === 'REFUSED' || sig.signatureType === 'UNAVAILABLE';
+  const showIdentityChip = auditContactName !== undefined;
+  const sameAsContact = sig.signerSameAsContact === true;
 
   return (
     <div className="sig-block">
       <div className="sig-label">{title}</div>
+
       {isRefused ? (
         <div className="sig-refused">
           <div className="refused-stamp">{sig.signatureType === 'REFUSED' ? 'REFUSED TO SIGN' : 'UNAVAILABLE'}</div>
@@ -286,10 +302,31 @@ function SignatureBlock({ title, sig }: { title: string; sig?: AuditReportSignat
       ) : (
         <div className="sig-line" />
       )}
+
       <div className="sig-name">{sig.signerName}</div>
       {sig.signerDesignation && <div className="sig-meta">{sig.signerDesignation}</div>}
+
+      {showIdentityChip && !isRefused && (
+        <div className="sig-identity-chip" data-same={sameAsContact ? 'true' : 'false'}>
+          {sameAsContact ? '✓ Same as audit contact' : '⚠ Different from audit contact'}
+        </div>
+      )}
+      {sig.signerRelationship && <div className="sig-meta">Authority: {sig.signerRelationship}</div>}
+      {sig.signerAuthorityNote && <div className="sig-meta italic">"{sig.signerAuthorityNote}"</div>}
+
       {sig.signedAt && <div className="sig-meta">Signed: {formatDateForDisplay(sig.signedAt)}</div>}
+      {sig.signatureType === 'ELECTRONIC' && <div className="sig-meta small muted">Electronic signature</div>}
+      {sig.signatureType === 'TYPED_ATTESTATION' && <div className="sig-meta small muted">Typed attestation</div>}
       {sig.comments && <div className="sig-meta italic">"{sig.comments}"</div>}
+
+      {sig.witnessName && (
+        <div className="witness-block">
+          <div className="witness-label">Witness</div>
+          {sig.witnessSignatureImageUrl && <img src={sig.witnessSignatureImageUrl} alt="witness signature" className="witness-image" />}
+          <div className="sig-meta"><strong>{sig.witnessName}</strong></div>
+          {sig.witnessDesignation && <div className="sig-meta">{sig.witnessDesignation}</div>}
+        </div>
+      )}
     </div>
   );
 }

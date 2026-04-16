@@ -7,15 +7,16 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChevronLeft, FileText, CheckCircle2, RefreshCcw, Printer, PenTool, History, Plus, Trash2, Download, Send } from 'lucide-react';
+import { ChevronLeft, FileText, CheckCircle2, RefreshCcw, Printer, PenTool, History, Plus, RotateCcw, Download, Send, User, Users } from 'lucide-react';
 import { fieldAuditService } from '@/services/fieldAuditService';
 import { auditReportService } from '@/services/auditReportService';
 import { auditReportPdfService } from '@/services/auditReportPdfService';
 import { CaptureSignatureDialog } from '@/components/compliance/audit-report/CaptureSignatureDialog';
 import { SendAcknowledgmentDialog } from '@/components/compliance/audit-report/SendAcknowledgmentDialog';
-import type { FullAuditReport, AuditReportSignature, SignerRole, AuditReportVersion } from '@/types/auditReport';
+import type { FullAuditReport, AuditReportSignature, SignerRole, AuditReportVersion, AuditReportSignatureEvent } from '@/types/auditReport';
 import { toast } from 'sonner';
 import { formatDateForDisplay } from '@/lib/format-config';
 
@@ -25,10 +26,11 @@ export default function EmployerAuditReportViewer() {
   const [report, setReport] = useState<FullAuditReport | null>(null);
   const [signatures, setSignatures] = useState<AuditReportSignature[]>([]);
   const [versions, setVersions] = useState<AuditReportVersion[]>([]);
+  const [events, setEvents] = useState<AuditReportSignatureEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // narrative fields
+  // narrative + audit contact fields
   const [purposeScope, setPurposeScope] = useState('');
   const [executiveSummary, setExecutiveSummary] = useState('');
   const [recordsReviewed, setRecordsReviewed] = useState('');
@@ -39,11 +41,14 @@ export default function EmployerAuditReportViewer() {
   const [auditDate, setAuditDate] = useState('');
   const [auditLocation, setAuditLocation] = useState('');
   const [employerRegNumber, setEmployerRegNumber] = useState('');
-  const [employerRepName, setEmployerRepName] = useState('');
-  const [employerRepDesignation, setEmployerRepDesignation] = useState('');
+  // Audit Contact (person met during audit)
+  const [auditContactName, setAuditContactName] = useState('');
+  const [auditContactDesignation, setAuditContactDesignation] = useState('');
+  const [auditContactRelationship, setAuditContactRelationship] = useState('');
+  const [auditContactPresent, setAuditContactPresent] = useState(true);
 
-  // signature dialog
   const [sigRole, setSigRole] = useState<SignerRole | null>(null);
+  const [showSendAck, setShowSendAck] = useState(false);
 
   useEffect(() => {
     if (!inspectionId) return;
@@ -62,12 +67,14 @@ export default function EmployerAuditReportViewer() {
       }
       if (!r) throw new Error('Could not initialize report');
       hydrate(r);
-      const [sigs, vers] = await Promise.all([
+      const [sigs, vers, evts] = await Promise.all([
         auditReportService.listSignatures(r.id),
         auditReportService.listVersions(r.id),
+        auditReportService.listSignatureEvents(r.id),
       ]);
       setSignatures(sigs);
       setVersions(vers);
+      setEvents(evts);
     } catch (e: any) {
       toast.error(e.message ?? 'Failed to load report');
     } finally {
@@ -87,8 +94,10 @@ export default function EmployerAuditReportViewer() {
     setAuditDate(r.auditDate ?? '');
     setAuditLocation(r.auditLocation ?? '');
     setEmployerRegNumber(r.employerRegNumber ?? '');
-    setEmployerRepName(r.employerRepName ?? '');
-    setEmployerRepDesignation(r.employerRepDesignation ?? '');
+    setAuditContactName(r.auditContactName ?? r.employerRepName ?? '');
+    setAuditContactDesignation(r.auditContactDesignation ?? r.employerRepDesignation ?? '');
+    setAuditContactRelationship(r.auditContactRelationship ?? '');
+    setAuditContactPresent(r.auditContactPresent ?? true);
   };
 
   const handleRegenerate = async () => {
@@ -105,17 +114,20 @@ export default function EmployerAuditReportViewer() {
     }
   };
 
+  const buildNarrativePayload = () => ({
+    purposeScope, executiveSummary, recordsReviewed, scope,
+    conclusions, complianceConclusion, recommendations,
+    auditDate: auditDate || undefined,
+    auditLocation, employerRegNumber,
+    auditContactName, auditContactDesignation,
+    auditContactRelationship, auditContactPresent,
+  });
+
   const handleSave = async () => {
     if (!report) return;
     try {
       setSaving(true);
-      await auditReportService.updateNarrative(report.id, {
-        purposeScope, executiveSummary, recordsReviewed, scope,
-        conclusions, complianceConclusion, recommendations,
-        auditDate: auditDate || undefined,
-        auditLocation, employerRegNumber,
-        employerRepName, employerRepDesignation,
-      });
+      await auditReportService.updateNarrative(report.id, buildNarrativePayload());
       await auditReportService.snapshotVersion(report.id, { notes: 'Draft saved' });
       toast.success('Draft saved (version snapshot created)');
       load();
@@ -131,13 +143,7 @@ export default function EmployerAuditReportViewer() {
     if (!confirm('Finalize this report? It will be locked from further edits.')) return;
     try {
       setSaving(true);
-      await auditReportService.updateNarrative(report.id, {
-        purposeScope, executiveSummary, recordsReviewed, scope,
-        conclusions, complianceConclusion, recommendations,
-        auditDate: auditDate || undefined,
-        auditLocation, employerRegNumber,
-        employerRepName, employerRepDesignation,
-      });
+      await auditReportService.updateNarrative(report.id, buildNarrativePayload());
       await auditReportService.finalize(report.id);
       toast.success('Audit report finalized');
       load();
@@ -148,13 +154,15 @@ export default function EmployerAuditReportViewer() {
     }
   };
 
-  const handleDeleteSignature = async (id: string) => {
-    if (!confirm('Remove this signature?')) return;
+  const handleReplaceSignature = async (id: string) => {
+    const reason = prompt('Reason for replacing this signature?');
+    if (!reason?.trim()) return;
     try {
-      await auditReportService.deleteSignature(id);
+      await auditReportService.supersedeSignature(id, reason.trim());
+      toast.success('Signature superseded — capture a new one');
       load();
     } catch (e: any) {
-      toast.error(e.message ?? 'Delete failed');
+      toast.error(e.message ?? 'Failed');
     }
   };
 
@@ -180,12 +188,16 @@ export default function EmployerAuditReportViewer() {
     }
   };
 
-  const [showSendAck, setShowSendAck] = useState(false);
-
   if (loading) return <div className="p-6 text-muted-foreground">Loading audit report…</div>;
   if (!report) return <div className="p-6 text-muted-foreground">Report not found.</div>;
 
   const isFinal = report.status === 'FINAL';
+  const auditContact = {
+    name: auditContactName,
+    designation: auditContactDesignation,
+    relationship: auditContactRelationship,
+    present: auditContactPresent,
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -239,6 +251,7 @@ export default function EmployerAuditReportViewer() {
           <TabsTrigger value="narrative"><FileText className="h-4 w-4 mr-1" />Narrative</TabsTrigger>
           <TabsTrigger value="signatures"><PenTool className="h-4 w-4 mr-1" />Signatures ({signatures.length})</TabsTrigger>
           <TabsTrigger value="versions"><History className="h-4 w-4 mr-1" />Versions ({versions.length})</TabsTrigger>
+          <TabsTrigger value="audit"><Users className="h-4 w-4 mr-1" />Audit Trail ({events.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="narrative">
@@ -249,9 +262,31 @@ export default function EmployerAuditReportViewer() {
                 <div><Label>Audit Date</Label><Input type="date" value={auditDate} onChange={(e) => setAuditDate(e.target.value)} disabled={isFinal} /></div>
                 <div><Label>Audit Location</Label><Input value={auditLocation} onChange={(e) => setAuditLocation(e.target.value)} disabled={isFinal} placeholder="Employer site address" /></div>
                 <div><Label>Employer Reg. No.</Label><Input value={employerRegNumber} onChange={(e) => setEmployerRegNumber(e.target.value)} disabled={isFinal} /></div>
-                <div><Label>Employer Representative Name</Label><Input value={employerRepName} onChange={(e) => setEmployerRepName(e.target.value)} disabled={isFinal} placeholder="e.g. Jane Doe" /></div>
-                <div><Label>Representative Designation</Label><Input value={employerRepDesignation} onChange={(e) => setEmployerRepDesignation(e.target.value)} disabled={isFinal} placeholder="e.g. HR Manager" /></div>
               </div>
+
+              <Separator />
+
+              {/* Audit Contact (person met during audit) */}
+              <div className="rounded-md border bg-muted/30 p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-sm">Audit Contact (person met during audit)</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  The employer representative who was present and engaged with during the on-site audit.
+                  This identity is preserved on record even if a different person signs the report later.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div><Label>Full Name</Label><Input value={auditContactName} onChange={(e) => setAuditContactName(e.target.value)} disabled={isFinal} placeholder="e.g. Jane Doe" /></div>
+                  <div><Label>Designation</Label><Input value={auditContactDesignation} onChange={(e) => setAuditContactDesignation(e.target.value)} disabled={isFinal} placeholder="e.g. HR Manager" /></div>
+                  <div><Label>Relationship to Employer</Label><Input value={auditContactRelationship} onChange={(e) => setAuditContactRelationship(e.target.value)} disabled={isFinal} placeholder="e.g. Employee, Director" /></div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch checked={auditContactPresent} onCheckedChange={setAuditContactPresent} disabled={isFinal} id="present" />
+                  <Label htmlFor="present" className="text-sm font-normal">Was present during the audit visit</Label>
+                </div>
+              </div>
+
               <NarrativeField label="1. Purpose & Scope" value={purposeScope} onChange={setPurposeScope} disabled={isFinal} placeholder="Why this audit was conducted, period reviewed, scope boundaries…" />
               <NarrativeField label="2. Executive Summary" value={executiveSummary} onChange={setExecutiveSummary} disabled={isFinal} placeholder="High-level summary of the audit visit and headline outcomes…" />
               <NarrativeField label="3. Records Reviewed" value={recordsReviewed} onChange={setRecordsReviewed} disabled={isFinal} placeholder="Wage book, payroll registers, contribution records, etc." />
@@ -275,11 +310,22 @@ export default function EmployerAuditReportViewer() {
               <CardTitle className="flex items-center justify-between">
                 <span>Signatures & Acknowledgment</span>
                 <span className="text-xs text-muted-foreground font-normal">
-                  In-person signatures can be captured at any time. Finalizing the report locks all edits.
+                  Signatures can be captured at any time. Replacing a signature preserves the original in the audit trail.
                 </span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {auditContactName && (
+                <div className="rounded-md border bg-muted/30 p-3 text-sm flex items-center gap-3">
+                  <User className="h-4 w-4 text-primary shrink-0" />
+                  <div className="flex-1">
+                    <div className="text-xs uppercase tracking-wide text-muted-foreground">Audit Contact (recorded during audit)</div>
+                    <div><strong>{auditContactName}</strong>{auditContactDesignation && ` — ${auditContactDesignation}`}</div>
+                  </div>
+                  {auditContactPresent && <Badge variant="outline" className="text-[10px]">Present at audit</Badge>}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {(['EMPLOYER_REP', 'INSPECTOR', 'WITNESS', 'SUPERVISOR'] as SignerRole[]).map((role) => {
                   const sig = signatures.find((s) => s.signerRole === role);
@@ -297,13 +343,26 @@ export default function EmployerAuditReportViewer() {
                         <div className="text-sm space-y-1">
                           <div><strong>{sig.signerName}</strong></div>
                           {sig.signerDesignation && <div className="text-muted-foreground">{sig.signerDesignation}</div>}
+                          {role === 'EMPLOYER_REP' && (
+                            sig.signerSameAsContact
+                              ? <Badge variant="outline" className="text-[10px]">Same as audit contact</Badge>
+                              : <Badge variant="secondary" className="text-[10px]">Different from audit contact</Badge>
+                          )}
+                          {sig.signerAuthorityNote && (
+                            <div className="text-xs italic text-muted-foreground mt-1">"{sig.signerAuthorityNote}"</div>
+                          )}
                           {sig.signedAt && <div className="text-xs text-muted-foreground">Signed: {formatDateForDisplay(sig.signedAt)}</div>}
                           {sig.signatureImageUrl && <img src={sig.signatureImageUrl} alt="signature" className="max-h-12 border-b mt-1" />}
                           {sig.typedName && <div className="italic text-base" style={{ fontFamily: 'cursive' }}>/s/ {sig.typedName}</div>}
                           {sig.refusalReason && <div className="text-xs text-destructive">Reason: {sig.refusalReason}</div>}
+                          {sig.witnessName && (
+                            <div className="text-xs text-muted-foreground border-l-2 border-muted pl-2 mt-1">
+                              Witness: {sig.witnessName}{sig.witnessDesignation && ` (${sig.witnessDesignation})`}
+                            </div>
+                          )}
                           {sig.comments && <div className="text-xs italic">"{sig.comments}"</div>}
-                          <Button variant="ghost" size="sm" onClick={() => handleDeleteSignature(sig.id)} className="text-destructive">
-                            <Trash2 className="h-3 w-3 mr-1" /> Remove
+                          <Button variant="ghost" size="sm" onClick={() => handleReplaceSignature(sig.id)} className="text-muted-foreground mt-1">
+                            <RotateCcw className="h-3 w-3 mr-1" /> Replace
                           </Button>
                         </div>
                       ) : (
@@ -347,17 +406,39 @@ export default function EmployerAuditReportViewer() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="audit">
+          <Card>
+            <CardHeader><CardTitle>Signature Audit Trail</CardTitle></CardHeader>
+            <CardContent>
+              {events.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No events yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {events.map((e) => (
+                    <div key={e.id} className="text-sm border-l-2 border-primary/40 pl-3 py-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px]">{e.eventType}</Badge>
+                        <span className="text-xs text-muted-foreground">{formatDateForDisplay(e.eventAt)} • {e.actorUserCode ?? 'system'}</span>
+                      </div>
+                      {e.metadata && Object.keys(e.metadata).length > 0 && (
+                        <pre className="text-[10px] text-muted-foreground mt-1 font-mono">{JSON.stringify(e.metadata)}</pre>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {sigRole && report && (
         <CaptureSignatureDialog
           reportId={report.id}
           signerRole={sigRole}
-          defaultName={
-            sigRole === 'INSPECTOR' ? report.inspectorName :
-            sigRole === 'EMPLOYER_REP' ? employerRepName : undefined
-          }
-          defaultDesignation={sigRole === 'EMPLOYER_REP' ? employerRepDesignation : undefined}
+          auditContact={sigRole === 'EMPLOYER_REP' ? auditContact : undefined}
+          inspectorName={report.inspectorName}
           onClose={() => setSigRole(null)}
           onCaptured={load}
         />
