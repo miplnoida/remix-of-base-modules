@@ -108,6 +108,7 @@ export default function MyPlans() {
     return colors[status];
   };
 
+  const needsChangesPlans = plans.filter(p => p.status === WeeklyPlanWorkflowStatus.NEED_CHANGES);
   const draftPlans = plans.filter(p => p.status === WeeklyPlanWorkflowStatus.DRAFT);
   const pendingPlans = plans.filter(p => 
     p.status === WeeklyPlanWorkflowStatus.SUBMITTED || 
@@ -138,46 +139,36 @@ export default function MyPlans() {
       />
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Draft Plans
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Draft Plans</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{draftPlans.length}</div>
-          </CardContent>
+          <CardContent><div className="text-2xl font-bold">{draftPlans.length}</div></CardContent>
+        </Card>
+        <Card className={needsChangesPlans.length > 0 ? 'border-amber-300' : ''}>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Needs Changes</CardTitle>
+          </CardHeader>
+          <CardContent><div className="text-2xl font-bold text-amber-600">{needsChangesPlans.length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pending Review
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Pending Review</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{pendingPlans.length}</div>
-          </CardContent>
+          <CardContent><div className="text-2xl font-bold text-blue-600">{pendingPlans.length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Approved/Active
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Approved/Active</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{approvedPlans.length}</div>
-          </CardContent>
+          <CardContent><div className="text-2xl font-bold text-green-600">{approvedPlans.length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Completed
-            </CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Completed</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{completedPlans.length}</div>
-          </CardContent>
+          <CardContent><div className="text-2xl font-bold text-foreground">{completedPlans.length}</div></CardContent>
         </Card>
       </div>
 

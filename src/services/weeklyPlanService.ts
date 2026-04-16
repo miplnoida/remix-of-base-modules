@@ -194,14 +194,20 @@ export const weeklyPlanService = {
   },
 
   // Resubmit after changes
-  async resubmit(planId: string, userId: string): Promise<void> {
+  async resubmit(planId: string, userId: string, narrative?: string): Promise<void> {
+    const updates: Record<string, any> = {
+      status: 'RESUBMITTED',
+      submitted_date: new Date().toISOString(),
+      updated_by: userId,
+      reviewer_comments: null,
+    };
+    if (narrative !== undefined) {
+      updates.narrative = narrative;
+    }
+
     const { error: updateError } = await supabase
       .from('ce_weekly_plans')
-      .update({
-        status: WeeklyPlanStatus.SUBMITTED,
-        submitted_date: new Date().toISOString(),
-        updated_by: userId,
-      })
+      .update(updates)
       .eq('id', planId);
     if (updateError) throw updateError;
 
@@ -277,7 +283,7 @@ export const weeklyPlanService = {
     const { data, error } = await supabase
       .from('ce_weekly_plans')
       .select('*, ce_weekly_plan_items(*), ce_weekly_plan_reviews(*)')
-      .in('status', [WeeklyPlanStatus.SUBMITTED, WeeklyPlanStatus.OUTCOME_SUBMITTED])
+      .in('status', [WeeklyPlanStatus.SUBMITTED, 'RESUBMITTED', WeeklyPlanStatus.OUTCOME_SUBMITTED])
       .order('submitted_date', { ascending: true });
     if (error) throw error;
     return (data ?? []) as unknown as WeeklyPlan[];

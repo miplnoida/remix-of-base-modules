@@ -213,7 +213,7 @@ export function useWeeklyPlanBuilder() {
     },
   });
 
-  // Submit
+  // Submit (first submission)
   const submitMutation = useMutation({
     mutationFn: async (narrative?: string) => {
       if (!activePlanId || !userId) throw new Error('No active plan');
@@ -228,6 +228,21 @@ export function useWeeklyPlanBuilder() {
     },
     onError: (err: any) => {
       toast({ title: 'Submission Failed', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  // Resubmit (after changes requested)
+  const resubmitMutation = useMutation({
+    mutationFn: async (narrative?: string) => {
+      if (!activePlanId || !userId) throw new Error('No active plan');
+      await weeklyPlanService.resubmit(activePlanId, userCode || userId, narrative);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['weekly-plan-existing'] });
+      toast({ title: 'Plan Resubmitted', description: 'Your updated plan has been resubmitted for review.' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Resubmission Failed', description: err.message, variant: 'destructive' });
     },
   });
 
@@ -316,7 +331,8 @@ export function useWeeklyPlanBuilder() {
     [removeItemMutation, toast]
   );
 
-  const canEdit = !activePlan || activePlan.status === WeeklyPlanStatus.DRAFT || activePlan.status === WeeklyPlanStatus.NEEDS_CHANGES;
+  const isNeedsChanges = activePlan?.status === WeeklyPlanStatus.NEEDS_CHANGES;
+  const canEdit = !activePlan || activePlan.status === WeeklyPlanStatus.DRAFT || isNeedsChanges;
 
   return {
     // Auth
@@ -334,6 +350,7 @@ export function useWeeklyPlanBuilder() {
     planItems,
     itemsByDay,
     canEdit,
+    isNeedsChanges,
     isLoading: existingPlanQuery.isLoading || planItemsQuery.isLoading,
     // Candidates
     candidates,
@@ -346,8 +363,9 @@ export function useWeeklyPlanBuilder() {
     moveItemToDay,
     removeItem,
     submitPlan: submitMutation.mutateAsync,
+    resubmitPlan: resubmitMutation.mutateAsync,
     saveNarrative: saveNarrativeMutation.mutateAsync,
-    isSubmitting: submitMutation.isPending,
+    isSubmitting: submitMutation.isPending || resubmitMutation.isPending,
     isSaving: saveNarrativeMutation.isPending || addItemMutation.isPending,
     // Refresh
     refreshCandidates: () => queryClient.invalidateQueries({ queryKey: ['plan-candidates'] }),

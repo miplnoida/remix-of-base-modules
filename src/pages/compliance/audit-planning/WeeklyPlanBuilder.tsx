@@ -128,9 +128,13 @@ export default function WeeklyPlanBuilder() {
 
   const confirmSubmit = async () => {
     try {
-      await builder.submitPlan(narrative || undefined);
+      if (builder.isNeedsChanges) {
+        await builder.resubmitPlan(narrative || undefined);
+      } else {
+        await builder.submitPlan(narrative || undefined);
+      }
       setSubmitDialogOpen(false);
-      navigate('/compliance/audit-planning/my-plans');
+      navigate('/compliance/field/my-plans');
     } catch {
       // Error handled in hook
     }
@@ -258,11 +262,23 @@ export default function WeeklyPlanBuilder() {
                   <Button size="sm"
                     onClick={handleSubmit}
                     disabled={builder.isSubmitting || builder.planItems.length === 0}
-                    className="h-8 gap-1 text-xs">
+                    className="h-8 gap-1 text-xs"
+                    variant={builder.isNeedsChanges ? 'default' : 'default'}>
                     {builder.isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                    Submit for Review
+                    {builder.isNeedsChanges ? 'Update & Resubmit' : 'Submit for Review'}
                   </Button>
                 </>
+              )}
+
+              {/* Read-only status indicators */}
+              {builder.activePlan && !builder.canEdit && (
+                <Badge variant="secondary" className="text-xs">
+                  {builder.activePlan.status === WeeklyPlanStatus.SUBMITTED && 'Awaiting Review'}
+                  {builder.activePlan.status === WeeklyPlanStatus.APPROVED && 'Approved — Locked'}
+                  {builder.activePlan.status === 'RESUBMITTED' && 'Resubmitted — Awaiting Review'}
+                  {builder.activePlan.status === WeeklyPlanStatus.IN_EXECUTION && 'In Execution'}
+                  {builder.activePlan.status === WeeklyPlanStatus.COMPLETED && 'Completed'}
+                </Badge>
               )}
             </div>
           </div>
@@ -360,9 +376,11 @@ export default function WeeklyPlanBuilder() {
       <Dialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Submit Weekly Plan</DialogTitle>
+            <DialogTitle>{builder.isNeedsChanges ? 'Resubmit Weekly Plan' : 'Submit Weekly Plan'}</DialogTitle>
             <DialogDescription>
-              Submit your plan with {builder.planItems.length} items for supervisor review.
+              {builder.isNeedsChanges
+                ? `Resubmit your updated plan with ${builder.planItems.length} items for supervisor review.`
+                : `Submit your plan with ${builder.planItems.length} items for supervisor review.`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -395,7 +413,7 @@ export default function WeeklyPlanBuilder() {
             <Button variant="outline" onClick={() => setSubmitDialogOpen(false)}>Cancel</Button>
             <Button onClick={confirmSubmit} disabled={builder.isSubmitting}>
               {builder.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-              Submit
+              {builder.isNeedsChanges ? 'Resubmit' : 'Submit'}
             </Button>
           </DialogFooter>
         </DialogContent>
