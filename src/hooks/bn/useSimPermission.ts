@@ -3,10 +3,11 @@
 // ============================================================
 // Centralised permission definitions for the BN Simulation Engine.
 // All simulation screens must check these before rendering.
+// Uses the real Supabase auth + user_roles for admin detection.
 // ============================================================
 
-import { useNewBenefitAuth } from '@/contexts/NewBenefitAuthContext';
-import type { UserRole } from '@/types/newBenefit';
+import { useIsAdmin } from '@/hooks/useNavigationMenu';
+import { useActionPermissions } from '@/hooks/useActionPermission';
 
 // --- Permission strings ---
 
@@ -28,57 +29,49 @@ export const SIM_PERMISSIONS = {
 export type SimPermission = (typeof SIM_PERMISSIONS)[keyof typeof SIM_PERMISSIONS];
 
 // --- Roles that receive each permission ---
-// This mapping is additive — it does NOT grant any production claim/approval powers.
-
-const SIM_ROLE_GRANTS: Record<SimPermission, UserRole[]> = {
-  [SIM_PERMISSIONS.VIEW_SIMULATIONS]: ['CONFIG_ANALYST', 'SUPERVISOR', 'ADMIN', 'AUDITOR'],
-  [SIM_PERMISSIONS.CREATE_SCENARIOS]: ['CONFIG_ANALYST', 'SUPERVISOR', 'ADMIN'],
-  [SIM_PERMISSIONS.RUN_SIMULATIONS]: ['CONFIG_ANALYST', 'SUPERVISOR', 'ADMIN'],
-  [SIM_PERMISSIONS.VIEW_SIM_TRACES]: ['CONFIG_ANALYST', 'SUPERVISOR', 'ADMIN', 'AUDITOR'],
-  [SIM_PERMISSIONS.DELETE_SCENARIOS]: ['ADMIN'],
-  [SIM_PERMISSIONS.VIEW_SIM_AUDIT]: ['SUPERVISOR', 'ADMIN', 'AUDITOR'],
-};
-
-// --- Roles allowed to see the Simulation menu entry ---
-
-export const SIM_MENU_VISIBLE_ROLES: UserRole[] = [
+export const SIM_MENU_VISIBLE_ROLES = [
   'CONFIG_ANALYST',
   'SUPERVISOR',
   'ADMIN',
   'AUDITOR',
-];
-
-// --- Helper: check a role against a permission ---
-
-export function hasSimPermission(role: UserRole | undefined | null, permission: SimPermission): boolean {
-  if (!role) return false;
-  return SIM_ROLE_GRANTS[permission]?.includes(role) ?? false;
-}
+] as const;
 
 // --- React hook: simulation permission guard ---
 
 export function useSimPermission() {
-  const { currentUser } = useNewBenefitAuth();
-  const role = currentUser?.role;
+  const isAdmin = useIsAdmin();
+  const { can } = useActionPermissions('bn_simulation');
+
+  // Admin users get full access
+  if (isAdmin) {
+    return {
+      canView: true,
+      canCreate: true,
+      canRun: true,
+      canViewTraces: true,
+      canDelete: true,
+      canViewAudit: true,
+      isMenuVisible: true,
+      role: 'ADMIN' as const,
+      has: () => true,
+    };
+  }
 
   return {
-    /** Whether the user can see the simulation workspace at all */
-    canView: hasSimPermission(role, SIM_PERMISSIONS.VIEW_SIMULATIONS),
-    /** Whether the user can create/edit scenarios */
-    canCreate: hasSimPermission(role, SIM_PERMISSIONS.CREATE_SCENARIOS),
-    /** Whether the user can execute runs */
-    canRun: hasSimPermission(role, SIM_PERMISSIONS.RUN_SIMULATIONS),
-    /** Whether the user can view traces and snapshots */
-    canViewTraces: hasSimPermission(role, SIM_PERMISSIONS.VIEW_SIM_TRACES),
-    /** Whether the user can delete scenarios */
-    canDelete: hasSimPermission(role, SIM_PERMISSIONS.DELETE_SCENARIOS),
-    /** Whether the user can view simulation audit logs */
-    canViewAudit: hasSimPermission(role, SIM_PERMISSIONS.VIEW_SIM_AUDIT),
-    /** Whether the simulation menu item should be visible */
-    isMenuVisible: SIM_MENU_VISIBLE_ROLES.includes(role as UserRole),
-    /** The current user's role */
-    role,
-    /** Generic checker */
-    has: (perm: SimPermission) => hasSimPermission(role, perm),
+    canView: can('view'),
+    canCreate: can('create'),
+    canRun: can('run'),
+    canViewTraces: can('view_traces'),
+    canDelete: can('delete'),
+    canViewAudit: can('view_audit'),
+    isMenuVisible: can('view'),
+    role: undefined,
+    has: (perm: SimPermission) => can(perm),
   };
+}
+
+// Keep backward-compatible export
+export function hasSimPermission(_role: string | undefined | null, _permission: SimPermission): boolean {
+  // Deprecated — use the hook instead. Always returns false for non-hook usage.
+  return false;
 }
