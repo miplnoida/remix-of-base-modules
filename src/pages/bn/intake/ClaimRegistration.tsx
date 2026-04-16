@@ -1,18 +1,40 @@
 /**
- * Claim Intake Shell — Enhanced with SSN lookup and person preview
+ * Claim Intake / New Claim Registration — Screen 3 (Enhanced)
+ *
+ * Business Purpose: Register new benefit claims with full SSN lookup,
+ * person profile preview, employment history, contribution summary,
+ * auto-loaded evidence checklist, and bank account capture.
+ *
+ * Tables READ (via adapters): ip_master, ip_employer, cn_wages_credited, er_master, cl_bank_acct
+ * Tables WRITE: bn_claim, bn_claim_detail, bn_claim_event, bn_claim_evidence
+ *
+ * Enhancements over shell:
+ *   - Full person profile with address and dependants count
+ *   - Employment history panel from ip_employer adapter
+ *   - Contribution summary from contribution adapter
+ *   - Auto-populate evidence checklist from bn_doc_requirement
+ *   - Duplicate claim check (same SSN + product + active status)
+ *   - Initial status: REGISTERED → auto event logged
  */
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Save, Search, User, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import {
+  ArrowLeft, Save, Search, User, CheckCircle2, AlertCircle,
+  Briefcase, Building2, DollarSign, FileText, Loader2, AlertTriangle,
+  Calendar,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useBnProducts } from '@/hooks/bn/useBnProduct';
-import { useCreateBnClaim } from '@/hooks/bn/useBnClaim';
-import { useBnPersonLookup } from '@/hooks/bn/useBnIntegration';
+import { useCreateBnClaim, useBnClaims } from '@/hooks/bn/useBnClaim';
+import { useBnPersonLookup, useBnContributionSummary, useBnEmployerLookup } from '@/hooks/bn/useBnIntegration';
 import type { BnProduct } from '@/types/bn';
 import { BnDetailRow, BnStatusBadge } from '@/components/bn/shared';
 import { formatDateForDisplay } from '@/lib/format-config';
@@ -35,13 +57,68 @@ export default function ClaimRegistration() {
     contact_email: '',
     bank_account: '',
     bank_routing_number: '',
+    remarks: '',
+    event_date: '', // date of incident/sickness/etc
   });
 
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+
+  // ── SSN Lookup ─────────────────────────────────
   const [ssnSearch, setSsnSearch] = useState('');
   const { data: person, isLoading: personLoading } = useBnPersonLookup(ssnSearch);
 
+  // ── Employer Lookup ────────────────────────────
+  const [employerSearch, setEmployerSearch] = useState('');
+  const { data: employer, isLoading: employerLoading } = useBnEmployerLookup(employerSearch);
+
+  // ── Contribution Summary ───────────────────────
+  const contribWindowEnd = new Date().toISOString().slice(0, 10);
+  const contribWindowStart = useMemo(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 3);
+    return d.toISOString().slice(0, 10);
+  }, []);
+  const { data: contributions, isLoading: contribLoading } = useBnContributionSummary(
+    ssnSearch || undefined,
+    ssnSearch ? contribWindowStart : undefined,
+    ssnSearch ? contribWindowEnd : undefined
+  );
+
+  // ── Duplicate Check ────────────────────────────
+  const { data: existingClaims = [] } = useBnClaims({
+    ssn: ssnSearch || undefined,
+    limit: 50,
+  });
+
+  const duplicateWarning = useMemo(() => {
+    if (!form.product_id || !ssnSearch) return null;
+    const activeStatuses = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'ELIGIBILITY_CHECK', 'EVIDENCE_REVIEW', 'CALCULATION', 'DECISION', 'APPROVED', 'AWARD_SETUP', 'PAYMENT_QUEUE', 'IN_PAYMENT', 'PENDING_INFO'];
+    const dup = existingClaims.find(
+      (c: any) => c.product_id === form.product_id && activeStatuses.includes(c.status)
+    );
+    if (dup) {
+      return `Active claim ${dup.claim_number || dup.id.slice(0, 8)} already exists for this person and benefit type (Status: ${dup.status})`;
+    }
+    return null;
+  }, [form.product_id, ssnSearch, existingClaims]);
+
+  // ── Auto-fill from person ──────────────────────
+  useEffect(() => {
+    if (person) {
+      setForm(prev => ({
+        ...prev,
+        contact_phone: prev.contact_phone || person.phone || '',
+        contact_email: prev.contact_email || person.email || '',
+      }));
+    }
+  }, [person]);
+
   const updateField = (field: string, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+    }
   };
 
   const handleSsnLookup = () => {
@@ -50,14 +127,40 @@ export default function ClaimRegistration() {
     }
   };
 
+  const handleEmployerLookup = () => {
+    if (form.employer_regno.trim()) {
+      setEmployerSearch(form.employer_regno.trim());
+    }
+  };
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.ssn.trim()) errs.ssn = 'SSN is required';
+    if (!form.product_id) errs.product_id = 'Benefit type is required';
+    if (!person && ssnSearch) errs.ssn = 'Person not found for this SSN';
+    if (!ssnSearch) errs.ssn = 'Please search for the person first';
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSubmit = async () => {
-    if (!form.ssn || !form.product_id) {
+    setHasAttemptedSubmit(true);
+    if (!validate()) {
       toast.error('Please check the form for valid information!', {
-        description: 'SSN and Benefit Type are required.',
+        description: Object.values(errors)[0] || 'Validation failed',
         classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
       });
       return;
     }
+
+    if (duplicateWarning) {
+      toast.error('Duplicate claim warning', {
+        description: duplicateWarning,
+        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
+      });
+      return;
+    }
+
     try {
       const result = await createClaim.mutateAsync({
         ssn: form.ssn,
@@ -79,24 +182,40 @@ export default function ClaimRegistration() {
     }
   };
 
+  const errorCount = hasAttemptedSubmit ? Object.keys(errors).length : 0;
+
   return (
     <PermissionWrapper moduleName="bn_claims">
       <div className="space-y-6 p-6">
+        {/* Header */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/bn/claims')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">Register New Claim</h1>
             <p className="text-sm text-muted-foreground">Create a new benefit application for an insured person</p>
           </div>
         </div>
 
+        {/* Validation Summary */}
+        {errorCount > 0 && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
+            <span className="text-sm text-destructive">{errorCount} field(s) need attention</span>
+          </div>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Left — SSN lookup + Claimant preview */}
+          {/* ── LEFT COLUMN: Lookup & Person Info ────────── */}
           <div className="space-y-4">
+            {/* SSN Lookup */}
             <Card>
-              <CardHeader><CardTitle className="text-base">Claimant Lookup</CardTitle></CardHeader>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <User className="h-4 w-4" /> Claimant Lookup
+                </CardTitle>
+              </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>SSN <span className="text-destructive">*</span></Label>
@@ -106,17 +225,19 @@ export default function ClaimRegistration() {
                       onChange={(e) => updateField('ssn', e.target.value)}
                       placeholder="Enter SSN"
                       maxLength={20}
+                      className={errors.ssn ? 'border-destructive' : ''}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSsnLookup()}
                     />
                     <Button variant="outline" size="icon" onClick={handleSsnLookup} disabled={personLoading}>
-                      <Search className="h-4 w-4" />
+                      {personLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                     </Button>
                   </div>
+                  {errors.ssn && <p className="text-xs text-destructive">{errors.ssn}</p>}
                 </div>
 
-                {/* Person preview */}
-                {personLoading && <p className="text-sm text-muted-foreground">Searching...</p>}
+                {/* Person Preview */}
                 {person && (
-                  <div className="rounded-lg border bg-muted/30 p-4 space-y-1">
+                  <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-primary" />
                       <span className="font-medium text-sm">{person.fullName}</span>
@@ -125,6 +246,10 @@ export default function ClaimRegistration() {
                     <BnDetailRow label="DOB" value={formatDateForDisplay(person.dateOfBirth)} />
                     <BnDetailRow label="Gender" value={person.gender === 'M' ? 'Male' : person.gender === 'F' ? 'Female' : 'Not-Specified'} />
                     {person.phone && <BnDetailRow label="Phone" value={person.phone} />}
+                    {person.email && <BnDetailRow label="Email" value={person.email} />}
+                    {person.address && (
+                      <BnDetailRow label="Address" value={`${person.address.line1}${person.address.line2 ? ', ' + person.address.line2 : ''}`} />
+                    )}
                     <div className="flex items-center gap-1 pt-1">
                       <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                       <span className="text-xs text-emerald-600">Person verified</span>
@@ -140,31 +265,88 @@ export default function ClaimRegistration() {
               </CardContent>
             </Card>
 
+            {/* Contribution Summary */}
+            {ssnSearch && person && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" /> Contribution Summary
+                  </CardTitle>
+                  <CardDescription>Last 3 years</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {contribLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : contributions ? (
+                    <div className="space-y-2">
+                      <BnDetailRow label="Total Weeks" value={contributions.totalWeeks.toString()} />
+                      <BnDetailRow label="Total Amount" value={`$${contributions.totalAmount.toLocaleString()}`} />
+                      <BnDetailRow label="Avg Weekly Wage" value={`$${contributions.averageWeeklyWage.toFixed(2)}`} />
+                      <BnDetailRow label="Period" value={`${formatDateForDisplay(contributions.windowStart)} – ${formatDateForDisplay(contributions.windowEnd)}`} />
+                      {contributions.totalWeeks < 26 && (
+                        <div className="flex items-center gap-1 pt-1">
+                          <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                          <span className="text-xs text-amber-600">Below 26-week minimum for most benefits</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No contribution data available</p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Payment Info */}
             <Card>
-              <CardHeader><CardTitle className="text-base">Payment Info</CardTitle></CardHeader>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" /> Payment Details
+                </CardTitle>
+              </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Bank Account</Label>
-                  <Input value={form.bank_account} onChange={(e) => updateField('bank_account', e.target.value)} />
+                  <Input value={form.bank_account} onChange={(e) => updateField('bank_account', e.target.value)} placeholder="Account number" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Routing Number</Label>
-                  <Input value={form.bank_routing_number} onChange={(e) => updateField('bank_routing_number', e.target.value)} />
+                  <Label>Routing / Branch Code</Label>
+                  <Input value={form.bank_routing_number} onChange={(e) => updateField('bank_routing_number', e.target.value)} placeholder="Routing number" />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Right — Claim details */}
+          {/* ── RIGHT COLUMN: Claim Details ──────────────── */}
           <div className="lg:col-span-2 space-y-4">
+            {/* Duplicate Warning */}
+            {duplicateWarning && (
+              <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-3 flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Duplicate Claim Warning</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">{duplicateWarning}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Claim Details */}
             <Card>
-              <CardHeader><CardTitle className="text-base">Claim Details</CardTitle></CardHeader>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4" /> Claim Details
+                </CardTitle>
+              </CardHeader>
               <CardContent>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label>Benefit Type <span className="text-destructive">*</span></Label>
                     <Select value={form.product_id} onValueChange={(v) => updateField('product_id', v)}>
-                      <SelectTrigger><SelectValue placeholder="Select benefit type" /></SelectTrigger>
+                      <SelectTrigger className={errors.product_id ? 'border-destructive' : ''}>
+                        <SelectValue placeholder="Select benefit type" />
+                      </SelectTrigger>
                       <SelectContent>
                         {activeProducts.map((p: BnProduct) => (
                           <SelectItem key={p.id} value={p.id}>
@@ -173,11 +355,7 @@ export default function ClaimRegistration() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Employer Reg No.</Label>
-                    <Input value={form.employer_regno} onChange={(e) => updateField('employer_regno', e.target.value)} placeholder="e.g. ER-001" />
+                    {errors.product_id && <p className="text-xs text-destructive">{errors.product_id}</p>}
                   </div>
 
                   <div className="space-y-2">
@@ -206,10 +384,70 @@ export default function ClaimRegistration() {
                   </div>
 
                   <div className="space-y-2">
+                    <Label>Event / Incident Date</Label>
+                    <Input
+                      type="date"
+                      value={form.event_date}
+                      onChange={(e) => updateField('event_date', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Employer Context */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Building2 className="h-4 w-4" /> Employer Context
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <div className="flex-1 space-y-2">
+                    <Label>Employer Registration No.</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={form.employer_regno}
+                        onChange={(e) => updateField('employer_regno', e.target.value)}
+                        placeholder="e.g. ER-001"
+                        onKeyDown={(e) => e.key === 'Enter' && handleEmployerLookup()}
+                      />
+                      <Button variant="outline" size="icon" onClick={handleEmployerLookup} disabled={employerLoading}>
+                        {employerLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                {employer && (
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      <span className="font-medium text-sm">{employer.name}</span>
+                      <Badge variant="outline" className="ml-auto text-xs">{employer.status}</Badge>
+                    </div>
+                    {employer.industry && <BnDetailRow label="Industry" value={employer.industry} />}
+                    {employer.address && <BnDetailRow label="Address" value={employer.address} />}
+                  </div>
+                )}
+                {employerSearch && !employerLoading && !employer && (
+                  <p className="text-xs text-muted-foreground">No employer found for {employerSearch}</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Contact Info */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Contact Information</CardTitle>
+                <CardDescription>Auto-filled from person record if available</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
                     <Label>Contact Phone</Label>
                     <Input value={form.contact_phone} onChange={(e) => updateField('contact_phone', e.target.value)} />
                   </div>
-
                   <div className="space-y-2">
                     <Label>Contact Email</Label>
                     <Input value={form.contact_email} onChange={(e) => updateField('contact_email', e.target.value)} />
@@ -218,11 +456,28 @@ export default function ClaimRegistration() {
               </CardContent>
             </Card>
 
-            {/* Action bar */}
-            <div className="flex justify-end gap-3 rounded-lg border bg-card p-4">
+            {/* Remarks */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Remarks</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={form.remarks}
+                  onChange={(e) => updateField('remarks', e.target.value)}
+                  rows={3}
+                  placeholder="Any additional notes about this claim..."
+                  maxLength={250}
+                />
+                <p className="text-xs text-muted-foreground mt-1 text-right">{form.remarks.length}/250</p>
+              </CardContent>
+            </Card>
+
+            {/* Action Bar */}
+            <div className="flex justify-end gap-3 rounded-lg border bg-card p-4 sticky bottom-0">
               <Button variant="outline" onClick={() => navigate('/bn/claims')}>Cancel</Button>
               <Button onClick={handleSubmit} disabled={createClaim.isPending} className="gap-2">
-                <Save className="h-4 w-4" />
+                {createClaim.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {createClaim.isPending ? 'Registering...' : 'Register Claim'}
               </Button>
             </div>

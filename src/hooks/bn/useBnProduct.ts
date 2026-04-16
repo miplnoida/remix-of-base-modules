@@ -54,6 +54,15 @@ export function useCreateBnProductVersion() {
   });
 }
 
+export function useCopyBnVersionRules() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sourceVersionId, targetVersionId }: { sourceVersionId: string; targetVersionId: string }) =>
+      productService.copyVersionRules(sourceVersionId, targetVersionId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bn'] }),
+  });
+}
+
 export function useUpdateBnProductVersion() {
   const qc = useQueryClient();
   return useMutation({

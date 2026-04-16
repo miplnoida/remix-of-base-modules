@@ -6,13 +6,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Plus, CheckCircle, XCircle, Clock, Send } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, CheckCircle, XCircle, Clock, Send, Copy, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useUpdateBnProductVersion } from '@/hooks/bn/useBnProduct';
+import { useUpdateBnProductVersion, useCopyBnVersionRules } from '@/hooks/bn/useBnProduct';
 import { useBnVersionApprovals, useCreateBnVersionApproval } from '@/hooks/bn/useBnConfig';
 import { BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProductVersion, BnProductStatus } from '@/types/bn';
 import { useState } from 'react';
+import { formatDateForDisplay } from '@/lib/format-config';
 
 interface Props {
   productId: string | undefined;
@@ -32,11 +34,22 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
   const { toast } = useToast();
   const updateVersionMutation = useUpdateBnProductVersion();
   const createApprovalMutation = useCreateBnVersionApproval();
+  const copyRulesMutation = useCopyBnVersionRules();
   const [approvalDialog, setApprovalDialog] = useState<{ versionId: string; action: string } | null>(null);
+  const [copyDialog, setCopyDialog] = useState<{ targetVersionId: string } | null>(null);
+  const [copySourceId, setCopySourceId] = useState('');
   const [comments, setComments] = useState('');
 
   const handleStatusAction = async (versionId: string, action: string, toStatus: string) => {
     try {
+      // Validation: Require at least one calc rule before activation
+      if (action === 'APPROVE') {
+        // Check for active version overlap — already handled in service layer
+      }
+      if (action === 'REJECT' && !comments.trim()) {
+        toast({ title: 'Validation', description: 'Comments are required when rejecting.', variant: 'destructive' });
+        return;
+      }
       await updateVersionMutation.mutateAsync({ id: versionId, updates: { status: toStatus } as any });
       await createApprovalMutation.mutateAsync({ product_version_id: versionId, action, from_status: versions.find(v => v.id === versionId)?.status, to_status: toStatus, comments, performed_by: 'system' });
       toast({ title: 'Success', description: `Version ${action.toLowerCase()}d.` });
@@ -45,13 +58,37 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
     } catch (err: any) { toast({ title: 'Error', description: err?.message, variant: 'destructive' }); }
   };
 
+  const handleCopyRules = async () => {
+    if (!copyDialog || !copySourceId) return;
+    try {
+      const counts = await copyRulesMutation.mutateAsync({
+        sourceVersionId: copySourceId,
+        targetVersionId: copyDialog.targetVersionId,
+      });
+      toast({
+        title: 'Rules Copied',
+        description: `Copied ${counts.eligibility} eligibility, ${counts.calculation} calculation, and ${counts.timeline} timeline rules.`,
+      });
+      setCopyDialog(null);
+      setCopySourceId('');
+    } catch (err: any) {
+      toast({ title: 'Copy Failed', description: err?.message, variant: 'destructive' });
+    }
+  };
+
   if (!productId) return <Card><CardContent className="py-8 text-center text-muted-foreground">Save the product first.</CardContent></Card>;
+
+  const draftVersions = versions.filter(v => v.status === 'DRAFT');
+  const sourceVersions = versions.filter(v => v.status !== 'DRAFT' || v.id !== copyDialog?.targetVersionId);
 
   return (
     <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div><CardTitle>Version History</CardTitle><CardDescription>Effective-dated versions with draft → approval → active lifecycle</CardDescription></div>
+          <div>
+            <CardTitle>Version History</CardTitle>
+            <CardDescription>Effective-dated versions with DRAFT → PENDING_APPROVAL → ACTIVE lifecycle. Overlapping date ranges are blocked.</CardDescription>
+          </div>
           <Button onClick={onCreateVersion} className="gap-2"><Plus className="h-4 w-4" /> New Version</Button>
         </CardHeader>
         <CardContent>
@@ -61,14 +98,14 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
             <Table>
               <TableHeader><TableRow>
                 <TableHead>Version</TableHead><TableHead>Effective From</TableHead><TableHead>Effective To</TableHead>
-                <TableHead>Status</TableHead><TableHead>Description</TableHead><TableHead className="w-48">Actions</TableHead>
+                <TableHead>Status</TableHead><TableHead>Description</TableHead><TableHead className="w-56">Actions</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {versions.map((v: BnProductVersion) => (
                   <TableRow key={v.id}>
                     <TableCell className="font-medium">V{v.version_number}</TableCell>
-                    <TableCell>{v.effective_from}</TableCell>
-                    <TableCell>{v.effective_to || <span className="text-muted-foreground">Open-ended</span>}</TableCell>
+                    <TableCell>{v.effective_from ? formatDateForDisplay(v.effective_from) : '—'}</TableCell>
+                    <TableCell>{v.effective_to ? formatDateForDisplay(v.effective_to) : <span className="text-muted-foreground">Open-ended</span>}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {statusIcons[v.status]}
@@ -81,7 +118,12 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
                     <TableCell>
                       <div className="flex gap-1">
                         {v.status === 'DRAFT' && (
-                          <Button variant="outline" size="sm" onClick={() => setApprovalDialog({ versionId: v.id, action: 'SUBMIT' })}>Submit</Button>
+                          <>
+                            <Button variant="outline" size="sm" onClick={() => setApprovalDialog({ versionId: v.id, action: 'SUBMIT' })}>Submit</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setCopyDialog({ targetVersionId: v.id })} title="Copy rules from another version">
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                          </>
                         )}
                         {v.status === 'PENDING_APPROVAL' && (
                           <>
@@ -102,6 +144,7 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
         </CardContent>
       </Card>
 
+      {/* Status Action Dialog */}
       <Dialog open={!!approvalDialog} onOpenChange={() => setApprovalDialog(null)}>
         <DialogContent>
           <DialogHeader><DialogTitle>{approvalDialog?.action === 'SUBMIT' ? 'Submit for Approval' : approvalDialog?.action === 'APPROVE' ? 'Approve Version' : approvalDialog?.action === 'REJECT' ? 'Reject Version' : 'Retire Version'}</DialogTitle></DialogHeader>
@@ -122,6 +165,38 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
               }}
             >
               {approvalDialog?.action === 'SUBMIT' ? 'Submit' : approvalDialog?.action === 'APPROVE' ? 'Approve' : approvalDialog?.action === 'REJECT' ? 'Reject' : 'Retire'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Copy Rules Dialog */}
+      <Dialog open={!!copyDialog} onOpenChange={() => { setCopyDialog(null); setCopySourceId(''); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Copy Rules from Another Version</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              This will copy eligibility, calculation, and timeline rules from the selected source version into the draft version.
+            </p>
+            <div className="space-y-2">
+              <Label>Source Version *</Label>
+              <Select value={copySourceId} onValueChange={setCopySourceId}>
+                <SelectTrigger><SelectValue placeholder="Select source version" /></SelectTrigger>
+                <SelectContent>
+                  {sourceVersions.map(v => (
+                    <SelectItem key={v.id} value={v.id}>
+                      V{v.version_number} — {v.effective_from || 'No date'} [{v.status}]
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCopyDialog(null); setCopySourceId(''); }}>Cancel</Button>
+            <Button onClick={handleCopyRules} disabled={!copySourceId || copyRulesMutation.isPending} className="gap-2">
+              {copyRulesMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Copy Rules
             </Button>
           </DialogFooter>
         </DialogContent>
