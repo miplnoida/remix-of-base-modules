@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin } from 'lucide-react';
 import { WeeklyPlanItem, InspectionVisit, InspectionVisitStatus } from '@/types/inspectionTypes';
@@ -17,8 +16,6 @@ interface CheckInOutTabContentProps {
 
 export function CheckInOutTabContent({ planItem, visit, onVisitUpdate }: CheckInOutTabContentProps) {
   const [checkInLocation, setCheckInLocation] = useState('');
-  const [checkOutLocation, setCheckOutLocation] = useState('');
-  const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleCheckIn = async () => {
@@ -38,30 +35,11 @@ export function CheckInOutTabContent({ planItem, visit, onVisitUpdate }: CheckIn
     }
   };
 
-  const handleCheckOut = async () => {
-    if (!visit) return;
-
-    try {
-      setLoading(true);
-      const updatedVisit = await inspectionService.checkOut(visit.id, {
-        location: checkOutLocation,
-        notes
-      });
-      onVisitUpdate(updatedVisit);
-      toast.success('Checked out successfully');
-    } catch (error) {
-      toast.error('Failed to check out');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (!visit) {
     return (
       <div className="space-y-4 py-4">
         <div className="text-sm text-muted-foreground mb-4">
-          Start this visit by checking in
+          Start this visit by checking in. Once checked in, you can proceed to record employer interaction, working papers, evidence, and findings.
         </div>
 
         <div className="space-y-2">
@@ -89,13 +67,20 @@ export function CheckInOutTabContent({ planItem, visit, onVisitUpdate }: CheckIn
           <Badge variant="outline" className="bg-success/10 text-success">
             Checked In
           </Badge>
+          {visit.visitStatus === InspectionVisitStatus.COMPLETED && (
+            <Badge variant="outline" className="bg-primary/10 text-primary">
+              Completed
+            </Badge>
+          )}
         </div>
 
         <div className="space-y-2 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>{new Date(visit.checkInTime!).toLocaleString()}</span>
-          </div>
+          {visit.checkInTime && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>{new Date(visit.checkInTime).toLocaleString()}</span>
+            </div>
+          )}
           {visit.checkInLocation && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <MapPin className="h-4 w-4" />
@@ -105,50 +90,21 @@ export function CheckInOutTabContent({ planItem, visit, onVisitUpdate }: CheckIn
         </div>
       </div>
 
-      {/* Check-out Section */}
       {visit.visitStatus === InspectionVisitStatus.IN_PROGRESS && (
-        <div className="space-y-4 pt-4 border-t">
-          <h3 className="font-medium">Check Out</h3>
-
-          <div className="space-y-2">
-            <Label>Location (Optional)</Label>
-            <Input
-              value={checkOutLocation}
-              onChange={(e) => setCheckOutLocation(e.target.value)}
-              placeholder="Enter location"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Visit Summary</Label>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Enter visit summary and key observations..."
-              rows={4}
-            />
-          </div>
-
-          <Button onClick={handleCheckOut} disabled={loading}>
-            {loading ? 'Checking out...' : 'Check Out & Complete Visit'}
-          </Button>
+        <div className="p-4 rounded-lg bg-accent/50 border text-sm text-muted-foreground">
+          <p className="font-medium text-foreground mb-1">Visit in progress</p>
+          <p>Complete the Employer Interaction, Working Papers, Evidence, and Findings tabs, then use the <strong>Check-out</strong> tab to close this visit.</p>
         </div>
       )}
 
-      {/* Check-out Info */}
-      {visit.visitStatus === InspectionVisitStatus.COMPLETED && (
+      {/* Check-out summary if completed */}
+      {visit.visitStatus === InspectionVisitStatus.COMPLETED && visit.checkOutTime && (
         <div className="space-y-3 pt-4 border-t">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium">Check-out Details</h3>
-            <Badge variant="outline" className="bg-success/10 text-success">
-              Completed
-            </Badge>
-          </div>
-
+          <h3 className="font-medium">Check-out Details</h3>
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Clock className="h-4 w-4" />
-              <span>{new Date(visit.checkOutTime!).toLocaleString()}</span>
+              <span>{new Date(visit.checkOutTime).toLocaleString()}</span>
             </div>
             {visit.checkOutLocation && (
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -159,7 +115,7 @@ export function CheckInOutTabContent({ planItem, visit, onVisitUpdate }: CheckIn
             {visit.notes && (
               <div className="mt-3">
                 <div className="text-xs font-medium text-muted-foreground mb-1">Visit Summary:</div>
-                <div className="text-sm">{visit.notes}</div>
+                <div className="text-sm whitespace-pre-wrap">{visit.notes}</div>
               </div>
             )}
           </div>
