@@ -44,6 +44,19 @@ export async function fetchVersionById(id: string): Promise<BnProductVersion | n
 }
 
 export async function createProductVersion(version: Partial<BnProductVersion>): Promise<BnProductVersion> {
+  // Validate no overlapping active versions for same product
+  if (version.product_id && version.effective_from) {
+    const existing = await fetchVersionsByProduct(version.product_id);
+    const overlap = existing.find(v =>
+      v.status === 'ACTIVE' &&
+      v.effective_from &&
+      (!v.effective_to || v.effective_to >= version.effective_from!) &&
+      (!version.effective_to || version.effective_to! >= v.effective_from)
+    );
+    if (overlap) {
+      throw new Error(`Effective date range overlaps with Version ${overlap.version_number} (${overlap.effective_from} to ${overlap.effective_to || 'open'})`);
+    }
+  }
   const { data, error } = await db.from('bn_product_version').insert(version).select().single();
   if (error) throw error;
   return data as BnProductVersion;
@@ -53,6 +66,40 @@ export async function updateProductVersion(id: string, updates: Partial<BnProduc
   const { data, error } = await db.from('bn_product_version').update({ ...updates, modified_at: new Date().toISOString() }).eq('id', id).select().single();
   if (error) throw error;
   return data as BnProductVersion;
+}
+
+/**
+ * Copy all rules from a source version to a new version.
+ * Copies: eligibility rules, calculation rules, timeline rules.
+ */
+export async function copyVersionRules(sourceVersionId: string, targetVersionId: string): Promise<{ eligibility: number; calculation: number; timeline: number }> {
+  let counts = { eligibility: 0, calculation: 0, timeline: 0 };
+
+  // Copy eligibility rules
+  const eligRules = await fetchEligibilityRules(sourceVersionId);
+  for (const rule of eligRules) {
+    const { id, product_version_id, entered_at, modified_at, ...rest } = rule as any;
+    await upsertEligibilityRule({ ...rest, product_version_id: targetVersionId });
+    counts.eligibility++;
+  }
+
+  // Copy calculation rules
+  const calcRules = await fetchCalculationRules(sourceVersionId);
+  for (const rule of calcRules) {
+    const { id, product_version_id, entered_at, modified_at, ...rest } = rule as any;
+    await upsertCalculationRule({ ...rest, product_version_id: targetVersionId });
+    counts.calculation++;
+  }
+
+  // Copy timeline rules
+  const timeRules = await fetchTimelineRules(sourceVersionId);
+  for (const rule of timeRules) {
+    const { id, product_version_id, entered_at, modified_at, ...rest } = rule as any;
+    await upsertTimelineRule({ ...rest, product_version_id: targetVersionId });
+    counts.timeline++;
+  }
+
+  return counts;
 }
 
 // ---- Eligibility Rules ----
