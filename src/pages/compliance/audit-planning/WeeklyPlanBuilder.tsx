@@ -413,7 +413,7 @@ export default function WeeklyPlanBuilder() {
             <Button variant="outline" onClick={() => setSubmitDialogOpen(false)}>Cancel</Button>
             <Button onClick={confirmSubmit} disabled={builder.isSubmitting}>
               {builder.isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-              Submit
+              {builder.isNeedsChanges ? 'Resubmit' : 'Submit'}
             </Button>
           </DialogFooter>
         </DialogContent>

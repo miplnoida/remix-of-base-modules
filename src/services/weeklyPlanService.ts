@@ -283,7 +283,7 @@ export const weeklyPlanService = {
     const { data, error } = await supabase
       .from('ce_weekly_plans')
       .select('*, ce_weekly_plan_items(*), ce_weekly_plan_reviews(*)')
-      .in('status', [WeeklyPlanStatus.SUBMITTED, WeeklyPlanStatus.OUTCOME_SUBMITTED])
+      .in('status', [WeeklyPlanStatus.SUBMITTED, 'RESUBMITTED', WeeklyPlanStatus.OUTCOME_SUBMITTED])
       .order('submitted_date', { ascending: true });
     if (error) throw error;
     return (data ?? []) as unknown as WeeklyPlan[];
