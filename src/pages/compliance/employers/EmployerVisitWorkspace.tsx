@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Building2, MapPin, PlayCircle, StopCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, PlayCircle, StopCircle, Loader2, Eye, Briefcase, AlertTriangle } from 'lucide-react';
 import { CheckInOutTabContent } from '@/components/compliance/inspection/CheckInOutTabContent';
 import { EvidenceTabContent } from '@/components/compliance/inspection/EvidenceTabContent';
 import { FindingsTabContent } from '@/components/compliance/inspection/FindingsTabContent';
@@ -14,10 +14,13 @@ import { ViolationsTabContent } from '@/components/compliance/inspection/Violati
 import { inspectionService } from '@/services/inspectionService';
 import { InspectionVisit, InspectionVisitStatus } from '@/types/inspectionTypes';
 import { toast } from 'sonner';
+import { useUserCode } from '@/hooks/useUserCode';
 
 export default function EmployerVisitWorkspace() {
   const { employerId } = useParams<{ employerId: string }>();
   const navigate = useNavigate();
+  const { userCode } = useUserCode();
+  const currentUserCode = userCode || 'SYSTEM';
   
   const [employer, setEmployer] = useState({
     id: employerId || '',
@@ -104,13 +107,13 @@ export default function EmployerVisitWorkspace() {
           territory: employer.territory || 'St Kitts',
           inspection_type: 'FIELD_VISIT',
           status: 'IN_PROGRESS',
-          inspector_id: 'SYSTEM',
-          inspector_name: 'Inspector',
+          inspector_id: currentUserCode,
+          inspector_name: currentUserCode,
           scheduled_date: new Date().toISOString().slice(0, 10),
           actual_start: new Date().toISOString(),
           check_in_time: new Date().toISOString(),
           location_address: 'Employer premises',
-          created_by: 'SYSTEM',
+          created_by: currentUserCode,
         } as any)
         .select('*')
         .single();
@@ -172,6 +175,14 @@ export default function EmployerVisitWorkspace() {
         </div>
         
         <div className="flex items-center gap-3">
+          <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/field/employer-360/${employerId}`)}>
+            <Eye className="h-4 w-4 mr-1" />Employer 360
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => navigate('/compliance/violations/manual-entry', {
+            state: { prefill: { employer_id: employerId, employer_name: employer.name } }
+          })}>
+            <AlertTriangle className="h-4 w-4 mr-1" />New Violation
+          </Button>
           {currentVisit ? (
             <Badge variant="default" className="flex items-center gap-2">
               <StopCircle className="h-4 w-4" />

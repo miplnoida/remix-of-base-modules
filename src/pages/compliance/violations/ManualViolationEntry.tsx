@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 
 export default function ManualViolationEntry() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [entryType, setEntryType] = useState<'employer' | 'scouting'>('employer');
   
   // Common fields
@@ -36,6 +37,16 @@ export default function ManualViolationEntry() {
   const [estimatedEmployees, setEstimatedEmployees] = useState('');
   
   const [loading, setLoading] = useState(false);
+
+  // Auto-fill employer from navigation state
+  useEffect(() => {
+    const prefill = (location.state as any)?.prefill;
+    if (prefill?.employer_id) {
+      setEmployerId(prefill.employer_id);
+      setEntryType('employer');
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
