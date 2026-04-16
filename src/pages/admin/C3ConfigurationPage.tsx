@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Layers, RefreshCw, FileText, AlertCircle, TreePalm, Sun, Tag, TagsIcon, ClipboardList, Calculator, CreditCard } from 'lucide-react';
@@ -21,6 +22,7 @@ import CyberSourceSettings from '@/pages/c3Management/CyberSourceSettings';
 
 const C3ConfigurationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('period-config');
+  const navigate = useNavigate();
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -141,7 +143,15 @@ const C3ConfigurationPage: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="cybersource" className="mt-6">
-          <CyberSourceSettings embedMode />
+          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+            <p className="text-muted-foreground">CyberSource settings have been moved to the consolidated Settings Configuration screen.</p>
+            <button
+              className="text-primary underline hover:no-underline"
+              onClick={() => navigate('/c3-management/settings-configuration')}
+            >
+              Go to Settings Configuration →
+            </button>
+          </div>
         </TabsContent>
 
 

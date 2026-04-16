@@ -7945,6 +7945,48 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_email_config: {
+        Row: {
+          config_group: string
+          config_key: string
+          config_value: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_synced: boolean
+          last_synced_at: string | null
+          sync_error: string | null
+          updated_at: string
+        }
+        Insert: {
+          config_group?: string
+          config_key: string
+          config_value?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_synced?: boolean
+          last_synced_at?: string | null
+          sync_error?: string | null
+          updated_at?: string
+        }
+        Update: {
+          config_group?: string
+          config_key?: string
+          config_value?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_synced?: boolean
+          last_synced_at?: string | null
+          sync_error?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       c3_filing_config_periods: {
         Row: {
           created_at: string
@@ -8860,6 +8902,57 @@ export type Database = {
           payer_id?: string
           set_id?: number
           set_value?: string | null
+        }
+        Relationships: []
+      }
+      c3_site_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          environment: string | null
+          id: string
+          is_deleted: boolean
+          is_synced: boolean
+          last_synced_at: string | null
+          setting_key: string
+          setting_type: string
+          setting_value: string
+          sync_error: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          environment?: string | null
+          id?: string
+          is_deleted?: boolean
+          is_synced?: boolean
+          last_synced_at?: string | null
+          setting_key: string
+          setting_type: string
+          setting_value?: string
+          sync_error?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          environment?: string | null
+          id?: string
+          is_deleted?: boolean
+          is_synced?: boolean
+          last_synced_at?: string | null
+          setting_key?: string
+          setting_type?: string
+          setting_value?: string
+          sync_error?: string | null
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
