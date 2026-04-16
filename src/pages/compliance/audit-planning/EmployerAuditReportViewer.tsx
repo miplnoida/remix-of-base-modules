@@ -352,6 +352,15 @@ export default function EmployerAuditReportViewer() {
           onCaptured={load}
         />
       )}
+
+      {showSendAck && report && (
+        <SendAcknowledgmentDialog
+          reportId={report.id}
+          defaultRecipientName={report.employerName ?? ''}
+          onClose={() => setShowSendAck(false)}
+          onSent={load}
+        />
+      )}
     </div>
   );
 }
