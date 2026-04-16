@@ -108,6 +108,7 @@ export default function MyPlans() {
     return colors[status];
   };
 
+  const needsChangesPlans = plans.filter(p => p.status === WeeklyPlanWorkflowStatus.NEED_CHANGES);
   const draftPlans = plans.filter(p => p.status === WeeklyPlanWorkflowStatus.DRAFT);
   const pendingPlans = plans.filter(p => 
     p.status === WeeklyPlanWorkflowStatus.SUBMITTED || 
