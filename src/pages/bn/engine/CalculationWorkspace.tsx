@@ -57,7 +57,7 @@ export default function CalculationWorkspace() {
           claimDate: ctx.claim.claim_date,
           countryCode: (ctx.claim as any).country_code || 'KN',
           mode: 'LIVE',
-          overrides: Object.keys(whatIfOverrides).length > 0
+          overrideParams: Object.keys(whatIfOverrides).length > 0
             ? Object.fromEntries(Object.entries(whatIfOverrides).filter(([, v]) => v !== ''))
             : undefined,
         },
