@@ -262,11 +262,23 @@ export default function WeeklyPlanBuilder() {
                   <Button size="sm"
                     onClick={handleSubmit}
                     disabled={builder.isSubmitting || builder.planItems.length === 0}
-                    className="h-8 gap-1 text-xs">
+                    className="h-8 gap-1 text-xs"
+                    variant={builder.isNeedsChanges ? 'default' : 'default'}>
                     {builder.isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                    Submit for Review
+                    {builder.isNeedsChanges ? 'Update & Resubmit' : 'Submit for Review'}
                   </Button>
                 </>
+              )}
+
+              {/* Read-only status indicators */}
+              {builder.activePlan && !builder.canEdit && (
+                <Badge variant="secondary" className="text-xs">
+                  {builder.activePlan.status === WeeklyPlanStatus.SUBMITTED && 'Awaiting Review'}
+                  {builder.activePlan.status === WeeklyPlanStatus.APPROVED && 'Approved — Locked'}
+                  {builder.activePlan.status === 'RESUBMITTED' && 'Resubmitted — Awaiting Review'}
+                  {builder.activePlan.status === WeeklyPlanStatus.IN_EXECUTION && 'In Execution'}
+                  {builder.activePlan.status === WeeklyPlanStatus.COMPLETED && 'Completed'}
+                </Badge>
               )}
             </div>
           </div>
