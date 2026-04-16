@@ -1,42 +1,40 @@
 
+# Plan: Reference Numbering Schemes – Manager Approval Document
 
-# Fix: "invalid input syntax for type integer: E0030" on Employer Application Accept
+## What I Found
 
-## Root Cause
+### Screen Implementation (NumberTemplates.tsx)
+- List view of all schemes with badges (applies_to, reset frequency, default)
+- Add/Edit dialog with fields: Name, Description, Applies To, Reset Frequency, Prefix, Padding Length, Pattern, Is Default, Is Active
+- Live preview of pattern with current date/sequence
+- Duplicate name checking on save
+- Soft-deactivate with confirmation dialog
+- Toggle active/inactive via switch
+- Audit fields (created_by, updated_by) injected automatically
 
-The `convert_application_to_employer` RPC generates a new T-series registration number with this SQL:
+### Database Schema
+- `ce_number_templates`: 14 columns (id, name, template_pattern, description, applies_to, is_default, padding_length, prefix, reset_frequency, is_active, audit fields)
+- `ce_number_sequences`: Tracks current_value per template_id+year+month (unique constraint)
+- 6 seed schemes exist: Violation (VIO), Case (CASE), Inspection (INS), Notice (NOT), Legal (LGL), Waiver (WVR)
+- 2 sequence rows exist for Violation template (year 2025: value 10, year 2026: value 7)
 
-```sql
-SELECT COALESCE(
-  'T' || LPAD((COALESCE(MAX(SUBSTRING(regno FROM 2)::INTEGER), 0) + 1)::TEXT, 5, '0'),
-  'T00001'
-) INTO v_regno
-FROM er_master
-WHERE regno LIKE 'T%';
-```
+### Applies To Options
+UI offers 7 types: Violation, Case, Inspection, Notice, Referral, Waiver, PaymentPlan
+But seed data uses lowercase values: "violation", "case", "inspection", "notice", "legal", "waiver" (case mismatch with UI values like "Violation" vs "violation")
 
-The `WHERE regno LIKE 'T%'` filter matches **all** regnos starting with `T`, including `TE0030` (which exists in the table). `SUBSTRING('TE0030' FROM 2)` yields `'E0030'`, which cannot be cast to `INTEGER`.
+### Pattern Tokens
+{YYYY}, {MM}, {NNNNN}, {NNNN}, {NNN}, {TERRITORY}
 
-## Fix
+## Deliverable
+A DOCX document with Misha Infotech branding on the cover page, containing all 10 sections as specified by the user, based entirely on the actual implementation analyzed above.
 
-Update the RPC's T-series number generation query to use a stricter regex pattern that only matches `T` followed by exactly 5 digits:
-
-```sql
-WHERE regno ~ '^T\d{5}$'
-```
-
-This ensures only valid T-series numbers like `T00007`, `T00008`, `T00009` are considered, and `TE0030` is excluded.
-
-## Additional Fix: Create `er_documents` table
-
-The RPC also tries to `INSERT INTO er_documents` but this table doesn't exist in the database. This would cause a secondary failure after fixing the integer cast issue. A migration will create the `er_documents` table with appropriate columns matching the RPC's INSERT statement.
-
-## Files to Modify
-
-1. **New SQL migration** — Recreate the `convert_application_to_employer` function with the regex fix and create the `er_documents` table if missing.
+## Steps
+1. Copy the Misha Infotech logo to /tmp
+2. Generate the DOCX using docx-js with cover page (logo + company name), all sections
+3. QA by converting to images
+4. Deliver as artifact
 
 ## Technical Details
-- Single database migration, no client-side code changes needed
-- The RPC will be dropped and recreated with the corrected `WHERE` clause
-- The `er_documents` table will include: `id`, `regno`, `file_name`, `file_path`, `storage_url`, `document_type`, `document_description`, `doc_code`, `mime_type`, `file_size`, `uploaded_by`, `uploaded_by_code`, `is_supportive`, `metadata`, `created_at`
-
+- Use `npm install -g docx` (already available) 
+- Logo at `src/assets/misha-infotech-logo.png`
+- Output to `/mnt/documents/Reference_Numbering_Schemes_Manager_Approval.docx`
