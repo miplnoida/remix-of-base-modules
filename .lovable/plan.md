@@ -1,74 +1,48 @@
-# Plan: Fix Settings Configuration Menu, Data Seeding, and `is_active` Column
 
-## Issues Identified
 
-1. **Missing menu entry**: No `app_modules` row exists for `/c3-management/settings-configuration`. The route exists in `AppRoutes.tsx` but is invisible in the sidebar.
-2. **Wrong data**: Local tables have 21 generic seed rows in `c3_site_settings` and 8 generic rows in `c3_email_config`. The real C3-Wizard data (from CSVs) has 22 site settings and 8 email configs with different keys, values, and structure.
-3. **Missing `is_active` column on `c3_site_settings**`: The C3-Wizard team added `is_active` to their side. Our local table lacks this column.
-4. `**is_synced` = false for all rows**: Since data is already synced from the C3-Wizard export, all rows should have `is_synced = true`.
-5. `**legacy_id` column missing**: The CSV has a `legacy_id` column (integer IDs from the C3-Wizard DB) that our local table doesn't have. This is needed for sync correlation.  (Skip this - no need for this)
+# Fix: Settings Configuration Sync Errors
 
----
+## Root Cause
 
-## Implementation Steps
+The `wiz-settings-sync` edge function sends individual flat objects to the C3-Wizard API (`callWizApi("sync_site_settings", { setting_key, setting_value, ... })`), but the **Wizard API expects arrays** — it requires a `settings` array for site settings and a `configs` array for email configs. The Wizard responds with: `"settings array is required and must not be empty"` / `"configs array is required and must not be empty"`.
 
-### Step 1: Database Migration — Add missing columns to `c3_site_settings`
+### Affected rows currently in DB:
+- `CYBERSOURCE_Production` — `is_synced=false`, `sync_error="settings array is required and must not be empty"` (toggled active, which set `is_synced=false`, then retry failed)
+- `CYBERSOURCE_Test (Sandbox)` — same error
+- `TEST_RECIPIENT` (email) — `sync_error="configs array is required and must not be empty"`
 
-```sql
-ALTER TABLE c3_site_settings ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;
-```
+## Fix Plan
 
-### Step 2: Seed correct data — Replace all rows in both tables
+### 1. Fix Edge Function (`supabase/functions/wiz-settings-sync/index.ts`)
 
-**Delete existing seed data** and insert the 22 real rows from the CSV for `c3_site_settings` and 8 real rows for `c3_email_config`, all with `is_synced = true` since they come from the live C3-Wizard export.
+Change `callWizApi` payload format to wrap items in arrays:
 
-The CSV uses semicolon delimiters. Key mappings from CSV:
+**For site settings sync** — send `{ action: "sync_site_settings", params: { settings: [{ setting_key, ... }] } }` instead of `{ action: "sync_site_settings", params: { setting_key, ... } }`
 
-- `c3_site_settings`: 22 rows across types PAYMENT_GATEWAY, EXTERNAL_API, PAYMENT_CONFIG, SYSTEM
-- `c3_email_config`: 8 rows across groups test, recipients, senders
+**For email config sync** — send `{ action: "sync_email_config", params: { configs: [{ config_key, ... }] } }` instead of `{ action: "sync_email_config", params: { config_key, ... } }`
 
-### Step 3: Add `app_modules` entry
+This applies to:
+- `syncSiteSettings()` — batch all unsynced rows into one `settings` array call
+- `syncEmailConfig()` — batch all unsynced rows into one `configs` array call  
+- `retrySiteSetting()` — wrap single item in `settings: [payload]`
+- `retryEmailConfig()` — wrap single item in `configs: [payload]`
 
-Insert a menu entry under C3 Management (parent `aa1a72a6-308c-4689-9ca1-9d732c0d6198`) with route `/c3-management/settings-configuration`, sort order 25 (between Configure E-C3 at 20 and C3 Details at 30).
+### 2. Clear existing sync errors (DB fix)
 
-### Step 4: Update service layer — Add `is_active` support
+Reset the 3 affected rows to `is_synced=true, sync_error=null` since these were originally synced from the CSV export and the errors are artifacts of the broken edge function format.
 
-`**src/services/wizSettingsService.ts**`:
+### 3. Include `is_active` in sync payload
 
-- `fetchSiteSettings`: No filter change needed (already filters `is_deleted = false`).
-- `saveSiteSetting`: Accept `is_active` in updates parameter.
-
-`**src/hooks/useSettingsConfiguration.ts**`:
-
-- `useSaveSiteSetting`: Add `is_active` to the updates type.
-
-### Step 5: Update UI — SettingsConfiguration.tsx
-
-- **SyncBadge**: Already correct (shows Synced/Pending/Failed).
-- **Payment Gateway tab**: Add `is_active` toggle per gateway row. When toggling active, update locally. Show Active/Inactive badge. (both payment can't be active at one time , when admin tries to chnage the status of one payment other should be updated vice versa of it)
-- **All tabs**: Since data is pre-synced, rows will show "Synced" badge correctly. (Dont show the synced , show the icon only)
-- **API Config tab**: Map the real API keys from CSV (SSB_C3_REPORTED_API, SSB_C3_WAGES_API, etc.) instead of generic placeholders.
-
-### Step 6: Update `useSettingsConfiguration.ts` pending count
-
-Currently counts ALL `is_synced = false` rows. Since seeded data will be `is_synced = true`, the pending count will correctly show 0 on initial load.
-
----
-
-## Query to C3-Wizard Team
-
-No query needed — the uploaded CSV and markdown file provide all required information.
-
----
+The `syncSiteSettings` payload currently omits `is_active`. Add it so the Wizard receives the active/inactive status when syncing.
 
 ## Files Changed
 
+| File | Change |
+|------|--------|
+| `supabase/functions/wiz-settings-sync/index.ts` | Fix payload format to use `settings[]` / `configs[]` arrays; add `is_active` to payload |
+| DB fix (migration) | Reset sync_error and is_synced on 3 affected rows |
 
-| File                                               | Change                                                                                  |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Migration SQL                                      | Add `is_active` columns to `c3_site_settings`                                           |
-| Data insert (via insert tool)                      | Delete old seed data, insert 22 + 8 real rows with `is_synced = true`                   |
-| Data insert (via insert tool)                      | Add `app_modules` entry for settings-configuration                                      |
-| `src/services/wizSettingsService.ts`               | Add `is_active` to saveSiteSetting updates type                                         |
-| `src/hooks/useSettingsConfiguration.ts`            | Add `is_active` to mutation type                                                        |
-| `src/pages/c3Management/SettingsConfiguration.tsx` | Add `is_active` toggle to Payment Gateway tab, display `is_active` status on other tabs |
+## Query to C3-Wizard Team
+
+**Not needed** — the error messages clearly indicate the expected format (`settings array`, `configs array`). The fix is entirely on our side.
+
