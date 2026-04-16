@@ -203,15 +203,19 @@ import DeathBenefits from '@/pages/benefits/DeathBenefits';
 import EducationalBenefits from '@/pages/benefits/EducationalBenefits';
 
 // Compliance & Audit (ComplianceDashboard already imported above)
-// Removed: EmployerComplianceManagement (unclear ownership — will re-add if needed)
+import EmployerComplianceManagement from '@/pages/compliance/employers/EmployerComplianceManagement';
 import LegalProceedings from '@/pages/compliance/legal/LegalProceedings';
 import AuditManagement from '@/pages/compliance/audit-planning/AuditManagement';
 import PenaltyManagement from '@/pages/compliance/cases/PenaltyManagement';
 import ComplianceAnalytics from '@/pages/compliance/dashboards/ComplianceAnalytics';
-// Removed: EmployerHierarchy (unclear ownership — will re-add if needed)
+import EmployerHierarchy from '@/pages/compliance/employers/EmployerHierarchy';
+import EmployerFinancialStatement from '@/pages/compliance/employers/EmployerFinancialStatement';
 import EmployerComplianceJobs from '@/pages/compliance/automation/EmployerComplianceJobs';
 import C3LedgerSync from '@/pages/compliance/settings/C3LedgerSync';
 import LedgerAdministration from '@/pages/compliance/settings/LedgerAdministration';
+import LedgerOperationsDashboard from '@/pages/compliance/settings/LedgerOperationsDashboard';
+import LedgerPostingAdmin from '@/pages/compliance/settings/LedgerPostingAdmin';
+import LedgerHelpCenter from '@/pages/compliance/settings/LedgerHelpCenter';
 import PaymentLedgerSync from '@/pages/compliance/settings/PaymentLedgerSync';
 import TrendReports from '@/pages/compliance/reports/TrendReports';
 
@@ -990,7 +994,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/field/employer-360" element={<ProtectedLayout><Employer360Search /></ProtectedLayout>} />
       <Route path="/compliance/field/employer-360/:employerId" element={<ProtectedLayout><Employer360 /></ProtectedLayout>} />
       <Route path="/compliance/field/employer-risk/:employerId" element={<ProtectedLayout><EmployerRiskProfile /></ProtectedLayout>} />
-      {/* Removed: employer-hierarchy, employer-management (unclear ownership) */}
+      <Route path="/compliance/employers/management" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
+      <Route path="/compliance/employers/hierarchy" element={<ProtectedLayout><EmployerHierarchy /></ProtectedLayout>} />
+      <Route path="/compliance/employers/financial-statement/:employerId" element={<ProtectedLayout><EmployerFinancialStatement /></ProtectedLayout>} />
       <Route path="/compliance/field/audit-management" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
       <Route path="/compliance/field/weekly-report" element={<ProtectedLayout><WeeklyReportSubmission /></ProtectedLayout>} />
       <Route path="/compliance/field/weekly-reports" element={<ProtectedLayout><WeeklyReports /></ProtectedLayout>} />
@@ -1030,6 +1036,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/settings/c3-ledger-sync" element={<ProtectedLayout><C3LedgerSync /></ProtectedLayout>} />
       <Route path="/compliance/admin/settings/payment-ledger-sync" element={<ProtectedLayout><PaymentLedgerSync /></ProtectedLayout>} />
       <Route path="/compliance/admin/settings/ledger-admin" element={<ProtectedLayout><LedgerAdministration /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/ledger-operations" element={<ProtectedLayout><LedgerOperationsDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/ledger-posting" element={<ProtectedLayout><LedgerPostingAdmin /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/ledger-help" element={<ProtectedLayout><LedgerHelpCenter /></ProtectedLayout>} />
       <Route path="/compliance/admin/geography/zones" element={<ProtectedLayout><ZoneManagement /></ProtectedLayout>} />
       <Route path="/compliance/admin/geography/office-zone-mapping" element={<ProtectedLayout><OfficeZoneMapping /></ProtectedLayout>} />
       <Route path="/compliance/admin/geography/village-zone-mapping" element={<ProtectedLayout><VillageZoneMapping /></ProtectedLayout>} />
