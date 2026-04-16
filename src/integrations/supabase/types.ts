@@ -12953,6 +12953,13 @@ export type Database = {
             foreignKeyName: "ce_field_activities_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
+            referencedRelation: "ce_v_weekly_report_summary"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "ce_field_activities_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
             referencedRelation: "ce_weekly_plans"
             referencedColumns: ["id"]
           },
@@ -13152,13 +13159,176 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_inspection_employer_interactions: {
+        Row: {
+          authorization_status: string
+          created_at: string
+          created_by: string | null
+          employer_acknowledged: boolean
+          employer_signature_data: string | null
+          id: string
+          inspection_id: string
+          plan_item_id: string | null
+          records_declaration: string
+          records_missing_details: string | null
+          refusal_notes: string | null
+          representative_contact: string | null
+          representative_designation: string | null
+          representative_name: string | null
+          signature_refusal_reason: string | null
+          signature_refused: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          authorization_status?: string
+          created_at?: string
+          created_by?: string | null
+          employer_acknowledged?: boolean
+          employer_signature_data?: string | null
+          id?: string
+          inspection_id: string
+          plan_item_id?: string | null
+          records_declaration?: string
+          records_missing_details?: string | null
+          refusal_notes?: string | null
+          representative_contact?: string | null
+          representative_designation?: string | null
+          representative_name?: string | null
+          signature_refusal_reason?: string | null
+          signature_refused?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          authorization_status?: string
+          created_at?: string
+          created_by?: string | null
+          employer_acknowledged?: boolean
+          employer_signature_data?: string | null
+          id?: string
+          inspection_id?: string
+          plan_item_id?: string | null
+          records_declaration?: string
+          records_missing_details?: string | null
+          refusal_notes?: string | null
+          representative_contact?: string | null
+          representative_designation?: string | null
+          representative_name?: string | null
+          signature_refusal_reason?: string | null
+          signature_refused?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_inspection_employer_interactions_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspection_employer_interactions_plan_item_id_fkey"
+            columns: ["plan_item_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plan_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_inspection_evidence: {
+        Row: {
+          captured_at: string
+          captured_by: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          evidence_type: string
+          file_name: string
+          file_size: number | null
+          file_url: string
+          finding_id: string | null
+          gps_lat: number | null
+          gps_lng: number | null
+          id: string
+          inspection_id: string
+          plan_item_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          captured_at?: string
+          captured_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          evidence_type?: string
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          finding_id?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: string
+          inspection_id: string
+          plan_item_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          captured_at?: string
+          captured_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          evidence_type?: string
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          finding_id?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: string
+          inspection_id?: string
+          plan_item_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_inspection_evidence_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspection_findings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspection_evidence_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspection_evidence_plan_item_id_fkey"
+            columns: ["plan_item_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plan_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_inspection_findings: {
         Row: {
           created_at: string | null
           created_by: string | null
           description: string
           evidence_documents: Json | null
+          explanation_if_no_violation: string | null
           finding_type: string | null
+          follow_up_notes: string | null
+          follow_up_required: boolean
           id: string
           inspection_id: string | null
           severity: string | null
@@ -13172,7 +13342,10 @@ export type Database = {
           created_by?: string | null
           description: string
           evidence_documents?: Json | null
+          explanation_if_no_violation?: string | null
           finding_type?: string | null
+          follow_up_notes?: string | null
+          follow_up_required?: boolean
           id?: string
           inspection_id?: string | null
           severity?: string | null
@@ -13186,7 +13359,10 @@ export type Database = {
           created_by?: string | null
           description?: string
           evidence_documents?: Json | null
+          explanation_if_no_violation?: string | null
           finding_type?: string | null
+          follow_up_notes?: string | null
+          follow_up_required?: boolean
           id?: string
           inspection_id?: string | null
           severity?: string | null
@@ -13222,6 +13398,84 @@ export type Database = {
             columns: ["violation_id"]
             isOneToOne: false
             referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_inspection_working_papers: {
+        Row: {
+          completion_percentage: number | null
+          contributions_notes: string | null
+          contributions_reviewed: boolean
+          created_at: string
+          created_by: string | null
+          discrepancies_found: string | null
+          employee_sample_notes: string | null
+          employee_sample_size: number | null
+          id: string
+          inspection_id: string
+          inspector_observations: string | null
+          payroll_notes: string | null
+          payroll_reviewed: boolean
+          plan_item_id: string | null
+          updated_at: string
+          updated_by: string | null
+          wage_book_notes: string | null
+          wage_book_reviewed: boolean
+        }
+        Insert: {
+          completion_percentage?: number | null
+          contributions_notes?: string | null
+          contributions_reviewed?: boolean
+          created_at?: string
+          created_by?: string | null
+          discrepancies_found?: string | null
+          employee_sample_notes?: string | null
+          employee_sample_size?: number | null
+          id?: string
+          inspection_id: string
+          inspector_observations?: string | null
+          payroll_notes?: string | null
+          payroll_reviewed?: boolean
+          plan_item_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          wage_book_notes?: string | null
+          wage_book_reviewed?: boolean
+        }
+        Update: {
+          completion_percentage?: number | null
+          contributions_notes?: string | null
+          contributions_reviewed?: boolean
+          created_at?: string
+          created_by?: string | null
+          discrepancies_found?: string | null
+          employee_sample_notes?: string | null
+          employee_sample_size?: number | null
+          id?: string
+          inspection_id?: string
+          inspector_observations?: string | null
+          payroll_notes?: string | null
+          payroll_reviewed?: boolean
+          plan_item_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          wage_book_notes?: string | null
+          wage_book_reviewed?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_inspection_working_papers_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspection_working_papers_plan_item_id_fkey"
+            columns: ["plan_item_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plan_items"
             referencedColumns: ["id"]
           },
         ]
@@ -15257,6 +15511,13 @@ export type Database = {
             foreignKeyName: "ce_planned_visits_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
+            referencedRelation: "ce_v_weekly_report_summary"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "ce_planned_visits_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
             referencedRelation: "ce_weekly_plans"
             referencedColumns: ["id"]
           },
@@ -17007,6 +17268,13 @@ export type Database = {
             foreignKeyName: "ce_weekly_plan_items_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
+            referencedRelation: "ce_v_weekly_report_summary"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plan_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
             referencedRelation: "ce_weekly_plans"
             referencedColumns: ["id"]
           },
@@ -17045,6 +17313,13 @@ export type Database = {
           plan_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ce_weekly_plan_reviews_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_report_summary"
+            referencedColumns: ["plan_id"]
+          },
           {
             foreignKeyName: "ce_weekly_plan_reviews_plan_id_fkey"
             columns: ["plan_id"]
@@ -17146,6 +17421,13 @@ export type Database = {
           week_start_date?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "ce_weekly_plans_carry_forward_from_fkey"
+            columns: ["carry_forward_from"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_report_summary"
+            referencedColumns: ["plan_id"]
+          },
           {
             foreignKeyName: "ce_weekly_plans_carry_forward_from_fkey"
             columns: ["carry_forward_from"]
@@ -46599,6 +46881,45 @@ export type Database = {
           territory: string | null
         }
         Relationships: []
+      }
+      ce_v_weekly_report_summary: {
+        Row: {
+          cancelled_visits: number | null
+          completed_visits: number | null
+          evidence_count: number | null
+          findings_count: number | null
+          inspector_id: string | null
+          inspector_name: string | null
+          not_done_visits: number | null
+          outcome_narrative: string | null
+          outcome_submitted_at: string | null
+          plan_id: string | null
+          plan_number: string | null
+          plan_status: string | null
+          rescheduled_visits: number | null
+          still_planned: number | null
+          total_hours: number | null
+          total_planned: number | null
+          violations_created: number | null
+          week_end_date: string | null
+          week_start_date: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_weekly_plans_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["inspector_id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dashboard_v_active_alerts: {
         Row: {
