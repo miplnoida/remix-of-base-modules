@@ -21,32 +21,56 @@ import {
 import { CheckCircle, XCircle, MinusCircle, Camera, FileText } from 'lucide-react';
 import { ChecklistItem, AUDIT_CHECKLIST_TEMPLATES } from '@/types/auditChecklist';
 import { PlannedVisit } from '@/types/weeklyAuditPlan';
+import { fieldAuditService } from '@/services/fieldAuditService';
+import { toast } from 'sonner';
 
 interface AuditChecklistDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   visit: PlannedVisit | null;
-  onSave: (checklist: ChecklistItem[]) => void;
+  inspectionId?: string;
+  onSave?: (checklist: ChecklistItem[]) => void;
 }
 
 export function AuditChecklistDialog({
   open,
   onOpenChange,
   visit,
+  inspectionId,
   onSave
 }: AuditChecklistDialogProps) {
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+  const [templateKey, setTemplateKey] = useState<string>('GENERAL_AUDIT');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (visit && open) {
-      // Load appropriate template based on visit type
-      const templateKey = visit.visitType === 'RISK_BASED_AUDIT' ? 'HIGH_RISK_AUDIT' : 'GENERAL_AUDIT';
-      const template = AUDIT_CHECKLIST_TEMPLATES[templateKey];
-      
-      const items = template.categories.flatMap(cat => cat.items);
-      setChecklist(items);
+      const tk = visit.visitType === 'RISK_BASED_AUDIT' ? 'HIGH_RISK_AUDIT' : 'GENERAL_AUDIT';
+      setTemplateKey(tk);
+      const template = AUDIT_CHECKLIST_TEMPLATES[tk];
+      const items = template.categories.flatMap((cat) => cat.items);
+
+      // Hydrate from DB if inspection exists
+      if (inspectionId) {
+        fieldAuditService
+          .getChecklistResponses(inspectionId)
+          .then((rows) => {
+            const byQ = new Map(rows.map((r) => [r.questionId, r]));
+            setChecklist(
+              items.map((it) => {
+                const saved = byQ.get(it.id);
+                return saved
+                  ? { ...it, response: saved.response, notes: saved.notes }
+                  : it;
+              })
+            );
+          })
+          .catch(() => setChecklist(items));
+      } else {
+        setChecklist(items);
+      }
     }
-  }, [visit, open]);
+  }, [visit, open, inspectionId]);
 
   const handleResponseChange = (itemId: string, response: 'Yes' | 'No' | 'N/A' | 'Partial') => {
     setChecklist(prev => prev.map(item =>
@@ -60,8 +84,26 @@ export function AuditChecklistDialog({
     ));
   };
 
-  const handleSave = () => {
-    onSave(checklist);
+  const handleSave = async () => {
+    if (inspectionId) {
+      try {
+        setSaving(true);
+        await fieldAuditService.saveChecklistResponses(
+          inspectionId,
+          visit?.id,
+          templateKey,
+          checklist
+        );
+        toast.success('Checklist saved');
+      } catch (e: any) {
+        toast.error(e?.message ?? 'Failed to save checklist');
+        setSaving(false);
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
+    onSave?.(checklist);
     onOpenChange(false);
   };
 
@@ -197,12 +239,12 @@ export function AuditChecklistDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} disabled={saving}>
             <FileText className="h-4 w-4 mr-2" />
-            Save Checklist
+            {saving ? 'Saving...' : 'Save Checklist'}
           </Button>
         </DialogFooter>
       </DialogContent>
