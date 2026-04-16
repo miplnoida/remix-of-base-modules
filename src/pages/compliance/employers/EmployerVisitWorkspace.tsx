@@ -19,6 +19,8 @@ import { useUserCode } from '@/hooks/useUserCode';
 export default function EmployerVisitWorkspace() {
   const { employerId } = useParams<{ employerId: string }>();
   const navigate = useNavigate();
+  const { userCode } = useUserCode();
+  const currentUserCode = userCode || 'SYSTEM';
   
   const [employer, setEmployer] = useState({
     id: employerId || '',
