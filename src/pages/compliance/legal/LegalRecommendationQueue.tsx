@@ -88,7 +88,7 @@ const LegalRecommendationQueue = () => {
   };
 
   const handleCreateReferral = (recommendation: LegalRecommendation) => {
-    navigate('/compliance/legal-referral/new', { state: { recommendation } });
+    navigate('/compliance/enforcement/legal-referral', { state: { recommendation } });
   };
 
   const filteredRecommendations = recommendations.filter(rec =>
