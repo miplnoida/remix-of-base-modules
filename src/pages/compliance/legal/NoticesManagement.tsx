@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Bell, Send, FileText, Clock, Search, Filter, Plus, Eye, Download, Loader2, Mail, CheckCircle, XCircle, MessageSquare, Truck, ChevronDown } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchNotices } from "@/services/complianceDataService";
@@ -44,6 +45,7 @@ function resolveTemplate(body: string, vars: Record<string, string>): string {
 
 export default function NoticesManagement() {
   const queryClient = useQueryClient();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -59,6 +61,22 @@ export default function NoticesManagement() {
     template_id: "", employer_id: "", employer_name: "", case_id: "",
     notice_type: "", delivery_method: "EMAIL", due_response_date: "", subject: "", body: "",
   });
+
+  // Auto-open create dialog with prefilled data when navigated from Case Detail
+  useEffect(() => {
+    const prefill = (location.state as any)?.prefill;
+    if (prefill) {
+      setNewNotice(prev => ({
+        ...prev,
+        case_id: prefill.case_id || "",
+        employer_id: prefill.employer_id || "",
+        employer_name: prefill.employer_name || "",
+      }));
+      setCreateDialogOpen(true);
+      // Clear navigation state to prevent re-triggering
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const { data: notices = [], isLoading } = useQuery({
     queryKey: ["ce_notices", searchTerm],

@@ -10,9 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import {
   Loader2, Eye, Briefcase, History, AlertCircle, CheckCircle, Building2,
-  ArrowLeft, Link2, HandshakeIcon
+  ArrowLeft, Link2, HandshakeIcon, Mail, Scale, DollarSign, FileText
 } from 'lucide-react';
 import { CasePaymentArrangementDialog } from '@/components/compliance/CasePaymentArrangementDialog';
+import { fetchPaymentArrangements } from '@/services/complianceDataService';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -86,6 +87,34 @@ export default function CaseDetailView() {
         .select('*')
         .eq('case_id', id!)
         .order('performed_at', { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
+    enabled: !!id,
+  });
+
+  const { data: caseNotices = [] } = useQuery({
+    queryKey: ['ce_case_notices', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_notices')
+        .select('*')
+        .eq('case_id', id!)
+        .order('created_at', { ascending: false });
+      if (error) return [];
+      return data ?? [];
+    },
+    enabled: !!id,
+  });
+
+  const { data: caseArrangements = [] } = useQuery({
+    queryKey: ['ce_case_arrangements', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ce_payment_arrangements')
+        .select('*')
+        .eq('case_id', id!)
+        .order('created_at', { ascending: false });
       if (error) return [];
       return data ?? [];
     },
@@ -189,6 +218,22 @@ export default function CaseDetailView() {
                 <Building2 className="h-4 w-4 mr-1" />Employer 360
               </Button>
             )}
+            {/* Create Notice - navigates to notices screen with case prefilled */}
+            {!['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && (
+              <Button variant="outline" size="sm" onClick={() => navigate('/compliance/enforcement/notices', {
+                state: { prefill: { case_id: c.id, case_number: c.case_number, employer_id: c.employer_id, employer_name: c.employer_name } }
+              })}>
+                <Mail className="h-4 w-4 mr-1" />Create Notice
+              </Button>
+            )}
+            {/* Recommend Legal Escalation */}
+            {['ACTIVE', 'ESCALATED_LEGAL', 'UNDER_REVIEW'].includes(c.status) && (
+              <Button variant="outline" size="sm" onClick={() => navigate('/compliance/enforcement/recommendation-queue', {
+                state: { prefill: { case_id: c.id, case_number: c.case_number, employer_id: c.employer_id, employer_name: c.employer_name, total_amount: c.total_amount } }
+              })}>
+                <Scale className="h-4 w-4 mr-1" />Recommend Legal
+              </Button>
+            )}
             {activeViolationCount > 0 && !['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && (
               <Button variant="destructive" size="sm" onClick={() => setCascadeDialogOpen(true)}>
                 <CheckCircle className="h-4 w-4 mr-1" />
@@ -249,6 +294,12 @@ export default function CaseDetailView() {
           <TabsTrigger value="violations">
             <Link2 className="h-4 w-4 mr-2" />Violations ({linkedViolations.length})
           </TabsTrigger>
+          <TabsTrigger value="notices">
+            <Mail className="h-4 w-4 mr-2" />Notices ({caseNotices.length})
+          </TabsTrigger>
+          <TabsTrigger value="arrangements">
+            <DollarSign className="h-4 w-4 mr-2" />Arrangements ({caseArrangements.length})
+          </TabsTrigger>
           <TabsTrigger value="history">
             <History className="h-4 w-4 mr-2" />History ({caseHistory.length})
           </TabsTrigger>
@@ -297,6 +348,94 @@ export default function CaseDetailView() {
                             <Eye className="h-4 w-4" />
                           </Button>
                         </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="notices" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Notices</CardTitle>
+                <Button size="sm" variant="outline" onClick={() => navigate('/compliance/enforcement/notices', {
+                  state: { prefill: { case_id: c.id, case_number: c.case_number, employer_id: c.employer_id, employer_name: c.employer_name } }
+                })}>
+                  <Mail className="h-4 w-4 mr-1" />Create Notice
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {caseNotices.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No notices issued for this case</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Notice #</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Sent</TableHead>
+                      <TableHead>Response</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {caseNotices.map((n: any) => (
+                      <TableRow key={n.id}>
+                        <TableCell className="font-mono text-xs font-medium">{n.notice_number}</TableCell>
+                        <TableCell>{n.notice_type || '-'}</TableCell>
+                        <TableCell><Badge variant="outline">{n.status?.replace(/_/g, ' ')}</Badge></TableCell>
+                        <TableCell>{n.sent_at ? formatDate(n.sent_at) : '-'}</TableCell>
+                        <TableCell>{n.response_received ? <Badge className="bg-green-100 text-green-800">Received</Badge> : '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="arrangements" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Payment Arrangements</CardTitle>
+                {!['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && (Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0)) > 0 && (
+                  <Button size="sm" variant="outline" onClick={() => setArrangementDialogOpen(true)}>
+                    <HandshakeIcon className="h-4 w-4 mr-1" />New Arrangement
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {caseArrangements.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No payment arrangements for this case</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Arrangement #</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Start</TableHead>
+                      <TableHead>End</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {caseArrangements.map((a: any) => (
+                      <TableRow key={a.id}>
+                        <TableCell className="font-mono text-xs font-medium">{a.arrangement_number || a.id.slice(0, 8)}</TableCell>
+                        <TableCell>{a.arrangement_type || '-'}</TableCell>
+                        <TableCell><Badge variant="outline">{a.status?.replace(/_/g, ' ')}</Badge></TableCell>
+                        <TableCell>{formatCurrency(Number(a.total_amount) || 0)}</TableCell>
+                        <TableCell>{a.start_date ? formatDate(a.start_date) : '-'}</TableCell>
+                        <TableCell>{a.end_date ? formatDate(a.end_date) : '-'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
