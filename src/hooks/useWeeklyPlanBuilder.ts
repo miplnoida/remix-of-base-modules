@@ -213,7 +213,7 @@ export function useWeeklyPlanBuilder() {
     },
   });
 
-  // Submit
+  // Submit (first submission)
   const submitMutation = useMutation({
     mutationFn: async (narrative?: string) => {
       if (!activePlanId || !userId) throw new Error('No active plan');
@@ -228,6 +228,21 @@ export function useWeeklyPlanBuilder() {
     },
     onError: (err: any) => {
       toast({ title: 'Submission Failed', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  // Resubmit (after changes requested)
+  const resubmitMutation = useMutation({
+    mutationFn: async (narrative?: string) => {
+      if (!activePlanId || !userId) throw new Error('No active plan');
+      await weeklyPlanService.resubmit(activePlanId, userCode || userId, narrative);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['weekly-plan-existing'] });
+      toast({ title: 'Plan Resubmitted', description: 'Your updated plan has been resubmitted for review.' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Resubmission Failed', description: err.message, variant: 'destructive' });
     },
   });
 
