@@ -647,6 +647,7 @@ import AdminConfig from '@/pages/newBenefit/AdminConfig';
 import AuditorView from '@/pages/newBenefit/AuditorView';
 
 // Benefit Management Module (bn_)
+import BenefitsDashboard from '@/pages/bn/dashboard/BenefitsDashboard';
 import BnProductCatalog from '@/pages/bn/config/ProductCatalog';
 import BnProductEditor from '@/pages/bn/config/ProductEditor';
 import BnClaimWorklist from '@/pages/bn/claims/ClaimWorklist';
