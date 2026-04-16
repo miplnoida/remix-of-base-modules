@@ -234,10 +234,18 @@ export function AuditReportPrintLayout({
         )}
 
         <div className="signature-grid">
-          <SignatureBlock title="Employer Representative — Signatory" sig={empSig} auditContactName={report.auditContactName} />
-          <SignatureBlock title="Lead Inspector" sig={inspSig} />
-          {(witSig || isEmployer) && <SignatureBlock title="Witness" sig={witSig} />}
-          {(supSig || !isEmployer) && <SignatureBlock title="Supervisor" sig={supSig} />}
+          {/* Employer Rep is always shown — acknowledgment is the legal point of the report. */}
+          <SignatureBlock
+            title="Employer Representative — Signatory"
+            sig={empSig}
+            auditContactName={report.auditContactName}
+          />
+          {/* Inspector / Supervisor / Witness blocks render ONLY when actually captured.
+              Inspector signature appears when the logged-in inspector signs;
+              Supervisor signature appears only after an approval has been performed. */}
+          {inspSig && <SignatureBlock title="Inspector" sig={inspSig} />}
+          {supSig && <SignatureBlock title="Supervisor (Approval)" sig={supSig} />}
+          {witSig && <SignatureBlock title="Witness" sig={witSig} />}
         </div>
       </section>
 

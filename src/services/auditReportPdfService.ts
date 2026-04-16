@@ -267,21 +267,36 @@ export const auditReportPdfService = {
       y += boxH + 14;
     }
 
-    const roles: Array<{ key: AuditReportSignature['signerRole']; label: string }> = [
-      { key: 'EMPLOYER_REP', label: 'Employer Representative' },
-      { key: 'INSPECTOR', label: 'Lead Inspector' },
-      ...(isEmployer
-        ? ([{ key: 'WITNESS' as const, label: 'Witness' }])
-        : ([{ key: 'SUPERVISOR' as const, label: 'Supervisor' }])),
-    ];
+    // Dynamic signature blocks — render only what was actually captured.
+    // No hardcoded "Lead Inspector" or "Supervisor" placeholders.
+    // Employer Rep is shown even when missing (acknowledgment is the legal point of the report).
+    const roleLabel: Record<AuditReportSignature['signerRole'], string> = {
+      EMPLOYER_REP: 'Employer Representative',
+      INSPECTOR: 'Inspector',
+      SUPERVISOR: 'Supervisor (Approval)',
+      WITNESS: 'Witness',
+    };
+
+    type Block = { label: string; sig?: AuditReportSignature };
+    const blocks: Block[] = [];
+
+    const empSig = signatures.find((s) => s.signerRole === 'EMPLOYER_REP');
+    blocks.push({ label: roleLabel.EMPLOYER_REP, sig: empSig });
+
+    // Append any other captured signatures (inspector, supervisor approval, witness)
+    // — only if they actually exist. Order: INSPECTOR → SUPERVISOR → WITNESS.
+    (['INSPECTOR', 'SUPERVISOR', 'WITNESS'] as const).forEach((role) => {
+      const s = signatures.find((x) => x.signerRole === role);
+      if (s) blocks.push({ label: roleLabel[role], sig: s });
+    });
 
     const colW = (pageWidth - margin * 2 - 20) / 2;
-    for (let i = 0; i < roles.length; i += 2) {
+    for (let i = 0; i < blocks.length; i += 2) {
       ensureSpace(140);
       const startY = y;
-      drawSignatureBlock(doc, margin, startY, colW, roles[i].label, signatures.find((s) => s.signerRole === roles[i].key));
-      if (roles[i + 1]) {
-        drawSignatureBlock(doc, margin + colW + 20, startY, colW, roles[i + 1].label, signatures.find((s) => s.signerRole === roles[i + 1].key));
+      drawSignatureBlock(doc, margin, startY, colW, blocks[i].label, blocks[i].sig);
+      if (blocks[i + 1]) {
+        drawSignatureBlock(doc, margin + colW + 20, startY, colW, blocks[i + 1].label, blocks[i + 1].sig);
       }
       y = startY + 140;
     }
