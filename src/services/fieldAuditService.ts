@@ -8,9 +8,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { getCurrentUserCode } from '@/hooks/useUserCode';
 import {
   InspectionEvidence,
+  InspectionFinding,
   EvidenceType,
   FindingType,
 } from '@/types/inspectionTypes';
+import { Violation } from '@/types/violation';
 import type { ChecklistItem } from '@/types/auditChecklist';
 
 // ── Types ──────────────────────────────────────────
