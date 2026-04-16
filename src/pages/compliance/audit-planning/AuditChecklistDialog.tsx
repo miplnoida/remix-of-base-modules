@@ -84,8 +84,26 @@ export function AuditChecklistDialog({
     ));
   };
 
-  const handleSave = () => {
-    onSave(checklist);
+  const handleSave = async () => {
+    if (inspectionId) {
+      try {
+        setSaving(true);
+        await fieldAuditService.saveChecklistResponses(
+          inspectionId,
+          visit?.id,
+          templateKey,
+          checklist
+        );
+        toast.success('Checklist saved');
+      } catch (e: any) {
+        toast.error(e?.message ?? 'Failed to save checklist');
+        setSaving(false);
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
+    onSave?.(checklist);
     onOpenChange(false);
   };
 
