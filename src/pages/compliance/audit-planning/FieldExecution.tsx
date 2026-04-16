@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,14 +8,13 @@ import { MapPin, Clock, PlayCircle, CheckCircle } from 'lucide-react';
 import { WeeklyPlanItem, InspectionVisitStatus, ItemType } from '@/types/inspectionTypes';
 import { inspectionService } from '@/services/inspectionService';
 import { violationService } from '@/services/violationService';
-import { ExecutePlanItemDialog } from '@/components/compliance/ExecutePlanItemDialog';
 import { toast } from 'sonner';
 
 export default function FieldExecution() {
+  const navigate = useNavigate();
   const [planItems, setPlanItems] = useState<WeeklyPlanItem[]>([]);
   const [activeViolationsCount, setActiveViolationsCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [executingItem, setExecutingItem] = useState<WeeklyPlanItem | null>(null);
   const [gpsLocation, setGpsLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
@@ -256,7 +256,7 @@ export default function FieldExecution() {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => setExecutingItem(item)}
+                  onClick={() => navigate(`/compliance/field/audit-visit/${item.id}`)}
                 >
                   {item.status === InspectionVisitStatus.COMPLETED ? 'View' : 'Execute'}
                 </Button>
@@ -265,15 +265,6 @@ export default function FieldExecution() {
           </div>
         </CardContent>
       </Card>
-
-      {executingItem && (
-        <ExecutePlanItemDialog
-          planItem={executingItem}
-          open={!!executingItem}
-          onOpenChange={(open) => !open && setExecutingItem(null)}
-          onComplete={loadData}
-        />
-      )}
     </div>
   );
 }
