@@ -585,7 +585,65 @@ const printStyles = `
   color: #666;
 }
 
-@media print {
+.audit-report-print .audit-contact-card {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  border-left: 4px solid #0E5F3A;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border-radius: 3px;
+}
+.audit-report-print .audit-contact-label {
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #64748b;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.audit-report-print .audit-contact-name {
+  font-weight: bold;
+  font-size: 11pt;
+}
+.audit-report-print .audit-contact-meta {
+  font-size: 9pt;
+  color: #475569;
+}
+.audit-report-print .sig-identity-chip {
+  display: inline-block;
+  font-size: 8pt;
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-top: 2px;
+  font-weight: bold;
+}
+.audit-report-print .sig-identity-chip[data-same="true"] {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+.audit-report-print .sig-identity-chip[data-same="false"] {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+.audit-report-print .witness-block {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed #cbd5e1;
+}
+.audit-report-print .witness-label {
+  font-size: 8pt;
+  text-transform: uppercase;
+  color: #64748b;
+  font-weight: bold;
+  margin-bottom: 2px;
+}
+.audit-report-print .witness-image {
+  max-height: 35px;
+  border-bottom: 1px solid #333;
+  margin-bottom: 2px;
+}
   @page {
     size: letter;
     margin: 0.5in;
