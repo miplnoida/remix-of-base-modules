@@ -140,7 +140,7 @@ const LegalDashboard = () => {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">Pending Legal Escalations</CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/compliance/legal/queue')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/compliance/enforcement/legal-queue')}>
             View Queue <ArrowRight className="h-3 w-3 ml-1" />
           </Button>
         </CardHeader>
