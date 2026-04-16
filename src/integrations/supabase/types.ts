@@ -382,6 +382,7 @@ export type Database = {
       }
       app_modules: {
         Row: {
+          actions_enabled: boolean
           base_url: string | null
           business_key_column: string | null
           created_at: string | null
@@ -390,18 +391,25 @@ export type Database = {
           display_name: string
           icon: string | null
           id: string
+          internal_only: boolean
           is_enabled: boolean | null
           name: string
           parent_id: string | null
+          pilot_role_ids: string[] | null
+          pilot_user_ids: string[] | null
           primary_key_column: string | null
           primary_table: string | null
+          release_version: string | null
+          rollout_state: string
           route: string | null
+          routes_enabled: boolean
           show_in_menu: boolean
           sort_order: number | null
           updated_at: string | null
           updated_by: string | null
         }
         Insert: {
+          actions_enabled?: boolean
           base_url?: string | null
           business_key_column?: string | null
           created_at?: string | null
@@ -410,18 +418,25 @@ export type Database = {
           display_name: string
           icon?: string | null
           id?: string
+          internal_only?: boolean
           is_enabled?: boolean | null
           name: string
           parent_id?: string | null
+          pilot_role_ids?: string[] | null
+          pilot_user_ids?: string[] | null
           primary_key_column?: string | null
           primary_table?: string | null
+          release_version?: string | null
+          rollout_state?: string
           route?: string | null
+          routes_enabled?: boolean
           show_in_menu?: boolean
           sort_order?: number | null
           updated_at?: string | null
           updated_by?: string | null
         }
         Update: {
+          actions_enabled?: boolean
           base_url?: string | null
           business_key_column?: string | null
           created_at?: string | null
@@ -430,12 +445,18 @@ export type Database = {
           display_name?: string
           icon?: string | null
           id?: string
+          internal_only?: boolean
           is_enabled?: boolean | null
           name?: string
           parent_id?: string | null
+          pilot_role_ids?: string[] | null
+          pilot_user_ids?: string[] | null
           primary_key_column?: string | null
           primary_table?: string | null
+          release_version?: string | null
+          rollout_state?: string
           route?: string | null
+          routes_enabled?: boolean
           show_in_menu?: boolean
           sort_order?: number | null
           updated_at?: string | null
@@ -22093,6 +22114,124 @@ export type Database = {
         }
         Relationships: []
       }
+      config_promotion_items: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          operation: string
+          pack_id: string
+          payload: Json
+          promoted_at: string | null
+          record_id: string | null
+          status: string
+          table_name: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          operation: string
+          pack_id: string
+          payload?: Json
+          promoted_at?: string | null
+          record_id?: string | null
+          status?: string
+          table_name: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          operation?: string
+          pack_id?: string
+          payload?: Json
+          promoted_at?: string | null
+          record_id?: string | null
+          status?: string
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_promotion_items_pack_id_fkey"
+            columns: ["pack_id"]
+            isOneToOne: false
+            referencedRelation: "config_promotion_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      config_promotion_packs: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          config_payload: Json
+          config_type: string
+          created_at: string
+          created_by: string | null
+          dependency_check: Json | null
+          description: string | null
+          id: string
+          item_count: number | null
+          pack_name: string
+          promoted_at: string | null
+          promoted_by: string | null
+          release_id: string | null
+          rollback_notes: string | null
+          source_environment: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          config_payload?: Json
+          config_type: string
+          created_at?: string
+          created_by?: string | null
+          dependency_check?: Json | null
+          description?: string | null
+          id?: string
+          item_count?: number | null
+          pack_name: string
+          promoted_at?: string | null
+          promoted_by?: string | null
+          release_id?: string | null
+          rollback_notes?: string | null
+          source_environment?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          config_payload?: Json
+          config_type?: string
+          created_at?: string
+          created_by?: string | null
+          dependency_check?: Json | null
+          description?: string | null
+          id?: string
+          item_count?: number | null
+          pack_name?: string
+          promoted_at?: string | null
+          promoted_by?: string | null
+          release_id?: string | null
+          rollback_notes?: string | null
+          source_environment?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "config_promotion_packs_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "release_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cont_stat: {
         Row: {
           ADDRESS_OK: string
@@ -24673,6 +24812,62 @@ export type Database = {
             columns: ["api_id"]
             isOneToOne: false
             referencedRelation: "external_api_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feature_flags: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_name: string
+          flag_key: string
+          id: string
+          is_enabled: boolean
+          module_id: string | null
+          pilot_role_ids: string[] | null
+          pilot_user_ids: string[] | null
+          rollout_state: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_name: string
+          flag_key: string
+          id?: string
+          is_enabled?: boolean
+          module_id?: string | null
+          pilot_role_ids?: string[] | null
+          pilot_user_ids?: string[] | null
+          rollout_state?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_name?: string
+          flag_key?: string
+          id?: string
+          is_enabled?: boolean
+          module_id?: string | null
+          pilot_role_ids?: string[] | null
+          pilot_user_ids?: string[] | null
+          rollout_state?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_flags_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "app_modules"
             referencedColumns: ["id"]
           },
         ]
@@ -36154,6 +36349,65 @@ export type Database = {
         }
         Relationships: []
       }
+      migration_logs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string
+          details: Json | null
+          error_message: string | null
+          executed_at: string | null
+          executed_by: string | null
+          id: string
+          log_type: string
+          release_id: string | null
+          rollback_notes: string | null
+          source_environment: string | null
+          status: string
+          target_environment: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description: string
+          details?: Json | null
+          error_message?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          id?: string
+          log_type: string
+          release_id?: string | null
+          rollback_notes?: string | null
+          source_environment?: string | null
+          status?: string
+          target_environment?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string
+          details?: Json | null
+          error_message?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          id?: string
+          log_type?: string
+          release_id?: string | null
+          rollback_notes?: string | null
+          source_environment?: string | null
+          status?: string
+          target_environment?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "migration_logs_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "release_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_actions: {
         Row: {
           action_name: string
@@ -38412,6 +38666,69 @@ export type Database = {
           ssn?: string | null
           status?: string | null
           surname?: string | null
+        }
+        Relationships: []
+      }
+      release_registry: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          applied_at: string | null
+          applied_by: string | null
+          code_version: string | null
+          config_pack_version: string | null
+          created_at: string
+          db_migration_version: string | null
+          id: string
+          module_name: string | null
+          release_name: string
+          release_notes: string | null
+          release_state: string
+          rollback_notes: string | null
+          rollback_reference: string | null
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          applied_at?: string | null
+          applied_by?: string | null
+          code_version?: string | null
+          config_pack_version?: string | null
+          created_at?: string
+          db_migration_version?: string | null
+          id?: string
+          module_name?: string | null
+          release_name: string
+          release_notes?: string | null
+          release_state?: string
+          rollback_notes?: string | null
+          rollback_reference?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          applied_at?: string | null
+          applied_by?: string | null
+          code_version?: string | null
+          config_pack_version?: string | null
+          created_at?: string
+          db_migration_version?: string | null
+          id?: string
+          module_name?: string | null
+          release_name?: string
+          release_notes?: string | null
+          release_state?: string
+          rollback_notes?: string | null
+          rollback_reference?: string | null
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Relationships: []
       }
@@ -43855,6 +44172,53 @@ export type Database = {
           },
         ]
       }
+      user_provisioning_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          details: Json | null
+          environment: string
+          id: string
+          performed_at: string
+          performed_by: string | null
+          release_id: string | null
+          target_user_email: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          details?: Json | null
+          environment?: string
+          id?: string
+          performed_at?: string
+          performed_by?: string | null
+          release_id?: string | null
+          target_user_email?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          details?: Json | null
+          environment?: string
+          id?: string
+          performed_at?: string
+          performed_by?: string | null
+          release_id?: string | null
+          target_user_email?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_provisioning_logs_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "release_registry"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -46677,6 +47041,10 @@ export type Database = {
         Args: { p_batch_date: string; p_cashier_user_code: string }
         Returns: Json
       }
+      check_feature_flag: {
+        Args: { _flag_key: string; _user_id?: string }
+        Returns: boolean
+      }
       check_ip_duplicates: {
         Args: {
           p_dob: string
@@ -46709,6 +47077,16 @@ export type Database = {
           conflicting_start_time: string
           has_overlap: boolean
         }[]
+      }
+      check_module_rollout_access: {
+        Args: {
+          _internal_only: boolean
+          _pilot_role_ids: string[]
+          _pilot_user_ids: string[]
+          _rollout_state: string
+          _user_id: string
+        }
+        Returns: boolean
       }
       check_row_access: {
         Args: {
@@ -47537,6 +47915,7 @@ export type Database = {
       get_user_accessible_modules: {
         Args: { _user_id: string }
         Returns: {
+          base_url: string
           description: string
           display_name: string
           icon: string

@@ -301,6 +301,7 @@ import DesignationHierarchy from '@/pages/admin/DesignationHierarchy';
 import RoleHierarchy from '@/pages/admin/RoleHierarchy';
 import UserNotificationPreferences from '@/pages/admin/UserNotificationPreferences';
 import DataMigration from '@/pages/admin/DataMigration';
+import ReleaseManagement from '@/pages/admin/ReleaseManagement';
 import UpdateUserPassword from '@/pages/admin/users/UpdateUserPassword';
 import ModuleButtonBindings from '@/pages/admin/ModuleButtonBindings';
 import ApiKeysManagement from '@/pages/admin/ApiKeysManagement';
@@ -1368,6 +1369,7 @@ export const AppRoutes = () => {
       <Route path="/admin/role-hierarchy" element={<ProtectedLayout><RoleHierarchy /></ProtectedLayout>} />
       <Route path="/admin/user-notification-preferences" element={<ProtectedLayout><UserNotificationPreferences /></ProtectedLayout>} />
       <Route path="/admin/data-migration" element={<ProtectedLayout><DataMigration /></ProtectedLayout>} />
+      <Route path="/admin/release-management" element={<ProtectedLayout><ReleaseManagement /></ProtectedLayout>} />
       <Route path="/admin/users/update-password" element={<ProtectedLayout><UpdateUserPassword /></ProtectedLayout>} />
       <Route path="/admin/module-button-bindings" element={<ProtectedLayout><ModuleButtonBindings /></ProtectedLayout>} />
       <Route path="/admin/api-keys" element={<ProtectedLayout><ApiKeysManagement /></ProtectedLayout>} />
