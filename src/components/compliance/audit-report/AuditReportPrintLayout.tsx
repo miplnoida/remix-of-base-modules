@@ -380,9 +380,9 @@ const printStyles = `
   font-size: 11pt;
   line-height: 1.5;
   background: white;
-  max-width: 8.5in;
+  width: 100%;
   margin: 0 auto;
-  padding: 0.5in;
+  padding: 0;
   box-sizing: border-box;
 }
 .audit-report-print .cover-page {
