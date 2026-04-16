@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { CreditCard, Globe, Mail, Settings, Server, Upload, RefreshCw, Eye, EyeOff, Save, Loader2, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUserCode } from '@/hooks/useUserCode';
 import {
   useSiteSettings,
@@ -25,9 +26,15 @@ import {
 // ─── Helpers ───
 
 function SyncBadge({ isSynced, syncError }: { isSynced: boolean; syncError?: string | null }) {
-  if (syncError) return <Badge variant="destructive" className="text-xs">Failed</Badge>;
-  if (isSynced) return <Badge className="bg-green-600 text-xs">Synced</Badge>;
-  return <Badge variant="secondary" className="bg-amber-500 text-white text-xs">Pending</Badge>;
+  if (syncError) return (
+    <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-4 w-4 text-destructive" /></TooltipTrigger><TooltipContent>Sync Failed</TooltipContent></Tooltip></TooltipProvider>
+  );
+  if (isSynced) return (
+    <TooltipProvider><Tooltip><TooltipTrigger><CheckCircle2 className="h-4 w-4 text-green-600" /></TooltipTrigger><TooltipContent>Synced</TooltipContent></Tooltip></TooltipProvider>
+  );
+  return (
+    <TooltipProvider><Tooltip><TooltipTrigger><Clock className="h-4 w-4 text-amber-500" /></TooltipTrigger><TooltipContent>Pending Publish</TooltipContent></Tooltip></TooltipProvider>
+  );
 }
 
 function maskSecret(val: string): string {
