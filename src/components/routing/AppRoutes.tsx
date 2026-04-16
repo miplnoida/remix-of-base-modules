@@ -1126,6 +1126,7 @@ export const AppRoutes = () => {
 
       {/* Admin redirects */}
       <Route path="/compliance/settings" element={<ProtectedLayout><ComplianceSettings /></ProtectedLayout>} />
+      <Route path="/compliance/settings/completion-gate" element={<ProtectedLayout><CompletionGateSettings /></ProtectedLayout>} />
       <Route path="/compliance/settings/rule-engine" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
       <Route path="/compliance/settings/violation-types" element={<Navigate to="/compliance/admin/settings/violation-types" replace />} />
       <Route path="/compliance/settings/assignment-routing" element={<Navigate to="/compliance/admin/settings/assignment-routing" replace />} />
