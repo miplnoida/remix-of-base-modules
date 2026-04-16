@@ -56,7 +56,7 @@ export default function PlanExecutionDashboard() {
     const map: Record<string, string> = {
       COMPLETED: 'bg-success/10 text-success',
       IN_PROGRESS: 'bg-warning/10 text-warning',
-      RESCHEDULED: 'bg-blue-500/10 text-blue-600',
+      RESCHEDULED: 'bg-primary/10 text-primary',
       NOT_DONE: 'bg-destructive/10 text-destructive',
       CANCELLED: 'bg-destructive/10 text-destructive',
     };
@@ -93,7 +93,7 @@ export default function PlanExecutionDashboard() {
         <KpiCard icon={<Calendar className="h-5 w-5" />} label="Planned" value={data.kpis.planned} />
         <KpiCard icon={<PlayCircle className="h-5 w-5 text-warning" />} label="In Progress" value={data.kpis.inProgress} />
         <KpiCard icon={<CheckCircle2 className="h-5 w-5 text-success" />} label="Completed" value={data.kpis.completed} />
-        <KpiCard icon={<Clock className="h-5 w-5 text-blue-600" />} label="Rescheduled" value={data.kpis.rescheduled} />
+        <KpiCard icon={<Clock className="h-5 w-5 text-primary" />} label="Rescheduled" value={data.kpis.rescheduled} />
         <KpiCard icon={<AlertCircle className="h-5 w-5 text-destructive" />} label="Not Done" value={data.kpis.notDone} />
         <KpiCard icon={<Camera className="h-5 w-5" />} label="Evidence" value={data.kpis.totalEvidence} />
         <KpiCard icon={<ListChecks className="h-5 w-5" />} label="Findings" value={data.kpis.totalFindings} />
