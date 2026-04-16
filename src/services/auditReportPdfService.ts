@@ -254,6 +254,27 @@ export const auditReportPdfService = {
     sectionHeading(isEmployer ? '7. Compliance Conclusion' : '8. Conclusions');
     paragraph(report.complianceConclusion || report.conclusions || 'No conclusion recorded.');
 
+    // ── Sampling disclaimer (mandatory before sign-off) ──
+    sectionHeading(isEmployer ? '7a. Audit Scope Disclaimer' : '8a. Audit Scope Disclaimer');
+    const disclaimerText =
+      'Sampling Notice: This audit was conducted based on selected samples, records reviewed, and procedures performed during the stated audit period. The findings, observations, and conclusions expressed in this report are based solely on the sample examined and the information made available to the auditor at the time of the visit. They should not be interpreted as a complete or exhaustive review of all records, transactions, or compliance activities of the employer.\n\nThe Social Security Board reserves the right to conduct further reviews, request additional records, or initiate enforcement action should subsequent information indicate non-compliance beyond the scope of this audit.';
+    {
+      const lines = doc.splitTextToSize(disclaimerText, pageWidth - margin * 2 - 20);
+      const boxH = lines.length * 11 + 14;
+      ensureSpace(boxH + 10);
+      doc.setFillColor(255, 251, 235);
+      doc.setDrawColor(217, 119, 6);
+      doc.setLineWidth(1);
+      doc.rect(margin, y, pageWidth - margin * 2, boxH, 'FD');
+      doc.setLineWidth(2);
+      doc.line(margin, y, margin, y + boxH);
+      doc.setTextColor(31, 41, 55);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(lines, margin + 10, y + 12);
+      y += boxH + 14;
+    }
+
     // ── Signature page ──
     doc.addPage();
     y = margin + 10;
@@ -279,7 +300,7 @@ export const auditReportPdfService = {
     // No hardcoded "Lead Inspector" or "Supervisor" placeholders.
     // Employer Rep is shown even when missing (acknowledgment is the legal point of the report).
     const roleLabel: Record<AuditReportSignature['signerRole'], string> = {
-      EMPLOYER_REP: 'Employer Representative',
+      EMPLOYER_REP: 'Employer / Auditee Representative',
       INSPECTOR: 'Inspector',
       SUPERVISOR: 'Supervisor (Approval)',
       WITNESS: 'Witness',
