@@ -1007,6 +1007,7 @@ export const AppRoutes = () => {
 
       {/* ── Enforcement — legal, notices, arrangements, waivers ── */}
       <Route path="/compliance/enforcement/recommendation-queue" element={<ProtectedLayout><LegalRecommendationQueue /></ProtectedLayout>} />
+      <Route path="/compliance/enforcement/legal-referral" element={<ProtectedLayout><LegalReferralWizard /></ProtectedLayout>} />
       <Route path="/compliance/enforcement/legal-queue" element={<ProtectedLayout><ComplianceLegalQueue /></ProtectedLayout>} />
       <Route path="/compliance/enforcement/proceedings" element={<ProtectedLayout><ComplianceLegalProceedings /></ProtectedLayout>} />
       <Route path="/compliance/enforcement/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />
