@@ -88,6 +88,7 @@ import PlanExecutionDashboard from '@/pages/compliance/audit-planning/PlanExecut
 import AuditVisitWorkspace from '@/pages/compliance/audit-planning/AuditVisitWorkspace';
 import EmployerAuditReportViewer from '@/pages/compliance/audit-planning/EmployerAuditReportViewer';
 import AuditReportPrintPage from '@/pages/compliance/audit-planning/AuditReportPrintPage';
+import AuditReportAcknowledgePage from '@/pages/public/AuditReportAcknowledgePage';
 import WeeklyReportReview from '@/pages/compliance/audit-planning/WeeklyReportReview';
 import WeeklyReportSubmission from '@/pages/compliance/violations/WeeklyReportSubmission';
 import ManualViolationEntry from '@/pages/compliance/violations/ManualViolationEntry';
@@ -861,6 +862,7 @@ export const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginScreen />} />
+      <Route path="/acknowledge-audit/:token" element={<AuditReportAcknowledgePage />} />
       <Route path="/setup" element={<BootstrapAdmin />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
