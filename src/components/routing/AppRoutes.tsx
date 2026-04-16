@@ -1504,6 +1504,7 @@ export const AppRoutes = () => {
           <Route path="/newbenefit/auditor" element={<ProtectedLayout><AuditorView /></ProtectedLayout>} />
 
       {/* Benefit Management Module (bn_) */}
+      <Route path="/bn/dashboard" element={<ProtectedLayout><BenefitsDashboard /></ProtectedLayout>} />
       <Route path="/bn/person-360" element={<ProtectedLayout><BnPerson360 /></ProtectedLayout>} />
       <Route path="/bn/config/products" element={<ProtectedLayout><BnProductCatalog /></ProtectedLayout>} />
       <Route path="/bn/config/products/:id" element={<ProtectedLayout><BnProductEditor /></ProtectedLayout>} />
