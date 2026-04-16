@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { CreditCard, Globe, Mail, Settings, Server, Upload, RefreshCw, Eye, EyeOff, Save, Loader2 } from 'lucide-react';
+import { CreditCard, Globe, Mail, Settings, Server, Upload, RefreshCw, Eye, EyeOff, Save, Loader2, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
 import { useUserCode } from '@/hooks/useUserCode';
 import {
   useSiteSettings,
