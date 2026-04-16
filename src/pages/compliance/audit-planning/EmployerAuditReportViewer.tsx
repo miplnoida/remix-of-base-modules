@@ -168,7 +168,10 @@ export default function EmployerAuditReportViewer() {
 
   const openPrint = (variant: 'internal' | 'employer') => {
     if (!report) return;
-    window.open(`/compliance/field/audit-report/${report.id}/print/${variant}`, '_blank');
+    // Navigate in the SAME tab to preserve the authenticated session.
+    // Opening in a new tab caused a brief auth race where Supabase had not
+    // yet rehydrated the session in the new window, sending the user to /login.
+    navigate(`/compliance/field/audit-report/${report.id}/print/${variant}`);
   };
 
   const downloadPdf = async (variant: 'INTERNAL' | 'EMPLOYER') => {
