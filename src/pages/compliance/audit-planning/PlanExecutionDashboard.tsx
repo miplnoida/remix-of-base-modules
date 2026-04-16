@@ -180,11 +180,15 @@ export default function PlanExecutionDashboard() {
                           Report
                         </Button>
                       )}
-                      <Link to="/compliance/field/execution">
-                        <Button size="sm" variant="default">
-                          Open <ArrowRight className="h-3 w-3 ml-1" />
-                        </Button>
-                      </Link>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() =>
+                          navigate(`/compliance/field/execution-dashboard/${planId}/visit/${v.planItemId}`)
+                        }
+                      >
+                        Open <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
