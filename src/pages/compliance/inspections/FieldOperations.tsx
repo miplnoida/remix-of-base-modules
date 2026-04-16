@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function FieldOperations() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
