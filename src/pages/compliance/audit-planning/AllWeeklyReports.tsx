@@ -22,7 +22,22 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Calendar, Eye, FileText, Users, TrendingUp, CheckCircle, Loader2, XCircle } from 'lucide-react';
+import {
+  Calendar,
+  Eye,
+  FileText,
+  Users,
+  TrendingUp,
+  CheckCircle,
+  Loader2,
+  XCircle,
+  Clock,
+  Camera,
+  Search,
+  Scale,
+  AlertTriangle,
+  RotateCcw,
+} from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { weeklyPlanService, WeeklyReportSummary } from '@/services/weeklyPlanService';
 import { WeeklyPlan, WeeklyPlanStatus } from '@/types/weeklyPlan';
@@ -38,6 +53,8 @@ export default function AllWeeklyReports() {
   const [reviewSummary, setReviewSummary] = useState<WeeklyReportSummary | null>(null);
   const [reviewComments, setReviewComments] = useState('');
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [rejectMode, setRejectMode] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
 
   const plansQuery = useQuery({
     queryKey: ['all-weekly-reports'],
@@ -56,6 +73,8 @@ export default function AllWeeklyReports() {
   const handleOpenReview = async (plan: WeeklyPlan) => {
     setReviewPlan(plan);
     setReviewComments('');
+    setRejectMode(false);
+    setRejectReason('');
     setLoadingSummary(true);
     try {
       const summary = await weeklyPlanService.getReportSummary(plan.id);
@@ -82,6 +101,34 @@ export default function AllWeeklyReports() {
     },
   });
 
+  const rejectMutation = useMutation({
+    mutationFn: async () => {
+      if (!reviewPlan || !rejectReason.trim()) throw new Error('Please provide a reason for rejection');
+      // Send back to IN_EXECUTION so inspector can re-work and resubmit
+      await weeklyPlanService.update(reviewPlan.id, {
+        status: WeeklyPlanStatus.IN_EXECUTION,
+        supervisor_comments: rejectReason,
+        updated_by: userCode || userId || '',
+      });
+      // Log review action
+      const { supabase } = await import('@/integrations/supabase/client');
+      await supabase.from('ce_weekly_plan_reviews').insert({
+        plan_id: reviewPlan.id,
+        action: 'OUTCOME_REJECTED',
+        comments: rejectReason,
+        performed_by: userCode || userId || '',
+      });
+    },
+    onSuccess: () => {
+      toast({ title: 'Report Returned', description: 'Report sent back to inspector for revision.' });
+      setReviewPlan(null);
+      queryClient.invalidateQueries({ queryKey: ['all-weekly-reports'] });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       [WeeklyPlanStatus.IN_EXECUTION]: 'bg-cyan-100 text-cyan-800',
@@ -96,11 +143,13 @@ export default function AllWeeklyReports() {
     return Math.round((plan.completed_visits / plan.total_planned_visits) * 100);
   };
 
+  const pendingCount = plans.filter(p => p.status === WeeklyPlanStatus.OUTCOME_SUBMITTED).length;
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
         title="All Weekly Reports (Manager View)"
-        subtitle="Review reports from all inspectors"
+        subtitle="Review and approve weekly reports from inspectors"
         breadcrumbs={[
           { label: 'Compliance', href: '/compliance/dashboard' },
           { label: 'Audit Planning', href: '/compliance/audit-planning/sampling-dashboard' },
@@ -123,14 +172,12 @@ export default function AllWeeklyReports() {
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className={pendingCount > 0 ? 'border-indigo-300' : ''}>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Pending Review</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-indigo-600">
-              {plans.filter(p => p.status === WeeklyPlanStatus.OUTCOME_SUBMITTED).length}
-            </div>
+            <div className="text-2xl font-bold text-indigo-600">{pendingCount}</div>
           </CardContent>
         </Card>
         <Card>
@@ -191,7 +238,7 @@ export default function AllWeeklyReports() {
                 {plans.map((plan) => {
                   const rate = completionRate(plan);
                   return (
-                    <TableRow key={plan.id}>
+                    <TableRow key={plan.id} className={plan.status === WeeklyPlanStatus.OUTCOME_SUBMITTED ? 'bg-indigo-50/30' : ''}>
                       <TableCell className="font-medium">{plan.inspector_name}</TableCell>
                       <TableCell>{plan.plan_number}</TableCell>
                       <TableCell>
@@ -251,8 +298,8 @@ export default function AllWeeklyReports() {
       </Card>
 
       {/* Review Dialog */}
-      <Dialog open={!!reviewPlan} onOpenChange={(open) => !open && setReviewPlan(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <Dialog open={!!reviewPlan} onOpenChange={(open) => { if (!open) { setReviewPlan(null); setRejectMode(false); } }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Review Weekly Report</DialogTitle>
             <DialogDescription>
@@ -263,36 +310,106 @@ export default function AllWeeklyReports() {
           {loadingSummary ? (
             <div className="py-8 text-center"><Loader2 className="h-6 w-6 animate-spin mx-auto" /></div>
           ) : reviewSummary && (
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-4 gap-3">
-                <div className="border rounded-lg p-3 text-center">
-                  <div className="text-xl font-bold">{reviewSummary.total_planned}</div>
-                  <div className="text-xs text-muted-foreground">Planned</div>
-                </div>
-                <div className="border rounded-lg p-3 text-center">
-                  <div className="text-xl font-bold text-green-600">{reviewSummary.completed_visits}</div>
-                  <div className="text-xs text-muted-foreground">Completed</div>
-                </div>
-                <div className="border rounded-lg p-3 text-center">
-                  <div className="text-xl font-bold">{reviewSummary.total_hours}h</div>
-                  <div className="text-xs text-muted-foreground">Hours</div>
-                </div>
-                <div className="border rounded-lg p-3 text-center">
-                  <div className="text-xl font-bold">{reviewSummary.findings_count}</div>
-                  <div className="text-xs text-muted-foreground">Findings</div>
+            <div className="space-y-6 py-4">
+              {/* Visit Breakdown */}
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Visit Summary</h3>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-xl font-bold">{reviewSummary.total_planned}</div>
+                    <div className="text-xs text-muted-foreground">Planned</div>
+                  </div>
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-xl font-bold text-green-600">{reviewSummary.completed_visits}</div>
+                    <div className="text-xs text-muted-foreground">Completed</div>
+                  </div>
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-xl font-bold text-yellow-600">{reviewSummary.rescheduled_visits}</div>
+                    <div className="text-xs text-muted-foreground">Rescheduled</div>
+                  </div>
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-xl font-bold text-orange-600">{reviewSummary.not_done_visits}</div>
+                    <div className="text-xs text-muted-foreground">Not Done</div>
+                  </div>
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-xl font-bold text-red-600">{reviewSummary.cancelled_visits}</div>
+                    <div className="text-xs text-muted-foreground">Cancelled</div>
+                  </div>
                 </div>
               </div>
 
+              {/* Execution Metrics */}
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Execution Metrics</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="border rounded-lg p-3 flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-xl font-bold">{reviewSummary.total_hours}h</p>
+                      <p className="text-xs text-muted-foreground">Hours</p>
+                    </div>
+                  </div>
+                  <div className="border rounded-lg p-3 flex items-center gap-3">
+                    <Camera className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-xl font-bold">{reviewSummary.evidence_count}</p>
+                      <p className="text-xs text-muted-foreground">Evidence</p>
+                    </div>
+                  </div>
+                  <div className="border rounded-lg p-3 flex items-center gap-3">
+                    <Search className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-xl font-bold">{reviewSummary.findings_count}</p>
+                      <p className="text-xs text-muted-foreground">Findings</p>
+                    </div>
+                  </div>
+                  <div className="border rounded-lg p-3 flex items-center gap-3">
+                    <Scale className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-xl font-bold">{reviewSummary.violations_created}</p>
+                      <p className="text-xs text-muted-foreground">Violations</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Flags */}
+              {(reviewSummary.still_planned > 0 || (reviewSummary.completed_visits > 0 && reviewSummary.findings_count === 0)) && (
+                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 space-y-1">
+                  {reviewSummary.still_planned > 0 && (
+                    <div className="flex items-center gap-2 text-sm text-amber-800">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>{reviewSummary.still_planned} item(s) were not addressed by the inspector</span>
+                    </div>
+                  )}
+                  {reviewSummary.completed_visits > 0 && reviewSummary.findings_count === 0 && (
+                    <div className="flex items-center gap-2 text-sm text-amber-800">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>Completed visits have zero recorded findings</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Inspector Narrative */}
               {reviewSummary.outcome_narrative && (
                 <div>
                   <Label className="text-sm text-muted-foreground">Inspector Narrative</Label>
-                  <div className="mt-1 p-3 border rounded-lg bg-muted/30 text-sm whitespace-pre-wrap">
-                    {reviewSummary.outcome_narrative}
+                  <div className="mt-1 p-4 border rounded-lg bg-muted/30 text-sm whitespace-pre-wrap space-y-3">
+                    {reviewSummary.outcome_narrative.split('\n---\n').map((section, i) => (
+                      <div key={i}>
+                        {i === 0 && <p className="text-xs font-medium text-muted-foreground mb-1">Weekly Summary</p>}
+                        {i === 1 && <p className="text-xs font-medium text-muted-foreground mb-1">Exceptions & Blockers</p>}
+                        {i === 2 && <p className="text-xs font-medium text-muted-foreground mb-1">Recommendations</p>}
+                        <p>{section}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
 
-              {reviewPlan?.status === WeeklyPlanStatus.OUTCOME_SUBMITTED && (
+              {/* Supervisor Actions */}
+              {reviewPlan?.status === WeeklyPlanStatus.OUTCOME_SUBMITTED && !rejectMode && (
                 <div className="space-y-2">
                   <Label>Reviewer Comments (optional)</Label>
                   <Textarea
@@ -303,19 +420,65 @@ export default function AllWeeklyReports() {
                   />
                 </div>
               )}
+
+              {/* Reject Mode */}
+              {rejectMode && (
+                <div className="space-y-3 p-4 border border-destructive/30 rounded-lg bg-destructive/5">
+                  <h3 className="font-medium text-destructive flex items-center gap-2">
+                    <RotateCcw className="h-4 w-4" />
+                    Return Report for Revision
+                  </h3>
+                  <div className="space-y-2">
+                    <Label>Reason for Return *</Label>
+                    <Textarea
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="Explain what needs to be revised or corrected..."
+                      rows={3}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      onClick={() => rejectMutation.mutate()}
+                      disabled={rejectMutation.isPending || !rejectReason.trim()}
+                    >
+                      {rejectMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <XCircle className="h-4 w-4 mr-1" />}
+                      Confirm Return
+                    </Button>
+                    <Button variant="outline" onClick={() => setRejectMode(false)}>Cancel</Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Completed Status */}
+              {reviewPlan?.status === WeeklyPlanStatus.COMPLETED && (
+                <div className="border-l-4 border-green-500 bg-green-50 p-4">
+                  <p className="text-sm font-medium text-green-800">✓ Report approved</p>
+                </div>
+              )}
             </div>
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setReviewPlan(null)}>Close</Button>
-            {reviewPlan?.status === WeeklyPlanStatus.OUTCOME_SUBMITTED && (
-              <Button
-                onClick={() => approveMutation.mutate()}
-                disabled={approveMutation.isPending}
-              >
-                {approveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
-                Approve Report
-              </Button>
+            <Button variant="outline" onClick={() => { setReviewPlan(null); setRejectMode(false); }}>Close</Button>
+            {reviewPlan?.status === WeeklyPlanStatus.OUTCOME_SUBMITTED && !rejectMode && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => setRejectMode(true)}
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  Return for Revision
+                </Button>
+                <Button
+                  onClick={() => approveMutation.mutate()}
+                  disabled={approveMutation.isPending}
+                >
+                  {approveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}
+                  Approve Report
+                </Button>
+              </>
             )}
           </DialogFooter>
         </DialogContent>

@@ -31,6 +31,11 @@ import {
   Eye,
   Loader2,
   AlertTriangle,
+  AlertCircle,
+  Clock,
+  Camera,
+  Search,
+  Scale,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -46,6 +51,8 @@ export default function WeeklyReports() {
   const [reportSummary, setReportSummary] = useState<WeeklyReportSummary | null>(null);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [narrative, setNarrative] = useState('');
+  const [exceptions, setExceptions] = useState('');
+  const [recommendations, setRecommendations] = useState('');
   const [loadingSummary, setLoadingSummary] = useState(false);
 
   const plansQuery = useQuery({
@@ -65,7 +72,12 @@ export default function WeeklyReports() {
 
   const handleOpenReport = async (plan: WeeklyPlan) => {
     setSelectedPlan(plan);
-    setNarrative(plan.outcome_narrative || '');
+    // Parse existing narrative sections
+    const existingNarrative = plan.outcome_narrative || '';
+    const parts = existingNarrative.split('\n---\n');
+    setNarrative(parts[0] || '');
+    setExceptions(parts[1] || '');
+    setRecommendations(parts[2] || '');
     setLoadingSummary(true);
 
     try {
@@ -82,13 +94,20 @@ export default function WeeklyReports() {
   const submitReportMutation = useMutation({
     mutationFn: async () => {
       if (!selectedPlan || !narrative.trim()) throw new Error('Please provide a weekly narrative');
-      await weeklyPlanService.submitWeeklyReport(selectedPlan.id, userCode || userId || '', narrative);
+      const fullNarrative = [
+        narrative.trim(),
+        exceptions.trim() ? exceptions.trim() : undefined,
+        recommendations.trim() ? recommendations.trim() : undefined,
+      ].filter(Boolean).join('\n---\n');
+      await weeklyPlanService.submitWeeklyReport(selectedPlan.id, userCode || userId || '', fullNarrative);
     },
     onSuccess: () => {
       toast({ title: 'Report Submitted', description: 'Weekly report submitted for supervisor review.' });
       setReportDialogOpen(false);
       setSelectedPlan(null);
       setNarrative('');
+      setExceptions('');
+      setRecommendations('');
       queryClient.invalidateQueries({ queryKey: ['weekly-report-plans'] });
     },
     onError: (err: any) => {
@@ -111,25 +130,31 @@ export default function WeeklyReports() {
     return Math.round((plan.completed_visits / plan.total_planned_visits) * 100);
   };
 
-  // Validation warnings for report submission
-  const getReportWarnings = (summary: WeeklyReportSummary | null) => {
-    const warnings: { text: string; blocking: boolean }[] = [];
-    if (!summary) return warnings;
+  const getReportValidations = (summary: WeeklyReportSummary | null) => {
+    const blockers: string[] = [];
+    const warnings: string[] = [];
+    if (!summary) return { blockers, warnings };
 
     if (summary.still_planned > 0) {
-      warnings.push({ text: `${summary.still_planned} plan item(s) still in PLANNED status`, blocking: true });
+      blockers.push(`${summary.still_planned} plan item(s) still in PLANNED status — must be executed, rescheduled, or marked not done`);
     }
     if (summary.completed_visits > 0 && summary.findings_count === 0) {
-      warnings.push({ text: 'Completed visits have no findings recorded', blocking: true });
+      blockers.push('Completed visits have no findings recorded — at least one finding per visit is required');
+    }
+    if (summary.not_done_visits > 0) {
+      warnings.push(`${summary.not_done_visits} visit(s) marked as not done`);
     }
     if (summary.evidence_count === 0 && summary.completed_visits > 0) {
-      warnings.push({ text: 'No evidence collected for completed visits', blocking: false });
+      warnings.push('No evidence collected for completed visits');
     }
-    return warnings;
+    if (summary.violations_created === 0 && summary.findings_count > 0) {
+      warnings.push('No violations created from findings');
+    }
+    return { blockers, warnings };
   };
 
-  const reportWarnings = getReportWarnings(reportSummary);
-  const hasBlockingWarnings = reportWarnings.some(w => w.blocking);
+  const validations = getReportValidations(reportSummary);
+  const hasBlockers = validations.blockers.length > 0;
   const isAlreadySubmitted = selectedPlan?.status === WeeklyPlanStatus.OUTCOME_SUBMITTED || selectedPlan?.status === WeeklyPlanStatus.COMPLETED;
 
   return (
@@ -300,74 +325,138 @@ export default function WeeklyReports() {
 
           {selectedPlan && reportSummary && (
             <div className="space-y-6 py-4">
-              {/* Auto-Generated Summary Stats */}
-              <div className="grid grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-2xl font-bold text-foreground">{reportSummary.total_planned}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Planned</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-2xl font-bold text-green-600">{reportSummary.completed_visits}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Completed</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-2xl font-bold text-yellow-600">{reportSummary.rescheduled_visits}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Rescheduled</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-2xl font-bold text-red-600">{reportSummary.cancelled_visits}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Cancelled</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="grid grid-cols-4 gap-4">
-                <div className="border rounded-lg p-4">
-                  <Label className="text-sm text-muted-foreground">Total Hours</Label>
-                  <p className="text-2xl font-bold">{reportSummary.total_hours}</p>
-                </div>
-                <div className="border rounded-lg p-4">
-                  <Label className="text-sm text-muted-foreground">Evidence Collected</Label>
-                  <p className="text-2xl font-bold">{reportSummary.evidence_count}</p>
-                </div>
-                <div className="border rounded-lg p-4">
-                  <Label className="text-sm text-muted-foreground">Findings</Label>
-                  <p className="text-2xl font-bold">{reportSummary.findings_count}</p>
-                </div>
-                <div className="border rounded-lg p-4">
-                  <Label className="text-sm text-muted-foreground">Violations Created</Label>
-                  <p className="text-2xl font-bold">{reportSummary.violations_created}</p>
+              {/* Auto-Generated Summary — Visit Breakdown */}
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Visit Summary (Auto-Generated)</h3>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-xl font-bold text-foreground">{reportSummary.total_planned}</div>
+                    <div className="text-xs text-muted-foreground">Planned</div>
+                  </div>
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-xl font-bold text-green-600">{reportSummary.completed_visits}</div>
+                    <div className="text-xs text-muted-foreground">Completed</div>
+                  </div>
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-xl font-bold text-yellow-600">{reportSummary.rescheduled_visits}</div>
+                    <div className="text-xs text-muted-foreground">Rescheduled</div>
+                  </div>
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-xl font-bold text-orange-600">{reportSummary.not_done_visits}</div>
+                    <div className="text-xs text-muted-foreground">Not Done</div>
+                  </div>
+                  <div className="border rounded-lg p-3 text-center">
+                    <div className="text-xl font-bold text-red-600">{reportSummary.cancelled_visits}</div>
+                    <div className="text-xs text-muted-foreground">Cancelled</div>
+                  </div>
                 </div>
               </div>
 
-              {/* Validation Warnings */}
-              {reportWarnings.length > 0 && !isAlreadySubmitted && (
-                <div className="space-y-2">
-                  {reportWarnings.map((w, idx) => (
-                    <div key={idx} className={`flex items-start gap-2 p-3 rounded-md text-sm ${w.blocking ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}`}>
-                      <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                      <span>{w.text}{w.blocking ? ' (blocking)' : ' (warning)'}</span>
+              {/* Execution Metrics */}
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Execution Metrics (Auto-Generated)</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="border rounded-lg p-3 flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-xl font-bold">{reportSummary.total_hours}h</p>
+                      <p className="text-xs text-muted-foreground">Total Hours</p>
                     </div>
-                  ))}
+                  </div>
+                  <div className="border rounded-lg p-3 flex items-center gap-3">
+                    <Camera className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-xl font-bold">{reportSummary.evidence_count}</p>
+                      <p className="text-xs text-muted-foreground">Evidence</p>
+                    </div>
+                  </div>
+                  <div className="border rounded-lg p-3 flex items-center gap-3">
+                    <Search className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-xl font-bold">{reportSummary.findings_count}</p>
+                      <p className="text-xs text-muted-foreground">Findings</p>
+                    </div>
+                  </div>
+                  <div className="border rounded-lg p-3 flex items-center gap-3">
+                    <Scale className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-xl font-bold">{reportSummary.violations_created}</p>
+                      <p className="text-xs text-muted-foreground">Violations</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Still Planned Warning */}
+              {reportSummary.still_planned > 0 && !isAlreadySubmitted && (
+                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm">
+                  <span className="font-medium text-amber-800">{reportSummary.still_planned} item(s)</span>
+                  <span className="text-amber-700"> still in PLANNED status and must be addressed before submission.</span>
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label>Inspector Narrative *</Label>
-                <Textarea
-                  placeholder="Provide a comprehensive narrative of the week's activities, challenges, and outcomes..."
-                  value={narrative}
-                  onChange={(e) => setNarrative(e.target.value)}
-                  rows={6}
-                  disabled={isAlreadySubmitted}
-                />
+              {/* Validation Blockers & Warnings */}
+              {!isAlreadySubmitted && (
+                <>
+                  {validations.blockers.length > 0 && (
+                    <div className="space-y-2">
+                      {validations.blockers.map((b, idx) => (
+                        <div key={idx} className="flex items-start gap-2 p-3 rounded-md text-sm bg-destructive/10 text-destructive">
+                          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                          <span>{b} <Badge variant="destructive" className="ml-1 text-[10px]">Blocking</Badge></span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {validations.warnings.length > 0 && (
+                    <div className="space-y-2">
+                      {validations.warnings.map((w, idx) => (
+                        <div key={idx} className="flex items-start gap-2 p-3 rounded-md text-sm bg-warning/10 text-warning">
+                          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                          <span>{w}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Inspector Narrative Sections */}
+              <div className="space-y-4 border-t pt-4">
+                <h3 className="text-sm font-medium">Inspector Narrative (Required)</h3>
+
+                <div className="space-y-2">
+                  <Label>Weekly Summary *</Label>
+                  <Textarea
+                    placeholder="Provide a comprehensive summary of the week's activities, outcomes, and observations..."
+                    value={narrative}
+                    onChange={(e) => setNarrative(e.target.value)}
+                    rows={4}
+                    disabled={isAlreadySubmitted}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Exceptions & Blockers (Optional)</Label>
+                  <Textarea
+                    placeholder="Document any exceptions, challenges, or blockers encountered during the week..."
+                    value={exceptions}
+                    onChange={(e) => setExceptions(e.target.value)}
+                    rows={3}
+                    disabled={isAlreadySubmitted}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Recommendations & Next Week Priorities (Optional)</Label>
+                  <Textarea
+                    placeholder="Suggestions for follow-up actions, next week's priorities, or process improvements..."
+                    value={recommendations}
+                    onChange={(e) => setRecommendations(e.target.value)}
+                    rows={3}
+                    disabled={isAlreadySubmitted}
+                  />
+                </div>
               </div>
 
               {isAlreadySubmitted && (
@@ -375,6 +464,9 @@ export default function WeeklyReports() {
                   <p className="text-sm font-medium text-green-800">
                     Report submitted on {selectedPlan.outcome_submitted_at ? new Date(selectedPlan.outcome_submitted_at).toLocaleString() : 'N/A'}
                   </p>
+                  {selectedPlan.status === WeeklyPlanStatus.COMPLETED && (
+                    <p className="text-sm text-green-700 mt-1">✓ Approved by supervisor</p>
+                  )}
                 </div>
               )}
             </div>
@@ -387,7 +479,7 @@ export default function WeeklyReports() {
             {selectedPlan && !isAlreadySubmitted && (
               <Button
                 onClick={() => submitReportMutation.mutate()}
-                disabled={submitReportMutation.isPending || hasBlockingWarnings || !narrative.trim()}
+                disabled={submitReportMutation.isPending || hasBlockers || !narrative.trim()}
               >
                 {submitReportMutation.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
