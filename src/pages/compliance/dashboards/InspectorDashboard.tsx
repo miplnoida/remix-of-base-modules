@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   UserCheck, MapPin, Calendar, ClipboardCheck, AlertTriangle,
-  CheckCircle, Clock, ArrowRight, Loader2, ListChecks
+  CheckCircle, Clock, ArrowRight, Loader2, ListChecks, Building2
 } from 'lucide-react';
 import { WorkboardCaseloadSummary } from '@/components/compliance/WorkboardCaseloadSummary';
 import { useNavigate } from 'react-router-dom';
