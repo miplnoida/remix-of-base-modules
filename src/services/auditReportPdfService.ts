@@ -64,20 +64,39 @@ export const auditReportPdfService = {
     doc.setFontSize(11);
     doc.text('Compliance Field Audit Engagement', pageWidth / 2, 222, { align: 'center' });
 
+    // Prominent employer identity panel on cover
+    const panelY = 250;
+    const panelH = 70;
+    const panelMargin = 100;
+    doc.setDrawColor(...BRAND);
+    doc.setLineWidth(2);
+    doc.setFillColor(240, 248, 244);
+    doc.rect(panelMargin, panelY, pageWidth - panelMargin * 2, panelH, 'FD');
+    doc.setTextColor(...BRAND);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text(report.employerName ?? '—', pageWidth / 2, panelY + 26, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    const auditDateStr = report.auditDate ? formatDateForDisplay(report.auditDate) : formatDateForDisplay(report.reportDate);
+    const panelMeta = `Reg No: ${report.employerRegNumber ?? report.employerId ?? '—'}     Audit Date: ${auditDateStr}     Report No: ${report.reportNumber}`;
+    doc.text(panelMeta, pageWidth / 2, panelY + 50, { align: 'center' });
+
     // Cover meta box
     const metaRows: [string, string][] = [
       ['Report Number', report.reportNumber],
       ['Employer', report.employerName ?? '—'],
       ['Registration No.', report.employerRegNumber ?? report.employerId ?? '—'],
-      ['Audit Date', report.auditDate ? formatDateForDisplay(report.auditDate) : formatDateForDisplay(report.reportDate)],
+      ['Audit Date', auditDateStr],
       ['Location', report.auditLocation ?? '—'],
-      ['Lead Inspector', report.inspectorName ?? '—'],
+      ['Inspector', report.inspectorName ?? '—'],
       ['Status', report.status],
     ];
     if (report.verificationRef) metaRows.push(['Verification Ref', report.verificationRef]);
 
     autoTable(doc, {
-      startY: 280,
+      startY: panelY + panelH + 30,
       margin: { left: 120, right: 120 },
       body: metaRows,
       theme: 'plain',
@@ -95,17 +114,6 @@ export const auditReportPdfService = {
         }
       },
     });
-
-    if (report.status !== 'FINAL') {
-      doc.saveGraphicsState();
-      // @ts-expect-error - GState exists at runtime
-      doc.setGState(new doc.GState({ opacity: 0.08 }));
-      doc.setTextColor(220, 38, 38);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(120);
-      doc.text('DRAFT', pageWidth / 2, pageHeight / 2 + 40, { align: 'center', angle: -30 });
-      doc.restoreGraphicsState();
-    }
 
     // ── New page: body ──
     doc.addPage();
@@ -246,6 +254,27 @@ export const auditReportPdfService = {
     sectionHeading(isEmployer ? '7. Compliance Conclusion' : '8. Conclusions');
     paragraph(report.complianceConclusion || report.conclusions || 'No conclusion recorded.');
 
+    // ── Sampling disclaimer (mandatory before sign-off) ──
+    sectionHeading(isEmployer ? '7a. Audit Scope Disclaimer' : '8a. Audit Scope Disclaimer');
+    const disclaimerText =
+      'Sampling Notice: This audit was conducted based on selected samples, records reviewed, and procedures performed during the stated audit period. The findings, observations, and conclusions expressed in this report are based solely on the sample examined and the information made available to the auditor at the time of the visit. They should not be interpreted as a complete or exhaustive review of all records, transactions, or compliance activities of the employer.\n\nThe Social Security Board reserves the right to conduct further reviews, request additional records, or initiate enforcement action should subsequent information indicate non-compliance beyond the scope of this audit.';
+    {
+      const lines = doc.splitTextToSize(disclaimerText, pageWidth - margin * 2 - 20);
+      const boxH = lines.length * 11 + 14;
+      ensureSpace(boxH + 10);
+      doc.setFillColor(255, 251, 235);
+      doc.setDrawColor(217, 119, 6);
+      doc.setLineWidth(1);
+      doc.rect(margin, y, pageWidth - margin * 2, boxH, 'FD');
+      doc.setLineWidth(2);
+      doc.line(margin, y, margin, y + boxH);
+      doc.setTextColor(31, 41, 55);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(lines, margin + 10, y + 12);
+      y += boxH + 14;
+    }
+
     // ── Signature page ──
     doc.addPage();
     y = margin + 10;
@@ -271,7 +300,7 @@ export const auditReportPdfService = {
     // No hardcoded "Lead Inspector" or "Supervisor" placeholders.
     // Employer Rep is shown even when missing (acknowledgment is the legal point of the report).
     const roleLabel: Record<AuditReportSignature['signerRole'], string> = {
-      EMPLOYER_REP: 'Employer Representative',
+      EMPLOYER_REP: 'Employer / Auditee Representative',
       INSPECTOR: 'Inspector',
       SUPERVISOR: 'Supervisor (Approval)',
       WITNESS: 'Witness',
@@ -301,10 +330,24 @@ export const auditReportPdfService = {
       y = startY + 140;
     }
 
-    // ── Repeating header & footer on all pages ──
+    // ── Repeating header, footer & DRAFT watermark on all pages ──
     const totalPages = (doc as any).internal.getNumberOfPages();
+    const isDraft = report.status !== 'FINAL';
     for (let p = 1; p <= totalPages; p++) {
       doc.setPage(p);
+
+      // DRAFT watermark — every page when not FINAL
+      if (isDraft) {
+        doc.saveGraphicsState();
+        // @ts-expect-error - GState exists at runtime
+        doc.setGState(new doc.GState({ opacity: 0.10 }));
+        doc.setTextColor(220, 38, 38);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(140);
+        doc.text('DRAFT', pageWidth / 2, pageHeight / 2 + 50, { align: 'center', angle: -30 });
+        doc.restoreGraphicsState();
+      }
+
       if (p > 1) {
         // Header
         doc.setFontSize(8);

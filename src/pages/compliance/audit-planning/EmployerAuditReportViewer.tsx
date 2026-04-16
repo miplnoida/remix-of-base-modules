@@ -326,8 +326,15 @@ export default function EmployerAuditReportViewer() {
                 </div>
               )}
 
+              {/*
+                Signature roles for Employer Audit acknowledgment.
+                Lead Inspector and Supervisor entry windows are intentionally REMOVED.
+                Inspector signature is captured automatically when the logged-in inspector signs;
+                Supervisor signature is added only when an approval action is performed.
+                Witness is captured inline through the Employer Rep flow when needed (refusal/unavailable).
+              */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {(['EMPLOYER_REP', 'INSPECTOR', 'WITNESS', 'SUPERVISOR'] as SignerRole[]).map((role) => {
+                {(['EMPLOYER_REP'] as SignerRole[]).map((role) => {
                   const sig = signatures.find((s) => s.signerRole === role);
                   return (
                     <Card key={role} className="p-4">
@@ -457,9 +464,9 @@ export default function EmployerAuditReportViewer() {
 }
 
 const ROLE_LABELS: Record<SignerRole, string> = {
-  EMPLOYER_REP: 'Employer Representative',
-  INSPECTOR: 'Lead Inspector',
-  SUPERVISOR: 'Supervisor',
+  EMPLOYER_REP: 'Employer / Auditee Representative',
+  INSPECTOR: 'Inspector',
+  SUPERVISOR: 'Supervisor (Approval)',
   WITNESS: 'Witness',
 };
 

@@ -1017,7 +1017,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/field/execution-dashboard/:planId/visit/:planItemId" element={<ProtectedLayout><AuditVisitWorkspace /></ProtectedLayout>} />
       <Route path="/compliance/field/audit-visit/:planItemId" element={<ProtectedLayout><AuditVisitWorkspace /></ProtectedLayout>} />
       <Route path="/compliance/field/audit-report/:inspectionId" element={<ProtectedLayout><EmployerAuditReportViewer /></ProtectedLayout>} />
-      <Route path="/compliance/field/audit-report/:reportId/print/:variant" element={<AuditReportPrintPage />} />
+      <Route path="/compliance/field/audit-report/:reportId/print/:variant" element={<ProtectedRoute><AuditReportPrintPage /></ProtectedRoute>} />
       <Route path="/compliance/field/weekly-report-review" element={<ProtectedLayout><WeeklyReportReview /></ProtectedLayout>} />
       <Route path="/compliance/field/my-upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
       <Route path="/compliance/field/sampling" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />

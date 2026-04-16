@@ -49,8 +49,10 @@ export function AuditReportPrintLayout({
   const witSig = signatures.find((s) => s.signerRole === 'WITNESS');
   const supSig = signatures.find((s) => s.signerRole === 'SUPERVISOR');
 
+  const isDraft = report.status !== 'FINAL';
+
   return (
-    <div className="audit-report-print">
+    <div className={`audit-report-print ${isDraft ? 'is-draft' : ''}`}>
       <style>{printStyles}</style>
 
       {/* ── COVER PAGE ── */}
@@ -63,27 +65,38 @@ export function AuditReportPrintLayout({
           <h1 className="cover-title">{reportTitle}</h1>
           <div className="cover-subtitle">Compliance Field Audit Engagement</div>
 
+          {/* Prominent employer identity panel */}
+          <div className="employer-identity-panel">
+            <div className="employer-identity-name">{report.employerName ?? '—'}</div>
+            <div className="employer-identity-meta">
+              <span><strong>Reg No:</strong> {report.employerRegNumber ?? report.employerId ?? '—'}</span>
+              <span><strong>Audit Date:</strong> {report.auditDate ? formatDateForDisplay(report.auditDate) : formatDateForDisplay(report.reportDate)}</span>
+              <span><strong>Report No:</strong> {report.reportNumber}</span>
+            </div>
+          </div>
+
           <div className="cover-meta">
             <Row label="Report Number" value={report.reportNumber} />
             <Row label="Employer" value={report.employerName ?? '—'} />
             <Row label="Registration No." value={report.employerRegNumber ?? report.employerId ?? '—'} />
             <Row label="Audit Date" value={report.auditDate ? formatDateForDisplay(report.auditDate) : formatDateForDisplay(report.reportDate)} />
             <Row label="Location" value={report.auditLocation ?? '—'} />
-            <Row label="Lead Inspector" value={report.inspectorName ?? '—'} />
+            <Row label="Inspector" value={report.inspectorName ?? '—'} />
             <Row label="Status" value={report.status} />
             {report.verificationRef && <Row label="Verification Ref" value={report.verificationRef} />}
           </div>
-
-          {report.status !== 'FINAL' && <div className="draft-watermark">DRAFT</div>}
         </div>
       </section>
+
+      {/* DRAFT watermark — fixed-positioned, repeats on every printed page */}
+      {isDraft && <div className="draft-watermark-fixed" aria-hidden="true">DRAFT</div>}
 
       <div className="page-break" />
 
       {/* ── BODY ── */}
       <header className="page-header">
-        <div>{report.reportNumber}</div>
-        <div>{report.employerName ?? '—'}</div>
+        <div><strong>{report.reportNumber}</strong></div>
+        <div><strong>{report.employerName ?? '—'}</strong>{report.employerRegNumber ? ` • ${report.employerRegNumber}` : ''}</div>
         <div>{isEmployer ? 'EMPLOYER COPY' : 'CONFIDENTIAL'}</div>
       </header>
 
@@ -206,6 +219,27 @@ export function AuditReportPrintLayout({
       <Section title={isEmployer ? '7. Compliance Conclusion' : '8. Conclusions'}>
         <p>{report.complianceConclusion || report.conclusions || 'No conclusion recorded.'}</p>
       </Section>
+
+      {/* ── SAMPLING DISCLAIMER ── */}
+      <section className="report-section sampling-disclaimer">
+        <h2 className="section-title">{isEmployer ? '7a. Audit Scope Disclaimer' : '8a. Audit Scope Disclaimer'}</h2>
+        <div className="disclaimer-box">
+          <p>
+            <strong>Sampling Notice:</strong> This audit was conducted based on selected
+            samples, records reviewed, and procedures performed during the stated audit
+            period. The findings, observations, and conclusions expressed in this report
+            are based solely on the sample examined and the information made available
+            to the auditor at the time of the visit. They should not be interpreted as
+            a complete or exhaustive review of all records, transactions, or compliance
+            activities of the employer.
+          </p>
+          <p>
+            The Social Security Board reserves the right to conduct further reviews,
+            request additional records, or initiate enforcement action should subsequent
+            information indicate non-compliance beyond the scope of this audit.
+          </p>
+        </div>
+      </section>
 
       {/* ── AUDIT CONTACT vs SIGNATORY identity block ── */}
       <section className="signature-block">
@@ -414,16 +448,58 @@ const printStyles = `
 .audit-report-print .cover-row-value {
   text-align: right;
 }
-.audit-report-print .draft-watermark {
-  position: absolute;
+.audit-report-print .draft-watermark-fixed {
+  position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-30deg);
-  font-size: 120pt;
-  color: rgba(220, 38, 38, 0.1);
-  font-weight: bold;
+  font-size: 140pt;
+  color: rgba(220, 38, 38, 0.10);
+  font-weight: 900;
+  letter-spacing: 12px;
   pointer-events: none;
-  z-index: 0;
+  z-index: 9999;
+  user-select: none;
+}
+.audit-report-print .employer-identity-panel {
+  width: 100%;
+  max-width: 6in;
+  margin: 0 auto 32px;
+  padding: 18px 24px;
+  border: 2px solid #0E5F3A;
+  background: #f0f8f4;
+  border-radius: 4px;
+  text-align: center;
+}
+.audit-report-print .employer-identity-name {
+  font-size: 20pt;
+  font-weight: bold;
+  color: #0E5F3A;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+.audit-report-print .employer-identity-meta {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 10pt;
+  color: #333;
+}
+.audit-report-print .employer-identity-meta span {
+  white-space: nowrap;
+}
+.audit-report-print .sampling-disclaimer .disclaimer-box {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-left: 4px solid #d97706;
+  padding: 12px 16px;
+  font-size: 10pt;
+  color: #1f2937;
+  border-radius: 3px;
+}
+.audit-report-print .sampling-disclaimer .disclaimer-box p {
+  margin: 6px 0;
 }
 .audit-report-print .page-break {
   page-break-after: always;
@@ -433,9 +509,9 @@ const printStyles = `
   display: flex;
   justify-content: space-between;
   font-size: 9pt;
-  color: #666;
-  border-bottom: 1px solid #0E5F3A;
-  padding-bottom: 4px;
+  color: #333;
+  border-bottom: 2px solid #0E5F3A;
+  padding-bottom: 6px;
   margin-bottom: 16px;
 }
 .audit-report-print .report-section {

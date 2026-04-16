@@ -47,9 +47,9 @@ interface CaptureSignatureDialogProps {
 }
 
 const ROLE_LABELS: Record<SignerRole, string> = {
-  EMPLOYER_REP: 'Employer Representative',
-  INSPECTOR: 'Lead Inspector',
-  SUPERVISOR: 'Supervisor',
+  EMPLOYER_REP: 'Employer / Auditee Representative',
+  INSPECTOR: 'Inspector',
+  SUPERVISOR: 'Supervisor (Approval)',
   WITNESS: 'Witness',
 };
 
