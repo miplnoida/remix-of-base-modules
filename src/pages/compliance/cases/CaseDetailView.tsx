@@ -357,7 +357,94 @@ export default function CaseDetailView() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="history" className="space-y-4">
+        <TabsContent value="notices" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Notices</CardTitle>
+                <Button size="sm" variant="outline" onClick={() => navigate('/compliance/enforcement/notices', {
+                  state: { prefill: { case_id: c.id, case_number: c.case_number, employer_id: c.employer_id, employer_name: c.employer_name } }
+                })}>
+                  <Mail className="h-4 w-4 mr-1" />Create Notice
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {caseNotices.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No notices issued for this case</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Notice #</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Sent</TableHead>
+                      <TableHead>Response</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {caseNotices.map((n: any) => (
+                      <TableRow key={n.id}>
+                        <TableCell className="font-mono text-xs font-medium">{n.notice_number}</TableCell>
+                        <TableCell>{n.notice_type || '-'}</TableCell>
+                        <TableCell><Badge variant="outline">{n.status?.replace(/_/g, ' ')}</Badge></TableCell>
+                        <TableCell>{n.sent_at ? formatDate(n.sent_at) : '-'}</TableCell>
+                        <TableCell>{n.response_received ? <Badge className="bg-green-100 text-green-800">Received</Badge> : '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="arrangements" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Payment Arrangements</CardTitle>
+                {!['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && (Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0)) > 0 && (
+                  <Button size="sm" variant="outline" onClick={() => setArrangementDialogOpen(true)}>
+                    <HandshakeIcon className="h-4 w-4 mr-1" />New Arrangement
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {caseArrangements.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No payment arrangements for this case</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Arrangement #</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Start</TableHead>
+                      <TableHead>End</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {caseArrangements.map((a: any) => (
+                      <TableRow key={a.id}>
+                        <TableCell className="font-mono text-xs font-medium">{a.arrangement_number || a.id.slice(0, 8)}</TableCell>
+                        <TableCell>{a.arrangement_type || '-'}</TableCell>
+                        <TableCell><Badge variant="outline">{a.status?.replace(/_/g, ' ')}</Badge></TableCell>
+                        <TableCell>{formatCurrency(Number(a.total_amount) || 0)}</TableCell>
+                        <TableCell>{a.start_date ? formatDate(a.start_date) : '-'}</TableCell>
+                        <TableCell>{a.end_date ? formatDate(a.end_date) : '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
           <Card>
             <CardHeader><CardTitle>Case History</CardTitle></CardHeader>
             <CardContent>
