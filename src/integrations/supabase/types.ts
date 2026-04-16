@@ -9763,6 +9763,72 @@ export type Database = {
           },
         ]
       }
+      ce_audit_checklist_responses: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          evidence_required: boolean
+          id: string
+          inspection_id: string
+          notes: string | null
+          plan_item_id: string | null
+          question_id: string
+          question_text: string
+          response: string | null
+          template_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          created_by?: string
+          evidence_required?: boolean
+          id?: string
+          inspection_id: string
+          notes?: string | null
+          plan_item_id?: string | null
+          question_id: string
+          question_text: string
+          response?: string | null
+          template_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          evidence_required?: boolean
+          id?: string
+          inspection_id?: string
+          notes?: string | null
+          plan_item_id?: string | null
+          question_id?: string
+          question_text?: string
+          response?: string | null
+          template_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_checklist_responses_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_audit_checklist_responses_plan_item_id_fkey"
+            columns: ["plan_item_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plan_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_audit_log: {
         Row: {
           action: string
@@ -11611,6 +11677,101 @@ export type Database = {
           },
         ]
       }
+      ce_employer_audit_reports: {
+        Row: {
+          checklist_completion_pct: number
+          conclusions: string | null
+          created_at: string
+          created_by: string
+          employer_id: string | null
+          employer_name: string | null
+          executive_summary: string | null
+          finalized_at: string | null
+          finalized_by: string | null
+          generated_at: string | null
+          generated_by: string | null
+          id: string
+          inspection_id: string
+          inspector_id: string | null
+          inspector_name: string | null
+          pdf_url: string | null
+          recommendations: string | null
+          report_date: string
+          report_number: string
+          scope: string | null
+          status: string
+          total_evidence: number
+          total_findings: number
+          total_violations: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          checklist_completion_pct?: number
+          conclusions?: string | null
+          created_at?: string
+          created_by?: string
+          employer_id?: string | null
+          employer_name?: string | null
+          executive_summary?: string | null
+          finalized_at?: string | null
+          finalized_by?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          inspection_id: string
+          inspector_id?: string | null
+          inspector_name?: string | null
+          pdf_url?: string | null
+          recommendations?: string | null
+          report_date?: string
+          report_number?: string
+          scope?: string | null
+          status?: string
+          total_evidence?: number
+          total_findings?: number
+          total_violations?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          checklist_completion_pct?: number
+          conclusions?: string | null
+          created_at?: string
+          created_by?: string
+          employer_id?: string | null
+          employer_name?: string | null
+          executive_summary?: string | null
+          finalized_at?: string | null
+          finalized_by?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          id?: string
+          inspection_id?: string
+          inspector_id?: string | null
+          inspector_name?: string | null
+          pdf_url?: string | null
+          recommendations?: string | null
+          report_date?: string
+          report_number?: string
+          scope?: string | null
+          status?: string
+          total_evidence?: number
+          total_findings?: number
+          total_violations?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_employer_audit_reports_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_employer_compliance_flags: {
         Row: {
           auto_resolve_condition: string | null
@@ -13023,6 +13184,7 @@ export type Database = {
           due_date: string | null
           employer_id: string | null
           employer_name: string | null
+          finding_id: string | null
           id: string
           is_deleted: boolean
           notes: string | null
@@ -13033,7 +13195,7 @@ export type Database = {
           status: string
           updated_at: string
           updated_by: string | null
-          violation_id: string
+          violation_id: string | null
         }
         Insert: {
           action_type: string
@@ -13048,6 +13210,7 @@ export type Database = {
           due_date?: string | null
           employer_id?: string | null
           employer_name?: string | null
+          finding_id?: string | null
           id?: string
           is_deleted?: boolean
           notes?: string | null
@@ -13058,7 +13221,7 @@ export type Database = {
           status?: string
           updated_at?: string
           updated_by?: string | null
-          violation_id: string
+          violation_id?: string | null
         }
         Update: {
           action_type?: string
@@ -13073,6 +13236,7 @@ export type Database = {
           due_date?: string | null
           employer_id?: string | null
           employer_name?: string | null
+          finding_id?: string | null
           id?: string
           is_deleted?: boolean
           notes?: string | null
@@ -13083,7 +13247,7 @@ export type Database = {
           status?: string
           updated_at?: string
           updated_by?: string | null
-          violation_id?: string
+          violation_id?: string | null
         }
         Relationships: [
           {
@@ -13091,6 +13255,13 @@ export type Database = {
             columns: ["assigned_queue_id"]
             isOneToOne: false
             referencedRelation: "ce_assignment_queues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_follow_up_actions_finding_id_fkey"
+            columns: ["finding_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspection_findings"
             referencedColumns: ["id"]
           },
           {
@@ -13324,6 +13495,7 @@ export type Database = {
       }
       ce_inspection_findings: {
         Row: {
+          category: string | null
           created_at: string | null
           created_by: string | null
           description: string
@@ -13334,13 +13506,16 @@ export type Database = {
           follow_up_required: boolean
           id: string
           inspection_id: string | null
+          recommended_action: string | null
           severity: string | null
+          title: string | null
           updated_at: string | null
           updated_by: string | null
           violation_created: boolean | null
           violation_id: string | null
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
           description: string
@@ -13351,13 +13526,16 @@ export type Database = {
           follow_up_required?: boolean
           id?: string
           inspection_id?: string | null
+          recommended_action?: string | null
           severity?: string | null
+          title?: string | null
           updated_at?: string | null
           updated_by?: string | null
           violation_created?: boolean | null
           violation_id?: string | null
         }
         Update: {
+          category?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string
@@ -13368,7 +13546,9 @@ export type Database = {
           follow_up_required?: boolean
           id?: string
           inspection_id?: string | null
+          recommended_action?: string | null
           severity?: string | null
+          title?: string | null
           updated_at?: string | null
           updated_by?: string | null
           violation_created?: boolean | null
@@ -47260,6 +47440,7 @@ export type Database = {
           reference_type: string
         }[]
       }
+      ce_generate_audit_report_number: { Args: never; Returns: string }
       ce_generate_employer_statement: {
         Args: {
           p_employer_id: string
