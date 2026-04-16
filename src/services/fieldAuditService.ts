@@ -105,6 +105,52 @@ export interface EmployerAuditReportRow {
   finalizedAt?: string;
 }
 
+export type ExecutionMode = 'ONSITE' | 'DESKTOP_REVIEW' | 'DOCUMENT_REVIEW';
+export type EnforcementMode = 'STRICT' | 'SELF_SERVICE' | 'SOFT_WARNING';
+
+export interface StartAuditSessionRequest {
+  planItemId: string;
+  executionMode: ExecutionMode;
+  gpsLat?: number;
+  gpsLng?: number;
+  gpsUnavailableReason?: string;
+  startNotes?: string;
+}
+
+export interface CompletionGateConfig {
+  id: string;
+  scope: string;
+  enforcementMode: EnforcementMode;
+  requireChecklistComplete: boolean;
+  requireFindingsRecorded: boolean;
+  requireReportSaved: boolean;
+  requireFollowupsForSeverity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | null;
+  requireEvidenceMinCount: number;
+  overrideRequiresRole: string | null;
+  isActive: boolean;
+}
+
+export interface CompletionGateResult {
+  ready: boolean;
+  enforcementMode: EnforcementMode;
+  checks: {
+    key: string;
+    label: string;
+    passed: boolean;
+    required: boolean;
+    detail?: string;
+  }[];
+  missingRequired: string[];
+}
+
+export interface CloseAuditSessionRequest {
+  inspectionId: string;
+  closeNotes?: string;
+  gpsLat?: number;
+  gpsLng?: number;
+  overrideReason?: string;
+}
+
 export interface AccurateWeeklySummary {
   planId: string;
   plannedVisits: number;
