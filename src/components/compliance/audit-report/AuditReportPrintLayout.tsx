@@ -220,6 +220,27 @@ export function AuditReportPrintLayout({
         <p>{report.complianceConclusion || report.conclusions || 'No conclusion recorded.'}</p>
       </Section>
 
+      {/* ── SAMPLING DISCLAIMER ── */}
+      <section className="report-section sampling-disclaimer">
+        <h2 className="section-title">{isEmployer ? '7a. Audit Scope Disclaimer' : '8a. Audit Scope Disclaimer'}</h2>
+        <div className="disclaimer-box">
+          <p>
+            <strong>Sampling Notice:</strong> This audit was conducted based on selected
+            samples, records reviewed, and procedures performed during the stated audit
+            period. The findings, observations, and conclusions expressed in this report
+            are based solely on the sample examined and the information made available
+            to the auditor at the time of the visit. They should not be interpreted as
+            a complete or exhaustive review of all records, transactions, or compliance
+            activities of the employer.
+          </p>
+          <p>
+            The Social Security Board reserves the right to conduct further reviews,
+            request additional records, or initiate enforcement action should subsequent
+            information indicate non-compliance beyond the scope of this audit.
+          </p>
+        </div>
+      </section>
+
       {/* ── AUDIT CONTACT vs SIGNATORY identity block ── */}
       <section className="signature-block">
         <h2 className="section-title">{isEmployer ? '8. Acknowledgment & Signatures' : '9. Sign-off'}</h2>
