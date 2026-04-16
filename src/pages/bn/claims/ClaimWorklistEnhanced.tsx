@@ -68,8 +68,7 @@ export default function ClaimWorklistEnhanced() {
     return claims.filter((c: BnClaim) => {
       const matchesSearch = !search ||
         (c.claim_number || '').toLowerCase().includes(search.toLowerCase()) ||
-        c.ssn.includes(search) ||
-        (c.claimant_name || '').toLowerCase().includes(search.toLowerCase());
+        c.ssn.includes(search);
       const matchesPriority = !priorityFilter || c.priority === priorityFilter;
       const matchesAssigned = !assignedFilter ||
         (assignedFilter === '__unassigned' ? !c.assigned_to : c.assigned_to === assignedFilter);
@@ -257,7 +256,7 @@ export default function ClaimWorklistEnhanced() {
                           </TableCell>
                           <TableCell className="font-mono text-sm font-medium">{claim.claim_number || '—'}</TableCell>
                           <TableCell className="font-mono text-sm">{claim.ssn}</TableCell>
-                          <TableCell className="text-sm">{claim.claimant_name || '—'}</TableCell>
+                          <TableCell className="text-sm">{(claim as any).claimant_name || '—'}</TableCell>
                           <TableCell className="text-sm">{(claim as any).bn_product?.benefit_name || '—'}</TableCell>
                           <TableCell className="text-sm">{formatDateForDisplay(claim.claim_date)}</TableCell>
                           <TableCell className={`text-sm font-mono font-medium ${getAgingColor(ageDays)}`}>
