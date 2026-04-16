@@ -81,8 +81,8 @@ export function PlanItemFormDialog({ open, onOpenChange, onSubmit, weekDays }: P
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add Manual Plan Item</DialogTitle>
-          <DialogDescription>Add a custom item to your weekly plan</DialogDescription>
+          <DialogTitle>Add Exception Item</DialogTitle>
+          <DialogDescription>Add an exception item not covered by system suggestions</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="grid grid-cols-2 gap-3">
