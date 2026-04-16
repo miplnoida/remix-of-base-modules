@@ -64,20 +64,39 @@ export const auditReportPdfService = {
     doc.setFontSize(11);
     doc.text('Compliance Field Audit Engagement', pageWidth / 2, 222, { align: 'center' });
 
+    // Prominent employer identity panel on cover
+    const panelY = 250;
+    const panelH = 70;
+    const panelMargin = 100;
+    doc.setDrawColor(...BRAND);
+    doc.setLineWidth(2);
+    doc.setFillColor(240, 248, 244);
+    doc.rect(panelMargin, panelY, pageWidth - panelMargin * 2, panelH, 'FD');
+    doc.setTextColor(...BRAND);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text(report.employerName ?? '—', pageWidth / 2, panelY + 26, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    const auditDateStr = report.auditDate ? formatDateForDisplay(report.auditDate) : formatDateForDisplay(report.reportDate);
+    const panelMeta = `Reg No: ${report.employerRegNumber ?? report.employerId ?? '—'}     Audit Date: ${auditDateStr}     Report No: ${report.reportNumber}`;
+    doc.text(panelMeta, pageWidth / 2, panelY + 50, { align: 'center' });
+
     // Cover meta box
     const metaRows: [string, string][] = [
       ['Report Number', report.reportNumber],
       ['Employer', report.employerName ?? '—'],
       ['Registration No.', report.employerRegNumber ?? report.employerId ?? '—'],
-      ['Audit Date', report.auditDate ? formatDateForDisplay(report.auditDate) : formatDateForDisplay(report.reportDate)],
+      ['Audit Date', auditDateStr],
       ['Location', report.auditLocation ?? '—'],
-      ['Lead Inspector', report.inspectorName ?? '—'],
+      ['Inspector', report.inspectorName ?? '—'],
       ['Status', report.status],
     ];
     if (report.verificationRef) metaRows.push(['Verification Ref', report.verificationRef]);
 
     autoTable(doc, {
-      startY: 280,
+      startY: panelY + panelH + 30,
       margin: { left: 120, right: 120 },
       body: metaRows,
       theme: 'plain',
@@ -95,17 +114,6 @@ export const auditReportPdfService = {
         }
       },
     });
-
-    if (report.status !== 'FINAL') {
-      doc.saveGraphicsState();
-      // @ts-expect-error - GState exists at runtime
-      doc.setGState(new doc.GState({ opacity: 0.08 }));
-      doc.setTextColor(220, 38, 38);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(120);
-      doc.text('DRAFT', pageWidth / 2, pageHeight / 2 + 40, { align: 'center', angle: -30 });
-      doc.restoreGraphicsState();
-    }
 
     // ── New page: body ──
     doc.addPage();
