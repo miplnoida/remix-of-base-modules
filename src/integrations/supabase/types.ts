@@ -9878,6 +9878,82 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_audit_report_acknowledgments: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          first_viewed_at: string | null
+          id: string
+          last_viewed_at: string | null
+          link_token: string
+          recipient_designation: string | null
+          recipient_email: string | null
+          recipient_name: string
+          report_id: string
+          sent_at: string
+          signature_id: string | null
+          status: string
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          expires_at: string
+          first_viewed_at?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          link_token: string
+          recipient_designation?: string | null
+          recipient_email?: string | null
+          recipient_name: string
+          report_id: string
+          sent_at?: string
+          signature_id?: string | null
+          status?: string
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          first_viewed_at?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          link_token?: string
+          recipient_designation?: string | null
+          recipient_email?: string | null
+          recipient_name?: string
+          report_id?: string
+          sent_at?: string
+          signature_id?: string | null
+          status?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_report_acknowledgments_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_audit_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_audit_report_acknowledgments_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_visit_execution_metrics"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "ce_audit_report_acknowledgments_signature_id_fkey"
+            columns: ["signature_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_report_signatures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_audit_report_entries: {
         Row: {
           audit_date: string
@@ -9913,6 +9989,132 @@ export type Database = {
           zone?: string | null
         }
         Relationships: []
+      }
+      ce_audit_report_signatures: {
+        Row: {
+          attestation_text: string | null
+          captured_by: string | null
+          comments: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          refusal_reason: string | null
+          report_id: string
+          signature_image_url: string | null
+          signature_type: string
+          signed_at: string | null
+          signer_designation: string | null
+          signer_email: string | null
+          signer_name: string
+          signer_role: string
+          typed_name: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          attestation_text?: string | null
+          captured_by?: string | null
+          comments?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          refusal_reason?: string | null
+          report_id: string
+          signature_image_url?: string | null
+          signature_type: string
+          signed_at?: string | null
+          signer_designation?: string | null
+          signer_email?: string | null
+          signer_name: string
+          signer_role: string
+          typed_name?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          attestation_text?: string | null
+          captured_by?: string | null
+          comments?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          refusal_reason?: string | null
+          report_id?: string
+          signature_image_url?: string | null
+          signature_type?: string
+          signed_at?: string | null
+          signer_designation?: string | null
+          signer_email?: string | null
+          signer_name?: string
+          signer_role?: string
+          typed_name?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_report_signatures_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_audit_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_audit_report_signatures_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_visit_execution_metrics"
+            referencedColumns: ["report_id"]
+          },
+        ]
+      }
+      ce_audit_report_versions: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_final: boolean
+          notes: string | null
+          pdf_url: string | null
+          report_id: string
+          snapshot_json: Json
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_final?: boolean
+          notes?: string | null
+          pdf_url?: string | null
+          report_id: string
+          snapshot_json: Json
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_final?: boolean
+          notes?: string | null
+          pdf_url?: string | null
+          report_id?: string
+          snapshot_json?: Json
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_report_versions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_audit_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_audit_report_versions_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_visit_execution_metrics"
+            referencedColumns: ["report_id"]
+          },
+        ]
       }
       ce_automation_job_runs: {
         Row: {
@@ -11734,12 +11936,20 @@ export type Database = {
       }
       ce_employer_audit_reports: {
         Row: {
+          acknowledgment_completed_at: string | null
+          acknowledgment_sent_at: string | null
+          acknowledgment_status: string
+          audit_date: string | null
+          audit_location: string | null
           checklist_completion_pct: number
+          compliance_conclusion: string | null
           conclusions: string | null
           created_at: string
           created_by: string
+          current_version: number
           employer_id: string | null
           employer_name: string | null
+          employer_reg_number: string | null
           executive_summary: string | null
           finalized_at: string | null
           finalized_by: string | null
@@ -11751,24 +11961,36 @@ export type Database = {
           inspector_name: string | null
           pdf_url: string | null
           plan_item_id: string | null
+          purpose_scope: string | null
           recommendations: string | null
+          records_reviewed: string | null
           report_date: string
           report_number: string
           scope: string | null
+          signed_pdf_url: string | null
           status: string
           total_evidence: number
           total_findings: number
           total_violations: number
           updated_at: string
           updated_by: string | null
+          verification_ref: string | null
         }
         Insert: {
+          acknowledgment_completed_at?: string | null
+          acknowledgment_sent_at?: string | null
+          acknowledgment_status?: string
+          audit_date?: string | null
+          audit_location?: string | null
           checklist_completion_pct?: number
+          compliance_conclusion?: string | null
           conclusions?: string | null
           created_at?: string
           created_by?: string
+          current_version?: number
           employer_id?: string | null
           employer_name?: string | null
+          employer_reg_number?: string | null
           executive_summary?: string | null
           finalized_at?: string | null
           finalized_by?: string | null
@@ -11780,24 +12002,36 @@ export type Database = {
           inspector_name?: string | null
           pdf_url?: string | null
           plan_item_id?: string | null
+          purpose_scope?: string | null
           recommendations?: string | null
+          records_reviewed?: string | null
           report_date?: string
           report_number?: string
           scope?: string | null
+          signed_pdf_url?: string | null
           status?: string
           total_evidence?: number
           total_findings?: number
           total_violations?: number
           updated_at?: string
           updated_by?: string | null
+          verification_ref?: string | null
         }
         Update: {
+          acknowledgment_completed_at?: string | null
+          acknowledgment_sent_at?: string | null
+          acknowledgment_status?: string
+          audit_date?: string | null
+          audit_location?: string | null
           checklist_completion_pct?: number
+          compliance_conclusion?: string | null
           conclusions?: string | null
           created_at?: string
           created_by?: string
+          current_version?: number
           employer_id?: string | null
           employer_name?: string | null
+          employer_reg_number?: string | null
           executive_summary?: string | null
           finalized_at?: string | null
           finalized_by?: string | null
@@ -11809,16 +12043,20 @@ export type Database = {
           inspector_name?: string | null
           pdf_url?: string | null
           plan_item_id?: string | null
+          purpose_scope?: string | null
           recommendations?: string | null
+          records_reviewed?: string | null
           report_date?: string
           report_number?: string
           scope?: string | null
+          signed_pdf_url?: string | null
           status?: string
           total_evidence?: number
           total_findings?: number
           total_violations?: number
           updated_at?: string
           updated_by?: string | null
+          verification_ref?: string | null
         }
         Relationships: [
           {
