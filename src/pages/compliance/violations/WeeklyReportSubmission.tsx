@@ -216,6 +216,45 @@ export default function WeeklyReportSubmission() {
         </div>
       )}
 
+      {/* Accurate Audit KPIs (live from fieldAuditService) */}
+      {accurateSummary && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5" />
+              Audit Outcomes (live)
+              {planId && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="ml-auto"
+                  onClick={() => window.open(`/compliance/field/execution-dashboard/${planId}`, '_self')}
+                >
+                  Open Execution Dashboard →
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <KpiBox icon={<Camera className="h-4 w-4" />} label="Evidence" value={accurateSummary.evidenceCollected} />
+              <KpiBox icon={<ListChecks className="h-4 w-4" />} label="Findings" value={accurateSummary.totalFindings} />
+              <KpiBox icon={<FileText className="h-4 w-4" />} label="Reports" value={accurateSummary.reportsGenerated} />
+              <KpiBox icon={<ShieldAlert className="h-4 w-4" />} label="Violations Opened" value={accurateSummary.violationsOpened} />
+              <KpiBox icon={<ShieldAlert className="h-4 w-4" />} label="Violations Updated" value={accurateSummary.violationsUpdated} />
+              <KpiBox icon={<Clock className="h-4 w-4" />} label="Hours" value={accurateSummary.totalHoursSpent} />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Badge variant="outline">Low: {accurateSummary.findingsByseverity.Low}</Badge>
+              <Badge variant="secondary">Medium: {accurateSummary.findingsByseverity.Medium}</Badge>
+              <Badge className="bg-warning/20 text-warning hover:bg-warning/20">High: {accurateSummary.findingsByseverity.High}</Badge>
+              <Badge variant="destructive">Critical: {accurateSummary.findingsByseverity.Critical}</Badge>
+              <Badge variant="outline" className="ml-auto">Follow-ups created: {accurateSummary.followUpsCreated}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Visits List */}
       <Card>
         <CardHeader>
