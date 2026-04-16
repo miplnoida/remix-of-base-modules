@@ -1,16 +1,25 @@
 /**
- * Payment Issue Management Page
+ * Payment Issue Management Page (Enhanced)
  *
  * Business Purpose: Issue outbound benefit disbursements to cl_cheques*
- * with duplicate prevention, partial-failure handling, and reissue support.
+ * with duplicate prevention, partial-failure handling, reissue support,
+ * and void/stop controls.
+ *
+ * Enhanced: Holding release, void/stop actions, issue confirmation dialog.
  */
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import {
   Banknote, Clock, CheckCircle2, XCircle, AlertTriangle,
-  Loader2, Zap, RotateCcw,
+  Loader2, Zap, RotateCcw, ShieldCheck, Hand,
 } from 'lucide-react';
 import {
   useBnIssueRecords, useBnIssueSummary, useExecuteIssue, useExecuteIssueAction,
@@ -19,7 +28,7 @@ import { IssueListTable } from '@/components/bn/issue/IssueListTable';
 import { IssueDetailDrawer } from '@/components/bn/issue/IssueDetailDrawer';
 import { IssueFiltersBar } from '@/components/bn/issue/IssueFiltersBar';
 import { IssueActionBar } from '@/components/bn/issue/IssueActionBar';
-import type { IssueFilters, IssueRecord } from '@/services/bn/paymentIssueService';
+import type { IssueFilters } from '@/services/bn/paymentIssueService';
 
 const STAT_CARDS = [
   { key: 'total', label: 'Total', icon: Banknote, color: 'text-foreground' },
@@ -27,12 +36,15 @@ const STAT_CARDS = [
   { key: 'issued', label: 'Issued', icon: CheckCircle2, color: 'text-green-600' },
   { key: 'failed', label: 'Failed', icon: XCircle, color: 'text-destructive' },
   { key: 'voided', label: 'Voided', icon: AlertTriangle, color: 'text-orange-600' },
+  { key: 'holding', label: 'Holding', icon: Hand, color: 'text-blue-600' },
 ];
 
 export default function PaymentIssue() {
   const [filters, setFilters] = useState<IssueFilters>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmNarrative, setConfirmNarrative] = useState('');
 
   const { data: records = [], isLoading } = useBnIssueRecords(filters);
   const { data: summary } = useBnIssueSummary(filters.batch_id);
@@ -46,6 +58,8 @@ export default function PaymentIssue() {
       const result = await executeMutation.mutateAsync({ issueIds: ids, userCode: 'CURRENT_USER' });
       toast.success(`Issued: ${result.issued}, Failed: ${result.failed}`);
       setSelectedIds(new Set());
+      setShowConfirm(false);
+      setConfirmNarrative('');
     } catch (err: any) {
       toast.error(err.message || 'Issue failed');
     }
@@ -61,6 +75,11 @@ export default function PaymentIssue() {
   };
 
   const pendingRecords = records.filter(r => ['PENDING', 'REISSUE_PENDING'].includes(r.status));
+  const totalIssueAmount = Array.from(selectedIds)
+    .reduce((sum, id) => {
+      const r = records.find(rec => rec.id === id);
+      return sum + (r?.amount ?? 0);
+    }, 0);
 
   return (
     <div className="space-y-6 p-6">
@@ -69,24 +88,30 @@ export default function PaymentIssue() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Payment Issue</h1>
           <p className="text-sm text-muted-foreground">
-            Issue outbound benefit disbursements to cl_cheques, cl_cheques_holding, or cl_cheques_survivor
+            Issue outbound benefit disbursements to legacy payment tables.
+            Each issue is fully audited with duplicate prevention.
           </p>
         </div>
-        {pendingRecords.length > 0 && (
-          <Button
-            onClick={() => {
-              setSelectedIds(new Set(pendingRecords.map(r => r.id)));
-            }}
-            variant="outline"
-            className="gap-2"
-          >
-            <Zap className="h-4 w-4" /> Select All Pending ({pendingRecords.length})
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {pendingRecords.length > 0 && (
+            <Button
+              onClick={() => setSelectedIds(new Set(pendingRecords.map(r => r.id)))}
+              variant="outline"
+              className="gap-2"
+            >
+              <Zap className="h-4 w-4" /> Select All Pending ({pendingRecords.length})
+            </Button>
+          )}
+          {selectedIds.size > 0 && (
+            <Button onClick={() => setShowConfirm(true)} className="gap-2">
+              <ShieldCheck className="h-4 w-4" /> Issue Selected ({selectedIds.size})
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
         {STAT_CARDS.map(({ key, label, icon: Icon, color }) => (
           <Card key={key}>
             <CardContent className="p-3 text-center">
@@ -114,7 +139,7 @@ export default function PaymentIssue() {
       {selectedIds.size > 0 && (
         <IssueActionBar
           selectedCount={selectedIds.size}
-          onIssue={handleBulkIssue}
+          onIssue={() => setShowConfirm(true)}
           onClear={() => setSelectedIds(new Set())}
           isActing={executeMutation.isPending}
         />
@@ -141,6 +166,62 @@ export default function PaymentIssue() {
         onAction={handleAction}
         isActing={actionMutation.isPending}
       />
+
+      {/* Issue Confirmation Dialog */}
+      <Dialog open={showConfirm} onOpenChange={(v) => !v && setShowConfirm(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              Confirm Payment Issue
+            </DialogTitle>
+            <DialogDescription>
+              This will write {selectedIds.size} payment record(s) to the legacy payment system.
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded border p-2 text-center">
+                <p className="text-[10px] text-muted-foreground">Records</p>
+                <p className="font-bold text-lg">{selectedIds.size}</p>
+              </div>
+              <div className="rounded border p-2 text-center">
+                <p className="text-[10px] text-muted-foreground">Total Amount</p>
+                <p className="font-mono font-bold">
+                  XCD {totalIssueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Confirmation Note (optional)</Label>
+              <Textarea
+                value={confirmNarrative}
+                onChange={(e) => setConfirmNarrative(e.target.value)}
+                placeholder="Issue confirmation notes..."
+                rows={2}
+              />
+            </div>
+
+            <div className="rounded bg-amber-50 dark:bg-amber-950/20 border border-amber-200 p-2 text-xs text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="h-3 w-3 inline mr-1" />
+              Payments will be written to cl_cheques. Ensure all items have been validated.
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowConfirm(false)} disabled={executeMutation.isPending}>
+              Cancel
+            </Button>
+            <Button onClick={handleBulkIssue} disabled={executeMutation.isPending}>
+              {executeMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Confirm Issue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

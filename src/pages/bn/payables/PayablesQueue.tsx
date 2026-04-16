@@ -1,38 +1,36 @@
 /**
- * Payables Queue — Main Page
+ * Payables Queue — Main Page (Enhanced)
  *
  * Business Purpose: Manage payable_instruction records created from
- * approved entitlements before actual payment issue. Supports queue-based
- * review with readiness scoring, hold/release, exception routing, and
- * duplicate prevention.
- *
- * Existing tables: bn_claim, bn_entitlement, bn_claim_event
- * New tables: bn_payment_instruction, bn_payment_exception
- * Outbound payments: cl_cheques ONLY (managed by payment batch, not here)
- * cn_payment* NEVER used for outbound benefit payments.
+ * approved entitlements before actual payment issue. Enhanced with
+ * batch assignment dialog and improved bulk action controls.
  */
 import React, { useState, useMemo } from 'react';
 import { BnStatCard, BnEmptyState } from '@/components/bn/shared';
 import {
   Banknote, CheckCircle, PauseCircle, AlertTriangle,
-  Clock, Loader2, XCircle, RotateCcw
+  Clock, Loader2, XCircle, RotateCcw, Package,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useBnPayables } from '@/hooks/bn/useBnPayablesQueue';
 import { PayablesQueueFilters } from '@/components/bn/payables/PayablesQueueFilters';
 import { PayablesQueueTable } from '@/components/bn/payables/PayablesQueueTable';
 import { PayableDetailDrawer } from '@/components/bn/payables/PayableDetailDrawer';
 import { PayablesActionBar } from '@/components/bn/payables/PayablesActionBar';
+import { AssignToBatchDialog } from '@/components/bn/payables/AssignToBatchDialog';
 import type { PayableFilters } from '@/services/bn/payablesQueueService';
 
 export default function PayablesQueue() {
   const [filters, setFilters] = useState<PayableFilters>({});
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBatchAssign, setShowBatchAssign] = useState(false);
 
-  const { data: payables, isLoading, error } = useBnPayables(filters);
+  const { data: payables, isLoading, error, refetch } = useBnPayables(filters);
 
   const stats = useMemo(() => {
     const items = payables ?? [];
+    const totalAmount = items.reduce((s, p) => s + (p.amount ?? 0), 0);
     return {
       total: items.length,
       ready: items.filter(p => p.status === 'READY').length,
@@ -42,8 +40,15 @@ export default function PayablesQueue() {
       scheduled: items.filter(p => p.status === 'SCHEDULED').length,
       issuedPending: items.filter(p => p.status === 'ISSUED_PENDING').length,
       reissue: items.filter(p => p.status === 'REISSUE_PENDING').length,
+      totalAmount,
     };
   }, [payables]);
+
+  // Only READY payables can be assigned to batch
+  const readySelectedIds = selectedIds.filter(id => {
+    const p = payables?.find(x => x.id === id);
+    return p?.status === 'READY';
+  });
 
   if (error) {
     return (
@@ -61,24 +66,37 @@ export default function PayablesQueue() {
       </div>
 
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold tracking-tight">Payables Queue</h1>
-        <p className="text-sm text-muted-foreground">
-          Manage payable instructions before payment issue. Issued payments persist
-          in legacy payment tables (cl_cheques) — not managed here.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Payables Queue</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage payable instructions before payment issue. Issued payments persist
+            in legacy payment tables (cl_cheques) — not managed here.
+          </p>
+        </div>
+        {readySelectedIds.length > 0 && (
+          <Button onClick={() => setShowBatchAssign(true)} className="gap-2">
+            <Package className="h-4 w-4" /> Assign to Batch ({readySelectedIds.length})
+          </Button>
+        )}
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-9">
         <BnStatCard title="Total" value={stats.total} icon={Banknote} />
         <BnStatCard title="Ready" value={stats.ready} icon={CheckCircle} subtitle="Eligible for batch" />
         <BnStatCard title="Held" value={stats.held} icon={PauseCircle} subtitle="Under review" />
         <BnStatCard title="Blocked" value={stats.blocked} icon={XCircle} subtitle="Readiness failed" />
         <BnStatCard title="Exception" value={stats.exception} icon={AlertTriangle} subtitle="Investigation" />
         <BnStatCard title="Scheduled" value={stats.scheduled} icon={Clock} subtitle="Not yet due" />
-        <BnStatCard title="Issued (Pending)" value={stats.issuedPending} icon={Banknote} subtitle="In batch" />
-        <BnStatCard title="Reissue" value={stats.reissue} icon={RotateCcw} subtitle="Pending reissue" />
+        <BnStatCard title="Issued" value={stats.issuedPending} icon={Banknote} subtitle="In batch" />
+        <BnStatCard title="Reissue" value={stats.reissue} icon={RotateCcw} subtitle="Pending" />
+        <BnStatCard
+          title="Queue Total"
+          value={`$${(stats.totalAmount / 1000).toFixed(1)}K`}
+          icon={Banknote}
+          subtitle="All items"
+        />
       </div>
 
       {/* Filters */}
@@ -111,6 +129,17 @@ export default function PayablesQueue() {
       <PayableDetailDrawer
         instructionId={viewingId}
         onClose={() => setViewingId(null)}
+      />
+
+      {/* Assign to Batch Dialog */}
+      <AssignToBatchDialog
+        open={showBatchAssign}
+        onClose={() => setShowBatchAssign(false)}
+        payableIds={readySelectedIds}
+        onAssigned={() => {
+          setSelectedIds([]);
+          refetch();
+        }}
       />
     </div>
   );
