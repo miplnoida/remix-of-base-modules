@@ -434,7 +434,7 @@ export const auditReportService = {
         firstViewedAt: (ack as any).first_viewed_at ?? undefined,
         lastViewedAt: (ack as any).last_viewed_at ?? undefined,
         viewCount: (ack as any).view_count ?? 0,
-        status: (ack as any).status,
+        status: (ack as any).status as AuditReportAcknowledgment['status'],
         signatureId: (ack as any).signature_id ?? undefined,
         createdAt: (ack as any).created_at,
       },
