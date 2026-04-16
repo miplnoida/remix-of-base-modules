@@ -55,7 +55,6 @@ function PaymentGatewayTab() {
   const { userCode } = useUserCode();
   const [editDialog, setEditDialog] = useState<{ open: boolean; row: any; fields: Record<string, string> }>({ open: false, row: null, fields: {} });
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
-  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
 
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
