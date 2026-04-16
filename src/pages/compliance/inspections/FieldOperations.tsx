@@ -117,15 +117,20 @@ export default function FieldOperations() {
                       <div><p className="text-xs text-muted-foreground mb-1">Evidence Files</p><p className="text-sm font-semibold text-foreground">{activity.evidence_count || 0}</p></div>
                     </div>
                     {isCheckedIn && (<div className="flex items-center gap-2 mb-3 p-2 bg-info/10 dark:bg-info/5 rounded"><Clock className="h-4 w-4 text-info" /><p className="text-sm text-info">Checked in • Visit in progress</p></div>)}
-                    <div className="flex gap-2 flex-wrap">
-                      <Button size="sm" variant="outline" onClick={() => { setSelectedActivity(activity); setViewDialogOpen(true); }}><Eye className="h-4 w-4 mr-2" />View Details</Button>
-                      <Button size="sm" variant="outline" onClick={() => { setSelectedActivity(activity); setUploadDialogOpen(true); }}><Upload className="h-4 w-4 mr-2" />Upload Evidence</Button>
-                      {!isCheckedIn ? (
-                        <Button size="sm" onClick={() => { setSelectedActivity(activity); setCheckInDialogOpen(true); }}><LogIn className="h-4 w-4 mr-2" />Check In</Button>
-                      ) : (
-                        <Button size="sm" variant="destructive" onClick={() => handleCheckOut(activity.id)}><LogOut className="h-4 w-4 mr-2" />Check Out</Button>
-                      )}
-                    </div>
+                      <div className="flex gap-2 flex-wrap">
+                        {activity.employer_id && (
+                          <Button size="sm" variant="outline" onClick={() => navigate(`/compliance/field/visit/${activity.employer_id}`)}>
+                            <Building2 className="h-4 w-4 mr-2" />Visit Workspace
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" onClick={() => { setSelectedActivity(activity); setViewDialogOpen(true); }}><Eye className="h-4 w-4 mr-2" />View Details</Button>
+                        <Button size="sm" variant="outline" onClick={() => { setSelectedActivity(activity); setUploadDialogOpen(true); }}><Upload className="h-4 w-4 mr-2" />Upload Evidence</Button>
+                        {!isCheckedIn ? (
+                          <Button size="sm" onClick={() => { setSelectedActivity(activity); setCheckInDialogOpen(true); }}><LogIn className="h-4 w-4 mr-2" />Check In</Button>
+                        ) : (
+                          <Button size="sm" variant="destructive" onClick={() => handleCheckOut(activity.id)}><LogOut className="h-4 w-4 mr-2" />Check Out</Button>
+                        )}
+                      </div>
                   </div>
                 );
               })}
