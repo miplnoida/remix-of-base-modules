@@ -20,7 +20,7 @@ export async function fetchSiteSettings(settingType?: string) {
 
 export async function saveSiteSetting(
   id: string,
-  updates: { setting_value?: string; description?: string; environment?: string },
+  updates: { setting_value?: string; description?: string; environment?: string; is_active?: boolean },
   userCode: string
 ) {
   const { error } = await supabase

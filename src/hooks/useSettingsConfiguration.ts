@@ -41,7 +41,7 @@ export function useSaveSiteSetting() {
       userCode,
     }: {
       id: string;
-      updates: { setting_value?: string; description?: string; environment?: string };
+      updates: { setting_value?: string; description?: string; environment?: string; is_active?: boolean };
       userCode: string;
     }) => saveSiteSetting(id, updates, userCode),
     onSuccess: () => {

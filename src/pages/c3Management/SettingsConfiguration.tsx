@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { CreditCard, Globe, Mail, Settings, Server, Upload, RefreshCw, Eye, EyeOff, Save, Loader2 } from 'lucide-react';
+import { CreditCard, Globe, Mail, Settings, Server, Upload, RefreshCw, Eye, EyeOff, Save, Loader2, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUserCode } from '@/hooks/useUserCode';
 import {
   useSiteSettings,
@@ -25,9 +26,15 @@ import {
 // ─── Helpers ───
 
 function SyncBadge({ isSynced, syncError }: { isSynced: boolean; syncError?: string | null }) {
-  if (syncError) return <Badge variant="destructive" className="text-xs">Failed</Badge>;
-  if (isSynced) return <Badge className="bg-green-600 text-xs">Synced</Badge>;
-  return <Badge variant="secondary" className="bg-amber-500 text-white text-xs">Pending</Badge>;
+  if (syncError) return (
+    <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-4 w-4 text-destructive" /></TooltipTrigger><TooltipContent>Sync Failed</TooltipContent></Tooltip></TooltipProvider>
+  );
+  if (isSynced) return (
+    <TooltipProvider><Tooltip><TooltipTrigger><CheckCircle2 className="h-4 w-4 text-green-600" /></TooltipTrigger><TooltipContent>Synced</TooltipContent></Tooltip></TooltipProvider>
+  );
+  return (
+    <TooltipProvider><Tooltip><TooltipTrigger><Clock className="h-4 w-4 text-amber-500" /></TooltipTrigger><TooltipContent>Pending Publish</TooltipContent></Tooltip></TooltipProvider>
+  );
 }
 
 function maskSecret(val: string): string {
@@ -75,14 +82,28 @@ function PaymentGatewayTab() {
     );
   };
 
+  const handleToggleActive = (row: any) => {
+    if (!settings) return;
+    if (!row.is_active) {
+      // Mutual exclusion: deactivate all others, activate this one
+      settings.forEach((s) => {
+        if (s.id !== row.id && s.is_active) {
+          saveMutation.mutate({ id: s.id, updates: { is_active: false }, userCode: userCode || 'system' });
+        }
+      });
+      saveMutation.mutate({ id: row.id, updates: { is_active: true }, userCode: userCode || 'system' });
+    } else {
+      saveMutation.mutate({ id: row.id, updates: { is_active: false }, userCode: userCode || 'system' });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         {settings?.map((row) => {
           const parsed = parseJsonSafe(row.setting_value);
-          const isActive = parsed.is_active === true;
           return (
-            <Card key={row.id} className={isActive ? 'border-primary' : ''}>
+            <Card key={row.id} className={row.is_active ? 'border-primary' : ''}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -91,7 +112,11 @@ function PaymentGatewayTab() {
                   </div>
                   <div className="flex items-center gap-2">
                     <SyncBadge isSynced={row.is_synced} syncError={row.sync_error} />
-                    {isActive && <Badge className="bg-green-600 text-xs">Active</Badge>}
+                    {row.is_active ? (
+                      <Badge className="bg-green-600 text-xs">Active</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">Inactive</Badge>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -104,7 +129,14 @@ function PaymentGatewayTab() {
                   <span className="text-muted-foreground">Base URL:</span>
                   <span className="font-mono text-xs break-all">{(parsed.base_url as string) || '—'}</span>
                 </div>
-                <div className="flex gap-2 pt-2">
+                <div className="flex items-center gap-2 pt-2">
+                  <Switch
+                    checked={row.is_active}
+                    onCheckedChange={() => handleToggleActive(row)}
+                    disabled={saveMutation.isPending}
+                  />
+                  <span className="text-xs text-muted-foreground">{row.is_active ? 'Active' : 'Inactive'}</span>
+                  <div className="flex-1" />
                   <Button size="sm" variant="outline" onClick={() => openEdit(row)}>
                     <Settings className="h-3 w-3 mr-1" />Edit
                   </Button>
@@ -242,7 +274,7 @@ function ApiConfigTab() {
 
   const grouped = {
     Dev: settings?.filter(s => s.environment === 'Dev') || [],
-    Production: settings?.filter(s => s.environment === 'Production') || [],
+    Prod: settings?.filter(s => s.environment === 'Prod') || [],
   };
 
   const openEdit = (row: any) => {
