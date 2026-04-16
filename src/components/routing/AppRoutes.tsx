@@ -53,6 +53,7 @@ import MyUpcomingAudits from '@/pages/compliance/sampling/MyUpcomingAudits';
 import EmployerRiskProfile from '@/pages/compliance/sampling/EmployerRiskProfile';
 import LegalEscalationPolicy from '@/pages/compliance/settings/LegalEscalationPolicy';
 import LegalRecommendationQueue from '@/pages/compliance/legal/LegalRecommendationQueue';
+import LegalReferralWizard from '@/pages/compliance/legal/LegalReferralWizard';
 import RiskRulePolicy from '@/pages/compliance/settings/RiskRulePolicy';
 
 // New Compliance & Enforcement pages
@@ -1007,6 +1008,7 @@ export const AppRoutes = () => {
 
       {/* ── Enforcement — legal, notices, arrangements, waivers ── */}
       <Route path="/compliance/enforcement/recommendation-queue" element={<ProtectedLayout><LegalRecommendationQueue /></ProtectedLayout>} />
+      <Route path="/compliance/enforcement/legal-referral" element={<ProtectedLayout><LegalReferralWizard /></ProtectedLayout>} />
       <Route path="/compliance/enforcement/legal-queue" element={<ProtectedLayout><ComplianceLegalQueue /></ProtectedLayout>} />
       <Route path="/compliance/enforcement/proceedings" element={<ProtectedLayout><ComplianceLegalProceedings /></ProtectedLayout>} />
       <Route path="/compliance/enforcement/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />

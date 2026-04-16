@@ -277,7 +277,7 @@ export default function AuditDetails() {
         subtitle="Detailed audit information and findings"
         breadcrumbs={[
           { label: 'Compliance', href: '/compliance/dashboard' },
-          { label: 'Audit Management', href: '/compliance/audit-management' },
+          { label: 'Audit Management', href: '/compliance/field/audit-management' },
           { label: audit.auditNumber }
         ]}
       />
@@ -616,7 +616,7 @@ export default function AuditDetails() {
       </Tabs>
 
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={() => navigate('/compliance/audit-management')}>
+        <Button variant="outline" onClick={() => navigate('/compliance/field/audit-management')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Audits
         </Button>
