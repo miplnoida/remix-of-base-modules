@@ -53,6 +53,7 @@ import MyUpcomingAudits from '@/pages/compliance/sampling/MyUpcomingAudits';
 import EmployerRiskProfile from '@/pages/compliance/sampling/EmployerRiskProfile';
 import LegalEscalationPolicy from '@/pages/compliance/settings/LegalEscalationPolicy';
 import LegalRecommendationQueue from '@/pages/compliance/legal/LegalRecommendationQueue';
+import LegalReferralWizard from '@/pages/compliance/legal/LegalReferralWizard';
 import RiskRulePolicy from '@/pages/compliance/settings/RiskRulePolicy';
 
 // New Compliance & Enforcement pages
