@@ -274,7 +274,7 @@ function ApiConfigTab() {
 
   const grouped = {
     Dev: settings?.filter(s => s.environment === 'Dev') || [],
-    Production: settings?.filter(s => s.environment === 'Production') || [],
+    Prod: settings?.filter(s => s.environment === 'Prod') || [],
   };
 
   const openEdit = (row: any) => {
