@@ -1,21 +1,23 @@
 /**
- * Payment Schedule Management — Main Page
+ * Payment Schedule Management — Main Page (Enhanced)
  *
  * Business Purpose: Plan one-time and recurring benefit disbursements.
- * Schedule rows are orchestration records only — issued payments persist
- * to cl_cheques. cn_payment* NEVER used for outbound benefit payments.
+ * Enhanced with schedule generation wizard, arrears calculator, and
+ * bulk schedule-level actions.
  */
 import React, { useState, useMemo } from 'react';
 import { BnStatCard, BnEmptyState } from '@/components/bn/shared';
+import { Button } from '@/components/ui/button';
 import {
   CalendarDays, CheckCircle, PauseCircle, AlertTriangle,
-  Clock, Loader2, RotateCcw, Banknote,
+  Clock, Loader2, RotateCcw, Banknote, Plus,
 } from 'lucide-react';
 import { useBnScheduleRows } from '@/hooks/bn/useBnSchedule';
 import { ScheduleFiltersBar } from '@/components/bn/schedule/ScheduleFiltersBar';
 import { ScheduleGrid } from '@/components/bn/schedule/ScheduleGrid';
 import { ScheduleRowDrawer } from '@/components/bn/schedule/ScheduleRowDrawer';
 import { ScheduleActionBar } from '@/components/bn/schedule/ScheduleActionBar';
+import { ScheduleGenerationWizard } from '@/components/bn/schedule/ScheduleGenerationWizard';
 import type { ScheduleFilters } from '@/services/bn/scheduleService';
 
 const formatCurrency = (n: number) =>
@@ -25,8 +27,9 @@ export default function PaymentScheduleManagement() {
   const [filters, setFilters] = useState<ScheduleFilters>({});
   const [viewingId, setViewingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showGenWizard, setShowGenWizard] = useState(false);
 
-  const { data: rows, isLoading, error } = useBnScheduleRows(filters);
+  const { data: rows, isLoading, error, refetch } = useBnScheduleRows(filters);
 
   const stats = useMemo(() => {
     const items = rows ?? [];
@@ -39,6 +42,9 @@ export default function PaymentScheduleManagement() {
       arrears: items.filter(r => r.status === 'ARREARS').length,
       totalAmount: items
         .filter(r => !['CANCELLED', 'SKIPPED'].includes(r.status))
+        .reduce((s, r) => s + (r.amount ?? 0), 0),
+      generatedAmount: items
+        .filter(r => r.status === 'GENERATED')
         .reduce((s, r) => s + (r.amount ?? 0), 0),
     };
   }, [rows]);
@@ -59,16 +65,21 @@ export default function PaymentScheduleManagement() {
       </div>
 
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold tracking-tight">Payment Schedule Management</h1>
-        <p className="text-sm text-muted-foreground">
-          Plan one-time and recurring benefit disbursements. Schedule rows are orchestration
-          records — issued payments persist in legacy payment tables (cl_cheques).
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Payment Schedule Management</h1>
+          <p className="text-sm text-muted-foreground">
+            Plan one-time and recurring benefit disbursements. Schedule rows are orchestration
+            records — issued payments persist in legacy payment tables (cl_cheques).
+          </p>
+        </div>
+        <Button onClick={() => setShowGenWizard(true)} className="gap-2">
+          <Plus className="h-4 w-4" /> Generate Schedule
+        </Button>
       </div>
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">
         <BnStatCard title="Total Rows" value={stats.total} icon={CalendarDays} />
         <BnStatCard title="Projected" value={stats.projected} icon={Clock} subtitle="Future" />
         <BnStatCard title="Due" value={stats.due} icon={AlertTriangle} subtitle="Ready to generate" />
@@ -76,6 +87,7 @@ export default function PaymentScheduleManagement() {
         <BnStatCard title="Suspended" value={stats.suspended} icon={PauseCircle} subtitle="On hold" />
         <BnStatCard title="Arrears" value={stats.arrears} icon={RotateCcw} subtitle="Catch-up" />
         <BnStatCard title="Scheduled Total" value={formatCurrency(stats.totalAmount)} icon={Banknote} subtitle="Active amount" />
+        <BnStatCard title="Generated Total" value={formatCurrency(stats.generatedAmount)} icon={Banknote} subtitle="Instructions created" />
       </div>
 
       {/* Filters */}
@@ -107,6 +119,13 @@ export default function PaymentScheduleManagement() {
       <ScheduleRowDrawer
         rowId={viewingId}
         onClose={() => setViewingId(null)}
+      />
+
+      {/* Generation Wizard */}
+      <ScheduleGenerationWizard
+        open={showGenWizard}
+        onClose={() => setShowGenWizard(false)}
+        onGenerated={() => refetch()}
       />
     </div>
   );

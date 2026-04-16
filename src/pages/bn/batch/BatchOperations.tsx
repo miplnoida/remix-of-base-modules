@@ -1,11 +1,12 @@
 /**
- * Batch Operations Management Page
+ * Batch Operations Management Page (Enhanced)
  *
  * Business Purpose: Group payable instructions into controlled payment batches
- * before issue to cl_cheques.
+ * before issue to cl_cheques. Enhanced with issue progress tracking and
+ * maker-checker indicators.
  */
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -18,6 +19,7 @@ import { BatchListTable } from '@/components/bn/batch/BatchListTable';
 import { BatchDetailDrawer } from '@/components/bn/batch/BatchDetailDrawer';
 import { BatchFiltersBar } from '@/components/bn/batch/BatchFiltersBar';
 import { BatchCreateDialog } from '@/components/bn/batch/BatchCreateDialog';
+import { BatchIssueProgress } from '@/components/bn/batch/BatchIssueProgress';
 import type { BatchFilters, BnPaymentBatch } from '@/services/bn/batchOperationsService';
 
 const STAT_CARDS = [
@@ -40,6 +42,11 @@ export default function BatchOperations() {
   const { data: summary = {} } = useBnBatchSummary();
   const executeMutation = useExecuteBatchAction();
 
+  // Find batches in active issue state for progress tracking
+  const issuingBatches = batches.filter(b =>
+    ['RELEASED', 'PARTIALLY_ISSUED'].includes(b.status) && b.issue_started_at
+  );
+
   const handleAction = async (params: any) => {
     try {
       await executeMutation.mutateAsync(params);
@@ -56,13 +63,28 @@ export default function BatchOperations() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Batch Operations</h1>
           <p className="text-sm text-muted-foreground">
-            Group payable instructions into controlled payment batches before issue
+            Group payable instructions into controlled payment batches before issue.
+            Maker-checker controls enforced: creator ≠ approver.
           </p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="gap-2">
           <Plus className="h-4 w-4" /> Create Batch
         </Button>
       </div>
+
+      {/* Issue Progress Trackers */}
+      {issuingBatches.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            Active Issue Operations
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {issuingBatches.map(b => (
+              <BatchIssueProgress key={b.id} batch={b} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
