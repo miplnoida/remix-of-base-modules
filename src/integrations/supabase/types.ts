@@ -9990,6 +9990,64 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_audit_report_signature_events: {
+        Row: {
+          actor_ip: string | null
+          actor_user_agent: string | null
+          actor_user_code: string | null
+          event_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          report_id: string
+          signature_id: string | null
+        }
+        Insert: {
+          actor_ip?: string | null
+          actor_user_agent?: string | null
+          actor_user_code?: string | null
+          event_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          report_id: string
+          signature_id?: string | null
+        }
+        Update: {
+          actor_ip?: string | null
+          actor_user_agent?: string | null
+          actor_user_code?: string | null
+          event_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          report_id?: string
+          signature_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_report_signature_events_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_audit_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_audit_report_signature_events_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_visit_execution_metrics"
+            referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "ce_audit_report_signature_events_signature_id_fkey"
+            columns: ["signature_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_report_signatures"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_audit_report_signatures: {
         Row: {
           attestation_text: string | null
@@ -9997,18 +10055,28 @@ export type Database = {
           comments: string | null
           created_at: string
           id: string
+          inspector_attestation_signature_id: string | null
           ip_address: string | null
           refusal_reason: string | null
           report_id: string
           signature_image_url: string | null
           signature_type: string
           signed_at: string | null
+          signer_authority_note: string | null
           signer_designation: string | null
           signer_email: string | null
           signer_name: string
+          signer_relationship: string | null
           signer_role: string
+          signer_same_as_contact: boolean | null
+          superseded_at: string | null
+          superseded_by: string | null
+          superseded_reason: string | null
           typed_name: string | null
           user_agent: string | null
+          witness_designation: string | null
+          witness_name: string | null
+          witness_signature_image_url: string | null
         }
         Insert: {
           attestation_text?: string | null
@@ -10016,18 +10084,28 @@ export type Database = {
           comments?: string | null
           created_at?: string
           id?: string
+          inspector_attestation_signature_id?: string | null
           ip_address?: string | null
           refusal_reason?: string | null
           report_id: string
           signature_image_url?: string | null
           signature_type: string
           signed_at?: string | null
+          signer_authority_note?: string | null
           signer_designation?: string | null
           signer_email?: string | null
           signer_name: string
+          signer_relationship?: string | null
           signer_role: string
+          signer_same_as_contact?: boolean | null
+          superseded_at?: string | null
+          superseded_by?: string | null
+          superseded_reason?: string | null
           typed_name?: string | null
           user_agent?: string | null
+          witness_designation?: string | null
+          witness_name?: string | null
+          witness_signature_image_url?: string | null
         }
         Update: {
           attestation_text?: string | null
@@ -10035,20 +10113,37 @@ export type Database = {
           comments?: string | null
           created_at?: string
           id?: string
+          inspector_attestation_signature_id?: string | null
           ip_address?: string | null
           refusal_reason?: string | null
           report_id?: string
           signature_image_url?: string | null
           signature_type?: string
           signed_at?: string | null
+          signer_authority_note?: string | null
           signer_designation?: string | null
           signer_email?: string | null
           signer_name?: string
+          signer_relationship?: string | null
           signer_role?: string
+          signer_same_as_contact?: boolean | null
+          superseded_at?: string | null
+          superseded_by?: string | null
+          superseded_reason?: string | null
           typed_name?: string | null
           user_agent?: string | null
+          witness_designation?: string | null
+          witness_name?: string | null
+          witness_signature_image_url?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ce_audit_report_signatures_inspector_attestation_signature_fkey"
+            columns: ["inspector_attestation_signature_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_report_signatures"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ce_audit_report_signatures_report_id_fkey"
             columns: ["report_id"]
@@ -10062,6 +10157,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_v_visit_execution_metrics"
             referencedColumns: ["report_id"]
+          },
+          {
+            foreignKeyName: "ce_audit_report_signatures_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_report_signatures"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -11939,6 +12041,12 @@ export type Database = {
           acknowledgment_completed_at: string | null
           acknowledgment_sent_at: string | null
           acknowledgment_status: string
+          audit_contact_captured_at: string | null
+          audit_contact_captured_by: string | null
+          audit_contact_designation: string | null
+          audit_contact_name: string | null
+          audit_contact_present: boolean | null
+          audit_contact_relationship: string | null
           audit_date: string | null
           audit_location: string | null
           checklist_completion_pct: number
@@ -11982,6 +12090,12 @@ export type Database = {
           acknowledgment_completed_at?: string | null
           acknowledgment_sent_at?: string | null
           acknowledgment_status?: string
+          audit_contact_captured_at?: string | null
+          audit_contact_captured_by?: string | null
+          audit_contact_designation?: string | null
+          audit_contact_name?: string | null
+          audit_contact_present?: boolean | null
+          audit_contact_relationship?: string | null
           audit_date?: string | null
           audit_location?: string | null
           checklist_completion_pct?: number
@@ -12025,6 +12139,12 @@ export type Database = {
           acknowledgment_completed_at?: string | null
           acknowledgment_sent_at?: string | null
           acknowledgment_status?: string
+          audit_contact_captured_at?: string | null
+          audit_contact_captured_by?: string | null
+          audit_contact_designation?: string | null
+          audit_contact_name?: string | null
+          audit_contact_present?: boolean | null
+          audit_contact_relationship?: string | null
           audit_date?: string | null
           audit_location?: string | null
           checklist_completion_pct?: number
