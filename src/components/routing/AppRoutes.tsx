@@ -87,6 +87,7 @@ import { WeeklyPlanReview } from '@/pages/compliance/audit-planning/WeeklyPlanRe
 import PlanExecutionDashboard from '@/pages/compliance/audit-planning/PlanExecutionDashboard';
 import AuditVisitWorkspace from '@/pages/compliance/audit-planning/AuditVisitWorkspace';
 import EmployerAuditReportViewer from '@/pages/compliance/audit-planning/EmployerAuditReportViewer';
+import AuditReportPrintPage from '@/pages/compliance/audit-planning/AuditReportPrintPage';
 import WeeklyReportReview from '@/pages/compliance/audit-planning/WeeklyReportReview';
 import WeeklyReportSubmission from '@/pages/compliance/violations/WeeklyReportSubmission';
 import ManualViolationEntry from '@/pages/compliance/violations/ManualViolationEntry';
@@ -1014,6 +1015,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/field/execution-dashboard/:planId/visit/:planItemId" element={<ProtectedLayout><AuditVisitWorkspace /></ProtectedLayout>} />
       <Route path="/compliance/field/audit-visit/:planItemId" element={<ProtectedLayout><AuditVisitWorkspace /></ProtectedLayout>} />
       <Route path="/compliance/field/audit-report/:inspectionId" element={<ProtectedLayout><EmployerAuditReportViewer /></ProtectedLayout>} />
+      <Route path="/compliance/field/audit-report/:reportId/print/:variant" element={<AuditReportPrintPage />} />
       <Route path="/compliance/field/weekly-report-review" element={<ProtectedLayout><WeeklyReportReview /></ProtectedLayout>} />
       <Route path="/compliance/field/my-upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
       <Route path="/compliance/field/sampling" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />

@@ -5,24 +5,41 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { ChevronLeft, FileText, Download, CheckCircle2, RefreshCcw } from 'lucide-react';
-import { fieldAuditService, type EmployerAuditReportRow } from '@/services/fieldAuditService';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { ChevronLeft, FileText, CheckCircle2, RefreshCcw, Printer, PenTool, History, Plus, Trash2 } from 'lucide-react';
+import { fieldAuditService } from '@/services/fieldAuditService';
+import { auditReportService } from '@/services/auditReportService';
+import { CaptureSignatureDialog } from '@/components/compliance/audit-report/CaptureSignatureDialog';
+import type { FullAuditReport, AuditReportSignature, SignerRole, AuditReportVersion } from '@/types/auditReport';
 import { toast } from 'sonner';
-import { htmlToPdfBase64 } from '@/lib/htmlToPdf';
-import { supabase } from '@/integrations/supabase/client';
+import { formatDateForDisplay } from '@/lib/format-config';
 
 export default function EmployerAuditReportViewer() {
   const { inspectionId } = useParams<{ inspectionId: string }>();
   const navigate = useNavigate();
-  const [report, setReport] = useState<EmployerAuditReportRow | null>(null);
+  const [report, setReport] = useState<FullAuditReport | null>(null);
+  const [signatures, setSignatures] = useState<AuditReportSignature[]>([]);
+  const [versions, setVersions] = useState<AuditReportVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // narrative fields
+  const [purposeScope, setPurposeScope] = useState('');
   const [executiveSummary, setExecutiveSummary] = useState('');
+  const [recordsReviewed, setRecordsReviewed] = useState('');
   const [scope, setScope] = useState('');
   const [conclusions, setConclusions] = useState('');
+  const [complianceConclusion, setComplianceConclusion] = useState('');
   const [recommendations, setRecommendations] = useState('');
+  const [auditDate, setAuditDate] = useState('');
+  const [auditLocation, setAuditLocation] = useState('');
+  const [employerRegNumber, setEmployerRegNumber] = useState('');
+
+  // signature dialog
+  const [sigRole, setSigRole] = useState<SignerRole | null>(null);
 
   useEffect(() => {
     if (!inspectionId) return;
@@ -31,13 +48,22 @@ export default function EmployerAuditReportViewer() {
   }, [inspectionId]);
 
   const load = async () => {
+    if (!inspectionId) return;
     try {
       setLoading(true);
-      let r = await fieldAuditService.getEmployerAuditReport(inspectionId!);
+      let r = await auditReportService.getReportByInspection(inspectionId);
       if (!r) {
-        r = await fieldAuditService.generateEmployerAuditReport(inspectionId!);
+        await fieldAuditService.generateEmployerAuditReport(inspectionId);
+        r = await auditReportService.getReportByInspection(inspectionId);
       }
+      if (!r) throw new Error('Could not initialize report');
       hydrate(r);
+      const [sigs, vers] = await Promise.all([
+        auditReportService.listSignatures(r.id),
+        auditReportService.listVersions(r.id),
+      ]);
+      setSignatures(sigs);
+      setVersions(vers);
     } catch (e: any) {
       toast.error(e.message ?? 'Failed to load report');
     } finally {
@@ -45,20 +71,26 @@ export default function EmployerAuditReportViewer() {
     }
   };
 
-  const hydrate = (r: EmployerAuditReportRow) => {
+  const hydrate = (r: FullAuditReport) => {
     setReport(r);
+    setPurposeScope(r.purposeScope ?? '');
     setExecutiveSummary(r.executiveSummary ?? '');
+    setRecordsReviewed(r.recordsReviewed ?? '');
     setScope(r.scope ?? '');
     setConclusions(r.conclusions ?? '');
+    setComplianceConclusion(r.complianceConclusion ?? '');
     setRecommendations(r.recommendations ?? '');
+    setAuditDate(r.auditDate ?? '');
+    setAuditLocation(r.auditLocation ?? '');
+    setEmployerRegNumber(r.employerRegNumber ?? '');
   };
 
   const handleRegenerate = async () => {
     if (!inspectionId) return;
     try {
       setSaving(true);
-      const r = await fieldAuditService.generateEmployerAuditReport(inspectionId);
-      hydrate(r);
+      await fieldAuditService.generateEmployerAuditReport(inspectionId);
+      await load();
       toast.success('Report counts refreshed');
     } catch (e: any) {
       toast.error(e.message ?? 'Refresh failed');
@@ -71,13 +103,15 @@ export default function EmployerAuditReportViewer() {
     if (!report) return;
     try {
       setSaving(true);
-      await fieldAuditService.updateAuditReportNarrative(report.id, {
-        executiveSummary,
-        scope,
-        conclusions,
-        recommendations,
+      await auditReportService.updateNarrative(report.id, {
+        purposeScope, executiveSummary, recordsReviewed, scope,
+        conclusions, complianceConclusion, recommendations,
+        auditDate: auditDate || undefined,
+        auditLocation, employerRegNumber,
       });
-      toast.success('Narrative saved');
+      await auditReportService.snapshotVersion(report.id, { notes: 'Draft saved' });
+      toast.success('Draft saved (version snapshot created)');
+      load();
     } catch (e: any) {
       toast.error(e.message ?? 'Save failed');
     } finally {
@@ -87,29 +121,16 @@ export default function EmployerAuditReportViewer() {
 
   const handleFinalize = async () => {
     if (!report) return;
+    if (!confirm('Finalize this report? It will be locked from further edits.')) return;
     try {
       setSaving(true);
-      // Save narrative first
-      await fieldAuditService.updateAuditReportNarrative(report.id, {
-        executiveSummary,
-        scope,
-        conclusions,
-        recommendations,
+      await auditReportService.updateNarrative(report.id, {
+        purposeScope, executiveSummary, recordsReviewed, scope,
+        conclusions, complianceConclusion, recommendations,
+        auditDate: auditDate || undefined,
+        auditLocation, employerRegNumber,
       });
-      // Generate PDF
-      const html = buildReportHtml({ report, executiveSummary, scope, conclusions, recommendations });
-      const pdfBase64 = await htmlToPdfBase64(html);
-      const path = `audit-reports/${report.reportNumber}.pdf`;
-      const blob = base64ToBlob(pdfBase64, 'application/pdf');
-      const { error: upErr } = await supabase.storage
-        .from('documents')
-        .upload(path, blob, { upsert: true, contentType: 'application/pdf' });
-      let pdfUrl: string | undefined;
-      if (!upErr) {
-        const { data } = supabase.storage.from('documents').getPublicUrl(path);
-        pdfUrl = data.publicUrl;
-      }
-      await fieldAuditService.finalizeAuditReport(report.id, pdfUrl);
+      await auditReportService.finalize(report.id);
       toast.success('Audit report finalized');
       load();
     } catch (e: any) {
@@ -117,6 +138,21 @@ export default function EmployerAuditReportViewer() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDeleteSignature = async (id: string) => {
+    if (!confirm('Remove this signature?')) return;
+    try {
+      await auditReportService.deleteSignature(id);
+      load();
+    } catch (e: any) {
+      toast.error(e.message ?? 'Delete failed');
+    }
+  };
+
+  const openPrint = (variant: 'internal' | 'employer') => {
+    if (!report) return;
+    window.open(`/compliance/field/audit-report/${report.id}/print/${variant}`, '_blank');
   };
 
   if (loading) return <div className="p-6 text-muted-foreground">Loading audit report…</div>;
@@ -128,7 +164,7 @@ export default function EmployerAuditReportViewer() {
     <div className="space-y-6 p-6">
       <PageHeader
         title={`Employer Audit Report — ${report.reportNumber}`}
-        subtitle={`${report.employerName ?? '—'} • ${report.reportDate}`}
+        subtitle={`${report.employerName ?? '—'} • ${formatDateForDisplay(report.reportDate)}`}
         breadcrumbs={[
           { label: 'Compliance', href: '/compliance/dashboard' },
           { label: 'Field', href: '/compliance/field/my-plans' },
@@ -136,26 +172,25 @@ export default function EmployerAuditReportViewer() {
         ]}
       />
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ChevronLeft className="h-4 w-4 mr-1" /> Back
         </Button>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Badge variant={isFinal ? 'default' : 'secondary'}>{report.status}</Badge>
-          {report.pdfUrl && (
-            <a href={report.pdfUrl} target="_blank" rel="noreferrer">
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-1" /> Download PDF
-              </Button>
-            </a>
-          )}
+          <Badge variant="outline">v{report.currentVersion}</Badge>
+          <Button variant="outline" size="sm" onClick={() => openPrint('internal')}>
+            <Printer className="h-4 w-4 mr-1" /> Internal Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => openPrint('employer')}>
+            <Printer className="h-4 w-4 mr-1" /> Employer Copy
+          </Button>
           <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={saving || isFinal}>
             <RefreshCcw className="h-4 w-4 mr-1" /> Refresh Counts
           </Button>
         </div>
       </div>
 
-      {/* Summary Counts */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="Findings" value={report.totalFindings} />
         <Stat label="Evidence" value={report.totalEvidence} />
@@ -163,65 +198,146 @@ export default function EmployerAuditReportViewer() {
         <Stat label="Checklist" value={`${report.checklistCompletionPct}%`} />
       </div>
 
-      {/* Narrative editor */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" /> Report Narrative
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label>Executive Summary</Label>
-            <Textarea
-              rows={4}
-              value={executiveSummary}
-              onChange={(e) => setExecutiveSummary(e.target.value)}
-              disabled={isFinal}
-              placeholder="High-level summary of the audit visit, employer cooperation, and headline outcomes…"
-            />
-          </div>
-          <div>
-            <Label>Scope</Label>
-            <Textarea
-              rows={3}
-              value={scope}
-              onChange={(e) => setScope(e.target.value)}
-              disabled={isFinal}
-              placeholder="Period reviewed, areas covered (payroll, contributions, wage book), records examined…"
-            />
-          </div>
-          <div>
-            <Label>Conclusions</Label>
-            <Textarea
-              rows={4}
-              value={conclusions}
-              onChange={(e) => setConclusions(e.target.value)}
-              disabled={isFinal}
-              placeholder="Compliance status, key issues, severity assessment…"
-            />
-          </div>
-          <div>
-            <Label>Recommendations</Label>
-            <Textarea
-              rows={4}
-              value={recommendations}
-              onChange={(e) => setRecommendations(e.target.value)}
-              disabled={isFinal}
-              placeholder="Required corrective actions, follow-up plan, escalation suggestions…"
-            />
-          </div>
-          <Separator />
-          <div className="flex gap-2 justify-end">
-            <Button variant="outline" onClick={handleSave} disabled={saving || isFinal}>
-              Save Draft
-            </Button>
-            <Button onClick={handleFinalize} disabled={saving || isFinal}>
-              <CheckCircle2 className="h-4 w-4 mr-1" /> Finalize & Generate PDF
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="narrative">
+        <TabsList>
+          <TabsTrigger value="narrative"><FileText className="h-4 w-4 mr-1" />Narrative</TabsTrigger>
+          <TabsTrigger value="signatures"><PenTool className="h-4 w-4 mr-1" />Signatures ({signatures.length})</TabsTrigger>
+          <TabsTrigger value="versions"><History className="h-4 w-4 mr-1" />Versions ({versions.length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="narrative">
+          <Card>
+            <CardHeader><CardTitle>Report Narrative</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div><Label>Audit Date</Label><Input type="date" value={auditDate} onChange={(e) => setAuditDate(e.target.value)} disabled={isFinal} /></div>
+                <div><Label>Audit Location</Label><Input value={auditLocation} onChange={(e) => setAuditLocation(e.target.value)} disabled={isFinal} placeholder="Employer site address" /></div>
+                <div><Label>Employer Reg. No.</Label><Input value={employerRegNumber} onChange={(e) => setEmployerRegNumber(e.target.value)} disabled={isFinal} /></div>
+              </div>
+              <NarrativeField label="1. Purpose & Scope" value={purposeScope} onChange={setPurposeScope} disabled={isFinal} placeholder="Why this audit was conducted, period reviewed, scope boundaries…" />
+              <NarrativeField label="2. Executive Summary" value={executiveSummary} onChange={setExecutiveSummary} disabled={isFinal} placeholder="High-level summary of the audit visit and headline outcomes…" />
+              <NarrativeField label="3. Records Reviewed" value={recordsReviewed} onChange={setRecordsReviewed} disabled={isFinal} placeholder="Wage book, payroll registers, contribution records, etc." />
+              <NarrativeField label="Recommendations / Required Actions" value={recommendations} onChange={setRecommendations} disabled={isFinal} placeholder="Required corrective actions, follow-up plan…" />
+              <NarrativeField label="Conclusions (Internal)" value={conclusions} onChange={setConclusions} disabled={isFinal} placeholder="Detailed internal conclusions, severity assessment…" />
+              <NarrativeField label="Compliance Conclusion (Employer-facing)" value={complianceConclusion} onChange={setComplianceConclusion} disabled={isFinal} placeholder="Employer-facing compliance verdict…" />
+              <Separator />
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={handleSave} disabled={saving || isFinal}>Save Draft</Button>
+                <Button onClick={handleFinalize} disabled={saving || isFinal}>
+                  <CheckCircle2 className="h-4 w-4 mr-1" /> Finalize Report
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="signatures">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Signatures & Acknowledgment</span>
+                {!isFinal && (
+                  <span className="text-xs text-muted-foreground font-normal">
+                    Finalize the report before capturing signatures for legal validity.
+                  </span>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {(['EMPLOYER_REP', 'INSPECTOR', 'WITNESS', 'SUPERVISOR'] as SignerRole[]).map((role) => {
+                  const sig = signatures.find((s) => s.signerRole === role);
+                  return (
+                    <Card key={role} className="p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-semibold text-sm">{ROLE_LABELS[role]}</div>
+                        {sig ? (
+                          <Badge variant={sig.signatureType === 'REFUSED' || sig.signatureType === 'UNAVAILABLE' ? 'destructive' : 'default'}>
+                            {sig.signatureType}
+                          </Badge>
+                        ) : <Badge variant="outline">Pending</Badge>}
+                      </div>
+                      {sig ? (
+                        <div className="text-sm space-y-1">
+                          <div><strong>{sig.signerName}</strong></div>
+                          {sig.signerDesignation && <div className="text-muted-foreground">{sig.signerDesignation}</div>}
+                          {sig.signedAt && <div className="text-xs text-muted-foreground">Signed: {formatDateForDisplay(sig.signedAt)}</div>}
+                          {sig.signatureImageUrl && <img src={sig.signatureImageUrl} alt="signature" className="max-h-12 border-b mt-1" />}
+                          {sig.typedName && <div className="italic text-base" style={{ fontFamily: 'cursive' }}>/s/ {sig.typedName}</div>}
+                          {sig.refusalReason && <div className="text-xs text-destructive">Reason: {sig.refusalReason}</div>}
+                          {sig.comments && <div className="text-xs italic">"{sig.comments}"</div>}
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteSignature(sig.id)} className="text-destructive">
+                            <Trash2 className="h-3 w-3 mr-1" /> Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => setSigRole(role)} disabled={!isFinal}>
+                          <Plus className="h-3 w-3 mr-1" /> Capture Signature
+                        </Button>
+                      )}
+                    </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="versions">
+          <Card>
+            <CardHeader><CardTitle>Version History</CardTitle></CardHeader>
+            <CardContent>
+              {versions.length === 0 ? (
+                <p className="text-muted-foreground text-sm">No saved versions yet. Save the draft to create a snapshot.</p>
+              ) : (
+                <div className="space-y-2">
+                  {versions.map((v) => (
+                    <div key={v.id} className="flex items-center justify-between p-3 border rounded-md">
+                      <div>
+                        <div className="font-semibold">Version {v.versionNumber} {v.isFinal && <Badge className="ml-2">FINAL</Badge>}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDateForDisplay(v.createdAt)} • by {v.createdBy} {v.notes && `• ${v.notes}`}
+                        </div>
+                      </div>
+                      {v.pdfUrl && (
+                        <a href={v.pdfUrl} target="_blank" rel="noreferrer">
+                          <Button variant="outline" size="sm">View PDF</Button>
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {sigRole && report && (
+        <CaptureSignatureDialog
+          reportId={report.id}
+          signerRole={sigRole}
+          defaultName={sigRole === 'INSPECTOR' ? report.inspectorName : undefined}
+          onClose={() => setSigRole(null)}
+          onCaptured={load}
+        />
+      )}
+    </div>
+  );
+}
+
+const ROLE_LABELS: Record<SignerRole, string> = {
+  EMPLOYER_REP: 'Employer Representative',
+  INSPECTOR: 'Lead Inspector',
+  SUPERVISOR: 'Supervisor',
+  WITNESS: 'Witness',
+};
+
+function NarrativeField({ label, value, onChange, disabled, placeholder }: { label: string; value: string; onChange: (v: string) => void; disabled: boolean; placeholder?: string }) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Textarea rows={3} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} placeholder={placeholder} />
     </div>
   );
 }
@@ -234,69 +350,5 @@ function Stat({ label, value }: { label: string; value: number | string }) {
         <div className="text-xs text-muted-foreground">{label}</div>
       </CardContent>
     </Card>
-  );
-}
-
-function base64ToBlob(b64: string, mime: string): Blob {
-  const byteChars = atob(b64);
-  const byteArray = new Uint8Array(byteChars.length);
-  for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
-  return new Blob([byteArray], { type: mime });
-}
-
-function buildReportHtml(opts: {
-  report: EmployerAuditReportRow;
-  executiveSummary: string;
-  scope: string;
-  conclusions: string;
-  recommendations: string;
-}): string {
-  const { report, executiveSummary, scope, conclusions, recommendations } = opts;
-  return `<!doctype html>
-<html><head><meta charset="utf-8"><style>
-body{font-family:Arial,sans-serif;color:#111;padding:32px;font-size:12px;line-height:1.5}
-.cover{text-align:center;padding:60px 0;border-bottom:2px solid #111}
-.brand{font-size:14px;color:#666;letter-spacing:2px;text-transform:uppercase}
-.title{font-size:28px;font-weight:bold;margin:16px 0 8px}
-.report-no{font-size:14px;color:#444}
-.meta{margin:24px 0;padding:12px;background:#f5f5f5;border-radius:4px}
-.meta div{margin:4px 0}
-h2{font-size:16px;margin-top:24px;border-bottom:1px solid #ccc;padding-bottom:4px}
-.kpi{display:flex;gap:12px;margin:12px 0}
-.kpi-box{flex:1;padding:10px;background:#f5f5f5;border-radius:4px;text-align:center}
-.kpi-val{font-size:20px;font-weight:bold}
-.kpi-lbl{font-size:10px;color:#666;text-transform:uppercase}
-.section{margin:16px 0}
-.section p{white-space:pre-wrap;margin:8px 0}
-.footer{margin-top:40px;padding-top:12px;border-top:1px solid #ccc;text-align:center;color:#666;font-size:10px}
-</style></head><body>
-<div class="cover">
-  <div class="brand">Misha Infotech</div>
-  <div class="title">Employer Audit Report</div>
-  <div class="report-no">${report.reportNumber}</div>
-</div>
-<div class="meta">
-  <div><b>Employer:</b> ${report.employerName ?? '—'} (${report.employerId ?? '—'})</div>
-  <div><b>Inspector:</b> ${report.inspectorName ?? '—'}</div>
-  <div><b>Report Date:</b> ${report.reportDate}</div>
-  <div><b>Status:</b> ${report.status}</div>
-</div>
-<div class="kpi">
-  <div class="kpi-box"><div class="kpi-val">${report.totalFindings}</div><div class="kpi-lbl">Findings</div></div>
-  <div class="kpi-box"><div class="kpi-val">${report.totalEvidence}</div><div class="kpi-lbl">Evidence</div></div>
-  <div class="kpi-box"><div class="kpi-val">${report.totalViolations}</div><div class="kpi-lbl">Violations</div></div>
-  <div class="kpi-box"><div class="kpi-val">${report.checklistCompletionPct}%</div><div class="kpi-lbl">Checklist</div></div>
-</div>
-<h2>Executive Summary</h2><div class="section"><p>${escapeHtml(executiveSummary) || '—'}</p></div>
-<h2>Scope</h2><div class="section"><p>${escapeHtml(scope) || '—'}</p></div>
-<h2>Conclusions</h2><div class="section"><p>${escapeHtml(conclusions) || '—'}</p></div>
-<h2>Recommendations</h2><div class="section"><p>${escapeHtml(recommendations) || '—'}</p></div>
-<div class="footer">Generated by Misha Infotech Compliance Platform • ${new Date().toLocaleString()}</div>
-</body></html>`;
-}
-
-function escapeHtml(s: string): string {
-  return (s || '').replace(/[&<>"']/g, (c) =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!)
   );
 }
