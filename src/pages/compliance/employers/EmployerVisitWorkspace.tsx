@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Building2, MapPin, PlayCircle, StopCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, PlayCircle, StopCircle, Loader2, Eye, Briefcase, AlertTriangle } from 'lucide-react';
 import { CheckInOutTabContent } from '@/components/compliance/inspection/CheckInOutTabContent';
 import { EvidenceTabContent } from '@/components/compliance/inspection/EvidenceTabContent';
 import { FindingsTabContent } from '@/components/compliance/inspection/FindingsTabContent';
@@ -14,6 +14,7 @@ import { ViolationsTabContent } from '@/components/compliance/inspection/Violati
 import { inspectionService } from '@/services/inspectionService';
 import { InspectionVisit, InspectionVisitStatus } from '@/types/inspectionTypes';
 import { toast } from 'sonner';
+import { useUserCode } from '@/hooks/useUserCode';
 
 export default function EmployerVisitWorkspace() {
   const { employerId } = useParams<{ employerId: string }>();
