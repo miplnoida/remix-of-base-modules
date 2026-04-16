@@ -14149,7 +14149,11 @@ export type Database = {
           actual_end: string | null
           actual_start: string | null
           case_id: string | null
+          check_in_gps_lat: number | null
+          check_in_gps_lng: number | null
           check_in_time: string | null
+          check_out_gps_lat: number | null
+          check_out_gps_lng: number | null
           check_out_time: string | null
           completion_gate_overridden_at: string | null
           completion_gate_overridden_by: string | null
@@ -14172,6 +14176,7 @@ export type Database = {
           location_address: string | null
           location_lat: number | null
           location_lng: number | null
+          notes: string | null
           photos: Json | null
           plan_item_id: string | null
           scheduled_date: string | null
@@ -14182,13 +14187,18 @@ export type Database = {
           territory: string | null
           updated_at: string | null
           updated_by: string | null
+          visit_date: string | null
           wage_books_reviewed: boolean | null
         }
         Insert: {
           actual_end?: string | null
           actual_start?: string | null
           case_id?: string | null
+          check_in_gps_lat?: number | null
+          check_in_gps_lng?: number | null
           check_in_time?: string | null
+          check_out_gps_lat?: number | null
+          check_out_gps_lng?: number | null
           check_out_time?: string | null
           completion_gate_overridden_at?: string | null
           completion_gate_overridden_by?: string | null
@@ -14211,6 +14221,7 @@ export type Database = {
           location_address?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          notes?: string | null
           photos?: Json | null
           plan_item_id?: string | null
           scheduled_date?: string | null
@@ -14221,13 +14232,18 @@ export type Database = {
           territory?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          visit_date?: string | null
           wage_books_reviewed?: boolean | null
         }
         Update: {
           actual_end?: string | null
           actual_start?: string | null
           case_id?: string | null
+          check_in_gps_lat?: number | null
+          check_in_gps_lng?: number | null
           check_in_time?: string | null
+          check_out_gps_lat?: number | null
+          check_out_gps_lng?: number | null
           check_out_time?: string | null
           completion_gate_overridden_at?: string | null
           completion_gate_overridden_by?: string | null
@@ -14250,6 +14266,7 @@ export type Database = {
           location_address?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          notes?: string | null
           photos?: Json | null
           plan_item_id?: string | null
           scheduled_date?: string | null
@@ -14260,6 +14277,7 @@ export type Database = {
           territory?: string | null
           updated_at?: string | null
           updated_by?: string | null
+          visit_date?: string | null
           wage_books_reviewed?: boolean | null
         }
         Relationships: [
