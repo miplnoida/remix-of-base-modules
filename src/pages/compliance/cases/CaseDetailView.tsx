@@ -10,9 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Textarea } from '@/components/ui/textarea';
 import {
   Loader2, Eye, Briefcase, History, AlertCircle, CheckCircle, Building2,
-  ArrowLeft, Link2, HandshakeIcon
+  ArrowLeft, Link2, HandshakeIcon, Mail, Scale, DollarSign, FileText
 } from 'lucide-react';
 import { CasePaymentArrangementDialog } from '@/components/compliance/CasePaymentArrangementDialog';
+import { fetchPaymentArrangements } from '@/services/complianceDataService';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -187,6 +188,22 @@ export default function CaseDetailView() {
             {c.employer_id && (
               <Button variant="outline" size="sm" onClick={() => navigate(`/compliance/employer-360/${c.employer_id}`)}>
                 <Building2 className="h-4 w-4 mr-1" />Employer 360
+              </Button>
+            )}
+            {/* Create Notice - navigates to notices screen with case prefilled */}
+            {!['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && (
+              <Button variant="outline" size="sm" onClick={() => navigate('/compliance/enforcement/notices', {
+                state: { prefill: { case_id: c.id, case_number: c.case_number, employer_id: c.employer_id, employer_name: c.employer_name } }
+              })}>
+                <Mail className="h-4 w-4 mr-1" />Create Notice
+              </Button>
+            )}
+            {/* Recommend Legal Escalation */}
+            {['ACTIVE', 'ESCALATED_LEGAL', 'UNDER_REVIEW'].includes(c.status) && (
+              <Button variant="outline" size="sm" onClick={() => navigate('/compliance/enforcement/recommendation-queue', {
+                state: { prefill: { case_id: c.id, case_number: c.case_number, employer_id: c.employer_id, employer_name: c.employer_name, total_amount: c.total_amount } }
+              })}>
+                <Scale className="h-4 w-4 mr-1" />Recommend Legal
               </Button>
             )}
             {activeViolationCount > 0 && !['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && (
