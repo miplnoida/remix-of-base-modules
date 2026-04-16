@@ -1,5 +1,7 @@
 // ============================================
-// WEEKLY REPORT SERVICE - DB-BACKED
+// WEEKLY REPORT SERVICE - DEPRECATED
+// All reads now delegate to fieldAuditService (single source of truth).
+// Kept as a thin wrapper for backwards compatibility with existing UI components.
 // ============================================
 
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +15,7 @@ import {
   FindingType,
 } from '@/types/inspectionTypes';
 import { Violation } from '@/types/violation';
+import { fieldAuditService } from './fieldAuditService';
 
 function mapPlanItem(row: any): WeeklyPlanItem {
   return {
@@ -68,11 +71,7 @@ class WeeklyReportService {
       .gte('scheduled_date', weekStartDate)
       .lte('scheduled_date', weekEnd)
       .order('scheduled_date');
-
-    if (inspectorId) {
-      query = query.eq('created_by', inspectorId);
-    }
-
+    if (inspectorId) query = query.eq('created_by', inspectorId);
     const { data, error } = await query;
     if (error) throw error;
     return (data ?? []).map(mapPlanItem);
@@ -98,83 +97,21 @@ class WeeklyReportService {
     return data ? mapInspection(data) : undefined;
   }
 
+  // ── Delegated reads (single source of truth: fieldAuditService) ──
+
   async getEvidenceForVisit(visitId: string): Promise<InspectionEvidence[]> {
-    const { data, error } = await supabase
-      .from('ce_inspection_findings' as any)
-      .select('*')
-      .eq('inspection_id', visitId)
-      .eq('finding_type', 'EVIDENCE');
-    if (error) throw error;
-    return (data ?? []).map((row: any) => ({
-      id: row.id,
-      inspectionVisitId: row.inspection_id,
-      employerId: '',
-      visitId: row.inspection_id,
-      evidenceType: row.category ?? 'DOCUMENT',
-      type: row.category ?? 'DOCUMENT',
-      fileName: row.title ?? '',
-      fileUrl: '',
-      fileSize: 0,
-      description: row.description ?? '',
-      capturedAt: row.created_at,
-      capturedByUserId: row.created_by ?? '',
-      capturedBy: row.created_by ?? '',
-    }));
+    return fieldAuditService.getEvidenceForVisit(visitId);
   }
 
   async getFindingsForVisit(visitId: string): Promise<InspectionFinding[]> {
-    const { data, error } = await supabase
-      .from('ce_inspection_findings' as any)
-      .select('*')
-      .eq('inspection_id', visitId)
-      .neq('finding_type', 'EVIDENCE');
-    if (error) throw error;
-    return (data ?? []).map((row: any) => ({
-      id: row.id,
-      inspectionVisitId: row.inspection_id,
-      employerId: '',
-      visitId: row.inspection_id,
-      findingType: row.finding_type ?? FindingType.INFORMATION_ONLY,
-      category: row.category ?? '',
-      title: row.title ?? '',
-      description: row.description ?? '',
-      severity: row.severity ?? 'Medium',
-      evidenceIds: [],
-      isViolationCreated: row.violation_created ?? false,
-      inspectorNotes: row.inspector_notes ?? '',
-      createdAt: row.created_at,
-      createdByUserId: row.created_by ?? '',
-      createdBy: row.created_by ?? '',
-    }));
+    return fieldAuditService.getFindingsForVisit(visitId);
   }
 
   async getViolationsForVisit(visitId: string): Promise<Violation[]> {
-    const { data, error } = await supabase
-      .from('ce_violations')
-      .select('*')
-      .eq('inspection_id', visitId);
-    if (error) throw error;
-    return (data ?? []).map((row: any): Violation => ({
-      id: row.id,
-      violationNumber: row.violation_number ?? '',
-      employerId: row.employer_id ?? '',
-      employerName: row.employer_name ?? '',
-      violationType: row.violation_type ?? 'OTHER',
-      status: row.status ?? 'OPEN',
-      severity: row.severity ?? 'Medium',
-      priority: row.severity ?? 'Medium',
-      description: row.description ?? '',
-      summary: row.description ?? '',
-      territory: row.territory ?? 'St Kitts',
-      discoveredDate: row.detected_date ?? row.created_at,
-      discoveredBy: row.detected_by ?? '',
-      assignedToUserId: row.assigned_to_user_id ?? '',
-      createdAt: row.created_at,
-      updatedAt: row.updated_at ?? row.created_at,
-      inspectionVisitId: row.inspection_id,
-      isUnlinked: false,
-    }));
+    return fieldAuditService.getViolationsForVisit(visitId);
   }
+
+  // ── Plan item lifecycle (kept local) ──
 
   async rescheduleVisit(
     planItemId: string,
@@ -285,7 +222,6 @@ class WeeklyReportService {
 
   async submitWeeklyReport(inspectorId: string, weekStartDate: string): Promise<WeeklyReportSummary> {
     const items = await this.getWeeklyPlanItems(inspectorId, weekStartDate);
-
     const completedVisits = items.filter((i) => i.status === InspectionVisitStatus.COMPLETED).length;
     const rescheduledVisits = items.filter((i) => i.status === InspectionVisitStatus.RESCHEDULED).length;
     const notDoneVisits = items.filter((i) => i.status === InspectionVisitStatus.NOT_DONE).length;
@@ -297,9 +233,11 @@ class WeeklyReportService {
     for (const item of items.filter((i) => i.status === InspectionVisitStatus.COMPLETED)) {
       const visit = await this.getVisitByPlanItemId(item.id);
       if (visit) {
-        const evidence = await this.getEvidenceForVisit(visit.id);
-        const findings = await this.getFindingsForVisit(visit.id);
-        const violations = await this.getViolationsForVisit(visit.id);
+        const [evidence, findings, violations] = await Promise.all([
+          this.getEvidenceForVisit(visit.id),
+          this.getFindingsForVisit(visit.id),
+          this.getViolationsForVisit(visit.id),
+        ]);
         totalEvidence += evidence.length;
         totalFindings += findings.length;
         totalViolations += violations.length;
