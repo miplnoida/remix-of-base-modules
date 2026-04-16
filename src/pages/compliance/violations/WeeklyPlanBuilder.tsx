@@ -169,7 +169,7 @@ export default function WeeklyPlanBuilder() {
                       {item.status === InspectionVisitStatus.NOT_STARTED && (
                         <Button
                           size="sm"
-                          onClick={() => setExecutingItem(item)}
+                          onClick={() => navigate(`/compliance/field/audit-visit/${item.id}`)}
                         >
                           Start
                         </Button>
@@ -178,7 +178,7 @@ export default function WeeklyPlanBuilder() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setExecutingItem(item)}
+                          onClick={() => navigate(`/compliance/field/audit-visit/${item.id}`)}
                         >
                           Continue
                         </Button>
@@ -187,7 +187,7 @@ export default function WeeklyPlanBuilder() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setExecutingItem(item)}
+                          onClick={() => navigate(`/compliance/field/audit-visit/${item.id}`)}
                         >
                           View
                         </Button>
@@ -206,15 +206,6 @@ export default function WeeklyPlanBuilder() {
         onOpenChange={setAddDialogOpen}
         onItemAdded={loadData}
       />
-
-      {executingItem && (
-        <ExecutePlanItemDialog
-          planItem={executingItem}
-          open={!!executingItem}
-          onOpenChange={(open) => !open && setExecutingItem(null)}
-          onComplete={loadData}
-        />
-      )}
     </div>
   );
 }
