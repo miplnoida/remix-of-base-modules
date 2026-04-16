@@ -696,6 +696,11 @@ import BnPostIssueEnhanced from '@/pages/bn/postissue/PostIssueEnhanced';
 import BnClaimWorklistEnhanced from '@/pages/bn/claims/ClaimWorklistEnhanced';
 import BnPaymentHistoryInquiry from '@/pages/bn/history/PaymentHistoryInquiry';
 import BnAuditDecisionHistory from '@/pages/bn/history/AuditDecisionHistory';
+import BnLifeCertificateManagement from '@/pages/bn/servicing/LifeCertificateManagement';
+import BnMedicalReviewScheduler from '@/pages/bn/servicing/MedicalReviewScheduler';
+import BnOverpaymentRecovery from '@/pages/bn/servicing/OverpaymentRecovery';
+import BnAwardSuspensionConsole from '@/pages/bn/servicing/AwardSuspensionConsole';
+import BnSurvivorsBenefitProcessing from '@/pages/bn/servicing/SurvivorsBenefitProcessing';
 
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
@@ -1543,6 +1548,11 @@ export const AppRoutes = () => {
       <Route path="/bn/worklist" element={<ProtectedLayout><BnClaimWorklistEnhanced /></ProtectedLayout>} />
       <Route path="/bn/payment-history" element={<ProtectedLayout><BnPaymentHistoryInquiry /></ProtectedLayout>} />
       <Route path="/bn/audit-history" element={<ProtectedLayout><BnAuditDecisionHistory /></ProtectedLayout>} />
+      <Route path="/bn/life-certificates" element={<ProtectedLayout><BnLifeCertificateManagement /></ProtectedLayout>} />
+      <Route path="/bn/medical-reviews" element={<ProtectedLayout><BnMedicalReviewScheduler /></ProtectedLayout>} />
+      <Route path="/bn/overpayments" element={<ProtectedLayout><BnOverpaymentRecovery /></ProtectedLayout>} />
+      <Route path="/bn/award-suspension" element={<ProtectedLayout><BnAwardSuspensionConsole /></ProtectedLayout>} />
+      <Route path="/bn/survivors" element={<ProtectedLayout><BnSurvivorsBenefitProcessing /></ProtectedLayout>} />
       <Route path="/bn/config/reason-codes" element={<ProtectedLayout><BnReasonCodes /></ProtectedLayout>} />
       <Route path="/bn/config/transitions" element={<ProtectedLayout><BnTransitionMatrix /></ProtectedLayout>} />
       <Route path="/bn/config/workbaskets" element={<ProtectedLayout><BnWorkbasketConfig /></ProtectedLayout>} />
