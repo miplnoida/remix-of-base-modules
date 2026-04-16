@@ -114,7 +114,10 @@ export default function AuditReportPrintPage() {
 
       {/* Printable area */}
       <div className="py-6 print:py-0">
-        <div className="bg-white shadow-md print:shadow-none mx-auto print:max-w-none" style={{ maxWidth: '8.5in' }}>
+        <div
+          className="bg-white shadow-md print:shadow-none mx-auto print:max-w-none"
+          style={{ maxWidth: '8.5in', padding: '0.6in 0.5in' }}
+        >
           <AuditReportPrintLayout
             report={report}
             findings={findings}
