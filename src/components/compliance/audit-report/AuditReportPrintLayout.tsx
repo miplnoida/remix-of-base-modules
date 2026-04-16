@@ -448,16 +448,58 @@ const printStyles = `
 .audit-report-print .cover-row-value {
   text-align: right;
 }
-.audit-report-print .draft-watermark {
-  position: absolute;
+.audit-report-print .draft-watermark-fixed {
+  position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-30deg);
-  font-size: 120pt;
-  color: rgba(220, 38, 38, 0.1);
-  font-weight: bold;
+  font-size: 140pt;
+  color: rgba(220, 38, 38, 0.10);
+  font-weight: 900;
+  letter-spacing: 12px;
   pointer-events: none;
-  z-index: 0;
+  z-index: 9999;
+  user-select: none;
+}
+.audit-report-print .employer-identity-panel {
+  width: 100%;
+  max-width: 6in;
+  margin: 0 auto 32px;
+  padding: 18px 24px;
+  border: 2px solid #0E5F3A;
+  background: #f0f8f4;
+  border-radius: 4px;
+  text-align: center;
+}
+.audit-report-print .employer-identity-name {
+  font-size: 20pt;
+  font-weight: bold;
+  color: #0E5F3A;
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+.audit-report-print .employer-identity-meta {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 10pt;
+  color: #333;
+}
+.audit-report-print .employer-identity-meta span {
+  white-space: nowrap;
+}
+.audit-report-print .sampling-disclaimer .disclaimer-box {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-left: 4px solid #d97706;
+  padding: 12px 16px;
+  font-size: 10pt;
+  color: #1f2937;
+  border-radius: 3px;
+}
+.audit-report-print .sampling-disclaimer .disclaimer-box p {
+  margin: 6px 0;
 }
 .audit-report-print .page-break {
   page-break-after: always;
@@ -467,9 +509,9 @@ const printStyles = `
   display: flex;
   justify-content: space-between;
   font-size: 9pt;
-  color: #666;
-  border-bottom: 1px solid #0E5F3A;
-  padding-bottom: 4px;
+  color: #333;
+  border-bottom: 2px solid #0E5F3A;
+  padding-bottom: 6px;
   margin-bottom: 16px;
 }
 .audit-report-print .report-section {
