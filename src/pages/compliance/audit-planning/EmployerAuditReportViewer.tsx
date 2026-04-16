@@ -37,6 +37,8 @@ export default function EmployerAuditReportViewer() {
   const [auditDate, setAuditDate] = useState('');
   const [auditLocation, setAuditLocation] = useState('');
   const [employerRegNumber, setEmployerRegNumber] = useState('');
+  const [employerRepName, setEmployerRepName] = useState('');
+  const [employerRepDesignation, setEmployerRepDesignation] = useState('');
 
   // signature dialog
   const [sigRole, setSigRole] = useState<SignerRole | null>(null);
@@ -83,6 +85,8 @@ export default function EmployerAuditReportViewer() {
     setAuditDate(r.auditDate ?? '');
     setAuditLocation(r.auditLocation ?? '');
     setEmployerRegNumber(r.employerRegNumber ?? '');
+    setEmployerRepName(r.employerRepName ?? '');
+    setEmployerRepDesignation(r.employerRepDesignation ?? '');
   };
 
   const handleRegenerate = async () => {
@@ -108,6 +112,7 @@ export default function EmployerAuditReportViewer() {
         conclusions, complianceConclusion, recommendations,
         auditDate: auditDate || undefined,
         auditLocation, employerRegNumber,
+        employerRepName, employerRepDesignation,
       });
       await auditReportService.snapshotVersion(report.id, { notes: 'Draft saved' });
       toast.success('Draft saved (version snapshot created)');
@@ -129,6 +134,7 @@ export default function EmployerAuditReportViewer() {
         conclusions, complianceConclusion, recommendations,
         auditDate: auditDate || undefined,
         auditLocation, employerRegNumber,
+        employerRepName, employerRepDesignation,
       });
       await auditReportService.finalize(report.id);
       toast.success('Audit report finalized');
@@ -213,6 +219,8 @@ export default function EmployerAuditReportViewer() {
                 <div><Label>Audit Date</Label><Input type="date" value={auditDate} onChange={(e) => setAuditDate(e.target.value)} disabled={isFinal} /></div>
                 <div><Label>Audit Location</Label><Input value={auditLocation} onChange={(e) => setAuditLocation(e.target.value)} disabled={isFinal} placeholder="Employer site address" /></div>
                 <div><Label>Employer Reg. No.</Label><Input value={employerRegNumber} onChange={(e) => setEmployerRegNumber(e.target.value)} disabled={isFinal} /></div>
+                <div><Label>Employer Representative Name</Label><Input value={employerRepName} onChange={(e) => setEmployerRepName(e.target.value)} disabled={isFinal} placeholder="e.g. Jane Doe" /></div>
+                <div><Label>Representative Designation</Label><Input value={employerRepDesignation} onChange={(e) => setEmployerRepDesignation(e.target.value)} disabled={isFinal} placeholder="e.g. HR Manager" /></div>
               </div>
               <NarrativeField label="1. Purpose & Scope" value={purposeScope} onChange={setPurposeScope} disabled={isFinal} placeholder="Why this audit was conducted, period reviewed, scope boundaries…" />
               <NarrativeField label="2. Executive Summary" value={executiveSummary} onChange={setExecutiveSummary} disabled={isFinal} placeholder="High-level summary of the audit visit and headline outcomes…" />
@@ -236,11 +244,9 @@ export default function EmployerAuditReportViewer() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Signatures & Acknowledgment</span>
-                {!isFinal && (
-                  <span className="text-xs text-muted-foreground font-normal">
-                    Finalize the report before capturing signatures for legal validity.
-                  </span>
-                )}
+                <span className="text-xs text-muted-foreground font-normal">
+                  In-person signatures can be captured at any time. Finalizing the report locks all edits.
+                </span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -271,7 +277,7 @@ export default function EmployerAuditReportViewer() {
                           </Button>
                         </div>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => setSigRole(role)} disabled={!isFinal}>
+                        <Button size="sm" variant="outline" onClick={() => setSigRole(role)}>
                           <Plus className="h-3 w-3 mr-1" /> Capture Signature
                         </Button>
                       )}
@@ -317,7 +323,11 @@ export default function EmployerAuditReportViewer() {
         <CaptureSignatureDialog
           reportId={report.id}
           signerRole={sigRole}
-          defaultName={sigRole === 'INSPECTOR' ? report.inspectorName : undefined}
+          defaultName={
+            sigRole === 'INSPECTOR' ? report.inspectorName :
+            sigRole === 'EMPLOYER_REP' ? employerRepName : undefined
+          }
+          defaultDesignation={sigRole === 'EMPLOYER_REP' ? employerRepDesignation : undefined}
           onClose={() => setSigRole(null)}
           onCaptured={load}
         />
