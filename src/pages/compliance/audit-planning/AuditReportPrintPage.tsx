@@ -30,13 +30,25 @@ export default function AuditReportPrintPage() {
   const [checklist, setChecklist] = useState<any[]>([]);
   const [signatures, setSignatures] = useState<AuditReportSignature[]>([]);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!reportId) return;
     (async () => {
       try {
-        const r = await auditReportService.getReport(reportId);
+        setLoading(true);
+        setLoadError(null);
+        // The :reportId param may actually be either the audit report PK
+        // OR the inspection_id (depending on which screen launched print).
+        // Try report PK first, then fall back to inspection lookup.
+        let r = await auditReportService.getReport(reportId).catch(() => null);
         if (!r) {
-          toast.error('Report not found');
+          r = await auditReportService.getReportByInspection(reportId).catch(() => null);
+        }
+        if (!r) {
+          setLoadError(
+            `No audit report exists for id "${reportId}". Open the report viewer first so the draft is generated, then try Print again.`,
+          );
           return;
         }
         const data = await auditReportService.assembleFullPayload(r.inspectionId);
@@ -46,7 +58,9 @@ export default function AuditReportPrintPage() {
         setChecklist(data.checklist);
         setSignatures(data.signatures);
       } catch (e: any) {
-        toast.error(e.message ?? 'Failed to load');
+        console.error('[AuditReportPrintPage] load failed', e);
+        setLoadError(e?.message ?? 'Failed to load report');
+        toast.error(e?.message ?? 'Failed to load report');
       } finally {
         setLoading(false);
       }
@@ -56,7 +70,16 @@ export default function AuditReportPrintPage() {
   const handlePrint = () => window.print();
 
   if (loading) return <div className="p-8 text-muted-foreground">Loading report…</div>;
-  if (!report) return <div className="p-8 text-destructive">Report not found.</div>;
+  if (loadError || !report)
+    return (
+      <div className="p-8 max-w-2xl mx-auto space-y-3">
+        <div className="text-destructive font-medium">Unable to load audit report</div>
+        <div className="text-sm text-muted-foreground">{loadError ?? 'Report not found.'}</div>
+        <Button variant="outline" size="sm" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back
+        </Button>
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-muted/30">
