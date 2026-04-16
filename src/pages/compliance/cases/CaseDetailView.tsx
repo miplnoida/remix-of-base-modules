@@ -445,6 +445,7 @@ export default function CaseDetailView() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="history" className="space-y-4">
           <Card>
             <CardHeader><CardTitle>Case History</CardTitle></CardHeader>
             <CardContent>
