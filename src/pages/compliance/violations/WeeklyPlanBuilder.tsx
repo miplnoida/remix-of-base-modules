@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,16 +10,15 @@ import { inspectionService } from '@/services/inspectionService';
 import { violationService } from '@/services/violationService';
 import { violationActionsService } from '@/services/violationActionsService';
 import { AddPlanItemDialog } from '@/components/compliance/AddPlanItemDialog';
-import { ExecutePlanItemDialog } from '@/components/compliance/ExecutePlanItemDialog';
 import { SuggestedActionsPanel } from '@/components/compliance/SuggestedActionsPanel';
 import { toast } from 'sonner';
 
 export default function WeeklyPlanBuilder() {
+  const navigate = useNavigate();
   const [planItems, setPlanItems] = useState<WeeklyPlanItem[]>([]);
   const [activeViolationsCount, setActiveViolationsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [executingItem, setExecutingItem] = useState<WeeklyPlanItem | null>(null);
 
   useEffect(() => {
     loadData();
@@ -169,7 +169,7 @@ export default function WeeklyPlanBuilder() {
                       {item.status === InspectionVisitStatus.NOT_STARTED && (
                         <Button
                           size="sm"
-                          onClick={() => setExecutingItem(item)}
+                          onClick={() => navigate(`/compliance/field/audit-visit/${item.id}`)}
                         >
                           Start
                         </Button>
@@ -178,7 +178,7 @@ export default function WeeklyPlanBuilder() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setExecutingItem(item)}
+                          onClick={() => navigate(`/compliance/field/audit-visit/${item.id}`)}
                         >
                           Continue
                         </Button>
@@ -187,7 +187,7 @@ export default function WeeklyPlanBuilder() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setExecutingItem(item)}
+                          onClick={() => navigate(`/compliance/field/audit-visit/${item.id}`)}
                         >
                           View
                         </Button>
@@ -206,15 +206,6 @@ export default function WeeklyPlanBuilder() {
         onOpenChange={setAddDialogOpen}
         onItemAdded={loadData}
       />
-
-      {executingItem && (
-        <ExecutePlanItemDialog
-          planItem={executingItem}
-          open={!!executingItem}
-          onOpenChange={(open) => !open && setExecutingItem(null)}
-          onComplete={loadData}
-        />
-      )}
     </div>
   );
 }

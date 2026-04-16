@@ -37,6 +37,7 @@ import FieldOperations from '@/pages/compliance/inspections/FieldOperations';
 import NoticesManagement from '@/pages/compliance/legal/NoticesManagement';
 import EmployerStatements from '@/pages/compliance/employers/EmployerStatements';
 import ComplianceSettings from '@/pages/compliance/settings/ComplianceSettings';
+import CompletionGateSettings from '@/pages/compliance/settings/CompletionGateSettings';
 import ComplianceDashboard from '@/pages/compliance/dashboards/ComplianceDashboard';
 import ComplianceReports from '@/pages/compliance/reports/ComplianceReports';
 import CaseAnalytics from '@/pages/compliance/reports/CaseAnalytics';
@@ -1125,6 +1126,7 @@ export const AppRoutes = () => {
 
       {/* Admin redirects */}
       <Route path="/compliance/settings" element={<ProtectedLayout><ComplianceSettings /></ProtectedLayout>} />
+      <Route path="/compliance/settings/completion-gate" element={<ProtectedLayout><CompletionGateSettings /></ProtectedLayout>} />
       <Route path="/compliance/settings/rule-engine" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
       <Route path="/compliance/settings/violation-types" element={<Navigate to="/compliance/admin/settings/violation-types" replace />} />
       <Route path="/compliance/settings/assignment-routing" element={<Navigate to="/compliance/admin/settings/assignment-routing" replace />} />
