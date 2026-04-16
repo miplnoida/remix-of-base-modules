@@ -657,6 +657,11 @@ import BnCalculationEngine from '@/pages/bn/engine/CalculationEngine';
 import BnBenefitDetermination from '@/pages/bn/claims/BenefitDetermination';
 import BnClaimRegistration from '@/pages/bn/intake/ClaimRegistration';
 import BnApprovalConsole from '@/pages/bn/approval/ApprovalConsole';
+import BnApprovalQueue from '@/pages/bn/approval/ApprovalQueue';
+import BnAdjudicationWorkspace from '@/pages/bn/approval/AdjudicationWorkspace';
+import BnEligibilityReview from '@/pages/bn/claims/EligibilityReview';
+import BnCalculationWorkspace from '@/pages/bn/engine/CalculationWorkspace';
+import BnDeterminationRecommendation from '@/pages/bn/claims/DeterminationRecommendation';
 import BnEntitlementManagement from '@/pages/bn/entitlement/EntitlementManagement';
 import BnPayablesQueue from '@/pages/bn/payables/PayablesQueue';
 import BnPaymentSchedule from '@/pages/bn/schedule/PaymentScheduleManagement';
@@ -1512,10 +1517,15 @@ export const AppRoutes = () => {
       <Route path="/bn/claims/:id" element={<ProtectedLayout><BnClaimWorkbench /></ProtectedLayout>} />
       <Route path="/bn/claims/:id/legacy" element={<ProtectedLayout><BnClaim360 /></ProtectedLayout>} />
       <Route path="/bn/claims/:id/determination" element={<ProtectedLayout><BnBenefitDetermination /></ProtectedLayout>} />
+      <Route path="/bn/claims/:id/eligibility" element={<ProtectedLayout><BnEligibilityReview /></ProtectedLayout>} />
+      <Route path="/bn/claims/:id/calculation" element={<ProtectedLayout><BnCalculationWorkspace /></ProtectedLayout>} />
+      <Route path="/bn/claims/:id/recommendation" element={<ProtectedLayout><BnDeterminationRecommendation /></ProtectedLayout>} />
       <Route path="/bn/engine" element={<ProtectedLayout><BnCalculationEngine /></ProtectedLayout>} />
       <Route path="/bn/intake/register" element={<ProtectedLayout><BnClaimRegistration /></ProtectedLayout>} />
       <Route path="/bn/queue" element={<ProtectedLayout><BnClaimQueue /></ProtectedLayout>} />
       <Route path="/bn/approval" element={<ProtectedLayout><BnApprovalConsole /></ProtectedLayout>} />
+      <Route path="/bn/approval/queue" element={<ProtectedLayout><BnApprovalQueue /></ProtectedLayout>} />
+      <Route path="/bn/approval/workspace/:claimId" element={<ProtectedLayout><BnAdjudicationWorkspace /></ProtectedLayout>} />
       <Route path="/bn/entitlements" element={<ProtectedLayout><BnEntitlementManagement /></ProtectedLayout>} />
       <Route path="/bn/payables" element={<ProtectedLayout><BnPayablesQueue /></ProtectedLayout>} />
       <Route path="/bn/schedules" element={<ProtectedLayout><BnPaymentSchedule /></ProtectedLayout>} />
