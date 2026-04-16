@@ -261,13 +261,15 @@ export default function MyPlans() {
                           </Button>
                         )}
                         {(plan.status === WeeklyPlanStatus.APPROVED ||
-                          plan.status === WeeklyPlanStatus.IN_EXECUTION) && (
+                          plan.status === WeeklyPlanStatus.IN_EXECUTION ||
+                          plan.status === WeeklyPlanStatus.OUTCOME_SUBMITTED ||
+                          plan.status === WeeklyPlanStatus.COMPLETED) && (
                           <Button
                             size="sm"
-                            onClick={() => navigate(`/compliance/field/inspections`)}
+                            onClick={() => navigate(`/compliance/field/execution-dashboard/${plan.id}`)}
                           >
                             <Play className="h-4 w-4 mr-1" />
-                            Execute
+                            {plan.status === WeeklyPlanStatus.COMPLETED ? 'View' : 'Execute'}
                           </Button>
                         )}
                         <Button variant="ghost" size="sm">
