@@ -691,6 +691,11 @@ import BnScenarioBuilder from '@/pages/bn/simulation/ScenarioBuilder';
 import BnRunSimulation from '@/pages/bn/simulation/RunSimulation';
 import BnSimulationResult from '@/pages/bn/simulation/SimulationResultSummary';
 import BnPerson360 from '@/pages/bn/person360/BnPerson360';
+import BnPaymentExceptions from '@/pages/bn/issue/PaymentExceptions';
+import BnPostIssueEnhanced from '@/pages/bn/postissue/PostIssueEnhanced';
+import BnClaimWorklistEnhanced from '@/pages/bn/claims/ClaimWorklistEnhanced';
+import BnPaymentHistoryInquiry from '@/pages/bn/history/PaymentHistoryInquiry';
+import BnAuditDecisionHistory from '@/pages/bn/history/AuditDecisionHistory';
 
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
@@ -1533,6 +1538,11 @@ export const AppRoutes = () => {
       <Route path="/bn/issue" element={<ProtectedLayout><BnPaymentIssue /></ProtectedLayout>} />
       <Route path="/bn/post-issue" element={<ProtectedLayout><BnPostIssueReview /></ProtectedLayout>} />
       <Route path="/bn/history" element={<ProtectedLayout><BnHistoricalInquiry /></ProtectedLayout>} />
+      <Route path="/bn/exceptions" element={<ProtectedLayout><BnPaymentExceptions /></ProtectedLayout>} />
+      <Route path="/bn/post-issue-enhanced" element={<ProtectedLayout><BnPostIssueEnhanced /></ProtectedLayout>} />
+      <Route path="/bn/worklist" element={<ProtectedLayout><BnClaimWorklistEnhanced /></ProtectedLayout>} />
+      <Route path="/bn/payment-history" element={<ProtectedLayout><BnPaymentHistoryInquiry /></ProtectedLayout>} />
+      <Route path="/bn/audit-history" element={<ProtectedLayout><BnAuditDecisionHistory /></ProtectedLayout>} />
       <Route path="/bn/config/reason-codes" element={<ProtectedLayout><BnReasonCodes /></ProtectedLayout>} />
       <Route path="/bn/config/transitions" element={<ProtectedLayout><BnTransitionMatrix /></ProtectedLayout>} />
       <Route path="/bn/config/workbaskets" element={<ProtectedLayout><BnWorkbasketConfig /></ProtectedLayout>} />
