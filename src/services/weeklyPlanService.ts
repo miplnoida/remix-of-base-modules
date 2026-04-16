@@ -194,14 +194,20 @@ export const weeklyPlanService = {
   },
 
   // Resubmit after changes
-  async resubmit(planId: string, userId: string): Promise<void> {
+  async resubmit(planId: string, userId: string, narrative?: string): Promise<void> {
+    const updates: Record<string, any> = {
+      status: 'RESUBMITTED',
+      submitted_date: new Date().toISOString(),
+      updated_by: userId,
+      reviewer_comments: null,
+    };
+    if (narrative !== undefined) {
+      updates.narrative = narrative;
+    }
+
     const { error: updateError } = await supabase
       .from('ce_weekly_plans')
-      .update({
-        status: WeeklyPlanStatus.SUBMITTED,
-        submitted_date: new Date().toISOString(),
-        updated_by: userId,
-      })
+      .update(updates)
       .eq('id', planId);
     if (updateError) throw updateError;
 
