@@ -231,6 +231,40 @@ export function useLogMigration() {
 }
 
 // ─── Config Promotion ───
+export interface ConfigPromotionPack {
+  id: string;
+  pack_name: string;
+  description: string | null;
+  source_environment: string;
+  config_type: string;
+  status: ConfigPromotionStatus;
+  config_payload: any;
+  dependency_check: any;
+  item_count: number | null;
+  promoted_by: string | null;
+  promoted_at: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  rollback_notes: string | null;
+  release_id: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
+export interface ConfigPromotionItem {
+  id: string;
+  pack_id: string;
+  table_name: string;
+  record_id: string | null;
+  operation: string;
+  payload: any;
+  status: string;
+  error_message: string | null;
+  promoted_at: string | null;
+  created_at: string;
+}
+
 export function useConfigPromotionPacks() {
   return useQuery({
     queryKey: ['config-promotion-packs'],
@@ -240,8 +274,98 @@ export function useConfigPromotionPacks() {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []) as ConfigPromotionPack[];
     },
+  });
+}
+
+export function useConfigPromotionItems(packId: string | null) {
+  return useQuery({
+    queryKey: ['config-promotion-items', packId],
+    queryFn: async () => {
+      if (!packId) return [];
+      const { data, error } = await supabase
+        .from('config_promotion_items')
+        .select('*')
+        .eq('pack_id', packId)
+        .order('created_at');
+      if (error) throw error;
+      return (data || []) as ConfigPromotionItem[];
+    },
+    enabled: !!packId,
+  });
+}
+
+export function useCreateConfigPack() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      pack_name: string;
+      description?: string;
+      source_environment?: string;
+      config_type: string;
+      config_payload: any;
+      item_count?: number;
+      created_by?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('config_promotion_packs')
+        .insert({
+          ...params,
+          status: 'draft',
+          source_environment: params.source_environment || 'test',
+        } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['config-promotion-packs'] });
+      toast.success('Config promotion pack created');
+    },
+    onError: (e: any) => toast.error('Failed: ' + e.message),
+  });
+}
+
+export function useUpdateConfigPack() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { id: string; updates: Partial<ConfigPromotionPack> }) => {
+      const { error } = await supabase
+        .from('config_promotion_packs')
+        .update(params.updates as any)
+        .eq('id', params.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['config-promotion-packs'] });
+      toast.success('Config pack updated');
+    },
+    onError: (e: any) => toast.error('Failed: ' + e.message),
+  });
+}
+
+export function useAddConfigItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      pack_id: string;
+      table_name: string;
+      record_id?: string;
+      operation: string;
+      payload: any;
+    }) => {
+      const { error } = await supabase
+        .from('config_promotion_items')
+        .insert({ ...params, status: 'pending' } as any);
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['config-promotion-items', vars.pack_id] });
+      toast.success('Item added to pack');
+    },
+    onError: (e: any) => toast.error('Failed: ' + e.message),
   });
 }
 
