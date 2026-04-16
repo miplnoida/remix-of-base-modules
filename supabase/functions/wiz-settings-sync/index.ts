@@ -129,19 +129,24 @@ async function syncSiteSettings(
     errors: [],
   };
 
-  for (const row of rows) {
-    try {
-      const payload = {
-        setting_key: row.setting_key,
-        setting_value: row.setting_value,
-        setting_type: row.setting_type,
-        description: row.description,
-        environment: row.environment,
-      };
+  // Build settings array for batch API call
+  const settingsPayload = rows.map((row) => ({
+    setting_key: row.setting_key,
+    setting_value: row.setting_value,
+    setting_type: row.setting_type,
+    description: row.description,
+    environment: row.environment,
+    is_active: row.is_active,
+  }));
 
-      const apiRes = await callWizApi("sync_site_settings", payload);
+  try {
+    const apiRes = await callWizApi("sync_site_settings", {
+      settings: settingsPayload,
+    });
 
-      if (apiRes.status === "success") {
+    if (apiRes.status === "success") {
+      // Mark all rows as synced
+      for (const row of rows) {
         await supabase
           .from("c3_site_settings")
           .update({
@@ -151,8 +156,10 @@ async function syncSiteSettings(
           })
           .eq("id", row.id);
         result.synced++;
-      } else {
-        const errMsg = apiRes.error || "Unknown API error";
+      }
+    } else {
+      const errMsg = apiRes.error || "Unknown API error";
+      for (const row of rows) {
         await supabase
           .from("c3_site_settings")
           .update({ sync_error: errMsg })
@@ -164,8 +171,10 @@ async function syncSiteSettings(
           error: errMsg,
         });
       }
-    } catch (e) {
-      const errMsg = e instanceof Error ? e.message : "Unknown error";
+    }
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : "Unknown error";
+    for (const row of rows) {
       await supabase
         .from("c3_site_settings")
         .update({ sync_error: errMsg })
@@ -203,18 +212,21 @@ async function syncEmailConfig(
     errors: [],
   };
 
-  for (const row of rows) {
-    try {
-      const payload = {
-        config_key: row.config_key,
-        config_value: row.config_value,
-        config_group: row.config_group,
-        description: row.description,
-      };
+  // Build configs array for batch API call
+  const configsPayload = rows.map((row) => ({
+    config_key: row.config_key,
+    config_value: row.config_value,
+    config_group: row.config_group,
+    description: row.description,
+  }));
 
-      const apiRes = await callWizApi("sync_email_config", payload);
+  try {
+    const apiRes = await callWizApi("sync_email_config", {
+      configs: configsPayload,
+    });
 
-      if (apiRes.status === "success") {
+    if (apiRes.status === "success") {
+      for (const row of rows) {
         await supabase
           .from("c3_email_config")
           .update({
@@ -224,8 +236,10 @@ async function syncEmailConfig(
           })
           .eq("id", row.id);
         result.synced++;
-      } else {
-        const errMsg = apiRes.error || "Unknown API error";
+      }
+    } else {
+      const errMsg = apiRes.error || "Unknown API error";
+      for (const row of rows) {
         await supabase
           .from("c3_email_config")
           .update({ sync_error: errMsg })
@@ -237,8 +251,10 @@ async function syncEmailConfig(
           error: errMsg,
         });
       }
-    } catch (e) {
-      const errMsg = e instanceof Error ? e.message : "Unknown error";
+    }
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : "Unknown error";
+    for (const row of rows) {
       await supabase
         .from("c3_email_config")
         .update({ sync_error: errMsg })
@@ -275,9 +291,12 @@ async function retrySiteSetting(
     setting_type: row.setting_type,
     description: row.description,
     environment: row.environment,
+    is_active: row.is_active,
   };
 
-  const apiRes = await callWizApi("sync_site_settings", payload);
+  const apiRes = await callWizApi("sync_site_settings", {
+    settings: [payload],
+  });
 
   if (apiRes.status === "success") {
     await supabase
@@ -320,7 +339,9 @@ async function retryEmailConfig(
     description: row.description,
   };
 
-  const apiRes = await callWizApi("sync_email_config", payload);
+  const apiRes = await callWizApi("sync_email_config", {
+    configs: [payload],
+  });
 
   if (apiRes.status === "success") {
     await supabase
