@@ -1,114 +1,303 @@
-# C3 Wizard Settings Configuration — Revised Implementation Plan
 
-## Answers to Your Two Questions
 
-### 1. Module Placement — C3 Management, Not Admin
+# Weekly Planning, Inspection Execution, and Weekly Reporting — Enterprise Workflow Improvement Plan
 
-The new Settings Configuration screen will be placed **inside the C3 Management module** at route `/c3-management/settings-configuration`. The existing CyberSourceSettings page (`src/pages/c3Management/CyberSourceSettings.tsx`) will **not be removed** — it will be replaced by the new consolidated screen. The CyberSource tab currently embedded in C3ConfigurationPage will point to the new screen instead.
+## 1. Executive Summary
 
-### 2. No Frontend Business Logic — Backend-Only via Edge Function
-
-All business logic (sync orchestration, retry, dependency checks, payload construction, sync status updates) will live in a **new edge function** (`wiz-settings-sync`). The frontend will:
-
-- Read/write local tables via Supabase client (simple CRUD, no logic)
-- Call the edge function for Publish/Retry (POST with pack of IDs)
-- The edge function handles: reading unsynced rows, building API payloads, calling `sync_site_settings` / `sync_email_config` on C3 Wizard, updating `is_synced` / `sync_error` / `last_synced_at` per row
-
-This ensures all logic is portable to .NET Core later.
+The compliance module has a functional but incomplete workflow across three areas: weekly planning, field execution, and weekly reporting. After thorough analysis of the codebase and database schema, the core issues are: (1) no duplicate plan prevention, (2) disconnected inspection execution models with two parallel type systems, (3) missing working papers / employer interaction model, and (4) weekly reports that require manual aggregation instead of auto-generation. This plan addresses all three problem areas with practical, code-aware fixes.
 
 ---
 
-## Phase 1: Database Migration
+## 2. Current State Analysis
 
-**Migration 1 — Create tables** (exact schema from guide):
+### 2.1 Duplicate Weekly Plans
 
-- `c3_site_settings`: 14 columns (id as uuid PK, setting_key, setting_value, setting_type, description, environment, is_deleted, is_synced, sync_error, last_synced_at, created_at, updated_at, created_by, updated_by)
-- `c3_email_config`: 11 columns (id as uuid PK, config_key, config_value, description, config_group, is_active, is_synced, sync_error, last_synced_at, created_at, updated_at)
-- Indexes per guide spec + partial indexes on `is_synced = false`
+**Confirmed**: The `weeklyPlanService.create()` method has NO validation preventing multiple plans for the same inspector + week. The `useWeeklyPlanBuilder` hook fetches `plans[0]` when checking for existing plans, but the database has no unique constraint on `(inspector_id, week_start_date)`. An inspector can create multiple DRAFT plans for the same week.
 
-**Migration 2 — Seed data** (from guide sections 2.1–2.6):
+**Confirmed**: There is no WITHDRAWN status. Once submitted, the only path back to editing is via manager rejection (NEEDS_CHANGES).
 
-- 2 PAYMENT_GATEWAY rows (Production + Sandbox)
-- 6 PAYMENT_CONFIG rows
-- 12 EXTERNAL_API rows (6 Dev + 6 Prod)
-- 1 SYSTEM row (ACTIVE_ENVIRONMENT)
-- 8 c3_email_config rows
+### 2.2 Dual Type Systems
 
-## Phase 2: Edge Function — `wiz-settings-sync`
+**Confirmed**: Two parallel type systems exist:
+- `src/types/weeklyPlan.ts` — `WeeklyPlanStatus` enum (DRAFT, SUBMITTED, NEEDS_CHANGES, RESUBMITTED, APPROVED, IN_EXECUTION, OUTCOME_SUBMITTED, COMPLETED)
+- `src/types/weeklyAuditPlan.ts` — `WeeklyPlanWorkflowStatus` enum (DRAFT, SUBMITTED, NEED_CHANGES, RESUBMITTED, APPROVED, IN_EXECUTION, COMPLETED) — note: `NEED_CHANGES` vs `NEEDS_CHANGES`
 
-A new edge function that handles all sync logic:
+Two services operate on the same `ce_weekly_plans` table: `weeklyPlanService.ts` and `weeklyAuditPlanService.ts`. The builder uses `weeklyPlanService`; the MyPlans/WeeklyReports screens use `weeklyAuditPlanService`.
 
-**Actions:**
+### 2.3 Inspection Execution
 
-- `publish_all` — reads all `is_synced=false` rows from both tables, calls C3 Wizard APIs (`sync_site_settings`, `sync_email_config`), updates sync status per row
-- `retry_setting` — re-syncs a single `c3_site_settings` row by ID
-- `retry_email` — re-syncs a single `c3_email_config` row by ID
+**Confirmed**: The `ExecutePlanItemDialog` provides a 4-tab execution flow (Check-in/out, Evidence, Findings, Violations). However:
+- No employer representative capture (name, designation, contact)
+- No employer acknowledgement or declaration
+- No audit checklist / working papers (type exists in `weeklyAuditPlan.ts` as `AuditChecklist` but is NOT implemented in UI or service)
+- No signature capture (column `employer_signature_data` exists in `ce_inspections` table but is unused)
+- No refusal-to-sign or incomplete records handling
+- Evidence tab exists but has no link back to findings
+- GPS is captured at check-in/out but not on individual evidence items
+- The `FieldExecution.tsx` page uses `inspectionService` with the OLD `inspectionTypes.ts` type system, creating mapping mismatches
 
-**Logic in edge function (not frontend):**
+### 2.4 Weekly Reports
 
-1. Query unsynced rows using service-role client
-2. Build payload per guide spec (sections 3.1, 3.2)
-3. Call `wiz-admin-api` with `sync_site_settings` / `sync_email_config`
-4. Parse response, update each row's `is_synced`, `sync_error`, `last_synced_at`
-5. Return summary to frontend
+**Confirmed**: `WeeklyReports.tsx` uses `weeklyAuditPlanService.generateWeeklyReportSummary()` which:
+- Counts planned/completed/cancelled/rescheduled from plan items
+- Calculates hours from check_in/check_out times
+- Has TODO stubs for evidence count and violations count (`evidenceCollected: 0, violationsOpened: 0`)
+- No auto-aggregation of findings, violations, zone coverage
+- No validation preventing report submission with open items
+- Jumps directly to COMPLETED status (skips OUTCOME_SUBMITTED)
 
-## Phase 3: Service Layer (Thin — No Logic)
+---
 
-**New file: `src/services/wizSettingsService.ts**`
+## 3. Weekly Plan Control Fixes
 
-Pure CRUD wrappers — no business logic:
+### 3.1 Unified Status Lifecycle
 
-- `fetchSiteSettings(settingType?)` — SELECT from `c3_site_settings`
-- `saveSiteSetting(id, updates)` — UPDATE row, set `is_synced=false`, `updated_by=userCode`
-- `fetchEmailConfig(configGroup?)` — SELECT from `c3_email_config`
-- `saveEmailConfig(id, updates)` — UPDATE row, set `is_synced=false`
-- `publishAll()` — calls `wiz-settings-sync` edge function with action `publish_all`
-- `retrySync(table, id)` — calls edge function with `retry_setting` or `retry_email`
+Add `WITHDRAWN` to `WeeklyPlanStatus` enum. Final lifecycle:
 
-## Phase 4: React Query Hook
+```
+DRAFT → SUBMITTED → APPROVED → IN_EXECUTION → OUTCOME_SUBMITTED → COMPLETED
+                  ↘ NEEDS_CHANGES → (edit) → RESUBMITTED → APPROVED
+SUBMITTED → WITHDRAWN → (edit) → DRAFT (resubmit cycle)
+```
 
-**New file: `src/hooks/useSettingsConfiguration.ts**`
+| Status | Editable | Who Acts | Allowed Next | Restrictions |
+|--------|----------|----------|-------------|-------------|
+| DRAFT | Yes | Inspector | SUBMITTED | Only 1 per inspector+week |
+| SUBMITTED | No | Manager | APPROVED, NEEDS_CHANGES; Inspector: WITHDRAWN | Inspector cannot edit |
+| NEEDS_CHANGES | Yes | Inspector | RESUBMITTED | Manager feedback visible |
+| RESUBMITTED | No | Manager | APPROVED, NEEDS_CHANGES | Same as SUBMITTED |
+| WITHDRAWN | Yes | Inspector | SUBMITTED | Reverts to editable state |
+| APPROVED | No | System/Inspector | IN_EXECUTION | Locked |
+| IN_EXECUTION | No (items only) | Inspector | OUTCOME_SUBMITTED | Only item execution fields |
+| OUTCOME_SUBMITTED | No | Manager | COMPLETED | Report under review |
+| COMPLETED | No | — | — | Archived |
 
-- Queries for each setting type / email config group
-- Mutations for save, publish, retry
-- Computed `pendingCount` from `is_synced=false` rows
+### 3.2 Duplicate Prevention
 
-## Phase 5: UI — Settings Configuration Page
+**Database**: Add unique constraint on `ce_weekly_plans(inspector_id, week_start_date)` excluding WITHDRAWN status (partial unique index).
 
-**New file: `src/pages/c3Management/SettingsConfiguration.tsx**`
+**Service**: Add pre-check in `weeklyPlanService.create()` to query for existing non-WITHDRAWN plans before insert.
 
-**Route:** `/c3-management/settings-configuration`
+### 3.3 Withdraw Capability
 
-**Layout:** 5 tabs + "Publish All" button in header with pending count badge
+Add `weeklyPlanService.withdraw()` — sets status to WITHDRAWN, logs review action. Only allowed from SUBMITTED or RESUBMITTED status.
 
+### 3.4 Eliminate Dual Type System
 
-| Tab               | Data Source                      | UI                                                                                                            |
-| ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Payment Gateway   | `setting_type='PAYMENT_GATEWAY'` | Cards with parsed JSON fields (merchant_id, key_id, secret_key as password, base_url). Toggle active gateway. |
-| Payment Defaults  | `setting_type='PAYMENT_CONFIG'`  | Editable table rows with value, environment badge, sync status                                                |
-| API Configuration | `setting_type='EXTERNAL_API'`    | Grouped by environment (Dev/Prod). API keys masked (last 8 chars).                                            |
-| Email Settings    | `c3_email_config`                | Grouped by config_group. IS_TEST_MODE as toggle.                                                              |
-| System            | `setting_type='SYSTEM'`          | ACTIVE_ENVIRONMENT dropdown (Dev/Prod)                                                                        |
+Deprecate `src/types/weeklyAuditPlan.ts` and `src/services/weeklyAuditPlanService.ts`. Migrate all screens (MyPlans, WeeklyReports, PendingReview, FieldExecution) to use `weeklyPlan.ts` types and `weeklyPlanService.ts`. This eliminates the `NEED_CHANGES` vs `NEEDS_CHANGES` inconsistency.
 
+---
 
-**Per-row indicators:** Synced (green badge), Pending (amber), Failed (red + Retry button)
+## 4. Inspection / Audit Execution Model
 
-## Phase 6: Route + Navigation Integration
+### 4.1 Enhanced Execution Flow
 
-- Add route in `AppRoutes.tsx` under C3 Management section
-- Update CyberSource tab in `C3ConfigurationPage.tsx` to link/redirect to new screen
-- Ensure sidebar `app_modules` entry exists for this screen
+Expand `ExecutePlanItemDialog` from 4 tabs to 7 tabs:
 
-## Files Summary
+1. **Check-in** — GPS, time, location (exists)
+2. **Employer Interaction** (NEW) — representative name, designation, contact, authorization acknowledgement, records availability declaration (Complete / Partial / Unavailable / Refused)
+3. **Working Papers** (NEW) — audit checklist, payroll review notes, contribution review, employee sample count, discrepancies
+4. **Evidence** — photos, documents, audio/video (exists, enhance with finding linkage)
+5. **Findings** — categorized findings (exists, enhance with follow-up flag)
+6. **Violations** — create from findings (exists)
+7. **Check-out & Close** — GPS, time, final notes, next action, employer signature/refusal (NEW as separate tab)
 
+### 4.2 New Database Tables Required
 
-| File                                               | Action                                                                                   |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| DB Migration 1                                     | Create `c3_site_settings`, `c3_email_config`                                             |
-| DB Migration 2                                     | Seed all rows from guide                                                                 |
-| `supabase/functions/wiz-settings-sync/index.ts`    | New edge function — all sync logic                                                       |
-| `src/services/wizSettingsService.ts`               | New — thin CRUD + edge function calls                                                    |
-| `src/hooks/useSettingsConfiguration.ts`            | New — React Query wrappers                                                               |
-| `src/pages/c3Management/SettingsConfiguration.tsx` | New — 5-tab settings page                                                                |
-| `src/components/routing/AppRoutes.tsx`             | Add route                                                                                |
-| `src/pages/admin/C3ConfigurationPage.tsx`          | Update CyberSource tab reference(Don't hamper with the existing screen or functionality) |
+**`ce_inspection_employer_interactions`** — employer representative details, declaration type, authorization status, refusal notes
+
+**`ce_inspection_working_papers`** — checklist responses (linked to `ce_inspections`), payroll reviewed flag, contribution reviewed flag, employee sample size, discrepancy notes
+
+**`ce_inspection_evidence`** (new or enhance existing) — dedicated evidence table with finding_id FK, GPS per evidence item, captured_by, file metadata. Currently evidence is stored as JSONB in `ce_inspections.documents_collected` and `ce_inspections.photos` — needs normalization.
+
+### 4.3 Employer Declaration Model
+
+| Declaration | Handling |
+|------------|---------|
+| Records Complete | Proceed normally |
+| Records Partial | Warning logged, inspector notes what's missing |
+| Records Unavailable | Must record reason, can proceed with limited scope |
+| Refused Access | Auto-flag as possible violation, must record refusal |
+| Refused Signature | Record refusal reason, inspector self-certifies |
+
+### 4.4 Visit Completion Validation
+
+Before check-out is allowed:
+- **Mandatory**: At least one finding recorded (even if COMPLIANT)
+- **Mandatory**: Employer interaction section completed
+- **Warning only**: No evidence attached
+- **Blocking**: Any POSSIBLE_VIOLATION finding without violation conversion or explicit explanation
+- **Warning**: Working papers incomplete
+
+---
+
+## 5. Working Papers, Evidence, Findings & Acknowledgement Model
+
+### 5.1 Working Papers
+
+A structured checklist per visit, stored in `ce_inspection_working_papers`:
+- Payroll records reviewed (Y/N + notes)
+- Contribution records reviewed (Y/N + notes)
+- Employee sample reviewed (count + notes)
+- Wage book reviewed (Y/N + notes — column already exists: `ce_inspections.wage_books_reviewed`)
+- Discrepancies found (free text)
+- Inspector observations (free text)
+
+**Mandatory**: At least payroll or contribution section must be completed for EMPLOYER_VISIT type.
+**Optional**: For SCOUTING visits, working papers are optional.
+
+### 5.2 Evidence Register
+
+Normalize evidence from JSONB columns to a proper `ce_inspection_evidence` table:
+- `id`, `inspection_id`, `finding_id` (nullable FK), `evidence_type`, `file_name`, `file_url`, `file_size`, `description`, `captured_at`, `captured_by`, `gps_lat`, `gps_lng`
+
+### 5.3 Finding Register
+
+Existing `ce_inspection_findings` table is adequate. Add:
+- `follow_up_required` boolean
+- `follow_up_notes` text
+- `explanation_if_no_violation` text (for POSSIBLE_VIOLATION findings not converted)
+
+### 5.4 Visit Close-out Summary
+
+Auto-generated summary card at check-out showing:
+- Duration (check-in to check-out)
+- Working papers completion %
+- Evidence count
+- Findings count by severity
+- Violations created
+- Follow-ups required
+- Employer acknowledgement status
+
+---
+
+## 6. Automatic Weekly Report Generation
+
+### 6.1 Report Auto-Population
+
+Create a database view `ce_v_weekly_report_summary` that aggregates from:
+- `ce_weekly_plan_items` — planned/completed/rescheduled/cancelled/not_done counts
+- `ce_inspections` — hours from check_in/check_out, findings_summary
+- `ce_inspection_findings` — finding counts by type/severity
+- `ce_inspection_evidence` — evidence count
+- `ce_violations` — violations created during the plan period
+- `ce_follow_up_actions` — follow-ups created
+
+### 6.2 Inspector Additions (Not Auto-Generated)
+
+- Short narrative summary
+- Exceptions / blockers encountered
+- Recommendations / next week priorities
+
+### 6.3 Report Submission Validations
+
+| Validation | Severity |
+|-----------|----------|
+| Completed visit without any findings | **Blocking** |
+| POSSIBLE_VIOLATION finding without violation or explanation | **Blocking** |
+| Plan item still PLANNED (not executed, no reason) | **Blocking** |
+| Plan item NOT_DONE without reason | **Blocking** |
+| Evidence count = 0 for completed visits | **Warning** |
+| Working papers incomplete | **Warning** |
+
+### 6.4 Report Lifecycle
+
+`IN_EXECUTION` → inspector clicks "Submit Weekly Report" → status becomes `OUTCOME_SUBMITTED` → supervisor reviews → `COMPLETED`
+
+Currently `weeklyAuditPlanService.submitWeeklyReport()` jumps directly to COMPLETED. Fix to use OUTCOME_SUBMITTED, then supervisor completes via `weeklyPlanService.complete()`.
+
+---
+
+## 7. Screen-by-Screen Change Plan
+
+| Screen | Gap | Required Change | Priority | Type |
+|--------|-----|----------------|----------|------|
+| **WeeklyPlanBuilder** | No duplicate prevention | Add check before plan creation; show error if plan exists | High | Service + UI |
+| **WeeklyPlanBuilder** | No withdraw option | Add "Withdraw" button for SUBMITTED/RESUBMITTED plans | Medium | UI + Service |
+| **MyPlans** | Uses `weeklyAuditPlanService` | Migrate to `weeklyPlanService` | High | Service |
+| **MyPlans** | No WITHDRAWN status display | Add WITHDRAWN filter/badge | Medium | UI |
+| **PendingReview** | Uses old service | Migrate to `weeklyPlanService` | High | Service |
+| **WeeklyPlanReview** | Already uses correct service | No change needed | — | — |
+| **FieldExecution** | Uses `inspectionService` with old types | Migrate to `weeklyPlanService.planItemService` for items | High | Service |
+| **FieldExecution** | No employer interaction tab | Add tab 2 to ExecutePlanItemDialog | High | UI + Data |
+| **FieldExecution** | No working papers | Add tab 3 to ExecutePlanItemDialog | High | UI + Data |
+| **FieldExecution** | No visit close-out summary | Add summary card before check-out confirmation | Medium | UI |
+| **FieldExecution** | No completion validation | Add blocking checks at check-out | Medium | UI + Service |
+| **Findings** | No follow-up flag | Add follow_up_required toggle | Medium | UI + Data |
+| **Findings** | No explanation for unconverted violations | Add explanation field | Medium | UI + Data |
+| **Violations** | Finding→Violation traceability exists | No major change | — | — |
+| **WeeklyReports** | Uses old service, TODO stubs | Create DB view for aggregation, migrate service | High | Data + Service |
+| **WeeklyReports** | Jumps to COMPLETED | Fix to use OUTCOME_SUBMITTED | High | Service |
+| **WeeklyReports** | No submission validation | Add blocking/warning checks | Medium | UI + Service |
+| **AllWeeklyReports** | Supervisor report review | Needs approve/reject for outcome reports | Medium | UI + Service |
+
+---
+
+## 8. Data / Service / Workflow Changes
+
+### Already Supported
+- Plan CRUD with `ce_weekly_plans` and `ce_weekly_plan_items`
+- Plan review history via `ce_weekly_plan_reviews`
+- Check-in/check-out with GPS on plan items
+- Finding creation and violation conversion
+- Rejection count tracking
+- Plan narrative and outcome narrative
+
+### Needs Enhancement
+- **Unique constraint** on `ce_weekly_plans(inspector_id, week_start_date)` — DB migration
+- **WITHDRAWN status** in enum and service — code change
+- **`ce_inspection_findings`** — add `follow_up_required`, `follow_up_notes`, `explanation_if_no_violation` columns — DB migration
+- **Evidence normalization** — create `ce_inspection_evidence` table from JSONB columns — DB migration
+- **`weeklyAuditPlanService.submitWeeklyReport()`** — change to OUTCOME_SUBMITTED instead of COMPLETED — code fix
+- **Weekly report summary view** — create `ce_v_weekly_report_summary` — DB migration
+- **Deprecate `weeklyAuditPlanService`** — migrate all consumers — code refactor
+
+### New Requirements
+- **`ce_inspection_employer_interactions`** table — DB migration
+- **`ce_inspection_working_papers`** table — DB migration
+- **Employer Interaction tab** in ExecutePlanItemDialog — new UI component
+- **Working Papers tab** in ExecutePlanItemDialog — new UI component
+- **Visit Close-out Summary** component — new UI component
+- **Report submission validation** — new service logic
+- **Withdraw plan** service method — new service method
+
+---
+
+## 9. Key Business Decisions Required
+
+1. **Should WITHDRAWN plans be permanently hidden or shown with a strike-through?** — *Requires business confirmation*
+2. **Is employer signature capture mandatory or optional for field visits?** — *Requires business confirmation*
+3. **Should working papers use a fixed checklist template or be configurable per visit type?** — *Requires business confirmation*
+4. **Can an inspector re-open a WITHDRAWN plan, or must they create a new one?** — *Inferred: re-open by changing status back to DRAFT*
+5. **Should the weekly report auto-submit if all items are completed and validated, or always require manual submission?** — *Inferred: always manual*
+6. **Maximum number of rejections before escalation?** — *Requires business confirmation*
+
+---
+
+## 10. Priority Implementation Roadmap
+
+### Phase 1 — Critical Fixes (Week 1)
+1. Add unique constraint for duplicate plan prevention
+2. Unify type system (deprecate `weeklyAuditPlan.ts`)
+3. Fix weekly report to use OUTCOME_SUBMITTED status
+4. Add WITHDRAWN status and withdraw capability
+
+### Phase 2 — Execution Enhancement (Week 2-3)
+5. Create `ce_inspection_employer_interactions` table + UI tab
+6. Create `ce_inspection_working_papers` table + UI tab
+7. Normalize evidence to `ce_inspection_evidence` table
+8. Add visit completion validation at check-out
+9. Add visit close-out summary component
+
+### Phase 3 — Reporting & Aggregation (Week 3-4)
+10. Create `ce_v_weekly_report_summary` database view
+11. Enhance weekly report screen with auto-populated data
+12. Add report submission validation (blocking/warning)
+13. Add supervisor report review (approve/reject outcome)
+
+### Phase 4 — Polish (Week 4)
+14. Add finding follow-up flags and unconverted violation explanations
+15. Migrate all remaining screens from old service
+16. Add employer signature capture
+17. Add refusal-to-sign handling
+
