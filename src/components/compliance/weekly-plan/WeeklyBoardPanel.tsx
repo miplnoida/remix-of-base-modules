@@ -1,10 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { WeeklyPlanItem } from '@/types/weeklyPlan';
 import { DayOfWeek } from '@/hooks/useWeeklyPlanBuilder';
-import { Calendar, Trash2, Clock, Building2, Binoculars, Phone, FileSearch, Star } from 'lucide-react';
-import { format, isToday, parseISO } from 'date-fns';
+import {
+  Calendar, Trash2, Clock, Building2, Binoculars, Phone,
+  FileSearch, Star, AlertTriangle,
+} from 'lucide-react';
+import { isToday, parseISO } from 'date-fns';
 
 interface DayInfo {
   name: DayOfWeek;
@@ -24,79 +28,106 @@ interface WeeklyBoardPanelProps {
 
 function getItemTypeIcon(itemType: string) {
   switch (itemType) {
-    case 'SCOUTING': return <Binoculars className="h-3 w-3" />;
-    case 'CALL': return <Phone className="h-3 w-3" />;
-    case 'DESK_REVIEW': return <FileSearch className="h-3 w-3" />;
-    default: return <Building2 className="h-3 w-3" />;
+    case 'SCOUTING': return <Binoculars className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />;
+    case 'CALL': return <Phone className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />;
+    case 'DESK_REVIEW': return <FileSearch className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />;
+    default: return <Building2 className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />;
   }
 }
 
-function getPriorityDot(priority: string) {
+function getItemTypeLabel(itemType: string) {
+  switch (itemType) {
+    case 'SCOUTING': return 'Scouting';
+    case 'CALL': return 'Call';
+    case 'DESK_REVIEW': return 'Desk Review';
+    case 'NOTICE_FOLLOW_UP': return 'Notice F/U';
+    case 'MEETING': return 'Meeting';
+    default: return 'Visit';
+  }
+}
+
+function getPriorityColor(priority: string) {
   switch (priority) {
-    case 'CRITICAL': return 'bg-destructive';
-    case 'HIGH': return 'bg-orange-500';
-    case 'MEDIUM': return 'bg-amber-500';
-    default: return 'bg-muted-foreground/40';
+    case 'CRITICAL': return 'border-l-destructive';
+    case 'HIGH': return 'border-l-orange-500';
+    case 'MEDIUM': return 'border-l-amber-400';
+    default: return 'border-l-muted';
   }
 }
 
-function getSourceBadge(sourceType: string | null) {
-  switch (sourceType) {
-    case 'VIOLATION': return { label: 'VIO', class: 'bg-destructive/10 text-destructive' };
-    case 'FOLLOW_UP': return { label: 'F/U', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' };
-    case 'CASE': return { label: 'CASE', class: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' };
-    case 'NOTICE': return { label: 'NTC', class: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' };
-    case 'SCOUTING_LEAD': return { label: 'SCT', class: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' };
-    case 'MANUAL': return { label: 'MAN', class: 'bg-muted text-muted-foreground' };
-    default: return null;
-  }
+function formatTime(time: string | null): string {
+  if (!time) return '';
+  // Handle "HH:MM:SS" or "HH:MM" formats
+  const parts = time.split(':');
+  const hour = parseInt(parts[0], 10);
+  const min = parts[1] || '00';
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${h12}:${min} ${ampm}`;
 }
 
 function getTimeBlock(item: WeeklyPlanItem): 'AM' | 'PM' | 'FLEX' {
   if (item.duration === 'HALF_DAY_AM') return 'AM';
   if (item.duration === 'HALF_DAY_PM') return 'PM';
   if (item.scheduled_start_time) {
-    return item.scheduled_start_time < '12:00' ? 'AM' : 'PM';
+    const hour = parseInt(item.scheduled_start_time.split(':')[0], 10);
+    return hour < 12 ? 'AM' : 'PM';
   }
   return 'FLEX';
 }
 
-function ItemCard({ item, canEdit, onRemove }: { item: WeeklyPlanItem; canEdit: boolean; onRemove: () => void }) {
-  const sourceBadge = getSourceBadge(item.source_type);
+function estimateItemHours(item: WeeklyPlanItem): number {
+  if (item.duration === 'FULL_DAY') return 7;
+  if (item.duration === 'HALF_DAY_AM' || item.duration === 'HALF_DAY_PM') return 3;
+  if (item.duration === 'SHORT') return 1;
+  if (item.item_type === 'CALL') return 0.5;
+  return 2;
+}
+
+function ItemCard({
+  item, canEdit, onRemove,
+}: {
+  item: WeeklyPlanItem;
+  canEdit: boolean;
+  onRemove: () => void;
+}) {
+  const name = item.employer_name || item.area_name || item.purpose || 'Untitled';
+
   return (
-    <div className="group flex items-start gap-1.5 p-1.5 bg-background rounded border border-transparent hover:border-border transition-colors">
-      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${getPriorityDot(item.priority)}`} />
+    <div className={`group flex items-start gap-2 p-2 rounded-md border-l-[3px] bg-card hover:bg-accent/30 transition-colors ${getPriorityColor(item.priority)}`}>
+      <div className="mt-0.5 shrink-0">{getItemTypeIcon(item.item_type)}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1">
-          {getItemTypeIcon(item.item_type)}
-          <span className="text-[11px] font-medium truncate">
-            {item.employer_name || item.area_name || item.purpose || 'Untitled'}
-          </span>
-          {item.is_mandatory && <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-500 shrink-0" />}
+          <span className="text-xs font-medium truncate" title={name}>{name}</span>
+          {item.is_mandatory && (
+            <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />
+          )}
         </div>
-        <div className="flex items-center gap-1 mt-0.5">
+        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          <span className="text-[10px] text-muted-foreground">{getItemTypeLabel(item.item_type)}</span>
           {item.scheduled_start_time && (
-            <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
-              <Clock className="h-2 w-2" />{item.scheduled_start_time}
+            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+              <Clock className="h-2.5 w-2.5" />
+              {formatTime(item.scheduled_start_time)}
             </span>
           )}
-          {sourceBadge && (
-            <Badge variant="outline" className={`text-[8px] px-1 py-0 leading-tight ${sourceBadge.class}`}>
-              {sourceBadge.label}
-            </Badge>
+          {item.source_ref && (
+            <span className="text-[10px] font-mono text-muted-foreground">{item.source_ref}</span>
           )}
         </div>
       </div>
       {canEdit && (
-        <Button variant="ghost" size="sm" className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100 shrink-0" onClick={onRemove}>
-          <Trash2 className="h-2.5 w-2.5 text-destructive" />
+        <Button variant="ghost" size="sm"
+          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 shrink-0"
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}>
+          <Trash2 className="h-3 w-3 text-destructive" />
         </Button>
       )}
     </div>
   );
 }
 
-function TimeBlockSection({ label, items, canEdit, onRemoveItem }: {
+function TimeBlockGroup({ label, items, canEdit, onRemoveItem }: {
   label: string;
   items: WeeklyPlanItem[];
   canEdit: boolean;
@@ -104,25 +135,19 @@ function TimeBlockSection({ label, items, canEdit, onRemoveItem }: {
 }) {
   if (items.length === 0) return null;
   return (
-    <div>
-      <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-medium mb-1 px-1">{label}</p>
-      <div className="space-y-0.5">
-        {items.map(item => (
-          <ItemCard key={item.id} item={item} canEdit={canEdit} onRemove={() => onRemoveItem(item.id)} />
-        ))}
-      </div>
+    <div className="space-y-1">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold px-1">
+        {label}
+      </p>
+      {items.map(item => (
+        <ItemCard key={item.id} item={item} canEdit={canEdit} onRemove={() => onRemoveItem(item.id)} />
+      ))}
     </div>
   );
 }
 
 export function WeeklyBoardPanel({
-  days,
-  itemsByDay,
-  onRemoveItem,
-  canEdit,
-  totalItems,
-  selectedDay,
-  onSelectDay,
+  days, itemsByDay, onRemoveItem, canEdit, totalItems, selectedDay, onSelectDay,
 }: WeeklyBoardPanelProps) {
   return (
     <div className="space-y-3">
@@ -131,68 +156,108 @@ export function WeeklyBoardPanel({
           <Calendar className="h-4 w-4 text-primary" />
           <h3 className="font-semibold text-sm">Weekly Schedule Board</h3>
         </div>
-        <Badge variant="secondary" className="text-xs">{totalItems} total items</Badge>
+        <Badge variant="secondary" className="text-xs">{totalItems} items</Badge>
       </div>
 
-      <div className="grid grid-cols-5 gap-2">
+      {/* Day tabs */}
+      <div className="flex gap-1.5">
         {days.map(day => {
           const items = itemsByDay[day.name] || [];
           const isTodayDate = (() => { try { return isToday(parseISO(day.date)); } catch { return false; } })();
           const isSelected = selectedDay === day.name;
-
-          // Group by time block
-          const amItems = items.filter(i => getTimeBlock(i) === 'AM');
-          const pmItems = items.filter(i => getTimeBlock(i) === 'PM');
-          const flexItems = items.filter(i => getTimeBlock(i) === 'FLEX');
-
-          // Capacity estimation
-          const totalHours = items.reduce((s, i) => {
-            if (i.duration === 'FULL_DAY') return s + 7;
-            if (i.duration === 'HALF_DAY_AM' || i.duration === 'HALF_DAY_PM') return s + 3.5;
-            if (i.duration === 'SHORT') return s + 1;
-            if (i.item_type === 'CALL') return s + 0.5;
-            return s + 2;
-          }, 0);
-          const capacityPercent = Math.min(100, (totalHours / 8) * 100);
+          const totalHours = items.reduce((s, i) => s + estimateItemHours(i), 0);
+          const isOverCap = totalHours > 7;
 
           return (
-            <Card
+            <button
               key={day.name}
-              className={`cursor-pointer transition-all ${isTodayDate ? 'ring-2 ring-primary/50' : ''} ${isSelected ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-sm'}`}
               onClick={() => onSelectDay(day.name)}
+              className={`flex-1 rounded-lg p-2 text-center transition-all border ${
+                isSelected
+                  ? 'border-primary bg-primary/5 shadow-sm'
+                  : 'border-border hover:border-primary/50 bg-card'
+              } ${isTodayDate ? 'ring-1 ring-primary/30' : ''}`}
             >
-              <CardHeader className="pb-1 px-2 pt-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xs font-semibold">{day.name.substring(0, 3)}</CardTitle>
-                  {isTodayDate && <Badge className="text-[8px] px-1 py-0 bg-primary">Today</Badge>}
-                </div>
-                <span className="text-[10px] text-muted-foreground">{day.label}</span>
-                {/* Capacity bar */}
-                <div className="w-full h-1 bg-muted rounded-full overflow-hidden mt-1">
-                  <div
-                    className={`h-full rounded-full transition-all ${capacityPercent > 100 ? 'bg-destructive' : capacityPercent > 75 ? 'bg-amber-500' : 'bg-primary'}`}
-                    style={{ width: `${capacityPercent}%` }}
-                  />
-                </div>
-                <span className="text-[9px] text-muted-foreground">{totalHours.toFixed(1)}h / 8h</span>
-              </CardHeader>
-              <CardContent className="px-2 pb-2 space-y-1.5 min-h-[100px]" onClick={e => e.stopPropagation()}>
-                {items.length === 0 ? (
-                  <div className="text-center py-4 text-[10px] text-muted-foreground border border-dashed rounded">
-                    No items
-                  </div>
-                ) : (
-                  <>
-                    <TimeBlockSection label="Morning" items={amItems} canEdit={canEdit} onRemoveItem={onRemoveItem} />
-                    <TimeBlockSection label="Afternoon" items={pmItems} canEdit={canEdit} onRemoveItem={onRemoveItem} />
-                    <TimeBlockSection label="Flexible" items={flexItems} canEdit={canEdit} onRemoveItem={onRemoveItem} />
-                  </>
-                )}
-              </CardContent>
-            </Card>
+              <p className="text-xs font-semibold">{day.name.substring(0, 3)}</p>
+              <p className="text-[10px] text-muted-foreground">{day.label}</p>
+              <div className="flex items-center justify-center gap-1 mt-1">
+                <Badge
+                  variant={items.length > 0 ? 'default' : 'outline'}
+                  className="text-[10px] h-4 px-1.5"
+                >
+                  {items.length}
+                </Badge>
+              </div>
+              <p className={`text-[9px] mt-0.5 ${isOverCap ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                {totalHours.toFixed(1)}h
+              </p>
+            </button>
           );
         })}
       </div>
+
+      {/* Selected day items */}
+      {selectedDay ? (
+        <DaySchedule
+          dayName={selectedDay}
+          items={itemsByDay[selectedDay] || []}
+          canEdit={canEdit}
+          onRemoveItem={onRemoveItem}
+        />
+      ) : (
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            <Calendar className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+            Select a day above to view and manage items
+          </CardContent>
+        </Card>
+      )}
     </div>
+  );
+}
+
+function DaySchedule({ dayName, items, canEdit, onRemoveItem }: {
+  dayName: DayOfWeek;
+  items: WeeklyPlanItem[];
+  canEdit: boolean;
+  onRemoveItem: (id: string) => void;
+}) {
+  const amItems = items.filter(i => getTimeBlock(i) === 'AM');
+  const pmItems = items.filter(i => getTimeBlock(i) === 'PM');
+  const flexItems = items.filter(i => getTimeBlock(i) === 'FLEX');
+  const totalHours = items.reduce((s, i) => s + estimateItemHours(i), 0);
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm">{dayName}'s Schedule</CardTitle>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {items.length} {items.length === 1 ? 'item' : 'items'}
+            </span>
+            {totalHours > 7 && (
+              <Badge variant="destructive" className="text-[10px] gap-1">
+                <AlertTriangle className="h-2.5 w-2.5" />
+                {totalHours.toFixed(1)}h over cap
+              </Badge>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {items.length === 0 ? (
+          <div className="text-center py-6 text-sm text-muted-foreground border-2 border-dashed rounded-lg">
+            No items scheduled — add from suggestions or use Exception Item
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <TimeBlockGroup label="☀️ Morning (8:00 AM – 12:00 PM)" items={amItems} canEdit={canEdit} onRemoveItem={onRemoveItem} />
+            <TimeBlockGroup label="🌤️ Afternoon (1:00 PM – 5:00 PM)" items={pmItems} canEdit={canEdit} onRemoveItem={onRemoveItem} />
+            <TimeBlockGroup label="⏰ Flexible" items={flexItems} canEdit={canEdit} onRemoveItem={onRemoveItem} />
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

@@ -8,16 +8,15 @@ import { DayOfWeek } from '@/hooks/useWeeklyPlanBuilder';
 const DAYS: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
 // Capacity constants (in hours)
-const MAX_HOURS_PER_DAY = 8;
-const AM_HOURS = 4;  // 08:00–12:00
-const PM_HOURS = 4;  // 13:00–17:00
+const MAX_HOURS_PER_DAY = 7;
+const MAX_ITEMS_PER_DAY = 5;
+const MAX_TOTAL_ITEMS = 20; // Reasonable weekly limit
 
 // Duration estimates in hours
 function estimateHours(itemType: string, duration?: string): number {
   if (duration === PlanItemDuration.FULL_DAY) return 7;
-  if (duration === PlanItemDuration.HALF_DAY_AM || duration === PlanItemDuration.HALF_DAY_PM) return 3.5;
+  if (duration === PlanItemDuration.HALF_DAY_AM || duration === PlanItemDuration.HALF_DAY_PM) return 3;
   if (duration === PlanItemDuration.SHORT) return 1;
-  // Defaults by item type
   switch (itemType) {
     case 'EMPLOYER_VISIT': return 2;
     case 'SCOUTING': return 3;
@@ -29,16 +28,15 @@ function estimateHours(itemType: string, duration?: string): number {
   }
 }
 
-// Determine the time block for an item
 function getTimeBlock(itemType: string): 'AM' | 'PM' | 'FLEXIBLE' {
   switch (itemType) {
     case 'EMPLOYER_VISIT':
     case 'SCOUTING':
-      return 'AM'; // Field work preferably morning
+      return 'AM';
     case 'CALL':
     case 'DESK_REVIEW':
     case 'NOTICE_FOLLOW_UP':
-      return 'FLEXIBLE'; // Can be done anytime
+      return 'FLEXIBLE';
     case 'MEETING':
       return 'PM';
     default:
@@ -46,18 +44,14 @@ function getTimeBlock(itemType: string): 'AM' | 'PM' | 'FLEXIBLE' {
   }
 }
 
-// Priority sort value (lower = higher priority)
 function prioritySortOrder(candidate: PlanCandidate): number {
-  // 1. Overdue items (negative days remaining)
   if (candidate.due_date) {
     const daysUntilDue = Math.ceil(
       (new Date(candidate.due_date).getTime() - Date.now()) / 86400000
     );
-    if (daysUntilDue < 0) return 0; // Overdue — top priority
-    if (daysUntilDue <= 7) return 1; // Due this week
+    if (daysUntilDue < 0) return 0;
+    if (daysUntilDue <= 7) return 1;
   }
-
-  // 2. By priority
   switch (candidate.priority) {
     case 'CRITICAL': return 2;
     case 'HIGH': return 3;
@@ -67,7 +61,6 @@ function prioritySortOrder(candidate: PlanCandidate): number {
   }
 }
 
-// Classify candidates into urgency buckets
 export type UrgencyBucket =
   | 'OVERDUE'
   | 'DUE_THIS_WEEK'
@@ -119,24 +112,10 @@ export interface SmartDraftResult {
   warnings: string[];
 }
 
-/**
- * Generate a smart draft plan from scored candidates.
- * Rules (in priority order):
- * 1. Overdue items first
- * 2. Due-this-week items next
- * 3. Manager-assigned / mandatory items
- * 4. Carry-forward incomplete tasks
- * 5. High-score violations
- * 6. Group by territory when possible
- * 7. Fit calls into short flexible slots
- * 8. Field visits into AM blocks
- * 9. Warn when day exceeds capacity
- */
 export function generateSmartDraft(
   candidates: PlanCandidate[],
   alreadyAddedSourceIds: Set<string | null>
 ): SmartDraftResult {
-  // Filter out already-added
   const available = candidates.filter(c => !alreadyAddedSourceIds.has(c.source_id));
 
   // Sort by priority
@@ -144,30 +123,24 @@ export function generateSmartDraft(
     const pa = prioritySortOrder(a);
     const pb = prioritySortOrder(b);
     if (pa !== pb) return pa - pb;
-    // Secondary: recommendation score (higher = more important)
     return (b.recommendation_score ?? 0) - (a.recommendation_score ?? 0);
   });
 
   const dayCapacities: Record<DayOfWeek, DayCapacity> = {} as any;
   for (const day of DAYS) {
-    dayCapacities[day] = {
-      day,
-      amUsed: 0,
-      pmUsed: 0,
-      flexUsed: 0,
-      totalUsed: 0,
-      items: [],
-    };
+    dayCapacities[day] = { day, amUsed: 0, pmUsed: 0, flexUsed: 0, totalUsed: 0, items: [] };
   }
 
   const draftItems: DraftItem[] = [];
   const unscheduled: PlanCandidate[] = [];
   const warnings: string[] = [];
-
-  // Territory-based day grouping: try to cluster same territory on same day
   const territoryDayMap: Record<string, DayOfWeek> = {};
 
-  for (const candidate of sorted) {
+  // Only schedule up to MAX_TOTAL_ITEMS
+  const toSchedule = sorted.slice(0, MAX_TOTAL_ITEMS);
+  const overflow = sorted.slice(MAX_TOTAL_ITEMS);
+
+  for (const candidate of toSchedule) {
     const itemType = candidate.source_type === 'SCOUTING_LEAD' ? 'SCOUTING' :
       candidate.source_type === 'FOLLOW_UP' ? 'CALL' :
       candidate.source_type === 'NOTICE' ? 'NOTICE_FOLLOW_UP' :
@@ -175,8 +148,6 @@ export function generateSmartDraft(
 
     const hours = estimateHours(itemType);
     const preferredBlock = getTimeBlock(itemType);
-
-    // Find best day
     let assignedDay: DayOfWeek | null = null;
 
     // Prefer territory clustering
@@ -188,20 +159,13 @@ export function generateSmartDraft(
       }
     }
 
-    // If no territory match, find the day with most available capacity
+    // Find least-loaded day that can fit
     if (!assignedDay) {
-      for (const day of DAYS) {
+      const sortedDays = [...DAYS].sort(
+        (a, b) => dayCapacities[a].totalUsed - dayCapacities[b].totalUsed
+      );
+      for (const day of sortedDays) {
         if (canFitOnDay(dayCapacities[day], hours, preferredBlock)) {
-          assignedDay = day;
-          break;
-        }
-      }
-    }
-
-    if (!assignedDay) {
-      // Try any day with any block
-      for (const day of DAYS) {
-        if (dayCapacities[day].totalUsed + hours <= MAX_HOURS_PER_DAY + 1) {
           assignedDay = day;
           break;
         }
@@ -217,39 +181,30 @@ export function generateSmartDraft(
       else cap.flexUsed += hours;
       cap.totalUsed += hours;
 
-      const draft: DraftItem = {
-        candidate,
-        day: assignedDay,
-        timeBlock: actualBlock,
-        estimatedHours: hours,
-        itemType,
-      };
-      cap.items.push(draft);
-      draftItems.push(draft);
+      cap.items.push({
+        candidate, day: assignedDay, timeBlock: actualBlock,
+        estimatedHours: hours, itemType,
+      });
+      draftItems.push(cap.items[cap.items.length - 1]);
 
-      // Track territory clustering
-      if (territory) {
-        territoryDayMap[territory] = assignedDay;
-      }
+      if (territory) territoryDayMap[territory] = assignedDay;
     } else {
       unscheduled.push(candidate);
     }
   }
 
-  // Generate warnings
+  // All overflow goes to unscheduled
+  unscheduled.push(...overflow);
+
   for (const day of DAYS) {
     const cap = dayCapacities[day];
     if (cap.totalUsed > MAX_HOURS_PER_DAY) {
       warnings.push(`${day} is over capacity (${cap.totalUsed.toFixed(1)}h / ${MAX_HOURS_PER_DAY}h)`);
     }
-    if (cap.items.length > 6) {
-      warnings.push(`${day} has ${cap.items.length} items — consider redistributing`);
-    }
   }
 
-  const overdueCount = sorted.filter(c => classifyCandidate(c) === 'OVERDUE').length;
-  if (overdueCount > 0 && unscheduled.some(c => classifyCandidate(c) === 'OVERDUE')) {
-    warnings.push(`Some overdue items could not be scheduled — capacity exceeded`);
+  if (unscheduled.length > 0) {
+    warnings.push(`${unscheduled.length} items remain in suggestions for manual review`);
   }
 
   return { draftItems, unscheduled, dayCapacities, warnings };
@@ -257,40 +212,34 @@ export function generateSmartDraft(
 
 function canFitOnDay(cap: DayCapacity, hours: number, block: 'AM' | 'PM' | 'FLEXIBLE'): boolean {
   if (cap.totalUsed + hours > MAX_HOURS_PER_DAY) return false;
-  if (block === 'AM' && cap.amUsed + hours > AM_HOURS) return false;
-  if (block === 'PM' && cap.pmUsed + hours > PM_HOURS) return false;
+  if (cap.items.length >= MAX_ITEMS_PER_DAY) return false;
   return true;
 }
 
 function fitInBlock(cap: DayCapacity, hours: number, preferred: 'AM' | 'PM' | 'FLEXIBLE'): 'AM' | 'PM' | 'FLEXIBLE' {
-  if (preferred === 'AM' && cap.amUsed + hours <= AM_HOURS) return 'AM';
-  if (preferred === 'PM' && cap.pmUsed + hours <= PM_HOURS) return 'PM';
-  // Fall back
-  if (cap.amUsed + hours <= AM_HOURS) return 'AM';
-  if (cap.pmUsed + hours <= PM_HOURS) return 'PM';
+  if (preferred === 'AM' && cap.amUsed + hours <= 4) return 'AM';
+  if (preferred === 'PM' && cap.pmUsed + hours <= 4) return 'PM';
+  if (cap.amUsed + hours <= 4) return 'AM';
+  if (cap.pmUsed + hours <= 4) return 'PM';
   return 'FLEXIBLE';
 }
 
-/**
- * Convert draft items to CreatePlanItemRequest objects
- */
 export function draftToRequests(
   draftItems: DraftItem[],
-  planId: string,
+  _planId: string,
   weekDays: { name: DayOfWeek; date: string }[],
-  createdBy: string
+  _createdBy: string
 ): Omit<CreatePlanItemRequest, 'plan_id' | 'created_by'>[] {
   return draftItems.map(draft => {
     const dayInfo = weekDays.find(d => d.name === draft.day);
-    // Compute start/end times based on block
     let startTime: string | undefined;
     let endTime: string | undefined;
     if (draft.timeBlock === 'AM') {
       startTime = '08:00';
-      endTime = `${String(8 + Math.round(draft.estimatedHours)).padStart(2, '0')}:00`;
+      endTime = `${String(8 + Math.min(Math.round(draft.estimatedHours), 4)).padStart(2, '0')}:00`;
     } else if (draft.timeBlock === 'PM') {
       startTime = '13:00';
-      endTime = `${String(13 + Math.round(draft.estimatedHours)).padStart(2, '0')}:00`;
+      endTime = `${String(13 + Math.min(Math.round(draft.estimatedHours), 4)).padStart(2, '0')}:00`;
     }
 
     return {
