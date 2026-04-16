@@ -374,7 +374,86 @@ export const fieldAuditService = {
     return { id: data.id };
   },
 
-  // ── Plan Execution Dashboard ────────────────────
+  // ── Findings & Violations reads (canonical) ─────
+
+  async getFindingsForVisit(inspectionId: string): Promise<InspectionFinding[]> {
+    const { data, error } = await supabase
+      .from('ce_inspection_findings')
+      .select('*, ce_inspection_evidence(id)')
+      .eq('inspection_id', inspectionId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      inspectionVisitId: row.inspection_id ?? '',
+      employerId: '',
+      findingType: row.finding_type ?? 'INFORMATION_ONLY',
+      title: row.title ?? (row.description?.substring(0, 80) ?? ''),
+      category: row.category ?? '',
+      description: row.description ?? '',
+      severity: row.severity ?? 'Medium',
+      recommendedAction: row.recommended_action ?? undefined,
+      followUpRequired: !!row.follow_up_required,
+      isViolationCreated: !!row.violation_created,
+      violationId: row.violation_id ?? undefined,
+      evidenceIds: (row.ce_inspection_evidence ?? []).map((e: any) => e.id),
+      createdAt: row.created_at,
+      createdByUserId: row.created_by ?? '',
+      createdByName: row.created_by ?? '',
+    }));
+  },
+
+  async getViolationsForVisit(inspectionId: string): Promise<Violation[]> {
+    const { data, error } = await supabase
+      .from('ce_violations')
+      .select('*')
+      .eq('inspection_id', inspectionId);
+    if (error) throw error;
+    return (data ?? []).map((row: any): Violation => ({
+      id: row.id,
+      violationNumber: row.violation_number ?? '',
+      employerId: row.employer_id ?? '',
+      employerName: row.employer_name ?? '',
+      violationType: row.violation_type ?? 'OTHER',
+      status: row.status ?? 'OPEN',
+      severity: row.severity ?? 'Medium',
+      priority: row.severity ?? 'Medium',
+      description: row.description ?? '',
+      summary: row.description ?? '',
+      territory: row.territory ?? 'St Kitts',
+      discoveredDate: row.detected_date ?? row.created_at,
+      discoveredBy: row.detected_by ?? '',
+      assignedToUserId: row.assigned_to_user_id ?? '',
+      createdAt: row.created_at,
+      updatedAt: row.updated_at ?? row.created_at,
+      inspectionVisitId: row.inspection_id,
+      isUnlinked: false,
+    }));
+  },
+
+  // ── Unified per-visit metrics (single source of truth) ──
+
+  async getVisitMetrics(inspectionId: string) {
+    const { data, error } = await supabase
+      .from('ce_v_visit_execution_metrics' as any)
+      .select('*')
+      .eq('inspection_id', inspectionId)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+
+  async getVisitMetricsBatch(inspectionIds: string[]) {
+    if (!inspectionIds.length) return [] as any[];
+    const { data, error } = await supabase
+      .from('ce_v_visit_execution_metrics' as any)
+      .select('*')
+      .in('inspection_id', inspectionIds);
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  // ── Plan Execution Dashboard (refactored to use view) ──
 
   async getPlanExecutionDashboard(planId: string): Promise<PlanExecutionDashboard> {
     const { data: plan, error: planErr } = await supabase
@@ -392,100 +471,53 @@ export const fieldAuditService = {
     if (itemsErr) throw itemsErr;
 
     const planItemIds = (items ?? []).map((i: any) => i.id);
+
+    // Pull metrics by plan_item_id (now linked via ce_inspections.plan_item_id)
+    let metricsByPlanItem = new Map<string, any>();
+    if (planItemIds.length) {
+      const { data: metrics } = await supabase
+        .from('ce_v_visit_execution_metrics' as any)
+        .select('*')
+        .in('plan_item_id', planItemIds);
+      (metrics ?? []).forEach((m: any) => {
+        if (m.plan_item_id) metricsByPlanItem.set(m.plan_item_id, m);
+      });
+    }
+
+    // Follow-ups by employer (carry over count)
     const employerIds = Array.from(
       new Set((items ?? []).map((i: any) => i.employer_id).filter(Boolean))
     );
-
-    // Fetch related inspections for these employers in this week
-    const weekStart = (plan as any).week_start_date;
-    const weekEnd = (plan as any).week_end_date;
-    const { data: inspections } = await supabase
-      .from('ce_inspections')
-      .select('id, employer_id, status, scheduled_date')
-      .in('employer_id', employerIds.length ? employerIds : ['__none__'])
-      .gte('scheduled_date', weekStart)
-      .lte('scheduled_date', weekEnd);
-
-    // Inspection IDs
-    const inspectionIds = (inspections ?? []).map((i: any) => i.id);
-
-    // Aggregate counts in batch
-    const [
-      { data: checklistRows },
-      { data: evidenceRows },
-      { data: findingRows },
-      { data: reportRows },
-      { data: followUpRows },
-    ] = await Promise.all([
-      supabase
-        .from('ce_audit_checklist_responses')
-        .select('inspection_id, response')
-        .in('inspection_id', inspectionIds.length ? inspectionIds : ['__none__']),
-      supabase
-        .from('ce_inspection_evidence')
-        .select('inspection_id')
-        .in('inspection_id', inspectionIds.length ? inspectionIds : ['__none__']),
-      supabase
-        .from('ce_inspection_findings')
-        .select('id, inspection_id')
-        .in('inspection_id', inspectionIds.length ? inspectionIds : ['__none__']),
-      supabase
-        .from('ce_employer_audit_reports')
-        .select('inspection_id, status')
-        .in('inspection_id', inspectionIds.length ? inspectionIds : ['__none__']),
-      supabase
-        .from('ce_follow_up_actions')
-        .select('finding_id, employer_id')
-        .in('employer_id', employerIds.length ? employerIds : ['__none__']),
-    ]);
-
-    const checklistByInsp = new Map<string, { total: number; answered: number }>();
-    (checklistRows ?? []).forEach((r: any) => {
-      const cur = checklistByInsp.get(r.inspection_id) ?? { total: 0, answered: 0 };
-      cur.total += 1;
-      if (r.response) cur.answered += 1;
-      checklistByInsp.set(r.inspection_id, cur);
-    });
-    const evCount = new Map<string, number>();
-    (evidenceRows ?? []).forEach((r: any) =>
-      evCount.set(r.inspection_id, (evCount.get(r.inspection_id) ?? 0) + 1)
-    );
-    const fCount = new Map<string, number>();
-    (findingRows ?? []).forEach((r: any) =>
-      fCount.set(r.inspection_id, (fCount.get(r.inspection_id) ?? 0) + 1)
-    );
-    const reportByInsp = new Map<string, string>();
-    (reportRows ?? []).forEach((r: any) => reportByInsp.set(r.inspection_id, r.status));
     const followUpByEmp = new Map<string, number>();
-    (followUpRows ?? []).forEach((r: any) =>
-      followUpByEmp.set(r.employer_id, (followUpByEmp.get(r.employer_id) ?? 0) + 1)
-    );
-
-    // Build per-visit row by matching plan item -> inspection (by employer_id)
-    const inspectionByEmployer = new Map<string, any>();
-    (inspections ?? []).forEach((i: any) => {
-      if (!inspectionByEmployer.has(i.employer_id)) inspectionByEmployer.set(i.employer_id, i);
-    });
+    if (employerIds.length) {
+      const { data: fu } = await supabase
+        .from('ce_follow_up_actions')
+        .select('employer_id')
+        .in('employer_id', employerIds)
+        .eq('is_deleted', false);
+      (fu ?? []).forEach((r: any) =>
+        followUpByEmp.set(r.employer_id, (followUpByEmp.get(r.employer_id) ?? 0) + 1)
+      );
+    }
 
     const visits: PlanExecutionVisitRow[] = (items ?? []).map((it: any) => {
-      const insp = it.employer_id ? inspectionByEmployer.get(it.employer_id) : undefined;
-      const ic = insp ? checklistByInsp.get(insp.id) : undefined;
+      const m = metricsByPlanItem.get(it.id);
       return {
         planItemId: it.id,
-        inspectionId: insp?.id,
+        inspectionId: m?.inspection_id,
         visitDate: it.scheduled_date,
         employerId: it.employer_id ?? undefined,
         employerName: it.employer_name ?? undefined,
         areaName: it.area_name ?? undefined,
         visitType: it.visit_type ?? it.item_type ?? 'AUDIT',
         executionStatus: it.execution_status ?? 'PLANNED',
-        checklistTotal: ic?.total ?? 0,
-        checklistAnswered: ic?.answered ?? 0,
-        checklistPct: ic && ic.total > 0 ? Math.round((ic.answered / ic.total) * 100) : 0,
-        evidenceCount: insp ? evCount.get(insp.id) ?? 0 : 0,
-        findingsCount: insp ? fCount.get(insp.id) ?? 0 : 0,
-        hasReport: insp ? reportByInsp.has(insp.id) : false,
-        reportStatus: insp ? reportByInsp.get(insp.id) : undefined,
+        checklistTotal: m?.checklist_total ?? 0,
+        checklistAnswered: m?.checklist_answered ?? 0,
+        checklistPct: Number(m?.checklist_pct ?? 0),
+        evidenceCount: m?.evidence_count ?? 0,
+        findingsCount: m?.findings_count ?? 0,
+        hasReport: !!m?.report_id,
+        reportStatus: m?.report_status ?? undefined,
         followUpCount: it.employer_id ? followUpByEmp.get(it.employer_id) ?? 0 : 0,
       };
     });
@@ -504,8 +536,8 @@ export const fieldAuditService = {
     return {
       planId,
       planNumber: (plan as any).plan_number,
-      weekStartDate: weekStart,
-      weekEndDate: weekEnd,
+      weekStartDate: (plan as any).week_start_date,
+      weekEndDate: (plan as any).week_end_date,
       status: (plan as any).status,
       inspectorName: (plan as any).inspector_name,
       visits,
@@ -513,56 +545,79 @@ export const fieldAuditService = {
     };
   },
 
+  // ── Report Payload Aggregation (auto-derive) ────
+
+  async getReportPayload(inspectionId: string) {
+    const [
+      { data: inspection },
+      { data: checklist },
+      { data: evidence },
+      findings,
+      violations,
+      { data: interaction },
+      { data: workingPapers },
+      metrics,
+    ] = await Promise.all([
+      supabase.from('ce_inspections').select('*').eq('id', inspectionId).maybeSingle(),
+      supabase.from('ce_audit_checklist_responses').select('*').eq('inspection_id', inspectionId).order('category'),
+      supabase.from('ce_inspection_evidence').select('*').eq('inspection_id', inspectionId).order('captured_at'),
+      this.getFindingsForVisit(inspectionId),
+      this.getViolationsForVisit(inspectionId),
+      supabase.from('ce_inspection_employer_interactions').select('*').eq('inspection_id', inspectionId).maybeSingle(),
+      supabase.from('ce_inspection_working_papers').select('*').eq('inspection_id', inspectionId),
+      this.getVisitMetrics(inspectionId),
+    ]);
+
+    return {
+      inspection,
+      checklist: checklist ?? [],
+      evidence: evidence ?? [],
+      findings,
+      violations,
+      interaction,
+      workingPapers: workingPapers ?? [],
+      metrics,
+    };
+  },
+
   // ── Employer Audit Report ───────────────────────
 
   async generateEmployerAuditReport(inspectionId: string): Promise<EmployerAuditReportRow> {
     const userCode = await whoami();
+    const payload = await this.getReportPayload(inspectionId);
+    if (!payload.inspection) throw new Error('Inspection not found');
 
-    // Aggregate counts
-    const [
-      { data: insp },
-      { count: findingsCount },
-      { count: evidenceCount },
-      { count: violationsCount },
-      checklistStats,
-    ] = await Promise.all([
-      supabase.from('ce_inspections').select('*').eq('id', inspectionId).single(),
-      supabase.from('ce_inspection_findings').select('id', { count: 'exact', head: true }).eq('inspection_id', inspectionId),
-      supabase.from('ce_inspection_evidence').select('id', { count: 'exact', head: true }).eq('inspection_id', inspectionId),
-      supabase.from('ce_violations').select('id', { count: 'exact', head: true }).eq('inspection_id', inspectionId),
-      this.getChecklistCompletionStats(inspectionId),
-    ]);
+    const insp: any = payload.inspection;
+    const m: any = payload.metrics ?? {};
 
-    if (!insp) throw new Error('Inspection not found');
-
-    // Check for existing report
-    const { data: existing } = await supabase
-      .from('ce_employer_audit_reports')
-      .select('*')
-      .eq('inspection_id', inspectionId)
-      .maybeSingle();
-
-    const payload = {
+    const reportFields = {
       inspection_id: inspectionId,
-      employer_id: (insp as any).employer_id,
-      employer_name: (insp as any).employer_name,
-      inspector_id: (insp as any).inspector_id,
-      inspector_name: (insp as any).inspector_name,
-      total_findings: findingsCount ?? 0,
-      total_evidence: evidenceCount ?? 0,
-      total_violations: violationsCount ?? 0,
-      checklist_completion_pct: checklistStats.pct,
+      plan_item_id: insp.plan_item_id ?? null,
+      employer_id: insp.employer_id,
+      employer_name: insp.employer_name,
+      inspector_id: insp.inspector_id,
+      inspector_name: insp.inspector_name,
+      total_findings: m.findings_count ?? payload.findings.length,
+      total_evidence: m.evidence_count ?? payload.evidence.length,
+      total_violations: m.violations_count ?? payload.violations.length,
+      checklist_completion_pct: Number(m.checklist_pct ?? 0),
       generated_at: nowIso(),
       generated_by: userCode,
       updated_by: userCode,
       updated_at: nowIso(),
     };
 
+    const { data: existing } = await supabase
+      .from('ce_employer_audit_reports')
+      .select('*')
+      .eq('inspection_id', inspectionId)
+      .maybeSingle();
+
     let row: any;
     if (existing && existing.status !== 'FINAL') {
       const { data, error } = await supabase
         .from('ce_employer_audit_reports')
-        .update(payload as any)
+        .update(reportFields as any)
         .eq('id', existing.id)
         .select('*')
         .single();
@@ -571,13 +626,22 @@ export const fieldAuditService = {
     } else if (!existing) {
       const { data, error } = await supabase
         .from('ce_employer_audit_reports')
-        .insert({ ...payload, created_by: userCode } as any)
+        .insert({ ...reportFields, created_by: userCode } as any)
         .select('*')
         .single();
       if (error) throw error;
       row = data;
     } else {
       row = existing;
+    }
+
+    // Back-fill audit_report_id on violations of this inspection
+    if (row?.id) {
+      await supabase
+        .from('ce_violations')
+        .update({ audit_report_id: row.id, updated_by: userCode, updated_at: nowIso() } as any)
+        .eq('inspection_id', inspectionId)
+        .is('audit_report_id', null);
     }
 
     return mapReport(row);
@@ -628,7 +692,64 @@ export const fieldAuditService = {
     if (error) throw error;
   },
 
-  // ── Accurate Weekly Report Summary (FIXED) ─────
+  // ── Violation creation from Finding ─────────────
+
+  async createViolationFromFinding(params: {
+    findingId: string;
+    inspectionId: string;
+    employerId: string;
+    employerName?: string;
+    violationType: string;
+    description: string;
+    severity?: 'Low' | 'Medium' | 'High' | 'Critical';
+    territory?: string;
+  }): Promise<{ id: string; violationNumber: string }> {
+    const userCode = await whoami();
+    const violationNumber = `V-${new Date().getFullYear()}-${Date.now().toString(36).toUpperCase()}`;
+
+    // Look up existing report (if any) to back-link
+    const { data: report } = await supabase
+      .from('ce_employer_audit_reports')
+      .select('id')
+      .eq('inspection_id', params.inspectionId)
+      .maybeSingle();
+
+    const { data, error } = await supabase
+      .from('ce_violations')
+      .insert({
+        violation_number: violationNumber,
+        employer_id: params.employerId,
+        employer_name: params.employerName ?? null,
+        violation_type: params.violationType,
+        description: params.description,
+        severity: params.severity ?? 'Medium',
+        status: 'OPEN',
+        territory: params.territory ?? 'St Kitts',
+        inspection_id: params.inspectionId,
+        audit_report_id: report?.id ?? null,
+        detected_date: new Date().toISOString().slice(0, 10),
+        detected_by: userCode,
+        created_by: userCode,
+      } as any)
+      .select('id, violation_number')
+      .single();
+    if (error) throw error;
+
+    // Mark finding as violation-created
+    await supabase
+      .from('ce_inspection_findings')
+      .update({
+        violation_created: true,
+        violation_id: data.id,
+        updated_by: userCode,
+        updated_at: nowIso(),
+      } as any)
+      .eq('id', params.findingId);
+
+    return { id: data.id, violationNumber: data.violation_number };
+  },
+
+  // ── Accurate Weekly Report Summary (uses view) ──
 
   async getAccurateWeeklySummary(planId: string): Promise<AccurateWeeklySummary> {
     const { data: plan } = await supabase
@@ -657,32 +778,36 @@ export const fieldAuditService = {
       }
     });
 
-    const employerIds = Array.from(new Set(allItems.map((i: any) => i.employer_id).filter(Boolean)));
-    const weekStart = (plan as any)?.week_start_date;
-    const weekEnd = (plan as any)?.week_end_date;
-
-    const { data: inspections } = await supabase
-      .from('ce_inspections')
-      .select('id')
-      .in('employer_id', employerIds.length ? employerIds : ['__none__'])
-      .gte('scheduled_date', weekStart)
-      .lte('scheduled_date', weekEnd);
-    const inspectionIds = (inspections ?? []).map((i: any) => i.id);
-
-    const [{ count: evCount }, { data: findings }, { count: reportCount }, { count: violationsOpened }, { count: violationsUpdated }, { count: followUpCount }] =
-      await Promise.all([
-        supabase.from('ce_inspection_evidence').select('id', { count: 'exact', head: true }).in('inspection_id', inspectionIds.length ? inspectionIds : ['__none__']),
-        supabase.from('ce_inspection_findings').select('severity').in('inspection_id', inspectionIds.length ? inspectionIds : ['__none__']),
-        supabase.from('ce_employer_audit_reports').select('id', { count: 'exact', head: true }).in('inspection_id', inspectionIds.length ? inspectionIds : ['__none__']),
-        supabase.from('ce_violations').select('id', { count: 'exact', head: true }).in('inspection_id', inspectionIds.length ? inspectionIds : ['__none__']).gte('created_at', `${weekStart}T00:00:00Z`),
-        supabase.from('ce_violations').select('id', { count: 'exact', head: true }).in('inspection_id', inspectionIds.length ? inspectionIds : ['__none__']).gte('updated_at', `${weekStart}T00:00:00Z`).lte('updated_at', `${weekEnd}T23:59:59Z`),
-        supabase.from('ce_follow_up_actions').select('id', { count: 'exact', head: true }).in('employer_id', employerIds.length ? employerIds : ['__none__']).gte('created_at', `${weekStart}T00:00:00Z`),
-      ]);
+    // Pull all metrics by plan_item_id in one shot
+    const planItemIds = allItems.map((i: any) => i.id);
+    const metricsRows = await this.getVisitMetricsBatch(planItemIds.length ? [] : []);
+    // Need fetch by plan_item_id, not inspection_id; use a direct query
+    let metrics: any[] = [];
+    if (planItemIds.length) {
+      const { data } = await supabase
+        .from('ce_v_visit_execution_metrics' as any)
+        .select('*')
+        .in('plan_item_id', planItemIds);
+      metrics = data ?? [];
+    }
 
     const sev = { Low: 0, Medium: 0, High: 0, Critical: 0 };
-    (findings ?? []).forEach((f: any) => {
-      const k = (f.severity ?? 'Medium') as keyof typeof sev;
-      if (k in sev) sev[k] += 1;
+    let evidenceCollected = 0;
+    let totalFindings = 0;
+    let reportsGenerated = 0;
+    let violationsOpened = 0;
+    let followUpsCreated = 0;
+
+    metrics.forEach((m: any) => {
+      evidenceCollected += m.evidence_count ?? 0;
+      totalFindings += m.findings_count ?? 0;
+      sev.Critical += m.findings_critical ?? 0;
+      sev.High += m.findings_high ?? 0;
+      sev.Medium += m.findings_medium ?? 0;
+      sev.Low += m.findings_low ?? 0;
+      if (m.report_id) reportsGenerated += 1;
+      violationsOpened += m.violations_count ?? 0;
+      followUpsCreated += m.followup_count ?? 0;
     });
 
     return {
@@ -693,13 +818,13 @@ export const fieldAuditService = {
       rescheduledVisits: rescheduled.length,
       notDoneVisits: notDone.length,
       totalHoursSpent: Math.round(totalHours * 10) / 10,
-      evidenceCollected: evCount ?? 0,
+      evidenceCollected,
       findingsByseverity: sev,
-      totalFindings: (findings ?? []).length,
-      reportsGenerated: reportCount ?? 0,
-      violationsOpened: violationsOpened ?? 0,
-      violationsUpdated: Math.max((violationsUpdated ?? 0) - (violationsOpened ?? 0), 0),
-      followUpsCreated: followUpCount ?? 0,
+      totalFindings,
+      reportsGenerated,
+      violationsOpened,
+      violationsUpdated: 0,
+      followUpsCreated,
       inspectorNarrative: (plan as any)?.outcome_narrative ?? '',
       generatedAt: nowIso(),
     };
