@@ -47041,6 +47041,10 @@ export type Database = {
         Args: { p_batch_date: string; p_cashier_user_code: string }
         Returns: Json
       }
+      check_feature_flag: {
+        Args: { _flag_key: string; _user_id?: string }
+        Returns: boolean
+      }
       check_ip_duplicates: {
         Args: {
           p_dob: string
@@ -47073,6 +47077,16 @@ export type Database = {
           conflicting_start_time: string
           has_overlap: boolean
         }[]
+      }
+      check_module_rollout_access: {
+        Args: {
+          _internal_only: boolean
+          _pilot_role_ids: string[]
+          _pilot_user_ids: string[]
+          _rollout_state: string
+          _user_id: string
+        }
+        Returns: boolean
       }
       check_row_access: {
         Args: {
@@ -47901,6 +47915,7 @@ export type Database = {
       get_user_accessible_modules: {
         Args: { _user_id: string }
         Returns: {
+          base_url: string
           description: string
           display_name: string
           icon: string
