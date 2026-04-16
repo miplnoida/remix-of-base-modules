@@ -332,7 +332,8 @@ export function useWeeklyPlanBuilder() {
   );
 
   const isNeedsChanges = activePlan?.status === WeeklyPlanStatus.NEEDS_CHANGES;
-  const canEdit = !activePlan || activePlan.status === WeeklyPlanStatus.DRAFT || isNeedsChanges;
+  const isWithdrawn = activePlan?.status === WeeklyPlanStatus.WITHDRAWN;
+  const canEdit = !activePlan || activePlan.status === WeeklyPlanStatus.DRAFT || isNeedsChanges || isWithdrawn;
 
   return {
     // Auth

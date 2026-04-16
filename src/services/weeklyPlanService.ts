@@ -1,5 +1,5 @@
 // ============================================
-// WEEKLY PLAN SERVICE - DB-BACKED
+// WEEKLY PLAN SERVICE - DB-BACKED (UNIFIED)
 // ============================================
 
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +24,31 @@ function generatePlanNumber(weekStart: string): string {
   const weekNum = Math.ceil(((d.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
   const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `WP-${year}-W${String(weekNum).padStart(2, '0')}-${rand}`;
+}
+
+// ============================================
+// WEEKLY REPORT SUMMARY (from DB view)
+// ============================================
+export interface WeeklyReportSummary {
+  plan_id: string;
+  plan_number: string;
+  inspector_id: string;
+  inspector_name: string;
+  week_start_date: string;
+  week_end_date: string;
+  plan_status: string;
+  total_planned: number;
+  completed_visits: number;
+  rescheduled_visits: number;
+  cancelled_visits: number;
+  not_done_visits: number;
+  still_planned: number;
+  total_hours: number;
+  evidence_count: number;
+  findings_count: number;
+  violations_created: number;
+  outcome_narrative: string | null;
+  outcome_submitted_at: string | null;
 }
 
 // ============================================
@@ -68,8 +93,27 @@ export const weeklyPlanService = {
     return data as unknown as WeeklyPlan | null;
   },
 
-  // Create a new weekly plan
+  // Check for existing active plan for this inspector and week
+  async checkDuplicatePlan(inspectorId: string, weekStartDate: string): Promise<WeeklyPlan | null> {
+    const { data, error } = await supabase
+      .from('ce_weekly_plans')
+      .select('id, plan_number, status')
+      .eq('inspector_id', inspectorId)
+      .eq('week_start_date', weekStartDate)
+      .neq('status', WeeklyPlanStatus.WITHDRAWN)
+      .maybeSingle();
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = multiple rows (shouldn't happen with constraint)
+    return data as unknown as WeeklyPlan | null;
+  },
+
+  // Create a new weekly plan (with duplicate check)
   async create(req: CreateWeeklyPlanRequest): Promise<WeeklyPlan> {
+    // Check for existing active plan
+    const existing = await this.checkDuplicatePlan(req.inspector_id, req.week_start_date);
+    if (existing) {
+      throw new Error(`An active plan (${existing.plan_number}) already exists for this week. Status: ${existing.status}`);
+    }
+
     const planNumber = generatePlanNumber(req.week_start_date);
     const { data, error } = await supabase
       .from('ce_weekly_plans')
@@ -196,7 +240,7 @@ export const weeklyPlanService = {
   // Resubmit after changes
   async resubmit(planId: string, userId: string, narrative?: string): Promise<void> {
     const updates: Record<string, any> = {
-      status: 'RESUBMITTED',
+      status: WeeklyPlanStatus.RESUBMITTED,
       submitted_date: new Date().toISOString(),
       updated_by: userId,
       reviewer_comments: null,
@@ -221,6 +265,41 @@ export const weeklyPlanService = {
     if (reviewError) throw reviewError;
   },
 
+  // Withdraw a submitted/resubmitted plan
+  async withdraw(planId: string, userId: string, reason?: string): Promise<void> {
+    // Verify the plan is in a withdrawable state
+    const { data: plan, error: fetchError } = await supabase
+      .from('ce_weekly_plans')
+      .select('status')
+      .eq('id', planId)
+      .single();
+    if (fetchError) throw fetchError;
+
+    if (!plan || (plan.status !== WeeklyPlanStatus.SUBMITTED && plan.status !== 'RESUBMITTED')) {
+      throw new Error('Plan can only be withdrawn when in SUBMITTED or RESUBMITTED status.');
+    }
+
+    const { error: updateError } = await supabase
+      .from('ce_weekly_plans')
+      .update({
+        status: WeeklyPlanStatus.WITHDRAWN,
+        updated_by: userId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', planId);
+    if (updateError) throw updateError;
+
+    const { error: reviewError } = await supabase
+      .from('ce_weekly_plan_reviews')
+      .insert({
+        plan_id: planId,
+        action: 'WITHDRAWN',
+        comments: reason || 'Plan withdrawn by inspector',
+        performed_by: userId,
+      });
+    if (reviewError) throw reviewError;
+  },
+
   // Start execution (status = IN_EXECUTION)
   async startExecution(planId: string, userId: string): Promise<void> {
     await supabase
@@ -232,7 +311,7 @@ export const weeklyPlanService = {
       .eq('id', planId);
   },
 
-  // Submit outcome
+  // Submit outcome (OUTCOME_SUBMITTED, not COMPLETED)
   async submitOutcome(planId: string, userId: string, outcomeNarrative: string): Promise<void> {
     const { error: updateError } = await supabase
       .from('ce_weekly_plans')
@@ -283,7 +362,7 @@ export const weeklyPlanService = {
     const { data, error } = await supabase
       .from('ce_weekly_plans')
       .select('*, ce_weekly_plan_items(*), ce_weekly_plan_reviews(*)')
-      .in('status', [WeeklyPlanStatus.SUBMITTED, 'RESUBMITTED', WeeklyPlanStatus.OUTCOME_SUBMITTED])
+      .in('status', [WeeklyPlanStatus.SUBMITTED, WeeklyPlanStatus.RESUBMITTED, WeeklyPlanStatus.OUTCOME_SUBMITTED])
       .order('submitted_date', { ascending: true });
     if (error) throw error;
     return (data ?? []) as unknown as WeeklyPlan[];
@@ -304,6 +383,41 @@ export const weeklyPlanService = {
         .update({ total_planned_visits: total, completed_visits: completed })
         .eq('id', planId);
     }
+  },
+
+  // Get weekly report summary from DB view
+  async getReportSummary(planId: string): Promise<WeeklyReportSummary | null> {
+    const { data, error } = await supabase
+      .from('ce_v_weekly_report_summary' as any)
+      .select('*')
+      .eq('plan_id', planId)
+      .maybeSingle();
+    if (error) throw error;
+    return data as unknown as WeeklyReportSummary | null;
+  },
+
+  // Submit weekly report (sets status to OUTCOME_SUBMITTED, not COMPLETED)
+  async submitWeeklyReport(planId: string, userId: string, narrative: string): Promise<void> {
+    const { error: updateError } = await supabase
+      .from('ce_weekly_plans')
+      .update({
+        outcome_narrative: narrative,
+        outcome_submitted_at: new Date().toISOString(),
+        status: WeeklyPlanStatus.OUTCOME_SUBMITTED,
+        updated_by: userId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', planId);
+    if (updateError) throw updateError;
+
+    const { error: reviewError } = await supabase
+      .from('ce_weekly_plan_reviews')
+      .insert({
+        plan_id: planId,
+        action: PlanReviewAction.OUTCOME_SUBMITTED,
+        performed_by: userId,
+      });
+    if (reviewError) throw reviewError;
   },
 };
 
