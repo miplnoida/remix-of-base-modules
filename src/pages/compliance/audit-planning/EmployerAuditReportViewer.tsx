@@ -9,10 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChevronLeft, FileText, CheckCircle2, RefreshCcw, Printer, PenTool, History, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, FileText, CheckCircle2, RefreshCcw, Printer, PenTool, History, Plus, Trash2, Download, Send } from 'lucide-react';
 import { fieldAuditService } from '@/services/fieldAuditService';
 import { auditReportService } from '@/services/auditReportService';
+import { auditReportPdfService } from '@/services/auditReportPdfService';
 import { CaptureSignatureDialog } from '@/components/compliance/audit-report/CaptureSignatureDialog';
+import { SendAcknowledgmentDialog } from '@/components/compliance/audit-report/SendAcknowledgmentDialog';
 import type { FullAuditReport, AuditReportSignature, SignerRole, AuditReportVersion } from '@/types/auditReport';
 import { toast } from 'sonner';
 import { formatDateForDisplay } from '@/lib/format-config';
@@ -155,6 +157,25 @@ export default function EmployerAuditReportViewer() {
     window.open(`/compliance/field/audit-report/${report.id}/print/${variant}`, '_blank');
   };
 
+  const downloadPdf = async (variant: 'INTERNAL' | 'EMPLOYER') => {
+    if (!report) return;
+    try {
+      const data = await auditReportService.assembleFullPayload(report.inspectionId);
+      auditReportPdfService.download({
+        report,
+        findings: data.findings,
+        evidence: data.evidence,
+        checklist: data.checklist,
+        signatures: data.signatures,
+        variant,
+      });
+    } catch (e: any) {
+      toast.error(e.message ?? 'PDF generation failed');
+    }
+  };
+
+  const [showSendAck, setShowSendAck] = useState(false);
+
   if (loading) return <div className="p-6 text-muted-foreground">Loading audit report…</div>;
   if (!report) return <div className="p-6 text-muted-foreground">Report not found.</div>;
 
@@ -184,6 +205,15 @@ export default function EmployerAuditReportViewer() {
           </Button>
           <Button variant="outline" size="sm" onClick={() => openPrint('employer')}>
             <Printer className="h-4 w-4 mr-1" /> Employer Copy
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => downloadPdf('INTERNAL')}>
+            <Download className="h-4 w-4 mr-1" /> Internal PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => downloadPdf('EMPLOYER')}>
+            <Download className="h-4 w-4 mr-1" /> Employer PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowSendAck(true)} disabled={!isFinal}>
+            <Send className="h-4 w-4 mr-1" /> Send Ack Link
           </Button>
           <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={saving || isFinal}>
             <RefreshCcw className="h-4 w-4 mr-1" /> Refresh Counts
