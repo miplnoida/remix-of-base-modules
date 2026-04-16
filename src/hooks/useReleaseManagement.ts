@@ -109,7 +109,7 @@ export function useUpdateFeatureFlag() {
 export function useCreateFeatureFlag() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (params: Omit<FeatureFlag, 'id' | 'created_at' | 'updated_at'>) => {
+    mutationFn: async (params: { flag_key: string; display_name: string; description?: string | null; module_id?: string | null; is_enabled?: boolean; rollout_state?: RolloutState; pilot_user_ids?: string[]; pilot_role_ids?: string[] }) => {
       const { error } = await supabase.from('feature_flags').insert(params as any);
       if (error) throw error;
     },
