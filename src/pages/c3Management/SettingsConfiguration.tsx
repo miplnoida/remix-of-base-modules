@@ -82,14 +82,28 @@ function PaymentGatewayTab() {
     );
   };
 
+  const handleToggleActive = (row: any) => {
+    if (!settings) return;
+    if (!row.is_active) {
+      // Mutual exclusion: deactivate all others, activate this one
+      settings.forEach((s) => {
+        if (s.id !== row.id && s.is_active) {
+          saveMutation.mutate({ id: s.id, updates: { is_active: false }, userCode: userCode || 'system' });
+        }
+      });
+      saveMutation.mutate({ id: row.id, updates: { is_active: true }, userCode: userCode || 'system' });
+    } else {
+      saveMutation.mutate({ id: row.id, updates: { is_active: false }, userCode: userCode || 'system' });
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         {settings?.map((row) => {
           const parsed = parseJsonSafe(row.setting_value);
-          const isActive = parsed.is_active === true;
           return (
-            <Card key={row.id} className={isActive ? 'border-primary' : ''}>
+            <Card key={row.id} className={row.is_active ? 'border-primary' : ''}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -98,7 +112,11 @@ function PaymentGatewayTab() {
                   </div>
                   <div className="flex items-center gap-2">
                     <SyncBadge isSynced={row.is_synced} syncError={row.sync_error} />
-                    {isActive && <Badge className="bg-green-600 text-xs">Active</Badge>}
+                    {row.is_active ? (
+                      <Badge className="bg-green-600 text-xs">Active</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-xs">Inactive</Badge>
+                    )}
                   </div>
                 </div>
               </CardHeader>
@@ -111,7 +129,14 @@ function PaymentGatewayTab() {
                   <span className="text-muted-foreground">Base URL:</span>
                   <span className="font-mono text-xs break-all">{(parsed.base_url as string) || '—'}</span>
                 </div>
-                <div className="flex gap-2 pt-2">
+                <div className="flex items-center gap-2 pt-2">
+                  <Switch
+                    checked={row.is_active}
+                    onCheckedChange={() => handleToggleActive(row)}
+                    disabled={saveMutation.isPending}
+                  />
+                  <span className="text-xs text-muted-foreground">{row.is_active ? 'Active' : 'Inactive'}</span>
+                  <div className="flex-1" />
                   <Button size="sm" variant="outline" onClick={() => openEdit(row)}>
                     <Settings className="h-3 w-3 mr-1" />Edit
                   </Button>
