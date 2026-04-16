@@ -1008,6 +1008,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/field/weekly-report" element={<ProtectedLayout><WeeklyReportSubmission /></ProtectedLayout>} />
       <Route path="/compliance/field/weekly-reports" element={<ProtectedLayout><WeeklyReports /></ProtectedLayout>} />
       <Route path="/compliance/field/all-reports" element={<ProtectedLayout><AllWeeklyReports /></ProtectedLayout>} />
+      <Route path="/compliance/field/execution-dashboard/:planId" element={<ProtectedLayout><PlanExecutionDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/field/audit-report/:inspectionId" element={<ProtectedLayout><EmployerAuditReportViewer /></ProtectedLayout>} />
+      <Route path="/compliance/field/weekly-report-review" element={<ProtectedLayout><WeeklyReportReview /></ProtectedLayout>} />
       <Route path="/compliance/field/my-upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
       <Route path="/compliance/field/sampling" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />
       <Route path="/compliance/field/sampling/candidates" element={<ProtectedLayout><MonthlyAuditCandidates /></ProtectedLayout>} />
