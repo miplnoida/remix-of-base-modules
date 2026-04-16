@@ -1,7 +1,8 @@
 // ============================================
 // AUDIT REPORT SERVICE
 // Enterprise-grade Employer Audit Report operations:
-// versioning, signatures, acknowledgment, full payload assembly.
+// versioning, signatures (audit contact vs signer identity model),
+// supersede chain, signature event log, acknowledgment portal.
 // ============================================
 
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +11,7 @@ import { fieldAuditService } from './fieldAuditService';
 import type {
   FullAuditReport,
   AuditReportSignature,
+  AuditReportSignatureEvent,
   AuditReportVersion,
   AuditReportAcknowledgment,
   SignerRole,
@@ -19,6 +21,15 @@ import type { InspectionFinding, InspectionEvidence } from '@/types/inspectionTy
 
 const nowIso = () => new Date().toISOString();
 const whoami = async () => (await getCurrentUserCode()) ?? 'SYSTEM';
+
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [meta, b64] = dataUrl.split(',');
+  const mime = meta.match(/data:(.*);base64/)?.[1] ?? 'image/png';
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
 
 function mapReport(r: any): FullAuditReport {
   return {
@@ -34,8 +45,13 @@ function mapReport(r: any): FullAuditReport {
     reportDate: r.report_date,
     auditDate: r.audit_date ?? undefined,
     auditLocation: r.audit_location ?? undefined,
-    employerRepName: r.employer_rep_name ?? undefined,
-    employerRepDesignation: r.employer_rep_designation ?? undefined,
+    auditContactName: r.audit_contact_name ?? r.employer_rep_name ?? undefined,
+    auditContactDesignation: r.audit_contact_designation ?? r.employer_rep_designation ?? undefined,
+    auditContactRelationship: r.audit_contact_relationship ?? undefined,
+    auditContactPresent: r.audit_contact_present ?? undefined,
+    auditContactCapturedAt: r.audit_contact_captured_at ?? undefined,
+    employerRepName: r.employer_rep_name ?? r.audit_contact_name ?? undefined,
+    employerRepDesignation: r.employer_rep_designation ?? r.audit_contact_designation ?? undefined,
     status: r.status,
     currentVersion: r.current_version ?? 1,
     verificationRef: r.verification_ref ?? undefined,
@@ -70,6 +86,13 @@ function mapSignature(r: any): AuditReportSignature {
     signerName: r.signer_name,
     signerDesignation: r.signer_designation ?? undefined,
     signerEmail: r.signer_email ?? undefined,
+    signerSameAsContact: r.signer_same_as_contact ?? undefined,
+    signerAuthorityNote: r.signer_authority_note ?? undefined,
+    signerRelationship: r.signer_relationship ?? undefined,
+    witnessName: r.witness_name ?? undefined,
+    witnessDesignation: r.witness_designation ?? undefined,
+    witnessSignatureImageUrl: r.witness_signature_image_url ?? undefined,
+    inspectorAttestationSignatureId: r.inspector_attestation_signature_id ?? undefined,
     signatureType: r.signature_type,
     signatureImageUrl: r.signature_image_url ?? undefined,
     typedName: r.typed_name ?? undefined,
@@ -80,15 +103,46 @@ function mapSignature(r: any): AuditReportSignature {
     ipAddress: r.ip_address ?? undefined,
     userAgent: r.user_agent ?? undefined,
     capturedBy: r.captured_by ?? undefined,
+    supersededBy: r.superseded_by ?? undefined,
+    supersededAt: r.superseded_at ?? undefined,
+    supersededReason: r.superseded_reason ?? undefined,
+    isActive: !r.superseded_by,
     createdAt: r.created_at,
   };
 }
 
 function genToken(): string {
-  // 32-char URL-safe random
   const arr = new Uint8Array(24);
   crypto.getRandomValues(arr);
   return btoa(String.fromCharCode(...arr)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function logEvent(
+  reportId: string,
+  signatureId: string | null,
+  eventType: string,
+  metadata: Record<string, any> = {}
+) {
+  const userCode = await whoami();
+  await supabase.from('ce_audit_report_signature_events' as any).insert({
+    report_id: reportId,
+    signature_id: signatureId,
+    event_type: eventType,
+    actor_user_code: userCode,
+    actor_user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+    metadata,
+  } as any);
+}
+
+async function uploadSignatureImage(reportId: string, signerRole: string, dataUrl: string): Promise<string> {
+  const blob = dataUrlToBlob(dataUrl);
+  const path = `${reportId}/${signerRole}-${Date.now()}.png`;
+  const { error: upErr } = await supabase.storage
+    .from('audit-signatures')
+    .upload(path, blob, { upsert: true, contentType: 'image/png' });
+  if (upErr) throw new Error(`Signature image upload failed: ${upErr.message}`);
+  const { data: pub } = supabase.storage.from('audit-signatures').getPublicUrl(path);
+  return pub.publicUrl;
 }
 
 // ─── Service ────────────────────────────────────
@@ -115,7 +169,7 @@ export const auditReportService = {
     return data ? mapReport(data) : null;
   },
 
-  // ---- Update narrative (extended) ----------
+  // ---- Update narrative + audit contact ----------
   async updateNarrative(
     reportId: string,
     fields: Partial<{
@@ -129,15 +183,19 @@ export const auditReportService = {
       auditDate: string;
       auditLocation: string;
       employerRegNumber: string;
+      // Audit contact (canonical)
+      auditContactName: string;
+      auditContactDesignation: string;
+      auditContactRelationship: string;
+      auditContactPresent: boolean;
+      // Legacy aliases (kept for callers)
       employerRepName: string;
       employerRepDesignation: string;
     }>
   ): Promise<void> {
     const userCode = await whoami();
-    const update: any = {
-      updated_by: userCode,
-      updated_at: nowIso(),
-    };
+    const update: any = { updated_by: userCode, updated_at: nowIso() };
+
     if (fields.executiveSummary !== undefined) update.executive_summary = fields.executiveSummary;
     if (fields.scope !== undefined) update.scope = fields.scope;
     if (fields.purposeScope !== undefined) update.purpose_scope = fields.purposeScope;
@@ -148,8 +206,24 @@ export const auditReportService = {
     if (fields.auditDate !== undefined) update.audit_date = fields.auditDate;
     if (fields.auditLocation !== undefined) update.audit_location = fields.auditLocation;
     if (fields.employerRegNumber !== undefined) update.employer_reg_number = fields.employerRegNumber;
-    if (fields.employerRepName !== undefined) update.employer_rep_name = fields.employerRepName;
-    if (fields.employerRepDesignation !== undefined) update.employer_rep_designation = fields.employerRepDesignation;
+
+    // Audit contact — write to canonical and legacy column for back-compat
+    const contactName = fields.auditContactName ?? fields.employerRepName;
+    const contactDesg = fields.auditContactDesignation ?? fields.employerRepDesignation;
+    if (contactName !== undefined) {
+      update.audit_contact_name = contactName;
+      update.employer_rep_name = contactName;
+    }
+    if (contactDesg !== undefined) {
+      update.audit_contact_designation = contactDesg;
+      update.employer_rep_designation = contactDesg;
+    }
+    if (fields.auditContactRelationship !== undefined) update.audit_contact_relationship = fields.auditContactRelationship;
+    if (fields.auditContactPresent !== undefined) update.audit_contact_present = fields.auditContactPresent;
+    if ((contactName !== undefined || contactDesg !== undefined) && !update.audit_contact_captured_at) {
+      update.audit_contact_captured_at = nowIso();
+      update.audit_contact_captured_by = userCode;
+    }
 
     const { error } = await supabase
       .from('ce_employer_audit_reports')
@@ -164,7 +238,6 @@ export const auditReportService = {
     const report = await this.getReport(reportId);
     if (!report) throw new Error('Report not found');
 
-    // determine next version number
     const { data: maxRow } = await supabase
       .from('ce_audit_report_versions')
       .select('version_number')
@@ -174,7 +247,6 @@ export const auditReportService = {
       .maybeSingle();
 
     const nextVersion = ((maxRow as any)?.version_number ?? 0) + 1;
-
     const fullPayload = await this.assembleFullPayload(report.inspectionId);
 
     const { data, error } = await supabase
@@ -192,7 +264,6 @@ export const auditReportService = {
       .single();
     if (error) throw error;
 
-    // bump current_version on parent
     await supabase
       .from('ce_employer_audit_reports')
       .update({ current_version: nextVersion, updated_by: userCode, updated_at: nowIso() } as any)
@@ -233,7 +304,6 @@ export const auditReportService = {
   async finalize(reportId: string, pdfUrl?: string): Promise<void> {
     const userCode = await whoami();
     const verificationRef = `VR-${reportId.slice(0, 8).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
-
     const { error } = await supabase
       .from('ce_employer_audit_reports')
       .update({
@@ -247,19 +317,49 @@ export const auditReportService = {
       } as any)
       .eq('id', reportId);
     if (error) throw error;
-
     await this.snapshotVersion(reportId, { isFinal: true, pdfUrl, notes: 'Finalized' });
   },
 
   // ---- Signatures ----------
+  /** Active (non-superseded) signatures only. */
   async listSignatures(reportId: string): Promise<AuditReportSignature[]> {
     const { data, error } = await supabase
       .from('ce_audit_report_signatures')
       .select('*')
       .eq('report_id', reportId)
+      .is('superseded_by', null)
       .order('created_at', { ascending: true });
     if (error) throw error;
     return (data ?? []).map(mapSignature);
+  },
+
+  /** Full history including superseded rows (for audit trail UI). */
+  async listAllSignatures(reportId: string): Promise<AuditReportSignature[]> {
+    const { data, error } = await supabase
+      .from('ce_audit_report_signatures')
+      .select('*')
+      .eq('report_id', reportId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(mapSignature);
+  },
+
+  async listSignatureEvents(reportId: string): Promise<AuditReportSignatureEvent[]> {
+    const { data, error } = await supabase
+      .from('ce_audit_report_signature_events' as any)
+      .select('*')
+      .eq('report_id', reportId)
+      .order('event_at', { ascending: false });
+    if (error) throw error;
+    return ((data ?? []) as any[]).map((d: any) => ({
+      id: d.id,
+      reportId: d.report_id,
+      signatureId: d.signature_id ?? undefined,
+      eventType: d.event_type,
+      actorUserCode: d.actor_user_code ?? undefined,
+      metadata: d.metadata ?? {},
+      eventAt: d.event_at,
+    }));
   },
 
   async captureSignature(params: {
@@ -268,29 +368,46 @@ export const auditReportService = {
     signerName: string;
     signerDesignation?: string;
     signerEmail?: string;
+    // Identity linkage
+    signerSameAsContact?: boolean;
+    signerAuthorityNote?: string;
+    signerRelationship?: string;
+    // Witness (optional)
+    witnessName?: string;
+    witnessDesignation?: string;
+    witnessSignatureDataUrl?: string;
+    // Signature payload
     signatureType: SignatureType;
-    signatureDataUrl?: string; // base64 data URL from canvas
+    signatureDataUrl?: string;
     typedName?: string;
     attestationText?: string;
     comments?: string;
     refusalReason?: string;
+    /** If supplied, supersede this signature (replace). */
+    supersedePrevious?: boolean;
   }): Promise<AuditReportSignature> {
     const userCode = await whoami();
     let signatureImageUrl: string | undefined;
+    let witnessSignatureImageUrl: string | undefined;
 
-    // Upload canvas signature if provided — surface failures (do not silently drop)
-    if (params.signatureDataUrl && params.signatureDataUrl.startsWith('data:image/')) {
-      const blob = dataUrlToBlob(params.signatureDataUrl);
-      const path = `${params.reportId}/${params.signerRole}-${Date.now()}.png`;
-      const { error: upErr } = await supabase.storage
-        .from('audit-signatures')
-        .upload(path, blob, { upsert: true, contentType: 'image/png' });
-      if (upErr) {
-        console.error('[captureSignature] upload failed', upErr);
-        throw new Error(`Signature image upload failed: ${upErr.message}`);
-      }
-      const { data: pub } = supabase.storage.from('audit-signatures').getPublicUrl(path);
-      signatureImageUrl = pub.publicUrl;
+    if (params.signatureDataUrl?.startsWith('data:image/')) {
+      signatureImageUrl = await uploadSignatureImage(params.reportId, params.signerRole, params.signatureDataUrl);
+    }
+    if (params.witnessSignatureDataUrl?.startsWith('data:image/')) {
+      witnessSignatureImageUrl = await uploadSignatureImage(params.reportId, `${params.signerRole}-WITNESS`, params.witnessSignatureDataUrl);
+    }
+
+    // Supersede any existing active signature for the same role
+    let supersededId: string | null = null;
+    if (params.supersedePrevious !== false) {
+      const { data: existing } = await supabase
+        .from('ce_audit_report_signatures')
+        .select('id')
+        .eq('report_id', params.reportId)
+        .eq('signer_role', params.signerRole)
+        .is('superseded_by', null)
+        .maybeSingle();
+      if (existing) supersededId = (existing as any).id;
     }
 
     const { data, error } = await supabase
@@ -301,6 +418,12 @@ export const auditReportService = {
         signer_name: params.signerName,
         signer_designation: params.signerDesignation ?? null,
         signer_email: params.signerEmail ?? null,
+        signer_same_as_contact: params.signerSameAsContact ?? false,
+        signer_authority_note: params.signerAuthorityNote ?? null,
+        signer_relationship: params.signerRelationship ?? null,
+        witness_name: params.witnessName ?? null,
+        witness_designation: params.witnessDesignation ?? null,
+        witness_signature_image_url: witnessSignatureImageUrl ?? null,
         signature_type: params.signatureType,
         signature_image_url: signatureImageUrl ?? null,
         typed_name: params.typedName ?? null,
@@ -315,15 +438,46 @@ export const auditReportService = {
       .single();
     if (error) throw error;
 
+    // Mark previous as superseded
+    if (supersededId) {
+      await supabase
+        .from('ce_audit_report_signatures')
+        .update({
+          superseded_by: data.id,
+          superseded_at: nowIso(),
+          superseded_reason: 'Replaced by new signature',
+        } as any)
+        .eq('id', supersededId);
+      await logEvent(params.reportId, supersededId, 'SUPERSEDED', { replaced_by: data.id });
+    }
+
+    await logEvent(params.reportId, data.id, 'CREATED', {
+      role: params.signerRole,
+      type: params.signatureType,
+      same_as_contact: params.signerSameAsContact ?? false,
+    });
+
     return mapSignature(data);
   },
 
-  async deleteSignature(signatureId: string): Promise<void> {
+  /** Supersede (soft-delete) a signature with a reason. */
+  async supersedeSignature(signatureId: string, reason: string): Promise<void> {
+    const { data: row, error: fetchErr } = await supabase
+      .from('ce_audit_report_signatures')
+      .select('report_id')
+      .eq('id', signatureId)
+      .single();
+    if (fetchErr) throw fetchErr;
+
     const { error } = await supabase
       .from('ce_audit_report_signatures')
-      .delete()
+      .update({
+        superseded_at: nowIso(),
+        superseded_reason: reason,
+      } as any)
       .eq('id', signatureId);
     if (error) throw error;
+    await logEvent((row as any).report_id, signatureId, 'SUPERSEDED', { reason });
   },
 
   // ---- Acknowledgment (deferred e-sign tokens) ----------
@@ -415,7 +569,6 @@ export const auditReportService = {
       .maybeSingle();
     if (!ack) return null;
 
-    // record view
     await supabase
       .from('ce_audit_report_acknowledgments')
       .update({
@@ -425,6 +578,8 @@ export const auditReportService = {
         status: (ack as any).status === 'PENDING' ? 'VIEWED' : (ack as any).status,
       } as any)
       .eq('id', (ack as any).id);
+
+    await logEvent((ack as any).report_id, null, 'VIEWED_VIA_TOKEN', { token_id: (ack as any).id });
 
     const report = await this.getReport((ack as any).report_id);
     if (!report) return null;
@@ -450,7 +605,7 @@ export const auditReportService = {
     };
   },
 
-  // ---- Full payload assembly (for preview + PDF + version snapshot) ----------
+  // ---- Full payload assembly ----------
   async assembleFullPayload(inspectionId: string): Promise<{
     report: FullAuditReport | null;
     findings: InspectionFinding[];
@@ -481,12 +636,3 @@ export const auditReportService = {
     };
   },
 };
-
-function dataUrlToBlob(dataUrl: string): Blob {
-  const [meta, b64] = dataUrl.split(',');
-  const mime = meta.match(/data:(.*?);/)?.[1] ?? 'image/png';
-  const byteChars = atob(b64);
-  const arr = new Uint8Array(byteChars.length);
-  for (let i = 0; i < byteChars.length; i++) arr[i] = byteChars.charCodeAt(i);
-  return new Blob([arr], { type: mime });
-}

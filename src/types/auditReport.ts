@@ -25,6 +25,16 @@ export interface AuditReportSignature {
   signerName: string;
   signerDesignation?: string;
   signerEmail?: string;
+  // Identity linkage to audit contact
+  signerSameAsContact?: boolean;
+  signerAuthorityNote?: string;
+  signerRelationship?: string;
+  // Witness (optional, used for refusal/unavailable)
+  witnessName?: string;
+  witnessDesignation?: string;
+  witnessSignatureImageUrl?: string;
+  inspectorAttestationSignatureId?: string;
+  // Signature payload
   signatureType: SignatureType;
   signatureImageUrl?: string;
   typedName?: string;
@@ -35,7 +45,22 @@ export interface AuditReportSignature {
   ipAddress?: string;
   userAgent?: string;
   capturedBy?: string;
+  // Supersede chain (replaces hard-delete)
+  supersededBy?: string;
+  supersededAt?: string;
+  supersededReason?: string;
+  isActive: boolean;
   createdAt: string;
+}
+
+export interface AuditReportSignatureEvent {
+  id: string;
+  reportId: string;
+  signatureId?: string;
+  eventType: string;
+  actorUserCode?: string;
+  metadata?: Record<string, any>;
+  eventAt: string;
 }
 
 export interface AuditReportVersion {
@@ -80,8 +105,18 @@ export interface FullAuditReport {
   reportDate: string;
   auditDate?: string;
   auditLocation?: string;
+
+  // === Audit Contact (person met during audit) ===
+  auditContactName?: string;
+  auditContactDesignation?: string;
+  auditContactRelationship?: string;
+  auditContactPresent?: boolean;
+  auditContactCapturedAt?: string;
+
+  // Legacy / alias (kept for back-compat with header form)
   employerRepName?: string;
   employerRepDesignation?: string;
+
   status: AuditReportStatus;
   currentVersion: number;
   verificationRef?: string;
