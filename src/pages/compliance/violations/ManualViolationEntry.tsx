@@ -38,6 +38,16 @@ export default function ManualViolationEntry() {
   
   const [loading, setLoading] = useState(false);
 
+  // Auto-fill employer from navigation state
+  useEffect(() => {
+    const prefill = (location.state as any)?.prefill;
+    if (prefill?.employer_id) {
+      setEmployerId(prefill.employer_id);
+      setEntryType('employer');
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
