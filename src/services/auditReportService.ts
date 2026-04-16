@@ -455,12 +455,15 @@ export const auditReportService = {
     generatedAt: string;
   }> {
     const report = await this.getReportByInspection(inspectionId);
-    const payload = await fieldAuditService.getReportPayload(inspectionId);
-    const signatures = report ? await this.listSignatures(report.id) : [];
+    const [payload, evidence, signatures] = await Promise.all([
+      fieldAuditService.getReportPayload(inspectionId),
+      fieldAuditService.getEvidenceForVisit(inspectionId),
+      report ? this.listSignatures(report.id) : Promise.resolve([] as AuditReportSignature[]),
+    ]);
     return {
       report,
       findings: payload.findings,
-      evidence: payload.evidence,
+      evidence,
       checklist: payload.checklist,
       violations: payload.violations,
       signatures,
