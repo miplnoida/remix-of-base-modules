@@ -4,9 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, CheckCircle2, Clock, XCircle, AlertCircle, FileText } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, XCircle, AlertCircle, FileText, Camera, ListChecks, ShieldAlert } from 'lucide-react';
 import { weeklyReportService } from '@/services/weeklyReportService';
+import { fieldAuditService, type AccurateWeeklySummary } from '@/services/fieldAuditService';
+import { supabase } from '@/integrations/supabase/client';
 import { WeeklyPlanItem, InspectionVisitStatus } from '@/types/inspectionTypes';
 import { WeeklyReportVisitRow } from '@/components/compliance/WeeklyReportVisitRow';
 import { WeeklyReportVisitDetail } from '@/components/compliance/WeeklyReportVisitDetail';
@@ -23,6 +26,8 @@ export default function WeeklyReportSubmission() {
   const [planItems, setPlanItems] = useState<WeeklyPlanItem[]>([]);
   const [selectedPlanItem, setSelectedPlanItem] = useState<WeeklyPlanItem | null>(null);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [accurateSummary, setAccurateSummary] = useState<AccurateWeeklySummary | null>(null);
+  const [planId, setPlanId] = useState<string | null>(null);
 
   useEffect(() => {
     // Set default to current week's Monday
@@ -45,6 +50,27 @@ export default function WeeklyReportSubmission() {
     try {
       const items = await weeklyReportService.getWeeklyPlanItems(inspectorId, weekStartDate);
       setPlanItems(items);
+
+      // Resolve current plan_id for the week, then load accurate KPIs
+      const { data: plan } = await supabase
+        .from('ce_weekly_plans')
+        .select('id')
+        .eq('week_start_date', weekStartDate)
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+      if (plan?.id) {
+        setPlanId(plan.id);
+        try {
+          const summary = await fieldAuditService.getAccurateWeeklySummary(plan.id);
+          setAccurateSummary(summary);
+        } catch (err) {
+          console.error('Failed to load accurate summary', err);
+          setAccurateSummary(null);
+        }
+      } else {
+        setPlanId(null);
+        setAccurateSummary(null);
+      }
     } catch (error) {
       toast({
         title: 'Error',
