@@ -36,7 +36,7 @@ describe('fieldAuditService — unit', () => {
 
     const out = await fieldAuditService.createStructuredFinding({
       inspectionId: 'i-1',
-      findingType: 'NON_COMPLIANCE',
+      findingType: 'MAJOR_ISSUE' as any,
       title: 'Late filing',
       category: 'C3',
       description: 'Employer filed C3 27 days late.',
@@ -101,7 +101,7 @@ describe('Field audit linking — integration', () => {
     registerTable('ce_inspection_findings', { insertSingle: { id: 'f-2' } });
     await fieldAuditService.createStructuredFinding({
       inspectionId: 'visit-42',
-      findingType: 'NON_COMPLIANCE',
+      findingType: 'MAJOR_ISSUE' as any,
       title: 't',
       category: 'c',
       description: 'd',
