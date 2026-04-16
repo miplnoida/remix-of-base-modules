@@ -11950,6 +11950,8 @@ export type Database = {
           employer_id: string | null
           employer_name: string | null
           employer_reg_number: string | null
+          employer_rep_designation: string | null
+          employer_rep_name: string | null
           executive_summary: string | null
           finalized_at: string | null
           finalized_by: string | null
@@ -11991,6 +11993,8 @@ export type Database = {
           employer_id?: string | null
           employer_name?: string | null
           employer_reg_number?: string | null
+          employer_rep_designation?: string | null
+          employer_rep_name?: string | null
           executive_summary?: string | null
           finalized_at?: string | null
           finalized_by?: string | null
@@ -12032,6 +12036,8 @@ export type Database = {
           employer_id?: string | null
           employer_name?: string | null
           employer_reg_number?: string | null
+          employer_rep_designation?: string | null
+          employer_rep_name?: string | null
           executive_summary?: string | null
           finalized_at?: string | null
           finalized_by?: string | null
