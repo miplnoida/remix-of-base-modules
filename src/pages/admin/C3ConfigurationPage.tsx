@@ -22,6 +22,7 @@ import CyberSourceSettings from '@/pages/c3Management/CyberSourceSettings';
 
 const C3ConfigurationPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('period-config');
+  const navigate = useNavigate();
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -146,11 +147,7 @@ const C3ConfigurationPage: React.FC = () => {
             <p className="text-muted-foreground">CyberSource settings have been moved to the consolidated Settings Configuration screen.</p>
             <button
               className="text-primary underline hover:no-underline"
-              onClick={() => {
-                const nav = document.querySelector('[data-settings-nav]');
-                if (nav) (nav as HTMLAnchorElement).click();
-                else window.location.href = '/c3-management/settings-configuration';
-              }}
+              onClick={() => navigate('/c3-management/settings-configuration')}
             >
               Go to Settings Configuration →
             </button>
