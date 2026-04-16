@@ -728,23 +728,47 @@ const printStyles = `
   border-bottom: 1px solid #333;
   margin-bottom: 2px;
 }
+.audit-report-print .report-section,
+.audit-report-print .findings-table tr,
+.audit-report-print .sig-block,
+.audit-report-print .audit-contact-card,
+.audit-report-print .employer-identity-panel,
+.audit-report-print .sampling-disclaimer {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.audit-report-print h1,
+.audit-report-print h2,
+.audit-report-print .section-title {
+  page-break-after: avoid;
+  break-after: avoid;
+}
+@media print {
   @page {
     size: letter;
-    margin: 0.5in;
+    margin: 0.6in 0.5in;
   }
-  body {
-    margin: 0;
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
   .no-print { display: none !important; }
   .audit-report-print {
-    padding: 0;
-    max-width: none;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    box-shadow: none !important;
   }
-  .audit-report-print .page-header,
-  .audit-report-print .page-footer {
-    position: running(header);
+  .audit-report-print .cover-page {
+    page-break-after: always;
+    break-after: page;
+  }
+  .audit-report-print .page-break {
+    page-break-after: always;
+    break-after: page;
   }
 }
 `;
