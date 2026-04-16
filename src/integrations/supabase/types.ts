@@ -11535,6 +11535,54 @@ export type Database = {
           },
         ]
       }
+      ce_completion_gate_config: {
+        Row: {
+          created_at: string
+          enforcement_mode: string
+          id: string
+          is_active: boolean
+          override_requires_role: string | null
+          require_checklist_complete: boolean
+          require_evidence_min_count: number
+          require_findings_recorded: boolean
+          require_followups_for_severity: string | null
+          require_report_saved: boolean
+          scope: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          enforcement_mode?: string
+          id?: string
+          is_active?: boolean
+          override_requires_role?: string | null
+          require_checklist_complete?: boolean
+          require_evidence_min_count?: number
+          require_findings_recorded?: boolean
+          require_followups_for_severity?: string | null
+          require_report_saved?: boolean
+          scope?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          enforcement_mode?: string
+          id?: string
+          is_active?: boolean
+          override_requires_role?: string | null
+          require_checklist_complete?: boolean
+          require_evidence_min_count?: number
+          require_findings_recorded?: boolean
+          require_followups_for_severity?: string | null
+          require_report_saved?: boolean
+          scope?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ce_compliance_policies: {
         Row: {
           activated_at: string | null
@@ -13739,6 +13787,9 @@ export type Database = {
           case_id: string | null
           check_in_time: string | null
           check_out_time: string | null
+          completion_gate_overridden_at: string | null
+          completion_gate_overridden_by: string | null
+          completion_gate_override_reason: string | null
           created_at: string | null
           created_by: string | null
           documents_collected: Json | null
@@ -13746,7 +13797,9 @@ export type Database = {
           employer_id: string
           employer_name: string | null
           employer_signature_data: string | null
+          execution_mode: string | null
           findings_summary: string | null
+          gps_unavailable_reason: string | null
           id: string
           inspection_number: string
           inspection_type: string | null
@@ -13759,6 +13812,8 @@ export type Database = {
           plan_item_id: string | null
           scheduled_date: string | null
           scheduled_time: string | null
+          session_closed_at: string | null
+          session_started_at: string | null
           status: string | null
           territory: string | null
           updated_at: string | null
@@ -13771,6 +13826,9 @@ export type Database = {
           case_id?: string | null
           check_in_time?: string | null
           check_out_time?: string | null
+          completion_gate_overridden_at?: string | null
+          completion_gate_overridden_by?: string | null
+          completion_gate_override_reason?: string | null
           created_at?: string | null
           created_by?: string | null
           documents_collected?: Json | null
@@ -13778,7 +13836,9 @@ export type Database = {
           employer_id: string
           employer_name?: string | null
           employer_signature_data?: string | null
+          execution_mode?: string | null
           findings_summary?: string | null
+          gps_unavailable_reason?: string | null
           id?: string
           inspection_number: string
           inspection_type?: string | null
@@ -13791,6 +13851,8 @@ export type Database = {
           plan_item_id?: string | null
           scheduled_date?: string | null
           scheduled_time?: string | null
+          session_closed_at?: string | null
+          session_started_at?: string | null
           status?: string | null
           territory?: string | null
           updated_at?: string | null
@@ -13803,6 +13865,9 @@ export type Database = {
           case_id?: string | null
           check_in_time?: string | null
           check_out_time?: string | null
+          completion_gate_overridden_at?: string | null
+          completion_gate_overridden_by?: string | null
+          completion_gate_override_reason?: string | null
           created_at?: string | null
           created_by?: string | null
           documents_collected?: Json | null
@@ -13810,7 +13875,9 @@ export type Database = {
           employer_id?: string
           employer_name?: string | null
           employer_signature_data?: string | null
+          execution_mode?: string | null
           findings_summary?: string | null
+          gps_unavailable_reason?: string | null
           id?: string
           inspection_number?: string
           inspection_type?: string | null
@@ -13823,6 +13890,8 @@ export type Database = {
           plan_item_id?: string | null
           scheduled_date?: string | null
           scheduled_time?: string | null
+          session_closed_at?: string | null
+          session_started_at?: string | null
           status?: string | null
           territory?: string | null
           updated_at?: string | null
