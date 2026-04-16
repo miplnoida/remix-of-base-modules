@@ -9821,6 +9821,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ce_audit_checklist_responses_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_visit_execution_metrics"
+            referencedColumns: ["inspection_id"]
+          },
+          {
             foreignKeyName: "ce_audit_checklist_responses_plan_item_id_fkey"
             columns: ["plan_item_id"]
             isOneToOne: false
@@ -11695,6 +11702,7 @@ export type Database = {
           inspector_id: string | null
           inspector_name: string | null
           pdf_url: string | null
+          plan_item_id: string | null
           recommendations: string | null
           report_date: string
           report_number: string
@@ -11723,6 +11731,7 @@ export type Database = {
           inspector_id?: string | null
           inspector_name?: string | null
           pdf_url?: string | null
+          plan_item_id?: string | null
           recommendations?: string | null
           report_date?: string
           report_number?: string
@@ -11751,6 +11760,7 @@ export type Database = {
           inspector_id?: string | null
           inspector_name?: string | null
           pdf_url?: string | null
+          plan_item_id?: string | null
           recommendations?: string | null
           report_date?: string
           report_number?: string
@@ -11768,6 +11778,20 @@ export type Database = {
             columns: ["inspection_id"]
             isOneToOne: false
             referencedRelation: "ce_inspections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_employer_audit_reports_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_visit_execution_metrics"
+            referencedColumns: ["inspection_id"]
+          },
+          {
+            foreignKeyName: "ce_employer_audit_reports_plan_item_id_fkey"
+            columns: ["plan_item_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plan_items"
             referencedColumns: ["id"]
           },
         ]
@@ -13403,6 +13427,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ce_inspection_employer_interactions_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_visit_execution_metrics"
+            referencedColumns: ["inspection_id"]
+          },
+          {
             foreignKeyName: "ce_inspection_employer_interactions_plan_item_id_fkey"
             columns: ["plan_item_id"]
             isOneToOne: false
@@ -13415,6 +13446,7 @@ export type Database = {
         Row: {
           captured_at: string
           captured_by: string | null
+          checklist_response_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -13434,6 +13466,7 @@ export type Database = {
         Insert: {
           captured_at?: string
           captured_by?: string | null
+          checklist_response_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -13453,6 +13486,7 @@ export type Database = {
         Update: {
           captured_at?: string
           captured_by?: string | null
+          checklist_response_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -13471,6 +13505,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "ce_inspection_evidence_checklist_response_id_fkey"
+            columns: ["checklist_response_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_checklist_responses"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ce_inspection_evidence_finding_id_fkey"
             columns: ["finding_id"]
             isOneToOne: false
@@ -13483,6 +13524,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_inspections"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspection_evidence_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_visit_execution_metrics"
+            referencedColumns: ["inspection_id"]
           },
           {
             foreignKeyName: "ce_inspection_evidence_plan_item_id_fkey"
@@ -13563,6 +13611,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ce_inspection_findings_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_visit_execution_metrics"
+            referencedColumns: ["inspection_id"]
+          },
+          {
             foreignKeyName: "ce_inspection_findings_violation_id_fkey"
             columns: ["violation_id"]
             isOneToOne: false
@@ -13575,6 +13630,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_inspections"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ce_inspection_findings_inspection"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_visit_execution_metrics"
+            referencedColumns: ["inspection_id"]
           },
           {
             foreignKeyName: "fk_ce_inspection_findings_violation"
@@ -13655,6 +13717,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ce_inspection_working_papers_inspection_id_fkey"
+            columns: ["inspection_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_visit_execution_metrics"
+            referencedColumns: ["inspection_id"]
+          },
+          {
             foreignKeyName: "ce_inspection_working_papers_plan_item_id_fkey"
             columns: ["plan_item_id"]
             isOneToOne: false
@@ -13687,6 +13756,7 @@ export type Database = {
           location_lat: number | null
           location_lng: number | null
           photos: Json | null
+          plan_item_id: string | null
           scheduled_date: string | null
           scheduled_time: string | null
           status: string | null
@@ -13718,6 +13788,7 @@ export type Database = {
           location_lat?: number | null
           location_lng?: number | null
           photos?: Json | null
+          plan_item_id?: string | null
           scheduled_date?: string | null
           scheduled_time?: string | null
           status?: string | null
@@ -13749,6 +13820,7 @@ export type Database = {
           location_lat?: number | null
           location_lng?: number | null
           photos?: Json | null
+          plan_item_id?: string | null
           scheduled_date?: string | null
           scheduled_time?: string | null
           status?: string | null
@@ -13763,6 +13835,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_inspections_plan_item_id_fkey"
+            columns: ["plan_item_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plan_items"
             referencedColumns: ["id"]
           },
         ]
@@ -17032,6 +17111,7 @@ export type Database = {
           assigned_to_name: string | null
           assigned_to_user_id: string | null
           assignment_method: string | null
+          audit_report_id: string | null
           c3_submission_id: string | null
           candidate_activity_type: string | null
           candidate_business_name: string | null
@@ -17086,6 +17166,7 @@ export type Database = {
           assigned_to_name?: string | null
           assigned_to_user_id?: string | null
           assignment_method?: string | null
+          audit_report_id?: string | null
           c3_submission_id?: string | null
           candidate_activity_type?: string | null
           candidate_business_name?: string | null
@@ -17140,6 +17221,7 @@ export type Database = {
           assigned_to_name?: string | null
           assigned_to_user_id?: string | null
           assignment_method?: string | null
+          audit_report_id?: string | null
           c3_submission_id?: string | null
           candidate_activity_type?: string | null
           candidate_business_name?: string | null
@@ -17195,6 +17277,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ce_assignment_queues"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violations_audit_report_id_fkey"
+            columns: ["audit_report_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_audit_reports"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violations_audit_report_id_fkey"
+            columns: ["audit_report_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_visit_execution_metrics"
+            referencedColumns: ["report_id"]
           },
           {
             foreignKeyName: "ce_violations_case_id_fkey"
@@ -47046,6 +47142,38 @@ export type Database = {
           resolved_count: number | null
         }
         Relationships: []
+      }
+      ce_v_visit_execution_metrics: {
+        Row: {
+          checklist_answered: number | null
+          checklist_pct: number | null
+          checklist_total: number | null
+          employer_id: string | null
+          evidence_count: number | null
+          findings_count: number | null
+          findings_critical: number | null
+          findings_high: number | null
+          findings_low: number | null
+          findings_medium: number | null
+          followup_count: number | null
+          inspection_id: string | null
+          inspection_status: string | null
+          plan_item_id: string | null
+          report_id: string | null
+          report_number: string | null
+          report_status: string | null
+          scheduled_date: string | null
+          violations_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_inspections_plan_item_id_fkey"
+            columns: ["plan_item_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plan_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ce_v_weekly_plan_candidates: {
         Row: {
