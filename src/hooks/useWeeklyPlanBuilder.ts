@@ -331,7 +331,8 @@ export function useWeeklyPlanBuilder() {
     [removeItemMutation, toast]
   );
 
-  const canEdit = !activePlan || activePlan.status === WeeklyPlanStatus.DRAFT || activePlan.status === WeeklyPlanStatus.NEEDS_CHANGES;
+  const isNeedsChanges = activePlan?.status === WeeklyPlanStatus.NEEDS_CHANGES;
+  const canEdit = !activePlan || activePlan.status === WeeklyPlanStatus.DRAFT || isNeedsChanges;
 
   return {
     // Auth
@@ -349,6 +350,7 @@ export function useWeeklyPlanBuilder() {
     planItems,
     itemsByDay,
     canEdit,
+    isNeedsChanges,
     isLoading: existingPlanQuery.isLoading || planItemsQuery.isLoading,
     // Candidates
     candidates,
@@ -361,8 +363,9 @@ export function useWeeklyPlanBuilder() {
     moveItemToDay,
     removeItem,
     submitPlan: submitMutation.mutateAsync,
+    resubmitPlan: resubmitMutation.mutateAsync,
     saveNarrative: saveNarrativeMutation.mutateAsync,
-    isSubmitting: submitMutation.isPending,
+    isSubmitting: submitMutation.isPending || resubmitMutation.isPending,
     isSaving: saveNarrativeMutation.isPending || addItemMutation.isPending,
     // Refresh
     refreshCandidates: () => queryClient.invalidateQueries({ queryKey: ['plan-candidates'] }),
