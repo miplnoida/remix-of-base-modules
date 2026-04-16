@@ -213,6 +213,13 @@ export const complianceMenuItems = [
             description: "Schedule and manage inspections",
           },
           {
+            title: "Audit Management",
+            url: "/compliance/field/audit-management",
+            icon: ClipboardCheck,
+            requiresPermission: "manage_compliance",
+            description: "Manage audit assignments and case-based audits",
+          },
+          {
             title: "Employer Findings",
             url: "/compliance/field/findings",
             icon: FileText,
