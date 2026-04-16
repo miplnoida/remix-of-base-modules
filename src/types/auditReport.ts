@@ -80,6 +80,8 @@ export interface FullAuditReport {
   reportDate: string;
   auditDate?: string;
   auditLocation?: string;
+  employerRepName?: string;
+  employerRepDesignation?: string;
   status: AuditReportStatus;
   currentVersion: number;
   verificationRef?: string;

@@ -34,6 +34,8 @@ function mapReport(r: any): FullAuditReport {
     reportDate: r.report_date,
     auditDate: r.audit_date ?? undefined,
     auditLocation: r.audit_location ?? undefined,
+    employerRepName: r.employer_rep_name ?? undefined,
+    employerRepDesignation: r.employer_rep_designation ?? undefined,
     status: r.status,
     currentVersion: r.current_version ?? 1,
     verificationRef: r.verification_ref ?? undefined,
@@ -127,6 +129,8 @@ export const auditReportService = {
       auditDate: string;
       auditLocation: string;
       employerRegNumber: string;
+      employerRepName: string;
+      employerRepDesignation: string;
     }>
   ): Promise<void> {
     const userCode = await whoami();
@@ -144,6 +148,8 @@ export const auditReportService = {
     if (fields.auditDate !== undefined) update.audit_date = fields.auditDate;
     if (fields.auditLocation !== undefined) update.audit_location = fields.auditLocation;
     if (fields.employerRegNumber !== undefined) update.employer_reg_number = fields.employerRegNumber;
+    if (fields.employerRepName !== undefined) update.employer_rep_name = fields.employerRepName;
+    if (fields.employerRepDesignation !== undefined) update.employer_rep_designation = fields.employerRepDesignation;
 
     const { error } = await supabase
       .from('ce_employer_audit_reports')
@@ -272,17 +278,19 @@ export const auditReportService = {
     const userCode = await whoami();
     let signatureImageUrl: string | undefined;
 
-    // Upload canvas signature if provided
+    // Upload canvas signature if provided — surface failures (do not silently drop)
     if (params.signatureDataUrl && params.signatureDataUrl.startsWith('data:image/')) {
       const blob = dataUrlToBlob(params.signatureDataUrl);
-      const path = `audit-reports/${params.reportId}/signatures/${params.signerRole}-${Date.now()}.png`;
+      const path = `${params.reportId}/${params.signerRole}-${Date.now()}.png`;
       const { error: upErr } = await supabase.storage
-        .from('documents')
+        .from('audit-signatures')
         .upload(path, blob, { upsert: true, contentType: 'image/png' });
-      if (!upErr) {
-        const { data: pub } = supabase.storage.from('documents').getPublicUrl(path);
-        signatureImageUrl = pub.publicUrl;
+      if (upErr) {
+        console.error('[captureSignature] upload failed', upErr);
+        throw new Error(`Signature image upload failed: ${upErr.message}`);
       }
+      const { data: pub } = supabase.storage.from('audit-signatures').getPublicUrl(path);
+      signatureImageUrl = pub.publicUrl;
     }
 
     const { data, error } = await supabase
