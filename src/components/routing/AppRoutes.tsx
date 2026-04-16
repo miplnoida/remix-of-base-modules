@@ -705,23 +705,7 @@ import BnSurvivorsBenefitProcessing from '@/pages/bn/servicing/SurvivorsBenefitP
 // SSB Legal Module - already imported above
 import CaseIntakeWizard from '@/pages/legal/CaseIntakeWizard';
 
-// BeMA Compliance
-const BemaDashboard = lazy(() => import("@/pages/bema/Dashboard"));
-const BemaRegistrations = lazy(() => import("@/pages/bema/Registrations"));
-const BemaC3Filing = lazy(() => import("@/pages/bema/C3Filing"));
-const BemaArrears = lazy(() => import("@/pages/bema/Arrears"));
-const BemaAudits = lazy(() => import("@/pages/bema/Audits"));
-const BemaInspectorMobile = lazy(() => import("@/pages/bema/InspectorMobile"));
-const BemaContributors = lazy(() => import("@/pages/bema/Contributors"));
-const BemaWaivers = lazy(() => import("@/pages/bema/Waivers"));
-const BemaReports = lazy(() => import("@/pages/bema/Reports"));
-const BemaZones = lazy(() => import("@/pages/bema/Zones"));
-const BemaWorkplan = lazy(() => import("@/pages/bema/WorkplanManagement"));
-const BemaScoutingReview = lazy(() => import("@/pages/bema/ScoutingReview"));
-const BemaAdminRules = lazy(() => import("@/pages/bema/AdminRules"));
-const BemaTemplateManagement = lazy(() => import("@/pages/bema/TemplateManagement"));
-const BemaRoleManagement = lazy(() => import("@/pages/bema/RoleManagement"));
-const BemaSystemLogs = lazy(() => import("@/pages/bema/SystemLogs"));
+// BeMA Compliance - deprecated, routes redirect to /compliance/*
 const IATemplatesManagement = lazy(() => import("@/pages/audit/TemplatesManagement"));
 
 // Authentication
@@ -1428,15 +1412,15 @@ export const AppRoutes = () => {
       <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
       <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
 
-      {/* BeMA Compliance Routes - Additional */}
-      <Route path="/bema/workplan" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaWorkplan /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/c3-filing" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaC3Filing /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/registrations" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaRegistrations /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/scouting" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaScoutingReview /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/admin/rules" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaAdminRules /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/admin/templates" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaTemplateManagement /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/admin/roles" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaRoleManagement /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/admin/logs" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaSystemLogs /></Suspense></ProtectedLayout>} />
+      {/* BeMA Legacy Redirects - all redirect to Compliance module */}
+      <Route path="/bema/workplan" element={<Navigate to="/compliance/field/my-plans" replace />} />
+      <Route path="/bema/c3-filing" element={<Navigate to="/compliance/reports/c3-compliance" replace />} />
+      <Route path="/bema/registrations" element={<Navigate to="/compliance/field/employer-360" replace />} />
+      <Route path="/bema/scouting" element={<Navigate to="/compliance/field/findings" replace />} />
+      <Route path="/bema/admin/rules" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
+      <Route path="/bema/admin/templates" element={<Navigate to="/compliance/admin/settings/templates" replace />} />
+      <Route path="/bema/admin/roles" element={<Navigate to="/compliance/admin/staff/officers" replace />} />
+      <Route path="/bema/admin/logs" element={<Navigate to="/compliance/admin/automation/history" replace />} />
 
       {/* Legal Module Routes - New */}
       <Route path="/legal/dashboard" element={<ProtectedLayout><LegalDashboard /></ProtectedLayout>} />
@@ -1723,18 +1707,15 @@ export const AppRoutes = () => {
         </ProtectedLayout>
       } />
 
-      {/* BeMA Compliance */}
-      <Route path="/bema/dashboard" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaDashboard /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/registrations" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaRegistrations /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/c3-filing" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaC3Filing /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/arrears" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaArrears /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/audits" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaAudits /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/inspector-mobile" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaInspectorMobile /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/contributors" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaContributors /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/waivers" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaWaivers /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/reports" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaReports /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/zones" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaZones /></Suspense></ProtectedLayout>} />
-      <Route path="/bema/workplan" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><BemaWorkplan /></Suspense></ProtectedLayout>} />
+      {/* BeMA Legacy Redirects */}
+      <Route path="/bema/dashboard" element={<Navigate to="/compliance/workbench/manager" replace />} />
+      <Route path="/bema/arrears" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
+      <Route path="/bema/audits" element={<Navigate to="/compliance/field/audit-management" replace />} />
+      <Route path="/bema/inspector-mobile" element={<Navigate to="/compliance/field/execution" replace />} />
+      <Route path="/bema/contributors" element={<Navigate to="/compliance/field/employer-360" replace />} />
+      <Route path="/bema/waivers" element={<Navigate to="/compliance/enforcement/waivers" replace />} />
+      <Route path="/bema/reports" element={<Navigate to="/compliance/reports" replace />} />
+      <Route path="/bema/zones" element={<Navigate to="/compliance/admin/geography/zones" replace />} />
 
       {/* Finance Module */}
       <Route path="/finance/dashboard" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
