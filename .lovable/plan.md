@@ -1,95 +1,114 @@
+# C3 Wizard Settings Configuration — Revised Implementation Plan
 
+## Answers to Your Two Questions
 
-# Implementation Plan: C3 Wizard Settings Configuration Screen
+### 1. Module Placement — C3 Management, Not Admin
 
-## Summary
+The new Settings Configuration screen will be placed **inside the C3 Management module** at route `/c3-management/settings-configuration`. The existing CyberSourceSettings page (`src/pages/c3Management/CyberSourceSettings.tsx`) will **not be removed** — it will be replaced by the new consolidated screen. The CyberSource tab currently embedded in C3ConfigurationPage will point to the new screen instead.
 
-Build a new **Settings Configuration** screen that manages two local tables (`c3_site_settings` and `c3_email_config`) with a Publish-to-C3-Wizard sync mechanism. The admin edits settings locally and syncs them to the C3 Wizard via two existing API actions (`sync_site_settings`, `sync_email_config`).
+### 2. No Frontend Business Logic — Backend-Only via Edge Function
 
-## What Exists Today
+All business logic (sync orchestration, retry, dependency checks, payload construction, sync status updates) will live in a **new edge function** (`wiz-settings-sync`). The frontend will:
 
-- **CyberSourceSettings page** already reads/writes CyberSource config via the C3 Wizard API (`getCyberSourceSettings`, `updateCyberSourceSettings`). The new approach replaces this with local-first storage.
-- **7 `wiz*Service.ts` files** already use the `wiz-admin-api` endpoint pattern with `WIZ_API_URL` and `WIZ_ADMIN_API_KEY`. The sync calls will follow the same pattern.
-- **No `c3_site_settings` or `c3_email_config` tables** exist in the SSB-Admin database yet.
+- Read/write local tables via Supabase client (simple CRUD, no logic)
+- Call the edge function for Publish/Retry (POST with pack of IDs)
+- The edge function handles: reading unsynced rows, building API payloads, calling `sync_site_settings` / `sync_email_config` on C3 Wizard, updating `is_synced` / `sync_error` / `last_synced_at` per row
 
-## What Needs to Be Built
+This ensures all logic is portable to .NET Core later.
 
-### Phase 1: Database Tables + Seed Data
+---
 
-**Migration 1** — Create both tables:
-- `c3_site_settings` (14 columns: id, setting_key, setting_value, setting_type, description, environment, is_deleted, is_synced, sync_error, last_synced_at, created_at, updated_at, created_by, updated_by)
-- `c3_email_config` (11 columns: id, config_key, config_value, description, config_group, is_active, is_synced, sync_error, last_synced_at, created_at, updated_at)
-- Indexes on setting_type, setting_key, config_group, and partial indexes on is_synced=false
+## Phase 1: Database Migration
 
-**Migration 2** — Seed data:
+**Migration 1 — Create tables** (exact schema from guide):
+
+- `c3_site_settings`: 14 columns (id as uuid PK, setting_key, setting_value, setting_type, description, environment, is_deleted, is_synced, sync_error, last_synced_at, created_at, updated_at, created_by, updated_by)
+- `c3_email_config`: 11 columns (id as uuid PK, config_key, config_value, description, config_group, is_active, is_synced, sync_error, last_synced_at, created_at, updated_at)
+- Indexes per guide spec + partial indexes on `is_synced = false`
+
+**Migration 2 — Seed data** (from guide sections 2.1–2.6):
+
 - 2 PAYMENT_GATEWAY rows (Production + Sandbox)
-- 6 PAYMENT_CONFIG rows (currency, country, city, postal, email, phone)
-- 12 EXTERNAL_API rows (6 Dev + 6 Prod for SSB APIs)
+- 6 PAYMENT_CONFIG rows
+- 12 EXTERNAL_API rows (6 Dev + 6 Prod)
 - 1 SYSTEM row (ACTIVE_ENVIRONMENT)
-- 8 c3_email_config rows (test mode, recipients, senders)
+- 8 c3_email_config rows
 
-### Phase 2: Service Layer
+## Phase 2: Edge Function — `wiz-settings-sync`
 
-**New file: `src/services/wizSettingsService.ts`**
-- `fetchSiteSettings(settingType?: string)` — local Supabase query
-- `updateSiteSetting(id, updates)` — local update, sets `is_synced=false`
-- `fetchEmailConfig(configGroup?: string)` — local Supabase query
-- `updateEmailConfig(id, updates)` — local update, sets `is_synced=false`
-- `publishSettings()` — fetches all `is_synced=false` rows, calls `sync_site_settings` and `sync_email_config` via `wiz-admin-api`, updates local sync status per row
-- `retrySync(table, key, environment?)` — single-row retry for failed items
+A new edge function that handles all sync logic:
 
-### Phase 3: UI — Settings Configuration Page
+**Actions:**
 
-**New file: `src/pages/admin/SettingsConfiguration.tsx`**
+- `publish_all` — reads all `is_synced=false` rows from both tables, calls C3 Wizard APIs (`sync_site_settings`, `sync_email_config`), updates sync status per row
+- `retry_setting` — re-syncs a single `c3_site_settings` row by ID
+- `retry_email` — re-syncs a single `c3_email_config` row by ID
 
-Route: `/admin/settings-configuration` (add to AppRoutes.tsx)
+**Logic in edge function (not frontend):**
 
-**Layout**: 5 tabs + Publish All button in header
+1. Query unsynced rows using service-role client
+2. Build payload per guide spec (sections 3.1, 3.2)
+3. Call `wiz-admin-api` with `sync_site_settings` / `sync_email_config`
+4. Parse response, update each row's `is_synced`, `sync_error`, `last_synced_at`
+5. Return summary to frontend
 
-| Tab | Source | Content |
-|-----|--------|---------|
-| Payment Gateway | `c3_site_settings` WHERE setting_type='PAYMENT_GATEWAY' | Card-based view with parsed JSON fields (merchant_id, key_id, secret_key as password input, base_url). Toggle active/inactive. Only one gateway active at a time. |
-| Payment Defaults | `c3_site_settings` WHERE setting_type='PAYMENT_CONFIG' | Simple editable table with value, environment badge, sync status |
-| API Configuration | `c3_site_settings` WHERE setting_type='EXTERNAL_API' | Grouped by environment (Dev/Prod). JSON fields parsed into columns. API keys masked (last 8 chars). |
-| Email Settings | `c3_email_config` | Grouped by config_group (test, recipients, senders). IS_TEST_MODE as toggle. |
-| System | `c3_site_settings` WHERE setting_type='SYSTEM' | ACTIVE_ENVIRONMENT as dropdown (Dev/Prod) |
+## Phase 3: Service Layer (Thin — No Logic)
 
-**Key UI behaviors**:
-- Each row shows sync status badge: Synced (green), Pending (amber), Failed (red)
-- Failed rows show Retry button
-- Footer shows "Pending changes: N" count + Publish button
-- Publish calls `publishSettings()`, updates row-level sync status based on API response
-- API keys/secrets displayed with partial masking (show last 8 chars)
-- `created_by`/`updated_by` populated with logged-in user's `user_code`
+**New file: `src/services/wizSettingsService.ts**`
 
-### Phase 4: Hook + Route Integration
+Pure CRUD wrappers — no business logic:
 
-**New file: `src/hooks/useSettingsConfiguration.ts`**
-- React Query hooks for fetching settings by type/group
-- Mutation hooks for update + publish + retry
-- Pending count computed from `is_synced=false` rows
+- `fetchSiteSettings(settingType?)` — SELECT from `c3_site_settings`
+- `saveSiteSetting(id, updates)` — UPDATE row, set `is_synced=false`, `updated_by=userCode`
+- `fetchEmailConfig(configGroup?)` — SELECT from `c3_email_config`
+- `saveEmailConfig(id, updates)` — UPDATE row, set `is_synced=false`
+- `publishAll()` — calls `wiz-settings-sync` edge function with action `publish_all`
+- `retrySync(table, id)` — calls edge function with `retry_setting` or `retry_email`
 
-**Modify: `src/components/routing/AppRoutes.tsx`**
-- Add route `/admin/settings-configuration` → SettingsConfiguration page
+## Phase 4: React Query Hook
 
-**Modify: `src/pages/admin/C3ConfigurationPage.tsx`**
-- Optionally redirect CyberSource tab to new Settings Configuration page, or embed it
+**New file: `src/hooks/useSettingsConfiguration.ts**`
 
-## Files to Create/Modify
+- Queries for each setting type / email config group
+- Mutations for save, publish, retry
+- Computed `pendingCount` from `is_synced=false` rows
 
-| File | Action |
-|------|--------|
-| DB Migration (tables) | Create `c3_site_settings`, `c3_email_config` |
-| DB Migration (seed) | Insert all seed rows from guide sections 2.1–2.6 |
-| `src/services/wizSettingsService.ts` | New — CRUD + publish + retry |
-| `src/hooks/useSettingsConfiguration.ts` | New — React Query wrappers |
-| `src/pages/admin/SettingsConfiguration.tsx` | New — 5-tab settings page |
-| `src/components/routing/AppRoutes.tsx` | Add route |
+## Phase 5: UI — Settings Configuration Page
 
-## Security Notes
+**New file: `src/pages/c3Management/SettingsConfiguration.tsx**`
 
-- Secret keys sent as plain text in sync payload — C3 Wizard encrypts server-side (AES-256-GCM)
-- API keys masked in UI (last 8 chars visible)
-- No RLS (per project constraint) — role-based access only
-- Audit fields (`created_by`, `updated_by`) use logged-in user's `user_code`
+**Route:** `/c3-management/settings-configuration`
 
+**Layout:** 5 tabs + "Publish All" button in header with pending count badge
+
+
+| Tab               | Data Source                      | UI                                                                                                            |
+| ----------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Payment Gateway   | `setting_type='PAYMENT_GATEWAY'` | Cards with parsed JSON fields (merchant_id, key_id, secret_key as password, base_url). Toggle active gateway. |
+| Payment Defaults  | `setting_type='PAYMENT_CONFIG'`  | Editable table rows with value, environment badge, sync status                                                |
+| API Configuration | `setting_type='EXTERNAL_API'`    | Grouped by environment (Dev/Prod). API keys masked (last 8 chars).                                            |
+| Email Settings    | `c3_email_config`                | Grouped by config_group. IS_TEST_MODE as toggle.                                                              |
+| System            | `setting_type='SYSTEM'`          | ACTIVE_ENVIRONMENT dropdown (Dev/Prod)                                                                        |
+
+
+**Per-row indicators:** Synced (green badge), Pending (amber), Failed (red + Retry button)
+
+## Phase 6: Route + Navigation Integration
+
+- Add route in `AppRoutes.tsx` under C3 Management section
+- Update CyberSource tab in `C3ConfigurationPage.tsx` to link/redirect to new screen
+- Ensure sidebar `app_modules` entry exists for this screen
+
+## Files Summary
+
+
+| File                                               | Action                                                                                   |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| DB Migration 1                                     | Create `c3_site_settings`, `c3_email_config`                                             |
+| DB Migration 2                                     | Seed all rows from guide                                                                 |
+| `supabase/functions/wiz-settings-sync/index.ts`    | New edge function — all sync logic                                                       |
+| `src/services/wizSettingsService.ts`               | New — thin CRUD + edge function calls                                                    |
+| `src/hooks/useSettingsConfiguration.ts`            | New — React Query wrappers                                                               |
+| `src/pages/c3Management/SettingsConfiguration.tsx` | New — 5-tab settings page                                                                |
+| `src/components/routing/AppRoutes.tsx`             | Add route                                                                                |
+| `src/pages/admin/C3ConfigurationPage.tsx`          | Update CyberSource tab reference(Don't hamper with the existing screen or functionality) |
