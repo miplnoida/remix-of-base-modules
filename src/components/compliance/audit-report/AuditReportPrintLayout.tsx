@@ -49,8 +49,10 @@ export function AuditReportPrintLayout({
   const witSig = signatures.find((s) => s.signerRole === 'WITNESS');
   const supSig = signatures.find((s) => s.signerRole === 'SUPERVISOR');
 
+  const isDraft = report.status !== 'FINAL';
+
   return (
-    <div className="audit-report-print">
+    <div className={`audit-report-print ${isDraft ? 'is-draft' : ''}`}>
       <style>{printStyles}</style>
 
       {/* ── COVER PAGE ── */}
@@ -63,27 +65,38 @@ export function AuditReportPrintLayout({
           <h1 className="cover-title">{reportTitle}</h1>
           <div className="cover-subtitle">Compliance Field Audit Engagement</div>
 
+          {/* Prominent employer identity panel */}
+          <div className="employer-identity-panel">
+            <div className="employer-identity-name">{report.employerName ?? '—'}</div>
+            <div className="employer-identity-meta">
+              <span><strong>Reg No:</strong> {report.employerRegNumber ?? report.employerId ?? '—'}</span>
+              <span><strong>Audit Date:</strong> {report.auditDate ? formatDateForDisplay(report.auditDate) : formatDateForDisplay(report.reportDate)}</span>
+              <span><strong>Report No:</strong> {report.reportNumber}</span>
+            </div>
+          </div>
+
           <div className="cover-meta">
             <Row label="Report Number" value={report.reportNumber} />
             <Row label="Employer" value={report.employerName ?? '—'} />
             <Row label="Registration No." value={report.employerRegNumber ?? report.employerId ?? '—'} />
             <Row label="Audit Date" value={report.auditDate ? formatDateForDisplay(report.auditDate) : formatDateForDisplay(report.reportDate)} />
             <Row label="Location" value={report.auditLocation ?? '—'} />
-            <Row label="Lead Inspector" value={report.inspectorName ?? '—'} />
+            <Row label="Inspector" value={report.inspectorName ?? '—'} />
             <Row label="Status" value={report.status} />
             {report.verificationRef && <Row label="Verification Ref" value={report.verificationRef} />}
           </div>
-
-          {report.status !== 'FINAL' && <div className="draft-watermark">DRAFT</div>}
         </div>
       </section>
+
+      {/* DRAFT watermark — fixed-positioned, repeats on every printed page */}
+      {isDraft && <div className="draft-watermark-fixed" aria-hidden="true">DRAFT</div>}
 
       <div className="page-break" />
 
       {/* ── BODY ── */}
       <header className="page-header">
-        <div>{report.reportNumber}</div>
-        <div>{report.employerName ?? '—'}</div>
+        <div><strong>{report.reportNumber}</strong></div>
+        <div><strong>{report.employerName ?? '—'}</strong>{report.employerRegNumber ? ` • ${report.employerRegNumber}` : ''}</div>
         <div>{isEmployer ? 'EMPLOYER COPY' : 'CONFIDENTIAL'}</div>
       </header>
 
