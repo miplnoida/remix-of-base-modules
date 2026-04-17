@@ -19,10 +19,30 @@ interface SyncResult {
   errors: Array<{ id: string; key: string; error: string }>;
 }
 
+interface WizRowResult {
+  template_key?: string;
+  config_key?: string;
+  setting_key?: string;
+  status?: string; // "inserted" | "updated" | "error" | "skipped"
+  error?: string;
+}
+
+interface WizApiResponse {
+  status: string; // "success" | "partial" | "error"
+  error?: string;
+  data?: {
+    synced?: boolean;
+    error?: string;
+    upserted?: number;
+    failed?: number;
+    results?: WizRowResult[];
+  };
+}
+
 async function callWizApi(
   action: string,
   params: Record<string, unknown>
-): Promise<{ status: string; error?: string }> {
+): Promise<WizApiResponse> {
   const res = await fetch(WIZ_API_URL, {
     method: "POST",
     headers: {
@@ -31,7 +51,48 @@ async function callWizApi(
     },
     body: JSON.stringify({ action, params }),
   });
-  return await res.json();
+  return (await res.json()) as WizApiResponse;
+}
+
+/**
+ * Determine whether the Wizard call was a true success.
+ * Treats top-level "success" with data.error or data.synced=false as a failure
+ * (this catches legacy "Unknown action" style responses).
+ * For the new richer shape, "success" means all rows upserted; "partial" means
+ * we must read per-row results to know which rows failed.
+ */
+function classifyResponse(apiRes: WizApiResponse): {
+  ok: boolean;
+  globalError?: string;
+} {
+  if (apiRes.status === "success") {
+    if (apiRes.data?.error) return { ok: false, globalError: apiRes.data.error };
+    if (apiRes.data?.synced === false)
+      return { ok: false, globalError: apiRes.data?.error || "Sync reported failure" };
+    return { ok: true };
+  }
+  if (apiRes.status === "partial") {
+    // Not a global failure — per-row results decide
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    globalError: apiRes.error || apiRes.data?.error || "Unknown API error",
+  };
+}
+
+/** Index per-row results by key (template_key / config_key / setting_key). */
+function indexResultsByKey(
+  results: WizRowResult[] | undefined,
+  keyField: "template_key" | "config_key" | "setting_key"
+): Map<string, WizRowResult> {
+  const map = new Map<string, WizRowResult>();
+  if (!results) return map;
+  for (const r of results) {
+    const k = r[keyField];
+    if (k) map.set(k, r);
+  }
+  return map;
 }
 
 Deno.serve(async (req: Request) => {
@@ -124,6 +185,31 @@ Deno.serve(async (req: Request) => {
   }
 });
 
+// ─── Mark a row synced or failed in a given table ───
+async function markRow(
+  supabase: ReturnType<typeof createClient>,
+  table: string,
+  id: string,
+  ok: boolean,
+  errMsg: string | null
+) {
+  if (ok) {
+    await supabase
+      .from(table)
+      .update({
+        is_synced: true,
+        sync_error: null,
+        last_synced_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+  } else {
+    await supabase
+      .from(table)
+      .update({ is_synced: false, sync_error: errMsg })
+      .eq("id", id);
+  }
+}
+
 // ─── Sync all unsynced site settings ───
 async function syncSiteSettings(
   supabase: ReturnType<typeof createClient>
@@ -158,47 +244,40 @@ async function syncSiteSettings(
     const apiRes = await callWizApi("sync_site_settings", {
       settings: settingsPayload,
     });
+    const { ok, globalError } = classifyResponse(apiRes);
+    const perRow = indexResultsByKey(apiRes.data?.results, "setting_key");
 
-    if (apiRes.status === "success") {
+    if (!ok) {
+      const errMsg = globalError || "Unknown API error";
       for (const row of rows) {
-        await supabase
-          .from("c3_site_settings")
-          .update({
-            is_synced: true,
-            sync_error: null,
-            last_synced_at: new Date().toISOString(),
-          })
-          .eq("id", row.id);
-        result.synced++;
+        await markRow(supabase, "c3_site_settings", row.id, false, errMsg);
+        result.failed++;
+        result.errors.push({ id: row.id, key: row.setting_key, error: errMsg });
       }
     } else {
-      const errMsg = apiRes.error || "Unknown API error";
       for (const row of rows) {
-        await supabase
-          .from("c3_site_settings")
-          .update({ sync_error: errMsg })
-          .eq("id", row.id);
-        result.failed++;
-        result.errors.push({
-          id: row.id,
-          key: row.setting_key,
-          error: errMsg,
-        });
+        const r = perRow.get(row.setting_key);
+        const rowOk = !r || (r.status !== "error" && r.status !== "skipped");
+        const errMsg = rowOk ? null : r?.error || "Row failed";
+        await markRow(supabase, "c3_site_settings", row.id, rowOk, errMsg);
+        if (rowOk) {
+          result.synced++;
+        } else {
+          result.failed++;
+          result.errors.push({
+            id: row.id,
+            key: row.setting_key,
+            error: errMsg!,
+          });
+        }
       }
     }
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : "Unknown error";
     for (const row of rows) {
-      await supabase
-        .from("c3_site_settings")
-        .update({ sync_error: errMsg })
-        .eq("id", row.id);
+      await markRow(supabase, "c3_site_settings", row.id, false, errMsg);
       result.failed++;
-      result.errors.push({
-        id: row.id,
-        key: row.setting_key,
-        error: errMsg,
-      });
+      result.errors.push({ id: row.id, key: row.setting_key, error: errMsg });
     }
   }
 
@@ -237,47 +316,40 @@ async function syncEmailConfig(
     const apiRes = await callWizApi("sync_email_config", {
       configs: configsPayload,
     });
+    const { ok, globalError } = classifyResponse(apiRes);
+    const perRow = indexResultsByKey(apiRes.data?.results, "config_key");
 
-    if (apiRes.status === "success") {
+    if (!ok) {
+      const errMsg = globalError || "Unknown API error";
       for (const row of rows) {
-        await supabase
-          .from("c3_email_config")
-          .update({
-            is_synced: true,
-            sync_error: null,
-            last_synced_at: new Date().toISOString(),
-          })
-          .eq("id", row.id);
-        result.synced++;
+        await markRow(supabase, "c3_email_config", row.id, false, errMsg);
+        result.failed++;
+        result.errors.push({ id: row.id, key: row.config_key, error: errMsg });
       }
     } else {
-      const errMsg = apiRes.error || "Unknown API error";
       for (const row of rows) {
-        await supabase
-          .from("c3_email_config")
-          .update({ sync_error: errMsg })
-          .eq("id", row.id);
-        result.failed++;
-        result.errors.push({
-          id: row.id,
-          key: row.config_key,
-          error: errMsg,
-        });
+        const r = perRow.get(row.config_key);
+        const rowOk = !r || (r.status !== "error" && r.status !== "skipped");
+        const errMsg = rowOk ? null : r?.error || "Row failed";
+        await markRow(supabase, "c3_email_config", row.id, rowOk, errMsg);
+        if (rowOk) {
+          result.synced++;
+        } else {
+          result.failed++;
+          result.errors.push({
+            id: row.id,
+            key: row.config_key,
+            error: errMsg!,
+          });
+        }
       }
     }
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : "Unknown error";
     for (const row of rows) {
-      await supabase
-        .from("c3_email_config")
-        .update({ sync_error: errMsg })
-        .eq("id", row.id);
+      await markRow(supabase, "c3_email_config", row.id, false, errMsg);
       result.failed++;
-      result.errors.push({
-        id: row.id,
-        key: row.config_key,
-        error: errMsg,
-      });
+      result.errors.push({ id: row.id, key: row.config_key, error: errMsg });
     }
   }
 
@@ -291,8 +363,8 @@ async function syncEmailTemplates(
   const { data: rows, error } = await supabase
     .from("c3_email_templates")
     .select("*")
-    .eq("is_synced", false)
-    .eq("is_deleted", false);
+    .eq("is_synced", false);
+  // Note: include deleted rows too so deletes propagate via is_deleted=true
 
   if (error) throw new Error(`Failed to read email templates: ${error.message}`);
   if (!rows || rows.length === 0)
@@ -314,32 +386,20 @@ async function syncEmailTemplates(
     from_module: row.from_module,
     variables: row.variables,
     is_active: row.is_active,
+    is_deleted: row.is_deleted,
   }));
 
   try {
     const apiRes = await callWizApi("sync_email_templates", {
       templates: templatesPayload,
     });
+    const { ok, globalError } = classifyResponse(apiRes);
+    const perRow = indexResultsByKey(apiRes.data?.results, "template_key");
 
-    if (apiRes.status === "success") {
+    if (!ok) {
+      const errMsg = globalError || "Unknown API error";
       for (const row of rows) {
-        await supabase
-          .from("c3_email_templates")
-          .update({
-            is_synced: true,
-            sync_error: null,
-            last_synced_at: new Date().toISOString(),
-          })
-          .eq("id", row.id);
-        result.synced++;
-      }
-    } else {
-      const errMsg = apiRes.error || "Unknown API error";
-      for (const row of rows) {
-        await supabase
-          .from("c3_email_templates")
-          .update({ sync_error: errMsg })
-          .eq("id", row.id);
+        await markRow(supabase, "c3_email_templates", row.id, false, errMsg);
         result.failed++;
         result.errors.push({
           id: row.id,
@@ -347,14 +407,28 @@ async function syncEmailTemplates(
           error: errMsg,
         });
       }
+    } else {
+      for (const row of rows) {
+        const r = perRow.get(row.template_key);
+        const rowOk = !r || (r.status !== "error" && r.status !== "skipped");
+        const errMsg = rowOk ? null : r?.error || "Row failed";
+        await markRow(supabase, "c3_email_templates", row.id, rowOk, errMsg);
+        if (rowOk) {
+          result.synced++;
+        } else {
+          result.failed++;
+          result.errors.push({
+            id: row.id,
+            key: row.template_key,
+            error: errMsg!,
+          });
+        }
+      }
     }
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : "Unknown error";
     for (const row of rows) {
-      await supabase
-        .from("c3_email_templates")
-        .update({ sync_error: errMsg })
-        .eq("id", row.id);
+      await markRow(supabase, "c3_email_templates", row.id, false, errMsg);
       result.failed++;
       result.errors.push({
         id: row.id,
@@ -390,28 +464,20 @@ async function retrySiteSetting(
     is_active: row.is_active,
   };
 
-  const apiRes = await callWizApi("sync_site_settings", {
-    settings: [payload],
-  });
+  const apiRes = await callWizApi("sync_site_settings", { settings: [payload] });
+  const { ok, globalError } = classifyResponse(apiRes);
+  const perRow = indexResultsByKey(apiRes.data?.results, "setting_key");
+  const r = perRow.get(row.setting_key);
 
-  if (apiRes.status === "success") {
-    await supabase
-      .from("c3_site_settings")
-      .update({
-        is_synced: true,
-        sync_error: null,
-        last_synced_at: new Date().toISOString(),
-      })
-      .eq("id", id);
-    return { synced: true };
-  } else {
-    const errMsg = apiRes.error || "Unknown API error";
-    await supabase
-      .from("c3_site_settings")
-      .update({ sync_error: errMsg })
-      .eq("id", id);
-    return { synced: false, error: errMsg };
+  let rowOk = ok;
+  let errMsg = globalError || null;
+  if (ok && r && (r.status === "error" || r.status === "skipped")) {
+    rowOk = false;
+    errMsg = r.error || "Row failed";
   }
+
+  await markRow(supabase, "c3_site_settings", id, rowOk, errMsg);
+  return rowOk ? { synced: true } : { synced: false, error: errMsg };
 }
 
 // ─── Retry single email config ───
@@ -435,28 +501,20 @@ async function retryEmailConfig(
     description: row.description,
   };
 
-  const apiRes = await callWizApi("sync_email_config", {
-    configs: [payload],
-  });
+  const apiRes = await callWizApi("sync_email_config", { configs: [payload] });
+  const { ok, globalError } = classifyResponse(apiRes);
+  const perRow = indexResultsByKey(apiRes.data?.results, "config_key");
+  const r = perRow.get(row.config_key);
 
-  if (apiRes.status === "success") {
-    await supabase
-      .from("c3_email_config")
-      .update({
-        is_synced: true,
-        sync_error: null,
-        last_synced_at: new Date().toISOString(),
-      })
-      .eq("id", id);
-    return { synced: true };
-  } else {
-    const errMsg = apiRes.error || "Unknown API error";
-    await supabase
-      .from("c3_email_config")
-      .update({ sync_error: errMsg })
-      .eq("id", id);
-    return { synced: false, error: errMsg };
+  let rowOk = ok;
+  let errMsg = globalError || null;
+  if (ok && r && (r.status === "error" || r.status === "skipped")) {
+    rowOk = false;
+    errMsg = r.error || "Row failed";
   }
+
+  await markRow(supabase, "c3_email_config", id, rowOk, errMsg);
+  return rowOk ? { synced: true } : { synced: false, error: errMsg };
 }
 
 // ─── Retry single email template ───
@@ -482,28 +540,23 @@ async function retryEmailTemplate(
     from_module: row.from_module,
     variables: row.variables,
     is_active: row.is_active,
+    is_deleted: row.is_deleted,
   };
 
   const apiRes = await callWizApi("sync_email_templates", {
     templates: [payload],
   });
+  const { ok, globalError } = classifyResponse(apiRes);
+  const perRow = indexResultsByKey(apiRes.data?.results, "template_key");
+  const r = perRow.get(row.template_key);
 
-  if (apiRes.status === "success") {
-    await supabase
-      .from("c3_email_templates")
-      .update({
-        is_synced: true,
-        sync_error: null,
-        last_synced_at: new Date().toISOString(),
-      })
-      .eq("id", id);
-    return { synced: true };
-  } else {
-    const errMsg = apiRes.error || "Unknown API error";
-    await supabase
-      .from("c3_email_templates")
-      .update({ sync_error: errMsg })
-      .eq("id", id);
-    return { synced: false, error: errMsg };
+  let rowOk = ok;
+  let errMsg = globalError || null;
+  if (ok && r && (r.status === "error" || r.status === "skipped")) {
+    rowOk = false;
+    errMsg = r.error || "Row failed";
   }
+
+  await markRow(supabase, "c3_email_templates", id, rowOk, errMsg);
+  return rowOk ? { synced: true } : { synced: false, error: errMsg };
 }
