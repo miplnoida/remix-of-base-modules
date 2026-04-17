@@ -1,51 +1,50 @@
 
 
-## Diagnosis
+## Plan: Hide Approve/Reject on Employer Edit screen
 
-**Publish to Live is failing on migration `20260417113408_cec02a66...sql`.**
+### Issue
+On `/employer-registration/edit/:regno` the screen currently shows both:
+- `Submit` button (correctly gated to Draft `status === 'Z'`)
+- `Approve` / `Reject` buttons rendered by `<WorkflowActionButtons sourceModule="employers" .../>` (lines 290-296 of `EmployerRegistrationForm.tsx`)
 
-That migration unconditionally runs:
-```sql
-ALTER TABLE role_permissions DISABLE TRIGGER admin_permissions_protection;
+Per requirement, the **Edit** screen is for the applicant/data-entry user. Approve/Reject belong to reviewers and must be performed from the **View** screen (`/employer-registration/view/:regno`) — which is exactly where workflow tasks already deep-link reviewers via `taskRedirect`.
+
+### Fix (single file, surgical)
+**File:** `src/pages/employer-registration/EmployerRegistrationForm.tsx`
+
+Wrap the `<WorkflowActionButtons>` block (lines 290-296) so it renders **only in View mode**:
+
+```tsx
+{isViewMode && (
+  <WorkflowActionButtons
+    sourceModule="employers"
+    sourceRecordId={formData.regno || null}
+    variant="default"
+    onActionComplete={handleWorkflowActionComplete}
+  />
+)}
 ```
-On **Test** the trigger `admin_permissions_protection` exists, so it works. On **Live** the trigger does **not exist**, so Postgres raises:
-> `trigger "admin_permissions_protection" for table "role_permissions" does not exist`
 
-This aborts the publish. Every subsequent migration (`20260417122616` C3-Wizard seed, `20260417181129` date_married trigger) is therefore **never applied to Live** — confirmed by querying Live:
-- `c3_site_settings` has **0 rows** for `C3_WIZARD_BASE_URL` / `OUTBOUND_*` / `INBOUND_*` / `ACTIVE_ENVIRONMENT`
-- `validate_date_married_ge_dob()` exists but the **triggers on `ip_master` are missing**
-- `app_modules` rows `…000031` / `…000032` were **not** deleted on Live (still present, disabled)
+That's the entire change.
 
-## Fix (one new idempotent migration)
+### Why this is safe & complete
+- **Submit flow unchanged** — already uses `useEmployerRegistrationSubmit` → `submit_er_registration` Supabase RPC → triggers workflow. Fully functional via Supabase endpoints.
+- **Approve / Reject still work** — reviewers are already routed to the **View** route by the workflow task system (`taskRedirect` / notification deep links use `/view/`, not `/edit/`). The `WorkflowActionButtons` component itself, the `execute_workflow_action` RPC, and the audit / notification side-effects remain untouched.
+- **New mode** (`/employer-registration/new`) — `isViewMode` is false, so Approve/Reject also correctly hidden (they were never useful there anyway since `formData.regno` is null).
+- **Edit mode** (`/employer-registration/edit/:regno`) — only `Submit` shows, and only while `status === 'Z'` (Draft), exactly as required.
+- **No DB changes, no edge function changes, no permission changes, no route changes.**
 
-Create a single new SQL migration that does the following, in this order, all defensively (so it's safe to run on both Test and Live, no matter the prior state):
+### Verification
+1. `/employer-registration/edit/T00010` (Draft) → only **Submit** visible. ✅
+2. `/employer-registration/edit/<permanent-regno>` (Pending/Active) → no action buttons (Submit hidden by status, Approve/Reject hidden by mode). ✅
+3. `/employer-registration/view/<regno>` → **Edit** + **Approve / Reject** still visible for users with the workflow task. ✅
+4. Reviewer clicks Approve from notification → still lands on `/view/...` and acts successfully via existing RPC flow. ✅
+5. Submit on edit screen → still calls `submit_er_registration` RPC → triggers workflow notification to reviewer. ✅
 
-### 1. Re-do the cleanup from `20260417113408` safely
-- Wrap the trigger disable/enable in `DO $$` blocks that check `pg_trigger` first.
-- Re-run the two DELETEs (`role_permissions` + `app_modules` for module IDs `…000031` and `…000032`) — already no-ops on Test, will finally succeed on Live.
+### Files changed
+- `src/pages/employer-registration/EmployerRegistrationForm.tsx` — wrap one JSX block in `{isViewMode && ( ... )}` (≈ 3 lines diff).
 
-### 2. Re-apply the C3-Wizard seed from `20260417122616`
-- Replace the bare `ON CONFLICT DO NOTHING` with `WHERE NOT EXISTS (SELECT 1 FROM c3_site_settings WHERE setting_key=… AND environment=…)` so it's truly idempotent on a table with no unique constraint on `(setting_key, environment)`.
-- Seeds the 5 keys × 2 environments (`Dev` / `Production`) needed for C3-Wizard publish-to-live to work.
-
-### 3. Re-apply the date_married trigger from `20260417181129`
-- The function already exists on Live; just re-create the trigger on `ip_master` using `DROP TRIGGER IF EXISTS … CREATE TRIGGER …` (already idempotent — but was skipped on Live because the publish aborted earlier).
-- The `ip_applications` block stays guarded by the existing `IF EXISTS` check.
-
-## Why this is safe
-- **No new tables, no new columns, no destructive DDL.** All statements are guarded by `IF EXISTS` / `WHERE NOT EXISTS` / `DROP … IF EXISTS`.
-- **Test environment:** all three sections are no-ops (cleanup already done, seed rows already present, triggers already created).
-- **Live environment:** all three sections execute and bring Live in sync with Test.
-- **No frontend code change** required — this is purely a migration-pipeline repair.
-
-## Verification after publish
-1. Publish completes without error.
-2. On Live: `SELECT setting_key, environment FROM c3_site_settings WHERE setting_key='C3_WIZARD_BASE_URL'` returns 2 rows (Dev + Production).
-3. On Live: `SELECT trigger_name FROM information_schema.triggers WHERE trigger_name='trg_validate_date_married_ip_master'` returns 1 row.
-4. On Live: `SELECT id FROM app_modules WHERE id IN ('…000031','…000032')` returns 0 rows.
-5. C3-Wizard "Publish to Live" workflow that the user fixed earlier now works in the production environment without any "C3_WIZARD_BASE_URL is not configured" error.
-
-## Files
-- **Create** `supabase/migrations/<new-timestamp>_repair-live-publish-pipeline.sql` (one file, ~60 lines)
-- No other files touched.
+### Out of scope
+- No memory update needed (existing `mem://features/workflow/employer-registration-flow` already documents the lifecycle; this is a UI scoping refinement, not a flow change).
+- No knowledge-repo entry change required beyond noting that Approve/Reject render only in View mode (will add a brief note to that memory after implementation).
 
