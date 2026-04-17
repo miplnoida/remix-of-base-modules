@@ -45,6 +45,7 @@ import { triggerIPRegistrationWorkflow } from '@/services/workflowTriggerService
 import { WorkflowInitiationDialog } from '@/components/workflow/WorkflowInitiationDialog';
 import { useApplicationMeeting } from '@/hooks/useApplicationMeeting';
 import { MeetingActionButtons } from '@/components/meetings/MeetingActionButtons';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function ApplicationDetailPage() {
   const { referenceNumber } = useParams<{ referenceNumber: string }>();
