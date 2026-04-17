@@ -620,30 +620,94 @@ export const auditReportService = {
     };
   },
 
+  // ---- Violations attached to this report ----------
+  /**
+   * Returns audit-grade violation rows for a report.
+   * Joins ce_violations → ce_violation_types so the report can show the
+   * violation code/category alongside finance fields.
+   * Each row also carries a sourceFindingNumber when a 1:1 finding link exists.
+   */
+  async listViolationsForReport(inspectionId: string): Promise<AuditViolationRow[]> {
+    const [{ data: vRows, error }, { data: findingRows }] = await Promise.all([
+      supabase
+        .from('ce_violations')
+        .select('*, ce_violation_types(code, name, category, fund_type)')
+        .eq('inspection_id', inspectionId)
+        .or('is_deleted.is.null,is_deleted.eq.false')
+        .order('created_at', { ascending: true }),
+      supabase
+        .from('ce_inspection_findings')
+        .select('id, violation_id, created_at')
+        .eq('inspection_id', inspectionId)
+        .order('created_at', { ascending: true }),
+    ]);
+    if (error) throw error;
+
+    // Build a finding-id → display index (1-based) map matching the report
+    const findingIndexById = new Map<string, number>();
+    const violationToFinding = new Map<string, string>();
+    (findingRows ?? []).forEach((f: any, i: number) => {
+      findingIndexById.set(f.id, i + 1);
+      if (f.violation_id) violationToFinding.set(f.violation_id, f.id);
+    });
+
+    return (vRows ?? []).map((row: any): AuditViolationRow => {
+      const vt = row.ce_violation_types ?? {};
+      const sourceFindingId = violationToFinding.get(row.id);
+      return {
+        id: row.id,
+        violationNumber: row.violation_number ?? undefined,
+        violationTypeId: row.violation_type_id ?? undefined,
+        violationTypeName: vt.name ?? undefined,
+        statutoryReference: vt.code ?? undefined,
+        summary: row.summary ?? row.description ?? undefined,
+        description: row.description ?? undefined,
+        severity: row.severity ?? undefined,
+        fundType: row.fund_type ?? vt.fund_type ?? undefined,
+        periodFrom: row.period_from ?? undefined,
+        periodTo: row.period_to ?? undefined,
+        principalAmount: row.principal_amount != null ? Number(row.principal_amount) : undefined,
+        penaltyAmount: row.penalty_amount != null ? Number(row.penalty_amount) : undefined,
+        interestAmount: row.interest_amount != null ? Number(row.interest_amount) : undefined,
+        totalAmount: row.total_amount != null ? Number(row.total_amount) : undefined,
+        dueDate: row.due_date ?? undefined,
+        status: row.status ?? undefined,
+        priority: row.priority ?? undefined,
+        sourceFindingId,
+        sourceFindingNumber: sourceFindingId ? findingIndexById.get(sourceFindingId) : undefined,
+        assignedToName: row.assigned_to_name ?? undefined,
+        caseId: row.case_id ?? undefined,
+        caseFamily: row.case_family ?? undefined,
+        resolutionNotes: row.resolution_notes ?? undefined,
+      };
+    });
+  },
+
   // ---- Full payload assembly ----------
   async assembleFullPayload(inspectionId: string): Promise<{
     report: FullAuditReport | null;
     findings: InspectionFinding[];
     evidence: InspectionEvidence[];
     checklist: any[];
-    violations: any[];
+    violations: AuditViolationRow[];
     signatures: AuditReportSignature[];
     inspection: any;
     metrics: any;
     generatedAt: string;
   }> {
     const report = await this.getReportByInspection(inspectionId);
-    const [payload, evidence, signatures] = await Promise.all([
+    const [payload, evidence, signatures, violations] = await Promise.all([
       fieldAuditService.getReportPayload(inspectionId),
       fieldAuditService.getEvidenceForVisit(inspectionId),
       report ? this.listSignatures(report.id) : Promise.resolve([] as AuditReportSignature[]),
+      this.listViolationsForReport(inspectionId),
     ]);
     return {
       report,
       findings: payload.findings,
       evidence,
       checklist: payload.checklist,
-      violations: payload.violations,
+      violations,
       signatures,
       inspection: payload.inspection,
       metrics: payload.metrics,
