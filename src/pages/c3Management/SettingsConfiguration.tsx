@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { CreditCard, Globe, Mail, Settings, Server, Upload, RefreshCw, Eye, EyeOff, Save, Loader2, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { CreditCard, Globe, Mail, Settings, Server, Upload, RefreshCw, Eye, EyeOff, Save, Loader2, CheckCircle2, AlertCircle, Clock, Link2, KeyRound } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useUserCode } from '@/hooks/useUserCode';
 import {
@@ -508,6 +508,159 @@ function SystemTab() {
   );
 }
 
+// ─── C3-Wizard Integration Tab ───
+// Shows URL, INBOUND_AUTH and OUTBOUND_AUTH rows from c3_site_settings, grouped by environment.
+// Reuses the same useSiteSettings/save/publish/sync-badge flow as other tabs.
+
+const WIZ_KEYS = ['C3_WIZARD_BASE_URL', 'INBOUND_ADMIN_API_KEY', 'INBOUND_SYNC_API_KEY', 'OUTBOUND_ADMIN_API_KEY', 'OUTBOUND_SYNC_API_KEY'];
+
+function WizardIntegrationTab() {
+  const { data: allSettings, isLoading } = useSiteSettings();
+  const saveMutation = useSaveSiteSetting();
+  const retryMutation = useRetrySync();
+  const { userCode } = useUserCode();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
+
+  if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+
+  const wizRows = (allSettings || []).filter(
+    (s) => WIZ_KEYS.includes(s.setting_key) && ['URL', 'INBOUND_AUTH', 'OUTBOUND_AUTH'].includes(s.setting_type)
+  );
+
+  const grouped: Record<string, typeof wizRows> = {
+    Dev: wizRows.filter((r) => r.environment === 'Dev'),
+    Production: wizRows.filter((r) => r.environment === 'Production'),
+  };
+
+  const isSecret = (row: any) => row.setting_type === 'INBOUND_AUTH' || row.setting_type === 'OUTBOUND_AUTH';
+
+  const startEdit = (row: any) => { setEditingId(row.id); setEditValue(row.setting_value); };
+  const cancelEdit = () => { setEditingId(null); setEditValue(''); };
+  const saveEdit = (id: string) => {
+    saveMutation.mutate(
+      { id, updates: { setting_value: editValue }, userCode: userCode || 'system' },
+      { onSuccess: cancelEdit }
+    );
+  };
+  const toggleReveal = (id: string) => setRevealed((p) => ({ ...p, [id]: !p[id] }));
+
+  const renderTypeBadge = (type: string) => {
+    if (type === 'URL') return <Badge variant="outline" className="gap-1"><Link2 className="h-3 w-3" />URL</Badge>;
+    if (type === 'INBOUND_AUTH') return <Badge variant="outline" className="gap-1 border-blue-500 text-blue-700"><KeyRound className="h-3 w-3" />Inbound</Badge>;
+    return <Badge variant="outline" className="gap-1 border-amber-500 text-amber-700"><KeyRound className="h-3 w-3" />Outbound</Badge>;
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">About C3-Wizard Integration</CardTitle>
+          <CardDescription>
+            Centralized credentials and base URL used to call the C3-Wizard. <strong>Outbound</strong> keys are sent by Admin → Wizard.
+            <strong> Inbound</strong> keys are pushed to the Wizard on Publish so it can validate requests it receives from Admin.
+            Active environment is controlled in the <em>System</em> tab.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      {Object.entries(grouped).map(([env, rows]) => (
+        <div key={env}>
+          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <Server className="h-4 w-4" />{env} Environment
+            <Badge variant="outline">{rows.length} entries</Badge>
+          </h3>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[220px]">Setting</TableHead>
+                <TableHead className="w-[110px]">Type</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead className="w-[80px]">Sync</TableHead>
+                <TableHead className="w-[160px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => {
+                const secret = isSecret(row);
+                const shown = revealed[row.id];
+                const display = !row.setting_value
+                  ? <span className="text-muted-foreground italic text-xs">— not set —</span>
+                  : secret && !shown
+                    ? <span className="font-mono text-sm">{maskSecret(row.setting_value)}</span>
+                    : <span className="font-mono text-xs break-all">{row.setting_value}</span>;
+                return (
+                  <TableRow key={row.id}>
+                    <TableCell>
+                      <span className="font-medium text-sm">{row.setting_key}</span>
+                      {row.description && <div className="text-xs text-muted-foreground mt-0.5">{row.description}</div>}
+                    </TableCell>
+                    <TableCell>{renderTypeBadge(row.setting_type)}</TableCell>
+                    <TableCell>
+                      {editingId === row.id ? (
+                        <div className="flex items-center gap-1">
+                          <Input
+                            className="h-8 font-mono text-xs"
+                            type={secret && !shown ? 'password' : 'text'}
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                          />
+                          {secret && (
+                            <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => toggleReveal(row.id)}>
+                              {shown ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          {display}
+                          {secret && row.setting_value && (
+                            <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 ml-1" onClick={() => toggleReveal(row.id)}>
+                              {shown ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell><SyncBadge isSynced={row.is_synced} syncError={row.sync_error} /></TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        {editingId === row.id ? (
+                          <>
+                            <Button size="sm" onClick={() => saveEdit(row.id)} disabled={saveMutation.isPending}>
+                              {saveMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={cancelEdit}>Cancel</Button>
+                          </>
+                        ) : (
+                          <Button size="sm" variant="outline" onClick={() => startEdit(row)}>Edit</Button>
+                        )}
+                        {row.sync_error && (
+                          <Button size="sm" variant="destructive" onClick={() => retryMutation.mutate({ table: 'setting', id: row.id })}>
+                            <RefreshCw className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                    No entries for this environment.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Main Page ───
 
 interface SettingsConfigurationProps {
@@ -572,6 +725,11 @@ const SettingsConfiguration: React.FC<SettingsConfigurationProps> = ({ embedMode
             <span className="hidden sm:inline">System</span>
             <span className="sm:hidden">System</span>
           </TabsTrigger>
+          <TabsTrigger value="wizard-integration" className="flex items-center gap-2">
+            <Link2 className="h-4 w-4" />
+            <span className="hidden sm:inline">C3-Wizard Integration</span>
+            <span className="sm:hidden">Wizard</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="payment-gateway" className="mt-6"><PaymentGatewayTab /></TabsContent>
@@ -579,6 +737,7 @@ const SettingsConfiguration: React.FC<SettingsConfigurationProps> = ({ embedMode
         <TabsContent value="api-config" className="mt-6"><ApiConfigTab /></TabsContent>
         <TabsContent value="email-settings" className="mt-6"><EmailSettingsTab /></TabsContent>
         <TabsContent value="system" className="mt-6"><SystemTab /></TabsContent>
+        <TabsContent value="wizard-integration" className="mt-6"><WizardIntegrationTab /></TabsContent>
       </Tabs>
     </div>
   );

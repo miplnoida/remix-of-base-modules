@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getWizConfig } from "../_shared/wizConfig.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,19 +12,24 @@ serve(async (req) => {
   }
 
   try {
-    const syncUrl = Deno.env.get('C3_WIZARD_SYNC_URL');
-    const syncApiKey = Deno.env.get('C3_CONFIG_SYNC_API_KEY');
+    // Resolve sync URL + key from c3_site_settings (env-aware) with env-var fallback.
+    const { baseUrl, syncApiKey } = await getWizConfig();
+    const envSyncUrl = Deno.env.get('C3_WIZARD_SYNC_URL');
+    const envSyncKey = Deno.env.get('C3_CONFIG_SYNC_API_KEY');
+
+    const syncUrl = envSyncUrl || (baseUrl ? `${baseUrl}/c3-config-sync` : null);
+    const resolvedKey = syncApiKey || envSyncKey;
 
     if (!syncUrl) {
       return new Response(
-        JSON.stringify({ status: 'error', error: 'C3_WIZARD_SYNC_URL is not configured. Please contact the administrator.' }),
+        JSON.stringify({ status: 'error', error: 'C3_WIZARD_BASE_URL / C3_WIZARD_SYNC_URL is not configured. Please contact the administrator.' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!syncApiKey) {
+    if (!resolvedKey) {
       return new Response(
-        JSON.stringify({ status: 'error', error: 'C3_CONFIG_SYNC_API_KEY is not configured. Please contact the administrator.' }),
+        JSON.stringify({ status: 'error', error: 'OUTBOUND_SYNC_API_KEY / C3_CONFIG_SYNC_API_KEY is not configured. Please contact the administrator.' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -54,7 +60,7 @@ serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-sync-api-key': syncApiKey,
+          'x-sync-api-key': resolvedKey,
         },
         body: JSON.stringify(payload),
       });

@@ -1,16 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { getWizConfig } from "../_shared/wizConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
-
-const WIZ_API_URL =
-  Deno.env.get("WIZ_API_URL") ||
-  "https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1/wiz-admin-api";
-const WIZ_ADMIN_API_KEY =
-  Deno.env.get("WIZ_ADMIN_API_KEY") || "uiop906754drd35fvg";
 
 interface SyncResult {
   total: number;
@@ -43,11 +38,12 @@ async function callWizApi(
   action: string,
   params: Record<string, unknown>
 ): Promise<WizApiResponse> {
-  const res = await fetch(WIZ_API_URL, {
+  const { baseUrl, adminApiKey } = await getWizConfig();
+  const res = await fetch(`${baseUrl}/wiz-admin-api`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-admin-api-key": WIZ_ADMIN_API_KEY,
+      "x-admin-api-key": adminApiKey,
     },
     body: JSON.stringify({ action, params }),
   });
