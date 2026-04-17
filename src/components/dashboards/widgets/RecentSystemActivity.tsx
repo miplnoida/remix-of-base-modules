@@ -3,18 +3,20 @@ import { Activity, AlertTriangle, UserPlus, FileText, DollarSign, Shield, Loader
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { fetchRecentActivity } from '@/services/dashboardDataService';
 import { formatDistanceToNow } from 'date-fns';
 
-const iconMap: Record<string, { icon: LucideIcon; color: string }> = {
-  violation: { icon: AlertTriangle, color: 'text-destructive' },
-  inspection: { icon: Shield, color: 'text-primary' },
-  registration: { icon: UserPlus, color: 'text-primary' },
-  payment: { icon: DollarSign, color: 'text-secondary' },
-  claim: { icon: FileText, color: 'text-primary' },
+const iconMap: Record<string, { icon: LucideIcon; color: string; route: string }> = {
+  violation: { icon: AlertTriangle, color: 'text-destructive', route: '/compliance/violations' },
+  inspection: { icon: Shield, color: 'text-primary', route: '/compliance/field/inspections' },
+  registration: { icon: UserPlus, color: 'text-primary', route: '/employers-management/pending-verification' },
+  payment: { icon: DollarSign, color: 'text-secondary', route: '/c3-management/payments' },
+  claim: { icon: FileText, color: 'text-primary', route: '/bn/claims' },
 };
 
 export function RecentSystemActivity() {
+  const navigate = useNavigate();
   const { data: activities, isLoading } = useQuery({
     queryKey: ['dashboard_recent_activity'],
     queryFn: fetchRecentActivity,
@@ -49,7 +51,11 @@ export function RecentSystemActivity() {
               return (
                 <div
                   key={i}
-                  className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-muted/60 transition-colors"
+                  className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-muted/60 transition-colors cursor-pointer"
+                  onClick={() => navigate(mapping.route)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(mapping.route); } }}
                 >
                   <div className="mt-0.5">
                     <Icon className={cn('h-4 w-4', mapping.color)} />

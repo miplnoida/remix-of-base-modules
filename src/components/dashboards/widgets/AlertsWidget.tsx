@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Bell, AlertTriangle, Clock, FileWarning, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { fetchActiveAlerts } from '@/services/dashboardDataService';
 
 const severityConfig = {
@@ -30,6 +31,7 @@ const severityConfig = {
 } as const;
 
 export function AlertsWidget() {
+  const navigate = useNavigate();
   const { data: alerts, isLoading } = useQuery({
     queryKey: ['dashboard_active_alerts'],
     queryFn: fetchActiveAlerts,
@@ -68,10 +70,14 @@ export function AlertsWidget() {
                 <div
                   key={i}
                   className={cn(
-                    'flex items-start gap-3 p-3 rounded-lg border',
+                    'flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:opacity-90 transition-opacity',
                     cfg.bg,
                     cfg.border
                   )}
+                  onClick={() => navigate('/admin/notifications/log')}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/admin/notifications/log'); } }}
                 >
                   <Icon className={cn('h-4 w-4 mt-0.5 flex-shrink-0', cfg.iconColor)} />
                   <div className="flex-1 min-w-0">

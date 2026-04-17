@@ -4,7 +4,7 @@ import { Shield, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchComplianceDistribution } from '@/services/dashboardDataService';
 
-export function ComplianceDonut() {
+export function ComplianceDonut({ onTitleClick }: { onTitleClick?: () => void } = {}) {
   const { data: rawData, isLoading } = useQuery({
     queryKey: ['dashboard_compliance_distribution'],
     queryFn: fetchComplianceDistribution,
@@ -17,7 +17,13 @@ export function ComplianceDonut() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base font-medium">
+        <CardTitle
+          className={`flex items-center gap-2 text-base font-medium ${onTitleClick ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
+          onClick={onTitleClick}
+          role={onTitleClick ? 'button' : undefined}
+          tabIndex={onTitleClick ? 0 : undefined}
+          onKeyDown={onTitleClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTitleClick(); } } : undefined}
+        >
           <Shield className="h-5 w-5 text-primary" />
           Employer Compliance Status
         </CardTitle>

@@ -6,7 +6,7 @@ import { fetchContributionTrend } from '@/services/dashboardDataService';
 
 const formatValue = (value: number) => `$${(value / 1000000).toFixed(1)}M`;
 
-export function ContributionTrendChart() {
+export function ContributionTrendChart({ onTitleClick }: { onTitleClick?: () => void } = {}) {
   const { data: trendData, isLoading } = useQuery({
     queryKey: ['dashboard_contribution_trend'],
     queryFn: fetchContributionTrend,
@@ -21,7 +21,13 @@ export function ContributionTrendChart() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base font-medium">
+        <CardTitle
+          className={`flex items-center gap-2 text-base font-medium ${onTitleClick ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
+          onClick={onTitleClick}
+          role={onTitleClick ? 'button' : undefined}
+          tabIndex={onTitleClick ? 0 : undefined}
+          onKeyDown={onTitleClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTitleClick(); } } : undefined}
+        >
           <TrendingUp className="h-5 w-5 text-primary" />
           Contributions vs Benefits Paid
         </CardTitle>
