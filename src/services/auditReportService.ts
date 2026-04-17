@@ -62,12 +62,18 @@ function mapReport(r: any): FullAuditReport {
     conclusions: r.conclusions ?? undefined,
     complianceConclusion: r.compliance_conclusion ?? undefined,
     recommendations: r.recommendations ?? undefined,
+    methodology: r.methodology ?? undefined,
+    samplingBasis: r.sampling_basis ?? undefined,
+    riskRating: r.risk_rating ?? undefined,
+    disputeInstructions: r.dispute_instructions ?? undefined,
     totalFindings: r.total_findings ?? 0,
     totalEvidence: r.total_evidence ?? 0,
     totalViolations: r.total_violations ?? 0,
     checklistCompletionPct: Number(r.checklist_completion_pct ?? 0),
     pdfUrl: r.pdf_url ?? undefined,
     signedPdfUrl: r.signed_pdf_url ?? undefined,
+    internalPdfUrl: r.internal_pdf_url ?? undefined,
+    employerPdfUrl: r.employer_pdf_url ?? undefined,
     acknowledgmentStatus: r.acknowledgment_status ?? 'NOT_SENT',
     acknowledgmentSentAt: r.acknowledgment_sent_at ?? undefined,
     acknowledgmentCompletedAt: r.acknowledgment_completed_at ?? undefined,
@@ -180,6 +186,10 @@ export const auditReportService = {
       conclusions: string;
       complianceConclusion: string;
       recommendations: string;
+      methodology: string;
+      samplingBasis: string;
+      riskRating: string;
+      disputeInstructions: string;
       auditDate: string;
       auditLocation: string;
       employerRegNumber: string;
@@ -203,6 +213,10 @@ export const auditReportService = {
     if (fields.conclusions !== undefined) update.conclusions = fields.conclusions;
     if (fields.complianceConclusion !== undefined) update.compliance_conclusion = fields.complianceConclusion;
     if (fields.recommendations !== undefined) update.recommendations = fields.recommendations;
+    if (fields.methodology !== undefined) update.methodology = fields.methodology;
+    if (fields.samplingBasis !== undefined) update.sampling_basis = fields.samplingBasis;
+    if (fields.riskRating !== undefined) update.risk_rating = fields.riskRating;
+    if (fields.disputeInstructions !== undefined) update.dispute_instructions = fields.disputeInstructions;
     if (fields.auditDate !== undefined) update.audit_date = fields.auditDate;
     if (fields.auditLocation !== undefined) update.audit_location = fields.auditLocation;
     if (fields.employerRegNumber !== undefined) update.employer_reg_number = fields.employerRegNumber;
