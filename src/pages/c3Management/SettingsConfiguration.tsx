@@ -531,8 +531,10 @@ function WizardIntegrationTab() {
 
   const grouped: Record<string, typeof wizRows> = {
     Dev: wizRows.filter((r) => r.environment === 'Dev'),
-    Production: wizRows.filter((r) => r.environment === 'Production'),
+    Prod: wizRows.filter((r) => r.environment === 'Prod'),
   };
+
+  const envLabel = (env: string) => (env === 'Prod' ? 'Production' : env);
 
   const isSecret = (row: any) => row.setting_type === 'INBOUND_AUTH' || row.setting_type === 'OUTBOUND_AUTH';
 
