@@ -12055,8 +12055,10 @@ export type Database = {
           created_at: string
           created_by: string
           current_version: number
+          dispute_instructions: string | null
           employer_id: string | null
           employer_name: string | null
+          employer_pdf_url: string | null
           employer_reg_number: string | null
           employer_rep_designation: string | null
           employer_rep_name: string | null
@@ -12069,6 +12071,8 @@ export type Database = {
           inspection_id: string
           inspector_id: string | null
           inspector_name: string | null
+          internal_pdf_url: string | null
+          methodology: string | null
           pdf_url: string | null
           plan_item_id: string | null
           purpose_scope: string | null
@@ -12076,6 +12080,8 @@ export type Database = {
           records_reviewed: string | null
           report_date: string
           report_number: string
+          risk_rating: string | null
+          sampling_basis: string | null
           scope: string | null
           signed_pdf_url: string | null
           status: string
@@ -12104,8 +12110,10 @@ export type Database = {
           created_at?: string
           created_by?: string
           current_version?: number
+          dispute_instructions?: string | null
           employer_id?: string | null
           employer_name?: string | null
+          employer_pdf_url?: string | null
           employer_reg_number?: string | null
           employer_rep_designation?: string | null
           employer_rep_name?: string | null
@@ -12118,6 +12126,8 @@ export type Database = {
           inspection_id: string
           inspector_id?: string | null
           inspector_name?: string | null
+          internal_pdf_url?: string | null
+          methodology?: string | null
           pdf_url?: string | null
           plan_item_id?: string | null
           purpose_scope?: string | null
@@ -12125,6 +12135,8 @@ export type Database = {
           records_reviewed?: string | null
           report_date?: string
           report_number?: string
+          risk_rating?: string | null
+          sampling_basis?: string | null
           scope?: string | null
           signed_pdf_url?: string | null
           status?: string
@@ -12153,8 +12165,10 @@ export type Database = {
           created_at?: string
           created_by?: string
           current_version?: number
+          dispute_instructions?: string | null
           employer_id?: string | null
           employer_name?: string | null
+          employer_pdf_url?: string | null
           employer_reg_number?: string | null
           employer_rep_designation?: string | null
           employer_rep_name?: string | null
@@ -12167,6 +12181,8 @@ export type Database = {
           inspection_id?: string
           inspector_id?: string | null
           inspector_name?: string | null
+          internal_pdf_url?: string | null
+          methodology?: string | null
           pdf_url?: string | null
           plan_item_id?: string | null
           purpose_scope?: string | null
@@ -12174,6 +12190,8 @@ export type Database = {
           records_reviewed?: string | null
           report_date?: string
           report_number?: string
+          risk_rating?: string | null
+          sampling_basis?: string | null
           scope?: string | null
           signed_pdf_url?: string | null
           status?: string
