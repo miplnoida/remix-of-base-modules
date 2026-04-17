@@ -25216,11 +25216,16 @@ export type Database = {
           file_path: string | null
           file_size: number | null
           id: string
+          is_active: boolean
           is_supportive: boolean | null
           metadata: Json | null
           mime_type: string | null
           regno: string
+          source_application_reference: string | null
           storage_url: string | null
+          transferred_at: string | null
+          transferred_by: string | null
+          updated_at: string
           uploaded_by: string | null
           uploaded_by_code: string | null
         }
@@ -25233,11 +25238,16 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          is_active?: boolean
           is_supportive?: boolean | null
           metadata?: Json | null
           mime_type?: string | null
           regno: string
+          source_application_reference?: string | null
           storage_url?: string | null
+          transferred_at?: string | null
+          transferred_by?: string | null
+          updated_at?: string
           uploaded_by?: string | null
           uploaded_by_code?: string | null
         }
@@ -25250,11 +25260,16 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          is_active?: boolean
           is_supportive?: boolean | null
           metadata?: Json | null
           mime_type?: string | null
           regno?: string
+          source_application_reference?: string | null
           storage_url?: string | null
+          transferred_at?: string | null
+          transferred_by?: string | null
+          updated_at?: string
           uploaded_by?: string | null
           uploaded_by_code?: string | null
         }
