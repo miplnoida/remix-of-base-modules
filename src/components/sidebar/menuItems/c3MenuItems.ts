@@ -16,6 +16,13 @@ import {
   Mail
 } from "lucide-react";
 
+// NOTE (DEAD CODE): The application sidebar is database-driven via the
+// `app_modules` table and the `useDynamicNavigation` hook (see
+// src/components/sidebar/DynamicSidebarContent.tsx). This static menu
+// definition is NOT consumed by the live sidebar. To change the C3
+// Management menu, update the `app_modules` rows (and `role_permissions`
+// for visibility) via a migration. This file is retained as a historical
+// reference of the original menu structure.
 export const c3MenuItems = [
   {
     title: "C3 Management",
