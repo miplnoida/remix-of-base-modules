@@ -489,11 +489,11 @@ function SystemTab() {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label>Environment</Label>
-          <Select value={envRow?.setting_value || 'Production'} onValueChange={handleChange}>
+          <Select value={envRow?.setting_value || 'Prod'} onValueChange={handleChange}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Dev">Dev</SelectItem>
-              <SelectItem value="Production">Production</SelectItem>
+              <SelectItem value="Prod">Production</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -531,8 +531,10 @@ function WizardIntegrationTab() {
 
   const grouped: Record<string, typeof wizRows> = {
     Dev: wizRows.filter((r) => r.environment === 'Dev'),
-    Production: wizRows.filter((r) => r.environment === 'Production'),
+    Prod: wizRows.filter((r) => r.environment === 'Prod'),
   };
+
+  const envLabel = (env: string) => (env === 'Prod' ? 'Production' : env);
 
   const isSecret = (row: any) => row.setting_type === 'INBOUND_AUTH' || row.setting_type === 'OUTBOUND_AUTH';
 
@@ -568,7 +570,7 @@ function WizardIntegrationTab() {
       {Object.entries(grouped).map(([env, rows]) => (
         <div key={env}>
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <Server className="h-4 w-4" />{env} Environment
+            <Server className="h-4 w-4" />{envLabel(env)} Environment
             <Badge variant="outline">{rows.length} entries</Badge>
           </h3>
           <Table>
