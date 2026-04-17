@@ -12,7 +12,8 @@ import {
   CreditCard,
   RefreshCw,
   ClipboardList,
-  Shield
+  Shield,
+  Mail
 } from "lucide-react";
 
 export const c3MenuItems = [
@@ -169,6 +170,25 @@ export const c3MenuItems = [
             title: "CyberSource Settings",
             url: "/c3-management/settings/cybersource",
             icon: CreditCard,
+            requiresPermission: "view_dashboard"
+          }
+        ]
+      },
+      {
+        title: "System Settings",
+        icon: Settings,
+        requiresPermission: "view_dashboard",
+        subItems: [
+          {
+            title: "Email Templates",
+            url: "/c3-management/email-templates",
+            icon: Mail,
+            requiresPermission: "view_dashboard"
+          },
+          {
+            title: "Settings & Configuration",
+            url: "/c3-management/settings-configuration",
+            icon: Settings,
             requiresPermission: "view_dashboard"
           }
         ]

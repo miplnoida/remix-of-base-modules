@@ -51,11 +51,16 @@ Deno.serve(async (req: Request) => {
     if (action === "publish_all") {
       const settingsResult = await syncSiteSettings(supabaseAdmin);
       const emailResult = await syncEmailConfig(supabaseAdmin);
+      const templatesResult = await syncEmailTemplates(supabaseAdmin);
 
       return new Response(
         JSON.stringify({
           status: "success",
-          data: { site_settings: settingsResult, email_config: emailResult },
+          data: {
+            site_settings: settingsResult,
+            email_config: emailResult,
+            email_templates: templatesResult,
+          },
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -77,6 +82,17 @@ Deno.serve(async (req: Request) => {
 
     if (action === "retry_email" && id) {
       const result = await retryEmailConfig(supabaseAdmin, id);
+      return new Response(
+        JSON.stringify({ status: "success", data: result }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
+
+    if (action === "retry_email_template" && id) {
+      const result = await retryEmailTemplate(supabaseAdmin, id);
       return new Response(
         JSON.stringify({ status: "success", data: result }),
         {
@@ -129,7 +145,6 @@ async function syncSiteSettings(
     errors: [],
   };
 
-  // Build settings array for batch API call
   const settingsPayload = rows.map((row) => ({
     setting_key: row.setting_key,
     setting_value: row.setting_value,
@@ -145,7 +160,6 @@ async function syncSiteSettings(
     });
 
     if (apiRes.status === "success") {
-      // Mark all rows as synced
       for (const row of rows) {
         await supabase
           .from("c3_site_settings")
@@ -212,7 +226,6 @@ async function syncEmailConfig(
     errors: [],
   };
 
-  // Build configs array for batch API call
   const configsPayload = rows.map((row) => ({
     config_key: row.config_key,
     config_value: row.config_value,
@@ -263,6 +276,89 @@ async function syncEmailConfig(
       result.errors.push({
         id: row.id,
         key: row.config_key,
+        error: errMsg,
+      });
+    }
+  }
+
+  return result;
+}
+
+// ─── Sync all unsynced email templates ───
+async function syncEmailTemplates(
+  supabase: ReturnType<typeof createClient>
+): Promise<SyncResult> {
+  const { data: rows, error } = await supabase
+    .from("c3_email_templates")
+    .select("*")
+    .eq("is_synced", false)
+    .eq("is_deleted", false);
+
+  if (error) throw new Error(`Failed to read email templates: ${error.message}`);
+  if (!rows || rows.length === 0)
+    return { total: 0, synced: 0, failed: 0, errors: [] };
+
+  const result: SyncResult = {
+    total: rows.length,
+    synced: 0,
+    failed: 0,
+    errors: [],
+  };
+
+  const templatesPayload = rows.map((row) => ({
+    template_key: row.template_key,
+    template_name: row.template_name,
+    subject: row.subject,
+    html_body: row.html_body,
+    text_body: row.text_body,
+    from_module: row.from_module,
+    variables: row.variables,
+    is_active: row.is_active,
+  }));
+
+  try {
+    const apiRes = await callWizApi("sync_email_templates", {
+      templates: templatesPayload,
+    });
+
+    if (apiRes.status === "success") {
+      for (const row of rows) {
+        await supabase
+          .from("c3_email_templates")
+          .update({
+            is_synced: true,
+            sync_error: null,
+            last_synced_at: new Date().toISOString(),
+          })
+          .eq("id", row.id);
+        result.synced++;
+      }
+    } else {
+      const errMsg = apiRes.error || "Unknown API error";
+      for (const row of rows) {
+        await supabase
+          .from("c3_email_templates")
+          .update({ sync_error: errMsg })
+          .eq("id", row.id);
+        result.failed++;
+        result.errors.push({
+          id: row.id,
+          key: row.template_key,
+          error: errMsg,
+        });
+      }
+    }
+  } catch (e) {
+    const errMsg = e instanceof Error ? e.message : "Unknown error";
+    for (const row of rows) {
+      await supabase
+        .from("c3_email_templates")
+        .update({ sync_error: errMsg })
+        .eq("id", row.id);
+      result.failed++;
+      result.errors.push({
+        id: row.id,
+        key: row.template_key,
         error: errMsg,
       });
     }
@@ -357,6 +453,55 @@ async function retryEmailConfig(
     const errMsg = apiRes.error || "Unknown API error";
     await supabase
       .from("c3_email_config")
+      .update({ sync_error: errMsg })
+      .eq("id", id);
+    return { synced: false, error: errMsg };
+  }
+}
+
+// ─── Retry single email template ───
+async function retryEmailTemplate(
+  supabase: ReturnType<typeof createClient>,
+  id: string
+) {
+  const { data: row, error } = await supabase
+    .from("c3_email_templates")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error || !row)
+    throw new Error(`Email template not found: ${error?.message || id}`);
+
+  const payload = {
+    template_key: row.template_key,
+    template_name: row.template_name,
+    subject: row.subject,
+    html_body: row.html_body,
+    text_body: row.text_body,
+    from_module: row.from_module,
+    variables: row.variables,
+    is_active: row.is_active,
+  };
+
+  const apiRes = await callWizApi("sync_email_templates", {
+    templates: [payload],
+  });
+
+  if (apiRes.status === "success") {
+    await supabase
+      .from("c3_email_templates")
+      .update({
+        is_synced: true,
+        sync_error: null,
+        last_synced_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+    return { synced: true };
+  } else {
+    const errMsg = apiRes.error || "Unknown API error";
+    await supabase
+      .from("c3_email_templates")
       .update({ sync_error: errMsg })
       .eq("id", id);
     return { synced: false, error: errMsg };

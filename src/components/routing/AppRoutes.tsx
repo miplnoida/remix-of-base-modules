@@ -132,6 +132,7 @@ import C3FormatDetail from '@/pages/c3/settings/c3file/C3FormatDetail';
 import CyberSourceSettings from '@/pages/c3Management/CyberSourceSettings';
 import ReconciliationPage from '@/pages/c3Management/ReconciliationPage';
 import SettingsConfiguration from '@/pages/c3Management/SettingsConfiguration';
+import EmailTemplates from '@/pages/c3Management/EmailTemplates';
 
 // C3 Details Screens
 import C3ContributionList from '@/pages/c3Management/c3Details/C3ContributionList';
@@ -953,6 +954,7 @@ export const AppRoutes = () => {
       <Route path="/c3-management/settings/c3file/formats/:formatId" element={<ProtectedLayout><C3FormatDetail /></ProtectedLayout>} />
       <Route path="/c3-management/settings/cybersource" element={<Navigate to="/c3-management/settings-configuration" replace />} />
       <Route path="/c3-management/settings-configuration" element={<ProtectedLayout><SettingsConfiguration /></ProtectedLayout>} />
+      <Route path="/c3-management/email-templates" element={<ProtectedLayout><EmailTemplates /></ProtectedLayout>} />
       <Route path="/c3-management/reconciliation" element={<ProtectedLayout><ReconciliationPage /></ProtectedLayout>} />
 
       {/* C3 Wizard Admin - Reports Routes */}
