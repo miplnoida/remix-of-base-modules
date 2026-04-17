@@ -216,6 +216,22 @@ export default function StartMeetingPage() {
     const tabData = extractTabFields(editedData, tabFields);
     const originalTabData = extractTabFields(baselineData, tabFields);
 
+    // Cross-field validation: Date Married >= Date of Birth (Personal tab)
+    if (tabId === 'ip-personal') {
+      const dob = (editedData as any)?.dateOfBirth || (editedData as any)?.dob;
+      const dm = (editedData as any)?.dateMarried || (editedData as any)?.date_married;
+      const ms = (editedData as any)?.maritalStatus;
+      const marriedLike = ms === 'M' || ms === 'Married' || ms === 'Common Law';
+      if (marriedLike && dm && dob && String(dm).slice(0, 10) < String(dob).slice(0, 10)) {
+        toast.error('Please check the form for valid information!', {
+          description: 'Date Married cannot be earlier than Date of Birth',
+          style: { backgroundColor: 'hsl(var(--destructive))', color: 'white' },
+          classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' }
+        });
+        return;
+      }
+    }
+
     try {
       await hook.save(tabData, originalTabData, userCode || undefined);
 

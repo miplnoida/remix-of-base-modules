@@ -309,7 +309,7 @@ export default function ApplicationDetailPage() {
         <CardContent className="p-6">
           <div className="flex items-start gap-6">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={application.photoUrl || undefined} alt="Applicant photo" />
+              <AvatarImage src={headerPhotoUrl || application.photoUrl || undefined} alt="Applicant photo" />
               <AvatarFallback className="text-2xl">
                 {application.firstName?.[0]}{application.lastName?.[0]}
               </AvatarFallback>
