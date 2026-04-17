@@ -99,13 +99,6 @@ export const BenefitsDashboard = () => {
                     tabIndex={0}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/bn/claims'); } }}
                   >
-          <CardContent>
-            {recentClaims.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No recent claims</div>
-            ) : (
-              <div className="space-y-4">
-                {recentClaims.slice(0, 4).map((claim, index) => (
-                  <div key={claim.claim_number || index} className="border rounded-lg p-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">{claim.claim_number}</h4>
                       <Badge variant={claim.status === 'A' ? 'default' : claim.status === 'P' ? 'secondary' : 'outline'}>
@@ -138,7 +131,14 @@ export const BenefitsDashboard = () => {
             ) : (
               <div className="space-y-4">
                 {distribution.map((benefit, index) => (
-                  <div key={index} className="border rounded-lg p-4 space-y-2">
+                  <div
+                    key={index}
+                    className="border rounded-lg p-4 space-y-2 cursor-pointer hover:bg-accent/50 transition-colors"
+                    onClick={() => navigate('/bn/config/products')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/bn/config/products'); } }}
+                  >
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">{benefit.type}</h4>
                       <span className="text-lg font-bold text-secondary">${(Number(benefit.amount) / 1000).toFixed(0)}K</span>
