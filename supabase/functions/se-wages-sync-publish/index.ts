@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getWizConfig } from "../_shared/wizConfig.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,19 +12,29 @@ serve(async (req) => {
   }
 
   try {
-    const syncUrl = Deno.env.get('C3_WIZARD_SYNC_URL');
-    const syncApiKey = Deno.env.get('C3_CONFIG_SYNC_API_KEY');
+    // Resolve from c3_site_settings (env-aware) with env-var fallback.
+    const { baseUrl, syncApiKey } = await getWizConfig();
+    const envSyncUrl = Deno.env.get('C3_WIZARD_SYNC_URL');
+    const envSyncKey = Deno.env.get('C3_CONFIG_SYNC_API_KEY');
 
-    if (!syncUrl) {
+    // Derive SE-wages endpoint: prefer DB base URL, fall back to deriving from env URL.
+    const seWagesSyncUrl = baseUrl
+      ? `${baseUrl}/sync-se-wages`
+      : envSyncUrl
+        ? envSyncUrl.replace(/\/[^\/]*\/?$/, '/sync-se-wages')
+        : null;
+    const resolvedKey = syncApiKey || envSyncKey;
+
+    if (!seWagesSyncUrl) {
       return new Response(
-        JSON.stringify({ status: 'error', error: 'C3_WIZARD_SYNC_URL is not configured. Please contact the administrator.' }),
+        JSON.stringify({ status: 'error', error: 'C3_WIZARD_BASE_URL / C3_WIZARD_SYNC_URL is not configured. Please contact the administrator.' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!syncApiKey) {
+    if (!resolvedKey) {
       return new Response(
-        JSON.stringify({ status: 'error', error: 'C3_CONFIG_SYNC_API_KEY is not configured. Please contact the administrator.' }),
+        JSON.stringify({ status: 'error', error: 'OUTBOUND_SYNC_API_KEY / C3_CONFIG_SYNC_API_KEY is not configured. Please contact the administrator.' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -37,17 +48,13 @@ serve(async (req) => {
       wages_count: payload.wages?.length ?? 0,
     });
 
-    // Derive base URL from C3_WIZARD_SYNC_URL (which points to /c3-config-sync)
-    // and replace the last path segment with /sync-se-wages
-    const seWagesSyncUrl = syncUrl.replace(/\/[^\/]*\/?$/, '/sync-se-wages');
-
     let response: Response;
     try {
       response = await fetch(seWagesSyncUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-sync-api-key': syncApiKey,
+          'x-sync-api-key': resolvedKey,
         },
         body: JSON.stringify(payload),
       });
