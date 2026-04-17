@@ -570,7 +570,7 @@ function WizardIntegrationTab() {
       {Object.entries(grouped).map(([env, rows]) => (
         <div key={env}>
           <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-            <Server className="h-4 w-4" />{env} Environment
+            <Server className="h-4 w-4" />{envLabel(env)} Environment
             <Badge variant="outline">{rows.length} entries</Badge>
           </h3>
           <Table>
