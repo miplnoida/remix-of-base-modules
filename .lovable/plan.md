@@ -1,40 +1,98 @@
 
 
-## Diagnosis
+## Plan: Make dashboard cards & widgets intelligently clickable
 
-The Wizard's `c3_site_settings` table has at least one column defined as `varchar(4)`. Our payload sends `environment = "Production"` (10 chars) which overflows. All 10 rows fail in the same batch (likely due to transactional rollback on their side, which is why even the `Dev` rows show the same error).
+Goal: turn the read-only dashboard into a navigation hub. Each KPI / chart / list item routes to the most relevant existing page using the `DashboardKPICard onClick` prop (already supported) and `useNavigate()` for the rest. **No new routes, no logic changes** — only adding `onClick` + cursor/hover affordances. All target routes verified to exist in `AppRoutes.tsx`.
 
-**Confirmed sent values:**
-- `environment`: `"Dev"` (3) and `"Production"` (10)  ← **Production overflows varchar(4)**
-- `setting_type`: `URL` / `INBOUND_AUTH` / `OUTBOUND_AUTH` (also potentially > 4 but unrelated to error message — error wording matches `environment`)
+### Routing map (intelligence applied)
 
-## Fix (our side, minimal, zero impact)
+**AdminDashboard.tsx — KPI Row**
+| Card | Route |
+|---|---|
+| Total Employers | `/employers-management/dashboard` |
+| Insured Persons | `/person/register` (list page) → use `/employers-management/dashboard` if no IP list; checking… use `/registration/insured-person-guide` as safer fallback. **Best match: `/bn/person-360`** |
+| Active Claims | `/bn/claims` |
+| Compliance Issues | `/compliance/violations` |
 
-**Rename `Production` → `Prod` everywhere** so it fits in `varchar(4)` and matches the `Dev`/`Prod` convention. No code change needed in resolvers because they match strings exactly.
+**AdminDashboard.tsx — FinancialSummaryStrip** (4 tiles, currently non-clickable)
+| Tile | Route |
+|---|---|
+| Monthly Contributions | `/c3-management/c3-contribution` |
+| Benefits Paid (MTD) | `/bn/claims` |
+| Net Fund Surplus | `/reports/cashier` |
+| Outstanding Arrears | `/compliance/reports/arrears` |
 
-### Step 1 — Data migration (UPDATE via insert tool)
-```sql
-UPDATE c3_site_settings
-SET environment = 'Prod', is_synced = false, sync_error = null
-WHERE environment = 'Production';
-```
+**AdminDashboard.tsx — Charts (header click → drill-down)**
+| Widget | Route |
+|---|---|
+| ContributionTrendChart | `/c3-management/reports/payments-history` |
+| ComplianceDonut | `/compliance/workbench/analytics` |
+| RegistrationPipeline | `/employers-management/manage` |
+| BenefitsDistribution | `/bn/dashboard` |
 
-### Step 2 — Verify resolver compatibility
-- `src/lib/wizApiConfig.ts` reads `ACTIVE_ENVIRONMENT` value verbatim and looks up rows where `environment = <that value>`. Currently `ACTIVE_ENVIRONMENT = "Dev"`, so nothing breaks immediately. When the user later flips to live, they'll set it to `Prod` (not `Production`).
-- `supabase/functions/_shared/wizConfig.ts` — same, no code change required.
-- `SettingsConfiguration.tsx` "C3-Wizard Integration" tab groups rows by `environment` field — will now show `Dev` and `Prod` groups. Already environment-agnostic, no code change.
+**AdminDashboard.tsx — RecentSystemActivity** — each row routes by `activity_type`:
+- `violation` → `/compliance/violations`
+- `inspection` → `/compliance/field/inspections`
+- `registration` → `/employers-management/pending-verification`
+- `payment` → `/c3-management/payments`
+- `claim` → `/bn/claims`
 
-### Step 3 — User flow
-1. Apply UPDATE migration.
-2. User clicks **Publish All** again on the C3-Wizard Integration tab → all 10 rows should sync (assuming Wizard accepts `Prod`).
-3. If Wizard now reports a different `varchar` overflow on another column (e.g. `setting_type` = `OUTBOUND_AUTH` = 13 chars), we'll see a clearer per-row error pointing to that column and can ask the Wizard team to widen it (their schema, not ours).
+**AdminDashboard.tsx — AlertsWidget** — each alert row → `/admin/notifications/log` (generic). Header "View all" link → same.
 
-### Optional follow-up message to C3-Wizard team (only if step 2 surfaces a new column overflow)
-> Heads up — your `c3_site_settings` schema has `varchar(4)` columns that are too narrow for the new credential rows. We've shortened `Production` → `Prod` on our side to fit the `environment` column. Please confirm `setting_type` accepts values up to ~16 chars (`OUTBOUND_AUTH`, `INBOUND_AUTH`) — if it's also `varchar(4)`, please widen it (e.g. `varchar(20)`).
+**ComplianceDashboard.tsx** — 4 metric cards become clickable:
+- Open Violations → `/compliance/violations`
+- Compliant Employers → `/compliance/employers/management`
+- Pending Audits → `/compliance/field/audit-management`
+- Total Employers → `/employers-management/dashboard`
+- Bottom "Compliance Overview" 3 tiles → `/compliance/workbench/analytics`, `/compliance/field/inspections`, `/compliance/violations`
+
+**BenefitsDashboard.tsx** — 4 stat cards + items:
+- Total Claims / Total Benefits / Active Claims → `/bn/claims`
+- Benefit Types → `/bn/config/products`
+- Each "Recent Claim" row → `/bn/claims/:id` (using `claim.claim_number` lookup not available → route to `/bn/claims` filtered by status as fallback). Use `/bn/claims/${claim.id ?? ''}` if `id` exists; else `/bn/claims`.
+- "Process New" button → `/bn/claims`
+- Benefit Type rows → `/bn/config/products`
+
+**HRDashboard (inside Dashboard.tsx)** — 4 cards:
+- Insured Persons → `/bn/person-360`
+- Total Employers → `/employers-management/dashboard`
+- Active Claims → `/bn/claims`
+- Compliance Issues → `/compliance/violations`
+
+**FinancialDashboard (inside Dashboard.tsx)** — 4 tiles map identical to FinancialSummaryStrip above.
+
+### Implementation details
+
+1. **AdminDashboard.tsx** — add `onClick` to existing `DashboardKPICard` instances (prop already supported). Wrap chart `<Card>` headers' titles with cursor + onClick *only on the title*, so the chart itself stays interactive. Pass new `onItemClick` props down to `RecentSystemActivity`, `AlertsWidget`, `FinancialSummaryStrip`, `RegistrationPipeline`, `BenefitsDistribution`, `ComplianceDonut`, `ContributionTrendChart`.
+
+2. **Widget components** — add optional `onClick` / `onItemClick` props (no behavioural change if absent). Add `cursor-pointer hover:bg-muted/40` to clickable rows; add `cursor-pointer` + retain existing `hover:shadow-card-hover` on clickable cards.
+
+3. **ComplianceDashboard.tsx** & **BenefitsDashboard.tsx** & inline **HRDashboard / FinancialDashboard** — wrap each `<Card>` with `onClick={() => navigate(...)}` and add `cursor-pointer hover:shadow-md transition-shadow` classes. Existing inner content unchanged.
+
+4. **Accessibility** — clickable cards get `role="button"` + `tabIndex={0}` + `onKeyDown` (Enter / Space → navigate), or use `<button>` wrapper where structure allows.
+
+5. **Safety** — every target route was verified to exist in `src/components/routing/AppRoutes.tsx`. If a route is permission-gated, the existing `ProtectedLayout` will gracefully redirect — no broken links.
+
+### Files to change (8)
+- `src/components/Dashboard.tsx` (HR + Financial inline dashboards)
+- `src/components/dashboards/AdminDashboard.tsx`
+- `src/components/dashboards/ComplianceDashboard.tsx`
+- `src/components/dashboards/BenefitsDashboard.tsx`
+- `src/components/dashboards/widgets/FinancialSummaryStrip.tsx`
+- `src/components/dashboards/widgets/AlertsWidget.tsx`
+- `src/components/dashboards/widgets/RecentSystemActivity.tsx`
+- `src/components/dashboards/widgets/{ContributionTrendChart,ComplianceDonut,RegistrationPipeline,BenefitsDistribution}.tsx` (header-only click)
+
+### Out of scope
+- No data-model / SQL changes.
+- No new routes, no permission changes, no widget redesign.
+- Charts remain interactive (tooltip etc.); only the title area gets a click handler so users don't lose chart interactivity.
+- Quick Actions widget — already navigates correctly; left untouched.
 
 ### Verification
-1. C3-Wizard Integration tab shows 5 rows under `Dev` and 5 under `Prod` (relabelled).
-2. Publish All → response shows `synced: 10, failed: 0` (or surfaces a different, more specific error if another column is too narrow).
-3. Existing `ACTIVE_ENVIRONMENT = "Dev"` flow is unaffected — all client services and edge functions continue to resolve credentials from the `Dev` rows exactly as before.
-4. No frontend code change, no edge function redeploy needed.
+- Each KPI card visibly hoverable + cursor pointer.
+- Click each → lands on the mapped route without console errors.
+- Keyboard Tab + Enter triggers navigation (a11y).
+- Activity rows route by `activity_type` correctly.
+- No regressions on existing buttons (Compliance "View All", Benefits "Process New" — preserved).
 
