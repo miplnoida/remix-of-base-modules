@@ -14,6 +14,7 @@ import type {
   AuditReportSignatureEvent,
   AuditReportVersion,
   AuditReportAcknowledgment,
+  AuditViolationRow,
   SignerRole,
   SignatureType,
 } from '@/types/auditReport';
