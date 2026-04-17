@@ -1,249 +1,92 @@
+## C3 Email Templates Module — Implementation Plan
 
+### Discovery Summary
 
-# Plan: Enterprise Field Audit Execution — End-to-End Strengthening
+- Existing pattern: `c3_site_settings` + `c3_email_config` already follow the master-mirror sync model via `wiz-settings-sync` edge function and `wizSettingsService.ts`.
+- The Settings Configuration screen (`/c3-management/settings-configuration`) **exists but is not currently in the sidebar** — only reachable via redirect from CyberSource.
+- C3 sidebar (`c3MenuItems.ts`) already has a "Settings" subgroup containing scheme/levy/file configurations — we will add a new **"Settings"** parent group at the C3 Management level (or rename existing) holding the two requested children. To keep existing scheme settings intact, I'll **add a new "Settings" group** alongside (named "System Settings" to avoid collision with the existing scheme "Settings" subgroup).
+- 13 production templates from CSV must seed the new `c3_email_templates` table. Schema follows guide DDL but adapted to our project conventions (UUID PK, sync columns, `created_by`/`updated_by` as VARCHAR(50) user_code per project standards).
 
-## 1. Gap Analysis (current state)
+### Recommendations / Improvements over the Guide
 
-**What already exists (good news — DB is enterprise-ready):**
+1. **Use UUID PK + `is_synced` / `sync_error` columns** — matches our existing `c3_site_settings`/`c3_email_config` pattern and the unified `usePublishAll`/`useRetrySync` hooks. The `template_key` UNIQUE constraint stays as the upsert anchor for sync.
+2. **Reuse `wiz-settings-sync` edge function** — extend it with `sync_email_templates` / `retry_email_template` actions instead of creating a new function. Single sync surface, single secret, consistent error handling.
+3. **Single unified `usePendingCount**` — extend to count pending email templates so the "Publish All" button publishes all three tables in one call.
+4. **Soft delete + audit** — `is_deleted` flag, `created_by`/`updated_by` populated with current user_code (project standard).
+5. **Monaco editor for HTML body** with a sandboxed iframe live preview — sample variable substitution before publish.
+6. **Variable validation** — parse `{{variable}}` tokens from subject + body and warn if not declared in `variables[]`.
+7. **Naming**: avoid renaming the existing C3 `"Settings"` (scheme configs). Add a new top-level group **"System Settings"** under C3 Management with the two children. (Confirm in question below.)
 
-| Layer | Asset | State |
-|---|---|---|
-| DB | `ce_weekly_plans` + `ce_weekly_plan_items` | ✅ Full lifecycle (DRAFT→APPROVED→IN_EXECUTION→COMPLETED), reschedule, carry-forward, narrative |
-| DB | `ce_inspections` | ✅ Visit lifecycle, GPS, check-in/out, `case_id` link |
-| DB | `ce_inspection_findings` | ✅ Has `severity`, `finding_type`, `follow_up_required`, `follow_up_notes`, `violation_id`, `explanation_if_no_violation` |
-| DB | `ce_inspection_evidence` | ✅ Linked to inspection + finding + plan_item, file_url, GPS, captured_by |
-| DB | `ce_inspection_working_papers` | ✅ Payroll/contributions/wage-book review, sample size, observations |
-| DB | `ce_inspection_employer_interactions` | ✅ Representative, records declaration, **signature data + refusal reason** |
-| DB | `ce_follow_up_actions` | ✅ Action type, priority, assigned_to, due_date, queue, dedup |
-| Code | `inspection/*TabContent.tsx` (CheckIn, CheckOut, Findings, Evidence, Observations, WorkingPapers, EmployerInteraction, Violations) | ✅ Most components exist |
-| Code | `AuditChecklistDialog` + `auditChecklist.ts` templates | ✅ UI exists with templates |
+### Plan
 
-**What is broken / missing:**
+**Phase 1 — Database**
 
-| # | Gap | Impact |
-|---|---|---|
-| G1 | **3 overlapping services** (`weeklyAuditPlanService`, `inspectionService`, `weeklyReportService`) duplicate logic with different mappers | Inconsistent reads, tech debt |
-| G2 | `inspectionService.uploadEvidence` writes to `ce_inspections.documents_collected` JSONB **instead of `ce_inspection_evidence` table** | Evidence never appears in evidence table; not linkable to findings |
-| G3 | `weeklyReportService.getEvidenceForVisit` reads evidence from `ce_inspection_findings` where `finding_type='EVIDENCE'` (wrong table) | Evidence count always 0 in weekly report |
-| G4 | `AuditChecklistDialog` `onSave` is local-only — checklist is **not persisted anywhere** | All checklist work lost |
-| G5 | No DB table for checklist responses; `ce_inspection_working_papers` is the closest but doesn't store per-question Yes/No/Partial/N/A | Can't store structured checklist execution |
-| G6 | `inspectionService.createFinding` concatenates title+description into `description`; no separate `title`, `category`, `recommended_action`, `evidence_ids` mapping | Structured findings degraded to free text |
-| G7 | `weeklyAuditPlanService.generateWeeklyReportSummary` has TODOs: `evidenceCollected: 0`, `violationsOpened: 0`, `violationsUpdated: 0` | Weekly report inaccurate |
-| G8 | **No Plan Execution Dashboard** showing per-visit checklist %, evidence count, findings count, report status | Inspector & supervisor can't see execution health |
-| G9 | **No Employer Audit Report generator** — no PDF/printable report compiling visit + checklist + findings + evidence + working papers + signatures | Required deliverable missing |
-| G10 | Follow-up flow: `ce_follow_up_actions` requires `violation_id` (NOT NULL FK) — can't create follow-up directly from finding without first creating violation | Blocks "follow-up visit from finding" use-case |
-| G11 | No "follow-up visit" creation that re-injects into next week's plan with linkage to prior visit/finding | Manual workaround only |
-| G12 | Visit Workspace fragmented across many tab components, but no single cohesive **Visit Workspace screen** with employer summary header, progress strip, and tab orchestration that persists checklist/working papers/interactions consistently | Inspector UX poor |
-| G13 | `created_by`/`inspector_id` hardcoded to `'SYSTEM'` in `inspectionService` | No audit trail per project rules |
+- Migration creating `public.c3_email_templates`:
+  - `id UUID PK default gen_random_uuid()`
+  - `template_key VARCHAR(100) UNIQUE NOT NULL`
+  - `template_name VARCHAR(200) NOT NULL`
+  - `subject VARCHAR(500) NOT NULL`
+  - `html_body TEXT NOT NULL`, `text_body TEXT`
+  - `from_module VARCHAR(50) NOT NULL DEFAULT 'notifications'`
+  - `variables JSONB DEFAULT '[]'`
+  - `is_active BOOLEAN DEFAULT true`, `is_deleted BOOLEAN DEFAULT false`
+  - `is_synced BOOLEAN DEFAULT false`, `sync_error TEXT`, `last_synced_at TIMESTAMPTZ`
+  - `created_at`, `updated_at` (TIMESTAMPTZ), `created_by`, `updated_by` (VARCHAR(50) user_code)
+  - Partial index on `(template_key) WHERE is_deleted=false AND is_active=true`
+  - `updated_at` BEFORE UPDATE trigger
+- Seed all 13 templates from the CSV (`SEED-` audit tag in `created_by`).
 
----
+**Phase 2 — Service & Hooks**
 
-## 2. Target Process Flow
+- Extend `src/services/wizSettingsService.ts`:
+  - `fetchEmailTemplates(fromModule?)`, `saveEmailTemplate(id, updates, userCode)`, `createEmailTemplate(...)`, `softDeleteEmailTemplate(id)`, `toggleActive(id, isActive)`.
+- Extend `src/hooks/useSettingsConfiguration.ts`:
+  - `useEmailTemplates`, `useSaveEmailTemplate`, `useCreateEmailTemplate`, `useDeleteEmailTemplate`.
+  - Update `usePendingCount` to include templates.
 
-```text
-[1] Plan Builder (inspector)
-        |
-        v
-[2] Senior Inspector / Manager Review --> NEED_CHANGES loop
-        |
-        v
-[3] APPROVED Plan -> visits visible in Plan Execution Dashboard
-        |
-        v
-[4] Visit Workspace (per visit)
-     +-- Employer Summary
-     +-- Check-in (GPS, time)
-     +-- Employer Interaction (rep, records, authorization)
-     +-- Audit Checklist Execution  --> ce_audit_checklist_responses (NEW)
-     +-- Working Papers              --> ce_inspection_working_papers
-     +-- Evidence Upload             --> ce_inspection_evidence (FIX)
-     +-- Structured Findings         --> ce_inspection_findings
-              |-- evidence linkage   --> ce_inspection_evidence.finding_id
-              |-- follow_up_required --> creates follow-up plan item
-              \-- violation_required --> ce_violations + ce_follow_up_actions
-     +-- Signature / refusal         --> ce_inspection_employer_interactions
-     +-- Check-out (GPS, time, summary)
-        |
-        v
-[5] Generate Employer Audit Report (PDF) --> ce_employer_audit_reports (NEW)
-        |
-        v
-[6] Follow-Up Items auto-created in NEXT week's draft plan
-        |
-        v
-[7] Weekly Status Report Submission (inspector narrative + auto KPIs)
-        |
-        v
-[8] Supervisor reviews / approves weekly report --> COMPLETED
-```
+**Phase 3 — Edge Function**
 
----
+- Add to `supabase/functions/wiz-settings-sync/index.ts`:
+  - Action `sync_email_templates` → POSTs all non-deleted templates to wiz-admin-api `sync_email_templates`, marks rows synced/failed per response.
+  - Action `retry_email_template` → re-sends a single failed row.
+  - `publish_all` extended to include templates.
 
-## 3. Data Model Additions (2 new tables, 1 column)
+**Phase 4 — UI**
 
-### 3.1 `ce_audit_checklist_responses` (NEW)
-Stores per-question execution of the checklist for a visit.
-- `id uuid PK`
-- `inspection_id uuid FK -> ce_inspections(id) ON DELETE CASCADE`
-- `plan_item_id uuid FK -> ce_weekly_plan_items(id)`
-- `template_key varchar(50)` (e.g. `GENERAL_AUDIT`)
-- `category varchar(100)`
-- `question_id varchar(50)`
-- `question_text text`
-- `response varchar(10)` — 'Yes' | 'No' | 'Partial' | 'N/A'
-- `notes text`
-- `evidence_required boolean`
-- `created_by varchar(50)`, `created_at`, `updated_at`
-- Unique index `(inspection_id, question_id)`
+- New page `src/pages/c3Management/EmailTemplates.tsx`:
+  - List view: filterable table (module dropdown, status toggle, search by key/subject) with sync badges (Synced/Pending/Failed).
+  - Edit dialog: Template Key (locked when editing), Name, From Module dropdown, Subject, HTML body (textarea — Monaco optional later), Text body, Variables (tag input), Active toggle.
+  - Live preview pane: sandboxed iframe rendering subject + html_body with sample variable values.
+  - Top-right: "Publish" button (disabled when no pending) + "Retry" for failed rows.
+  - Per-row actions: Edit · Preview · Activate/Deactivate · Delete (soft).
+- Add route in `src/components/routing/AppRoutes.tsx`: `/c3-management/email-templates`.
 
-### 3.2 `ce_employer_audit_reports` (NEW)
-- `id uuid PK`
-- `report_number varchar(50) UNIQUE` (e.g. `AR-2026-000123`)
-- `inspection_id uuid FK -> ce_inspections(id)`
-- `employer_id varchar(20)`, `employer_name varchar(200)`
-- `inspector_id`, `inspector_name`
-- `report_date date`
-- `executive_summary text`
-- `scope text`
-- `conclusions text`
-- `recommendations text`
-- `total_findings int`, `total_evidence int`, `total_violations int`
-- `checklist_completion_pct numeric(5,2)`
-- `status varchar(20)` — 'DRAFT' | 'FINAL' | 'SHARED'
-- `pdf_url text` (storage)
-- `generated_at`, `generated_by`, `finalized_at`, `finalized_by`
-- `created_at`, `updated_at`
+**Phase 5 — Sidebar Reorganization**
 
-### 3.3 Relax `ce_follow_up_actions.violation_id`
-Make `violation_id` nullable so a follow-up action can be created directly from a finding without a violation.
-Add `finding_id uuid FK -> ce_inspection_findings(id)`.
+- Edit `src/components/sidebar/menuItems/c3MenuItems.ts`:
+  - Add new top-level subgroup `"System Settings"` (icon: Settings) under C3 Management, BEFORE the existing "Reports":
+    - `Email Templates` → `/c3-management/email-templates`
+    - `Settings & Configuration` → `/c3-management/settings-configuration`
+- Existing scheme "Settings" subgroup (Levy/SS/Severance/Injury/C3 File) stays untouched to avoid disrupting current users.
 
----
+**Phase 6 — Knowledge Repository**
 
-## 4. Service Layer Refactor
+- Add memory entry `mem://features/c3-management/email-templates` documenting the table, sync flow, and UI conventions. Update `mem://index.md`.
 
-**Consolidate into one `fieldAuditService.ts`** (replaces overlapping logic across the 3 services). Old services become thin re-exports during migration.
+### Files to Create / Modify
 
-New / fixed methods:
+- **Create**: migration SQL, `src/pages/c3Management/EmailTemplates.tsx`, memory file.
+- **Modify**: `wizSettingsService.ts`, `useSettingsConfiguration.ts`, `wiz-settings-sync/index.ts`, `c3MenuItems.ts`, `AppRoutes.tsx`, `mem://index.md`.
 
-| Method | Purpose |
-|---|---|
-| `getPlanExecutionDashboard(planId)` | Returns visits + per-visit aggregates (checklistPct, evidenceCount, findingsCount, hasReport, followUpCount) |
-| `checkIn(planItemId, gps)` / `checkOut(visitId, gps, notes)` | Fixed to use auth `user_code` |
-| `saveChecklistResponses(inspectionId, planItemId, templateKey, items[])` | Upsert into `ce_audit_checklist_responses` |
-| `getChecklistResponses(inspectionId)` | Read responses |
-| `uploadEvidence(inspectionId, planItemId, findingId?, file, type, desc, gps)` | **Fixed** to write to `ce_inspection_evidence` + Storage |
-| `createStructuredFinding(req)` | Writes title (NEW col? — use `description` first line OR add `title` col), category, severity, recommended_action, follow_up_required, evidence_ids |
-| `createFollowUpFromFinding(findingId, dueDate, priority, assignedTo, reason)` | Inserts into `ce_follow_up_actions` with `finding_id`; optionally creates a `ce_weekly_plan_items` row in next week's draft plan |
-| `generateEmployerAuditReport(inspectionId)` | Aggregates all data, inserts `ce_employer_audit_reports`, generates PDF via existing `pdfGenerator` util, uploads to Storage |
-| `getEmployerAuditReport(inspectionId)` | Read |
-| `finalizeAuditReport(reportId)` | Locks report, status FINAL |
-| `getWeeklyReportSummary(planId)` | **Fixed**: counts evidence from `ce_inspection_evidence`, violations from `ce_violations` filtered by week, findings from `ce_inspection_findings` |
-| `submitWeeklyReport(planId, narrative)` | Validates (all visits closed, possible-violations converted), updates plan status |
-| `reviewWeeklyReport(planId, approve, comments)` | Supervisor approval/rejection |
+### Clarifying Questions
 
-Add minor column `ce_inspection_findings.title varchar(200)` and `category varchar(100)` and `recommended_action text` to fully back the structured model.
+1. **Sidebar naming**: The existing C3 "Settings" subgroup (Levy/SS/Severance/Injury/C3 File configs) would conflict if we add another "Settings" parent. Options: - **Add new group as "System Settings"** (recommended, no disruption) - **Rename existing "Settings" to "Scheme Settings"**, then add new "Settings" parent with the two children - **Move everything into one mega "Settings" group** (Scheme settings + Email Templates + Settings & Configuration)
 
----
+2. **HTML editor**: For the template HTML body field, do you want:
+  - **Plain textarea now**, upgrade to Monaco later (fastest delivery)
+  - **Monaco editor with HTML syntax highlighting** from day one  
+    
+  answer -1 => Existing functionality should not be impacted, just use the different name if it doesnt conflicst with the existing one.  
+  answer -2 => use the best one that is properly should be future  proof.
 
-## 5. Screen-by-Screen Plan
-
-### A. Plan Execution Dashboard (NEW)
-Route: `/compliance/field/execution-dashboard/:planId`  
-Shows:
-- Plan header (week, inspector, status)
-- KPI strip: Planned / Completed / In Progress / Rescheduled / Not Done
-- Visits table with columns: Date | Employer/Area | Status | Checklist % | Evidence | Findings | Report | Follow-up | Action (Open Workspace)
-
-### B. Visit Workspace (consolidate)
-Route: `/compliance/field/visit/:planItemId`  
-Single page with **employer summary header** + tabs (reuse existing tab components, wire to fixed service):
-1. Check-in / GPS
-2. Employer Interaction (rep, records, authorization)
-3. Audit Checklist (persists now)
-4. Working Papers
-5. Evidence
-6. Findings (structured form)
-7. Conclusions & Check-out (signature capture, refusal handling)
-8. Audit Report (Generate PDF button → preview → finalize)
-
-### C. Findings Form (upgrade `CreateFindingDialog`)
-Fields: Category (select), Title, Description, Severity, Finding Type, Recommended Action, Linked Evidence (multi-select), Follow-up Required (checkbox → opens follow-up sub-form), Violation Required (checkbox → opens existing `CreateViolationFromFindingDialog`).
-
-### D. Employer Audit Report Viewer (NEW)
-Route: `/compliance/field/audit-report/:inspectionId`  
-Compiles: cover page (Misha Infotech branding per memory), executive summary, scope, employer details, visit details (check-in/out, GPS, representative), checklist results, working papers, findings table with severity, evidence thumbnails, conclusions, recommendations, signatures section. PDF via existing pdf util to Storage; download link.
-
-### E. Follow-Up Visit Planning (enhance `FollowUpFromFindingDialog`)
-- Select date (defaults next week)
-- Reason (pre-filled from finding)
-- Priority (LOW/NORMAL/HIGH/URGENT)
-- Assigned officer (SearchableSelect from `ce_inspectors`)
-- Linked prior visit (read-only)
-- Auto-creates row in next week's DRAFT plan + `ce_follow_up_actions` row with `finding_id`
-
-### F. Weekly Status Report Submission (enhance existing `WeeklyReportSubmission.tsx`)
-Auto-populated KPIs (now accurate):
-- Completed / Pending / Rescheduled / Not Done visits
-- Evidence count, Findings count (by severity), Reports generated, Violations opened/updated, Follow-ups created
-- Inspector narrative (textarea)
-- "Validate" → calls `validateWeeklyReport` (blocks unconverted possible-violations, completed visits without findings)
-- "Submit" → status `SUBMITTED`
-
-### G. Supervisor Weekly Report Review (NEW lightweight)
-Route: `/compliance/field/weekly-report-review`  
-Lists submitted weekly reports → drill-down → Approve / Reject with comments.
-
-### H. Sidebar entries (`app_modules` inserts)
-- "Plan Execution Dashboard" → `/compliance/field/execution-dashboard` (parent: Field)
-- "Visit Workspace" — hidden (deep-link only)
-- "Audit Report" — hidden (deep-link only)
-- "Weekly Report Review" → `/compliance/field/weekly-report-review`
-
----
-
-## 6. Reporting / Output Design
-
-| Output | Format | Source |
-|---|---|---|
-| Employer Audit Report | PDF (Misha branding) | `ce_employer_audit_reports` + child data |
-| Weekly Status Report | On-screen + printable HTML | `ce_weekly_plans.outcome_narrative` + computed KPIs |
-| Plan Execution Dashboard | Live screen | `ce_v_plan_execution_summary` (NEW DB view, optional optimization) |
-
----
-
-## 7. Implementation Phases (safe order)
-
-### Phase 1 — Data Model & Service Foundation
-1. Migration: new tables `ce_audit_checklist_responses`, `ce_employer_audit_reports`; add cols `title/category/recommended_action` to findings; relax `violation_id` & add `finding_id` on `ce_follow_up_actions`
-2. Create unified `fieldAuditService.ts` (new methods + fixes for evidence + summary KPIs)
-3. Migrate existing components to call new service; keep old service files as deprecated re-exports
-
-### Phase 2 — Visit Workspace & Persistence
-4. Wire `AuditChecklistDialog` → persist to `ce_audit_checklist_responses`
-5. Fix `uploadEvidence` to write to `ce_inspection_evidence` table; surface in Evidence tab
-6. Upgrade Findings form (structured fields + evidence linkage + follow-up + violation)
-7. Build single Visit Workspace page orchestrating tabs
-
-### Phase 3 — Reporting & Dashboards
-8. Plan Execution Dashboard screen
-9. Employer Audit Report generator (UI + PDF + Storage)
-10. Fix `generateWeeklyReportSummary` (real evidence/violation/findings counts)
-
-### Phase 4 — Follow-up & Weekly Report Closure
-11. Follow-up visit creator (auto-injects into next week's draft plan + `ce_follow_up_actions`)
-12. Enhance Weekly Report Submission with accurate KPIs + validation gate
-13. Supervisor Weekly Report Review screen
-
-### Phase 5 — Sidebar, Audit Trail, Polish
-14. `app_modules` inserts for new visible screens
-15. Replace hardcoded `'SYSTEM'` with auth `user_code` (createdby/updatedby per project rules)
-16. Update knowledge repo entry + test cases per project governance rule
-
----
-
-## 8. Non-Goals (explicit)
-- No RLS (per project rule, role-based only)
-- No mobile-native app — responsive web only
-- Existing inspection/audit hierarchy under `/audit/*` (Internal Audit module) is **not touched** — this plan covers only Compliance & Enforcement field audit (`/compliance/field/*`)
-
+&nbsp;
