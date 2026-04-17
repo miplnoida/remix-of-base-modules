@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Mail, Plus, Pencil, Trash2, Eye, RefreshCw, Upload, AlertCircle, CheckCircle2, Clock } from 'lucide-react';
+import { Loader2, Mail, Plus, Pencil, Trash2, Eye, RefreshCw, Upload, AlertCircle, CheckCircle2, Clock, Send } from 'lucide-react';
 import { EntityModal } from '@/components/common/EntityModal';
 import { useUserCode } from '@/hooks/useUserCode';
 import {
@@ -24,8 +24,9 @@ import {
 } from '@/hooks/useSettingsConfiguration';
 import Editor from '@monaco-editor/react';
 import type { EmailTemplateRow } from '@/services/wizSettingsService';
+import { SandboxDialog } from '@/components/c3Management/email-templates/SandboxDialog';
 
-const FROM_MODULES = ['notifications', 'registration', 'identity', 'finance', 'contributions', 'internal', 'admin', 'contact', 'AUTH'];
+const FROM_MODULES = ['registration', 'authentication', 'payments', 'contributions', 'administration'];
 
 const getVarsArray = (v: unknown): string[] => {
   if (Array.isArray(v)) return v as string[];
@@ -84,7 +85,7 @@ interface EditorState {
 
 const emptyForm = {
   template_key: '', template_name: '', subject: '', html_body: '<div></div>',
-  text_body: '', from_module: 'notifications', variables: '', is_active: true,
+  text_body: '', from_module: 'registration', variables: '', is_active: true,
 };
 
 const EmailTemplates: React.FC = () => {
@@ -104,6 +105,7 @@ const EmailTemplates: React.FC = () => {
 
   const [editor, setEditor] = useState<EditorState>({ open: false, mode: 'create', row: null, form: emptyForm });
   const [previewRow, setPreviewRow] = useState<EmailTemplateRow | null>(null);
+  const [sandbox, setSandbox] = useState<{ open: boolean; templateId: string | null }>({ open: false, templateId: null });
 
   const filtered = useMemo(() => {
     return templates.filter((t) => {
@@ -172,6 +174,10 @@ const EmailTemplates: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           {pendingCount > 0 && <Badge variant="secondary">{pendingCount} pending</Badge>}
+          <Button variant="outline" onClick={() => setSandbox({ open: true, templateId: null })}>
+            <Send className="h-4 w-4 mr-2" />
+            Test Email
+          </Button>
           <Button variant="outline" onClick={() => publishMutation.mutate()} disabled={publishMutation.isPending || pendingCount === 0}>
             {publishMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
             Publish All
@@ -253,6 +259,7 @@ const EmailTemplates: React.FC = () => {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => setSandbox({ open: true, templateId: t.id })} title="Send test email" disabled={!t.is_active}><Send className="h-4 w-4" /></Button>
                           <Button size="sm" variant="ghost" onClick={() => setPreviewRow(t)} title="Preview"><Eye className="h-4 w-4" /></Button>
                           <Button size="sm" variant="ghost" onClick={() => openEdit(t)} title="Edit"><Pencil className="h-4 w-4" /></Button>
                           <Button size="sm" variant="ghost" onClick={() => {
