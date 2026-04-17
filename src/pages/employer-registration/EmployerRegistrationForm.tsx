@@ -287,13 +287,15 @@ export default function EmployerRegistrationForm() {
             </Button>
           )}
           
-          {/* Workflow-driven action buttons (Approve/Reject) */}
-          <WorkflowActionButtons
-            sourceModule="employers"
-            sourceRecordId={formData.regno || null}
-            variant="default"
-            onActionComplete={handleWorkflowActionComplete}
-          />
+          {/* Workflow-driven action buttons (Approve/Reject) — view mode only */}
+          {isViewMode && (
+            <WorkflowActionButtons
+              sourceModule="employers"
+              sourceRecordId={formData.regno || null}
+              variant="default"
+              onActionComplete={handleWorkflowActionComplete}
+            />
+          )}
         </div>
       </div>
 
