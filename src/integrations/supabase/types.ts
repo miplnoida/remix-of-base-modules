@@ -7987,6 +7987,66 @@ export type Database = {
         }
         Relationships: []
       }
+      c3_email_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          from_module: string
+          html_body: string
+          id: string
+          is_active: boolean
+          is_deleted: boolean
+          is_synced: boolean
+          last_synced_at: string | null
+          subject: string
+          sync_error: string | null
+          template_key: string
+          template_name: string
+          text_body: string | null
+          updated_at: string
+          updated_by: string | null
+          variables: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          from_module?: string
+          html_body: string
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          is_synced?: boolean
+          last_synced_at?: string | null
+          subject: string
+          sync_error?: string | null
+          template_key: string
+          template_name: string
+          text_body?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          variables?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          from_module?: string
+          html_body?: string
+          id?: string
+          is_active?: boolean
+          is_deleted?: boolean
+          is_synced?: boolean
+          last_synced_at?: string | null
+          subject?: string
+          sync_error?: string | null
+          template_key?: string
+          template_name?: string
+          text_body?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          variables?: Json
+        }
+        Relationships: []
+      }
       c3_filing_config_periods: {
         Row: {
           created_at: string
