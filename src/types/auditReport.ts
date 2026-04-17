@@ -74,6 +74,41 @@ export interface AuditReportVersion {
   createdAt: string;
 }
 
+/**
+ * Violation row attached to an audit report.
+ * Sourced from ce_violations where inspection_id = report.inspection_id.
+ * Internal report shows the full row; employer report shows only the
+ * employer-safe fields (number, summary, statutory ref, amounts, due date).
+ */
+export interface AuditViolationRow {
+  id: string;
+  violationNumber?: string;
+  violationTypeId?: string;
+  violationTypeName?: string;
+  statutoryReference?: string;
+  summary?: string;
+  description?: string;
+  severity?: string;
+  fundType?: string;
+  periodFrom?: string;
+  periodTo?: string;
+  principalAmount?: number;
+  penaltyAmount?: number;
+  interestAmount?: number;
+  totalAmount?: number;
+  dueDate?: string;
+  status?: string;
+  priority?: string;
+  /** Finding number this violation arose from (display index, e.g. 3). */
+  sourceFindingNumber?: number;
+  sourceFindingId?: string;
+  // Internal-only fields
+  assignedToName?: string;
+  caseId?: string;
+  caseFamily?: string;
+  resolutionNotes?: string;
+}
+
 export interface AuditReportAcknowledgment {
   id: string;
   reportId: string;
@@ -130,6 +165,16 @@ export interface FullAuditReport {
   complianceConclusion?: string;
   recommendations?: string;
 
+  // === NEW: enterprise working-paper fields ===
+  /** Internal-only: audit procedures performed (tests, walkthroughs, recalculations…). */
+  methodology?: string;
+  /** Internal-only: population, sample size, and selection method. */
+  samplingBasis?: string;
+  /** Internal-only: overall risk rating (Low / Medium / High / Critical). */
+  riskRating?: string;
+  /** Employer-facing: how to dispute a violation issued from this audit. */
+  disputeInstructions?: string;
+
   // counts
   totalFindings: number;
   totalEvidence: number;
@@ -139,6 +184,10 @@ export interface FullAuditReport {
   // pdf / acknowledgment
   pdfUrl?: string;
   signedPdfUrl?: string;
+  /** Stored finalized PDF — internal/working-paper variant. */
+  internalPdfUrl?: string;
+  /** Stored finalized PDF — employer-facing variant. */
+  employerPdfUrl?: string;
   acknowledgmentStatus: AcknowledgmentStatus;
   acknowledgmentSentAt?: string;
   acknowledgmentCompletedAt?: string;
