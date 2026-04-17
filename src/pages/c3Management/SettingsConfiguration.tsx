@@ -489,11 +489,11 @@ function SystemTab() {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label>Environment</Label>
-          <Select value={envRow?.setting_value || 'Production'} onValueChange={handleChange}>
+          <Select value={envRow?.setting_value || 'Prod'} onValueChange={handleChange}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="Dev">Dev</SelectItem>
-              <SelectItem value="Production">Production</SelectItem>
+              <SelectItem value="Prod">Production</SelectItem>
             </SelectContent>
           </Select>
         </div>
