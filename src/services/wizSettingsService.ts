@@ -220,3 +220,28 @@ export async function retrySync(table: "setting" | "email" | "template", id: str
   if (error) throw new Error(error.message);
   return data;
 }
+
+// ─── Sandbox Test-Send ───
+
+export interface TestEmailPayload {
+  template_id: string;
+  recipient_email: string;
+  variables: Record<string, string>;
+}
+
+export interface TestEmailResult {
+  success: boolean;
+  resend_id?: string;
+  recipient?: string;
+  error?: string;
+}
+
+export async function sendTestEmail(payload: TestEmailPayload): Promise<TestEmailResult> {
+  const { data, error } = await supabase.functions.invoke("c3-template-test-send", {
+    body: payload,
+  });
+  if (error) {
+    return { success: false, error: error.message };
+  }
+  return (data as TestEmailResult) ?? { success: false, error: "Empty response" };
+}
