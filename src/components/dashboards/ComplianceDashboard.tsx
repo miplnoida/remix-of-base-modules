@@ -28,10 +28,10 @@ export const ComplianceDashboard = () => {
   const isLoading = metricsLoading;
 
   const complianceMetrics = [
-    { label: 'Open Violations', value: String(metrics?.active_violations ?? 0), status: 'danger', icon: AlertTriangle },
-    { label: 'Compliant Employers', value: String(metrics?.compliant_employers ?? 0), status: 'success', icon: CheckCircle },
-    { label: 'Pending Audits', value: String(metrics?.pending_audits ?? 0), status: 'warning', icon: Clock },
-    { label: 'Total Employers', value: String(metrics?.total_employers ?? 0), status: 'info', icon: Calendar },
+    { label: 'Open Violations', value: String(metrics?.active_violations ?? 0), status: 'danger', icon: AlertTriangle, route: '/compliance/violations' },
+    { label: 'Compliant Employers', value: String(metrics?.compliant_employers ?? 0), status: 'success', icon: CheckCircle, route: '/compliance/employers/management' },
+    { label: 'Pending Audits', value: String(metrics?.pending_audits ?? 0), status: 'warning', icon: Clock, route: '/compliance/field/audit-management' },
+    { label: 'Total Employers', value: String(metrics?.total_employers ?? 0), status: 'info', icon: Calendar, route: '/employers-management/dashboard' },
   ];
 
   if (isLoading) {
@@ -47,7 +47,14 @@ export const ComplianceDashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {complianceMetrics.map((metric, index) => (
-          <Card key={index}>
+          <Card
+            key={index}
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate(metric.route)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(metric.route); } }}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{metric.label}</CardTitle>
               <metric.icon className={`h-4 w-4 ${metric.status === 'danger' ? 'text-destructive' : metric.status === 'success' ? 'text-secondary' : metric.status === 'warning' ? 'text-accent-foreground' : 'text-primary'}`} />
@@ -134,7 +141,13 @@ export const ComplianceDashboard = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
+            <div
+              className="text-center cursor-pointer rounded-lg p-3 hover:bg-muted/60 transition-colors"
+              onClick={() => navigate('/compliance/workbench/analytics')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/compliance/workbench/analytics'); } }}
+            >
               <div className="text-2xl font-bold text-secondary">
                 {metrics && metrics.total_employers > 0
                   ? ((metrics.compliant_employers / metrics.total_employers) * 100).toFixed(0)
@@ -142,11 +155,23 @@ export const ComplianceDashboard = () => {
               </div>
               <p className="text-sm text-muted-foreground">Overall Compliance Rate</p>
             </div>
-            <div className="text-center">
+            <div
+              className="text-center cursor-pointer rounded-lg p-3 hover:bg-muted/60 transition-colors"
+              onClick={() => navigate('/compliance/field/inspections')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/compliance/field/inspections'); } }}
+            >
               <div className="text-2xl font-bold text-primary">{inspections.length}</div>
               <p className="text-sm text-muted-foreground">Upcoming Inspections</p>
             </div>
-            <div className="text-center">
+            <div
+              className="text-center cursor-pointer rounded-lg p-3 hover:bg-muted/60 transition-colors"
+              onClick={() => navigate('/compliance/violations')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/compliance/violations'); } }}
+            >
               <div className="text-2xl font-bold text-accent-foreground">{violations.length}</div>
               <p className="text-sm text-muted-foreground">Active Violations</p>
             </div>
