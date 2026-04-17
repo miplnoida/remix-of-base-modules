@@ -407,6 +407,10 @@ export default function IPRegistrationForm() {
       if ((formData.marital_status === 'Married' || formData.marital_status === 'Common Law') && !formData.date_married) {
         newErrors.date_married = 'Date married is required';
       }
+      // Chronology rule: Date Married cannot be earlier than Date of Birth
+      if (formData.date_married && formData.dob && formData.date_married < formData.dob) {
+        newErrors.date_married = 'Date Married cannot be earlier than Date of Birth';
+      }
     }
 
     if (activeTab === 'address') {
@@ -700,6 +704,10 @@ export default function IPRegistrationForm() {
 
     if ((formData.marital_status === 'Married' || formData.marital_status === 'Common Law') && !formData.date_married) {
       validationErrors.date_married = 'Date married is required';
+    }
+    // Chronology rule: Date Married cannot be earlier than Date of Birth
+    if (formData.date_married && formData.dob && formData.date_married < formData.dob) {
+      validationErrors.date_married = 'Date Married cannot be earlier than Date of Birth';
     }
 
     const contactErrors = validateContactFields([

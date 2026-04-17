@@ -270,6 +270,21 @@ export function WorkflowActionButtons({
     }
   };
 
+  // Class set for the AlertDialog confirm button — must always be a filled, readable button.
+  const getDialogActionClassName = (actionType: string): string => {
+    switch (actionType.toLowerCase()) {
+      case 'approve':
+        return 'bg-primary text-primary-foreground hover:bg-primary/90';
+      case 'reject':
+        return 'bg-destructive text-destructive-foreground hover:bg-destructive/90';
+      case 'send_back':
+      case 'send_back_to_applicant':
+        return 'bg-secondary text-secondary-foreground hover:bg-secondary/90';
+      default:
+        return '';
+    }
+  };
+
   const requiresComment = (action: WorkflowAction | null): boolean => {
     if (!action) return false;
     // Check database-configured remarks_required flag first
@@ -356,7 +371,7 @@ export function WorkflowActionButtons({
                 executeAction.isPending ||
                 (requiresComment(selectedAction) && !comments.trim())
               }
-              className={getActionClassName(selectedAction?.action_type || '')}
+              className={getDialogActionClassName(selectedAction?.action_type || '')}
             >
               {executeAction.isPending ? (
                 <>

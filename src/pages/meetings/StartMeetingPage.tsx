@@ -216,6 +216,22 @@ export default function StartMeetingPage() {
     const tabData = extractTabFields(editedData, tabFields);
     const originalTabData = extractTabFields(baselineData, tabFields);
 
+    // Cross-field validation: Date Married >= Date of Birth (Personal tab)
+    if (tabId === 'ip-personal') {
+      const dob = (editedData as any)?.dateOfBirth || (editedData as any)?.dob;
+      const dm = (editedData as any)?.dateMarried || (editedData as any)?.date_married;
+      const ms = (editedData as any)?.maritalStatus;
+      const marriedLike = ms === 'M' || ms === 'Married' || ms === 'Common Law';
+      if (marriedLike && dm && dob && String(dm).slice(0, 10) < String(dob).slice(0, 10)) {
+        toast.error('Please check the form for valid information!', {
+          description: 'Date Married cannot be earlier than Date of Birth',
+          style: { backgroundColor: 'hsl(var(--destructive))', color: 'white' },
+          classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' }
+        });
+        return;
+      }
+    }
+
     try {
       await hook.save(tabData, originalTabData, userCode || undefined);
 
@@ -1731,25 +1747,28 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
                 />
               </div>
 
-              {/* Row 7: Checkboxes */}
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="dep-school-child"
-                    checked={!!depForm.isSchoolChild}
-                    onCheckedChange={(v) => setDepForm(p => ({ ...p, isSchoolChild: !!v, isInSchool: !!v }))}
-                  />
-                  <Label htmlFor="dep-school-child" className="text-sm font-medium cursor-pointer">School Child</Label>
+              {/* Row 7: Dependent Status (independent multi-select) */}
+              <fieldset className="border rounded-md p-3">
+                <legend className="text-xs px-1 text-muted-foreground">Dependent Status (select any that apply)</legend>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="dep-school-child"
+                      checked={!!depForm.isSchoolChild}
+                      onCheckedChange={(v) => setDepForm(p => ({ ...p, isSchoolChild: !!v, isInSchool: !!v }))}
+                    />
+                    <Label htmlFor="dep-school-child" className="text-sm font-medium cursor-pointer">School Child</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="dep-invalid"
+                      checked={!!depForm.isInvalid}
+                      onCheckedChange={(v) => setDepForm(p => ({ ...p, isInvalid: !!v }))}
+                    />
+                    <Label htmlFor="dep-invalid" className="text-sm font-medium cursor-pointer">Invalid</Label>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="dep-invalid"
-                    checked={!!depForm.isInvalid}
-                    onCheckedChange={(v) => setDepForm(p => ({ ...p, isInvalid: !!v }))}
-                  />
-                  <Label htmlFor="dep-invalid" className="text-sm font-medium cursor-pointer">Invalid</Label>
-                </div>
-              </div>
+              </fieldset>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDepDialogOpen(false)}>Cancel</Button>

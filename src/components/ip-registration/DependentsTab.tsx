@@ -256,24 +256,27 @@ export const DependentsTab: React.FC<DependentsTabProps> = ({
                 />
               </div>
             </div>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="school_child_new"
-                  checked={newDependent.school_child === 'Y'}
-                  onCheckedChange={(checked) => updateNewDependent('school_child', checked ? 'Y' : 'N')}
-                />
-                <Label htmlFor="school_child_new" className="text-sm">School Child</Label>
+            <fieldset className="border rounded-md p-3">
+              <legend className="text-xs px-1 text-muted-foreground">Dependent Status (select any that apply)</legend>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="school_child_new"
+                    checked={newDependent.school_child === 'Y'}
+                    onCheckedChange={(checked) => updateNewDependent('school_child', checked ? 'Y' : 'N')}
+                  />
+                  <Label htmlFor="school_child_new" className="text-sm cursor-pointer">School Child</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="invalid_new"
+                    checked={newDependent.invalid === 'Y'}
+                    onCheckedChange={(checked) => updateNewDependent('invalid', checked ? 'Y' : 'N')}
+                  />
+                  <Label htmlFor="invalid_new" className="text-sm cursor-pointer">Invalid</Label>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="invalid_new"
-                  checked={newDependent.invalid === 'Y'}
-                  onCheckedChange={(checked) => updateNewDependent('invalid', checked ? 'Y' : 'N')}
-                />
-                <Label htmlFor="invalid_new" className="text-sm">Invalid</Label>
-              </div>
-            </div>
+            </fieldset>
             <Button onClick={handleAddDependent} disabled={!newDependent.surname || !newDependent.firstname}>
               <Plus className="h-4 w-4 mr-2" />
               Add Dependent
