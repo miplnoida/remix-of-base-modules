@@ -1,66 +1,251 @@
-## Final Plan: Email Templates — Module Normalization + Sandbox Test-Send
+## Diagnosis: "Unknown action: sync_email_templates" — origin = C3-Wizard side
 
-### Approved scope (with the user's clarifications baked in)
+### What the error means
 
-**Sync behavior — keep identical to Site Settings & Email Config:**
+Our edge function `wiz-settings-sync` does this on retry/publish for templates:
 
-- Keep the existing sync icon/badge column on the Email Templates page (same component as Site Settings & Email Config — NOT a pending pill).
-- Keep "Publish All", per-row Retry, `is_synced=false` flip on save/create/toggle/delete.
-- The ONLY one-time change is: mark the 13 existing seed rows as `is_synced=true` so they don't show as pending right after seeding.
-- `usePendingCount` continues to include templates (no change there).
+```ts
+// supabase/functions/wiz-settings-sync/index.ts (lines 320 & 487)
+const apiRes = await callWizApi("sync_email_templates", { templates: [...] });
+```
 
-**Module normalization (one-time DB fix):**
+It POSTs to the **C3-Wizard** admin API:
 
+```
+POST https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1/wiz-admin-api
+body: { action: "sync_email_templates", params: { templates: [...] } }
+```
 
-| from_module (canonical) | template_keys                                                                          |
-| ----------------------- | -------------------------------------------------------------------------------------- |
-| registration            | account_activation, account_deactivation, welcome_customer, welcome_admin_notification |
-| authentication          | password_reset, otp_verification, otp_login, password_changed                          |
-| payments                | payment_receipt, payment_admin_notification                                            |
-| contributions           | c3_submission_confirmation                                                             |
-| administration          | company_mapping_notification, complaint_received                                       |
+The Wizard's `wiz-admin-api` function then replies:
 
+```json
+{ "status": "success", "data": { "synced": false, "error": "Unknown action: sync_email_templates" } }
+```
 
-Add CHECK constraint restricting `from_module` to those 5 values.
+The string **"Unknown action:** &nbsp;**"** is the standard fallthrough message a Wizard-side handler returns when its `switch(action)` statement has no case for that action. Our function doesn't produce that text anywhere — grep confirms it.
 
-**Sandbox test-send (new):**
+The Wizard side already supports:
 
-- Top-toolbar **"Test Email"** button on Email Templates page → opens sandbox dialog with template picker (any active template).
-- Per-row **paper-airplane** action → opens sandbox dialog pre-selected to that template.
-- Sandbox dialog contents:
-  - Template picker (SearchableSelect of active templates).
-  - Recipient email (pre-filled with logged-in user's email).
-  - Auto-generated variable form (parses `{{var}}` from `subject + html_body`, smart defaults: `name=John Doe`, `code=123456`, `amount=100.00`, `date=today`, `loginUrl=https://c3.ssbeservices.net`).
-  - Live preview iframe (sandboxed) with substituted values.
-  - **Send Test** button.
-- New edge function `c3-template-test-send`:
-  - JWT-verified, role-gated (admin/c3).
-  - Zod-validated input `{ template_id, recipient_email, variables }`.
-  - Server-side `{{var}}` substitution.
-  - Prepends yellow **"⚠ TEST EMAIL — Sandbox"** banner to subject + body.
-  - Sends via Resend (gateway) using existing `RESEND_API_KEY` + `LOVABLE_API_KEY`.
-  - Logs to `system_technical_logs` (api_name=`c3-template-test-send`, includes user_code).
-  - In-function rate limit: 5 sends / minute / user.
-- Toast confirms success/failure.
+- `sync_site_settings` ✅
+- `sync_email_config` ✅
+- `sync_email_templates` ❌ **not implemented yet**
 
-### Files to create / modify
+### Conclusion
 
-- **Create**:
-  - SQL migration — normalize 13 rows' `from_module`, set `is_synced=true / last_synced_at=now() / sync_error=null` for active rows, add CHECK constraint on the 5 canonical values.
-  - `supabase/functions/c3-template-test-send/index.ts`.
-  - `src/components/c3Management/email-templates/SandboxDialog.tsx` (template picker + variable form + preview + send).
-- **Modify**:
-  - `src/pages/c3Management/EmailTemplates.tsx` — add "Test Email" toolbar button + per-row paper-airplane action; wire up SandboxDialog. (Sync UI untouched.)
-  - `src/services/wizSettingsService.ts` — add `sendTestEmail()` helper that invokes the new edge function. (No change to existing save/create/toggle/delete behavior.)
-  - `mem://features/c3-management/email-templates.md` — record canonical 5 modules, seed-rows-marked-synced rule, sandbox test-send flow + audit logging.
+**This is NOT a bug on our (SSB Portal) side.** Our payload, action name, auth header, and URL are correct and consistent with the two working sync endpoints. The C3-Wizard `wiz-admin-api` edge function simply doesn't have a handler for the new `sync_email_templates` action.
 
-### Verification
+### What needs to happen
 
-1. All 13 rows show one of the 5 canonical `from_module` values; all `is_synced=true` initially (no pending icon after seed).
-2. Editing a template flips it back to "pending" sync icon (same as Site Settings/Email Config).
-3. "Publish All" + per-row Retry still work for templates.
-4. Top-bar "Test Email" button + per-row paper-airplane both open the Sandbox dialog; template picker works in toolbar mode.
-5. Send Test → email arrives with ⚠ TEST EMAIL banner; failures show toast; audit log entry created; rate limit enforced after 5/min.  
+Forward this to the C3-Wizard team with the spec below. Once they deploy, our existing "Publish All" and per-row Retry buttons will work without any change on our side.
+
+---
+
+### Message to send to the C3-Wizard team
+
+> **Subject:** Add `sync_email_templates` action to `wiz-admin-api`
+>
+> Our SSB Portal has a new Email Templates module that mirrors the existing Site Settings and Email Config sync flow. When we call your `wiz-admin-api` with `action: "sync_email_templates"`, it returns `Unknown action: sync_email_templates`. Please add a handler matching the existing pattern.
+>
+> **Endpoint:** `POST https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1/wiz-admin-api`
+> **Auth header:** `x-admin-api-key: <existing key>`
+> **Request body:**
+>
+> ```json
+> {
+>   "action": "sync_email_templates",
+>   "params": {
+>     "templates": [
+>       {
+>         "template_key": "account_activation",
+>         "template_name": "Account Activation Email",
+>         "subject": "C3 Remittances — Account Activation",
+>         "html_body": "<html>...</html>",
+>         "text_body": "...",
+>         "from_module": "registration",
+>         "variables": ["name", "activationUrl"],
+>         "is_active": true
+>       }
+>     ]
+>   }
+> }
+> ```
+>
+> **Canonical `from_module` values** (CHECK constraint on our side): `registration`, `authentication`, `payments`, `contributions`, `administration`.
+>
+> **Upsert key:** `template_key` (unique per row).
+>
+> **Expected response on success:**
+>
+> ```json
+> { "status": "success", "data": { "upserted": <n> } }
+> ```
+>
+> **Expected response on failure:**
+>
+> ```json
+> { "status": "error", "error": "<reason>" }
+> ```
+
+---
+
+This is the message shared by the C3-wizard team:-  
   
   
-Important Note:- Make sure dont chnage any existing functionality.
+**Subject: ✅ `sync_email_templates` action added to wiz-admin-api**
+
+Hi team,
+
+The `sync_email_templates` handler is now live on `wiz-admin-api`, mirroring the existing `sync_site_settings` / `sync_email_config` pattern.
+
+**Endpoint** (unchanged):
+
+`POST https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1/wiz-admin-api`
+
+Header: `x-admin-api-key:` 
+
+**Request body:**
+
+```json
+
+{
+
+  "action": "sync_email_templates",
+
+  "params": {
+
+    "templates": [
+
+      {
+
+        "template_key": "account_activation",
+
+        "template_name": "Account Activation Email",
+
+        "subject": "C3 Remittances — Account Activation",
+
+        "html_body": "...",
+
+        "text_body": "...",
+
+        "from_module": "registration",
+
+        "variables": ["name", "activationUrl"],
+
+        "is_active": true,
+
+        "is_deleted": false
+
+      }
+
+    ]
+
+  }
+
+}
+
+```
+
+**Required fields per template:** `template_key`, `template_name`, `subject`, `html_body`, `from_module`.
+
+**Optional:** `text_body`, `variables` (array or object, defaults `[]`), `is_active` (defaults `true`), `is_deleted` (defaults `false`).
+
+**Upsert key:** `template_key` (unique). Existing rows are updated; new rows are inserted.
+
+*`from_module` validation** — must be one of (lowercase, exact match):
+
+- `registration`
+
+- `authentication`
+
+- `payments`
+
+- `contributions`
+
+- `administration`
+
+Any other value returns a per-row error and that row is skipped. This matches the canonical taxonomy on both sides.
+
+**Response — success (all rows upserted):**
+
+```json
+
+{
+
+  "status": "success",
+
+  "data": {
+
+    "upserted": 13,
+
+    "failed": 0,
+
+    "results": [
+
+      { "template_key": "account_activation", "status": "inserted" },
+
+      { "template_key": "otp_verification", "status": "updated" }
+
+    ]
+
+  }
+
+}
+
+```
+
+**Response — partial (some rows failed):**
+
+```json
+
+{
+
+  "status": "partial",
+
+  "data": {
+
+    "upserted": 12,
+
+    "failed": 1,
+
+    "results": [
+
+      { "template_key": "bad_one", "status": "error", "error": "Invalid from_module \"finance\". Allowed: registration, authentication, payments, contributions, administration" }
+
+    ]
+
+  }
+
+}
+
+```
+
+**Response — error (all failed / bad request):**
+
+```json
+
+{ "status": "error", "data": { "upserted": 0, "failed": 1, "results": [...] } }
+
+```
+
+or for a malformed body:
+
+```json
+
+{ "status": "error", "error": "templates array is required and must not be empty" }
+
+```
+
+Note: the response is slightly richer than your spec `upserted` + `failed` + `results[]` instead of just `upserted`) — same shape as `sync_site_settings` for consistency. Your client can read `data.upserted` exactly as planned.
+
+Ready to test from your end.
+
+Drafted message shared above.  
+  
+Optional follow-up on our side (no code change required)
+
+Right now when the Wizard returns `status: "success"` with `data.synced: false`, our function treats the call as successful (because `apiRes.status === "success"`) and marks the row as synced — even though it wasn't. Once the Wizard team adds the handler this becomes moot, but if you want, I can harden `callWizApi` to also inspect `data.synced`/`data.error` and treat that as a failure (would surface clearer errors in the Sync badge if Wizard ever returns partial-success again).
+
+Want me to:
+
+1. Just send the spec to the Wizard team and wait for their fix (no code change), **or**
+2. Harden our `wiz-settings-sync` to detect `data.error` and mark rows as failed instead of synced?
