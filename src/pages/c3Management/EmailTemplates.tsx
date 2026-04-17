@@ -363,6 +363,14 @@ const EmailTemplates: React.FC = () => {
           <PreviewIframe subject={previewRow.subject} html={previewRow.html_body} vars={getVarsArray(previewRow.variables)} />
         )}
       </EntityModal>
+
+      {/* Sandbox Test-Send Dialog */}
+      <SandboxDialog
+        open={sandbox.open}
+        onOpenChange={(o) => setSandbox({ open: o, templateId: o ? sandbox.templateId : null })}
+        templates={templates}
+        initialTemplateId={sandbox.templateId}
+      />
     </div>
   );
 };
