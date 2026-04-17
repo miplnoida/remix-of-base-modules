@@ -60,13 +60,13 @@ export default function EmployerRegistrationForm() {
 
   const { submitERRegistration, isSubmitting } = useEmployerRegistrationSubmit();
 
-  // Fetch transferred documents for this employer
+  // Fetch transferred documents for this employer (canonical: er_documents)
   const { data: erDocuments = [], refetch: refetchDocs } = useQuery({
-    queryKey: ['er-application-documents', regno],
+    queryKey: ['er-documents', regno],
     queryFn: async () => {
       if (!regno) return [];
       const { data, error } = await supabase
-        .from('er_application_documents')
+        .from('er_documents')
         .select('*')
         .eq('regno', regno)
         .eq('is_active', true)
@@ -669,12 +669,12 @@ function ERDocumentsTab({
 
       // Deactivate old
       await supabase
-        .from('er_application_documents')
+        .from('er_documents')
         .update({ is_active: false, updated_at: new Date().toISOString() })
         .eq('id', doc.id);
 
-      // Insert new
-      await supabase.from('er_application_documents').insert({
+      // Insert new (canonical: er_documents)
+      await supabase.from('er_documents').insert({
         regno,
         source_application_reference: doc.source_application_reference || '',
         doc_code: doc.doc_code,
@@ -692,7 +692,7 @@ function ERDocumentsTab({
 
       logAuditTrail({
         action: 'DOCUMENT_REUPLOAD',
-        entityType: 'er_application_documents',
+        entityType: 'er_documents',
         entityId: doc.id,
         module: 'employer-registration',
         afterValue: { file_name: file.name, document_type: doc.document_type, regno },
