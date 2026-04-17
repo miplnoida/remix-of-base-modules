@@ -160,6 +160,54 @@ export default function ApplicationDetailPage() {
     return dialCode ? `(${dialCode}) ${phone}` : phone;
   };
 
+  // Resolve header photo: prefer application.photoUrl, fall back to a "Photo" document via document-proxy
+  const [headerPhotoUrl, setHeaderPhotoUrl] = useState<string | undefined>(undefined);
+  React.useEffect(() => {
+    let cancelled = false;
+    let createdBlobUrl: string | undefined;
+
+    const run = async () => {
+      if (!application) { setHeaderPhotoUrl(undefined); return; }
+      if (application.photoUrl) { setHeaderPhotoUrl(undefined); return; } // primary source wins
+
+      const docs: any[] = (application as any).documents || [];
+      const photoDoc = docs.find((d) => {
+        const t = String(d?.documentType || d?.verificationType || d?.type || '').toLowerCase();
+        return t === 'photo' || t.includes('photo');
+      });
+      const docUrl = photoDoc?.signedUrl || photoDoc?.url;
+      if (!photoDoc || !docUrl) { setHeaderPhotoUrl(undefined); return; }
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/document-proxy`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ action: 'stream', documentUrl: docUrl, fileName: photoDoc.fileName || photoDoc.name || 'photo' }),
+        });
+        if (!resp.ok) return; // silent fallback
+        const ct = resp.headers.get('content-type') || 'image/*';
+        const buf = await resp.arrayBuffer();
+        const blob = new Blob([buf], { type: ct });
+        createdBlobUrl = URL.createObjectURL(blob);
+        if (!cancelled) setHeaderPhotoUrl(createdBlobUrl);
+      } catch {
+        // silent — header is decorative; AvatarFallback will show
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+      if (createdBlobUrl) URL.revokeObjectURL(createdBlobUrl);
+    };
+  }, [application]);
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
