@@ -554,24 +554,27 @@ export default function DependentsTab({ uniqueUuid, ssn, recordStatus, isEditabl
               />
             </div>
 
-            <div className="flex items-center gap-6 md:col-span-2">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="school_child"
-                  checked={formData.school_child === 'Y'}
-                  onCheckedChange={(checked) => setFormData({ ...formData, school_child: checked ? 'Y' : 'N' })}
-                />
-                <Label htmlFor="school_child">School Child</Label>
+            <fieldset className="md:col-span-2 border rounded-md p-3">
+              <legend className="text-xs px-1 text-muted-foreground">Dependent Status (select any that apply)</legend>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="school_child"
+                    checked={formData.school_child === 'Y'}
+                    onCheckedChange={(checked) => setFormData({ ...formData, school_child: checked ? 'Y' : 'N' })}
+                  />
+                  <Label htmlFor="school_child" className="cursor-pointer">School Child</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="invalid"
+                    checked={formData.invalid === 'Y'}
+                    onCheckedChange={(checked) => setFormData({ ...formData, invalid: checked ? 'Y' : 'N' })}
+                  />
+                  <Label htmlFor="invalid" className="cursor-pointer">Invalid</Label>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="invalid"
-                  checked={formData.invalid === 'Y'}
-                  onCheckedChange={(checked) => setFormData({ ...formData, invalid: checked ? 'Y' : 'N' })}
-                />
-                <Label htmlFor="invalid">Invalid</Label>
-              </div>
-            </div>
+            </fieldset>
           </form>
           
           <DialogFooter>

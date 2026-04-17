@@ -140,7 +140,7 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
     const docUrl = getDocUrl(doc);
     if (!docUrl) { toast.error('No document URL available'); return; }
     const category = getFileCategory(doc.fileName || doc.name || '', doc.mimeType);
-    if (category !== 'image') return;
+    if (category !== 'image' && category !== 'pdf') return;
     const docId = doc.id || `doc-${index}`;
     const name = getDocName(doc, index);
     setLoadingDocId(docId);
@@ -213,7 +213,9 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                   const docId = doc.id || `doc-${index}`;
                   const isLoading = loadingDocId === docId;
                   const hasUrl = !!getDocUrl(doc);
-                  const isImage = getFileCategory(doc.fileName || doc.name || '', doc.mimeType) === 'image';
+                  const fileCategory = getFileCategory(doc.fileName || doc.name || '', doc.mimeType);
+                  const isImage = fileCategory === 'image';
+                  const isPdf = fileCategory === 'pdf';
                   const matchedAppDoc = ssn ? getMatchingAppDoc(doc) : undefined;
                   const showDropdown = matchedAppDoc ? hasStatusDropdown(matchedAppDoc) : false;
                   const statusVal = matchedAppDoc ? getStatusValue(matchedAppDoc.id) : undefined;
@@ -259,7 +261,7 @@ export function ApplicationDocumentsTab({ documents, photoUrl, onDelete, showDel
                         <div className="flex gap-2 justify-end">
                           {hasUrl ? (
                             <>
-                              {isImage && (
+                              {(isImage || isPdf) && (
                                 <Button variant="outline" size="sm" onClick={() => handleView(doc, index)} disabled={isLoading} className="gap-1.5">
                                   {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
                                   View

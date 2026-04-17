@@ -1731,25 +1731,28 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
                 />
               </div>
 
-              {/* Row 7: Checkboxes */}
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="dep-school-child"
-                    checked={!!depForm.isSchoolChild}
-                    onCheckedChange={(v) => setDepForm(p => ({ ...p, isSchoolChild: !!v, isInSchool: !!v }))}
-                  />
-                  <Label htmlFor="dep-school-child" className="text-sm font-medium cursor-pointer">School Child</Label>
+              {/* Row 7: Dependent Status (independent multi-select) */}
+              <fieldset className="border rounded-md p-3">
+                <legend className="text-xs px-1 text-muted-foreground">Dependent Status (select any that apply)</legend>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="dep-school-child"
+                      checked={!!depForm.isSchoolChild}
+                      onCheckedChange={(v) => setDepForm(p => ({ ...p, isSchoolChild: !!v, isInSchool: !!v }))}
+                    />
+                    <Label htmlFor="dep-school-child" className="text-sm font-medium cursor-pointer">School Child</Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="dep-invalid"
+                      checked={!!depForm.isInvalid}
+                      onCheckedChange={(v) => setDepForm(p => ({ ...p, isInvalid: !!v }))}
+                    />
+                    <Label htmlFor="dep-invalid" className="text-sm font-medium cursor-pointer">Invalid</Label>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="dep-invalid"
-                    checked={!!depForm.isInvalid}
-                    onCheckedChange={(v) => setDepForm(p => ({ ...p, isInvalid: !!v }))}
-                  />
-                  <Label htmlFor="dep-invalid" className="text-sm font-medium cursor-pointer">Invalid</Label>
-                </div>
-              </div>
+              </fieldset>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setDepDialogOpen(false)}>Cancel</Button>
