@@ -14,7 +14,7 @@ const barColors = [
   'hsl(30 80% 55%)',
 ];
 
-export function BenefitsDistribution() {
+export function BenefitsDistribution({ onTitleClick }: { onTitleClick?: () => void } = {}) {
   const { data: rawData, isLoading } = useQuery({
     queryKey: ['dashboard_benefits_distribution'],
     queryFn: fetchBenefitsDistribution,
@@ -29,7 +29,13 @@ export function BenefitsDistribution() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base font-medium">
+        <CardTitle
+          className={`flex items-center gap-2 text-base font-medium ${onTitleClick ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
+          onClick={onTitleClick}
+          role={onTitleClick ? 'button' : undefined}
+          tabIndex={onTitleClick ? 0 : undefined}
+          onKeyDown={onTitleClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTitleClick(); } } : undefined}
+        >
           <Heart className="h-5 w-5 text-primary" />
           Benefits Distribution
         </CardTitle>

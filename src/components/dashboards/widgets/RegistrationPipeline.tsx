@@ -4,7 +4,7 @@ import { UserPlus, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchRegistrationPipeline } from '@/services/dashboardDataService';
 
-export function RegistrationPipeline() {
+export function RegistrationPipeline({ onTitleClick }: { onTitleClick?: () => void } = {}) {
   const { data: pipelineData, isLoading } = useQuery({
     queryKey: ['dashboard_registration_pipeline'],
     queryFn: fetchRegistrationPipeline,
@@ -19,7 +19,13 @@ export function RegistrationPipeline() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base font-medium">
+        <CardTitle
+          className={`flex items-center gap-2 text-base font-medium ${onTitleClick ? 'cursor-pointer hover:text-primary transition-colors' : ''}`}
+          onClick={onTitleClick}
+          role={onTitleClick ? 'button' : undefined}
+          tabIndex={onTitleClick ? 0 : undefined}
+          onKeyDown={onTitleClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTitleClick(); } } : undefined}
+        >
           <UserPlus className="h-5 w-5 text-primary" />
           Employer Registration Pipeline
         </CardTitle>

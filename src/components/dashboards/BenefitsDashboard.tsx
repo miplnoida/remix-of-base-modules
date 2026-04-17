@@ -5,9 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, DollarSign, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { fetchAdminKPIs, fetchBenefitsDistribution, fetchRecentClaims } from '@/services/dashboardDataService';
 
 export const BenefitsDashboard = () => {
+  const navigate = useNavigate();
   const { data: kpis, isLoading: kpisLoading } = useQuery({
     queryKey: ['benefits_dashboard_kpis'],
     queryFn: fetchAdminKPIs,
@@ -37,10 +39,10 @@ export const BenefitsDashboard = () => {
   const totalAmount = distribution.reduce((s, d) => s + Number(d.amount), 0);
 
   const benefitsStats = [
-    { label: 'Total Claims', value: totalClaims.toLocaleString(), icon: Heart, color: 'text-primary' },
-    { label: 'Total Benefits', value: `$${(totalAmount / 1_000_000).toFixed(1)}M`, icon: CheckCircle, color: 'text-secondary' },
-    { label: 'Active Claims', value: (kpis?.active_claims ?? 0).toLocaleString(), icon: Clock, color: 'text-accent-foreground' },
-    { label: 'Benefit Types', value: String(distribution.length), icon: DollarSign, color: 'text-primary' },
+    { label: 'Total Claims', value: totalClaims.toLocaleString(), icon: Heart, color: 'text-primary', route: '/bn/claims' },
+    { label: 'Total Benefits', value: `$${(totalAmount / 1_000_000).toFixed(1)}M`, icon: CheckCircle, color: 'text-secondary', route: '/bn/claims' },
+    { label: 'Active Claims', value: (kpis?.active_claims ?? 0).toLocaleString(), icon: Clock, color: 'text-accent-foreground', route: '/bn/claims' },
+    { label: 'Benefit Types', value: String(distribution.length), icon: DollarSign, color: 'text-primary', route: '/bn/config/products' },
   ];
 
   const statusMap: Record<string, string> = { A: 'Approved', P: 'Pending', O: 'Open', C: 'Closed', S: 'Suspended' };
@@ -55,7 +57,14 @@ export const BenefitsDashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {benefitsStats.map((stat, index) => (
-          <Card key={index}>
+          <Card
+            key={index}
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate(stat.route)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(stat.route); } }}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
               <stat.icon className={`h-4 w-4 ${stat.color}`} />
@@ -72,7 +81,7 @@ export const BenefitsDashboard = () => {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2"><Clock className="h-5 w-5 text-primary" />Recent Claims</span>
-              <Button size="sm">Process New</Button>
+              <Button size="sm" onClick={() => navigate('/bn/claims')}>Process New</Button>
             </CardTitle>
             <CardDescription>Latest benefit claims</CardDescription>
           </CardHeader>
@@ -82,7 +91,14 @@ export const BenefitsDashboard = () => {
             ) : (
               <div className="space-y-4">
                 {recentClaims.slice(0, 4).map((claim, index) => (
-                  <div key={claim.claim_number || index} className="border rounded-lg p-4 space-y-2">
+                  <div
+                    key={claim.claim_number || index}
+                    className="border rounded-lg p-4 space-y-2 cursor-pointer hover:bg-accent/50 transition-colors"
+                    onClick={() => navigate('/bn/claims')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/bn/claims'); } }}
+                  >
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">{claim.claim_number}</h4>
                       <Badge variant={claim.status === 'A' ? 'default' : claim.status === 'P' ? 'secondary' : 'outline'}>
@@ -115,7 +131,14 @@ export const BenefitsDashboard = () => {
             ) : (
               <div className="space-y-4">
                 {distribution.map((benefit, index) => (
-                  <div key={index} className="border rounded-lg p-4 space-y-2">
+                  <div
+                    key={index}
+                    className="border rounded-lg p-4 space-y-2 cursor-pointer hover:bg-accent/50 transition-colors"
+                    onClick={() => navigate('/bn/config/products')}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/bn/config/products'); } }}
+                  >
                     <div className="flex items-center justify-between">
                       <h4 className="font-medium">{benefit.type}</h4>
                       <span className="text-lg font-bold text-secondary">${(Number(benefit.amount) / 1000).toFixed(0)}K</span>

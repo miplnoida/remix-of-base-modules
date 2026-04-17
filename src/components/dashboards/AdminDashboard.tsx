@@ -1,4 +1,5 @@
 import { Building2, Users, FileText, AlertTriangle, Calendar, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardKPICard } from './widgets/DashboardKPICard';
 import { ContributionTrendChart } from './widgets/ContributionTrendChart';
 import { ComplianceDonut } from './widgets/ComplianceDonut';
@@ -12,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchAdminKPIs } from '@/services/dashboardDataService';
 
 export const AdminDashboard = () => {
+  const navigate = useNavigate();
   const today = new Date();
   const greeting = today.getHours() < 12 ? 'Good Morning' : today.getHours() < 17 ? 'Good Afternoon' : 'Good Evening';
 
@@ -50,24 +52,28 @@ export const AdminDashboard = () => {
             value={(kpis?.total_employers ?? 0).toLocaleString()}
             icon={Building2}
             iconBg="bg-primary/10 text-primary"
+            onClick={() => navigate('/employers-management/dashboard')}
           />
           <DashboardKPICard
             title="Insured Persons"
             value={(kpis?.insured_persons ?? 0).toLocaleString()}
             icon={Users}
             iconBg="bg-secondary/15 text-secondary"
+            onClick={() => navigate('/bn/person-360')}
           />
           <DashboardKPICard
             title="Active Claims"
             value={(kpis?.active_claims ?? 0).toLocaleString()}
             icon={FileText}
             iconBg="bg-[hsl(217_91%_60%/0.12)] text-[hsl(217_91%_60%)]"
+            onClick={() => navigate('/bn/claims')}
           />
           <DashboardKPICard
             title="Compliance Issues"
             value={(kpis?.compliance_issues ?? 0).toLocaleString()}
             icon={AlertTriangle}
             iconBg="bg-destructive/10 text-destructive"
+            onClick={() => navigate('/compliance/violations')}
           />
         </div>
       )}
@@ -81,17 +87,17 @@ export const AdminDashboard = () => {
       {/* Charts Row 1: Contribution Trend (2/3) + Compliance Donut (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
-          <ContributionTrendChart />
+          <ContributionTrendChart onTitleClick={() => navigate('/c3-management/reports/payments-history')} />
         </div>
         <div className="lg:col-span-1">
-          <ComplianceDonut />
+          <ComplianceDonut onTitleClick={() => navigate('/compliance/workbench/analytics')} />
         </div>
       </div>
 
       {/* Charts Row 2: Registration Pipeline + Benefits Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <RegistrationPipeline />
-        <BenefitsDistribution />
+        <RegistrationPipeline onTitleClick={() => navigate('/employers-management/manage')} />
+        <BenefitsDistribution onTitleClick={() => navigate('/bn/dashboard')} />
       </div>
 
       {/* Bottom Row: Activity Feed + Quick Actions */}
