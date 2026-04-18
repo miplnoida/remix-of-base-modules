@@ -28,12 +28,15 @@ interface SessionPolicy {
   autoRefreshEnabled: boolean;
 }
 
-const DEFAULT_SESSION_TIMEOUT_MINUTES = 30;
-const DEFAULT_IDLE_TIMEOUT_MINUTES = 15;
+// Industry-standard defaults — overridden at runtime by password_policies row.
+const DEFAULT_SESSION_TIMEOUT_MINUTES = 480; // absolute ceiling (8h)
+const DEFAULT_IDLE_TIMEOUT_MINUTES = 30;     // sliding idle window
 const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000;
 const SESSION_CHECK_INTERVAL_MS = 30_000;
 const IDLE_WARNING_BEFORE_MINUTES = 2;
 const ACTIVITY_THROTTLE_MS = 10_000;
+const ACTIVITY_BROADCAST_CHANNEL = 'auth-activity';
+const ACTIVITY_STORAGE_KEY = '__auth_last_activity__';
 
 type AuthBootstrapStatus = 'loading' | 'ready' | 'degraded';
 type DataLoadStatus = 'pending' | 'loaded' | 'failed';
@@ -96,6 +99,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const logoutRef = useRef<() => Promise<void>>(async () => {});
   const idleWarningShownRef = useRef(false);
   const lastActivityUpdateRef = useRef<number>(0);
+  const activityChannelRef = useRef<BroadcastChannel | null>(null);
 
   // Fetch user profile
   const fetchProfile = useCallback(async (userId: string) => {
@@ -140,13 +144,33 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [user, fetchProfile, fetchRoles]);
 
-  // Throttled activity update
+  // Apply an activity timestamp without re-broadcasting (used by inbound cross-tab pings)
+  const applyActivityTs = useCallback((ts: number) => {
+    if (ts > lastActivityRef.current) {
+      lastActivityRef.current = ts;
+      lastActivityUpdateRef.current = ts;
+      idleWarningShownRef.current = false;
+    }
+  }, []);
+
+  // Throttled activity update — local DOM/network activity. Broadcasts to other tabs.
   const updateActivity = useCallback(() => {
     const now = Date.now();
     if (now - lastActivityUpdateRef.current >= ACTIVITY_THROTTLE_MS) {
       lastActivityRef.current = now;
       lastActivityUpdateRef.current = now;
       idleWarningShownRef.current = false;
+      // Cross-tab sync
+      try {
+        activityChannelRef.current?.postMessage({ type: 'activity', ts: now });
+      } catch {
+        // ignore
+      }
+      try {
+        localStorage.setItem(ACTIVITY_STORAGE_KEY, String(now));
+      } catch {
+        // ignore (private mode etc.)
+      }
     }
   }, []);
 
