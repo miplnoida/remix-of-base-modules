@@ -447,11 +447,23 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         if (event === 'TOKEN_REFRESHED' && currentSession) {
+          // NOTE: do NOT reset sessionStartRef — the absolute ceiling must be honored
+          // regardless of token refreshes (industry standard).
           lastActivityRef.current = Date.now();
           lastActivityUpdateRef.current = Date.now();
-          sessionStartRef.current = Date.now();
           scheduleTokenRefresh(currentSession);
           console.info('Auth token refreshed successfully');
+          if (currentSession.user) {
+            void logSecurity({
+              event_type: 'login',
+              user_name: currentSession.user.email || 'Unknown',
+              success: true,
+              module: 'Authentication',
+              api_name: 'token_refreshed',
+              severity: 'info',
+              payload_json: { ts: new Date().toISOString() },
+            }, currentSession.user.id).catch(() => {});
+          }
         }
 
         // After initializeAuth completes, handle profile/roles for auth changes
