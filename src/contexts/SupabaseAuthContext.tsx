@@ -395,6 +395,63 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [session, loadSessionPolicy, scheduleTokenRefresh]);
 
+  // Cross-tab activity sync (BroadcastChannel + localStorage fallback)
+  useEffect(() => {
+    if (!session) return;
+
+    let channel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        channel = new BroadcastChannel(ACTIVITY_BROADCAST_CHANNEL);
+        channel.onmessage = (ev) => {
+          if (ev.data?.type === 'activity' && typeof ev.data.ts === 'number') {
+            applyActivityTs(ev.data.ts);
+          }
+        };
+        activityChannelRef.current = channel;
+      } catch {
+        channel = null;
+      }
+    }
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === ACTIVITY_STORAGE_KEY && e.newValue) {
+        const ts = parseInt(e.newValue, 10);
+        if (!Number.isNaN(ts)) applyActivityTs(ts);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      if (channel) {
+        try { channel.close(); } catch { /* noop */ }
+      }
+      activityChannelRef.current = null;
+    };
+  }, [session, applyActivityTs]);
+
+  // Global fetch wrapper — count successful network activity (React-Query, supabase-js,
+  // axios-via-fetch) as user activity so background data refresh extends the idle window.
+  useEffect(() => {
+    if (!session) return;
+    if (typeof window === 'undefined' || !window.fetch) return;
+
+    const originalFetch = window.fetch.bind(window);
+    const wrappedFetch: typeof window.fetch = async (...args) => {
+      const res = await originalFetch(...args);
+      if (res && res.ok) updateActivity();
+      return res;
+    };
+    window.fetch = wrappedFetch;
+
+    return () => {
+      if (window.fetch === wrappedFetch) {
+        window.fetch = originalFetch;
+      }
+    };
+  }, [session, updateActivity]);
+
   // Initialize auth state — two-phase: session-ready first, then user data in background
   useEffect(() => {
     let initDone = false;
