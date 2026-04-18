@@ -125,17 +125,19 @@ const SystemSettings = () => {
                       })}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
-                    <Input
-                      id="sessionTimeout"
-                      type="number"
-                      value={settings.system.sessionTimeout}
-                      onChange={(e) => setSettings({
-                        ...settings,
-                        system: { ...settings.system, sessionTimeout: e.target.value }
-                      })}
-                    />
+                  <div className="md:col-span-2 rounded-md border border-border bg-muted/40 p-3 text-sm">
+                    <p className="font-medium text-foreground">Session Timeout</p>
+                    <p className="text-muted-foreground mt-1">
+                      Session timeout is now configured exclusively under{' '}
+                      <button
+                        type="button"
+                        onClick={() => navigate('/admin/security/password-policy')}
+                        className="text-primary underline-offset-2 hover:underline"
+                      >
+                        Password Policy
+                      </button>
+                      {' '}as a single source of truth (sliding idle + absolute ceiling).
+                    </p>
                   </div>
                 </div>
                 <div className="space-y-4">
