@@ -250,31 +250,41 @@ const PasswordPolicySettings = () => {
               <Shield className="h-5 w-5" />
               Session Settings
             </CardTitle>
-            <CardDescription>Configure session timeout and concurrency limits</CardDescription>
+            <CardDescription>
+              Single source of truth for session timeout. Idle timeout is the sliding inactivity window;
+              maximum session duration is the absolute ceiling regardless of activity.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="session_timeout_minutes">Session Timeout (minutes)</Label>
-                <Input
-                  id="session_timeout_minutes"
-                  type="number"
-                  min={15}
-                  max={1440}
-                  value={formData.session_timeout_minutes}
-                  onChange={(e) => setFormData({ ...formData, session_timeout_minutes: parseInt(e.target.value) })}
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="idle_timeout_minutes">Idle Timeout (minutes)</Label>
                 <Input
                   id="idle_timeout_minutes"
                   type="number"
-                  min={5}
-                  max={120}
+                  min={1}
+                  max={240}
                   value={formData.idle_timeout_minutes}
                   onChange={(e) => setFormData({ ...formData, idle_timeout_minutes: parseInt(e.target.value) })}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Logs the user out after this many minutes of inactivity. Resets on any activity
+                  (clicks, typing, navigation, background data refresh, other tabs).
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="session_timeout_minutes">Maximum Session Duration (minutes)</Label>
+                <Input
+                  id="session_timeout_minutes"
+                  type="number"
+                  min={formData.idle_timeout_minutes || 1}
+                  max={1440}
+                  value={formData.session_timeout_minutes}
+                  onChange={(e) => setFormData({ ...formData, session_timeout_minutes: parseInt(e.target.value) })}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Absolute ceiling regardless of activity. Default 480 (8 hours).
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="max_concurrent_sessions">Max Concurrent Sessions</Label>

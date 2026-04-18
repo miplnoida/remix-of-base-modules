@@ -17,7 +17,6 @@ const SystemSettings = () => {
       siteUrl: 'https://compliance.secureserve.gov',
       maintenanceMode: false,
       debugMode: false,
-      sessionTimeout: '30'
     },
     email: {
       smtpHost: 'smtp.gov.ss',
