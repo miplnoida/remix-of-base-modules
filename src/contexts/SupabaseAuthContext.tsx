@@ -254,35 +254,24 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, []);
 
-  // Load timeout settings from active policy AND system_settings override (parallelized)
+  // Load timeout settings — single source of truth: password_policies (active row)
   const loadSessionPolicy = useCallback(async () => {
     try {
-      const [sysResult, policyResult] = await Promise.all([
-        supabase
-          .from('system_settings')
-          .select('setting_value')
-          .eq('setting_key', 'session_timeout_minutes')
-          .single(),
-        supabase
-          .from('password_policies')
-          .select('session_timeout_minutes, idle_timeout_minutes, auto_refresh_enabled')
-          .eq('is_active', true)
-          .single(),
-      ]);
+      const { data, error } = await supabase
+        .from('password_policies')
+        .select('session_timeout_minutes, idle_timeout_minutes, auto_refresh_enabled')
+        .eq('is_active', true)
+        .single();
 
-      const systemTimeout = sysResult.data?.setting_value ? parseInt(sysResult.data.setting_value) : null;
-      const data = policyResult.data;
-      const error = policyResult.error;
-
-      if (error && !systemTimeout) return;
-
-      const effectiveTimeout = (systemTimeout && systemTimeout >= 15) 
-        ? systemTimeout 
-        : (typeof data?.session_timeout_minutes === 'number' ? data.session_timeout_minutes : DEFAULT_SESSION_TIMEOUT_MINUTES);
+      if (error) return; // keep defaults
 
       policyRef.current = {
-        sessionTimeoutMinutes: effectiveTimeout,
-        idleTimeoutMinutes: typeof data?.idle_timeout_minutes === 'number' ? data.idle_timeout_minutes : DEFAULT_IDLE_TIMEOUT_MINUTES,
+        sessionTimeoutMinutes: typeof data?.session_timeout_minutes === 'number'
+          ? data.session_timeout_minutes
+          : DEFAULT_SESSION_TIMEOUT_MINUTES,
+        idleTimeoutMinutes: typeof data?.idle_timeout_minutes === 'number'
+          ? data.idle_timeout_minutes
+          : DEFAULT_IDLE_TIMEOUT_MINUTES,
         autoRefreshEnabled: data?.auto_refresh_enabled !== false,
       };
 
@@ -322,12 +311,34 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (idleMinutes >= idleLimit) {
         toast.warning('Session expired due to inactivity');
+        if (user) {
+          void logSecurity({
+            event_type: 'logout',
+            user_name: user.email || profile?.full_name || 'Unknown',
+            success: true,
+            module: 'Authentication',
+            api_name: 'idle_timeout_logout',
+            severity: 'info',
+            payload_json: { idle_minutes: Math.round(idleMinutes), idle_limit: idleLimit },
+          }, user.id).catch(() => {});
+        }
         void logoutRef.current();
         return;
       }
 
       if (sessionMinutes >= policyRef.current.sessionTimeoutMinutes) {
-        toast.warning('Session expired');
+        toast.warning('Session expired (maximum duration reached)');
+        if (user) {
+          void logSecurity({
+            event_type: 'logout',
+            user_name: user.email || profile?.full_name || 'Unknown',
+            success: true,
+            module: 'Authentication',
+            api_name: 'absolute_timeout_logout',
+            severity: 'info',
+            payload_json: { session_minutes: Math.round(sessionMinutes), session_limit: policyRef.current.sessionTimeoutMinutes },
+          }, user.id).catch(() => {});
+        }
         void logoutRef.current();
         return;
       }
