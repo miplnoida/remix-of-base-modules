@@ -1,57 +1,98 @@
 
 
-## Plan: Make `er_documents` the canonical employer documents table
+## Plan: Single source of truth for Session Timeout — Password Policy only
 
-### Current state (verified)
-- **`er_documents`** (Test: 8 rows, Live: 2 rows): correct target — has `is_supportive`, no `is_active`. Currently only the older RPC at `20260415221530` writes here.
-- **`er_application_documents`** (Test: 9 rows, Live: 0): currently misused as the primary store. Read by `EmployerRegistrationForm.tsx` lines 64-78, written by latest conversion RPC (`20260407185132`) and the Documents tab re-upload at lines 670-697.
-- **No other code references `er_documents`** — that's why the Documents tab on Employer Registration shows nothing for new conversions: RPC writes to `er_application_documents`, but per requirement should write to `er_documents`.
+### Decision
+- **Remove** the "Session Timeout (Minutes)" field from Global Settings → Security tab.
+- **Keep** session-timeout configuration **only** in the Password Policy screen, as the single source of truth.
+- **Align** session behavior to industry-standard sliding idle timeout with absolute ceiling.
 
-### Target behavior (per user)
-1. **`er_documents`** = canonical employer documents (transferred from online application + any future direct uploads on Employer Registration).
-2. **`er_application_documents`** = override layer used **only when** a user re-uploads a document on the Online Employer Application screen to replace what came from the external API (before conversion).
+### Industry-standard model (final shape on Password Policy)
+| Setting | Default | Meaning |
+|---|---|---|
+| `idle_timeout_minutes` | **30** | Sliding idle window. Resets on any user activity (DOM events + network calls + cross-tab activity). |
+| `session_timeout_minutes` | **480** | Absolute ceiling. Hard logout regardless of activity (8h). Never reset on token refresh. |
+| Idle warning lead | 2 min before idle limit | Modal warning with "Stay signed in" |
 
-### Fix (single migration + two file edits)
+These two are the only knobs. No duplicate setting in Global Settings.
 
-#### A. Database — one new migration
-**File:** `supabase/migrations/<ts>_employer-docs-canonical-er_documents.sql`
+---
 
-1. **Add columns missing on `er_documents`** to support the conversion + audit + re-upload model:
-   - `source_application_reference TEXT` (so we know which online app it came from)
-   - `is_active BOOLEAN DEFAULT true` (for re-upload soft-delete)
-   - `transferred_at TIMESTAMPTZ`, `transferred_by VARCHAR`
-   - `updated_at TIMESTAMPTZ DEFAULT now()` + trigger
-   - All `ADD COLUMN IF NOT EXISTS` — idempotent.
-2. **Recreate `convert_application_to_employer`** (42-arg signature, body identical to current except the document loop now `INSERT`s into **`er_documents`** with the new columns populated; `is_active=true`, `transferred_at=now()`, `transferred_by=p_entered_by`).
-3. **Backfill** rows currently sitting in `er_application_documents` whose `regno` belongs to converted employers, copying them to `er_documents` with `WHERE NOT EXISTS (… file_path match …)` — idempotent. This restores Test data; Live is empty so no-op.
-4. **Leave `er_application_documents` intact** (do not drop) — it remains the override-on-upload table for the Online Application screen's future use; existing rows preserved as historical reference.
+### A. Database — one migration
 
-#### B. Frontend — `src/pages/employer-registration/EmployerRegistrationForm.tsx`
-1. **Read** documents from `er_documents` instead of `er_application_documents` (lines 64-78). Filter `.eq('is_active', true)` (column now exists after migration).
-2. **Re-upload** in `ERDocumentsTab` (lines 670-697): deactivate + insert into `er_documents` (not `er_application_documents`). Audit `entityType` becomes `'er_documents'`.
-3. No prop/shape change for `ERDocumentsTab` — both tables expose the same fields the tab consumes (`id`, `file_name`, `doc_code`, `document_type`, `storage_url`, `file_path`, `source_application_reference`).
+**File:** `supabase/migrations/<ts>_session-timeout-single-source.sql`
 
-#### C. Online Application override (no work needed now)
-- The Online Application Documents tab (`EmployerMeetingDocumentsTab` etc.) already operates on the application-side tables, not on `er_application_documents`. No change required for this request.
-- We're keeping `er_application_documents` available as the documented "override layer" for any future enhancement that lets users replace API-supplied docs on the application side; today no UI writes there from the application side, so behavior stays as-is.
+1. `UPDATE password_policies SET idle_timeout_minutes = 30, session_timeout_minutes = 480 WHERE is_active = true;`
+2. `UPDATE system_settings SET is_active = false WHERE setting_key = 'session_timeout_minutes';` (soft-retire — keeps audit history; no row deletion).
+3. Comment on `password_policies.idle_timeout_minutes` / `session_timeout_minutes` documenting them as the canonical session-timeout source.
 
-### Why this is safe
-- All DDL guarded with `IF NOT EXISTS` / `IF EXISTS`; safe to re-run on Test & Live.
-- Backfill uses `WHERE NOT EXISTS` on `(regno, file_path)`.
-- `er_application_documents` is **not dropped**, so any historical reference (and the future override use-case) remains intact.
-- RPC signature unchanged → no client-side breakage anywhere else.
-- Storage bucket (`employer-documents`) unchanged → existing signed-URL flow keeps working.
+Idempotent, safe on Test & Live.
 
-### Verification
-1. Accept a new Online Employer Application → toast `documents_added: N`. New `er_master.regno` → Documents tab on `/employer-registration/view/<regno>` lists every transferred file with working View / Download.
-2. `SELECT COUNT(*) FROM er_documents WHERE regno=<new>` matches `documents_added`.
-3. Re-upload a document on the Documents tab → old row `is_active=false`, new row `is_active=true`, both in `er_documents`. Audit trail entry `entityType='er_documents'`.
-4. Existing employers T00008 / T00009 (Test) Documents tab now lists the backfilled rows.
-5. Re-running the migration is a no-op.
-6. Online Application Documents tab continues to function (untouched).
+---
+
+### B. Frontend — Global Settings → Security tab
+
+**File:** `src/pages/global-settings/SecuritySettings.tsx` (and any sub-component holding the field)
+
+- Remove the "Session Timeout (Minutes)" input, its label, validation, and the corresponding `setting_key='session_timeout_minutes'` read/write.
+- Replace with a small read-only info card: *"Session timeout is configured under **Password Policy**."* with a link/button to `/global-settings/password-policy`.
+- Remove any imports / handlers that become unused.
+
+---
+
+### C. Frontend — Password Policy screen
+
+**File:** `src/pages/global-settings/PasswordPolicy.tsx` (or equivalent)
+
+- Ensure the form exposes both fields with clear copy:
+  - **Idle Timeout (minutes)** — "Logs the user out after this many minutes of inactivity. Resets on any activity."
+  - **Maximum Session Duration (minutes)** — "Absolute ceiling regardless of activity."
+- Validation: `1 ≤ idle ≤ 240`, `idle ≤ session ≤ 1440`.
+- Save via existing `password_policies` upsert (no schema change needed).
+
+---
+
+### D. Frontend — Auth context (industry-standard sliding session)
+
+**File:** `src/contexts/SupabaseAuthContext.tsx`
+
+1. **Remove** any read of `system_settings.session_timeout_minutes`. Read both values exclusively from the active `password_policies` row.
+2. **Sliding idle**: existing DOM-event tracker stays. Add:
+   - Global `fetch` wrapper → calls `updateActivity()` on every successful response (covers React-Query, supabase-js, axios). Background data activity counts as activity.
+   - `BroadcastChannel('auth-activity')` to sync `lastActivityRef` across tabs (with `localStorage` fallback).
+3. **Absolute ceiling**: stop resetting `sessionStartRef` on `TOKEN_REFRESHED` so the 8h hard limit is real.
+4. **Audit logging**: add `logSecurity` entries for `idle_timeout_logout`, `absolute_timeout_logout`, and `token_refreshed`.
+5. No change to Supabase JWT/refresh settings — `autoRefreshToken` stays on; refresh is silent.
+
+---
+
+### E. Memory update
+
+**File:** `mem://security/session-and-inactivity-standards`
+
+Replace existing text with:
+> Session timeout has a **single source of truth: `password_policies`**. `idle_timeout_minutes` (default 30) is a sliding idle window reset on any user activity (DOM events, network calls, cross-tab sync). `session_timeout_minutes` (default 480) is the absolute ceiling, never reset on token refresh. The duplicate field on Global Settings → Security has been removed; `system_settings.session_timeout_minutes` is retired (kept inactive for audit). Auth context reads policy only; activity tracker covers DOM + fetch + BroadcastChannel.
+
+---
 
 ### Files
-- **Create:** `supabase/migrations/<ts>_employer-docs-canonical-er_documents.sql`
-- **Edit:** `src/pages/employer-registration/EmployerRegistrationForm.tsx` (table name in 3 spots + audit `entityType` in 2 spots)
-- **Memory update:** `mem://features/online-applications/conversion-and-detail-standards` — add note "Employer documents canonical table = `er_documents`. `er_application_documents` reserved for online-application override-on-upload."
+- **Create:** `supabase/migrations/<ts>_session-timeout-single-source.sql`
+- **Edit:** `src/pages/global-settings/SecuritySettings.tsx` (remove field + add info card)
+- **Edit:** `src/pages/global-settings/PasswordPolicy.tsx` (clarify labels/help text + validation)
+- **Edit:** `src/contexts/SupabaseAuthContext.tsx` (sliding idle + fetch wrapper + BroadcastChannel + ceiling fix + audit logs)
+- **Update:** `mem://security/session-and-inactivity-standards`
+
+### Why this is safe
+- No RLS, no JWT/refresh changes, no edge function changes.
+- `system_settings` row preserved (set inactive) — audit history intact.
+- Migration idempotent; client changes are additive (worst-case fallback = current behavior with corrected 30-min idle).
+
+### Verification
+1. Global Settings → Security: "Session Timeout" field is gone; info card points to Password Policy.
+2. Password Policy: editing Idle Timeout / Max Session Duration takes effect immediately for the next session.
+3. Active reading with React-Query refetch every 60s → no logout for ≥ 30 min.
+4. Two tabs, work in tab A → tab B's idle timer also resets.
+5. True idle ≥ 30 min → warning at 28 min, logout at 30 min, redirect to `/login`.
+6. Continuous active use > 8h → forced logout at 480 min ceiling.
+7. Token refresh at 60 min → silent, audit log entry written.
 
