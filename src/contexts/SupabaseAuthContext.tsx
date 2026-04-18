@@ -28,12 +28,15 @@ interface SessionPolicy {
   autoRefreshEnabled: boolean;
 }
 
-const DEFAULT_SESSION_TIMEOUT_MINUTES = 30;
-const DEFAULT_IDLE_TIMEOUT_MINUTES = 15;
+// Industry-standard defaults — overridden at runtime by password_policies row.
+const DEFAULT_SESSION_TIMEOUT_MINUTES = 480; // absolute ceiling (8h)
+const DEFAULT_IDLE_TIMEOUT_MINUTES = 30;     // sliding idle window
 const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000;
 const SESSION_CHECK_INTERVAL_MS = 30_000;
 const IDLE_WARNING_BEFORE_MINUTES = 2;
 const ACTIVITY_THROTTLE_MS = 10_000;
+const ACTIVITY_BROADCAST_CHANNEL = 'auth-activity';
+const ACTIVITY_STORAGE_KEY = '__auth_last_activity__';
 
 type AuthBootstrapStatus = 'loading' | 'ready' | 'degraded';
 type DataLoadStatus = 'pending' | 'loaded' | 'failed';
@@ -96,6 +99,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const logoutRef = useRef<() => Promise<void>>(async () => {});
   const idleWarningShownRef = useRef(false);
   const lastActivityUpdateRef = useRef<number>(0);
+  const activityChannelRef = useRef<BroadcastChannel | null>(null);
 
   // Fetch user profile
   const fetchProfile = useCallback(async (userId: string) => {
@@ -140,13 +144,33 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [user, fetchProfile, fetchRoles]);
 
-  // Throttled activity update
+  // Apply an activity timestamp without re-broadcasting (used by inbound cross-tab pings)
+  const applyActivityTs = useCallback((ts: number) => {
+    if (ts > lastActivityRef.current) {
+      lastActivityRef.current = ts;
+      lastActivityUpdateRef.current = ts;
+      idleWarningShownRef.current = false;
+    }
+  }, []);
+
+  // Throttled activity update — local DOM/network activity. Broadcasts to other tabs.
   const updateActivity = useCallback(() => {
     const now = Date.now();
     if (now - lastActivityUpdateRef.current >= ACTIVITY_THROTTLE_MS) {
       lastActivityRef.current = now;
       lastActivityUpdateRef.current = now;
       idleWarningShownRef.current = false;
+      // Cross-tab sync
+      try {
+        activityChannelRef.current?.postMessage({ type: 'activity', ts: now });
+      } catch {
+        // ignore
+      }
+      try {
+        localStorage.setItem(ACTIVITY_STORAGE_KEY, String(now));
+      } catch {
+        // ignore (private mode etc.)
+      }
     }
   }, []);
 
@@ -230,35 +254,24 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, []);
 
-  // Load timeout settings from active policy AND system_settings override (parallelized)
+  // Load timeout settings — single source of truth: password_policies (active row)
   const loadSessionPolicy = useCallback(async () => {
     try {
-      const [sysResult, policyResult] = await Promise.all([
-        supabase
-          .from('system_settings')
-          .select('setting_value')
-          .eq('setting_key', 'session_timeout_minutes')
-          .single(),
-        supabase
-          .from('password_policies')
-          .select('session_timeout_minutes, idle_timeout_minutes, auto_refresh_enabled')
-          .eq('is_active', true)
-          .single(),
-      ]);
+      const { data, error } = await supabase
+        .from('password_policies')
+        .select('session_timeout_minutes, idle_timeout_minutes, auto_refresh_enabled')
+        .eq('is_active', true)
+        .single();
 
-      const systemTimeout = sysResult.data?.setting_value ? parseInt(sysResult.data.setting_value) : null;
-      const data = policyResult.data;
-      const error = policyResult.error;
-
-      if (error && !systemTimeout) return;
-
-      const effectiveTimeout = (systemTimeout && systemTimeout >= 15) 
-        ? systemTimeout 
-        : (typeof data?.session_timeout_minutes === 'number' ? data.session_timeout_minutes : DEFAULT_SESSION_TIMEOUT_MINUTES);
+      if (error) return; // keep defaults
 
       policyRef.current = {
-        sessionTimeoutMinutes: effectiveTimeout,
-        idleTimeoutMinutes: typeof data?.idle_timeout_minutes === 'number' ? data.idle_timeout_minutes : DEFAULT_IDLE_TIMEOUT_MINUTES,
+        sessionTimeoutMinutes: typeof data?.session_timeout_minutes === 'number'
+          ? data.session_timeout_minutes
+          : DEFAULT_SESSION_TIMEOUT_MINUTES,
+        idleTimeoutMinutes: typeof data?.idle_timeout_minutes === 'number'
+          ? data.idle_timeout_minutes
+          : DEFAULT_IDLE_TIMEOUT_MINUTES,
         autoRefreshEnabled: data?.auto_refresh_enabled !== false,
       };
 
@@ -298,12 +311,34 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (idleMinutes >= idleLimit) {
         toast.warning('Session expired due to inactivity');
+        if (user) {
+          void logSecurity({
+            event_type: 'logout',
+            user_name: user.email || profile?.full_name || 'Unknown',
+            success: true,
+            module: 'Authentication',
+            api_name: 'idle_timeout_logout',
+            severity: 'info',
+            payload_json: { idle_minutes: Math.round(idleMinutes), idle_limit: idleLimit },
+          }, user.id).catch(() => {});
+        }
         void logoutRef.current();
         return;
       }
 
       if (sessionMinutes >= policyRef.current.sessionTimeoutMinutes) {
-        toast.warning('Session expired');
+        toast.warning('Session expired (maximum duration reached)');
+        if (user) {
+          void logSecurity({
+            event_type: 'logout',
+            user_name: user.email || profile?.full_name || 'Unknown',
+            success: true,
+            module: 'Authentication',
+            api_name: 'absolute_timeout_logout',
+            severity: 'info',
+            payload_json: { session_minutes: Math.round(sessionMinutes), session_limit: policyRef.current.sessionTimeoutMinutes },
+          }, user.id).catch(() => {});
+        }
         void logoutRef.current();
         return;
       }
@@ -360,6 +395,63 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [session, loadSessionPolicy, scheduleTokenRefresh]);
 
+  // Cross-tab activity sync (BroadcastChannel + localStorage fallback)
+  useEffect(() => {
+    if (!session) return;
+
+    let channel: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        channel = new BroadcastChannel(ACTIVITY_BROADCAST_CHANNEL);
+        channel.onmessage = (ev) => {
+          if (ev.data?.type === 'activity' && typeof ev.data.ts === 'number') {
+            applyActivityTs(ev.data.ts);
+          }
+        };
+        activityChannelRef.current = channel;
+      } catch {
+        channel = null;
+      }
+    }
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === ACTIVITY_STORAGE_KEY && e.newValue) {
+        const ts = parseInt(e.newValue, 10);
+        if (!Number.isNaN(ts)) applyActivityTs(ts);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      if (channel) {
+        try { channel.close(); } catch { /* noop */ }
+      }
+      activityChannelRef.current = null;
+    };
+  }, [session, applyActivityTs]);
+
+  // Global fetch wrapper — count successful network activity (React-Query, supabase-js,
+  // axios-via-fetch) as user activity so background data refresh extends the idle window.
+  useEffect(() => {
+    if (!session) return;
+    if (typeof window === 'undefined' || !window.fetch) return;
+
+    const originalFetch = window.fetch.bind(window);
+    const wrappedFetch: typeof window.fetch = async (...args) => {
+      const res = await originalFetch(...args);
+      if (res && res.ok) updateActivity();
+      return res;
+    };
+    window.fetch = wrappedFetch;
+
+    return () => {
+      if (window.fetch === wrappedFetch) {
+        window.fetch = originalFetch;
+      }
+    };
+  }, [session, updateActivity]);
+
   // Initialize auth state — two-phase: session-ready first, then user data in background
   useEffect(() => {
     let initDone = false;
@@ -412,11 +504,23 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
 
         if (event === 'TOKEN_REFRESHED' && currentSession) {
+          // NOTE: do NOT reset sessionStartRef — the absolute ceiling must be honored
+          // regardless of token refreshes (industry standard).
           lastActivityRef.current = Date.now();
           lastActivityUpdateRef.current = Date.now();
-          sessionStartRef.current = Date.now();
           scheduleTokenRefresh(currentSession);
           console.info('Auth token refreshed successfully');
+          if (currentSession.user) {
+            void logSecurity({
+              event_type: 'login',
+              user_name: currentSession.user.email || 'Unknown',
+              success: true,
+              module: 'Authentication',
+              api_name: 'token_refreshed',
+              severity: 'info',
+              payload_json: { ts: new Date().toISOString() },
+            }, currentSession.user.id).catch(() => {});
+          }
         }
 
         // After initializeAuth completes, handle profile/roles for auth changes
