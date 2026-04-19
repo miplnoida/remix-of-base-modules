@@ -1,98 +1,61 @@
 
 
-## Plan: Single source of truth for Session Timeout — Password Policy only
+## Goal
+When the inspector opens the **Employer Audit Report** from a Field Visit (`/compliance/field/audit-report/:inspectionId`), every field that the system already knows must be **pre-filled automatically**, so the inspector only has to review/tweak text. Today only counts (findings/evidence/violations/checklist %) are auto-filled — narrative, audit date, location, reg no., and audit contact are blank.
 
-### Decision
-- **Remove** the "Session Timeout (Minutes)" field from Global Settings → Security tab.
-- **Keep** session-timeout configuration **only** in the Password Policy screen, as the single source of truth.
-- **Align** session behavior to industry-standard sliding idle timeout with absolute ceiling.
+## Root cause
+`fieldAuditService.generateEmployerAuditReport()` only writes counts + employer/inspector identity. It ignores:
+- `ce_inspections` → `actual_start` / `visit_date` / `scheduled_date` / `location_address` (audit date & location)
+- `ce_inspection_employer_interactions` → `representative_name`, `representative_designation`, `employer_acknowledged` (audit contact)
+- `er_master` (via `employer_id`) → `regno`, `hq_addr1/2` (employer reg number, fallback location)
+- Findings/checklist/evidence aggregates (records reviewed, executive summary seed)
 
-### Industry-standard model (final shape on Password Policy)
-| Setting | Default | Meaning |
-|---|---|---|
-| `idle_timeout_minutes` | **30** | Sliding idle window. Resets on any user activity (DOM events + network calls + cross-tab activity). |
-| `session_timeout_minutes` | **480** | Absolute ceiling. Hard logout regardless of activity (8h). Never reset on token refresh. |
-| Idle warning lead | 2 min before idle limit | Modal warning with "Stay signed in" |
+The viewer hydrates from the report row, so any field the generator leaves null shows blank.
 
-These two are the only knobs. No duplicate setting in Global Settings.
+## Plan
 
----
+### A. Service — extend the generator to auto-derive every available field
+**File:** `src/services/fieldAuditService.ts` → `generateEmployerAuditReport()`
 
-### A. Database — one migration
+1. **Fetch employer master** (`er_master`) by `employer_id` to read `regno`, `hq_addr1/2`.
+2. **Use interaction row** (already in `payload.interaction`) for `representative_name`, `representative_designation`, `employer_acknowledged`.
+3. **Compose auto-derived fields** and write them on **insert**, AND on **update only when the existing value is null/empty** (never overwrite inspector-edited text):
+   - `audit_date` ← `inspection.actual_start ?? inspection.visit_date ?? inspection.scheduled_date`
+   - `audit_location` ← `inspection.location_address ?? "${er_master.hq_addr1}, ${er_master.hq_addr2}"`
+   - `employer_reg_number` ← `er_master.regno`
+   - `audit_contact_name` ← `interaction.representative_name`
+   - `audit_contact_designation` ← `interaction.representative_designation`
+   - `audit_contact_present` ← `interaction.employer_acknowledged ?? true`
+   - **Seed narrative** (only when null on first insert; never overwritten on refresh):
+     - `purpose_scope` ← templated: *"Routine compliance audit of ${employer_name} for the period under review. Scope covers wage records, contributions, and statutory filings."*
+     - `executive_summary` ← *"On ${auditDate}, an on-site audit was conducted at ${employer_name}. ${findings_count} finding(s), ${violations_count} violation(s), and ${evidence_count} evidence item(s) were recorded. Checklist completion: ${checklist_pct}%."*
+     - `records_reviewed` ← derived from distinct `category` values in `payload.checklist`, joined with commas (e.g. *"Wage Books, Contribution Registers, Payroll, Employee Records"*); fallback fixed list when checklist empty.
+     - `recommendations` ← *"Address all findings within the statutory timeframe. Refer to Violations section for required corrective actions."* — only when `violations_count > 0`.
 
-**File:** `supabase/migrations/<ts>_session-timeout-single-source.sql`
+4. Add a small helper `coalesceEmpty(existingVal, derivedVal)` → returns `derivedVal` only when `existingVal` is null/undefined/empty. Apply per field on the UPDATE branch so inspector edits are never clobbered by **Refresh Counts**.
 
-1. `UPDATE password_policies SET idle_timeout_minutes = 30, session_timeout_minutes = 480 WHERE is_active = true;`
-2. `UPDATE system_settings SET is_active = false WHERE setting_key = 'session_timeout_minutes';` (soft-retire — keeps audit history; no row deletion).
-3. Comment on `password_policies.idle_timeout_minutes` / `session_timeout_minutes` documenting them as the canonical session-timeout source.
+### B. Viewer — surface a clear "auto-populated" cue
+**File:** `src/pages/compliance/audit-planning/EmployerAuditReportViewer.tsx`
 
-Idempotent, safe on Test & Live.
+- Add a subtle hint badge `"Auto-filled from visit data"` near the narrative section after a fresh generate, so inspectors know the prefilled text is editable. Pure cosmetic — no extra API calls.
 
----
+### C. Database — no schema change required
+All target columns already exist on `ce_employer_audit_reports`: `audit_date`, `audit_location`, `employer_reg_number`, `audit_contact_name`, `audit_contact_designation`, `audit_contact_present`, `purpose_scope`, `executive_summary`, `records_reviewed`, `recommendations`.
 
-### B. Frontend — Global Settings → Security tab
+### D. Behavior guarantees
+- **First open from visit** → report row created with everything pre-filled. Inspector just reviews & saves.
+- **Refresh Counts after manual edits** → counts update; `coalesceEmpty` preserves all manual text.
+- **Finalized report** → generator early-returns unchanged (already implemented).
+- **Missing source data** (e.g. no interaction yet) → those specific fields stay blank; no error thrown.
 
-**File:** `src/pages/global-settings/SecuritySettings.tsx` (and any sub-component holding the field)
+## Files
+- **Edit:** `src/services/fieldAuditService.ts` — extend `generateEmployerAuditReport` (~60 lines added).
+- **Edit:** `src/pages/compliance/audit-planning/EmployerAuditReportViewer.tsx` — add "Auto-filled" badge cue (~10 lines).
+- **No migration, no RLS change, no edge function.**
 
-- Remove the "Session Timeout (Minutes)" input, its label, validation, and the corresponding `setting_key='session_timeout_minutes'` read/write.
-- Replace with a small read-only info card: *"Session timeout is configured under **Password Policy**."* with a link/button to `/global-settings/password-policy`.
-- Remove any imports / handlers that become unused.
-
----
-
-### C. Frontend — Password Policy screen
-
-**File:** `src/pages/global-settings/PasswordPolicy.tsx` (or equivalent)
-
-- Ensure the form exposes both fields with clear copy:
-  - **Idle Timeout (minutes)** — "Logs the user out after this many minutes of inactivity. Resets on any activity."
-  - **Maximum Session Duration (minutes)** — "Absolute ceiling regardless of activity."
-- Validation: `1 ≤ idle ≤ 240`, `idle ≤ session ≤ 1440`.
-- Save via existing `password_policies` upsert (no schema change needed).
-
----
-
-### D. Frontend — Auth context (industry-standard sliding session)
-
-**File:** `src/contexts/SupabaseAuthContext.tsx`
-
-1. **Remove** any read of `system_settings.session_timeout_minutes`. Read both values exclusively from the active `password_policies` row.
-2. **Sliding idle**: existing DOM-event tracker stays. Add:
-   - Global `fetch` wrapper → calls `updateActivity()` on every successful response (covers React-Query, supabase-js, axios). Background data activity counts as activity.
-   - `BroadcastChannel('auth-activity')` to sync `lastActivityRef` across tabs (with `localStorage` fallback).
-3. **Absolute ceiling**: stop resetting `sessionStartRef` on `TOKEN_REFRESHED` so the 8h hard limit is real.
-4. **Audit logging**: add `logSecurity` entries for `idle_timeout_logout`, `absolute_timeout_logout`, and `token_refreshed`.
-5. No change to Supabase JWT/refresh settings — `autoRefreshToken` stays on; refresh is silent.
-
----
-
-### E. Memory update
-
-**File:** `mem://security/session-and-inactivity-standards`
-
-Replace existing text with:
-> Session timeout has a **single source of truth: `password_policies`**. `idle_timeout_minutes` (default 30) is a sliding idle window reset on any user activity (DOM events, network calls, cross-tab sync). `session_timeout_minutes` (default 480) is the absolute ceiling, never reset on token refresh. The duplicate field on Global Settings → Security has been removed; `system_settings.session_timeout_minutes` is retired (kept inactive for audit). Auth context reads policy only; activity tracker covers DOM + fetch + BroadcastChannel.
-
----
-
-### Files
-- **Create:** `supabase/migrations/<ts>_session-timeout-single-source.sql`
-- **Edit:** `src/pages/global-settings/SecuritySettings.tsx` (remove field + add info card)
-- **Edit:** `src/pages/global-settings/PasswordPolicy.tsx` (clarify labels/help text + validation)
-- **Edit:** `src/contexts/SupabaseAuthContext.tsx` (sliding idle + fetch wrapper + BroadcastChannel + ceiling fix + audit logs)
-- **Update:** `mem://security/session-and-inactivity-standards`
-
-### Why this is safe
-- No RLS, no JWT/refresh changes, no edge function changes.
-- `system_settings` row preserved (set inactive) — audit history intact.
-- Migration idempotent; client changes are additive (worst-case fallback = current behavior with corrected 30-min idle).
-
-### Verification
-1. Global Settings → Security: "Session Timeout" field is gone; info card points to Password Policy.
-2. Password Policy: editing Idle Timeout / Max Session Duration takes effect immediately for the next session.
-3. Active reading with React-Query refetch every 60s → no logout for ≥ 30 min.
-4. Two tabs, work in tab A → tab B's idle timer also resets.
-5. True idle ≥ 30 min → warning at 28 min, logout at 30 min, redirect to `/login`.
-6. Continuous active use > 8h → forced logout at 480 min ceiling.
-7. Token refresh at 60 min → silent, audit log entry written.
+## Verification
+1. Visit with interaction + completed checklist → "Generate Report" → date, location, reg no., contact, purpose, summary, records reviewed all pre-filled.
+2. Edit Executive Summary → click Refresh Counts → manual edit preserved; counts updated.
+3. Visit with no interaction → contact fields stay blank, other fields still pre-filled.
+4. Finalize report → no overwrite on subsequent refresh attempts.
 
