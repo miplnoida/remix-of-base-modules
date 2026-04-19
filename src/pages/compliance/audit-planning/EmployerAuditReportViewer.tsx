@@ -290,6 +290,13 @@ export default function EmployerAuditReportViewer() {
                 </div>
               </div>
 
+              {!isFinal && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 border border-dashed rounded-md px-3 py-2">
+                  <span className="inline-block h-2 w-2 rounded-full bg-primary" />
+                  Auto-filled from visit data — review and edit as needed. Manual edits are preserved when you refresh counts.
+                </div>
+              )}
+
               <NarrativeField label="1. Purpose & Scope" value={purposeScope} onChange={setPurposeScope} disabled={isFinal} placeholder="Why this audit was conducted, period reviewed, scope boundaries…" />
               <NarrativeField label="2. Executive Summary" value={executiveSummary} onChange={setExecutiveSummary} disabled={isFinal} placeholder="High-level summary of the audit visit and headline outcomes…" />
               <NarrativeField label="3. Records Reviewed" value={recordsReviewed} onChange={setRecordsReviewed} disabled={isFinal} placeholder="Wage book, payroll registers, contribution records, etc." />
