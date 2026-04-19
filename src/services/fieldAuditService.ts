@@ -640,7 +640,7 @@ export const fieldAuditService = {
     // Fetch employer master for regno + HQ address fallback
     let employerMaster: any = null;
     if (insp.employer_id) {
-      const { data: em } = await supabase
+      const { data: em } = await (supabase as any)
         .from('er_master')
         .select('regno, hq_addr1, hq_addr2, name')
         .eq('id', insp.employer_id)
