@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChevronLeft, FileText, CheckCircle2, RefreshCcw, Printer, PenTool, History, Plus, RotateCcw, Download, Send, User, Users } from 'lucide-react';
+import { ChevronLeft, FileText, CheckCircle2, RefreshCcw, Printer, PenTool, History, Plus, RotateCcw, Download, Send, User, Users, AlertCircle, Pencil, Lock } from 'lucide-react';
 import { fieldAuditService } from '@/services/fieldAuditService';
 import { auditReportService } from '@/services/auditReportService';
 import { auditReportPdfService } from '@/services/auditReportPdfService';
