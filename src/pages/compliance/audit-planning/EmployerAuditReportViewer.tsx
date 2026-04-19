@@ -46,6 +46,8 @@ export default function EmployerAuditReportViewer() {
   const [auditContactDesignation, setAuditContactDesignation] = useState('');
   const [auditContactRelationship, setAuditContactRelationship] = useState('');
   const [auditContactPresent, setAuditContactPresent] = useState(true);
+  // True only when the inspector explicitly chooses to override contact captured during the visit
+  const [overrideContact, setOverrideContact] = useState(false);
 
   const [sigRole, setSigRole] = useState<SignerRole | null>(null);
   const [showSendAck, setShowSendAck] = useState(false);
