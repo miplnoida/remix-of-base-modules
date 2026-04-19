@@ -635,18 +635,77 @@ export const fieldAuditService = {
 
     const insp: any = payload.inspection;
     const m: any = payload.metrics ?? {};
+    const interaction: any = payload.interaction ?? {};
 
-    const reportFields = {
+    // Fetch employer master for regno + HQ address fallback
+    let employerMaster: any = null;
+    if (insp.employer_id) {
+      const { data: em } = await supabase
+        .from('er_master')
+        .select('regno, hq_addr1, hq_addr2, name')
+        .eq('id', insp.employer_id)
+        .maybeSingle();
+      employerMaster = em;
+    }
+
+    const findingsCount = m.findings_count ?? payload.findings.length;
+    const evidenceCount = m.evidence_count ?? payload.evidence.length;
+    const violationsCount = m.violations_count ?? payload.violations.length;
+    const checklistPct = Number(m.checklist_pct ?? 0);
+
+    // Auto-derived values
+    const auditDate =
+      insp.actual_start ?? insp.visit_date ?? insp.scheduled_date ?? null;
+    const hqAddress = employerMaster
+      ? [employerMaster.hq_addr1, employerMaster.hq_addr2].filter(Boolean).join(', ')
+      : '';
+    const auditLocation = insp.location_address ?? (hqAddress || null);
+    const employerRegNumber = employerMaster?.regno ?? null;
+    const employerName = insp.employer_name ?? employerMaster?.name ?? '';
+    const auditDateDisplay = auditDate
+      ? new Date(auditDate).toISOString().slice(0, 10)
+      : 'the audit date';
+
+    // Narrative seeds
+    const purposeScopeSeed = employerName
+      ? `Routine compliance audit of ${employerName} for the period under review. Scope covers wage records, contributions, and statutory filings.`
+      : null;
+    const executiveSummarySeed = employerName
+      ? `On ${auditDateDisplay}, an on-site audit was conducted at ${employerName}. ${findingsCount} finding(s), ${violationsCount} violation(s), and ${evidenceCount} evidence item(s) were recorded. Checklist completion: ${checklistPct}%.`
+      : null;
+
+    const checklistCategories = Array.from(
+      new Set((payload.checklist ?? []).map((c: any) => c.category).filter(Boolean))
+    );
+    const recordsReviewedSeed =
+      checklistCategories.length > 0
+        ? checklistCategories.join(', ')
+        : 'Wage Books, Contribution Registers, Payroll, Employee Records';
+
+    const recommendationsSeed =
+      violationsCount > 0
+        ? 'Address all findings within the statutory timeframe. Refer to Violations section for required corrective actions.'
+        : null;
+
+    // Helper: only fill empty/null on update; always fill on insert
+    const coalesceEmpty = (existingVal: any, derivedVal: any) => {
+      if (existingVal === null || existingVal === undefined) return derivedVal;
+      if (typeof existingVal === 'string' && existingVal.trim() === '') return derivedVal;
+      return existingVal;
+    };
+
+    // Always-refresh fields (counts + identity)
+    const baseFields = {
       inspection_id: inspectionId,
       plan_item_id: insp.plan_item_id ?? null,
       employer_id: insp.employer_id,
-      employer_name: insp.employer_name,
+      employer_name: employerName,
       inspector_id: insp.inspector_id,
       inspector_name: insp.inspector_name,
-      total_findings: m.findings_count ?? payload.findings.length,
-      total_evidence: m.evidence_count ?? payload.evidence.length,
-      total_violations: m.violations_count ?? payload.violations.length,
-      checklist_completion_pct: Number(m.checklist_pct ?? 0),
+      total_findings: findingsCount,
+      total_evidence: evidenceCount,
+      total_violations: violationsCount,
+      checklist_completion_pct: checklistPct,
       generated_at: nowIso(),
       generated_by: userCode,
       updated_by: userCode,
@@ -661,18 +720,50 @@ export const fieldAuditService = {
 
     let row: any;
     if (existing && existing.status !== 'FINAL') {
+      // Update: preserve manual edits, only fill empty narrative/derived fields
+      const updateFields = {
+        ...baseFields,
+        audit_date: coalesceEmpty(existing.audit_date, auditDate),
+        audit_location: coalesceEmpty(existing.audit_location, auditLocation),
+        employer_reg_number: coalesceEmpty(existing.employer_reg_number, employerRegNumber),
+        audit_contact_name: coalesceEmpty(existing.audit_contact_name, interaction.representative_name ?? null),
+        audit_contact_designation: coalesceEmpty(existing.audit_contact_designation, interaction.representative_designation ?? null),
+        audit_contact_present:
+          existing.audit_contact_present === null || existing.audit_contact_present === undefined
+            ? (interaction.employer_acknowledged ?? true)
+            : existing.audit_contact_present,
+        purpose_scope: coalesceEmpty(existing.purpose_scope, purposeScopeSeed),
+        executive_summary: coalesceEmpty(existing.executive_summary, executiveSummarySeed),
+        records_reviewed: coalesceEmpty(existing.records_reviewed, recordsReviewedSeed),
+        recommendations: coalesceEmpty(existing.recommendations, recommendationsSeed),
+      };
       const { data, error } = await supabase
         .from('ce_employer_audit_reports')
-        .update(reportFields as any)
+        .update(updateFields as any)
         .eq('id', existing.id)
         .select('*')
         .single();
       if (error) throw error;
       row = data;
     } else if (!existing) {
+      // Insert: pre-fill everything we know
+      const insertFields = {
+        ...baseFields,
+        created_by: userCode,
+        audit_date: auditDate,
+        audit_location: auditLocation,
+        employer_reg_number: employerRegNumber,
+        audit_contact_name: interaction.representative_name ?? null,
+        audit_contact_designation: interaction.representative_designation ?? null,
+        audit_contact_present: interaction.employer_acknowledged ?? true,
+        purpose_scope: purposeScopeSeed,
+        executive_summary: executiveSummarySeed,
+        records_reviewed: recordsReviewedSeed,
+        recommendations: recommendationsSeed,
+      };
       const { data, error } = await supabase
         .from('ce_employer_audit_reports')
-        .insert({ ...reportFields, created_by: userCode } as any)
+        .insert(insertFields as any)
         .select('*')
         .single();
       if (error) throw error;
