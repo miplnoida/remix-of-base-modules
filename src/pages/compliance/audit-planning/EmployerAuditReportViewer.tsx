@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ChevronLeft, FileText, CheckCircle2, RefreshCcw, Printer, PenTool, History, Plus, RotateCcw, Download, Send, User, Users } from 'lucide-react';
+import { ChevronLeft, FileText, CheckCircle2, RefreshCcw, Printer, PenTool, History, Plus, RotateCcw, Download, Send, User, Users, AlertCircle, Pencil, Lock } from 'lucide-react';
 import { fieldAuditService } from '@/services/fieldAuditService';
 import { auditReportService } from '@/services/auditReportService';
 import { auditReportPdfService } from '@/services/auditReportPdfService';
@@ -46,6 +46,8 @@ export default function EmployerAuditReportViewer() {
   const [auditContactDesignation, setAuditContactDesignation] = useState('');
   const [auditContactRelationship, setAuditContactRelationship] = useState('');
   const [auditContactPresent, setAuditContactPresent] = useState(true);
+  // True only when the inspector explicitly chooses to override contact captured during the visit
+  const [overrideContact, setOverrideContact] = useState(false);
 
   const [sigRole, setSigRole] = useState<SignerRole | null>(null);
   const [showSendAck, setShowSendAck] = useState(false);
@@ -269,26 +271,118 @@ export default function EmployerAuditReportViewer() {
 
               <Separator />
 
-              {/* Audit Contact (person met during audit) */}
-              <div className="rounded-md border bg-muted/30 p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold text-sm">Audit Contact (person met during audit)</h3>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  The employer representative who was present and engaged with during the on-site audit.
-                  This identity is preserved on record even if a different person signs the report later.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div><Label>Full Name</Label><Input value={auditContactName} onChange={(e) => setAuditContactName(e.target.value)} disabled={isFinal} placeholder="e.g. Jane Doe" /></div>
-                  <div><Label>Designation</Label><Input value={auditContactDesignation} onChange={(e) => setAuditContactDesignation(e.target.value)} disabled={isFinal} placeholder="e.g. HR Manager" /></div>
-                  <div><Label>Relationship to Employer</Label><Input value={auditContactRelationship} onChange={(e) => setAuditContactRelationship(e.target.value)} disabled={isFinal} placeholder="e.g. Employee, Director" /></div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch checked={auditContactPresent} onCheckedChange={setAuditContactPresent} disabled={isFinal} id="present" />
-                  <Label htmlFor="present" className="text-sm font-normal">Was present during the audit visit</Label>
-                </div>
-              </div>
+              {/* Employer Representative Met During Audit
+                  Canonical source: ce_inspection_employer_interactions (captured in Visit > Employer Interaction tab).
+                  This panel is READ-ONLY by default to avoid duplicate data entry.
+                  Inspector can toggle "Override" only if a correction is needed.
+                  If nothing was captured during the visit, we show a clear "missing info" prompt
+                  pointing the user back to the visit, instead of an empty form. */}
+              {(() => {
+                const hasContact = Boolean(auditContactName?.trim());
+                const showMissing = !hasContact && !overrideContact;
+                return (
+                  <div className="rounded-md border bg-muted/30 p-4 space-y-3">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-primary" />
+                        <h3 className="font-semibold text-sm">Employer Representative Met During Audit</h3>
+                        {hasContact && !overrideContact && (
+                          <Badge variant="outline" className="text-[10px]">From visit</Badge>
+                        )}
+                      </div>
+                      {!isFinal && hasContact && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7"
+                          onClick={() => setOverrideContact((v) => !v)}
+                        >
+                          {overrideContact ? (
+                            <><Lock className="h-3 w-3 mr-1" /> Lock (use visit data)</>
+                          ) : (
+                            <><Pencil className="h-3 w-3 mr-1" /> Override</>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Captured once during the on-site visit (Employer Interaction). Reused here to avoid duplicate entry.
+                    </p>
+
+                    {showMissing ? (
+                      <div className="flex items-start gap-2 rounded-md border border-dashed border-destructive/40 bg-destructive/5 p-3 text-sm">
+                        <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                        <div className="flex-1">
+                          <div className="font-medium text-destructive">Representative details not captured</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            Open the visit and complete the <strong>Employer Interaction</strong> tab, then refresh this report.
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            {report?.planItemId && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={() => navigate(`/compliance/field/audit-visit/${report.planItemId}`)}
+                              >
+                                Go to Visit
+                              </Button>
+                            )}
+                            {!isFinal && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 text-xs"
+                                onClick={() => setOverrideContact(true)}
+                              >
+                                Enter manually instead
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : overrideContact || isFinal ? (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div><Label>Full Name</Label><Input value={auditContactName} onChange={(e) => setAuditContactName(e.target.value)} disabled={isFinal} placeholder="e.g. Jane Doe" /></div>
+                          <div><Label>Designation</Label><Input value={auditContactDesignation} onChange={(e) => setAuditContactDesignation(e.target.value)} disabled={isFinal} placeholder="e.g. HR Manager" /></div>
+                          <div><Label>Relationship to Employer</Label><Input value={auditContactRelationship} onChange={(e) => setAuditContactRelationship(e.target.value)} disabled={isFinal} placeholder="e.g. Employee, Director" /></div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Switch checked={auditContactPresent} onCheckedChange={setAuditContactPresent} disabled={isFinal} id="present" />
+                          <Label htmlFor="present" className="text-sm font-normal">Was present during the audit visit</Label>
+                        </div>
+                        {!isFinal && overrideContact && (
+                          <div className="text-[11px] text-muted-foreground italic">
+                            Override active — your edits will replace the visit-captured contact on save.
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Full Name</div>
+                          <div className="font-medium">{auditContactName || '—'}</div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Designation</div>
+                          <div className="font-medium">{auditContactDesignation || '—'}</div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Relationship</div>
+                          <div className="font-medium">{auditContactRelationship || '—'}</div>
+                        </div>
+                        <div className="md:col-span-3">
+                          <Badge variant={auditContactPresent ? 'default' : 'secondary'} className="text-[10px]">
+                            {auditContactPresent ? 'Present during the audit visit' : 'Not present during the audit visit'}
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {!isFinal && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 border border-dashed rounded-md px-3 py-2">
