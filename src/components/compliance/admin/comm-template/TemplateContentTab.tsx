@@ -4,8 +4,22 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
-import type { AuditCommunicationTemplate, CeCommChannel, CeCommType } from '@/types/auditCommunication';
-import { COMM_TYPE_LABELS, COMM_CATEGORY_LABELS } from '@/types/auditCommunication';
+import { Info } from 'lucide-react';
+import type {
+  AuditCommunicationTemplate,
+  CeCommChannel,
+  CeCommType,
+  CeCommLifecycleStage,
+  CeReportTemplateType,
+} from '@/types/auditCommunication';
+import {
+  COMM_TYPE_LABELS,
+  COMM_CATEGORY_LABELS,
+  COMM_LIFECYCLE_STAGE_LABELS,
+  COMM_LIFECYCLE_STAGE_ORDER,
+  COMM_LIFECYCLE_STAGE_HINTS,
+  REPORT_TEMPLATE_TYPE_LABELS,
+} from '@/types/auditCommunication';
 
 interface Props {
   draft: Partial<AuditCommunicationTemplate>;
