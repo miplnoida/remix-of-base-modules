@@ -79,104 +79,60 @@ export function useNavigationMenu() {
     enabled: isAuthReady && isAuthenticated && !!user?.id,
   });
 
-  // Build navigation tree
+  // Build navigation tree (recursive — supports unlimited nesting)
   const buildMenuItems = (): MenuItem[] => {
     if (!modules.length) return [];
 
-    // Admin users see all modules - skip permission filtering
-    if (isAdmin) {
-      const parentModules = modules
-        .filter(m => !m.parent_id && m.is_enabled)
-        .sort((a, b) => a.sort_order - b.sort_order);
-      
-      const childModulesMap = new Map<string, AppModule[]>();
-      
-      modules.forEach(m => {
-        if (m.parent_id) {
-          const children = childModulesMap.get(m.parent_id) || [];
-          children.push(m);
-          childModulesMap.set(m.parent_id, children.sort((a, b) => a.sort_order - b.sort_order));
-        }
-      });
+    // Index children by parent_id, sorted
+    const childrenByParent = new Map<string, AppModule[]>();
+    modules.forEach(m => {
+      const key = m.parent_id || '__root__';
+      const arr = childrenByParent.get(key) || [];
+      arr.push(m);
+      childrenByParent.set(key, arr);
+    });
+    childrenByParent.forEach(arr => arr.sort((a, b) => a.sort_order - b.sort_order));
 
-      return parentModules.map(parent => {
-        const children = childModulesMap.get(parent.id) || [];
-        const menuItem: MenuItem = {
-          title: parent.display_name,
-          icon: getIcon(parent.icon),
-          description: parent.description || undefined,
-        };
-
-        if (children.length > 0) {
-          menuItem.subItems = children.map(child => ({
-            title: child.display_name,
-            url: child.route || undefined,
-            icon: getIcon(child.icon),
-            description: child.description || undefined,
-          }));
-        } else if (parent.route) {
-          menuItem.url = parent.route;
-        }
-
-        return menuItem;
-      });
-    }
-
-    // Non-admin users: filter by permissions using module_name
+    // Admin sees everything; non-admin filters by permission name
     const accessibleModuleNames = new Set(
       userPermissions
         .filter(p => p.action_name === 'view' && p.is_granted)
         .map(p => p.module_name)
     );
-    
-    const parentModules = modules
-      .filter(m => !m.parent_id && m.is_enabled)
-      .sort((a, b) => a.sort_order - b.sort_order);
-    
-    const childModulesMap = new Map<string, AppModule[]>();
-    
-    modules.forEach(m => {
-      if (m.parent_id) {
-        const children = childModulesMap.get(m.parent_id) || [];
-        children.push(m);
-        childModulesMap.set(m.parent_id, children.sort((a, b) => a.sort_order - b.sort_order));
+    const skipPermFilter = isAdmin || userPermissions.length === 0;
+    const isAccessible = (m: AppModule) =>
+      skipPermFilter || accessibleModuleNames.has(m.name);
+
+    const buildNode = (m: AppModule): MenuItem | null => {
+      if (!m.is_enabled) return null;
+
+      const rawChildren = childrenByParent.get(m.id) || [];
+      const childNodes = rawChildren
+        .map(buildNode)
+        .filter((c): c is MenuItem => c !== null);
+
+      // Keep node if user can access it OR if any descendant is accessible
+      if (!isAccessible(m) && childNodes.length === 0) return null;
+
+      const node: MenuItem = {
+        title: m.display_name,
+        icon: getIcon(m.icon),
+        description: m.description || undefined,
+      };
+
+      if (childNodes.length > 0) {
+        node.subItems = childNodes;
+      } else if (m.route) {
+        node.url = m.route;
       }
-    });
 
-    const menuItems: MenuItem[] = [];
+      return node;
+    };
 
-    parentModules.forEach(parent => {
-      const children = childModulesMap.get(parent.id) || [];
-      
-      const accessibleChildren = children.filter(child => 
-        userPermissions.length === 0 || accessibleModuleNames.has(child.name)
-      );
-
-      const parentAccessible = userPermissions.length === 0 || accessibleModuleNames.has(parent.name);
-      
-      if (accessibleChildren.length > 0 || parentAccessible) {
-        const menuItem: MenuItem = {
-          title: parent.display_name,
-          icon: getIcon(parent.icon),
-          description: parent.description || undefined,
-        };
-
-        if (accessibleChildren.length > 0) {
-          menuItem.subItems = accessibleChildren.map(child => ({
-            title: child.display_name,
-            url: child.route || undefined,
-            icon: getIcon(child.icon),
-            description: child.description || undefined,
-          }));
-        } else if (parent.route) {
-          menuItem.url = parent.route;
-        }
-
-        menuItems.push(menuItem);
-      }
-    });
-
-    return menuItems;
+    const roots = childrenByParent.get('__root__') || [];
+    return roots
+      .map(buildNode)
+      .filter((n): n is MenuItem => n !== null);
   };
 
   return {
