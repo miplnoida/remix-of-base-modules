@@ -33,7 +33,7 @@ import ViolationsManagement from '@/pages/compliance/violations/ViolationsManage
 import ViolationDetails from '@/pages/compliance/violations/ViolationDetails';
 import InspectorPlans from '@/pages/compliance/audit-planning/InspectorPlans';
 import PaymentArrangements from '@/pages/compliance/arrangements/PaymentArrangements';
-import FieldOperations from '@/pages/compliance/inspections/FieldOperations';
+// Retired: FieldOperations (hard cutover)
 import NoticesManagement from '@/pages/compliance/legal/NoticesManagement';
 import EmployerStatements from '@/pages/compliance/employers/EmployerStatements';
 import ComplianceSettings from '@/pages/compliance/settings/ComplianceSettings';
@@ -49,8 +49,7 @@ import ArrangementReports from '@/pages/compliance/reports/ArrangementReports';
 import LegalEscalationReports from '@/pages/compliance/reports/LegalEscalationReports';
 import RiskSamplingSettings from '@/pages/compliance/sampling/RiskSamplingSettings';
 import SamplingDashboard from '@/pages/compliance/sampling/SamplingDashboard';
-import MonthlyAuditCandidates from '@/pages/compliance/sampling/MonthlyAuditCandidates';
-import MyUpcomingAudits from '@/pages/compliance/sampling/MyUpcomingAudits';
+// Retired: MonthlyAuditCandidates, MyUpcomingAudits (hard cutover)
 import EmployerRiskProfile from '@/pages/compliance/sampling/EmployerRiskProfile';
 import LegalEscalationPolicy from '@/pages/compliance/settings/LegalEscalationPolicy';
 import LegalRecommendationQueue from '@/pages/compliance/legal/LegalRecommendationQueue';
@@ -66,7 +65,7 @@ import ComplianceCaseManagement from '@/pages/compliance/cases/CaseManagement';
 import ComplianceCaseQueue from '@/pages/compliance/cases/CaseQueue';
 import ComplianceCaseDetailView from '@/pages/compliance/cases/CaseDetailView';
 
-import ComplianceInspectionManagement from '@/pages/compliance/inspections/InspectionManagement';
+// Retired: ComplianceInspectionManagement (hard cutover)
 import ComplianceBreachMonitoring from '@/pages/compliance/arrangements/BreachMonitoring';
 import ComplianceLegalQueue from '@/pages/compliance/legal/LegalQueue';
 import ComplianceLegalProceedings from '@/pages/compliance/legal/LegalProceedingsPage';
@@ -85,7 +84,7 @@ import WeeklyPlanBuilder from '@/pages/compliance/audit-planning/WeeklyPlanBuild
 import MyPlans from '@/pages/compliance/audit-planning/MyPlans';
 import AllWeeklyReports from '@/pages/compliance/audit-planning/AllWeeklyReports';
 import FieldExecution from '@/pages/compliance/audit-planning/FieldExecution';
-import WeeklyReports from '@/pages/compliance/audit-planning/WeeklyReports';
+// Retired: WeeklyReports (use AllWeeklyReports at /compliance/field/all-reports)
 import CompliancePendingReview from '@/pages/compliance/audit-planning/PendingReview';
 import { WeeklyPlanReview } from '@/pages/compliance/audit-planning/WeeklyPlanReview';
 import PlanExecutionDashboard from '@/pages/compliance/audit-planning/PlanExecutionDashboard';
