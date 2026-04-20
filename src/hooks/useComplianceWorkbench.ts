@@ -11,17 +11,10 @@ export interface WorkbenchMetric {
   tone?: 'default' | 'warning' | 'danger' | 'success';
 }
 
-export interface WorkbenchData {
-  metrics: WorkbenchMetric[];
-  recentVisits: any[];
-  pendingApprovals: any[];
-  loading: boolean;
-}
-
 /**
  * Aggregates role-appropriate counts for the Compliance Workbench.
- * Uses shielded queries — any individual failure resolves to 0 so the
- * dashboard never blocks on a single missing table.
+ * Each query is shielded — failures resolve to 0 so a missing table
+ * never breaks the dashboard.
  */
 export function useComplianceWorkbench(role: ComplianceOperationalRole) {
   const { user } = useSupabaseAuth() as any;
@@ -31,14 +24,10 @@ export function useComplianceWorkbench(role: ComplianceOperationalRole) {
     queryKey: ['compliance-workbench', role, userId],
     enabled: !!userId,
     staleTime: 60_000,
-    queryFn: async (): Promise<{
-      metrics: WorkbenchMetric[];
-      recentVisits: any[];
-      pendingApprovals: any[];
-    }> => {
-      // Cast to any — many compliance tables aren't in generated types yet.
-      // Each query is shielded; failures resolve to 0 so the dashboard never breaks.
+    queryFn: async (): Promise<{ metrics: WorkbenchMetric[] }> => {
+      // Cast — many compliance tables aren't in generated supabase types.
       const sb: any = supabase;
+
       const safeCount = async (
         builder: () => Promise<{ count: number | null; error: any }>,
       ): Promise<number> => {
@@ -51,100 +40,100 @@ export function useComplianceWorkbench(role: ComplianceOperationalRole) {
         }
       };
 
-      // === Inspector / common metrics ===
-      const myOpenViolations = await safeCount(async () =>
-        supabase
-          .from('compliance_violations')
+      const today = new Date().toISOString().slice(0, 10);
+
+      // === Inspector / common ===
+      const myOpenViolations = await safeCount(() =>
+        sb
+          .from('ce_violations')
           .select('id', { count: 'exact', head: true })
-          .eq('assigned_inspector_id', userId)
-          .in('status', ['open', 'pending', 'in_progress']),
+          .eq('assigned_to_user_id', userId)
+          .in('status', ['open', 'pending', 'in_progress', 'investigating']),
       );
 
-      const myActivePlans = await safeCount(async () =>
-        supabase
-          .from('weekly_audit_plans')
+      const myActivePlans = await safeCount(() =>
+        sb
+          .from('ce_weekly_plans')
           .select('id', { count: 'exact', head: true })
           .eq('inspector_id', userId)
           .in('status', ['draft', 'approved', 'in_progress']),
       );
 
-      const myVisitsToday = await safeCount(async () => {
-        const today = new Date().toISOString().slice(0, 10);
-        return supabase
-          .from('audit_plan_items')
+      const myVisitsToday = await safeCount(() =>
+        sb
+          .from('ce_weekly_plan_items')
           .select('id', { count: 'exact', head: true })
-          .eq('inspector_id', userId)
-          .eq('visit_date', today);
-      });
+          .eq('scheduled_date', today)
+          .neq('execution_status', 'completed'),
+      );
 
-      const myPendingReports = await safeCount(async () =>
-        supabase
-          .from('weekly_inspector_reports')
+      const myDraftPlans = await safeCount(() =>
+        sb
+          .from('ce_weekly_plans')
           .select('id', { count: 'exact', head: true })
           .eq('inspector_id', userId)
           .eq('status', 'draft'),
       );
 
-      // === Senior / Head — supervisory metrics ===
+      // === Senior / Head ===
       const plansAwaitingApproval =
         role === 'senior' || role === 'head'
-          ? await safeCount(async () =>
-              supabase
-                .from('weekly_audit_plans')
+          ? await safeCount(() =>
+              sb
+                .from('ce_weekly_plans')
                 .select('id', { count: 'exact', head: true })
-                .eq('status', 'pending_approval'),
+                .in('status', ['submitted', 'pending_approval', 'pending_review']),
             )
           : 0;
 
       const reportsAwaitingReview =
         role === 'senior' || role === 'head'
-          ? await safeCount(async () =>
-              supabase
-                .from('weekly_inspector_reports')
+          ? await safeCount(() =>
+              sb
+                .from('ce_weekly_plans')
                 .select('id', { count: 'exact', head: true })
-                .eq('status', 'submitted'),
+                .in('status', ['report_submitted', 'report_pending_review']),
             )
           : 0;
 
-      // === Head — module-wide KPIs ===
+      // === Head — module-wide ===
       const openCases =
         role === 'head'
-          ? await safeCount(async () =>
-              supabase
-                .from('compliance_cases')
+          ? await safeCount(() =>
+              sb
+                .from('ce_cases')
                 .select('id', { count: 'exact', head: true })
-                .in('status', ['open', 'in_progress', 'investigation']),
+                .in('status', ['open', 'in_progress', 'investigation', 'active']),
             )
           : 0;
 
       const breachAlerts =
         role === 'head'
-          ? await safeCount(async () =>
-              supabase
-                .from('compliance_breach_events')
+          ? await safeCount(() =>
+              sb
+                .from('ce_breach_monitoring')
                 .select('id', { count: 'exact', head: true })
-                .eq('resolved', false),
+                .in('status', ['open', 'active', 'unresolved']),
             )
           : 0;
 
       const legalEscalations =
         role === 'head'
-          ? await safeCount(async () =>
-              supabase
-                .from('legal_referrals')
+          ? await safeCount(() =>
+              sb
+                .from('ce_legal_referrals')
                 .select('id', { count: 'exact', head: true })
-                .in('status', ['pending', 'submitted', 'in_review']),
+                .in('status', ['pending', 'submitted', 'in_review', 'open']),
             )
           : 0;
 
-      // === Build metrics array per role ===
       const metrics: WorkbenchMetric[] = [];
 
       if (role === 'inspector' || role === 'senior' || role === 'head') {
         metrics.push(
           {
             key: 'visits-today',
-            label: 'My Visits Today',
+            label: 'Visits Today',
             count: myVisitsToday,
             href: '/compliance/field/my-plans',
             tone: myVisitsToday > 0 ? 'warning' : 'default',
@@ -156,11 +145,10 @@ export function useComplianceWorkbench(role: ComplianceOperationalRole) {
             href: '/compliance/field/my-plans',
           },
           {
-            key: 'pending-reports',
-            label: 'My Pending Reports',
-            count: myPendingReports,
-            href: '/compliance/field/all-reports',
-            tone: myPendingReports > 2 ? 'warning' : 'default',
+            key: 'draft-plans',
+            label: 'Draft Plans',
+            count: myDraftPlans,
+            href: '/compliance/field/plan-builder',
           },
           {
             key: 'open-violations',
@@ -214,7 +202,7 @@ export function useComplianceWorkbench(role: ComplianceOperationalRole) {
         );
       }
 
-      return { metrics, recentVisits: [], pendingApprovals: [] };
+      return { metrics };
     },
   });
 }
