@@ -80,6 +80,7 @@ import ComplianceTemplates from '@/pages/compliance/settings/ComplianceTemplates
 import AuditCommunicationTemplatesPage from '@/pages/compliance/admin/AuditCommunicationTemplatesPage';
 import AuditCommunicationTemplateEditorPage from '@/pages/compliance/admin/AuditCommunicationTemplateEditorPage';
 import OnlineResponseConfigPage from '@/pages/compliance/admin/OnlineResponseConfigPage';
+import DocumentTemplateSettings from '@/pages/audit/DocumentTemplateSettings';
 import WeeklyPlanBuilder from '@/pages/compliance/audit-planning/WeeklyPlanBuilder';
 import MyPlans from '@/pages/compliance/audit-planning/MyPlans';
 import AllWeeklyReports from '@/pages/compliance/audit-planning/AllWeeklyReports';
