@@ -162,64 +162,57 @@ class InspectionService {
   }
 
   async checkIn(planItemId: string, request: CheckInRequest): Promise<InspectionVisit> {
-    const userCode = await whoami();
-    const { data: planItem } = await supabase
-      .from('ce_weekly_plan_items')
-      .select('*')
-      .eq('id', planItemId)
-      .single();
-    if (!planItem) throw new Error('Plan item not found');
+    const { inspectionId } = await fieldAuditService.startAuditSession({
+      planItemId,
+      executionMode: 'ONSITE',
+      startNotes: request.location ? `Check-in location: ${request.location}` : undefined,
+    });
 
-    const inspNumber = `INS-${Date.now().toString(36).toUpperCase()}`;
     const { data, error } = await supabase
       .from('ce_inspections')
-      .insert({
-        inspection_number: inspNumber,
-        plan_item_id: planItemId,
-        employer_id: planItem.employer_id,
-        employer_name: planItem.employer_name,
-        territory: planItem.territory ?? 'St Kitts',
-        inspection_type: planItem.visit_type ?? 'FIELD_VISIT',
-        status: 'IN_PROGRESS',
-        inspector_id: userCode,
-        inspector_name: 'Inspector',
-        scheduled_date: planItem.scheduled_date,
-        actual_start: new Date().toISOString(),
-        check_in_time: new Date().toISOString(),
-        location_address: request.location,
-        created_by: userCode,
-      } as any)
       .select('*')
+      .eq('id', inspectionId)
       .single();
     if (error) throw error;
 
-    await supabase
-      .from('ce_weekly_plan_items')
-      .update({
-        execution_status: 'IN_PROGRESS',
-        check_in_time: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        updated_by: userCode,
-      } as any)
-      .eq('id', planItemId);
+    if (request.location) {
+      const userCode = await whoami();
+      await supabase
+        .from('ce_inspections')
+        .update({
+          location_address: request.location,
+          updated_at: new Date().toISOString(),
+          updated_by: userCode,
+        } as any)
+        .eq('id', inspectionId);
+      data.location_address = request.location;
+    }
 
     return mapInspection(data);
   }
 
   async checkOut(visitId: string, request: CheckOutRequest): Promise<InspectionVisit> {
     const userCode = await whoami();
+    await fieldAuditService.closeAuditSession({
+      inspectionId: visitId,
+      closeNotes: request.notes,
+    });
+
+    if (request.location) {
+      await supabase
+        .from('ce_inspections')
+        .update({
+          location_address: request.location,
+          updated_at: new Date().toISOString(),
+          updated_by: userCode,
+        } as any)
+        .eq('id', visitId);
+    }
+
     const { data, error } = await supabase
       .from('ce_inspections')
-      .update({
-        check_out_time: new Date().toISOString(),
-        actual_end: new Date().toISOString(),
-        findings_summary: request.notes,
-        status: 'COMPLETED',
-        updated_at: new Date().toISOString(),
-        updated_by: userCode,
-      } as any)
-      .eq('id', visitId)
       .select('*')
+      .eq('id', visitId)
       .single();
     if (error) throw error;
     return mapInspection(data);

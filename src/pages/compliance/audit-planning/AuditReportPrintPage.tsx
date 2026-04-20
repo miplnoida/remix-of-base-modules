@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Printer, ArrowLeft, FileText } from 'lucide-react';
 import { auditReportService } from '@/services/auditReportService';
 import { AuditReportPrintLayout } from '@/components/compliance/audit-report/AuditReportPrintLayout';
-import type { FullAuditReport, AuditReportSignature } from '@/types/auditReport';
+import type { FullAuditReport, AuditReportSignature, AuditViolationRow } from '@/types/auditReport';
 import type { InspectionFinding, InspectionEvidence } from '@/types/inspectionTypes';
 import { toast } from 'sonner';
 
@@ -29,6 +29,7 @@ export default function AuditReportPrintPage() {
   const [evidence, setEvidence] = useState<InspectionEvidence[]>([]);
   const [checklist, setChecklist] = useState<any[]>([]);
   const [signatures, setSignatures] = useState<AuditReportSignature[]>([]);
+  const [violations, setViolations] = useState<AuditViolationRow[]>([]);
 
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -57,6 +58,7 @@ export default function AuditReportPrintPage() {
         setEvidence(data.evidence);
         setChecklist(data.checklist);
         setSignatures(data.signatures);
+        setViolations(data.violations);
       } catch (e: any) {
         console.error('[AuditReportPrintPage] load failed', e);
         setLoadError(e?.message ?? 'Failed to load report');
@@ -124,6 +126,7 @@ export default function AuditReportPrintPage() {
             evidence={evidence}
             checklist={checklist}
             signatures={signatures}
+            violations={violations}
             variant={variant}
           />
         </div>
