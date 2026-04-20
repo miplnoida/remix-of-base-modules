@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Layers, Palette, Settings2, Shield } from "lucide-react";
+import { FileText, Layers, Palette, Settings2, Shield, Link2 } from "lucide-react";
 import {
   CE_TEMPLATE_TYPES,
   CETemplateType,
@@ -20,6 +20,8 @@ import {
   useComplianceTemplateSettings,
   useUpdateComplianceTemplateSection,
 } from "@/hooks/useComplianceDocumentTemplates";
+import { auditCommunicationTemplateService } from "@/services/auditCommunicationTemplateService";
+import { COMM_LIFECYCLE_STAGE_LABELS, COMM_LIFECYCLE_STAGE_ORDER, type CeCommLifecycleStage } from "@/types/auditCommunication";
 
 export default function ComplianceReportTemplates() {
   const [activeTemplate, setActiveTemplate] = useState<CETemplateType>("employer_audit_report");
