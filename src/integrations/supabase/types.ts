@@ -10225,6 +10225,7 @@ export type Database = {
       }
       ce_audit_communication_templates: {
         Row: {
+          allow_admin_override: boolean
           approval_rule_json: Json
           attachment_rule_json: Json
           branding_json: Json
@@ -10233,6 +10234,8 @@ export type Database = {
           comm_type: Database["public"]["Enums"]["ce_comm_type"]
           created_at: string
           created_by: string | null
+          default_permissions_json: Json
+          default_response_mode: Database["public"]["Enums"]["ce_online_response_mode"]
           description: string | null
           email_body: string | null
           email_subject: string | null
@@ -10248,6 +10251,7 @@ export type Database = {
           version_no: number
         }
         Insert: {
+          allow_admin_override?: boolean
           approval_rule_json?: Json
           attachment_rule_json?: Json
           branding_json?: Json
@@ -10256,6 +10260,8 @@ export type Database = {
           comm_type: Database["public"]["Enums"]["ce_comm_type"]
           created_at?: string
           created_by?: string | null
+          default_permissions_json?: Json
+          default_response_mode?: Database["public"]["Enums"]["ce_online_response_mode"]
           description?: string | null
           email_body?: string | null
           email_subject?: string | null
@@ -10271,6 +10277,7 @@ export type Database = {
           version_no?: number
         }
         Update: {
+          allow_admin_override?: boolean
           approval_rule_json?: Json
           attachment_rule_json?: Json
           branding_json?: Json
@@ -10279,6 +10286,8 @@ export type Database = {
           comm_type?: Database["public"]["Enums"]["ce_comm_type"]
           created_at?: string
           created_by?: string | null
+          default_permissions_json?: Json
+          default_response_mode?: Database["public"]["Enums"]["ce_online_response_mode"]
           description?: string | null
           email_body?: string | null
           email_subject?: string | null
@@ -10310,7 +10319,18 @@ export type Database = {
           employer_id: string
           id: string
           inspection_id: string | null
+          permissions_override_json: Json | null
+          portal_expires_at: string | null
+          portal_resolved_enabled: boolean | null
+          portal_resolved_mode:
+            | Database["public"]["Enums"]["ce_online_response_mode"]
+            | null
+          portal_resolved_permissions_json: Json | null
           report_version_id: string | null
+          response_due_at: string | null
+          response_mode:
+            | Database["public"]["Enums"]["ce_online_response_mode"]
+            | null
           scheduled_at: string | null
           sent_at: string | null
           sms_body_snapshot: string | null
@@ -10335,7 +10355,18 @@ export type Database = {
           employer_id: string
           id?: string
           inspection_id?: string | null
+          permissions_override_json?: Json | null
+          portal_expires_at?: string | null
+          portal_resolved_enabled?: boolean | null
+          portal_resolved_mode?:
+            | Database["public"]["Enums"]["ce_online_response_mode"]
+            | null
+          portal_resolved_permissions_json?: Json | null
           report_version_id?: string | null
+          response_due_at?: string | null
+          response_mode?:
+            | Database["public"]["Enums"]["ce_online_response_mode"]
+            | null
           scheduled_at?: string | null
           sent_at?: string | null
           sms_body_snapshot?: string | null
@@ -10360,7 +10391,18 @@ export type Database = {
           employer_id?: string
           id?: string
           inspection_id?: string | null
+          permissions_override_json?: Json | null
+          portal_expires_at?: string | null
+          portal_resolved_enabled?: boolean | null
+          portal_resolved_mode?:
+            | Database["public"]["Enums"]["ce_online_response_mode"]
+            | null
+          portal_resolved_permissions_json?: Json | null
           report_version_id?: string | null
+          response_due_at?: string | null
+          response_mode?:
+            | Database["public"]["Enums"]["ce_online_response_mode"]
+            | null
           scheduled_at?: string | null
           sent_at?: string | null
           sms_body_snapshot?: string | null
@@ -10817,10 +10859,16 @@ export type Database = {
           id: string
           last_viewed_at: string | null
           link_token: string
+          portal_resolved_enabled: boolean | null
+          portal_resolved_mode:
+            | Database["public"]["Enums"]["ce_online_response_mode"]
+            | null
+          portal_resolved_permissions_json: Json | null
           recipient_designation: string | null
           recipient_email: string | null
           recipient_name: string
           report_id: string
+          response_due_at: string | null
           sent_at: string
           signature_id: string | null
           status: string
@@ -10834,10 +10882,16 @@ export type Database = {
           id?: string
           last_viewed_at?: string | null
           link_token: string
+          portal_resolved_enabled?: boolean | null
+          portal_resolved_mode?:
+            | Database["public"]["Enums"]["ce_online_response_mode"]
+            | null
+          portal_resolved_permissions_json?: Json | null
           recipient_designation?: string | null
           recipient_email?: string | null
           recipient_name: string
           report_id: string
+          response_due_at?: string | null
           sent_at?: string
           signature_id?: string | null
           status?: string
@@ -10851,10 +10905,16 @@ export type Database = {
           id?: string
           last_viewed_at?: string | null
           link_token?: string
+          portal_resolved_enabled?: boolean | null
+          portal_resolved_mode?:
+            | Database["public"]["Enums"]["ce_online_response_mode"]
+            | null
+          portal_resolved_permissions_json?: Json | null
           recipient_designation?: string | null
           recipient_email?: string | null
           recipient_name?: string
           report_id?: string
+          response_due_at?: string | null
           sent_at?: string
           signature_id?: string | null
           status?: string
@@ -16653,6 +16713,150 @@ export type Database = {
           template_pattern?: string
           updated_at?: string | null
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ce_online_response_policies: {
+        Row: {
+          allow_acknowledgment: boolean
+          allow_clarification: boolean
+          allow_corrective_action_response: boolean
+          allow_dispute: boolean
+          allow_document_upload: boolean
+          allow_narrative_response: boolean
+          allow_payment_response: boolean
+          case_type: string | null
+          communication_type: string | null
+          created_at: string
+          created_by: string | null
+          default_portal_ttl_hours: number | null
+          default_response_due_days: number | null
+          description: string | null
+          enforcement_stage: string | null
+          id: string
+          is_active: boolean
+          policy_name: string
+          portal_enabled: boolean
+          priority: number
+          reopens_case: boolean
+          report_type: string | null
+          requires_inspector_review: boolean
+          requires_lead_review: boolean
+          requires_legal_review: boolean
+          response_mode: Database["public"]["Enums"]["ce_online_response_mode"]
+          triggers_notifications: boolean
+          updated_at: string
+          updated_by: string | null
+          workflow_id: string | null
+        }
+        Insert: {
+          allow_acknowledgment?: boolean
+          allow_clarification?: boolean
+          allow_corrective_action_response?: boolean
+          allow_dispute?: boolean
+          allow_document_upload?: boolean
+          allow_narrative_response?: boolean
+          allow_payment_response?: boolean
+          case_type?: string | null
+          communication_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_portal_ttl_hours?: number | null
+          default_response_due_days?: number | null
+          description?: string | null
+          enforcement_stage?: string | null
+          id?: string
+          is_active?: boolean
+          policy_name: string
+          portal_enabled?: boolean
+          priority?: number
+          reopens_case?: boolean
+          report_type?: string | null
+          requires_inspector_review?: boolean
+          requires_lead_review?: boolean
+          requires_legal_review?: boolean
+          response_mode?: Database["public"]["Enums"]["ce_online_response_mode"]
+          triggers_notifications?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          workflow_id?: string | null
+        }
+        Update: {
+          allow_acknowledgment?: boolean
+          allow_clarification?: boolean
+          allow_corrective_action_response?: boolean
+          allow_dispute?: boolean
+          allow_document_upload?: boolean
+          allow_narrative_response?: boolean
+          allow_payment_response?: boolean
+          case_type?: string | null
+          communication_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_portal_ttl_hours?: number | null
+          default_response_due_days?: number | null
+          description?: string | null
+          enforcement_stage?: string | null
+          id?: string
+          is_active?: boolean
+          policy_name?: string
+          portal_enabled?: boolean
+          priority?: number
+          reopens_case?: boolean
+          report_type?: string | null
+          requires_inspector_review?: boolean
+          requires_lead_review?: boolean
+          requires_legal_review?: boolean
+          response_mode?: Database["public"]["Enums"]["ce_online_response_mode"]
+          triggers_notifications?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          workflow_id?: string | null
+        }
+        Relationships: []
+      }
+      ce_online_response_settings: {
+        Row: {
+          allowed_delivery_channels: string[]
+          created_at: string
+          created_by: string | null
+          default_link_ttl_hours: number
+          default_portal_branding: Json
+          enabled: boolean
+          id: string
+          is_singleton: boolean
+          require_secure_token: boolean
+          updated_at: string
+          updated_by: string | null
+          view_only_when_disabled: boolean
+        }
+        Insert: {
+          allowed_delivery_channels?: string[]
+          created_at?: string
+          created_by?: string | null
+          default_link_ttl_hours?: number
+          default_portal_branding?: Json
+          enabled?: boolean
+          id?: string
+          is_singleton?: boolean
+          require_secure_token?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          view_only_when_disabled?: boolean
+        }
+        Update: {
+          allowed_delivery_channels?: string[]
+          created_at?: string
+          created_by?: string | null
+          default_link_ttl_hours?: number
+          default_portal_branding?: Json
+          enabled?: boolean
+          id?: string
+          is_singleton?: boolean
+          require_secure_token?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          view_only_when_disabled?: boolean
         }
         Relationships: []
       }
@@ -50797,6 +51001,18 @@ export type Database = {
         Returns: string
       }
       resolve_office_by_ip: { Args: { p_ip_address: string }; Returns: Json }
+      resolve_online_response: {
+        Args: {
+          p_case_type: string
+          p_communication_type: string
+          p_enforcement_stage: string
+          p_instance_mode?: Database["public"]["Enums"]["ce_online_response_mode"]
+          p_instance_overrides?: Json
+          p_report_type: string
+          p_template_id?: string
+        }
+        Returns: Json
+      }
       resolve_payer_email: {
         Args: { p_payer_id: string; p_payer_type: string }
         Returns: string
@@ -51233,6 +51449,12 @@ export type Database = {
         | "officer_delivery"
         | "registered_mail"
         | "courier"
+      ce_online_response_mode:
+        | "NONE"
+        | "VIEW_ONLY"
+        | "ACKNOWLEDGMENT_ONLY"
+        | "LIMITED_RESPONSE"
+        | "FULL_RESPONSE"
       ce_posting_status:
         | "PENDING"
         | "PROCESSING"
@@ -51695,6 +51917,13 @@ export const Constants = {
         "officer_delivery",
         "registered_mail",
         "courier",
+      ],
+      ce_online_response_mode: [
+        "NONE",
+        "VIEW_ONLY",
+        "ACKNOWLEDGMENT_ONLY",
+        "LIMITED_RESPONSE",
+        "FULL_RESPONSE",
       ],
       ce_posting_status: [
         "PENDING",
