@@ -1487,7 +1487,7 @@ export const fieldAuditService = {
     let followUpCount = 0;
     const employerId = (inspection as any)?.employer_id;
     if (employerId) {
-      const { count } = await supabase
+      const { count } = await (supabase as any)
         .from('ce_follow_ups')
         .select('id', { count: 'exact', head: true })
         .eq('employer_id', employerId)
