@@ -1292,7 +1292,7 @@ export const fieldAuditService = {
   async evaluateCompletionGate(inspectionId: string): Promise<CompletionGateResult> {
     const cfg = await this.getCompletionGateConfig('GLOBAL');
     const metrics: any = (await this.getVisitMetrics(inspectionId)) ?? {};
-    const [findings, reportRes, interactionRes] = await Promise.all([
+    const [findings, reportRes, interactionRes, wpRes] = await Promise.all([
       this.getFindingsForVisit(inspectionId),
       supabase
         .from('ce_employer_audit_reports')
@@ -1304,13 +1304,32 @@ export const fieldAuditService = {
         .select('id, representative_name, representative_designation, representative_contact, authorization_status, records_declaration')
         .eq('inspection_id', inspectionId)
         .maybeSingle(),
+      supabase
+        .from('ce_inspection_working_papers')
+        .select('payroll_reviewed, contributions_reviewed, employee_sample_size, wage_book_reviewed, inspector_observations')
+        .eq('inspection_id', inspectionId)
+        .maybeSingle(),
     ]);
 
     const report = reportRes.data;
     const interaction = interactionRes.data as any;
+    const wp = wpRes.data as any;
 
-    const checklistTotal = metrics.checklist_total ?? 0;
-    const checklistAnswered = metrics.checklist_answered ?? 0;
+    // Working Papers (5 standardized review items) + template-driven checklist
+    const WP_TOTAL = 5;
+    const wpDone = wp
+      ? [
+          wp.payroll_reviewed,
+          wp.contributions_reviewed,
+          (wp.employee_sample_size ?? 0) > 0,
+          wp.wage_book_reviewed,
+          ((wp.inspector_observations ?? '') as string).trim().length > 0,
+        ].filter(Boolean).length
+      : 0;
+    const tplTotal = Number(metrics.checklist_total ?? 0);
+    const tplAnswered = Number(metrics.checklist_answered ?? 0);
+    const checklistTotal = WP_TOTAL + tplTotal;
+    const checklistAnswered = wpDone + tplAnswered;
     const checklistComplete = checklistTotal > 0 && checklistAnswered >= checklistTotal;
 
     const findingsCount = findings.length;
@@ -1345,7 +1364,7 @@ export const fieldAuditService = {
         label: 'Checklist completed',
         required: cfg.requireChecklistComplete,
         passed: checklistComplete,
-        detail: checklistTotal === 0 ? 'No checklist questions found' : `${checklistAnswered}/${checklistTotal} answered`,
+        detail: `${checklistAnswered}/${checklistTotal} answered (Working Papers + ${tplTotal} template item${tplTotal === 1 ? '' : 's'})`,
       },
       {
         key: 'findings',
