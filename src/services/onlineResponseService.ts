@@ -32,7 +32,7 @@ export const onlineResponseService = {
   ): Promise<OnlineResponseSettings> {
     const { data, error } = await supabase
       .from(SETTINGS)
-      .update({ ...patch, updated_by: userCode || null })
+      .update({ ...(patch as any), updated_by: userCode || null })
       .eq('id', id)
       .select('*')
       .single();
