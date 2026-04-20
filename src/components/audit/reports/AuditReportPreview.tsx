@@ -11,6 +11,7 @@ import { resolveReportTemplate } from '@/lib/audit/documentTemplateResolver';
 import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import { mapReportOutput } from '@/lib/audit/reportOutputMapper';
 import type { DocumentFoundationConfig } from '@/lib/audit/documentFoundationTypes';
+import type { ResolvedPriorMatter } from '@/services/auditReportPriorMattersService';
 import logo from '@/assets/ssb-logo.png';
 
 interface AuditReportPreviewProps {
@@ -25,6 +26,8 @@ interface AuditReportPreviewProps {
   dbSectionRefs?: TemplateSectionRef[];
   /** DB-loaded foundation config — uses saved org settings for branding, typography, colors */
   foundation?: DocumentFoundationConfig;
+  /** Resolved prior employer matters linked to this audit visit/findings (Phase E) */
+  priorMatters?: ResolvedPriorMatter[];
   onClose: () => void;
   onPrint: () => void;
 }
@@ -37,7 +40,7 @@ const OPINION_STYLES: Record<string, { bg: string; text: string; border: string 
 };
 
 export function AuditReportPreview({
-  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs, foundation, onClose, onPrint,
+  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs, foundation, priorMatters = [], onClose, onPrint,
 }: AuditReportPreviewProps) {
   const baseConfig = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
   // If DB sections are provided, inject them into the config so the resolver uses them
@@ -46,7 +49,7 @@ export function AuditReportPreview({
     : baseConfig;
   // Pass foundation so resolver uses DB-saved org settings (not defaults)
   const resolved = resolveReportTemplate(config, reportData.status, foundation);
-  const mapped = mapReportOutput(resolved, reportData, findings, responses, actions, departmentName);
+  const mapped = mapReportOutput(resolved, reportData, findings, responses, actions, departmentName, priorMatters);
   const isDraft = reportData.status === 'Draft' || reportData.status === 'In Review';
   const isFinal = reportData.status === 'Final';
   const reportDate = reportData.generated_on ? formatDateForDisplay(reportData.generated_on) : new Date().toLocaleDateString();
@@ -61,7 +64,7 @@ export function AuditReportPreview({
   const goldColor = foundation?.colorPalette?.gold || '#F4C430';
 
   const handleExportPDF = () => {
-    generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName, templateConfig: config, dbSectionRefs, foundation });
+    generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName, templateConfig: config, dbSectionRefs, foundation, priorMatters });
   };
 
   // Section numbering — driven by mapped output
@@ -286,6 +289,41 @@ export function AuditReportPreview({
         </div>
       </div>
     ),
+
+    prior_compliance_history: () => priorMatters.length > 0 ? (
+      <div key="prior_compliance_history">
+        <SectionHeading number={nextSection()}>Prior Compliance History</SectionHeading>
+        <p className="text-xs text-muted-foreground mb-3">
+          Previously recorded employer matters linked by the auditor as relevant context for this audit.
+        </p>
+        <div className="rounded-lg border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-muted/50 text-xs">
+                <th className="text-left p-2.5 font-medium">#</th>
+                <th className="text-left p-2.5 font-medium">Type</th>
+                <th className="text-left p-2.5 font-medium">Reference</th>
+                <th className="text-left p-2.5 font-medium">Details</th>
+                <th className="text-left p-2.5 font-medium">Scope</th>
+                <th className="text-left p-2.5 font-medium">Relevance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {priorMatters.map((m, i) => (
+                <tr key={m.link.id} className={`border-t ${i % 2 === 1 ? 'bg-muted/20 print:bg-gray-50' : ''}`}>
+                  <td className="p-2.5 font-medium align-top">{i + 1}</td>
+                  <td className="p-2.5 align-top">{m.matterType.replace(/_/g, ' ')}</td>
+                  <td className="p-2.5 align-top font-medium">{m.primaryLabel}</td>
+                  <td className="p-2.5 align-top">{m.detailLine || '—'}</td>
+                  <td className="p-2.5 align-top capitalize">{m.scope}</td>
+                  <td className="p-2.5 align-top text-muted-foreground">{m.relevanceNote || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ) : null,
   };
 
   // Build TOC from sections marked includeInToc (not all ordered sections)

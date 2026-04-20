@@ -33,6 +33,7 @@ import { StatusBadge } from '@/components/common';
 import { AuditReportPreview } from './AuditReportPreview';
 import { useDocumentTemplateSections } from '@/hooks/useDocumentTemplateSections';
 import { useDocumentFoundation } from '@/hooks/useDocumentFoundation';
+import { useAuditReportPriorMatters } from '@/hooks/useAuditReportPriorMatters';
 import { AuditFindingCard } from './AuditFindingCard';
 import { AuditReportVersionTimeline } from './AuditReportVersionTimeline';
 import { AuditReportWorkflowBar } from './AuditReportWorkflowBar';
@@ -294,6 +295,10 @@ export function AuditReportBuilderStudio() {
     [reportTemplateConfig, reportOverrides]
   );
 
+  // Phase E — fetch linked prior employer matters for the inspection backing this report (if any)
+  const inspectionIdForReport = (reportData as any).inspection_id || (selectedEngagement as any)?.inspection_id || null;
+  const { data: priorMatters = [] } = useAuditReportPriorMatters(inspectionIdForReport);
+
   if (showPreview) {
     return (
       <AuditReportPreview
@@ -306,6 +311,7 @@ export function AuditReportBuilderStudio() {
         templateConfig={effectiveTemplateConfig}
         dbSectionRefs={dbSectionRefs}
         foundation={foundation}
+        priorMatters={priorMatters}
         onClose={() => setShowPreview(false)}
         onPrint={() => window.print()}
       />

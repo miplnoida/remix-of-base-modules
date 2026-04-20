@@ -22,6 +22,7 @@ import { resolveReportTemplate } from '@/lib/audit/documentTemplateResolver';
 import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import { mapReportOutput } from '@/lib/audit/reportOutputMapper';
 import type { DocumentFoundationConfig } from '@/lib/audit/documentFoundationTypes';
+import type { ResolvedPriorMatter } from '@/services/auditReportPriorMattersService';
 
 interface PDFExportParams {
   reportData: any;
@@ -35,10 +36,12 @@ interface PDFExportParams {
   dbSectionRefs?: TemplateSectionRef[];
   /** DB-loaded foundation config */
   foundation?: DocumentFoundationConfig;
+  /** Resolved prior employer matters for the "Prior Compliance History" section (Phase E) */
+  priorMatters?: ResolvedPriorMatter[];
 }
 
 export function generateAuditReportPDF({
-  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs, foundation,
+  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs, foundation, priorMatters = [],
 }: PDFExportParams) {
   const baseConfig = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
   // If DB sections are provided, inject them into the config
@@ -47,7 +50,7 @@ export function generateAuditReportPDF({
     : baseConfig;
   // Pass foundation so resolver uses DB-saved org settings
   const resolved = resolveReportTemplate(config, reportData.status, foundation);
-  const mapped = mapReportOutput(resolved, reportData, findings, responses, actions, departmentName);
+  const mapped = mapReportOutput(resolved, reportData, findings, responses, actions, departmentName, priorMatters);
   const doc = new jsPDF({ orientation: 'portrait' });
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
@@ -294,6 +297,33 @@ export function generateAuditReportPDF({
         roleTitle: sig.roleTitle,
       }));
       y = renderApprovalBlock(doc, branding, signatories, y);
+    },
+    prior_compliance_history: () => {
+      if (priorMatters.length === 0) return;
+      addSectionHeader('Prior Compliance History');
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(...branding.mutedText);
+      const intro = 'Previously recorded employer matters linked by the auditor as relevant context for this audit.';
+      const introLines = doc.splitTextToSize(intro, contentWidth);
+      introLines.forEach((line: string) => { doc.text(line, margin, y); y += 4; });
+      y += 2;
+      doc.setFont('helvetica', 'normal');
+
+      autoTable(doc, {
+        startY: y,
+        head: [['#', 'Type', 'Reference', 'Details', 'Scope', 'Relevance']],
+        body: priorMatters.map((m, i) => [
+          String(i + 1),
+          m.matterType.replace(/_/g, ' '),
+          m.primaryLabel,
+          m.detailLine || '—',
+          m.scope,
+          m.relevanceNote || '—',
+        ]),
+        ...getAuditTableConfig(branding, y, { fontSize: 7, cellPadding: 2.5 }),
+      });
+      y = (doc as any).lastAutoTable.finalY + 8;
     },
   };
 
