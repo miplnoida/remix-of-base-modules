@@ -72,7 +72,10 @@ export default function AuditCommunicationTemplatesPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return list.filter(t => {
-      if (fStage !== 'all' && (t.lifecycle_stage ?? '') !== fStage) return false;
+      if (fStage !== 'all') {
+        const stageVal = t.lifecycle_stage ?? '';
+        if (fStage === 'unassigned' ? stageVal !== '' : stageVal !== fStage) return false;
+      }
       if (fChannel !== 'all' && t.channel !== fChannel) return false;
       if (fActive !== 'all' && (fActive === 'yes') !== t.is_active) return false;
       if (fSendMode !== 'all' && t.send_mode !== fSendMode) return false;
@@ -185,7 +188,7 @@ export default function AuditCommunicationTemplatesPage() {
                   {COMM_LIFECYCLE_STAGE_ORDER.map((s) => (
                     <SelectItem key={s} value={s}>{COMM_LIFECYCLE_STAGE_LABELS[s]}</SelectItem>
                   ))}
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={fChannel} onValueChange={setFChannel}>
