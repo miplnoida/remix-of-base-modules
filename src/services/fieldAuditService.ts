@@ -1015,6 +1015,29 @@ export const fieldAuditService = {
       console.warn('[fieldAuditService] post-violation count refresh failed', e);
     }
 
+    // Phase 7: fire AUTO_EVENT_DRIVEN comms for violation_logged (best-effort)
+    try {
+      const { fireAuditCommunicationEvent } = await import('./auditCommunicationEventService');
+      await fireAuditCommunicationEvent({
+        event_type: 'violation_logged',
+        employer_id: params.employerId,
+        inspection_id: params.inspectionId,
+        context_data: {
+          violation: {
+            id: data.id,
+            number: data.violation_number,
+            type: params.violationType,
+            severity: params.severity ?? 'Medium',
+            description: params.description,
+          },
+          employer: { id: params.employerId, name: params.employerName ?? null },
+        },
+        triggered_by: userCode,
+      });
+    } catch (e) {
+      console.warn('[fieldAuditService] violation_logged event fire failed', e);
+    }
+
     return { id: data.id, violationNumber: data.violation_number };
   },
 
