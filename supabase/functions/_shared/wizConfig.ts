@@ -1,5 +1,8 @@
-// Shared helper for edge functions to resolve C3-Wizard config from c3_site_settings
-// (with fallback to env vars for zero-downtime cutover).
+// Shared helper for edge functions to resolve C3-Wizard config from c3_site_settings.
+//
+// DB is the single source of truth — no env-var fallbacks for outbound URL/keys.
+// A last-resort hardcoded baseUrl is kept ONLY so a misconfigured DB does not
+// brick the deployment instantly; admin/sync keys MUST come from the DB.
 //
 // NOTE: edge functions cannot share imports across folders in Supabase deploys,
 // so this file is duplicated inline in each function. Keep them in sync.
@@ -14,43 +17,32 @@ interface WizConfig {
 }
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
+const LAST_RESORT_BASE_URL = "https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1";
 let cache: { value: WizConfig; expiresAt: number } | null = null;
 
 export function clearWizConfigCache() {
   cache = null;
 }
 
-export async function getWizConfig(opts?: {
-  fallbackBaseUrl?: string;
-  fallbackAdminKey?: string;
-  fallbackSyncKey?: string;
-}): Promise<WizConfig> {
+export async function getWizConfig(): Promise<WizConfig> {
   const now = Date.now();
   if (cache && cache.expiresAt > now) return cache.value;
 
-  const fallback: WizConfig = {
+  // Last-resort defaults (used only if the DB lookup itself fails).
+  const lastResort: WizConfig = {
     environment: "Dev",
-    baseUrl:
-      opts?.fallbackBaseUrl ||
-      Deno.env.get("WIZ_API_URL")?.replace(/\/wiz-admin-api\/?$/, "") ||
-      Deno.env.get("C3_WIZARD_SYNC_URL")?.replace(/\/[^\/]+\/?$/, "") ||
-      "https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1",
-    adminApiKey:
-      opts?.fallbackAdminKey ||
-      Deno.env.get("WIZ_ADMIN_API_KEY") ||
-      "uiop906754drd35fvg",
-    syncApiKey:
-      opts?.fallbackSyncKey ||
-      Deno.env.get("C3_CONFIG_SYNC_API_KEY") ||
-      "",
+    baseUrl: LAST_RESORT_BASE_URL,
+    adminApiKey: "",
+    syncApiKey: "",
   };
 
   try {
     const url = Deno.env.get("SUPABASE_URL");
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!url || !key) {
-      cache = { value: fallback, expiresAt: now + CACHE_TTL_MS };
-      return fallback;
+      console.warn("[wizConfig] Missing Supabase service credentials — returning last-resort defaults.");
+      cache = { value: lastResort, expiresAt: now + CACHE_TTL_MS };
+      return lastResort;
     }
     const sb = createClient(url, key);
 
@@ -85,15 +77,15 @@ export async function getWizConfig(opts?: {
 
     const value: WizConfig = {
       environment,
-      baseUrl: (pick("C3_WIZARD_BASE_URL") || fallback.baseUrl).replace(/\/+$/, ""),
-      adminApiKey: pick("OUTBOUND_ADMIN_API_KEY") || fallback.adminApiKey,
-      syncApiKey: pick("OUTBOUND_SYNC_API_KEY") || fallback.syncApiKey,
+      baseUrl: (pick("C3_WIZARD_BASE_URL") || LAST_RESORT_BASE_URL).replace(/\/+$/, ""),
+      adminApiKey: pick("OUTBOUND_ADMIN_API_KEY") || "",
+      syncApiKey: pick("OUTBOUND_SYNC_API_KEY") || "",
     };
     cache = { value, expiresAt: now + CACHE_TTL_MS };
     return value;
   } catch (err) {
-    console.warn("[wizConfig] DB lookup failed, using fallback:", err);
-    cache = { value: fallback, expiresAt: now + CACHE_TTL_MS };
-    return fallback;
+    console.warn("[wizConfig] DB lookup failed, using last-resort defaults:", err);
+    cache = { value: lastResort, expiresAt: now + CACHE_TTL_MS };
+    return lastResort;
   }
 }
