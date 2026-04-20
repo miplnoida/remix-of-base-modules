@@ -23,6 +23,8 @@ import {
   ClipboardList, FileText, MessageSquareWarning, Link2,
 } from 'lucide-react';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { PriorMatterLinkDialog } from './PriorMatterLinkDialog';
+import type { PriorMatterType } from '@/types/employerHistory';
 
 type CategoryKey =
   | 'CASES' | 'VIOLATIONS' | 'ARRANGEMENTS' | 'LEGAL'
