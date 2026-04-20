@@ -116,6 +116,9 @@ function TemplateEditor({ templateType }: { templateType: CETemplateType }) {
 
       <UsedByCommunications reportType={templateType} />
 
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Sections</CardTitle>
           <CardDescription>Toggle which sections appear in this employer-audit document and the order they print in.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
