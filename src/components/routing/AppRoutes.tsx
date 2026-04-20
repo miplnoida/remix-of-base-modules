@@ -1122,7 +1122,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/audit-planning/weekly-reports" element={<Navigate to="/compliance/field/all-reports" replace />} />
       <Route path="/compliance/audit-planning/all-reports" element={<Navigate to="/compliance/field/all-reports" replace />} />
       {/* Retired redirect targets removed (hard cutover): my-upcoming */}
-      <Route path="/compliance/my-audits/upcoming" element={<Navigate to="/compliance/field/my-upcoming" replace />} />
+      {/* Retired (hard cutover): /compliance/my-audits/upcoming */}
       <Route path="/compliance/audit-planning/sampling-dashboard" element={<Navigate to="/compliance/field/sampling" replace />} />
       <Route path="/compliance/sampling" element={<Navigate to="/compliance/field/sampling" replace />} />
       <Route path="/compliance/audit-planning/monthly-candidates" element={<Navigate to="/compliance/field/sampling/candidates" replace />} />
