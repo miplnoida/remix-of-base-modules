@@ -11,6 +11,7 @@ import type {
   SubmitFindingResponseInput,
   SubmitFindingDisputeInput,
 } from '@/types/auditPublicSubmissions';
+import { notifySubmissionReceived } from './auditPublicSubmissionNotifyService';
 
 interface ValidatedToken {
   acknowledgmentId: string;
