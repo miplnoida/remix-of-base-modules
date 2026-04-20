@@ -44,6 +44,36 @@ export interface CommRecipientRule {
   allow_manual_add?: boolean;
 }
 
+export type CeCommSendMode =
+  | 'MANUAL_ONLY'
+  | 'MANUAL_OR_SCHEDULED'
+  | 'AUTO_EVENT_DRIVEN'
+  | 'AUTO_TIME_DRIVEN';
+
+export type CeCommScheduleTriggerMode = 'NONE' | 'EVENT' | 'TIME_RELATIVE' | 'EXACT_DATETIME';
+
+export type CeCommActionKey =
+  | 'include_report_pdf'
+  | 'include_evidence'
+  | 'include_violations'
+  | 'include_findings_memo'
+  | 'include_books_annexure'
+  | 'include_payment_summary'
+  | 'use_secure_link'
+  | 'require_acknowledgment'
+  | 'allow_online_response'
+  | 'allow_document_upload'
+  | 'allow_clarification'
+  | 'allow_dispute'
+  | 'assign_response_review_workflow'
+  | 'trigger_followup_reminder';
+
+export type CeCommStopCondition =
+  | 'acknowledged'
+  | 'employer_responded'
+  | 'case_closed'
+  | 'report_finalized';
+
 export interface AuditCommunicationTemplate {
   id: string;
   template_code: string;
@@ -62,10 +92,45 @@ export interface AuditCommunicationTemplate {
   version_no: number;
   is_active: boolean;
   sort_order: number;
+  /** v2 fields */
+  send_mode: CeCommSendMode;
+  merge_fields_json: Array<{ key: string; label?: string; example?: string }>;
+  preview_sample_json: Record<string, unknown>;
+  requires_approval_before_send: boolean;
+  reschedule_allowed: boolean;
+  cancel_on_status_change_json: CeCommStopCondition[];
   created_at: string;
   updated_at: string;
   created_by: string | null;
   updated_by: string | null;
+}
+
+export interface AuditCommunicationTemplateAction {
+  id: string;
+  template_id: string;
+  action_key: CeCommActionKey;
+  is_enabled: boolean;
+  config_json: Record<string, unknown>;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuditCommunicationSchedulePolicy {
+  id: string;
+  template_id: string;
+  trigger_mode: CeCommScheduleTriggerMode;
+  trigger_event: string | null;
+  relative_to_field: string | null;
+  offset_days: number | null;
+  offset_hours: number | null;
+  exact_datetime: string | null;
+  recurrence_enabled: boolean;
+  recurrence_interval_days: number | null;
+  recurrence_max_occurrences: number | null;
+  recurrence_stop_conditions_json: CeCommStopCondition[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface AuditCommunicationTemplateSection {
@@ -167,6 +232,17 @@ export interface AuditCommunication {
   updated_by: string | null;
   created_at: string;
   updated_at: string;
+  /** v2 instance fields */
+  parent_communication_id: string | null;
+  occurrence_no: number;
+  recurrence_enabled: boolean;
+  recurrence_interval_days: number | null;
+  recurrence_max_occurrences: number | null;
+  recurrence_stop_conditions_json: CeCommStopCondition[];
+  dispatch_attempts: number;
+  last_dispatch_error: string | null;
+  dispatch_locked_at: string | null;
+  materialized_by_policy_id: string | null;
   // populated by service joins:
   template?: Pick<AuditCommunicationTemplate, 'template_code' | 'template_name' | 'category'>;
   recipients?: AuditCommunicationRecipient[];
