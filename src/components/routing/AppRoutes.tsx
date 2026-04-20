@@ -1107,8 +1107,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/audit-planning/pending-review/:planId" element={<Navigate to="/compliance/field/pending-review" replace />} />
       <Route path="/compliance/audit-planning/field-execution" element={<Navigate to="/compliance/field/execution" replace />} />
       <Route path="/compliance/inspections/field-execution" element={<Navigate to="/compliance/field/execution" replace />} />
-      <Route path="/compliance/inspections/field-operations" element={<Navigate to="/compliance/field/operations" replace />} />
-      <Route path="/compliance/inspections" element={<Navigate to="/compliance/field/inspections" replace />} />
+      {/* Retired redirect targets removed (hard cutover): field-operations, inspections */}
       <Route path="/compliance/employers/findings" element={<Navigate to="/compliance/field/findings" replace />} />
       <Route path="/compliance/employer-statements" element={<Navigate to="/compliance/field/employer-statements" replace />} />
       <Route path="/compliance/employer-statement/:employerId" element={<Navigate to="/compliance/field/employer-statements" replace />} />
@@ -1120,8 +1119,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/employer" element={<Navigate to="/compliance/field/employer-statements" replace />} />
       <Route path="/compliance/audits" element={<Navigate to="/compliance/field/audit-management" replace />} />
       <Route path="/compliance/violations/weekly-reports" element={<Navigate to="/compliance/field/weekly-report" replace />} />
-      <Route path="/compliance/audit-planning/weekly-reports" element={<Navigate to="/compliance/field/weekly-reports" replace />} />
+      <Route path="/compliance/audit-planning/weekly-reports" element={<Navigate to="/compliance/field/all-reports" replace />} />
       <Route path="/compliance/audit-planning/all-reports" element={<Navigate to="/compliance/field/all-reports" replace />} />
+      {/* Retired redirect targets removed (hard cutover): my-upcoming */}
       <Route path="/compliance/my-audits/upcoming" element={<Navigate to="/compliance/field/my-upcoming" replace />} />
       <Route path="/compliance/audit-planning/sampling-dashboard" element={<Navigate to="/compliance/field/sampling" replace />} />
       <Route path="/compliance/sampling" element={<Navigate to="/compliance/field/sampling" replace />} />
