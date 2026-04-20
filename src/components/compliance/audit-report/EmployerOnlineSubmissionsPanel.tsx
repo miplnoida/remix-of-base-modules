@@ -33,6 +33,10 @@ interface Props {
   defaultSubmitterName: string;
   defaultSubmitterEmail?: string;
   defaultSubmitterDesignation?: string;
+  /** Phase 4 — gating from frozen snapshot. Defaults preserve old behavior. */
+  allowResponse?: boolean;
+  allowDispute?: boolean;
+  allowUpload?: boolean;
 }
 
 const DISPUTE_REASONS = [
@@ -53,8 +57,12 @@ export function EmployerOnlineSubmissionsPanel({
   defaultSubmitterName,
   defaultSubmitterEmail,
   defaultSubmitterDesignation,
+  allowResponse = true,
+  allowDispute = true,
+  allowUpload = true,
 }: Props) {
-  const [mode, setMode] = useState<'response' | 'dispute'>('response');
+  const initialMode: 'response' | 'dispute' = allowResponse ? 'response' : allowDispute ? 'dispute' : 'response';
+  const [mode, setMode] = useState<'response' | 'dispute'>(initialMode);
   const [findingId, setFindingId] = useState<string>(findings[0]?.id ?? '');
   const [text, setText] = useState('');
   const [reason, setReason] = useState<string>(DISPUTE_REASONS[0]);
@@ -155,20 +163,24 @@ export function EmployerOnlineSubmissionsPanel({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2">
-          <Button
-            variant={mode === 'response' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setMode('response')}
-          >
-            <MessageSquare className="h-4 w-4 mr-1.5" /> Response
-          </Button>
-          <Button
-            variant={mode === 'dispute' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setMode('dispute')}
-          >
-            <ShieldAlert className="h-4 w-4 mr-1.5" /> Dispute
-          </Button>
+          {allowResponse && (
+            <Button
+              variant={mode === 'response' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMode('response')}
+            >
+              <MessageSquare className="h-4 w-4 mr-1.5" /> Response
+            </Button>
+          )}
+          {allowDispute && (
+            <Button
+              variant={mode === 'dispute' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setMode('dispute')}
+            >
+              <ShieldAlert className="h-4 w-4 mr-1.5" /> Dispute
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -217,14 +229,16 @@ export function EmployerOnlineSubmissionsPanel({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Evidence URL (optional)</Label>
-              <Input
-                value={evidenceUrl}
-                onChange={(e) => setEvidenceUrl(e.target.value)}
-                placeholder="https://… link to supporting documents"
-              />
-            </div>
+            {allowUpload && (
+              <div>
+                <Label>Evidence URL (optional)</Label>
+                <Input
+                  value={evidenceUrl}
+                  onChange={(e) => setEvidenceUrl(e.target.value)}
+                  placeholder="https://… link to supporting documents"
+                />
+              </div>
+            )}
           </>
         )}
 

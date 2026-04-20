@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ShieldCheck, Printer, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Printer, AlertTriangle, Lock } from 'lucide-react';
 import { auditReportService } from '@/services/auditReportService';
 import { AuditReportPrintLayout } from '@/components/compliance/audit-report/AuditReportPrintLayout';
 import { SignaturePad } from '@/components/compliance/audit-report/SignaturePad';
@@ -30,6 +30,8 @@ import type {
 import type { InspectionFinding, InspectionEvidence } from '@/types/inspectionTypes';
 import { toast } from 'sonner';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { gateFromAcknowledgment } from '@/lib/onlineResponsePortalGate';
+import { ONLINE_RESPONSE_MODE_LABELS } from '@/types/onlineResponse';
 
 export default function AuditReportAcknowledgePage() {
   const { token } = useParams<{ token: string }>();
@@ -146,6 +148,8 @@ export default function AuditReportAcknowledgePage() {
     );
   if (!report || !ack) return null;
 
+  const gate = gateFromAcknowledgment(ack);
+
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Header */}
@@ -161,6 +165,10 @@ export default function AuditReportAcknowledgePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Badge variant="outline" className="gap-1">
+              <Lock className="h-3 w-3" />
+              {ONLINE_RESPONSE_MODE_LABELS[gate.mode]}
+            </Badge>
             <Badge variant={alreadySigned ? 'default' : 'secondary'}>{alreadySigned ? 'SIGNED' : ack.status}</Badge>
             <Button variant="outline" size="sm" onClick={() => window.print()}>
               <Printer className="h-4 w-4 mr-1" /> Print
@@ -186,127 +194,147 @@ export default function AuditReportAcknowledgePage() {
           </CardContent>
         </Card>
 
-        {/* Sign block */}
-        {alreadySigned ? (
-          <Card className="no-print">
-            <CardContent className="pt-6 text-center space-y-2">
-              <ShieldCheck className="h-10 w-10 mx-auto text-primary" />
-              <h2 className="font-semibold text-lg">Acknowledgment Recorded</h2>
-              <p className="text-sm text-muted-foreground">
-                Your signature was recorded on{' '}
-                {signatures.find((s) => s.signerRole === 'EMPLOYER_REP')?.signedAt
-                  ? formatDateForDisplay(signatures.find((s) => s.signerRole === 'EMPLOYER_REP')!.signedAt!)
-                  : '—'}
-                . Thank you.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="no-print">
-            <CardHeader>
-              <CardTitle>Acknowledge & Sign</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label>Your name</Label>
-                  <Input value={ack.recipientName} disabled />
-                </div>
-                <div>
-                  <Label>Designation</Label>
-                  <Input
-                    value={designation}
-                    onChange={(e) => setDesignation(e.target.value)}
-                    placeholder={ack.recipientDesignation ?? 'e.g. HR Manager'}
-                  />
-                </div>
-              </div>
-
-              <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-                <TabsList className="grid grid-cols-3 w-full">
-                  <TabsTrigger value="sign">Draw Signature</TabsTrigger>
-                  <TabsTrigger value="typed">Typed Attestation</TabsTrigger>
-                  <TabsTrigger value="refused">Refuse / Unavailable</TabsTrigger>
-                </TabsList>
-                <TabsContent value="sign" className="pt-3">
-                  <SignaturePad onChange={setSigDataUrl} />
-                </TabsContent>
-                <TabsContent value="typed" className="pt-3 space-y-3">
-                  <div>
-                    <Label>Type your full legal name</Label>
-                    <Input
-                      value={typedName}
-                      onChange={(e) => setTypedName(e.target.value)}
-                      className="font-serif text-lg"
-                    />
-                  </div>
-                  <div className="rounded-md border p-3 bg-muted/40 text-sm">
-                    I, {typedName || '[name]'}, attest electronically to the receipt of this audit report and
-                    consent to electronic signature.
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Checkbox
-                      id="attest"
-                      checked={attestChecked}
-                      onCheckedChange={(v) => setAttestChecked(!!v)}
-                    />
-                    <Label htmlFor="attest" className="text-sm font-normal cursor-pointer">
-                      I confirm the above attestation.
-                    </Label>
-                  </div>
-                </TabsContent>
-                <TabsContent value="refused" className="pt-3 space-y-3">
-                  <RadioGroup value={refusalKind} onValueChange={(v) => setRefusalKind(v as any)}>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="REFUSED" id="r-ref" />
-                      <Label htmlFor="r-ref">I refuse to sign</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="UNAVAILABLE" id="r-un" />
-                      <Label htmlFor="r-un">Unable to sign at this time</Label>
-                    </div>
-                  </RadioGroup>
-                  <div>
-                    <Label>Reason *</Label>
-                    <Textarea
-                      rows={3}
-                      value={refusalReason}
-                      onChange={(e) => setRefusalReason(e.target.value)}
-                      placeholder="Please describe the reason."
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
-
-              <div>
-                <Label>Comments (optional)</Label>
-                <Textarea
-                  rows={2}
-                  value={comments}
-                  onChange={(e) => setComments(e.target.value)}
-                  placeholder="Any clarifications or comments…"
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <Button onClick={handleSubmit} disabled={submitting}>
-                  {submitting ? 'Submitting…' : 'Submit Acknowledgment'}
-                </Button>
+        {/* Disabled-mode banner */}
+        {!gate.canAcknowledge && !gate.canSubmitResponse && !gate.canDispute && gate.disabledReason && (
+          <Card className="no-print border-warning/40 bg-warning/10">
+            <CardContent className="pt-6 flex items-start gap-3">
+              <Lock className="h-5 w-5 text-warning mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-medium text-sm">Read-only access</p>
+                <p className="text-sm text-muted-foreground">{gate.disabledReason}</p>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Phase F — Online responses & disputes */}
-        <EmployerOnlineSubmissionsPanel
-          token={token!}
-          inspectionId={report.inspectionId}
-          findings={findings}
-          acknowledgmentId={ack.id}
-          defaultSubmitterName={ack.recipientName}
-          defaultSubmitterEmail={ack.recipientEmail}
-          defaultSubmitterDesignation={ack.recipientDesignation}
-        />
+        {/* Sign block — only when policy allows acknowledgment */}
+        {gate.canAcknowledge && (
+          alreadySigned ? (
+            <Card className="no-print">
+              <CardContent className="pt-6 text-center space-y-2">
+                <ShieldCheck className="h-10 w-10 mx-auto text-primary" />
+                <h2 className="font-semibold text-lg">Acknowledgment Recorded</h2>
+                <p className="text-sm text-muted-foreground">
+                  Your signature was recorded on{' '}
+                  {signatures.find((s) => s.signerRole === 'EMPLOYER_REP')?.signedAt
+                    ? formatDateForDisplay(signatures.find((s) => s.signerRole === 'EMPLOYER_REP')!.signedAt!)
+                    : '—'}
+                  . Thank you.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="no-print">
+              <CardHeader>
+                <CardTitle>Acknowledge & Sign</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Your name</Label>
+                    <Input value={ack.recipientName} disabled />
+                  </div>
+                  <div>
+                    <Label>Designation</Label>
+                    <Input
+                      value={designation}
+                      onChange={(e) => setDesignation(e.target.value)}
+                      placeholder={ack.recipientDesignation ?? 'e.g. HR Manager'}
+                    />
+                  </div>
+                </div>
+
+                <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+                  <TabsList className="grid grid-cols-3 w-full">
+                    <TabsTrigger value="sign">Draw Signature</TabsTrigger>
+                    <TabsTrigger value="typed">Typed Attestation</TabsTrigger>
+                    <TabsTrigger value="refused">Refuse / Unavailable</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="sign" className="pt-3">
+                    <SignaturePad onChange={setSigDataUrl} />
+                  </TabsContent>
+                  <TabsContent value="typed" className="pt-3 space-y-3">
+                    <div>
+                      <Label>Type your full legal name</Label>
+                      <Input
+                        value={typedName}
+                        onChange={(e) => setTypedName(e.target.value)}
+                        className="font-serif text-lg"
+                      />
+                    </div>
+                    <div className="rounded-md border p-3 bg-muted/40 text-sm">
+                      I, {typedName || '[name]'}, attest electronically to the receipt of this audit report and
+                      consent to electronic signature.
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Checkbox
+                        id="attest"
+                        checked={attestChecked}
+                        onCheckedChange={(v) => setAttestChecked(!!v)}
+                      />
+                      <Label htmlFor="attest" className="text-sm font-normal cursor-pointer">
+                        I confirm the above attestation.
+                      </Label>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="refused" className="pt-3 space-y-3">
+                    <RadioGroup value={refusalKind} onValueChange={(v) => setRefusalKind(v as any)}>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="REFUSED" id="r-ref" />
+                        <Label htmlFor="r-ref">I refuse to sign</Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="UNAVAILABLE" id="r-un" />
+                        <Label htmlFor="r-un">Unable to sign at this time</Label>
+                      </div>
+                    </RadioGroup>
+                    <div>
+                      <Label>Reason *</Label>
+                      <Textarea
+                        rows={3}
+                        value={refusalReason}
+                        onChange={(e) => setRefusalReason(e.target.value)}
+                        placeholder="Please describe the reason."
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+
+                <div>
+                  <Label>Comments (optional)</Label>
+                  <Textarea
+                    rows={2}
+                    value={comments}
+                    onChange={(e) => setComments(e.target.value)}
+                    placeholder="Any clarifications or comments…"
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <Button onClick={handleSubmit} disabled={submitting}>
+                    {submitting ? 'Submitting…' : 'Submit Acknowledgment'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        )}
+
+        {/* Phase F — Online responses & disputes (gated by snapshot permissions) */}
+        {(gate.canSubmitResponse || gate.canDispute) && (
+          <EmployerOnlineSubmissionsPanel
+            token={token!}
+            inspectionId={report.inspectionId}
+            findings={findings}
+            acknowledgmentId={ack.id}
+            defaultSubmitterName={ack.recipientName}
+            defaultSubmitterEmail={ack.recipientEmail}
+            defaultSubmitterDesignation={ack.recipientDesignation}
+            allowResponse={gate.canSubmitResponse}
+            allowDispute={gate.canDispute}
+            allowUpload={gate.canUpload}
+          />
+        )}
 
         <p className="text-xs text-muted-foreground text-center">
           This link expires on {formatDateForDisplay(ack.expiresAt)}. Verification: {report.verificationRef ?? 'PENDING'}
