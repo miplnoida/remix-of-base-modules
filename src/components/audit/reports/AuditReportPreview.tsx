@@ -11,6 +11,7 @@ import { resolveReportTemplate } from '@/lib/audit/documentTemplateResolver';
 import { DEFAULT_AUDIT_REPORT_CONFIG, type AuditReportTemplateConfig, type TemplateSectionRef } from '@/lib/audit/documentTemplateDefaults';
 import { mapReportOutput } from '@/lib/audit/reportOutputMapper';
 import type { DocumentFoundationConfig } from '@/lib/audit/documentFoundationTypes';
+import type { ResolvedPriorMatter } from '@/services/auditReportPriorMattersService';
 import logo from '@/assets/ssb-logo.png';
 
 interface AuditReportPreviewProps {
@@ -25,6 +26,8 @@ interface AuditReportPreviewProps {
   dbSectionRefs?: TemplateSectionRef[];
   /** DB-loaded foundation config — uses saved org settings for branding, typography, colors */
   foundation?: DocumentFoundationConfig;
+  /** Resolved prior employer matters linked to this audit visit/findings (Phase E) */
+  priorMatters?: ResolvedPriorMatter[];
   onClose: () => void;
   onPrint: () => void;
 }
@@ -37,7 +40,7 @@ const OPINION_STYLES: Record<string, { bg: string; text: string; border: string 
 };
 
 export function AuditReportPreview({
-  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs, foundation, onClose, onPrint,
+  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs, foundation, priorMatters = [], onClose, onPrint,
 }: AuditReportPreviewProps) {
   const baseConfig = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
   // If DB sections are provided, inject them into the config so the resolver uses them
@@ -46,7 +49,7 @@ export function AuditReportPreview({
     : baseConfig;
   // Pass foundation so resolver uses DB-saved org settings (not defaults)
   const resolved = resolveReportTemplate(config, reportData.status, foundation);
-  const mapped = mapReportOutput(resolved, reportData, findings, responses, actions, departmentName);
+  const mapped = mapReportOutput(resolved, reportData, findings, responses, actions, departmentName, priorMatters);
   const isDraft = reportData.status === 'Draft' || reportData.status === 'In Review';
   const isFinal = reportData.status === 'Final';
   const reportDate = reportData.generated_on ? formatDateForDisplay(reportData.generated_on) : new Date().toLocaleDateString();
@@ -61,7 +64,7 @@ export function AuditReportPreview({
   const goldColor = foundation?.colorPalette?.gold || '#F4C430';
 
   const handleExportPDF = () => {
-    generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName, templateConfig: config, dbSectionRefs, foundation });
+    generateAuditReportPDF({ reportData, findings, responses, actions, engagement, departmentName, templateConfig: config, dbSectionRefs, foundation, priorMatters });
   };
 
   // Section numbering — driven by mapped output
