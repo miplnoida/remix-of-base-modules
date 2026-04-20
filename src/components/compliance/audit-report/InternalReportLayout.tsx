@@ -6,11 +6,13 @@
  */
 import type { FullAuditReport, AuditReportSignature, AuditViolationRow } from '@/types/auditReport';
 import type { InspectionFinding, InspectionEvidence } from '@/types/inspectionTypes';
+import type { EmployerPriorContext } from '@/services/employerPriorContextService';
 import { formatDateForDisplay } from '@/lib/format-config';
 import {
   CoverPage, PageHeader, PageFooter, Section, SamplingDisclaimer,
   AuditContactCard, SignatureBlock, SEV_COLOR, formatMoney,
 } from './reportShared';
+import { PriorContextSection } from './PriorContextSection';
 
 interface Props {
   report: FullAuditReport;
@@ -19,9 +21,10 @@ interface Props {
   checklist: any[];
   violations: AuditViolationRow[];
   signatures: AuditReportSignature[];
+  priorContext?: EmployerPriorContext | null;
 }
 
-export function InternalReportLayout({ report, findings, evidence, checklist, violations, signatures }: Props) {
+export function InternalReportLayout({ report, findings, evidence, checklist, violations, signatures, priorContext }: Props) {
   const isDraft = report.status !== 'FINAL';
   const checklistAnswered = checklist.filter((c: any) => c.response).length;
   const findingsBySeverity = findings.reduce<Record<string, number>>((acc, f) => {
@@ -241,7 +244,11 @@ export function InternalReportLayout({ report, findings, evidence, checklist, vi
         )}
       </Section>
 
-      <Section title="11. Inspector Recommendations">
+      <Section title="11. Prior Compliance Context (Same Employer)">
+        <PriorContextSection ctx={priorContext} />
+      </Section>
+
+      <Section title="12. Inspector Recommendations">
         <p>{report.recommendations || 'No recommendations issued.'}</p>
       </Section>
 
