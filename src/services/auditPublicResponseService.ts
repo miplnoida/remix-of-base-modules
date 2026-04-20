@@ -12,6 +12,10 @@ import type {
   SubmitFindingDisputeInput,
 } from '@/types/auditPublicSubmissions';
 import { notifySubmissionReceived } from './auditPublicSubmissionNotifyService';
+import {
+  loadAcknowledgmentSnapshot,
+  recordOnlineResponseSubmission,
+} from './onlineResponseSubmissionAuditService';
 
 interface ValidatedToken {
   acknowledgmentId: string;
@@ -86,6 +90,22 @@ export async function submitFindingResponse(input: SubmitFindingResponseInput): 
     .single();
   if (error) throw error;
   const created = data as FindingResponseSubmission;
+  // Phase 6 — audit + workflow routing using the FROZEN snapshot
+  try {
+    const snap = await loadAcknowledgmentSnapshot(ctx.acknowledgmentId);
+    await recordOnlineResponseSubmission({
+      acknowledgmentId: ctx.acknowledgmentId,
+      inspectionId: created.inspection_id,
+      reportId: snap.report_id ?? null,
+      kind: 'response',
+      submissionId: created.id,
+      submitterName: created.submitter_name,
+      submitterEmail: created.submitter_email ?? null,
+      snapshot: snap,
+    });
+  } catch (e) {
+    console.warn('[submitFindingResponse] audit/workflow skipped:', e);
+  }
   // Fire-and-forget officer notification
   notifySubmissionReceived(
     created.inspection_id,
@@ -133,6 +153,22 @@ export async function submitFindingDispute(input: SubmitFindingDisputeInput): Pr
     .single();
   if (error) throw error;
   const created = data as FindingDisputeSubmission;
+  // Phase 6 — audit + workflow routing using FROZEN snapshot
+  try {
+    const snap = await loadAcknowledgmentSnapshot(ctx.acknowledgmentId);
+    await recordOnlineResponseSubmission({
+      acknowledgmentId: ctx.acknowledgmentId,
+      inspectionId: created.inspection_id,
+      reportId: snap.report_id ?? null,
+      kind: 'dispute',
+      submissionId: created.id,
+      submitterName: created.submitter_name,
+      submitterEmail: created.submitter_email ?? null,
+      snapshot: snap,
+    });
+  } catch (e) {
+    console.warn('[submitFindingDispute] audit/workflow skipped:', e);
+  }
   notifySubmissionReceived(
     created.inspection_id,
     {

@@ -538,6 +538,8 @@ export const auditReportService = {
         portal_resolved_enabled: snap.enabled,
         portal_resolved_mode: snap.mode,
         portal_resolved_permissions_json: snap.permissions,
+        portal_resolved_review_json: snap.review ?? {},
+        portal_matched_policy_id: snap.matched_policy_id ?? null,
         response_due_at: dueAt,
       } as any)
       .select('*')
@@ -569,6 +571,12 @@ export const auditReportService = {
       status: data.status as AuditReportAcknowledgment['status'],
       signatureId: data.signature_id ?? undefined,
       createdAt: data.created_at,
+      portalResolvedEnabled: (data as any).portal_resolved_enabled ?? undefined,
+      portalResolvedMode: (data as any).portal_resolved_mode ?? undefined,
+      portalResolvedPermissions: (data as any).portal_resolved_permissions_json ?? undefined,
+      portalResolvedReview: (data as any).portal_resolved_review_json ?? undefined,
+      portalMatchedPolicyId: (data as any).portal_matched_policy_id ?? undefined,
+      responseDueAt: (data as any).response_due_at ?? null,
     };
   },
 
@@ -594,6 +602,12 @@ export const auditReportService = {
       status: d.status,
       signatureId: d.signature_id ?? undefined,
       createdAt: d.created_at,
+      portalResolvedEnabled: d.portal_resolved_enabled ?? undefined,
+      portalResolvedMode: d.portal_resolved_mode ?? undefined,
+      portalResolvedPermissions: d.portal_resolved_permissions_json ?? undefined,
+      portalResolvedReview: d.portal_resolved_review_json ?? undefined,
+      portalMatchedPolicyId: d.portal_matched_policy_id ?? undefined,
+      responseDueAt: d.response_due_at ?? null,
     }));
   },
 
@@ -639,6 +653,8 @@ export const auditReportService = {
         portalResolvedEnabled: (ack as any).portal_resolved_enabled ?? undefined,
         portalResolvedMode: (ack as any).portal_resolved_mode ?? undefined,
         portalResolvedPermissions: (ack as any).portal_resolved_permissions_json ?? undefined,
+        portalResolvedReview: (ack as any).portal_resolved_review_json ?? undefined,
+        portalMatchedPolicyId: (ack as any).portal_matched_policy_id ?? undefined,
         responseDueAt: (ack as any).response_due_at ?? null,
       },
       report,

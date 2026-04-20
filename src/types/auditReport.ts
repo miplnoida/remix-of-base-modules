@@ -133,6 +133,10 @@ export interface AuditReportAcknowledgment {
     | 'LIMITED_RESPONSE'
     | 'FULL_RESPONSE';
   portalResolvedPermissions?: Record<string, boolean>;
+  /** Phase 5 — frozen review-routing snapshot (workflow_id, review flags). */
+  portalResolvedReview?: Record<string, unknown>;
+  /** Phase 5 — id of the policy that resolved at send time. */
+  portalMatchedPolicyId?: string;
   responseDueAt?: string | null;
 }
 

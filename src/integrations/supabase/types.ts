@@ -10865,11 +10865,13 @@ export type Database = {
           id: string
           last_viewed_at: string | null
           link_token: string
+          portal_matched_policy_id: string | null
           portal_resolved_enabled: boolean | null
           portal_resolved_mode:
             | Database["public"]["Enums"]["ce_online_response_mode"]
             | null
           portal_resolved_permissions_json: Json | null
+          portal_resolved_review_json: Json | null
           recipient_designation: string | null
           recipient_email: string | null
           recipient_name: string
@@ -10888,11 +10890,13 @@ export type Database = {
           id?: string
           last_viewed_at?: string | null
           link_token: string
+          portal_matched_policy_id?: string | null
           portal_resolved_enabled?: boolean | null
           portal_resolved_mode?:
             | Database["public"]["Enums"]["ce_online_response_mode"]
             | null
           portal_resolved_permissions_json?: Json | null
+          portal_resolved_review_json?: Json | null
           recipient_designation?: string | null
           recipient_email?: string | null
           recipient_name: string
@@ -10911,11 +10915,13 @@ export type Database = {
           id?: string
           last_viewed_at?: string | null
           link_token?: string
+          portal_matched_policy_id?: string | null
           portal_resolved_enabled?: boolean | null
           portal_resolved_mode?:
             | Database["public"]["Enums"]["ce_online_response_mode"]
             | null
           portal_resolved_permissions_json?: Json | null
+          portal_resolved_review_json?: Json | null
           recipient_designation?: string | null
           recipient_email?: string | null
           recipient_name?: string
@@ -16865,6 +16871,74 @@ export type Database = {
           view_only_when_disabled?: boolean
         }
         Relationships: []
+      }
+      ce_online_response_submission_audit: {
+        Row: {
+          acknowledgment_id: string | null
+          communication_id: string | null
+          created_at: string
+          id: string
+          inspection_id: string | null
+          ip_address: string | null
+          matched_policy_id: string | null
+          report_id: string | null
+          resolved_mode: string | null
+          resolved_permissions_json: Json | null
+          resolved_review_json: Json | null
+          submission_id: string | null
+          submission_kind: string
+          submitter_email: string | null
+          submitter_name: string | null
+          user_agent: string | null
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          acknowledgment_id?: string | null
+          communication_id?: string | null
+          created_at?: string
+          id?: string
+          inspection_id?: string | null
+          ip_address?: string | null
+          matched_policy_id?: string | null
+          report_id?: string | null
+          resolved_mode?: string | null
+          resolved_permissions_json?: Json | null
+          resolved_review_json?: Json | null
+          submission_id?: string | null
+          submission_kind: string
+          submitter_email?: string | null
+          submitter_name?: string | null
+          user_agent?: string | null
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          acknowledgment_id?: string | null
+          communication_id?: string | null
+          created_at?: string
+          id?: string
+          inspection_id?: string | null
+          ip_address?: string | null
+          matched_policy_id?: string | null
+          report_id?: string | null
+          resolved_mode?: string | null
+          resolved_permissions_json?: Json | null
+          resolved_review_json?: Json | null
+          submission_id?: string | null
+          submission_kind?: string
+          submitter_email?: string | null
+          submitter_name?: string | null
+          user_agent?: string | null
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_online_response_submission_audit_acknowledgment_id_fkey"
+            columns: ["acknowledgment_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_report_acknowledgments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ce_payment_allocations: {
         Row: {

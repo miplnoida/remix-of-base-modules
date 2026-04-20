@@ -10,6 +10,7 @@ import { Copy, Check, Send } from 'lucide-react';
 import { auditReportService } from '@/services/auditReportService';
 import { toast } from 'sonner';
 import type { AuditReportAcknowledgment } from '@/types/auditReport';
+import { OnlineResponseModeBadge } from '@/components/compliance/admin/online-response/OnlineResponseModeBadge';
 
 interface Props {
   reportId: string;
@@ -108,7 +109,14 @@ export function SendAcknowledgmentDialog({
         ) : (
           <div className="space-y-3">
             <div className="rounded-md border p-3 bg-muted/40">
-              <Label className="text-xs">Acknowledgment link</Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs">Acknowledgment link</Label>
+                <OnlineResponseModeBadge
+                  mode={created.portalResolvedMode as any}
+                  enabled={created.portalResolvedEnabled}
+                  matchedPolicyId={created.portalMatchedPolicyId}
+                />
+              </div>
               <div className="flex gap-2 mt-1">
                 <Input value={link} readOnly className="font-mono text-xs" />
                 <Button onClick={copy} variant="outline" size="icon">
@@ -119,6 +127,9 @@ export function SendAcknowledgmentDialog({
             <p className="text-xs text-muted-foreground">
               Share this link with {created.recipientName}. It expires on{' '}
               {new Date(created.expiresAt).toLocaleDateString()}.
+              {created.responseDueAt && (
+                <> Response due by {new Date(created.responseDueAt).toLocaleDateString()}.</>
+              )}
             </p>
           </div>
         )}
