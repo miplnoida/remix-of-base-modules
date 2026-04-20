@@ -4,6 +4,7 @@
  */
 import type { ResolvedReportOutput } from './documentTemplateResolver';
 import { formatDateForDisplay } from '@/lib/format-config';
+import type { ResolvedPriorMatter } from '@/services/auditReportPriorMattersService';
 
 // ─── Section content mapping ───
 
@@ -21,6 +22,7 @@ interface SectionContentMap {
   conclusion: boolean;
   distribution: string | null;
   approval: boolean;
+  prior_compliance_history: boolean;
 }
 
 export interface ReportCoverMeta {
@@ -50,7 +52,7 @@ export interface MappedReportOutput {
 /**
  * Build the ordered list of section IDs that have content and are enabled in the template.
  */
-function buildContentMap(reportData: any, findings: any[], responses: any[], actions: any[]): SectionContentMap {
+function buildContentMap(reportData: any, findings: any[], responses: any[], actions: any[], priorMatters: ResolvedPriorMatter[]): SectionContentMap {
   return {
     executive_summary: reportData.executive_summary || null,
     background: reportData.background || null,
@@ -65,6 +67,7 @@ function buildContentMap(reportData: any, findings: any[], responses: any[], act
     conclusion: !!(reportData.conclusion || reportData.follow_up_actions),
     distribution: reportData.distribution_list || null,
     approval: true, // always available
+    prior_compliance_history: priorMatters.length > 0,
   };
 }
 
@@ -104,10 +107,11 @@ export function mapReportOutput(
   findings: any[],
   responses: any[],
   actions: any[],
-  departmentName?: string
+  departmentName?: string,
+  priorMatters: ResolvedPriorMatter[] = []
 ): MappedReportOutput {
   const isFinal = reportData.status === 'Final';
-  const content = buildContentMap(reportData, findings, responses, actions);
+  const content = buildContentMap(reportData, findings, responses, actions, priorMatters);
 
   // Filter resolved.sections to only those with content
   const contentCheck: Record<string, boolean> = {
@@ -124,6 +128,7 @@ export function mapReportOutput(
     conclusion: content.conclusion,
     distribution: !!content.distribution,
     approval: content.approval,
+    prior_compliance_history: content.prior_compliance_history,
   };
 
   const enabledWithContent = resolved.sections
