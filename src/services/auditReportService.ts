@@ -19,6 +19,7 @@ import type {
   SignatureType,
 } from '@/types/auditReport';
 import type { InspectionFinding, InspectionEvidence } from '@/types/inspectionTypes';
+import { resolveOnlineResponse } from './onlineResponseResolver';
 
 const nowIso = () => new Date().toISOString();
 const whoami = async () => (await getCurrentUserCode()) ?? 'SYSTEM';
@@ -505,8 +506,24 @@ export const auditReportService = {
   }): Promise<AuditReportAcknowledgment> {
     const userCode = await whoami();
     const token = genToken();
+
+    // Phase 3 — Resolve & snapshot online-response permissions for this ack link.
+    let snap: Awaited<ReturnType<typeof resolveOnlineResponse>>;
+    try {
+      snap = await resolveOnlineResponse({
+        communicationType: 'final_report',
+        reportType: 'audit_report',
+      });
+    } catch {
+      snap = { enabled: false, mode: 'ACKNOWLEDGMENT_ONLY', permissions: {}, review: {} };
+    }
+
+    const ttlHours = snap.ttl_hours ?? (params.expiryDays ?? 14) * 24;
     const expiry = new Date();
-    expiry.setDate(expiry.getDate() + (params.expiryDays ?? 14));
+    expiry.setHours(expiry.getHours() + ttlHours);
+    const dueAt = snap.due_days
+      ? new Date(Date.now() + snap.due_days * 24 * 3600 * 1000).toISOString()
+      : null;
 
     const { data, error } = await supabase
       .from('ce_audit_report_acknowledgments')
@@ -518,6 +535,10 @@ export const auditReportService = {
         link_token: token,
         expires_at: expiry.toISOString(),
         created_by: userCode,
+        portal_resolved_enabled: snap.enabled,
+        portal_resolved_mode: snap.mode,
+        portal_resolved_permissions_json: snap.permissions,
+        response_due_at: dueAt,
       } as any)
       .select('*')
       .single();

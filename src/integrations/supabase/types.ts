@@ -10321,11 +10321,13 @@ export type Database = {
           inspection_id: string | null
           permissions_override_json: Json | null
           portal_expires_at: string | null
+          portal_matched_policy_id: string | null
           portal_resolved_enabled: boolean | null
           portal_resolved_mode:
             | Database["public"]["Enums"]["ce_online_response_mode"]
             | null
           portal_resolved_permissions_json: Json | null
+          portal_resolved_review_json: Json | null
           report_version_id: string | null
           response_due_at: string | null
           response_mode:
@@ -10357,11 +10359,13 @@ export type Database = {
           inspection_id?: string | null
           permissions_override_json?: Json | null
           portal_expires_at?: string | null
+          portal_matched_policy_id?: string | null
           portal_resolved_enabled?: boolean | null
           portal_resolved_mode?:
             | Database["public"]["Enums"]["ce_online_response_mode"]
             | null
           portal_resolved_permissions_json?: Json | null
+          portal_resolved_review_json?: Json | null
           report_version_id?: string | null
           response_due_at?: string | null
           response_mode?:
@@ -10393,11 +10397,13 @@ export type Database = {
           inspection_id?: string | null
           permissions_override_json?: Json | null
           portal_expires_at?: string | null
+          portal_matched_policy_id?: string | null
           portal_resolved_enabled?: boolean | null
           portal_resolved_mode?:
             | Database["public"]["Enums"]["ce_online_response_mode"]
             | null
           portal_resolved_permissions_json?: Json | null
+          portal_resolved_review_json?: Json | null
           report_version_id?: string | null
           response_due_at?: string | null
           response_mode?:
