@@ -215,6 +215,9 @@ class ViolationService {
       .single();
 
     if (error) throw error;
+    // Status changes (resolved/closed) flip canonical counts via the
+    // is_deleted-aware filter — refresh to keep report snapshot in sync.
+    await safeRefreshReportCounts((data as any)?.inspection_id);
     return mapRow(data);
   }
 

@@ -1001,6 +1001,15 @@ export const fieldAuditService = {
       } as any)
       .eq('id', params.findingId);
 
+    // Refresh canonical counts on the audit report (if any) so viewer/print/PDF
+    // immediately reflect the new violation. Best-effort — never blocks creation.
+    try {
+      await this.recomputeReportMetrics(params.inspectionId);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[fieldAuditService] post-violation count refresh failed', e);
+    }
+
     return { id: data.id, violationNumber: data.violation_number };
   },
 
