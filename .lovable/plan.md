@@ -1,76 +1,60 @@
-## Verification Result: Cannot Confirm Yet — Cleanup Required First
-
-### What the C3-Wizard team is asking us to confirm
 
 
-| Claim                                                                                            | Reality on our side                                                                                                                                                                                                                                                                                                           | Status     |
-| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| 1. Outbound base URL read from `C3_WIZARD_BASE_URL` (DB) — no hardcoded URLs                     | **3 frontend files still hardcode** `https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1/wiz-admin-api`                                                                                                                                                                                                                     | ❌ FAIL     |
-| 2. Outbound keys read from `OUTBOUND_ADMIN_API_KEY` / `OUTBOUND_SYNC_API_KEY` — no env fallbacks | **3 frontend files still read** `VITE_WIZ_ADMIN_API_KEY` with hardcoded fallback `"uiop906754drd35fvg"`. **2 edge functions + 1 shared helper still read** `WIZ_ADMIN_API_KEY` / `C3_CONFIG_SYNC_API_KEY` / `C3_WIZARD_SYNC_URL` from `Deno.env`. **1 hook reads** `VITE_C3_WIZARD_SYNC_URL` & `VITE_C3_CONFIG_SYNC_API_KEY`. | ❌ FAIL     |
-| 3. E2E tests pass Dev + Prod                                                                     | Cannot certify until #1 and #2 are clean                                                                                                                                                                                                                                                                                      | ⏸️ BLOCKED |
+## Diagnosis: Two stacked problems
 
+### Real cause #1 — Wizard DB rejects `environment = "Production"`
+Direct call to the Wizard reveals the actual per-row error (which our edge function is throwing away):
+```
+new row for relation "c3_site_settings" violates check constraint
+"chk_site_settings_environment"
+```
+All 5 settings in our DB are seeded with `environment = "Production"`, but the C3-Wizard side's CHECK constraint on `c3_site_settings.environment` only accepts `'Dev' | 'Prod' | 'Both'` (note the short form `Prod`, not `Production`). Every row therefore fails on the Wizard side.
 
-### DB state — verified good ✅
+Why these 5 specifically: they are the only rows in our table whose `environment = 'Production'` — every other row (96 of them) uses `Dev`/`Prod`/`Both` and synced fine in earlier publishes.
 
-- `C3_WIZARD_BASE_URL`, `OUTBOUND_ADMIN_API_KEY`, `OUTBOUND_SYNC_API_KEY` all seeded for Dev + Prod + Production
-- `ACTIVE_ENVIRONMENT = Dev` set
-- `wizApiConfig.ts` (frontend) and `_shared/wizConfig.ts` (edge) helpers exist and work
-- 6 services + 2 edge functions already migrated to use them
+### Real cause #2 — Our sync function masks the real error as "Unknown API error"
+In `wiz-settings-sync/index.ts` `classifyResponse()` (lines 60–78):
+- Wizard responds with `status: "error"` AND `data.results[].error` populated (per-row errors)
+- Our classifier only looks at `apiRes.error` and `apiRes.data?.error` — it never reads `apiRes.data?.results[].error`
+- So `globalError` falls through to the literal string `"Unknown API error"` and that's what gets stored in `sync_error` and shown in the response.
 
-### Files requiring cleanup (8 occurrences)
+The fact that we're seeing this for all 5 rows but it looks like a "global" failure is because the Wizard returns `status: "error"` (not `partial`) when *every* row fails, even though it has rich per-row errors in `data.results`.
 
-**Frontend — replace hardcoded URL + `VITE_WIZ_ADMIN_API_KEY` with `getWizAdminConfig()`:**
+## Fix plan (2 changes, both small)
 
-1. `src/services/wizPaymentService.ts` (lines 6–7, 14–22)
-2. `src/services/wizReportsService.ts` (lines 3–4, plus call site)
-3. `src/services/wizAdminApiService.ts` (lines 1–2, 11–20)
+### A. Data fix — migration (1-liner, safe)
+Update the 5 rows from `environment = 'Production'` → `environment = 'Prod'` to match the Wizard's accepted enum. This is the primary fix and immediately unblocks the publish.
 
-**Frontend hook — replace direct env reads with edge-function proxy (already exists):**
-4. `src/hooks/useC3ConfigPublish.ts` (lines 370–397) — drop the `VITE_C3_WIZARD_SYNC_URL` direct path, always go through `c3-config-sync-publish` edge function
+```sql
+UPDATE c3_site_settings
+   SET environment = 'Prod', is_synced = false, sync_error = null
+ WHERE environment = 'Production';
+```
 
-**Edge functions — drop env-var fallbacks (DB is source of truth):**
-5. `supabase/functions/_shared/wizConfig.ts` (lines 33–46) — remove `Deno.env.get("WIZ_API_URL")`, `C3_WIZARD_SYNC_URL`, `WIZ_ADMIN_API_KEY`, `C3_CONFIG_SYNC_API_KEY` fallbacks; keep only DB lookup + hard error if missing
-6. `supabase/functions/c3-config-sync-publish/index.ts` (lines 17–21, 30) — drop `envSyncUrl` / `envSyncKey`
-7. `supabase/functions/se-wages-sync-publish/index.ts` (lines 17–18, 23–26, 35) — same
+(Also clears the misleading "Unknown API error" message so the next publish reports cleanly.)
 
-**Also fallback strings in `src/lib/wizApiConfig.ts` (lines 16–18):** keep these as last-resort safety since they match current Dev URL — OR remove for full strictness. Recommend **keep** with a `console.warn` (already there) so a misconfigured DB doesn't brick the app instantly.
+### B. Code fix — surface per-row errors (`wiz-settings-sync/index.ts`)
+Update `classifyResponse()` + the three sync loops so that when Wizard returns `status: "error"` with `data.results`, we treat it like `partial` and read per-row `error` fields instead of writing the literal `"Unknown API error"`.
 
-### Plan of action
+Concretely:
+- In `classifyResponse`: if `status === "error"` AND `data?.results?.length > 0` → return `{ ok: true }` (let per-row logic decide).
+- The existing per-row loops already handle `r.status === "error"` and store `r.error` — they just never run today because we short-circuit on the global error.
 
-1. **Edit 7 files** as above (1 PR-sized change set).
-2. **Smoke-test** each touched surface in Dev:
-  - Payment Details list, Reports, generic admin-API screen → wizPayment/Reports/AdminApi services
-  - C3 Config Publish flow → `useC3ConfigPublish` + `c3-config-sync-publish` edge function
-  - SE-Wages publish flow → `se-wages-sync-publish` edge function
-  - Self-Employed list, Reconciliation, Manage Users, C3 Details (already migrated — regression check)
-3. **Reply to C3-Wizard team** confirming all 3 points hold.
-4. **Then** delete the 3 legacy secrets.
+Result going forward: any Wizard validation failure will store the *real* error (e.g. the constraint name) in `sync_error`, not "Unknown API error".
 
-### Your secret-deletion question — answer
+### What I will NOT touch
+- No changes to the Wizard side (their constraint stays as-is — `'Prod'` is the canonical short form).
+- No changes to UI, no changes to the publish button, no changes to other settings.
+- No changes to the 96 already-synced rows.
 
-> Can I remove `C3_CONFIG_SYNC_API_KEY`, `C3_WIZARD_SYNC_URL`, `WIZ_ADMIN_API_KEY`?
+### Verification after deploy
+1. Open `/c3-management/settings-configuration` → pending count drops from 5 to 0 after Publish.
+2. Re-test by intentionally setting one row to an invalid value → confirm `sync_error` now shows the real Wizard message instead of "Unknown API error".
 
-**Not yet.** Today they are still actively read by:
+### Files touched
+- 1 migration (5-row update)
+- 1 edge function (`supabase/functions/wiz-settings-sync/index.ts` — ~10-line change in `classifyResponse`)
 
-- `_shared/wizConfig.ts` → `WIZ_ADMIN_API_KEY`, `C3_CONFIG_SYNC_API_KEY`, `C3_WIZARD_SYNC_URL`
-- `c3-config-sync-publish/index.ts` → `C3_WIZARD_SYNC_URL`, `C3_CONFIG_SYNC_API_KEY`
-- `se-wages-sync-publish/index.ts` → same
+### Note on the team's confirmation
+This issue is **unrelated** to the env-var/secret cleanup we just shipped — auth and URL resolution work correctly (the request reached the Wizard and got a structured error back). It's a pre-existing data/enum mismatch that was masked by the over-broad error classifier. Safe to confirm to the C3-Wizard team that our outbound side is clean; this is a separate fix on our side.
 
-If you delete them right now, C3 publish + SE-wages publish keep working ONLY because the DB values exist — the env-var fallbacks would silently go missing. That's actually fine functionally, but **the cleaner sequence is**: ship the cleanup above → confirm with C3-Wizard team → delete secrets on both sides simultaneously.
-
-**Safe-to-delete-now:** the frontend `VITE_*` envs are not Lovable secrets (they're build-time vars in `.env`); they don't appear in your secrets list and need no action.
-
-### Backward compatibility & rollout
-
-- Hard cutover, no flags. DB values are already live and verified.
-- 5-minute in-memory cache on both sides → first request post-deploy may use stale config; subsequent requests pick up DB.
-- Rollback = redeploy previous edge-function version (env vars still present until you delete them).
-
-### Confirmation message to send (after cleanup ships)
-
-> Confirmed on SSB-Admin side: outbound base URL + admin/sync keys now exclusively sourced from `c3_site_settings` (`C3_WIZARD_BASE_URL`, `OUTBOUND_ADMIN_API_KEY`, `OUTBOUND_SYNC_API_KEY`). All env-var and hardcoded-URL fallbacks removed across 3 services, 1 hook, and 3 edge functions. E2E verified for Dev. Proceed with deletion of `WIZ_ADMIN_API_KEY` and `C3_CONFIG_SYNC_API_KEY` on the C3-Wizard side; we will delete our copies in parallel.
-
-Approve and I will ship the 7-file cleanup.  
-  
-  
-Important note: Make sure, not other existing functionality should be impacted.
