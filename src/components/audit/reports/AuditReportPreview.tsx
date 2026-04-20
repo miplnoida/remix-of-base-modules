@@ -289,6 +289,41 @@ export function AuditReportPreview({
         </div>
       </div>
     ),
+
+    prior_compliance_history: () => priorMatters.length > 0 ? (
+      <div key="prior_compliance_history">
+        <SectionHeading number={nextSection()}>Prior Compliance History</SectionHeading>
+        <p className="text-xs text-muted-foreground mb-3">
+          Previously recorded employer matters linked by the auditor as relevant context for this audit.
+        </p>
+        <div className="rounded-lg border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-muted/50 text-xs">
+                <th className="text-left p-2.5 font-medium">#</th>
+                <th className="text-left p-2.5 font-medium">Type</th>
+                <th className="text-left p-2.5 font-medium">Reference</th>
+                <th className="text-left p-2.5 font-medium">Details</th>
+                <th className="text-left p-2.5 font-medium">Scope</th>
+                <th className="text-left p-2.5 font-medium">Relevance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {priorMatters.map((m, i) => (
+                <tr key={m.link.id} className={`border-t ${i % 2 === 1 ? 'bg-muted/20 print:bg-gray-50' : ''}`}>
+                  <td className="p-2.5 font-medium align-top">{i + 1}</td>
+                  <td className="p-2.5 align-top">{m.matterType.replace(/_/g, ' ')}</td>
+                  <td className="p-2.5 align-top font-medium">{m.primaryLabel}</td>
+                  <td className="p-2.5 align-top">{m.detailLine || '—'}</td>
+                  <td className="p-2.5 align-top capitalize">{m.scope}</td>
+                  <td className="p-2.5 align-top text-muted-foreground">{m.relevanceNote || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    ) : null,
   };
 
   // Build TOC from sections marked includeInToc (not all ordered sections)
