@@ -196,9 +196,9 @@ export default function AuditReportAcknowledgePage() {
 
         {/* Disabled-mode banner */}
         {!gate.canAcknowledge && !gate.canSubmitResponse && !gate.canDispute && gate.disabledReason && (
-          <Card className="no-print border-amber-300 bg-amber-50 dark:bg-amber-950/20">
+          <Card className="no-print border-warning/40 bg-warning/10">
             <CardContent className="pt-6 flex items-start gap-3">
-              <Lock className="h-5 w-5 text-amber-600 mt-0.5" />
+              <Lock className="h-5 w-5 text-warning mt-0.5" />
               <div className="space-y-1">
                 <p className="font-medium text-sm">Read-only access</p>
                 <p className="text-sm text-muted-foreground">{gate.disabledReason}</p>
