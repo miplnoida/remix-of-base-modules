@@ -7,19 +7,36 @@ import { AuditReportTemplateEditor } from '@/components/audit/templates/AuditRep
 import { AuditPlanTemplateEditor } from '@/components/audit/templates/AuditPlanTemplateEditor';
 import { ManagementResponseTemplateEditor } from '@/components/audit/templates/ManagementResponseTemplateEditor';
 
-export default function DocumentTemplateSettings() {
-  const [activeTab, setActiveTab] = useState('foundation');
+export type DocumentTemplateTab = 'foundation' | 'sections' | 'audit_report' | 'audit_plan' | 'mgmt_response';
+
+interface Props {
+  /**
+   * Initial tab to land on. Allows the same page to be reused from multiple
+   * routes (e.g. /compliance/admin/report-templates → 'audit_report',
+   * /compliance/admin/document-foundation → 'foundation').
+   */
+  defaultTab?: DocumentTemplateTab;
+  /** Override page title (defaults to "Document & Output Settings"). */
+  title?: string;
+  /** Override the description shown under the title. */
+  description?: string;
+}
+
+export default function DocumentTemplateSettings({
+  defaultTab = 'foundation',
+  title = 'Document & Output Settings',
+  description = 'Configure shared foundation settings inherited by all audit documents, manage the master section library, and customize type-specific templates.',
+}: Props) {
+  const [activeTab, setActiveTab] = useState<DocumentTemplateTab>(defaultTab);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Document & Output Settings</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configure shared foundation settings inherited by all audit documents, manage the master section library, and customize type-specific templates.
-        </p>
+        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{description}</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as DocumentTemplateTab)}>
         <TabsList className="flex-wrap">
           <TabsTrigger value="foundation" className="gap-2">
             <Building2 className="h-4 w-4" />
