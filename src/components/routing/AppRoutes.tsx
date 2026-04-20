@@ -262,6 +262,7 @@ import PlanApproval from '@/pages/audit/PlanApproval';
 import AuditConfig from '@/pages/audit/AuditConfig';
 const RiskSettings = lazy(() => import('@/pages/audit/RiskSettings'));
 const DocumentTemplateSettings = lazy(() => import('@/pages/audit/DocumentTemplateSettings'));
+const ComplianceReportTemplates = lazy(() => import('@/pages/compliance/admin/ComplianceReportTemplates'));
 const AuditQueries = lazy(() => import('@/pages/audit/AuditQueries'));
 
 const RiskRegister = lazy(() => import('@/pages/audit/RiskRegister'));
