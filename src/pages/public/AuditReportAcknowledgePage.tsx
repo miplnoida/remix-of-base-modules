@@ -20,6 +20,7 @@ import { ShieldCheck, Printer, AlertTriangle } from 'lucide-react';
 import { auditReportService } from '@/services/auditReportService';
 import { AuditReportPrintLayout } from '@/components/compliance/audit-report/AuditReportPrintLayout';
 import { SignaturePad } from '@/components/compliance/audit-report/SignaturePad';
+import { EmployerOnlineSubmissionsPanel } from '@/components/compliance/audit-report/EmployerOnlineSubmissionsPanel';
 import type {
   FullAuditReport,
   AuditReportAcknowledgment,
@@ -295,6 +296,17 @@ export default function AuditReportAcknowledgePage() {
             </CardContent>
           </Card>
         )}
+
+        {/* Phase F — Online responses & disputes */}
+        <EmployerOnlineSubmissionsPanel
+          token={token!}
+          inspectionId={report.inspectionId}
+          findings={findings}
+          acknowledgmentId={ack.id}
+          defaultSubmitterName={ack.recipientName}
+          defaultSubmitterEmail={ack.recipientEmail}
+          defaultSubmitterDesignation={ack.recipientDesignation}
+        />
 
         <p className="text-xs text-muted-foreground text-center">
           This link expires on {formatDateForDisplay(ack.expiresAt)}. Verification: {report.verificationRef ?? 'PENDING'}
