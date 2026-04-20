@@ -62,11 +62,13 @@ export default function EmployerAuditReportViewer() {
     if (!inspectionId) return;
     try {
       setLoading(true);
-      let r = await auditReportService.getReportByInspection(inspectionId);
-      if (!r) {
-        await fieldAuditService.generateEmployerAuditReport(inspectionId);
-        r = await auditReportService.getReportByInspection(inspectionId);
-      }
+      // Always re-hydrate the report snapshot from the canonical visit context.
+      // This back-fills older/stale report rows that were created before
+      // employer interaction data existed, while preserving manual edits via
+      // fieldAuditService.generateEmployerAuditReport()'s coalesceEmpty logic.
+      await fieldAuditService.generateEmployerAuditReport(inspectionId);
+
+      const r = await auditReportService.getReportByInspection(inspectionId);
       if (!r) throw new Error('Could not initialize report');
       hydrate(r);
       const [sigs, vers, evts] = await Promise.all([

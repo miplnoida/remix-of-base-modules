@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { AlertTriangle, CheckCircle, Save, UserCheck } from 'lucide-react';
 import { InspectionVisit, InspectionVisitStatus } from '@/types/inspectionTypes';
 import { supabase } from '@/integrations/supabase/client';
+import { fieldAuditService } from '@/services/fieldAuditService';
 import { toast } from 'sonner';
 
 interface EmployerInteractionTabContentProps {
@@ -132,6 +133,14 @@ export function EmployerInteractionTabContent({ visit, planItemId }: EmployerInt
           .single();
         if (error) throw error;
         setExistingId(data.id);
+      }
+
+      // Keep the report snapshot in sync with the canonical visit context.
+      // Safe for existing reports because report generation preserves manual edits.
+      try {
+        await fieldAuditService.generateEmployerAuditReport(visit.id);
+      } catch (syncError) {
+        console.warn('Employer interaction saved, but report sync failed:', syncError);
       }
 
       toast.success('Employer interaction saved');

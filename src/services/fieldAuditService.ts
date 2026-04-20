@@ -1160,12 +1160,22 @@ export const fieldAuditService = {
   async evaluateCompletionGate(inspectionId: string): Promise<CompletionGateResult> {
     const cfg = await this.getCompletionGateConfig('GLOBAL');
     const metrics: any = (await this.getVisitMetrics(inspectionId)) ?? {};
-    const findings = await this.getFindingsForVisit(inspectionId);
-    const { data: report } = await supabase
-      .from('ce_employer_audit_reports')
-      .select('id,status')
-      .eq('inspection_id', inspectionId)
-      .maybeSingle();
+    const [findings, reportRes, interactionRes] = await Promise.all([
+      this.getFindingsForVisit(inspectionId),
+      supabase
+        .from('ce_employer_audit_reports')
+        .select('id,status')
+        .eq('inspection_id', inspectionId)
+        .maybeSingle(),
+      supabase
+        .from('ce_inspection_employer_interactions')
+        .select('id, representative_name, representative_designation, representative_contact, authorization_status, records_declaration')
+        .eq('inspection_id', inspectionId)
+        .maybeSingle(),
+    ]);
+
+    const report = reportRes.data;
+    const interaction = interactionRes.data as any;
 
     const checklistTotal = metrics.checklist_total ?? 0;
     const checklistAnswered = metrics.checklist_answered ?? 0;
@@ -1173,6 +1183,10 @@ export const fieldAuditService = {
 
     const findingsCount = findings.length;
     const evidenceCount = metrics.evidence_count ?? 0;
+    const interactionCaptured = !!interaction?.id;
+    const interactionDetail = interactionCaptured
+      ? [interaction?.representative_name, interaction?.representative_designation].filter(Boolean).join(' — ') || 'Recorded'
+      : 'Not recorded';
 
     const sevOrder = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 } as const;
     const threshold = cfg.requireFollowupsForSeverity ? sevOrder[cfg.requireFollowupsForSeverity] : null;
@@ -1187,6 +1201,13 @@ export const fieldAuditService = {
       findingsNeedingFollowup.every((f) => f.followUpRequired);
 
     const checks: CompletionGateResult['checks'] = [
+      {
+        key: 'interaction',
+        label: 'Employer interaction captured',
+        required: true,
+        passed: interactionCaptured,
+        detail: interactionDetail,
+      },
       {
         key: 'checklist',
         label: 'Checklist completed',

@@ -162,11 +162,21 @@ describe('Field audit linking — integration', () => {
     registerTable('ce_inspections', {
       selectMaybeSingle: { id: 'i-9', employer_id: 'e-1', plan_item_id: 'pi-9', employer_name: 'Acme', inspector_id: 'u-1' },
     });
+    registerTable('er_master', {
+      selectMaybeSingle: { id: 'e-1', regno: 'REG-1', hq_addr1: 'Main Street', hq_addr2: 'Basseterre', name: 'Acme' },
+    });
     registerTable('ce_audit_checklist_responses', { selectList: [] });
     registerTable('ce_inspection_evidence', { selectList: [] });
     registerTable('ce_inspection_findings', { selectList: [] });
     registerTable('ce_violations', { selectList: [], update: {} });
-    registerTable('ce_inspection_employer_interactions', { selectMaybeSingle: null });
+    registerTable('ce_inspection_employer_interactions', {
+      selectMaybeSingle: {
+        id: 'int-9',
+        representative_name: 'BHARAT DHALL',
+        representative_designation: 'HR MANAGER',
+        employer_acknowledged: true,
+      },
+    });
     registerTable('ce_inspection_working_papers', { selectList: [] });
     registerTable('ce_v_visit_execution_metrics', {
       selectMaybeSingle: { findings_count: 0, evidence_count: 0, violations_count: 0, checklist_pct: 0 },
@@ -180,13 +190,39 @@ describe('Field audit linking — integration', () => {
     expect(r.id).toBe('rep-9');
 
     const ins = getInserts('ce_employer_audit_reports')[0];
-    expect(ins.plan_item_id).toBe('pi-9'); // <-- plan rollup linkage
+    expect(ins.plan_item_id).toBe('pi-9');
     expect(ins.inspection_id).toBe('i-9');
+    expect(ins.audit_contact_name).toBe('BHARAT DHALL');
+    expect(ins.audit_contact_designation).toBe('HR MANAGER');
 
-    // Back-fill update on violations table happened
     const violationUpdates = getUpdates('ce_violations');
     expect(violationUpdates.length).toBeGreaterThan(0);
     expect(violationUpdates[0].audit_report_id).toBe('rep-9');
+  });
+
+  it('Completion gate requires employer interaction captured instead of report-side re-entry', async () => {
+    registerTable('completion_gate_configs', {
+      selectMaybeSingle: {
+        id: 'cfg-1',
+        scope: 'GLOBAL',
+        enforcement_mode: 'STRICT',
+        require_checklist_complete: false,
+        require_findings_recorded: false,
+        require_report_saved: false,
+        require_followups_for_severity: null,
+        require_evidence_min_count: 0,
+        override_requires_role: null,
+        is_active: true,
+      },
+    });
+    registerTable('ce_v_visit_execution_metrics', { selectMaybeSingle: { checklist_total: 0, checklist_answered: 0, evidence_count: 0 } });
+    registerTable('ce_inspection_findings', { selectList: [] });
+    registerTable('ce_employer_audit_reports', { selectMaybeSingle: null });
+    registerTable('ce_inspection_employer_interactions', { selectMaybeSingle: null });
+
+    const gate = await fieldAuditService.evaluateCompletionGate('i-77');
+    expect(gate.ready).toBe(false);
+    expect(gate.missingRequired).toContain('Employer interaction captured');
   });
 
   it('Visit → Evidence (with checklist link): evidence captures checklist_response_id when supplied', async () => {
