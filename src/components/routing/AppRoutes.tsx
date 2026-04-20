@@ -33,7 +33,7 @@ import ViolationsManagement from '@/pages/compliance/violations/ViolationsManage
 import ViolationDetails from '@/pages/compliance/violations/ViolationDetails';
 import InspectorPlans from '@/pages/compliance/audit-planning/InspectorPlans';
 import PaymentArrangements from '@/pages/compliance/arrangements/PaymentArrangements';
-import FieldOperations from '@/pages/compliance/inspections/FieldOperations';
+// Retired: FieldOperations (hard cutover)
 import NoticesManagement from '@/pages/compliance/legal/NoticesManagement';
 import EmployerStatements from '@/pages/compliance/employers/EmployerStatements';
 import ComplianceSettings from '@/pages/compliance/settings/ComplianceSettings';
@@ -49,8 +49,7 @@ import ArrangementReports from '@/pages/compliance/reports/ArrangementReports';
 import LegalEscalationReports from '@/pages/compliance/reports/LegalEscalationReports';
 import RiskSamplingSettings from '@/pages/compliance/sampling/RiskSamplingSettings';
 import SamplingDashboard from '@/pages/compliance/sampling/SamplingDashboard';
-import MonthlyAuditCandidates from '@/pages/compliance/sampling/MonthlyAuditCandidates';
-import MyUpcomingAudits from '@/pages/compliance/sampling/MyUpcomingAudits';
+// Retired: MonthlyAuditCandidates, MyUpcomingAudits (hard cutover)
 import EmployerRiskProfile from '@/pages/compliance/sampling/EmployerRiskProfile';
 import LegalEscalationPolicy from '@/pages/compliance/settings/LegalEscalationPolicy';
 import LegalRecommendationQueue from '@/pages/compliance/legal/LegalRecommendationQueue';
@@ -58,6 +57,7 @@ import LegalReferralWizard from '@/pages/compliance/legal/LegalReferralWizard';
 import RiskRulePolicy from '@/pages/compliance/settings/RiskRulePolicy';
 
 // New Compliance & Enforcement pages
+import WorkbenchLanding from '@/pages/compliance/workbench/WorkbenchLanding';
 import ComplianceManagerDashboard from '@/pages/compliance/dashboards/ManagerDashboard';
 import ComplianceInspectorDashboard from '@/pages/compliance/dashboards/InspectorDashboard';
 import ComplianceLegalDashboard from '@/pages/compliance/dashboards/LegalDashboard';
@@ -65,7 +65,7 @@ import ComplianceCaseManagement from '@/pages/compliance/cases/CaseManagement';
 import ComplianceCaseQueue from '@/pages/compliance/cases/CaseQueue';
 import ComplianceCaseDetailView from '@/pages/compliance/cases/CaseDetailView';
 
-import ComplianceInspectionManagement from '@/pages/compliance/inspections/InspectionManagement';
+// Retired: ComplianceInspectionManagement (hard cutover)
 import ComplianceBreachMonitoring from '@/pages/compliance/arrangements/BreachMonitoring';
 import ComplianceLegalQueue from '@/pages/compliance/legal/LegalQueue';
 import ComplianceLegalProceedings from '@/pages/compliance/legal/LegalProceedingsPage';
@@ -84,7 +84,7 @@ import WeeklyPlanBuilder from '@/pages/compliance/audit-planning/WeeklyPlanBuild
 import MyPlans from '@/pages/compliance/audit-planning/MyPlans';
 import AllWeeklyReports from '@/pages/compliance/audit-planning/AllWeeklyReports';
 import FieldExecution from '@/pages/compliance/audit-planning/FieldExecution';
-import WeeklyReports from '@/pages/compliance/audit-planning/WeeklyReports';
+// Retired: WeeklyReports (use AllWeeklyReports at /compliance/field/all-reports)
 import CompliancePendingReview from '@/pages/compliance/audit-planning/PendingReview';
 import { WeeklyPlanReview } from '@/pages/compliance/audit-planning/WeeklyPlanReview';
 import PlanExecutionDashboard from '@/pages/compliance/audit-planning/PlanExecutionDashboard';
@@ -977,6 +977,7 @@ export const AppRoutes = () => {
           ═══════════════════════════════════════════════════════════════ */}
 
       {/* ── Workbench ── */}
+      <Route path="/compliance/workbench" element={<ProtectedLayout><WorkbenchLanding /></ProtectedLayout>} />
       <Route path="/compliance/workbench/manager" element={<ProtectedLayout><ComplianceManagerDashboard /></ProtectedLayout>} />
       <Route path="/compliance/workbench/inspector" element={<ProtectedLayout><ComplianceInspectorDashboard /></ProtectedLayout>} />
       <Route path="/compliance/workbench/legal" element={<ProtectedLayout><ComplianceLegalDashboard /></ProtectedLayout>} />
@@ -1003,8 +1004,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/field/pending-review" element={<ProtectedLayout><CompliancePendingReview /></ProtectedLayout>} />
       <Route path="/compliance/field/pending-review/:planId" element={<ProtectedLayout><WeeklyPlanReview /></ProtectedLayout>} />
       <Route path="/compliance/field/execution" element={<ProtectedLayout><FieldExecution /></ProtectedLayout>} />
-      <Route path="/compliance/field/operations" element={<ProtectedLayout><FieldOperations /></ProtectedLayout>} />
-      <Route path="/compliance/field/inspections" element={<ProtectedLayout><ComplianceInspectionManagement /></ProtectedLayout>} />
+      {/* Retired (hard cutover): /compliance/field/operations, /compliance/field/inspections — see .lovable/plan.md */}
       <Route path="/compliance/field/findings" element={<ProtectedLayout><EmployerFindings /></ProtectedLayout>} />
       <Route path="/compliance/field/employer-statements" element={<ProtectedLayout><EmployerStatements /></ProtectedLayout>} />
       <Route path="/compliance/field/employer-statement/:employerId" element={<ProtectedLayout><EmployerStatementDetail /></ProtectedLayout>} />
@@ -1017,7 +1017,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/employers/financial-statement/:employerId" element={<ProtectedLayout><EmployerFinancialStatement /></ProtectedLayout>} />
       <Route path="/compliance/field/audit-management" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
       <Route path="/compliance/field/weekly-report" element={<ProtectedLayout><WeeklyReportSubmission /></ProtectedLayout>} />
-      <Route path="/compliance/field/weekly-reports" element={<ProtectedLayout><WeeklyReports /></ProtectedLayout>} />
+      {/* Retired (hard cutover): /compliance/field/weekly-reports — use /compliance/field/all-reports */}
       <Route path="/compliance/field/all-reports" element={<ProtectedLayout><AllWeeklyReports /></ProtectedLayout>} />
       <Route path="/compliance/field/execution-dashboard/:planId" element={<ProtectedLayout><PlanExecutionDashboard /></ProtectedLayout>} />
       <Route path="/compliance/field/execution-dashboard/:planId/visit/:planItemId" element={<ProtectedLayout><AuditVisitWorkspace /></ProtectedLayout>} />
@@ -1025,9 +1025,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/field/audit-report/:inspectionId" element={<ProtectedLayout><EmployerAuditReportViewer /></ProtectedLayout>} />
       <Route path="/compliance/field/audit-report/:reportId/print/:variant" element={<ProtectedRoute><AuditReportPrintPage /></ProtectedRoute>} />
       <Route path="/compliance/field/weekly-report-review" element={<ProtectedLayout><WeeklyReportReview /></ProtectedLayout>} />
-      <Route path="/compliance/field/my-upcoming" element={<ProtectedLayout><MyUpcomingAudits /></ProtectedLayout>} />
+      {/* Retired (hard cutover): /compliance/field/my-upcoming */}
       <Route path="/compliance/field/sampling" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/field/sampling/candidates" element={<ProtectedLayout><MonthlyAuditCandidates /></ProtectedLayout>} />
+      {/* Retired (hard cutover): /compliance/field/sampling/candidates — folded into Sampling Dashboard */}
 
       {/* ── Enforcement — legal, notices, arrangements, waivers ── */}
       <Route path="/compliance/enforcement/recommendation-queue" element={<ProtectedLayout><LegalRecommendationQueue /></ProtectedLayout>} />
@@ -1107,8 +1107,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/audit-planning/pending-review/:planId" element={<Navigate to="/compliance/field/pending-review" replace />} />
       <Route path="/compliance/audit-planning/field-execution" element={<Navigate to="/compliance/field/execution" replace />} />
       <Route path="/compliance/inspections/field-execution" element={<Navigate to="/compliance/field/execution" replace />} />
-      <Route path="/compliance/inspections/field-operations" element={<Navigate to="/compliance/field/operations" replace />} />
-      <Route path="/compliance/inspections" element={<Navigate to="/compliance/field/inspections" replace />} />
+      {/* Retired redirect targets removed (hard cutover): field-operations, inspections */}
       <Route path="/compliance/employers/findings" element={<Navigate to="/compliance/field/findings" replace />} />
       <Route path="/compliance/employer-statements" element={<Navigate to="/compliance/field/employer-statements" replace />} />
       <Route path="/compliance/employer-statement/:employerId" element={<Navigate to="/compliance/field/employer-statements" replace />} />
@@ -1120,9 +1119,10 @@ export const AppRoutes = () => {
       <Route path="/compliance/employer" element={<Navigate to="/compliance/field/employer-statements" replace />} />
       <Route path="/compliance/audits" element={<Navigate to="/compliance/field/audit-management" replace />} />
       <Route path="/compliance/violations/weekly-reports" element={<Navigate to="/compliance/field/weekly-report" replace />} />
-      <Route path="/compliance/audit-planning/weekly-reports" element={<Navigate to="/compliance/field/weekly-reports" replace />} />
+      <Route path="/compliance/audit-planning/weekly-reports" element={<Navigate to="/compliance/field/all-reports" replace />} />
       <Route path="/compliance/audit-planning/all-reports" element={<Navigate to="/compliance/field/all-reports" replace />} />
-      <Route path="/compliance/my-audits/upcoming" element={<Navigate to="/compliance/field/my-upcoming" replace />} />
+      {/* Retired redirect targets removed (hard cutover): my-upcoming */}
+      {/* Retired (hard cutover): /compliance/my-audits/upcoming */}
       <Route path="/compliance/audit-planning/sampling-dashboard" element={<Navigate to="/compliance/field/sampling" replace />} />
       <Route path="/compliance/sampling" element={<Navigate to="/compliance/field/sampling" replace />} />
       <Route path="/compliance/audit-planning/monthly-candidates" element={<Navigate to="/compliance/field/sampling/candidates" replace />} />
