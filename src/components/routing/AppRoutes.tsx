@@ -77,6 +77,8 @@ import ComplianceViolationTypes from '@/pages/compliance/settings/ViolationTypes
 import ComplianceNumberTemplates from '@/pages/compliance/settings/NumberTemplates';
 import ComplianceRiskScoringConfig from '@/pages/compliance/settings/RiskScoringConfig';
 import ComplianceTemplates from '@/pages/compliance/settings/ComplianceTemplates';
+import AuditCommunicationTemplatesPage from '@/pages/compliance/admin/AuditCommunicationTemplatesPage';
+import OnlineResponseConfigPage from '@/pages/compliance/admin/OnlineResponseConfigPage';
 import WeeklyPlanBuilder from '@/pages/compliance/audit-planning/WeeklyPlanBuilder';
 import MyPlans from '@/pages/compliance/audit-planning/MyPlans';
 import AllWeeklyReports from '@/pages/compliance/audit-planning/AllWeeklyReports';
