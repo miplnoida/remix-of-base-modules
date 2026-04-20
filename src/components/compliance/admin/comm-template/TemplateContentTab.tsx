@@ -4,8 +4,22 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent } from '@/components/ui/card';
-import type { AuditCommunicationTemplate, CeCommChannel, CeCommType } from '@/types/auditCommunication';
-import { COMM_TYPE_LABELS, COMM_CATEGORY_LABELS } from '@/types/auditCommunication';
+import { Info } from 'lucide-react';
+import type {
+  AuditCommunicationTemplate,
+  CeCommChannel,
+  CeCommType,
+  CeCommLifecycleStage,
+  CeReportTemplateType,
+} from '@/types/auditCommunication';
+import {
+  COMM_TYPE_LABELS,
+  COMM_CATEGORY_LABELS,
+  COMM_LIFECYCLE_STAGE_LABELS,
+  COMM_LIFECYCLE_STAGE_ORDER,
+  COMM_LIFECYCLE_STAGE_HINTS,
+  REPORT_TEMPLATE_TYPE_LABELS,
+} from '@/types/auditCommunication';
 
 interface Props {
   draft: Partial<AuditCommunicationTemplate>;
@@ -44,6 +58,23 @@ export default function TemplateContentTab({ draft, onChange }: Props) {
             </Select>
           </div>
           <div>
+            <Label>Lifecycle stage *</Label>
+            <Select
+              value={draft.lifecycle_stage ?? undefined}
+              onValueChange={(v) => onChange({ lifecycle_stage: v as CeCommLifecycleStage })}
+            >
+              <SelectTrigger><SelectValue placeholder="Select audit lifecycle stage" /></SelectTrigger>
+              <SelectContent>
+                {COMM_LIFECYCLE_STAGE_ORDER.map((s) => (
+                  <SelectItem key={s} value={s}>{COMM_LIFECYCLE_STAGE_LABELS[s]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {draft.lifecycle_stage && (
+              <p className="text-xs text-muted-foreground mt-1">{COMM_LIFECYCLE_STAGE_HINTS[draft.lifecycle_stage]}</p>
+            )}
+          </div>
+          <div>
             <Label>Channel *</Label>
             <Select value={draft.channel} onValueChange={(v) => onChange({ channel: v as CeCommChannel })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -53,6 +84,25 @@ export default function TemplateContentTab({ draft, onChange }: Props) {
                 <SelectItem value="both">Both</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div>
+            <Label>Linked report template</Label>
+            <Select
+              value={draft.linked_report_template_type ?? '__none__'}
+              onValueChange={(v) => onChange({ linked_report_template_type: v === '__none__' ? null : (v as CeReportTemplateType) })}
+            >
+              <SelectTrigger><SelectValue placeholder="None — communication only" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">None — communication only</SelectItem>
+                {Object.entries(REPORT_TEMPLATE_TYPE_LABELS).map(([k, l]) => (
+                  <SelectItem key={k} value={k}>{l}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1 flex items-start gap-1">
+              <Info className="h-3 w-3 mt-0.5 shrink-0" />
+              This tab controls <b>how/when</b> the message is sent. The linked report template controls <b>what document</b> is attached.
+            </p>
           </div>
           <div>
             <Label>Sort order</Label>

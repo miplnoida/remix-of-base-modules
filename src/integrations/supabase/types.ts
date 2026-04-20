@@ -10342,6 +10342,8 @@ export type Database = {
           email_subject: string | null
           id: string
           is_active: boolean
+          lifecycle_stage: string | null
+          linked_report_template_type: string | null
           merge_fields_json: Json
           preview_sample_json: Json
           recipient_rule_json: Json
@@ -10374,6 +10376,8 @@ export type Database = {
           email_subject?: string | null
           id?: string
           is_active?: boolean
+          lifecycle_stage?: string | null
+          linked_report_template_type?: string | null
           merge_fields_json?: Json
           preview_sample_json?: Json
           recipient_rule_json?: Json
@@ -10406,6 +10410,8 @@ export type Database = {
           email_subject?: string | null
           id?: string
           is_active?: boolean
+          lifecycle_stage?: string | null
+          linked_report_template_type?: string | null
           merge_fields_json?: Json
           preview_sample_json?: Json
           recipient_rule_json?: Json
@@ -13221,6 +13227,7 @@ export type Database = {
           is_mandatory: boolean
           is_shared: boolean
           label: string
+          lifecycle_tags: string[]
           section_key: string
           updated_at: string
         }
@@ -13238,6 +13245,7 @@ export type Database = {
           is_mandatory?: boolean
           is_shared?: boolean
           label: string
+          lifecycle_tags?: string[]
           section_key: string
           updated_at?: string
         }
@@ -13255,6 +13263,7 @@ export type Database = {
           is_mandatory?: boolean
           is_shared?: boolean
           label?: string
+          lifecycle_tags?: string[]
           section_key?: string
           updated_at?: string
         }

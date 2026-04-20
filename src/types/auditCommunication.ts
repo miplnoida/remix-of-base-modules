@@ -25,6 +25,23 @@ export type CeCommDeliveryStatus =
 
 export type CeCommRecipientSource = 'visit_contact' | 'compliance_contact' | 'er_master' | 'manual';
 
+/** Employer-audit lifecycle stage — drives admin grouping and coverage matrix. */
+export type CeCommLifecycleStage =
+  | 'pre_visit'
+  | 'during_audit'
+  | 'post_review'
+  | 'final_enforcement'
+  | 'reminders_escalation';
+
+/** Report template_type values produced by the CE report-template module. */
+export type CeReportTemplateType =
+  | 'employer_audit_report'
+  | 'findings_memo'
+  | 'evidence_summary'
+  | 'violation_notice'
+  | 'enforcement_pack'
+  | 'management_summary';
+
 export interface CommApprovalRule {
   roles: CeCommApprovalRole[];
 }
@@ -99,6 +116,10 @@ export interface AuditCommunicationTemplate {
   requires_approval_before_send: boolean;
   reschedule_allowed: boolean;
   cancel_on_status_change_json: CeCommStopCondition[];
+  /** Employer-audit lifecycle stage (additive; nullable for legacy rows). */
+  lifecycle_stage?: CeCommLifecycleStage | null;
+  /** Optional formal link to a Compliance report template (ce_document_templates.type). */
+  linked_report_template_type?: CeReportTemplateType | null;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -285,4 +306,41 @@ export const COMM_CATEGORY_LABELS: Record<string, string> = {
   during_audit: 'During Audit',
   post_approval: 'Post-Approval',
   general: 'General',
+};
+
+/** Lifecycle stage labels — primary grouping for the admin UI. */
+export const COMM_LIFECYCLE_STAGE_LABELS: Record<CeCommLifecycleStage, string> = {
+  pre_visit: 'Pre-Visit / Pre-Intimation',
+  during_audit: 'During Audit',
+  post_review: 'Post-Review / Pre-Final',
+  final_enforcement: 'Final / Enforcement',
+  reminders_escalation: 'Reminders & Escalation',
+};
+
+/** Display order for lifecycle groups in the admin UI. */
+export const COMM_LIFECYCLE_STAGE_ORDER: CeCommLifecycleStage[] = [
+  'pre_visit',
+  'during_audit',
+  'post_review',
+  'final_enforcement',
+  'reminders_escalation',
+];
+
+/** Short descriptions shown next to each lifecycle group. */
+export const COMM_LIFECYCLE_STAGE_HINTS: Record<CeCommLifecycleStage, string> = {
+  pre_visit: 'Before the inspector reaches the employer (intimation, books-required, visit reminder).',
+  during_audit: 'While the audit is in progress (info/clarification requests, interim findings, evidence summary).',
+  post_review: 'After internal review, before final issuance (draft findings, acknowledgment, dispute instructions).',
+  final_enforcement: 'Final report, violation notice, and corrective action — typically approval-controlled.',
+  reminders_escalation: 'Recurring due-date reminders and event-driven escalation notices.',
+};
+
+/** Employer-audit-relevant report template options shown in the editor. */
+export const REPORT_TEMPLATE_TYPE_LABELS: Record<CeReportTemplateType, string> = {
+  employer_audit_report: 'Employer Audit Report',
+  findings_memo: 'Findings Memo',
+  evidence_summary: 'Evidence Summary',
+  violation_notice: 'Violation Notice',
+  enforcement_pack: 'Legal / Enforcement Pack',
+  management_summary: 'Management Summary',
 };
