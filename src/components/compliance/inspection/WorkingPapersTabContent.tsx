@@ -176,7 +176,7 @@ export function WorkingPapersTabContent({ visit, planItemId }: WorkingPapersTabC
       <div className="flex items-center justify-between p-3 rounded-lg bg-accent/50 border">
         <div className="flex items-center gap-2">
           <ClipboardCheck className="h-5 w-5 text-primary" />
-          <span className="font-medium">Audit Checklist Completion</span>
+          <span className="font-medium">Working Papers Completion</span>
         </div>
         <Badge variant="outline" className={completion >= 80 ? 'bg-success/10 text-success' : completion >= 40 ? 'bg-warning/10 text-warning' : 'bg-muted'}>
           {completion}%
