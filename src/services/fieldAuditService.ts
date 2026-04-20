@@ -1467,14 +1467,14 @@ export const fieldAuditService = {
 
     const inspectionId = (inspection as any)?.id;
 
-    let metrics: any = null;
+    let metricsRaw: any = null;
     let evidence: InspectionEvidence[] = [];
     let findings: InspectionFinding[] = [];
     let report: EmployerAuditReportRow | null = null;
     let gate: CompletionGateResult | null = null;
 
     if (inspectionId) {
-      [metrics, evidence, findings, report, gate] = await Promise.all([
+      [metricsRaw, evidence, findings, report, gate] = await Promise.all([
         this.getVisitMetrics(inspectionId),
         this.getEvidenceForVisit(inspectionId),
         this.getFindingsForVisit(inspectionId),
@@ -1482,6 +1482,45 @@ export const fieldAuditService = {
         this.evaluateCompletionGate(inspectionId),
       ]);
     }
+
+    // Follow-up count for this employer (carry-over indicator)
+    let followUpCount = 0;
+    const employerId = (inspection as any)?.employer_id;
+    if (employerId) {
+      const { count } = await supabase
+        .from('ce_follow_ups')
+        .select('id', { count: 'exact', head: true })
+        .eq('employer_id', employerId)
+        .eq('is_deleted', false);
+      followUpCount = count ?? 0;
+    }
+
+    // Normalize snake_case view row → camelCase shape consumed by KPI cards.
+    // Fall back to actual array lengths so totals always match what's listed
+    // in the Evidence / Findings tabs (single source of truth = the data itself).
+    const metrics = metricsRaw
+      ? {
+          checklistTotal: Number(metricsRaw.checklist_total ?? 0),
+          checklistAnswered: Number(metricsRaw.checklist_answered ?? 0),
+          checklistPct: Number(metricsRaw.checklist_pct ?? 0),
+          evidenceCount: evidence.length || Number(metricsRaw.evidence_count ?? 0),
+          findingsCount: findings.length || Number(metricsRaw.findings_count ?? 0),
+          violationsCount: Number(metricsRaw.violations_count ?? 0),
+          hasReport: !!report || !!metricsRaw.report_id,
+          reportStatus: report?.status ?? metricsRaw.report_status ?? undefined,
+          followUpCount,
+        }
+      : {
+          checklistTotal: 0,
+          checklistAnswered: 0,
+          checklistPct: 0,
+          evidenceCount: evidence.length,
+          findingsCount: findings.length,
+          violationsCount: 0,
+          hasReport: !!report,
+          reportStatus: report?.status,
+          followUpCount,
+        };
 
     return {
       planItem,
