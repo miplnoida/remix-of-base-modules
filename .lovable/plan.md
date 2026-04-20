@@ -1,145 +1,238 @@
-# Employer Compliance History & Audit Linkage — Architecture & Phased Plan
+# Audit Communication Templates — Full Editable Templates + Scheduling Engine
 
-> **Pivot:** No new "Audit Case" parent. Cases (`ce_cases`) are still created **only on violation escalation** — that route stays as-is. This plan instead **surfaces existing employer compliance history everywhere the audit officer works**, lets them **manually link** prior matters to the current visit/finding, and lets **report templates decide** what shows in the report.
+> Plan-only document. No code changes will be made until each phase below is explicitly approved.
 
----
+## 1. Architecture Summary
 
-## Goal
-Give audit officers full visibility of an employer's compliance posture (past + open) inside:
-- Employer 360
-- Audit Visit Workspace
-- Audit Report editor / preview
-- Audit Communications panel
+Three concerns, kept strictly separate:
 
-…and let them attach any prior matter to the current visit or a specific finding when relevant. Reports include prior-matter sections **only when the chosen report template enables them** (auto-fill from posture + manual links).
+| Layer | Purpose | Tables / Functions |
+|---|---|---|
+| **A. Template configuration** (Admin) | Authoring of message content, sections, rules, actions, scheduling policy | `ce_audit_communication_templates` (extended), `ce_audit_communication_template_sections`, **new** `ce_audit_communication_template_actions`, **new** `ce_audit_communication_schedule_policies` |
+| **B. Communication instance / draft workflow** (Officer) | Per-employer/per-inspection drafts: edit, recipients, schedule, recurrence, approve, send, cancel, reschedule | `ce_audit_communications` (extended with `recurrence_*`, `parent_communication_id`, `dispatch_attempts`, `last_dispatch_error`, `dispatch_locked_at`), recipients/approvals/deliveries/events tables |
+| **C. Automatic dispatch & materialization** (System) | Time-relative materialization (cron) + event-driven materialization (hooks) + queue dispatcher | Edge fns: `ce-audit-communication-dispatch` (extend), **new** `ce-audit-communication-materialize`; pg_cron every 15 min; app-side hooks on inspection/report/case lifecycle |
 
----
-
-## Architecture Summary
-
-### What we **do not** add
-- No `ce_employer_audit_cases` parent.
-- No new case-types catalog.
-- No auto-load of prior matters into a case.
-- No new approval engine for resolution actions — reuse what's already configured per scope/case-type.
-
-### What we **add** (small & targeted)
-
-1. **One read-only aggregator service** — `employerComplianceHistoryService` — bundles the employer's "full posture" for the panel:
-   - Past inspections (`ce_inspections`)
-   - Past audit reports (`ce_employer_audit_reports`)
-   - Open & closed compliance cases (`ce_cases`)
-   - Open violations (`ce_violations`)
-   - Active payment arrangements (`ce_payment_arrangements`)
-   - Active legal proceedings / referrals (`ce_legal_proceedings`, `ce_legal_referrals`)
-   - Open follow-up actions (`ce_follow_up_actions`)
-   - Recent disputes (`ce_audit_disputes`)
-   - Ledger overdue snapshot (`ce_employer_financial_ledger`)
-
-2. **One reusable panel** — `EmployerComplianceHistoryPanel` — used in Employer 360, Audit Visit Workspace, Audit Report editor, Comms. Filterable by category (Cases / Violations / Arrangements / Legal / Follow-ups / Reports / Inspections / Disputes).
-
-3. **One small linkage table** — `ce_audit_prior_matter_links` — manual attachments at **either visit or finding level**.
-   ```
-   id                 uuid PK
-   inspection_id      uuid (nullable) → ce_inspections
-   finding_id         uuid (nullable) → ce_inspection_findings
-   matter_type        text   -- 'CASE' | 'VIOLATION' | 'ARRANGEMENT' | 'LEGAL' | 'FOLLOW_UP' | 'PAST_INSPECTION' | 'PAST_REPORT' | 'DISPUTE'
-   matter_id          text   -- id of the linked entity (uuid or business key as appropriate)
-   relevance_note     text
-   linked_by          varchar(50)
-   linked_at          timestamptz
-   is_active          bool default true
-   ```
-   - CHECK constraint: exactly one of `inspection_id` or `finding_id` is non-null.
-   - Indexes on (inspection_id), (finding_id), (matter_type, matter_id).
-
-4. **Report template sections** — extend the **existing** report template/section model with new optional section keys:
-   - `PRIOR_MATTERS`
-   - `OPEN_CASES`
-   - `OPEN_VIOLATIONS`
-   - `ACTIVE_ARRANGEMENTS`
-   - `LEGAL_STATUS`
-   - `OPEN_FOLLOW_UPS`
-   - `LINKED_PRIOR_MATTERS` (only items manually linked to this visit/finding)
-
-   When the report renders, each enabled section pulls from:
-   - the posture aggregator (auto, scoped to employer + period filter on the section), AND/OR
-   - `ce_audit_prior_matter_links` for the visit (manual links).
-
-   Admin can toggle sections per template; whatever's in the template = what appears in the report.
-
-5. **Surface in Comms** — comms editor lets the officer attach a "Prior matter context" snippet generated from the same posture aggregator, so emails/SMS to the employer can reference open cases / arrangements when relevant. Optional and template-driven.
+**Key principle**: templates are *config*; communications are *instances*. Schedules live on templates as **policies**; instances carry a *snapshot* + their own `scheduled_at` / recurrence state, so editing a template never mutates in-flight items.
 
 ---
 
-## Schema Changes (single migration, additive only)
+## 2. Current Gap Analysis (verified against DB + code)
 
-1. Create `ce_audit_prior_matter_links` (above).
-2. Add `included_section_keys text[]` to existing report-template table (if not present), seeded with current keys; add the 7 new optional section keys to the admin enum/whitelist.
-   - On read, the report renderer treats absent → off, present → on.
-3. **No** changes to `ce_cases`, `ce_violations`, `ce_payment_arrangements`, `ce_legal_*`, `ce_inspections`, `ce_follow_up_actions`, `ce_audit_communications`, `ce_employer_audit_reports`.
+✅ Already exists:
+- `ce_audit_communication_templates` with subject/body, sections, rules JSON, online-response mode
+- `ce_audit_communication_template_sections` with sort + enable
+- `ce_audit_communications` with `scheduled_at`, status lifecycle, approvals, deliveries, events
+- Edge fn `ce-audit-communication-dispatch` (basic time-due dispatcher)
+- `auditCommunicationTemplateService` (CRUD), `auditCommunicationService` (instance ops, 373 LOC)
+- Admin page exists but **read-only** (`AuditCommunicationTemplatesPage.tsx` — list + active toggle only)
 
-(Per project knowledge: **no RLS** — role-based access only. Audit trail via existing `auditService.logAuditTrail`.)
+❌ Gaps:
+- No template **editor** (cannot create/edit/clone from UI)
+- No section management UI
+- No structured **actions** model — only free-form `attachment_rule_json`
+- No **scheduling policy** — `scheduled_at` is per-instance only; no template-driven trigger model
+- No **recurrence** support on instances
+- No **event-driven materialization** (e.g. "create draft when inspection visit is scheduled")
+- Dispatcher missing: retries with backoff, recurrence rollover, double-send guard via dispatch lock, cancel-on-status checks
+- No live **preview** with merge fields
+- Instance workflow lacks: schedule picker, reschedule, cancel-scheduled, recurrence setup
 
 ---
 
-## Files Changed
+## 3. Schema / Migration Changes
+
+### 3.1 Extend `ce_audit_communication_templates`
+```sql
+ALTER TABLE ce_audit_communication_templates
+  ADD COLUMN send_mode text NOT NULL DEFAULT 'MANUAL_ONLY'
+    CHECK (send_mode IN ('MANUAL_ONLY','MANUAL_OR_SCHEDULED','AUTO_EVENT_DRIVEN','AUTO_TIME_DRIVEN')),
+  ADD COLUMN merge_fields_json jsonb NOT NULL DEFAULT '[]',
+  ADD COLUMN preview_sample_json jsonb NOT NULL DEFAULT '{}',
+  ADD COLUMN requires_approval_before_send boolean NOT NULL DEFAULT true,
+  ADD COLUMN reschedule_allowed boolean NOT NULL DEFAULT true,
+  ADD COLUMN cancel_on_status_change_json jsonb NOT NULL DEFAULT '[]';
+```
+
+### 3.2 New `ce_audit_communication_template_actions`
+```sql
+CREATE TABLE ce_audit_communication_template_actions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id uuid NOT NULL REFERENCES ce_audit_communication_templates(id) ON DELETE CASCADE,
+  action_key text NOT NULL,
+  is_enabled boolean NOT NULL DEFAULT true,
+  config_json jsonb NOT NULL DEFAULT '{}',
+  sort_order int NOT NULL DEFAULT 0,
+  UNIQUE (template_id, action_key)
+);
+```
+Canonical `action_key` values:
+`include_report_pdf, include_evidence, include_violations, include_findings_memo, include_books_annexure, include_payment_summary, use_secure_link, require_acknowledgment, allow_online_response, allow_document_upload, allow_clarification, allow_dispute, assign_response_review_workflow, trigger_followup_reminder`
+
+### 3.3 New `ce_audit_communication_schedule_policies`
+```sql
+CREATE TABLE ce_audit_communication_schedule_policies (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id uuid NOT NULL UNIQUE REFERENCES ce_audit_communication_templates(id) ON DELETE CASCADE,
+  trigger_mode text NOT NULL DEFAULT 'NONE'
+    CHECK (trigger_mode IN ('NONE','EVENT','TIME_RELATIVE','EXACT_DATETIME')),
+  trigger_event text,
+  relative_to_field text,
+  offset_days int,
+  offset_hours int,
+  exact_datetime timestamptz,
+  recurrence_enabled boolean NOT NULL DEFAULT false,
+  recurrence_interval_days int,
+  recurrence_max_occurrences int,
+  recurrence_stop_conditions_json jsonb NOT NULL DEFAULT '[]',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+```
+
+### 3.4 Extend `ce_audit_communications` (instances)
+```sql
+ALTER TABLE ce_audit_communications
+  ADD COLUMN parent_communication_id uuid REFERENCES ce_audit_communications(id) ON DELETE SET NULL,
+  ADD COLUMN occurrence_no int NOT NULL DEFAULT 1,
+  ADD COLUMN recurrence_enabled boolean NOT NULL DEFAULT false,
+  ADD COLUMN recurrence_interval_days int,
+  ADD COLUMN recurrence_max_occurrences int,
+  ADD COLUMN recurrence_stop_conditions_json jsonb NOT NULL DEFAULT '[]',
+  ADD COLUMN dispatch_attempts int NOT NULL DEFAULT 0,
+  ADD COLUMN last_dispatch_error text,
+  ADD COLUMN dispatch_locked_at timestamptz,
+  ADD COLUMN materialized_by_policy_id uuid REFERENCES ce_audit_communication_schedule_policies(id) ON DELETE SET NULL;
+
+CREATE INDEX idx_ce_audit_comm_due ON ce_audit_communications(scheduled_at)
+  WHERE status='approved' AND sent_at IS NULL AND cancelled_at IS NULL;
+```
+
+### 3.5 Data migration — auto-classify by `comm_type`
+All existing templates get `send_mode='MANUAL_OR_SCHEDULED'` plus a `schedule_policies` row:
+
+| comm_type | trigger_mode | anchor / event | offset | recurrence |
+|---|---|---|---|---|
+| `audit_intimation` | TIME_RELATIVE | `inspection.visit_date` | -7 d | — |
+| `books_required` | TIME_RELATIVE | `inspection.visit_date` | -5 d | — |
+| `visit_reminder` | TIME_RELATIVE | `inspection.visit_date` | -1 d | — |
+| `due_date_reminder` | TIME_RELATIVE | `case.due_date` | 0 d | every 3d, max 5, stop on `acknowledged` |
+| `escalation_notice` | EVENT | `communication.no_response` | +7 d | — |
+| `final_report`, `violation_notice`, `corrective_action` | NONE (MANUAL_ONLY) | — | — | — |
+| all others | NONE (MANUAL_OR_SCHEDULED) | — | — | — |
+
+Also seed `ce_audit_communication_template_actions` from each template's existing `attachment_rule_json`.
+
+---
+
+## 4. Template Editor Design
+
+Route: `/compliance/admin/communication-templates/:id` (and `/new`)
+
+**Tabs:**
+1. **Content** — code, name, comm_type, category, channel, description, sort_order, active, version_no (read-only). Email subject/body, SMS body. Merge-field chip palette.
+2. **Sections** — reorderable list. Add/edit/delete/enable toggle. Section preview pane.
+3. **Recipients** — recipient_rule_json builder: source priority drag list, allow_manual_add toggle.
+4. **Approvals** — roles multi-select (`inspector, lead_inspector, supervisor, legal`), `requires_approval_before_send` toggle.
+5. **Actions** — checklist of all 14 canonical action keys with optional config. Writes to `ce_audit_communication_template_actions`.
+6. **Scheduling** — `send_mode` select; conditional fields per mode; recurrence sub-form; stop conditions; reschedule_allowed; cancel_on_status_change. Writes to `ce_audit_communication_schedule_policies`.
+7. **Preview** — Renders subject/body/sections with `preview_sample_json` substituted; channel toggle; "what gets attached" derived from actions; "what would auto-schedule" summary derived from policy.
+
+Top bar: Save / Save & Activate / Clone / Cancel.
+
+---
+
+## 5. Actions / Rules Design
+
+- Stored relationally in `ce_audit_communication_template_actions` (one row per `action_key`).
+- Typed registry `src/lib/audit/communicationActions.ts` lists each action with: key, label, description, applicable comm_types, default config schema, `getEffect()` used by the dispatcher and instance composer to assemble attachments + permission flags.
+- Backward compatibility: `attachment_rule_json` remains writable; service-side merge produces the effective action set (table ⊕ legacy JSON, table wins).
+
+---
+
+## 6. Scheduling Model
+
+**Send modes** (per template): `MANUAL_ONLY | MANUAL_OR_SCHEDULED | AUTO_EVENT_DRIVEN | AUTO_TIME_DRIVEN`.
+
+**Materialization** — **hybrid** per your choice:
+- **Hooks** (synchronous): `inspection.scheduled`, `inspection.rescheduled`, `inspection.cancelled`, `report.finalized`, `case.opened`, `case.closed`, `communication.no_response`, `communication.acknowledged`. Implemented in `src/lib/audit/scheduleHooks.ts`, called from existing inspection/report/case services. Hooks handle EVENT triggers + create the *first* time-relative item when an anchor date is set/changed.
+- **Cron** (every 15 min): edge fn `ce-audit-communication-materialize` scans active TIME_RELATIVE policies whose anchor field is now within `offset` and ensures a draft exists; rolls over recurrence after a previous occurrence is sent.
+
+**Idempotency**: unique partial index on `(template_id, employer_id, inspection_id, occurrence_no, materialized_by_policy_id)` prevents duplicates.
+
+**Approval gating**: if `requires_approval_before_send`, materialized drafts → `pending_approval`; else `approved` directly.
+
+**Recurrence** (simple, per your choice): `interval_days` + `max_occurrences` + `stop_conditions[]`. Next occurrence created when prior one is `sent` AND no stop condition is true.
+
+---
+
+## 7. Manual vs Automatic Dispatch
+
+Extend `ce-audit-communication-dispatch`:
+1. Select `status='approved' AND scheduled_at <= now() AND sent_at IS NULL AND cancelled_at IS NULL AND dispatch_locked_at IS NULL`.
+2. **Acquire lock**: atomic `UPDATE ... SET dispatch_locked_at=now() WHERE dispatch_locked_at IS NULL RETURNING id` — single-worker dispatch guarantee.
+3. Send via existing notification/email infra; on success set `sent_at`, log event, trigger recurrence rollover (in materializer).
+4. On failure: increment `dispatch_attempts`, store `last_dispatch_error`, release lock; backoff = `min(60, 2^attempts)` minutes via `scheduled_at` bump; after 5 attempts → `failed` + event.
+5. **Cancel-on-status-change**: nightly job marks `status='cancelled'` for items whose template `cancel_on_status_change_json` matches current case/report state.
+
+Manual sends bypass `scheduled_at` (set to `now()` on submit); same approval + dispatch path.
+
+---
+
+## 8. Instance Workflow Improvements
+
+New `CommunicationDraftDialog`:
+- Tabs: Content / Recipients / Schedule / Preview
+- **Schedule tab**: radio { Send now | Schedule for | Auto (read-only, from policy) }; datetime picker; recurrence toggle (only if template allows); reschedule + cancel for existing scheduled items; "send now" override.
+- Approval submit, approve/reject buttons gated by role.
+- Delivery history table at bottom (deliveries + events join).
+
+---
+
+## 9. Backward Compatibility
+
+- All schema additions are nullable / defaulted → existing rows untouched.
+- `attachment_rule_json` kept; new actions table additive.
+- Default `send_mode='MANUAL_ONLY'` preserves current "manual draft + approve + send" flow exactly.
+- Existing dispatcher loop still works on day 1; lock + retry + recurrence are pure extensions.
+- Read-only admin page becomes the templates index with filters; editor is a new route.
+- Existing services extended (not rewritten); new services for policy and actions.
+
+---
+
+## 10. Phased Rollout Plan
+
+| Phase | Scope | User-visible? |
+|---|---|---|
+| **1 — Schema & data migration** | Migration §3.1–3.5; auto-classify; seed actions; new services; typed registry; updated TS types | No (foundation) |
+| **2 — Admin Template Editor** | Templates index w/ filters + clone/preview; full editor route with all 7 tabs; preview renderer | Yes |
+| **3 — Instance workflow upgrades** | `CommunicationDraftDialog` with schedule/recurrence/preview; reschedule + cancel + send-now; delivery history | Yes |
+| **4 — Dispatcher hardening** | Extend `ce-audit-communication-dispatch`: lock, retries/backoff, recurrence-aware, cancel-on-status | Background |
+| **5 — Materializer + hooks** | New edge fn `ce-audit-communication-materialize` + pg_cron (15 min); hooks wired into inspection/report/case services | Background |
+| **6 — QA / docs** | Knowledge entries, test cases, smoke run, brief admin guide | No |
+
+I will pause for your approval after **each** phase before starting the next.
+
+---
+
+## 11. Files Changed (anticipated)
 
 **New**
-- `src/services/employerComplianceHistoryService.ts` — single aggregator returning typed bundle.
-- `src/services/auditPriorMatterLinkService.ts` — link/unlink/list at visit or finding level.
-- `src/components/compliance/employer-history/EmployerComplianceHistoryPanel.tsx` — the reusable panel (filter chips, categorized lists, "Link to this visit / finding" actions).
-- `src/components/compliance/employer-history/PriorMatterLinkDialog.tsx` — pick a target (visit or finding) + relevance note.
-- `src/components/compliance/audit-report/sections/PriorMattersSection.tsx` (+ siblings for OpenCases, OpenViolations, ActiveArrangements, LegalStatus, OpenFollowUps, LinkedPriorMatters).
-- `src/types/employerHistory.ts`
+- `supabase/migrations/<ts>_audit_comm_templates_v2.sql`
+- `supabase/functions/ce-audit-communication-materialize/index.ts`
+- `src/services/auditCommunicationSchedulePolicyService.ts`
+- `src/services/auditCommunicationTemplateActionsService.ts`
+- `src/lib/audit/communicationActions.ts`
+- `src/lib/audit/scheduleHooks.ts`
+- `src/lib/audit/templatePreview.ts`
+- `src/pages/compliance/admin/AuditCommunicationTemplateEditorPage.tsx`
+- `src/components/compliance/communication/template-editor/{Content,Sections,Recipients,Approvals,Actions,Scheduling,Preview}Tab.tsx`
+- `src/components/compliance/communication/CommunicationDraftDialog.tsx`
 
-**Edited**
-- `src/pages/compliance/employers/EmployerProfilePage.tsx` (or Employer 360 entry) — drop in `<EmployerComplianceHistoryPanel employerId={…} />`.
-- `src/pages/compliance/audit-planning/AuditVisitWorkspace.tsx` — add a "History" tab using the panel; allow link from any item to this visit.
-- `src/pages/compliance/employers/EmployerVisitWorkspace.tsx` — same panel as a tab.
-- `src/components/compliance/audit-report/InternalReportLayout.tsx` (and PDF builder `auditReportPdfService.ts`) — render the new optional sections when their keys are present in the template.
-- `src/pages/compliance/admin/AuditReportTemplatesPage.tsx` (existing or new) — toggle the 7 new section keys per template.
-- `src/components/compliance/communication/AuditCommunicationsPanel.tsx` — optional "Insert prior matter context" affordance that pulls from the aggregator.
-- `src/components/compliance/inspection/FindingsTabContent.tsx` — per-finding "Link prior matter" affordance.
-
-**Migration**
-- `supabase/migrations/<timestamp>_employer_compliance_history.sql` — `ce_audit_prior_matter_links` + section-key whitelist seed.
-
----
-
-## Backward Compatibility
-- Purely additive: no FKs added to existing tables; no columns renamed; no data backfill.
-- Existing report templates render unchanged (new sections off by default).
-- Existing comms / cases / violations flows untouched.
-- No RLS changes per project rule.
-
----
-
-## Phased Rollout
-
-- **Phase A** — Migration: create `ce_audit_prior_matter_links` + extend section-key whitelist on report templates. Verify against `ce_cases` / `ce_violations` / `ce_payment_arrangements` / `ce_legal_*` / `ce_follow_up_actions`.
-- **Phase B** — `employerComplianceHistoryService` aggregator + types.
-- **Phase C** — `EmployerComplianceHistoryPanel` + filter chips + drop-in to Employer 360 and Audit Visit Workspace.
-- **Phase D** — `auditPriorMatterLinkService` + `PriorMatterLinkDialog`; visit-level and finding-level link actions in the panel and Findings tab.
-- **Phase E** — Report sections (UI + PDF) and admin toggles per template.
-- **Phase F** — Comms "Insert prior matter context" affordance.
-
----
-
-## Assumptions / Risks
-- The existing report-template model already supports per-template section toggling; if not, Phase E adds a minimal `included_section_keys text[]` column. Decided on first read.
-- "Past audit reports" surfaced from `ce_employer_audit_reports` filtered by `employer_id`; "past inspections" from `ce_inspections` joined via `ce_weekly_plan_items.employer_id`.
-- The aggregator is read-only and bounded (last 24 months by default, configurable per call) — keeps the panel fast.
-- No new cron / edge function required.
-
----
-
-## Deliverables Recap
-- **Architecture summary** ✅ above
-- **Schema/migration changes** ✅ one additive migration
-- **Files changed** ✅ listed
-- **Linkage design** ✅ visit-level and finding-level (`ce_audit_prior_matter_links`)
-- **Showcase design** ✅ one reusable panel surfaced in Employer 360, Audit Visit Workspace, Audit Report editor, Comms
-- **Report inclusion** ✅ template-driven (admin enables sections)
-- **Backward compatibility** ✅ fully additive, no RLS changes
-- **Phased rollout** ✅ A–F
+**Modified**
+- `src/pages/compliance/admin/AuditCommunicationTemplatesPage.tsx`
+- `src/services/auditCommunicationTemplateService.ts`
+- `src/services/auditCommunicationService.ts`
+- `supabase/functions/ce-audit-communication-dispatch/index.ts`
+- `src/types/auditCommunication.ts` (likely split per existing 212-line warning)
+- `src/components/routing/AppRoutes.tsx`
+- Inspection/report/case services where event hooks emit
