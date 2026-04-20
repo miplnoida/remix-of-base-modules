@@ -11,6 +11,7 @@ import { InspectionVisit, InspectionFinding, FindingType, WeeklyPlanItem } from 
 import { inspectionService } from '@/services/inspectionService';
 import { CreateViolationFromFindingDialog } from '../CreateViolationFromFindingDialog';
 import { FindingPriorMatterLinks } from '../employer-history/FindingPriorMatterLinks';
+import { FindingOnlineSubmissions } from './FindingOnlineSubmissions';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -424,6 +425,9 @@ export function FindingsTabContent({ visit, employerId, planItem }: FindingsTabC
 
                   {/* Linked prior matters (Phase D) */}
                   <FindingPriorMatterLinks findingId={finding.id} employerId={employerId} />
+
+                  {/* Online employer submissions (Phase F) */}
+                  <FindingOnlineSubmissions findingId={finding.id} />
                 </div>
               );
             })}
