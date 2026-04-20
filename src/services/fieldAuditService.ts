@@ -6,6 +6,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { getCurrentUserCode } from '@/hooks/useUserCode';
+import { formatDateForStorage } from '@/lib/dateFormat';
 import {
   InspectionEvidence,
   InspectionFinding,
@@ -453,7 +454,9 @@ export const fieldAuditService = {
     const { data, error } = await supabase
       .from('ce_violations')
       .select('*')
-      .eq('inspection_id', inspectionId);
+      .eq('inspection_id', inspectionId)
+      .or('is_deleted.is.null,is_deleted.eq.false')
+      .order('created_at', { ascending: true });
     if (error) throw error;
     return (data ?? []).map((row: any): Violation => ({
       id: row.id,
@@ -648,23 +651,47 @@ export const fieldAuditService = {
       employerMaster = em;
     }
 
-    const findingsCount = m.findings_count ?? payload.findings.length;
-    const evidenceCount = m.evidence_count ?? payload.evidence.length;
-    const violationsCount = m.violations_count ?? payload.violations.length;
+    const findingsCount = payload.findings.length || Number(m.findings_count ?? 0);
+    const evidenceCount = payload.evidence.length || Number(m.evidence_count ?? 0);
+    const violationsCount = payload.violations.length || Number(m.violations_count ?? 0);
     const checklistPct = Number(m.checklist_pct ?? 0);
 
-    // Auto-derived values
+    const pickLatestDateOnly = (values: Array<string | undefined | null>) => {
+      const valid = values
+        .filter(Boolean)
+        .map((value) => ({ raw: value as string, ms: new Date(value as string).getTime() }))
+        .filter((entry) => Number.isFinite(entry.ms))
+        .sort((a, b) => b.ms - a.ms);
+
+      return valid.length ? formatDateForStorage(valid[0].raw) : null;
+    };
+
+    const actualAuditActivityDates = [
+      insp.session_closed_at,
+      insp.check_out_time,
+      insp.actual_end,
+      interaction.updated_at,
+      interaction.created_at,
+      ...(payload.evidence ?? []).map((row: any) => row.captured_at ?? row.capturedAt),
+      ...(payload.findings ?? []).map((row: any) => row.createdAt),
+      ...(payload.workingPapers ?? []).flatMap((row: any) => [row.updated_at, row.created_at]),
+      insp.session_started_at,
+      insp.check_in_time,
+      insp.actual_start,
+    ];
+
+    // Prefer the latest actual audit activity date; only fall back to planned dates when no real activity exists.
     const auditDate =
-      insp.actual_start ?? insp.visit_date ?? insp.scheduled_date ?? null;
+      pickLatestDateOnly(actualAuditActivityDates) ??
+      pickLatestDateOnly([insp.visit_date, insp.scheduled_date]) ??
+      null;
     const hqAddress = employerMaster
       ? [employerMaster.hq_addr1, employerMaster.hq_addr2].filter(Boolean).join(', ')
       : '';
     const auditLocation = insp.location_address ?? (hqAddress || null);
     const employerRegNumber = employerMaster?.regno ?? null;
     const employerName = insp.employer_name ?? employerMaster?.name ?? '';
-    const auditDateDisplay = auditDate
-      ? new Date(auditDate).toISOString().slice(0, 10)
-      : 'the audit date';
+    const auditDateDisplay = auditDate ?? 'the audit date';
 
     // Narrative seeds
     const purposeScopeSeed = employerName
@@ -688,9 +715,34 @@ export const fieldAuditService = {
         : null;
 
     // Helper: only fill empty/null on update; always fill on insert
+    const isBlank = (value: any) =>
+      value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
+
     const coalesceEmpty = (existingVal: any, derivedVal: any) => {
-      if (existingVal === null || existingVal === undefined) return derivedVal;
-      if (typeof existingVal === 'string' && existingVal.trim() === '') return derivedVal;
+      if (isBlank(existingVal)) return derivedVal;
+      return existingVal;
+    };
+
+    const autoSummaryPattern =
+      /^On .* an on-site audit was conducted at .*\. \d+ finding\(s\), \d+ violation\(s\), and \d+ evidence item\(s\) were recorded\. Checklist completion: .*%\.?$/;
+
+    const refreshAutoSummary = (existingVal: any, derivedVal: any) => {
+      if (isBlank(existingVal)) return derivedVal;
+      if (typeof existingVal === 'string' && autoSummaryPattern.test(existingVal.trim())) {
+        return derivedVal;
+      }
+      return existingVal;
+    };
+
+    const refreshDerivedAuditDate = (existingVal: any, derivedVal: any) => {
+      if (isBlank(existingVal)) return derivedVal;
+      const normalizedExisting = formatDateForStorage(existingVal);
+      const legacyPlannedDates = new Set(
+        [insp.visit_date, insp.scheduled_date].filter(Boolean).map((value) => formatDateForStorage(value as string))
+      );
+      if (derivedVal && legacyPlannedDates.has(normalizedExisting) && normalizedExisting !== derivedVal) {
+        return derivedVal;
+      }
       return existingVal;
     };
 
@@ -723,7 +775,7 @@ export const fieldAuditService = {
       // Update: preserve manual edits, only fill empty narrative/derived fields
       const updateFields = {
         ...baseFields,
-        audit_date: coalesceEmpty(existing.audit_date, auditDate),
+        audit_date: refreshDerivedAuditDate(existing.audit_date, auditDate),
         audit_location: coalesceEmpty(existing.audit_location, auditLocation),
         employer_reg_number: coalesceEmpty(existing.employer_reg_number, employerRegNumber),
         audit_contact_name: coalesceEmpty(existing.audit_contact_name, interaction.representative_name ?? null),
@@ -733,7 +785,7 @@ export const fieldAuditService = {
             ? (interaction.employer_acknowledged ?? true)
             : existing.audit_contact_present,
         purpose_scope: coalesceEmpty(existing.purpose_scope, purposeScopeSeed),
-        executive_summary: coalesceEmpty(existing.executive_summary, executiveSummarySeed),
+        executive_summary: refreshAutoSummary(existing.executive_summary, executiveSummarySeed),
         records_reviewed: coalesceEmpty(existing.records_reviewed, recordsReviewedSeed),
         recommendations: coalesceEmpty(existing.recommendations, recommendationsSeed),
       };
