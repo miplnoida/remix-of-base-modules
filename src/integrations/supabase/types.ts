@@ -9896,6 +9896,674 @@ export type Database = {
           },
         ]
       }
+      ce_audit_communication_approvals: {
+        Row: {
+          approver_name: string | null
+          approver_user_id: string | null
+          comments: string | null
+          communication_id: string
+          created_at: string
+          decided_at: string | null
+          id: string
+          required_role: Database["public"]["Enums"]["ce_comm_approval_role"]
+          status: string
+          step_no: number
+        }
+        Insert: {
+          approver_name?: string | null
+          approver_user_id?: string | null
+          comments?: string | null
+          communication_id: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          required_role: Database["public"]["Enums"]["ce_comm_approval_role"]
+          status?: string
+          step_no?: number
+        }
+        Update: {
+          approver_name?: string | null
+          approver_user_id?: string | null
+          comments?: string | null
+          communication_id?: string
+          created_at?: string
+          decided_at?: string | null
+          id?: string
+          required_role?: Database["public"]["Enums"]["ce_comm_approval_role"]
+          status?: string
+          step_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_communication_approvals_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_audit_communication_attachments: {
+        Row: {
+          attachment_kind: string
+          communication_id: string
+          created_at: string
+          created_by: string | null
+          file_url: string | null
+          filename: string | null
+          id: string
+          is_external: boolean
+          mime_type: string | null
+          size_bytes: number | null
+          source_ref_id: string | null
+        }
+        Insert: {
+          attachment_kind: string
+          communication_id: string
+          created_at?: string
+          created_by?: string | null
+          file_url?: string | null
+          filename?: string | null
+          id?: string
+          is_external?: boolean
+          mime_type?: string | null
+          size_bytes?: number | null
+          source_ref_id?: string | null
+        }
+        Update: {
+          attachment_kind?: string
+          communication_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_url?: string | null
+          filename?: string | null
+          id?: string
+          is_external?: boolean
+          mime_type?: string | null
+          size_bytes?: number | null
+          source_ref_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_communication_attachments_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_audit_communication_deliveries: {
+        Row: {
+          attempted_at: string
+          channel: string
+          clicked_at: string | null
+          communication_id: string
+          delivered_at: string | null
+          failure_reason: string | null
+          id: string
+          metadata: Json
+          notification_log_id: string | null
+          opened_at: string | null
+          recipient_address: string
+          recipient_id: string | null
+          status: Database["public"]["Enums"]["ce_comm_delivery_status"]
+        }
+        Insert: {
+          attempted_at?: string
+          channel: string
+          clicked_at?: string | null
+          communication_id: string
+          delivered_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json
+          notification_log_id?: string | null
+          opened_at?: string | null
+          recipient_address: string
+          recipient_id?: string | null
+          status?: Database["public"]["Enums"]["ce_comm_delivery_status"]
+        }
+        Update: {
+          attempted_at?: string
+          channel?: string
+          clicked_at?: string | null
+          communication_id?: string
+          delivered_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          metadata?: Json
+          notification_log_id?: string | null
+          opened_at?: string | null
+          recipient_address?: string
+          recipient_id?: string | null
+          status?: Database["public"]["Enums"]["ce_comm_delivery_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_communication_deliveries_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_audit_communication_deliveries_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communication_recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_audit_communication_events: {
+        Row: {
+          actor_name: string | null
+          actor_user_id: string | null
+          communication_id: string
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+        }
+        Insert: {
+          actor_name?: string | null
+          actor_user_id?: string | null
+          communication_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+        }
+        Update: {
+          actor_name?: string | null
+          actor_user_id?: string | null
+          communication_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_communication_events_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_audit_communication_recipients: {
+        Row: {
+          communication_id: string
+          created_at: string
+          id: string
+          is_primary: boolean
+          recipient_email: string | null
+          recipient_mobile: string | null
+          recipient_name: string | null
+          recipient_role: string | null
+          source: Database["public"]["Enums"]["ce_comm_recipient_source"]
+        }
+        Insert: {
+          communication_id: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          recipient_email?: string | null
+          recipient_mobile?: string | null
+          recipient_name?: string | null
+          recipient_role?: string | null
+          source?: Database["public"]["Enums"]["ce_comm_recipient_source"]
+        }
+        Update: {
+          communication_id?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          recipient_email?: string | null
+          recipient_mobile?: string | null
+          recipient_name?: string | null
+          recipient_role?: string | null
+          source?: Database["public"]["Enums"]["ce_comm_recipient_source"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_communication_recipients_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_audit_communication_secure_tokens: {
+        Row: {
+          communication_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          scope_json: Json
+          token: string
+          used_at: string | null
+          used_ip: string | null
+        }
+        Insert: {
+          communication_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          scope_json?: Json
+          token: string
+          used_at?: string | null
+          used_ip?: string | null
+        }
+        Update: {
+          communication_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          scope_json?: Json
+          token?: string
+          used_at?: string | null
+          used_ip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_communication_secure_tokens_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_audit_communication_template_sections: {
+        Row: {
+          body_html: string | null
+          created_at: string
+          id: string
+          is_enabled: boolean
+          section_key: string
+          section_label: string | null
+          sort_order: number
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          body_html?: string | null
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          section_key: string
+          section_label?: string | null
+          sort_order?: number
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string | null
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          section_key?: string
+          section_label?: string | null
+          sort_order?: number
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_communication_template_sections_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communication_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_audit_communication_templates: {
+        Row: {
+          approval_rule_json: Json
+          attachment_rule_json: Json
+          branding_json: Json
+          category: string
+          channel: Database["public"]["Enums"]["ce_comm_channel"]
+          comm_type: Database["public"]["Enums"]["ce_comm_type"]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          email_body: string | null
+          email_subject: string | null
+          id: string
+          is_active: boolean
+          recipient_rule_json: Json
+          sms_body: string | null
+          sort_order: number
+          template_code: string
+          template_name: string
+          updated_at: string
+          updated_by: string | null
+          version_no: number
+        }
+        Insert: {
+          approval_rule_json?: Json
+          attachment_rule_json?: Json
+          branding_json?: Json
+          category?: string
+          channel?: Database["public"]["Enums"]["ce_comm_channel"]
+          comm_type: Database["public"]["Enums"]["ce_comm_type"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          id?: string
+          is_active?: boolean
+          recipient_rule_json?: Json
+          sms_body?: string | null
+          sort_order?: number
+          template_code: string
+          template_name: string
+          updated_at?: string
+          updated_by?: string | null
+          version_no?: number
+        }
+        Update: {
+          approval_rule_json?: Json
+          attachment_rule_json?: Json
+          branding_json?: Json
+          category?: string
+          channel?: Database["public"]["Enums"]["ce_comm_channel"]
+          comm_type?: Database["public"]["Enums"]["ce_comm_type"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          id?: string
+          is_active?: boolean
+          recipient_rule_json?: Json
+          sms_body?: string | null
+          sort_order?: number
+          template_code?: string
+          template_name?: string
+          updated_at?: string
+          updated_by?: string | null
+          version_no?: number
+        }
+        Relationships: []
+      }
+      ce_audit_communications: {
+        Row: {
+          approved_at: string | null
+          attachment_summary_json: Json
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          channel: Database["public"]["Enums"]["ce_comm_channel"]
+          comm_type: Database["public"]["Enums"]["ce_comm_type"]
+          context_data_json: Json
+          created_at: string
+          created_by: string | null
+          email_body_snapshot: string | null
+          employer_id: string
+          id: string
+          inspection_id: string | null
+          report_version_id: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          sms_body_snapshot: string | null
+          status: Database["public"]["Enums"]["ce_comm_status"]
+          subject_snapshot: string | null
+          submitted_at: string | null
+          template_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          attachment_summary_json?: Json
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          channel: Database["public"]["Enums"]["ce_comm_channel"]
+          comm_type: Database["public"]["Enums"]["ce_comm_type"]
+          context_data_json?: Json
+          created_at?: string
+          created_by?: string | null
+          email_body_snapshot?: string | null
+          employer_id: string
+          id?: string
+          inspection_id?: string | null
+          report_version_id?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sms_body_snapshot?: string | null
+          status?: Database["public"]["Enums"]["ce_comm_status"]
+          subject_snapshot?: string | null
+          submitted_at?: string | null
+          template_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          attachment_summary_json?: Json
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          channel?: Database["public"]["Enums"]["ce_comm_channel"]
+          comm_type?: Database["public"]["Enums"]["ce_comm_type"]
+          context_data_json?: Json
+          created_at?: string
+          created_by?: string | null
+          email_body_snapshot?: string | null
+          employer_id?: string
+          id?: string
+          inspection_id?: string | null
+          report_version_id?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          sms_body_snapshot?: string | null
+          status?: Database["public"]["Enums"]["ce_comm_status"]
+          subject_snapshot?: string | null
+          submitted_at?: string | null
+          template_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_communications_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communication_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_audit_disputes: {
+        Row: {
+          body: string | null
+          communication_id: string | null
+          dispute_reason: string
+          employer_id: string
+          finding_id: string | null
+          id: string
+          inspection_id: string | null
+          raised_at: string
+          raised_by: string | null
+          raised_via_token: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          violation_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          communication_id?: string | null
+          dispute_reason: string
+          employer_id: string
+          finding_id?: string | null
+          id?: string
+          inspection_id?: string | null
+          raised_at?: string
+          raised_by?: string | null
+          raised_via_token?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          violation_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          communication_id?: string | null
+          dispute_reason?: string
+          employer_id?: string
+          finding_id?: string | null
+          id?: string
+          inspection_id?: string | null
+          raised_at?: string
+          raised_by?: string | null
+          raised_via_token?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          violation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_disputes_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_audit_disputes_raised_via_token_fkey"
+            columns: ["raised_via_token"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communication_secure_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_audit_employer_responses: {
+        Row: {
+          body: string | null
+          communication_id: string | null
+          employer_id: string
+          id: string
+          inspection_id: string | null
+          payload: Json
+          response_kind: string
+          submitted_at: string
+          submitted_by: string | null
+          submitted_via_token: string | null
+        }
+        Insert: {
+          body?: string | null
+          communication_id?: string | null
+          employer_id: string
+          id?: string
+          inspection_id?: string | null
+          payload?: Json
+          response_kind: string
+          submitted_at?: string
+          submitted_by?: string | null
+          submitted_via_token?: string | null
+        }
+        Update: {
+          body?: string | null
+          communication_id?: string | null
+          employer_id?: string
+          id?: string
+          inspection_id?: string | null
+          payload?: Json
+          response_kind?: string
+          submitted_at?: string
+          submitted_by?: string | null
+          submitted_via_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_employer_responses_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_audit_employer_responses_submitted_via_token_fkey"
+            columns: ["submitted_via_token"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communication_secure_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_audit_employer_uploaded_documents: {
+        Row: {
+          communication_id: string | null
+          document_kind: string | null
+          employer_id: string
+          file_url: string | null
+          filename: string | null
+          id: string
+          inspection_id: string | null
+          mime_type: string | null
+          size_bytes: number | null
+          uploaded_at: string
+          uploaded_by: string | null
+          uploaded_via_token: string | null
+        }
+        Insert: {
+          communication_id?: string | null
+          document_kind?: string | null
+          employer_id: string
+          file_url?: string | null
+          filename?: string | null
+          id?: string
+          inspection_id?: string | null
+          mime_type?: string | null
+          size_bytes?: number | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+          uploaded_via_token?: string | null
+        }
+        Update: {
+          communication_id?: string | null
+          document_kind?: string | null
+          employer_id?: string
+          file_url?: string | null
+          filename?: string | null
+          id?: string
+          inspection_id?: string | null
+          mime_type?: string | null
+          size_bytes?: number | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+          uploaded_via_token?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_employer_uploaded_documents_communication_id_fkey"
+            columns: ["communication_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_audit_employer_uploaded_documents_uploaded_via_token_fkey"
+            columns: ["uploaded_via_token"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communication_secure_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_audit_log: {
         Row: {
           action: string
@@ -50288,6 +50956,52 @@ export type Database = {
         | "IP Dispute"
         | "Garnishment"
         | "Other"
+      ce_comm_approval_role:
+        | "inspector"
+        | "lead_inspector"
+        | "supervisor"
+        | "legal"
+      ce_comm_channel: "email" | "sms" | "both"
+      ce_comm_delivery_status:
+        | "queued"
+        | "sent"
+        | "delivered"
+        | "opened"
+        | "clicked"
+        | "bounced"
+        | "failed"
+        | "suppressed"
+      ce_comm_recipient_source:
+        | "visit_contact"
+        | "compliance_contact"
+        | "er_master"
+        | "manual"
+      ce_comm_status:
+        | "draft"
+        | "pending_approval"
+        | "approved"
+        | "rejected"
+        | "sending"
+        | "sent"
+        | "partial"
+        | "failed"
+        | "cancelled"
+      ce_comm_type:
+        | "audit_intimation"
+        | "books_required"
+        | "visit_reminder"
+        | "additional_info_request"
+        | "clarification_request"
+        | "interim_findings"
+        | "evidence_summary"
+        | "draft_findings"
+        | "final_report"
+        | "violation_notice"
+        | "corrective_action"
+        | "acknowledgment_request"
+        | "dispute_instructions"
+        | "due_date_reminder"
+        | "escalation_notice"
       ce_delivery_status:
         | "pending"
         | "dispatched"
@@ -50696,6 +51410,57 @@ export const Constants = {
         "IP Dispute",
         "Garnishment",
         "Other",
+      ],
+      ce_comm_approval_role: [
+        "inspector",
+        "lead_inspector",
+        "supervisor",
+        "legal",
+      ],
+      ce_comm_channel: ["email", "sms", "both"],
+      ce_comm_delivery_status: [
+        "queued",
+        "sent",
+        "delivered",
+        "opened",
+        "clicked",
+        "bounced",
+        "failed",
+        "suppressed",
+      ],
+      ce_comm_recipient_source: [
+        "visit_contact",
+        "compliance_contact",
+        "er_master",
+        "manual",
+      ],
+      ce_comm_status: [
+        "draft",
+        "pending_approval",
+        "approved",
+        "rejected",
+        "sending",
+        "sent",
+        "partial",
+        "failed",
+        "cancelled",
+      ],
+      ce_comm_type: [
+        "audit_intimation",
+        "books_required",
+        "visit_reminder",
+        "additional_info_request",
+        "clarification_request",
+        "interim_findings",
+        "evidence_summary",
+        "draft_findings",
+        "final_report",
+        "violation_notice",
+        "corrective_action",
+        "acknowledgment_request",
+        "dispute_instructions",
+        "due_date_reminder",
+        "escalation_notice",
       ],
       ce_delivery_status: [
         "pending",
