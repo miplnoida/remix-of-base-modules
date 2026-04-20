@@ -1059,6 +1059,8 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/communication-templates" element={<ProtectedLayout><AuditCommunicationTemplatesPage /></ProtectedLayout>} />
       <Route path="/compliance/admin/communication-templates/new" element={<ProtectedLayout><AuditCommunicationTemplateEditorPage /></ProtectedLayout>} />
       <Route path="/compliance/admin/communication-templates/:id" element={<ProtectedLayout><AuditCommunicationTemplateEditorPage /></ProtectedLayout>} />
+      <Route path="/compliance/admin/report-templates" element={<ProtectedLayout><DocumentTemplateSettings defaultTab="audit_report" title="Report Templates" description="Document/output structure templates: Internal Working Paper, Employer Audit Report, Findings Memo, Evidence Summary, Violation Document, Legal/Enforcement Pack, Management Summary." /></ProtectedLayout>} />
+      <Route path="/compliance/admin/document-foundation" element={<ProtectedLayout><DocumentTemplateSettings defaultTab="foundation" title="Shared Sections & Foundation" description="Section library, reusable clauses/disclaimers, document branding, merge fields, and output defaults shared by all report templates." /></ProtectedLayout>} />
       <Route path="/compliance/admin/online-response" element={<ProtectedLayout><OnlineResponseConfigPage /></ProtectedLayout>} />
       <Route path="/compliance/admin/settings/sampling" element={<ProtectedLayout><RiskSamplingSettings /></ProtectedLayout>} />
       <Route path="/compliance/admin/settings/c3-ledger-sync" element={<ProtectedLayout><C3LedgerSync /></ProtectedLayout>} />
