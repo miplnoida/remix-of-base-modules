@@ -37,6 +37,7 @@ import {
   HelpCircle,
   Globe,
   Mail,
+  Layers,
 } from "lucide-react";
 
 export const complianceMenuItems = [
@@ -471,7 +472,7 @@ export const complianceMenuItems = [
             title: "Policy & Rules",
             icon: Scale,
             requiresPermission: "manage_compliance",
-            description: "Detection rules, violation types, risk policies, and templates",
+            description: "Detection rules, violation types, risk policies, and reference numbering",
             subItems: [
               { title: "Rule Engine", url: "/compliance/admin/settings/rule-engine", icon: Cog, requiresPermission: "manage_compliance", description: "Configure detection, calculation, and escalation rules" },
               { title: "Violation Types", url: "/compliance/admin/settings/violation-types", icon: AlertTriangle, requiresPermission: "manage_compliance", description: "Configure violation type definitions" },
@@ -479,8 +480,31 @@ export const complianceMenuItems = [
               { title: "Risk & Escalation Policy", url: "/compliance/admin/settings/risk-policy", icon: TrendingUp, requiresPermission: "manage_compliance", description: "Risk factors, weights, bands, and legal escalation thresholds" },
               { title: "Sampling Settings", url: "/compliance/admin/settings/sampling", icon: Target, requiresPermission: "manage_compliance", description: "Risk sampling parameters and configuration" },
               { title: "Reference Numbering", url: "/compliance/admin/settings/number-templates", icon: Hash, requiresPermission: "manage_compliance", description: "Auto-numbering schemes for violations, cases, notices" },
-              { title: "Templates", url: "/compliance/admin/settings/templates", icon: FileText, requiresPermission: "manage_compliance", description: "Manage compliance notification templates" },
-              { title: "Audit Communication Templates", url: "/compliance/admin/communication-templates", icon: Mail, requiresPermission: "manage_compliance", description: "Manage audit-specific letters, notices, and report templates" },
+            ],
+          },
+          // ── 7.1b Templates & Output ──
+          // Single grouped area for ALL template-style configuration:
+          //   • Communication Templates  = how something is SENT (email/SMS/letter, recipients, scheduling, approvals)
+          //   • Report Templates         = what DOCUMENT/OUTPUT is generated (audit report, plan, mgmt response)
+          //   • Shared Sections & Foundation = reusable clauses, branding, merge fields, output defaults
+          {
+            title: "Templates & Output",
+            icon: FileText,
+            requiresPermission: "manage_compliance",
+            description: "Communication templates, report templates, and shared document foundation",
+            subItems: [
+              { title: "Communication Templates", url: "/compliance/admin/communication-templates", icon: Mail, requiresPermission: "manage_compliance", description: "Audit intimation, books-required, reminders, findings, transmittal, violation, corrective action, payment-arrangement review" },
+              { title: "Report Templates", url: "/compliance/admin/report-templates", icon: FileText, requiresPermission: "manage_compliance", description: "Internal working paper, employer audit report, findings memo, evidence summary, violation document, legal pack, mgmt summary" },
+              { title: "Shared Sections & Foundation", url: "/compliance/admin/document-foundation", icon: Layers, requiresPermission: "manage_compliance", description: "Section library, reusable clauses, branding, merge fields, and output defaults" },
+            ],
+          },
+          // ── 7.1c Employer Interaction (separated from templates) ──
+          {
+            title: "Employer Interaction",
+            icon: Globe,
+            requiresPermission: "manage_compliance",
+            description: "Configuration for direct employer-facing channels",
+            subItems: [
               { title: "Employer Online Response", url: "/compliance/admin/online-response", icon: Globe, requiresPermission: "manage_compliance", description: "Configure online response modes, policy matrix, and review workflow" },
             ],
           },
