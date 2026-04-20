@@ -1,61 +1,71 @@
+# Audit Communication & Employer Interaction System — Plan
 
+**Module ownership:** Compliance (CE) only — separate from generic Audit Reports.
+**Prefix:** `ce_audit_communication_*` for all new tables.
+**Reuses (does NOT replace):** `notification_templates`, `notification_logs`, `notification_providers`,
+`send-notification` edge function, `app_modules`.
 
-## Goal
-When the inspector opens the **Employer Audit Report** from a Field Visit (`/compliance/field/audit-report/:inspectionId`), every field that the system already knows must be **pre-filled automatically**, so the inspector only has to review/tweak text. Today only counts (findings/evidence/violations/checklist %) are auto-filled — narrative, audit date, location, reg no., and audit contact are blank.
+## Architecture (3 layers)
 
-## Root cause
-`fieldAuditService.generateEmployerAuditReport()` only writes counts + employer/inspector identity. It ignores:
-- `ce_inspections` → `actual_start` / `visit_date` / `scheduled_date` / `location_address` (audit date & location)
-- `ce_inspection_employer_interactions` → `representative_name`, `representative_designation`, `employer_acknowledged` (audit contact)
-- `er_master` (via `employer_id`) → `regno`, `hq_addr1/2` (employer reg number, fallback location)
-- Findings/checklist/evidence aggregates (records reviewed, executive summary seed)
+1. **Operational** (existing): inspections, findings, evidence, violations, report versions.
+2. **Communication** (NEW): templates → communications → recipients → approvals → deliveries → events.
+3. **Output**: PDF/HTML rendered through existing audit-report layouts; secure tokens issued for portal.
 
-The viewer hydrates from the report row, so any field the generator leaves null shows blank.
+## Schema (Phase 1) — 12 tables, all `ce_audit_communication*`
 
-## Plan
+- `_templates` (type, channel, subject, body, approval_rule_json, attachment_rule_json, branding_json, version_no)
+- `_template_sections` (composable header/body/footer per template)
+- `ce_audit_communications` (instance: inspection_id, employer_id, template_id, type, channel, status, subject_snapshot, body_snapshot, report_version_id?, scheduled_at)
+- `_recipients` (snapshotted name/email/mobile/source: visit_contact|compliance_contact|er_master)
+- `_approvals` (chain: role, approver_user_id, status, decided_at, comments)
+- `_deliveries` (per channel-recipient; notification_log_id FK; status mirror)
+- `_events` (audit trail: created/submitted/approved/rejected/sent/opened/clicked/responded/uploaded)
+- `_attachments` (file_url, kind: report_pdf|evidence_zip|adhoc|annexure)
+- `ce_audit_communication_secure_tokens` (token, expires_at, used_at, scope_json)
+- `ce_audit_employer_responses` (response_kind, body, submitted_at)
+- `ce_audit_employer_uploaded_documents` (file_url, document_kind, requested_via_communication_id)
+- `ce_audit_disputes` (finding_id?/violation_id?, status, raised_at, resolution)
 
-### A. Service — extend the generator to auto-derive every available field
-**File:** `src/services/fieldAuditService.ts` → `generateEmployerAuditReport()`
+**Enums:** `ce_comm_type`, `ce_comm_channel`, `ce_comm_status`, `ce_comm_approval_role`, `ce_comm_delivery_status`.
 
-1. **Fetch employer master** (`er_master`) by `employer_id` to read `regno`, `hq_addr1/2`.
-2. **Use interaction row** (already in `payload.interaction`) for `representative_name`, `representative_designation`, `employer_acknowledged`.
-3. **Compose auto-derived fields** and write them on **insert**, AND on **update only when the existing value is null/empty** (never overwrite inspector-edited text):
-   - `audit_date` ← `inspection.actual_start ?? inspection.visit_date ?? inspection.scheduled_date`
-   - `audit_location` ← `inspection.location_address ?? "${er_master.hq_addr1}, ${er_master.hq_addr2}"`
-   - `employer_reg_number` ← `er_master.regno`
-   - `audit_contact_name` ← `interaction.representative_name`
-   - `audit_contact_designation` ← `interaction.representative_designation`
-   - `audit_contact_present` ← `interaction.employer_acknowledged ?? true`
-   - **Seed narrative** (only when null on first insert; never overwritten on refresh):
-     - `purpose_scope` ← templated: *"Routine compliance audit of ${employer_name} for the period under review. Scope covers wage records, contributions, and statutory filings."*
-     - `executive_summary` ← *"On ${auditDate}, an on-site audit was conducted at ${employer_name}. ${findings_count} finding(s), ${violations_count} violation(s), and ${evidence_count} evidence item(s) were recorded. Checklist completion: ${checklist_pct}%."*
-     - `records_reviewed` ← derived from distinct `category` values in `payload.checklist`, joined with commas (e.g. *"Wage Books, Contribution Registers, Payroll, Employee Records"*); fallback fixed list when checklist empty.
-     - `recommendations` ← *"Address all findings within the statutory timeframe. Refer to Violations section for required corrective actions."* — only when `violations_count > 0`.
+**14 seeded templates** covering pre-audit / during / post-approval per spec.
 
-4. Add a small helper `coalesceEmpty(existingVal, derivedVal)` → returns `derivedVal` only when `existingVal` is null/undefined/empty. Apply per field on the UPDATE branch so inspector edits are never clobbered by **Refresh Counts**.
+**Default approval matrix** (configurable per template):
+- reminders/acknowledgments → none
+- interim/draft/evidence/info-request → lead_inspector
+- final report / violation / corrective / escalation → lead_inspector + supervisor
+- dispute_instructions → legal
 
-### B. Viewer — surface a clear "auto-populated" cue
-**File:** `src/pages/compliance/audit-planning/EmployerAuditReportViewer.tsx`
+## Service layer (Phase 2)
 
-- Add a subtle hint badge `"Auto-filled from visit data"` near the narrative section after a fresh generate, so inspectors know the prefilled text is editable. Pure cosmetic — no extra API calls.
+- `auditCommunicationTemplateService` — CRUD + clone + sections.
+- `auditCommunicationService` — draft, submit, list per visit/employer.
+- `auditCommunicationApprovalService` — approve/reject; advance chain.
+- `auditCommunicationDeliveryService` — calls existing `send-notification`; logs deliveries.
+- `secureTokenService` — issue/validate signed token; stored in DB.
+- `recipientResolutionService` — priority: visit-contact → compliance-contact → `er_master`.
 
-### C. Database — no schema change required
-All target columns already exist on `ce_employer_audit_reports`: `audit_date`, `audit_location`, `employer_reg_number`, `audit_contact_name`, `audit_contact_designation`, `audit_contact_present`, `purpose_scope`, `executive_summary`, `records_reviewed`, `recommendations`.
+## UI integration (Phase 3)
 
-### D. Behavior guarantees
-- **First open from visit** → report row created with everything pre-filled. Inspector just reviews & saves.
-- **Refresh Counts after manual edits** → counts update; `coalesceEmpty` preserves all manual text.
-- **Finalized report** → generator early-returns unchanged (already implemented).
-- **Missing source data** (e.g. no interaction yet) → those specific fields stay blank; no error thrown.
+- Visit workspace: new **Communications** tab (list + new-comm wizard + approval queue).
+- Admin: `/compliance/admin/communication-templates` (full CRUD + section editor + approval rules).
 
-## Files
-- **Edit:** `src/services/fieldAuditService.ts` — extend `generateEmployerAuditReport` (~60 lines added).
-- **Edit:** `src/pages/compliance/audit-planning/EmployerAuditReportViewer.tsx` — add "Auto-filled" badge cue (~10 lines).
-- **No migration, no RLS change, no edge function.**
+## Edge function (Phase 4 — next loop)
 
-## Verification
-1. Visit with interaction + completed checklist → "Generate Report" → date, location, reg no., contact, purpose, summary, records reviewed all pre-filled.
-2. Edit Executive Summary → click Refresh Counts → manual edit preserved; counts updated.
-3. Visit with no interaction → contact fields stay blank, other fields still pre-filled.
-4. Finalize report → no overwrite on subsequent refresh attempts.
+- `ce-audit-communication-dispatch` — fan-out send when status=approved.
+- Re-run via existing `audit-due-date-reminders` cron pattern.
 
+## Backward compatibility
+- No changes to existing tables; communication layer references report versions read-only.
+- `notification_templates` untouched — audit lives in its own domain table.
+
+## Risks
+- SMS path requires `notification_providers` row with `channel=sms` configured. Send-notification will gracefully fall back / log if missing.
+- Employer portal route is out-of-scope; tokens stored ready for consumption.
+
+## Phased rollout
+1. Schema + seed (this loop)
+2. Services + types (this loop)
+3. UI: comm tab + admin page (this loop)
+4. Dispatch edge function (next loop)
+5. Portal handover (separate)
