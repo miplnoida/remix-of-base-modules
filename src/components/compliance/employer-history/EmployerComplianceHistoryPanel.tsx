@@ -317,6 +317,18 @@ export function EmployerComplianceHistoryPanel({
           </>
         )}
       </CardContent>
+
+      {!onLinkMatter && (
+        <PriorMatterLinkDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          employerId={employerId}
+          inspectionId={inspectionId}
+          findingId={findingId}
+          matter={pendingMatter}
+          onLinked={onLinked}
+        />
+      )}
     </Card>
   );
 }
