@@ -36,6 +36,9 @@ export function useComplianceWorkbench(role: ComplianceOperationalRole) {
       recentVisits: any[];
       pendingApprovals: any[];
     }> => {
+      // Cast to any — many compliance tables aren't in generated types yet.
+      // Each query is shielded; failures resolve to 0 so the dashboard never breaks.
+      const sb: any = supabase;
       const safeCount = async (
         builder: () => Promise<{ count: number | null; error: any }>,
       ): Promise<number> => {
