@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { fieldAuditService } from './fieldAuditService';
 import {
   Violation,
   ViolationStatus,
@@ -7,6 +8,20 @@ import {
   UpdateViolationRequest,
   LinkViolationToEmployerRequest
 } from '@/types/violation';
+
+/**
+ * Best-effort canonical refresh of audit report counts after a violation mutation.
+ * Never throws — count refresh failures must not block the violation operation itself.
+ */
+async function safeRefreshReportCounts(inspectionId?: string | null) {
+  if (!inspectionId) return;
+  try {
+    await fieldAuditService.recomputeReportMetrics(inspectionId);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('[violationService] recomputeReportMetrics failed', e);
+  }
+}
 
 // ── Helper: map DB row to Violation type ──────────────────
 function mapRow(row: any): Violation {
@@ -170,6 +185,8 @@ class ViolationService {
       .single();
 
     if (error) throw error;
+    // Refresh report snapshot counts so viewer/print/PDF stay in sync
+    await safeRefreshReportCounts(request.inspectionVisitId);
     return mapRow(data);
   }
 
