@@ -85,7 +85,19 @@ export async function submitFindingResponse(input: SubmitFindingResponseInput): 
     .select('*')
     .single();
   if (error) throw error;
-  return data as FindingResponseSubmission;
+  const created = data as FindingResponseSubmission;
+  // Fire-and-forget officer notification
+  notifySubmissionReceived(
+    created.inspection_id,
+    {
+      kind: 'response',
+      submitter_name: created.submitter_name,
+      finding_ref: created.finding_id,
+      inspection_ref: created.inspection_id,
+    },
+    created.id,
+  );
+  return created;
 }
 
 export async function submitFindingDispute(input: SubmitFindingDisputeInput): Promise<FindingDisputeSubmission> {
@@ -120,7 +132,18 @@ export async function submitFindingDispute(input: SubmitFindingDisputeInput): Pr
     .select('*')
     .single();
   if (error) throw error;
-  return data as FindingDisputeSubmission;
+  const created = data as FindingDisputeSubmission;
+  notifySubmissionReceived(
+    created.inspection_id,
+    {
+      kind: 'dispute',
+      submitter_name: created.submitter_name,
+      finding_ref: created.finding_id ?? created.violation_id ?? '—',
+      inspection_ref: created.inspection_id,
+    },
+    created.id,
+  );
+  return created;
 }
 
 // ─── Public read-back: what the portal shows ──────────────────────
