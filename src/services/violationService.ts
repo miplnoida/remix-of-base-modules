@@ -180,7 +180,16 @@ class ViolationService {
         discovered_by: 'MANUAL',
         source_type: 'MANUAL',
         created_by: 'SYSTEM',
-      })
+        // Strong linkage (Phase 4)
+        linked_evidence_ids: request.linkedEvidenceIds && request.linkedEvidenceIds.length
+          ? request.linkedEvidenceIds
+          : null,
+        linked_checklist_response_id: request.linkedChecklistResponseId ?? null,
+        linked_working_paper_id: request.linkedWorkingPaperId ?? null,
+        related_prior_violation_id: request.relatedPriorViolationId ?? null,
+        related_arrangement_id: request.relatedArrangementId ?? null,
+        linkage_metadata: request.linkageMetadata ?? null,
+      } as any)
       .select(BASE_SELECT)
       .single();
 

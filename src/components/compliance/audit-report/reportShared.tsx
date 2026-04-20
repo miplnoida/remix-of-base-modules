@@ -216,14 +216,25 @@ export const PRINT_CSS = `
 .audit-report-print {
   font-family: Arial, Helvetica, sans-serif;
   color: #111;
-  font-size: 11pt;
-  line-height: 1.5;
+  font-size: 10.5pt;
+  line-height: 1.45;
   background: white;
+  /* A4 working width = 8.27in − margins. Constrains on-screen preview too so
+     what the user sees matches what prints. */
   width: 100%;
+  max-width: 7.3in;
   margin: 0 auto;
-  padding: 0;
+  padding: 0 0.15in;
   box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
+/* Every table is fixed-layout so wide content wraps instead of overflowing the page. */
+.audit-report-print table {
+  table-layout: fixed;
+  word-break: break-word;
+}
+.audit-report-print td, .audit-report-print th { overflow-wrap: anywhere; }
 .audit-report-print .cover-page {
   min-height: 9in;
   display: flex;
@@ -351,13 +362,19 @@ export const PRINT_CSS = `
   margin: 0 0 10px;
 }
 .audit-report-print .section-body p { margin: 6px 0; white-space: pre-wrap; }
-.audit-report-print table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 10pt; }
+.audit-report-print table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 9.5pt; }
 .audit-report-print table th, .audit-report-print table td {
   border: 1px solid #c0c0c0;
-  padding: 6px 8px;
+  padding: 4px 6px;
   text-align: left;
   vertical-align: top;
+  word-break: break-word;
 }
+/* Violations table is the worst offender — force narrower columns + smaller font */
+.audit-report-print .violations-table { font-size: 8.5pt; }
+.audit-report-print .violations-table th,
+.audit-report-print .violations-table td { padding: 3px 4px; }
+.audit-report-print .violations-table .vio-amount { font-size: 8.5pt; }
 .audit-report-print table th { background: #f0f8f4; font-weight: bold; color: #0E5F3A; }
 .audit-report-print .summary-table th { width: 25%; }
 .audit-report-print .severity-row-header {
@@ -587,9 +604,10 @@ export const PRINT_CSS = `
 }
 @media print {
   @page {
-    size: letter;
-    margin: 0.6in 0.5in;
+    size: A4;
+    margin: 0.5in 0.45in;
   }
+  .audit-report-print { max-width: none !important; padding: 0 !important; }
   html, body {
     margin: 0 !important;
     padding: 0 !important;
