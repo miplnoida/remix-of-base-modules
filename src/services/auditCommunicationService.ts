@@ -19,6 +19,7 @@ import type {
 } from '@/types/auditCommunication';
 import { auditCommunicationTemplateService } from './auditCommunicationTemplateService';
 import { auditCommunicationRecipientService } from './auditCommunicationRecipientService';
+import { resolveOnlineResponse } from './onlineResponseResolver';
 
 const COMM = 'ce_audit_communications' as any;
 const REC = 'ce_audit_communication_recipients' as any;
@@ -209,8 +210,38 @@ export const auditCommunicationService = {
     if (!comm) throw new Error('Not found');
     if (comm.status !== 'approved') throw new Error(`Cannot send: status is ${comm.status}`);
 
-    await (supabase.from(COMM) as any).update({ status: 'sending', updated_by: userCode }).eq('id', id);
-    await logEvent(id, 'sending_started', userCode);
+    // Phase 3 — Snapshot resolved online-response permissions onto the
+    // communication row at send time so policy edits cannot retroactively
+    // change what the employer is allowed to do via the portal.
+    let portalSnapshot: Awaited<ReturnType<typeof resolveOnlineResponse>> | null = null;
+    try {
+      portalSnapshot = await resolveOnlineResponse({
+        caseType: (comm.context_data_json as any)?.case_type ?? null,
+        communicationType: comm.comm_type,
+        reportType: (comm.context_data_json as any)?.report_type ?? null,
+        enforcementStage: (comm.context_data_json as any)?.enforcement_stage ?? null,
+        templateId: comm.template_id,
+      });
+    } catch (e) {
+      // Resolver failure must not block delivery — default to disabled.
+      portalSnapshot = { enabled: false, mode: 'NONE', permissions: {}, review: {}, reason: 'resolver_error' };
+    }
+
+    await (supabase.from(COMM) as any)
+      .update({
+        status: 'sending',
+        updated_by: userCode,
+        portal_resolved_enabled: portalSnapshot.enabled,
+        portal_resolved_mode: portalSnapshot.mode,
+        portal_resolved_permissions_json: portalSnapshot.permissions,
+        portal_resolved_review_json: portalSnapshot.review,
+        portal_matched_policy_id: portalSnapshot.matched_policy_id ?? null,
+      })
+      .eq('id', id);
+    await logEvent(id, 'sending_started', userCode, {
+      portal_enabled: portalSnapshot.enabled,
+      portal_mode: portalSnapshot.mode,
+    });
 
     const recipients = comm.recipients || [];
     const wantEmail = comm.channel === 'email' || comm.channel === 'both';
