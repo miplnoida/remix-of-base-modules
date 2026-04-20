@@ -121,7 +121,7 @@ export function AuditCommunicationsPanel({ inspectionId, employerId, employerNam
                   <div className="flex gap-2 flex-wrap text-xs">
                     {c.approvals.map((a) => (
                       <span key={a.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded border">
-                        {a.status === 'approved' ? <CheckCircle2 className="h-3 w-3 text-green-600" /> :
+                        {a.status === 'approved' ? <CheckCircle2 className="h-3 w-3 text-primary" /> :
                           a.status === 'rejected' ? <XCircle className="h-3 w-3 text-destructive" /> :
                           <Clock className="h-3 w-3 text-muted-foreground" />}
                         {a.required_role}
