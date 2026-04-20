@@ -13,13 +13,27 @@ const TPL = 'ce_audit_communication_templates' as any;
 const SEC = 'ce_audit_communication_template_sections' as any;
 
 export const auditCommunicationTemplateService = {
-  async list(opts: { activeOnly?: boolean; commType?: CeCommType } = {}) {
+  async list(opts: { activeOnly?: boolean; commType?: CeCommType; lifecycleStage?: string } = {}) {
     let q = (supabase.from(TPL) as any).select('*').order('sort_order', { ascending: true });
     if (opts.activeOnly) q = q.eq('is_active', true);
     if (opts.commType) q = q.eq('comm_type', opts.commType);
+    if (opts.lifecycleStage) q = q.eq('lifecycle_stage', opts.lifecycleStage);
     const { data, error } = await q;
     if (error) throw error;
     return (data || []) as AuditCommunicationTemplate[];
+  },
+
+  async listByStage(stage: string) {
+    return this.list({ lifecycleStage: stage });
+  },
+
+  /** List comm templates that link to a given report template_type (cross-ref for the report editor). */
+  async listLinkedToReport(reportType: string) {
+    const { data, error } = await (supabase.from(TPL) as any)
+      .select('id,template_code,template_name,lifecycle_stage,is_active')
+      .eq('linked_report_template_type', reportType);
+    if (error) throw error;
+    return (data || []) as Array<Pick<AuditCommunicationTemplate, 'id' | 'template_code' | 'template_name' | 'lifecycle_stage' | 'is_active'>>;
   },
 
   async getById(id: string) {
