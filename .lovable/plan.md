@@ -1,75 +1,103 @@
-# Compliance & Enforcement — Non-Admin Module Redesign
 
-## 1. Current-State Assessment
-~50 routes / 6 top-level groups with significant overlap. Single `manage_compliance` permission gates almost everything → role distinction invisible. Field area: 17 menu items / ~6 real concepts.
 
-**Keep:** Enforcement lifecycle, Cases (3 screens), Violations (2 screens), Workbench dashboards (need role-gating).
-**Weak:** Field overlap, undifferentiated Workbench, fake child links in Reports, monolithic permission, missing roles.
+## Compliance & Enforcement — Menu Restructure Plan (Navigation-Only)
 
-## 2. Final Logical Structure
+### 1. Current state — what's actually in DB
+
+The sidebar is **fully DB-driven** via `app_modules` + `get_user_accessible_modules` RPC. There is NO hardcoded `complianceMenuItems.ts` driving the live sidebar (the file exists but isn't used by `AppSidebar`). So all menu changes = `app_modules` updates (display_name, parent_id, sort_order, show_in_menu) + role_permissions tweaks.
+
+Current top-level under "Compliance & Enforcement" (`ca000000-...-001`):
+- Workbench, Field (`ce_field`), Violations, Cases, Enforcement, Reports, Settings — already correct top-level shape.
+
+**Confirmed problems in DB:**
+1. **Field** group has 17+ children mixing planning, execution, employer views, audits, weekly reports, sampling — flat list, no sub-grouping.
+2. Duplicates inside Field: `My Plans`, `Plan Builder`, `Plan Execution Dashboard`, `Visit Workspace`, `Employer Visit Workspace`, `Field Execution`, `Audit Management`, `Employer 360`, `Employer Statements`, `Submit Weekly Report`, `Weekly Reports`, `Report Approvals`, `Sampling`, `Findings`.
+3. Operational reports (weekly reports, findings) live under Field — correct, but `compliance_reports` group ALSO has weekly-plan-compliance and field-activities-summary → duplicate report exposure.
+4. Workbench → no role-tailored items, just one landing page.
+5. Some retired items already hidden (Field Operations, Inspections) from Phase 1 — keep.
+
+### 2. Target structure (preserve top-level, add sub-groups under Field only)
+
 ```
 Compliance & Enforcement
-├─ Workbench                  (role-aware home)
+├─ Workbench                    [all – role-aware landing already done]
 ├─ Field
-│   ├─ Plan Builder           [Inspector, Senior]
-│   ├─ My Plans               [Inspector, Senior]
-│   ├─ Plan Approvals         [Senior, Head]
-│   ├─ Visit Workspace        [Inspector, Senior]
-│   ├─ Audits                 [Inspector, Senior]
-│   ├─ Findings               [all]
-│   ├─ Employer 360°          [all]
-│   ├─ Employer Statements    [Senior, Head]
-│   ├─ Submit Weekly Report   [Inspector, Senior]
-│   ├─ Weekly Reports         [all — own/team filter]
-│   ├─ Report Approvals       [Senior, Head]
-│   └─ Sampling               [Senior, Head]
+│   ├─ Plans
+│   │   ├─ Plan Builder
+│   │   ├─ My Plans
+│   │   └─ Plan Approvals       [Senior+]
+│   ├─ Visits & Execution
+│   │   ├─ Visit Workspace      (canonical execution entry)
+│   │   └─ Audits
+│   ├─ Employer
+│   │   ├─ Employer 360°
+│   │   └─ Employer Statements  [Senior+]
+│   ├─ Findings & Reports
+│   │   ├─ Findings
+│   │   ├─ Submit Weekly Report
+│   │   ├─ Weekly Reports
+│   │   └─ Report Approvals     [Senior+]
+│   └─ Sampling                 [Senior+]
 ├─ Violations
 ├─ Cases
-├─ Enforcement
-└─ Reports & Analytics
+├─ Enforcement                  (unchanged — already clean)
+├─ Reports                      (analytics only — remove weekly/field-activity duplicates)
+└─ Settings                     (admin)
 ```
 
-## 3. Roles
-- **Inspector** (`ComplianceInspector`): own work.
-- **Senior Inspector** (NEW `SeniorInspector`): + approvals, sampling, team workbench.
-- **Compliance Head** (NEW `ComplianceHead`): full non-admin oversight + analytics. Not Admin.
+**Naming fixes:** "Field Execution" → drop (Visit Workspace is canonical). "Plan Execution Dashboard" → demote (not in primary menu; remains accessible via direct URL). "Employer Visit Workspace" → drop duplicate (Visit Workspace covers it).
 
-## 4. Capability Model
-Replaces single `manage_compliance` gate with: `compliance.field.execute|plan|approve_plans|report|approve_reports|sampling`, `compliance.violations.manage`, `compliance.cases.manage`, `compliance.enforcement.notices|arrangements|legal`, `compliance.workbench.team|enterprise`, `compliance.reports.operational|analytics`.
+### 3. Old → New mapping
 
-## 5. Routes Removed (Hard Cutover)
-- `/compliance/field/operations`
-- `/compliance/field/inspections`
-- `/compliance/field/weekly-reports` (kept: `/compliance/field/all-reports`)
-- `/compliance/field/my-upcoming`
-- `/compliance/field/sampling/candidates`
+| Old menu item | New location | Action |
+|---|---|---|
+| Plan Builder | Field › Plans | move under sub-group |
+| My Plans | Field › Plans | move |
+| Plan Approvals | Field › Plans | move (Senior+) |
+| Plan Execution Dashboard | — | hide from menu (route kept) |
+| Visit Workspace | Field › Visits & Execution | canonical |
+| Field Execution | — | hide (duplicate of Visit Workspace) |
+| Employer Visit Workspace | — | hide (duplicate) |
+| Audit Management | Field › Visits & Execution | move + rename "Audits" |
+| Employer 360° | Field › Employer | move |
+| Employer Statements | Field › Employer | move (Senior+) |
+| Findings | Field › Findings & Reports | move |
+| Submit Weekly Report | Field › Findings & Reports | move |
+| Weekly Reports | Field › Findings & Reports | move |
+| Report Approvals | Field › Findings & Reports | move (Senior+) |
+| Sampling | Field › Sampling | keep |
+| Weekly Plan Compliance (in Reports) | — | hide (already in Field) |
+| Field Activities Summary (in Reports) | — | hide (already in Field) |
 
-## 6. Phase 1 Implementation
-1. Migration: add `SeniorInspector` + `ComplianceHead` roles.
-2. `src/lib/compliance/capabilities.ts` — capability constants + role bundles.
-3. `src/hooks/useComplianceRole.ts` — returns `'inspector'|'senior'|'head'|'other'`.
-4. `complianceMenuItems.ts` → `getComplianceMenu(role)` builder.
-5. `sidebarMenuItems.ts` consumes role-aware builder.
-6. `AppRoutes.tsx`: remove 5 retired routes; add `/compliance/workbench` redirect.
-7. `WorkbenchLanding.tsx` — role-based redirect.
+### 4. Navigation fixes
+- All routes preserved — only `parent_id`, `sort_order`, `display_name`, `show_in_menu` change.
+- 4 sub-group container modules created under Field: `ce_field_plans`, `ce_field_execution_grp`, `ce_field_employer`, `ce_field_findings`. (Container-only, `route=NULL`, `routes_enabled=false`.)
+- 2 demoted modules: `show_in_menu=false` (Plan Execution Dashboard, legacy Field Execution if separate from Visit Workspace).
+- 2 duplicate report entries hidden from `Reports` group.
 
-## 7. Backward Compatibility
-- 5 routes 404 (per your decision).
-- All other URLs unchanged.
-- Capability layer falls back to `manage_compliance` — existing users unaffected.
-- New roles created empty; legacy menu shown until users reassigned.
+### 5. Role-based visibility
+Already partially done in Phase 1. Refine via `role_permissions`:
+- **Inspector**: revoke `view` on Plan Approvals, Report Approvals, Sampling, Employer Statements (leave plans/visits/findings/employer-360/weekly-submit/own-violations/own-cases).
+- **SeniorInspector**: keep all Field items + approvals + sampling. Add explicit `view` for the 4 new container groups.
+- **ComplianceHead**: full module access (already granted).
+- Containers granted to all 3 roles so sub-items are reachable.
 
-## 8. Phase 2 — Shipped
-1. **Test users seeded** via `seed-compliance-test-users` edge function (idempotent):
-   - `inspector@secureserve.gov` → ComplianceInspector
-   - `sinspector@secureserve.gov` → SeniorInspector
-   - `compliancehead@secureserve.gov` → ComplianceHead
-   - All passwords: `Admin@123`, force_password_change=false
-   - Re-runnable from `/admin/seed-test-users`
-2. **Role-aware Workbench widgets** — `WorkbenchLanding.tsx` now renders `RoleWorkbench` with metrics tailored to inspector / senior / head. Data via `useComplianceWorkbench(role)` hook.
-3. **Capability hook** — `useHasCapability(cap)` for in-component gating with `manage_compliance` legacy fallback.
-4. **Auth context fix** — `useComplianceRole` now reads from top-level `roles[]` (canonical source) plus profile shapes for safety.
+### 6. Permissions
+- Use existing `module_actions.action_name='view'` rows.
+- For each new container module → add a `view` action + grant to inspector/senior/head.
+- For revoked items above → set `is_granted=false` on inspector role rows (keep row for auditability).
 
-## 9. Phase 2 — Deferred
-- Sidebar capability filtering: sidebar is fully DB-driven (`get_user_accessible_modules` RPC). Phase-1 migration already granted role permissions — no further changes needed.
-- Login redirect-by-role: existing post-login flow respects user's first accessible module; manual `/compliance/workbench` works for all 3 test users.
+### 7. Backward compatibility
+- ✅ Zero routes deleted, zero components touched.
+- ✅ All hidden items remain reachable by direct URL (admins can re-enable via Settings).
+- ✅ Admin sees same items because admin bypasses permission filter; admin WILL see new sub-groups (visible improvement).
+- ✅ Existing Phase-1 hidden items stay hidden.
+- ✅ Cache: users may need one hard refresh post-migration; sidebar will pick up new structure on next `get_user_accessible_modules` call.
+
+### 8. Files changed
+- **1 migration** — all `app_modules` + `module_actions` + `role_permissions` updates in one transaction.
+- **0 code files** — sidebar is DB-driven; no React changes needed.
+
+### 9. What I will NOT touch
+- No new screens, no workflow changes, no new permission system, no admin menu changes, no top-level group renames, no route renames, no component edits.
+
