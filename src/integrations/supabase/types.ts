@@ -10138,6 +10138,65 @@ export type Database = {
           },
         ]
       }
+      ce_audit_communication_schedule_policies: {
+        Row: {
+          created_at: string
+          exact_datetime: string | null
+          id: string
+          offset_days: number | null
+          offset_hours: number | null
+          recurrence_enabled: boolean
+          recurrence_interval_days: number | null
+          recurrence_max_occurrences: number | null
+          recurrence_stop_conditions_json: Json
+          relative_to_field: string | null
+          template_id: string
+          trigger_event: string | null
+          trigger_mode: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          exact_datetime?: string | null
+          id?: string
+          offset_days?: number | null
+          offset_hours?: number | null
+          recurrence_enabled?: boolean
+          recurrence_interval_days?: number | null
+          recurrence_max_occurrences?: number | null
+          recurrence_stop_conditions_json?: Json
+          relative_to_field?: string | null
+          template_id: string
+          trigger_event?: string | null
+          trigger_mode?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          exact_datetime?: string | null
+          id?: string
+          offset_days?: number | null
+          offset_hours?: number | null
+          recurrence_enabled?: boolean
+          recurrence_interval_days?: number | null
+          recurrence_max_occurrences?: number | null
+          recurrence_stop_conditions_json?: Json
+          relative_to_field?: string | null
+          template_id?: string
+          trigger_event?: string | null
+          trigger_mode?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_communication_schedule_policies_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: true
+            referencedRelation: "ce_audit_communication_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_audit_communication_secure_tokens: {
         Row: {
           communication_id: string
@@ -10175,6 +10234,47 @@ export type Database = {
             columns: ["communication_id"]
             isOneToOne: false
             referencedRelation: "ce_audit_communications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_audit_communication_template_actions: {
+        Row: {
+          action_key: string
+          config_json: Json
+          created_at: string
+          id: string
+          is_enabled: boolean
+          sort_order: number
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          action_key: string
+          config_json?: Json
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          sort_order?: number
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          action_key?: string
+          config_json?: Json
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          sort_order?: number
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_communication_template_actions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communication_templates"
             referencedColumns: ["id"]
           },
         ]
@@ -10229,6 +10329,7 @@ export type Database = {
           approval_rule_json: Json
           attachment_rule_json: Json
           branding_json: Json
+          cancel_on_status_change_json: Json
           category: string
           channel: Database["public"]["Enums"]["ce_comm_channel"]
           comm_type: Database["public"]["Enums"]["ce_comm_type"]
@@ -10241,7 +10342,12 @@ export type Database = {
           email_subject: string | null
           id: string
           is_active: boolean
+          merge_fields_json: Json
+          preview_sample_json: Json
           recipient_rule_json: Json
+          requires_approval_before_send: boolean
+          reschedule_allowed: boolean
+          send_mode: string
           sms_body: string | null
           sort_order: number
           template_code: string
@@ -10255,6 +10361,7 @@ export type Database = {
           approval_rule_json?: Json
           attachment_rule_json?: Json
           branding_json?: Json
+          cancel_on_status_change_json?: Json
           category?: string
           channel?: Database["public"]["Enums"]["ce_comm_channel"]
           comm_type: Database["public"]["Enums"]["ce_comm_type"]
@@ -10267,7 +10374,12 @@ export type Database = {
           email_subject?: string | null
           id?: string
           is_active?: boolean
+          merge_fields_json?: Json
+          preview_sample_json?: Json
           recipient_rule_json?: Json
+          requires_approval_before_send?: boolean
+          reschedule_allowed?: boolean
+          send_mode?: string
           sms_body?: string | null
           sort_order?: number
           template_code: string
@@ -10281,6 +10393,7 @@ export type Database = {
           approval_rule_json?: Json
           attachment_rule_json?: Json
           branding_json?: Json
+          cancel_on_status_change_json?: Json
           category?: string
           channel?: Database["public"]["Enums"]["ce_comm_channel"]
           comm_type?: Database["public"]["Enums"]["ce_comm_type"]
@@ -10293,7 +10406,12 @@ export type Database = {
           email_subject?: string | null
           id?: string
           is_active?: boolean
+          merge_fields_json?: Json
+          preview_sample_json?: Json
           recipient_rule_json?: Json
+          requires_approval_before_send?: boolean
+          reschedule_allowed?: boolean
+          send_mode?: string
           sms_body?: string | null
           sort_order?: number
           template_code?: string
@@ -10315,10 +10433,16 @@ export type Database = {
           context_data_json: Json
           created_at: string
           created_by: string | null
+          dispatch_attempts: number
+          dispatch_locked_at: string | null
           email_body_snapshot: string | null
           employer_id: string
           id: string
           inspection_id: string | null
+          last_dispatch_error: string | null
+          materialized_by_policy_id: string | null
+          occurrence_no: number
+          parent_communication_id: string | null
           permissions_override_json: Json | null
           portal_expires_at: string | null
           portal_matched_policy_id: string | null
@@ -10328,6 +10452,10 @@ export type Database = {
             | null
           portal_resolved_permissions_json: Json | null
           portal_resolved_review_json: Json | null
+          recurrence_enabled: boolean
+          recurrence_interval_days: number | null
+          recurrence_max_occurrences: number | null
+          recurrence_stop_conditions_json: Json
           report_version_id: string | null
           response_due_at: string | null
           response_mode:
@@ -10353,10 +10481,16 @@ export type Database = {
           context_data_json?: Json
           created_at?: string
           created_by?: string | null
+          dispatch_attempts?: number
+          dispatch_locked_at?: string | null
           email_body_snapshot?: string | null
           employer_id: string
           id?: string
           inspection_id?: string | null
+          last_dispatch_error?: string | null
+          materialized_by_policy_id?: string | null
+          occurrence_no?: number
+          parent_communication_id?: string | null
           permissions_override_json?: Json | null
           portal_expires_at?: string | null
           portal_matched_policy_id?: string | null
@@ -10366,6 +10500,10 @@ export type Database = {
             | null
           portal_resolved_permissions_json?: Json | null
           portal_resolved_review_json?: Json | null
+          recurrence_enabled?: boolean
+          recurrence_interval_days?: number | null
+          recurrence_max_occurrences?: number | null
+          recurrence_stop_conditions_json?: Json
           report_version_id?: string | null
           response_due_at?: string | null
           response_mode?:
@@ -10391,10 +10529,16 @@ export type Database = {
           context_data_json?: Json
           created_at?: string
           created_by?: string | null
+          dispatch_attempts?: number
+          dispatch_locked_at?: string | null
           email_body_snapshot?: string | null
           employer_id?: string
           id?: string
           inspection_id?: string | null
+          last_dispatch_error?: string | null
+          materialized_by_policy_id?: string | null
+          occurrence_no?: number
+          parent_communication_id?: string | null
           permissions_override_json?: Json | null
           portal_expires_at?: string | null
           portal_matched_policy_id?: string | null
@@ -10404,6 +10548,10 @@ export type Database = {
             | null
           portal_resolved_permissions_json?: Json | null
           portal_resolved_review_json?: Json | null
+          recurrence_enabled?: boolean
+          recurrence_interval_days?: number | null
+          recurrence_max_occurrences?: number | null
+          recurrence_stop_conditions_json?: Json
           report_version_id?: string | null
           response_due_at?: string | null
           response_mode?:
@@ -10420,6 +10568,20 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ce_audit_communications_materialized_by_policy_id_fkey"
+            columns: ["materialized_by_policy_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communication_schedule_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_audit_communications_parent_communication_id_fkey"
+            columns: ["parent_communication_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communications"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ce_audit_communications_template_id_fkey"
             columns: ["template_id"]
