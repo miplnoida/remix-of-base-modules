@@ -10564,6 +10564,160 @@ export type Database = {
           },
         ]
       }
+      ce_audit_finding_dispute_submissions: {
+        Row: {
+          acknowledgment_id: string | null
+          created_at: string
+          dispute_details: string
+          dispute_reason: string
+          evidence_url: string | null
+          finding_id: string | null
+          id: string
+          inspection_id: string
+          ip_address: string | null
+          link_token: string
+          linked_dispute_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_notes: string | null
+          status: string
+          submitted_at: string
+          submitter_designation: string | null
+          submitter_email: string | null
+          submitter_name: string
+          user_agent: string | null
+          violation_id: string | null
+        }
+        Insert: {
+          acknowledgment_id?: string | null
+          created_at?: string
+          dispute_details: string
+          dispute_reason: string
+          evidence_url?: string | null
+          finding_id?: string | null
+          id?: string
+          inspection_id: string
+          ip_address?: string | null
+          link_token: string
+          linked_dispute_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          submitted_at?: string
+          submitter_designation?: string | null
+          submitter_email?: string | null
+          submitter_name: string
+          user_agent?: string | null
+          violation_id?: string | null
+        }
+        Update: {
+          acknowledgment_id?: string | null
+          created_at?: string
+          dispute_details?: string
+          dispute_reason?: string
+          evidence_url?: string | null
+          finding_id?: string | null
+          id?: string
+          inspection_id?: string
+          ip_address?: string | null
+          link_token?: string
+          linked_dispute_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          submitted_at?: string
+          submitter_designation?: string | null
+          submitter_email?: string | null
+          submitter_name?: string
+          user_agent?: string | null
+          violation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_finding_dispute_submissions_acknowledgment_id_fkey"
+            columns: ["acknowledgment_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_report_acknowledgments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_audit_finding_response_submissions: {
+        Row: {
+          acknowledgment_id: string | null
+          attachment_url: string | null
+          created_at: string
+          finding_id: string
+          id: string
+          inspection_id: string
+          ip_address: string | null
+          link_token: string
+          linked_response_id: string | null
+          response_text: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_notes: string | null
+          status: string
+          submitted_at: string
+          submitter_designation: string | null
+          submitter_email: string | null
+          submitter_name: string
+          user_agent: string | null
+        }
+        Insert: {
+          acknowledgment_id?: string | null
+          attachment_url?: string | null
+          created_at?: string
+          finding_id: string
+          id?: string
+          inspection_id: string
+          ip_address?: string | null
+          link_token: string
+          linked_response_id?: string | null
+          response_text: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          submitted_at?: string
+          submitter_designation?: string | null
+          submitter_email?: string | null
+          submitter_name: string
+          user_agent?: string | null
+        }
+        Update: {
+          acknowledgment_id?: string | null
+          attachment_url?: string | null
+          created_at?: string
+          finding_id?: string
+          id?: string
+          inspection_id?: string
+          ip_address?: string | null
+          link_token?: string
+          linked_response_id?: string | null
+          response_text?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          submitted_at?: string
+          submitter_designation?: string | null
+          submitter_email?: string | null
+          submitter_name?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_finding_response_submissions_acknowledgment_id_fkey"
+            columns: ["acknowledgment_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_report_acknowledgments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_audit_log: {
         Row: {
           action: string
