@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -54,8 +54,10 @@ export function PolicyEditorDialog({ open, onOpenChange, policy }: Props) {
   const upsert = useUpsertOnlineResponsePolicy();
   const [form, setForm] = useState<Partial<OnlineResponsePolicy>>(policy ?? EMPTY);
 
-  // Re-init when policy changes
-  useState(() => setForm(policy ?? EMPTY));
+  // Re-init when policy changes or dialog opens
+  useEffect(() => {
+    if (open) setForm(policy ?? EMPTY);
+  }, [open, policy]);
 
   const set = (k: keyof OnlineResponsePolicy, v: any) => setForm((f) => ({ ...f, [k]: v }));
 

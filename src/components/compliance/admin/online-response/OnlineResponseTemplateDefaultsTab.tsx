@@ -1,7 +1,8 @@
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Info } from 'lucide-react';
-import { useTemplates } from '@/hooks/useAuditCommunication';
+import { auditCommunicationTemplateService } from '@/services/auditCommunicationTemplateService';
 import { ONLINE_RESPONSE_MODE_LABELS } from '@/types/onlineResponse';
 
 /**
@@ -9,7 +10,10 @@ import { ONLINE_RESPONSE_MODE_LABELS } from '@/types/onlineResponse';
  * Editing template defaults is done from the Communication Templates page.
  */
 export function OnlineResponseTemplateDefaultsTab() {
-  const { data: templates = [], isLoading } = useTemplates();
+  const { data: templates = [], isLoading } = useQuery({
+    queryKey: ['audit-communication-templates', 'all'],
+    queryFn: () => auditCommunicationTemplateService.list(),
+  });
 
   return (
     <Card>
