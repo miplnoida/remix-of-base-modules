@@ -65,6 +65,7 @@ function createBuilder(table: string, mode: 'select' | 'insert' | 'update' | 'de
     eq(_col: string, _val: any) { return builder; },
     in(_col: string, _vals: any[]) { return builder; },
     is(_col: string, _val: any) { return builder; },
+    or(_expr: string) { return builder; },
     order(_col: string, _opts?: any) { return builder; },
     limit(_n: number) { return builder; },
     single() {
