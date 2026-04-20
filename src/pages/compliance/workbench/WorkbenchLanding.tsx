@@ -1,20 +1,34 @@
-import { Navigate } from 'react-router-dom';
 import { useComplianceRole } from '@/hooks/useComplianceRole';
+import RoleWorkbench from '@/components/compliance/workbench/RoleWorkbench';
+import { Navigate } from 'react-router-dom';
+
+const COPY: Record<string, { title: string; subtitle: string }> = {
+  inspector: {
+    title: 'My Workbench',
+    subtitle: 'Your visits, plans, reports, and open violations.',
+  },
+  senior: {
+    title: 'Team Workbench',
+    subtitle: 'Your work plus team approvals, reviews and escalations.',
+  },
+  head: {
+    title: 'Compliance Executive Workbench',
+    subtitle: 'Module-wide KPIs, team performance, and enforcement pipeline.',
+  },
+};
 
 /**
  * Single canonical entry point for the Compliance & Enforcement Workbench.
- * Redirects to the dashboard most relevant for the user's operational role.
+ * Renders a role-appropriate widget board. Unknown roles are routed to the
+ * legacy manager dashboard so existing users are unaffected.
  */
 export default function WorkbenchLanding() {
   const role = useComplianceRole();
 
-  switch (role) {
-    case 'inspector':
-      return <Navigate to="/compliance/workbench/inspector" replace />;
-    case 'senior':
-    case 'head':
-      return <Navigate to="/compliance/workbench/manager" replace />;
-    default:
-      return <Navigate to="/compliance/workbench/manager" replace />;
+  if (role === 'other') {
+    return <Navigate to="/compliance/workbench/manager" replace />;
   }
+
+  const copy = COPY[role];
+  return <RoleWorkbench role={role} title={copy.title} subtitle={copy.subtitle} />;
 }
