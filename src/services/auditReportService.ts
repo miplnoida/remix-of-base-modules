@@ -320,6 +320,14 @@ export const auditReportService = {
   async finalize(reportId: string, pdfUrl?: string): Promise<void> {
     const userCode = await whoami();
     const verificationRef = `VR-${reportId.slice(0, 8).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+
+    // Fetch report metadata before update so we can fire lifecycle events afterwards
+    const { data: existing } = await supabase
+      .from('ce_employer_audit_reports')
+      .select('id, employer_id, inspection_id, report_number')
+      .eq('id', reportId)
+      .maybeSingle();
+
     const { error } = await supabase
       .from('ce_employer_audit_reports')
       .update({
@@ -334,6 +342,24 @@ export const auditReportService = {
       .eq('id', reportId);
     if (error) throw error;
     await this.snapshotVersion(reportId, { isFinal: true, pdfUrl, notes: 'Finalized' });
+
+    // Phase 7: fire AUTO_EVENT_DRIVEN comms (best-effort, never blocks)
+    if (existing?.employer_id) {
+      try {
+        const { fireAuditCommunicationEvent } = await import('./auditCommunicationEventService');
+        await fireAuditCommunicationEvent({
+          event_type: 'final_report_published',
+          employer_id: existing.employer_id,
+          inspection_id: existing.inspection_id ?? null,
+          context_data: {
+            report: { id: reportId, number: (existing as any).report_number, verification_ref: verificationRef, pdf_url: pdfUrl ?? null },
+          },
+          triggered_by: userCode,
+        });
+      } catch (e) {
+        console.warn('[auditReportService.finalize] event fire failed', e);
+      }
+    }
   },
 
   // ---- Signatures ----------
