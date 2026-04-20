@@ -71,6 +71,12 @@ function classifyResponse(apiRes: WizApiResponse): {
     // Not a global failure — per-row results decide
     return { ok: true };
   }
+  // status === "error" — but if Wizard returned per-row results, defer to them
+  // so we surface the real per-row error (e.g. CHECK constraint violations)
+  // instead of masking everything as "Unknown API error".
+  if ((apiRes.data?.results?.length ?? 0) > 0) {
+    return { ok: true };
+  }
   return {
     ok: false,
     globalError: apiRes.error || apiRes.data?.error || "Unknown API error",
