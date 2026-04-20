@@ -36,6 +36,7 @@ import {
   Hammer,
   HelpCircle,
   Globe,
+  Mail,
 } from "lucide-react";
 
 export const complianceMenuItems = [
