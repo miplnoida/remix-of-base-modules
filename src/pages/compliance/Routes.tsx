@@ -97,6 +97,10 @@ import LedgerHelpCenter from './settings/LedgerHelpCenter';
 import AuditCommunicationTemplatesPage from './admin/AuditCommunicationTemplatesPage';
 import AuditCommunicationTemplateEditorPage from './admin/AuditCommunicationTemplateEditorPage';
 import OnlineResponseConfigPage from './admin/OnlineResponseConfigPage';
+// Reuses the audit module's Document & Output Settings page (Foundation, Section
+// Library, Report Templates) under Compliance Admin routes so officers don't
+// have to leave the Compliance module to manage report-level templates.
+import DocumentTemplateSettings from '@/pages/audit/DocumentTemplateSettings';
 
 // Tools
 import RuleSimulator from './tools/RuleSimulator';
@@ -215,6 +219,28 @@ const ComplianceRoutes = () => {
       <Route path="/admin/communication-templates" element={<AuditCommunicationTemplatesPage />} />
       <Route path="/admin/communication-templates/new" element={<AuditCommunicationTemplateEditorPage />} />
       <Route path="/admin/communication-templates/:id" element={<AuditCommunicationTemplateEditorPage />} />
+      {/* Templates & Output — Report Templates (output documents) */}
+      <Route
+        path="/admin/report-templates"
+        element={
+          <DocumentTemplateSettings
+            defaultTab="audit_report"
+            title="Report Templates"
+            description="Document/output structure templates: Internal Working Paper, Employer Audit Report, Findings Memo, Evidence Summary, Violation Document, Legal/Enforcement Pack, Management Summary."
+          />
+        }
+      />
+      {/* Templates & Output — Shared Sections & Foundation */}
+      <Route
+        path="/admin/document-foundation"
+        element={
+          <DocumentTemplateSettings
+            defaultTab="foundation"
+            title="Shared Sections & Foundation"
+            description="Section library, reusable clauses/disclaimers, document branding, merge fields, and output defaults shared by all report templates."
+          />
+        }
+      />
       <Route path="/admin/online-response" element={<OnlineResponseConfigPage />} />
       <Route path="/admin/settings/sampling" element={<RiskSamplingSettings />} />
       <Route path="/admin/settings/c3-ledger-sync" element={<C3LedgerSync />} />

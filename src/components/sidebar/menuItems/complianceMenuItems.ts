@@ -37,6 +37,7 @@ import {
   HelpCircle,
   Globe,
   Mail,
+  Layers,
 } from "lucide-react";
 
 export const complianceMenuItems = [
