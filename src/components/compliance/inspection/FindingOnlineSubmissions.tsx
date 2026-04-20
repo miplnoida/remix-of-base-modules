@@ -67,6 +67,7 @@ export function FindingOnlineSubmissions({ findingId }: Props) {
               status={r.status}
               statuses={RESPONSE_STATUSES}
               reviewerNotes={r.reviewer_notes}
+              linkedRecordId={r.linked_response_id}
               onUpdate={(status, notes) => ({ id: r.id, status, notes })}
               tableKind="response"
               userCode={userCode}
@@ -83,6 +84,7 @@ export function FindingOnlineSubmissions({ findingId }: Props) {
               status={d.status}
               statuses={DISPUTE_STATUSES}
               reviewerNotes={d.reviewer_notes}
+              linkedRecordId={d.linked_dispute_id}
               onUpdate={(status, notes) => ({ id: d.id, status, notes })}
               tableKind="dispute"
               userCode={userCode}
@@ -103,13 +105,14 @@ interface RowProps {
   status: string;
   statuses: string[];
   reviewerNotes: string | null;
+  linkedRecordId?: string | null;
   onUpdate: (status: string, notes: string) => { id: string; status: string; notes: string };
   tableKind: 'response' | 'dispute';
   userCode: string | null;
 }
 
 function SubmissionRow({
-  kind, header, meta, body, evidenceUrl, status, statuses, reviewerNotes, onUpdate, tableKind, userCode,
+  kind, header, meta, body, evidenceUrl, status, statuses, reviewerNotes, linkedRecordId, onUpdate, tableKind, userCode,
 }: RowProps) {
   const [editing, setEditing] = useState(false);
   const [newStatus, setNewStatus] = useState(status);
@@ -153,7 +156,12 @@ function SubmissionRow({
           )}
           <span className="font-medium truncate">{header}</span>
         </div>
-        <Badge variant="outline">{status}</Badge>
+        <div className="flex items-center gap-1 shrink-0">
+          {linkedRecordId && (
+            <Badge variant="default" className="text-[10px]">Linked</Badge>
+          )}
+          <Badge variant="outline">{status}</Badge>
+        </div>
       </div>
       <p className="text-xs text-muted-foreground mb-1">{meta}</p>
       <p className="whitespace-pre-wrap text-sm">{body}</p>
