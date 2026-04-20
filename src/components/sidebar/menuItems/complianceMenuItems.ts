@@ -478,6 +478,7 @@ export const complianceMenuItems = [
               { title: "Sampling Settings", url: "/compliance/admin/settings/sampling", icon: Target, requiresPermission: "manage_compliance", description: "Risk sampling parameters and configuration" },
               { title: "Reference Numbering", url: "/compliance/admin/settings/number-templates", icon: Hash, requiresPermission: "manage_compliance", description: "Auto-numbering schemes for violations, cases, notices" },
               { title: "Templates", url: "/compliance/admin/settings/templates", icon: FileText, requiresPermission: "manage_compliance", description: "Manage compliance notification templates" },
+              { title: "Employer Online Response", url: "/compliance/admin/online-response", icon: Globe, requiresPermission: "manage_compliance", description: "Configure online response modes, policy matrix, and review workflow" },
             ],
           },
           // ── 7.2 Automation & Jobs ──
