@@ -77,6 +77,8 @@ import ComplianceViolationTypes from '@/pages/compliance/settings/ViolationTypes
 import ComplianceNumberTemplates from '@/pages/compliance/settings/NumberTemplates';
 import ComplianceRiskScoringConfig from '@/pages/compliance/settings/RiskScoringConfig';
 import ComplianceTemplates from '@/pages/compliance/settings/ComplianceTemplates';
+import AuditCommunicationTemplatesPage from '@/pages/compliance/admin/AuditCommunicationTemplatesPage';
+import OnlineResponseConfigPage from '@/pages/compliance/admin/OnlineResponseConfigPage';
 import WeeklyPlanBuilder from '@/pages/compliance/audit-planning/WeeklyPlanBuilder';
 import MyPlans from '@/pages/compliance/audit-planning/MyPlans';
 import AllWeeklyReports from '@/pages/compliance/audit-planning/AllWeeklyReports';
@@ -1053,6 +1055,8 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/settings/number-templates" element={<ProtectedLayout><ComplianceNumberTemplates /></ProtectedLayout>} />
       <Route path="/compliance/admin/settings/risk-policy" element={<ProtectedLayout><RiskRulePolicy /></ProtectedLayout>} />
       <Route path="/compliance/admin/settings/templates" element={<ProtectedLayout><ComplianceTemplates /></ProtectedLayout>} />
+      <Route path="/compliance/admin/communication-templates" element={<ProtectedLayout><AuditCommunicationTemplatesPage /></ProtectedLayout>} />
+      <Route path="/compliance/admin/online-response" element={<ProtectedLayout><OnlineResponseConfigPage /></ProtectedLayout>} />
       <Route path="/compliance/admin/settings/sampling" element={<ProtectedLayout><RiskSamplingSettings /></ProtectedLayout>} />
       <Route path="/compliance/admin/settings/c3-ledger-sync" element={<ProtectedLayout><C3LedgerSync /></ProtectedLayout>} />
       <Route path="/compliance/admin/settings/payment-ledger-sync" element={<ProtectedLayout><PaymentLedgerSync /></ProtectedLayout>} />
