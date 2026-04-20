@@ -61,14 +61,14 @@ export function OnlineResponseGlobalSettingsTab() {
   return (
     <div className="space-y-4">
       {!current.enabled && (
-        <Card className="border-amber-300 bg-amber-50/50">
+        <Card className="border-warning bg-warning/10">
           <CardContent className="py-3 flex items-center gap-3">
-            <ShieldAlert className="h-5 w-5 text-amber-600 shrink-0" />
+            <ShieldAlert className="h-5 w-5 text-warning shrink-0" />
             <div className="text-sm">
-              <span className="font-medium text-amber-900">
+              <span className="font-medium text-foreground">
                 Employer Online Response is currently disabled.
               </span>{' '}
-              <span className="text-amber-800">
+              <span className="text-muted-foreground">
                 No portal links, acknowledgments, uploads, clarifications or disputes will be
                 accepted regardless of policy or template configuration.
               </span>
