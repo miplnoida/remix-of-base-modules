@@ -13206,6 +13206,186 @@ export type Database = {
           },
         ]
       }
+      ce_document_section_library: {
+        Row: {
+          applies_to: string[]
+          category: string
+          created_at: string
+          default_enabled: boolean
+          default_include_in_toc: boolean
+          default_order: number
+          default_start_on_new_page: boolean
+          description: string | null
+          display_mode: string
+          id: string
+          is_mandatory: boolean
+          is_shared: boolean
+          label: string
+          section_key: string
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: string[]
+          category?: string
+          created_at?: string
+          default_enabled?: boolean
+          default_include_in_toc?: boolean
+          default_order?: number
+          default_start_on_new_page?: boolean
+          description?: string | null
+          display_mode?: string
+          id?: string
+          is_mandatory?: boolean
+          is_shared?: boolean
+          label: string
+          section_key: string
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: string[]
+          category?: string
+          created_at?: string
+          default_enabled?: boolean
+          default_include_in_toc?: boolean
+          default_order?: number
+          default_start_on_new_page?: boolean
+          description?: string | null
+          display_mode?: string
+          id?: string
+          is_mandatory?: boolean
+          is_shared?: boolean
+          label?: string
+          section_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ce_document_template_sections: {
+        Row: {
+          created_at: string
+          id: string
+          include_in_toc: boolean
+          is_enabled: boolean
+          is_required: boolean
+          section_key: string
+          sort_order: number
+          start_on_new_page: boolean
+          template_type: string
+          title_override: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          include_in_toc?: boolean
+          is_enabled?: boolean
+          is_required?: boolean
+          section_key: string
+          sort_order?: number
+          start_on_new_page?: boolean
+          template_type: string
+          title_override?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          include_in_toc?: boolean
+          is_enabled?: boolean
+          is_required?: boolean
+          section_key?: string
+          sort_order?: number
+          start_on_new_page?: boolean
+          template_type?: string
+          title_override?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ce_document_template_settings: {
+        Row: {
+          config_json: Json
+          created_at: string
+          id: string
+          template_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          config_json?: Json
+          created_at?: string
+          id?: string
+          template_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          config_json?: Json
+          created_at?: string
+          id?: string
+          template_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ce_document_templates: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          category: string | null
+          content: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          merge_fields: string[] | null
+          name: string
+          parent_template_id: string | null
+          type: string
+          updated_at: string | null
+          updated_by: string | null
+          version_number: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          merge_fields?: string[] | null
+          name: string
+          parent_template_id?: string | null
+          type: string
+          updated_at?: string | null
+          updated_by?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string | null
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          merge_fields?: string[] | null
+          name?: string
+          parent_template_id?: string | null
+          type?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          version_number?: number | null
+        }
+        Relationships: []
+      }
       ce_employer_audit_reports: {
         Row: {
           acknowledgment_completed_at: string | null
@@ -17101,6 +17281,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ce_org_document_foundation: {
+        Row: {
+          branding: Json
+          color_palette: Json
+          created_at: string
+          draft_rules: Json
+          foundation_key: string
+          id: string
+          page_layout: Json
+          pagination: Json
+          sign_off: Json
+          table_style: Json
+          typography: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          branding?: Json
+          color_palette?: Json
+          created_at?: string
+          draft_rules?: Json
+          foundation_key?: string
+          id?: string
+          page_layout?: Json
+          pagination?: Json
+          sign_off?: Json
+          table_style?: Json
+          typography?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          branding?: Json
+          color_palette?: Json
+          created_at?: string
+          draft_rules?: Json
+          foundation_key?: string
+          id?: string
+          page_layout?: Json
+          pagination?: Json
+          sign_off?: Json
+          table_style?: Json
+          typography?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       ce_payment_allocations: {
         Row: {
