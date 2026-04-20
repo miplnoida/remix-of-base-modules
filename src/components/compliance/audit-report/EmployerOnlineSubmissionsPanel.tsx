@@ -33,6 +33,10 @@ interface Props {
   defaultSubmitterName: string;
   defaultSubmitterEmail?: string;
   defaultSubmitterDesignation?: string;
+  /** Phase 4 — gating from frozen snapshot. Defaults preserve old behavior. */
+  allowResponse?: boolean;
+  allowDispute?: boolean;
+  allowUpload?: boolean;
 }
 
 const DISPUTE_REASONS = [
@@ -53,8 +57,12 @@ export function EmployerOnlineSubmissionsPanel({
   defaultSubmitterName,
   defaultSubmitterEmail,
   defaultSubmitterDesignation,
+  allowResponse = true,
+  allowDispute = true,
+  allowUpload = true,
 }: Props) {
-  const [mode, setMode] = useState<'response' | 'dispute'>('response');
+  const initialMode: 'response' | 'dispute' = allowResponse ? 'response' : allowDispute ? 'dispute' : 'response';
+  const [mode, setMode] = useState<'response' | 'dispute'>(initialMode);
   const [findingId, setFindingId] = useState<string>(findings[0]?.id ?? '');
   const [text, setText] = useState('');
   const [reason, setReason] = useState<string>(DISPUTE_REASONS[0]);
