@@ -294,6 +294,9 @@ export const fieldAuditService = {
       .single();
     if (error) throw error;
 
+    // Canonical count refresh — keeps report.totalEvidence in sync
+    try { await this.recomputeReportMetrics(params.inspectionId); } catch {}
+
     return {
       id: data.id,
       inspectionVisitId: data.inspection_id,
@@ -372,6 +375,8 @@ export const fieldAuditService = {
         req.evidenceIds.map((evId) => this.linkEvidenceToFinding(evId, data.id))
       );
     }
+    // Canonical count refresh
+    try { await this.recomputeReportMetrics(req.inspectionId); } catch {}
     return { id: data.id };
   },
 
