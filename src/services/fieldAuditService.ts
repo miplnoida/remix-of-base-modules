@@ -1473,6 +1473,7 @@ export const fieldAuditService = {
     let report: EmployerAuditReportRow | null = null;
     let gate: CompletionGateResult | null = null;
 
+    let workingPapers: any = null;
     if (inspectionId) {
       [metricsRaw, evidence, findings, report, gate] = await Promise.all([
         this.getVisitMetrics(inspectionId),
@@ -1481,6 +1482,13 @@ export const fieldAuditService = {
         this.getEmployerAuditReport(inspectionId),
         this.evaluateCompletionGate(inspectionId),
       ]);
+
+      const wpRes = await supabase
+        .from('ce_inspection_working_papers')
+        .select('payroll_reviewed, contributions_reviewed, employee_sample_size, wage_book_reviewed, inspector_observations')
+        .eq('inspection_id', inspectionId)
+        .maybeSingle();
+      workingPapers = wpRes.data ?? null;
     }
 
     // Follow-up count for this employer (carry-over indicator)
@@ -1495,14 +1503,38 @@ export const fieldAuditService = {
       followUpCount = count ?? 0;
     }
 
+    // Working Papers checklist (5 standardized review areas — the actual
+    // checklist surfaced on the Working Papers tab of this screen).
+    const WP_TOTAL = 5;
+    const wpDone = workingPapers
+      ? [
+          workingPapers.payroll_reviewed,
+          workingPapers.contributions_reviewed,
+          (workingPapers.employee_sample_size ?? 0) > 0,
+          workingPapers.wage_book_reviewed,
+          ((workingPapers.inspector_observations ?? '') as string).trim().length > 0,
+        ].filter(Boolean).length
+      : 0;
+
+    // Combine Working Papers (always-present) with any template-driven
+    // checklist items (ia_audit_checklists, surfaced via the metrics view).
+    // This keeps the KPI consistent with what the user actually sees on screen.
+    const tplTotal = Number(metricsRaw?.checklist_total ?? 0);
+    const tplAnswered = Number(metricsRaw?.checklist_answered ?? 0);
+    const checklistTotal = WP_TOTAL + tplTotal;
+    const checklistAnswered = wpDone + tplAnswered;
+    const checklistPct = checklistTotal > 0
+      ? Math.round((checklistAnswered * 100) / checklistTotal)
+      : 0;
+
     // Normalize snake_case view row → camelCase shape consumed by KPI cards.
     // Fall back to actual array lengths so totals always match what's listed
     // in the Evidence / Findings tabs (single source of truth = the data itself).
     const metrics = metricsRaw
       ? {
-          checklistTotal: Number(metricsRaw.checklist_total ?? 0),
-          checklistAnswered: Number(metricsRaw.checklist_answered ?? 0),
-          checklistPct: Number(metricsRaw.checklist_pct ?? 0),
+          checklistTotal,
+          checklistAnswered,
+          checklistPct,
           evidenceCount: evidence.length || Number(metricsRaw.evidence_count ?? 0),
           findingsCount: findings.length || Number(metricsRaw.findings_count ?? 0),
           violationsCount: Number(metricsRaw.violations_count ?? 0),
@@ -1511,9 +1543,9 @@ export const fieldAuditService = {
           followUpCount,
         }
       : {
-          checklistTotal: 0,
-          checklistAnswered: 0,
-          checklistPct: 0,
+          checklistTotal,
+          checklistAnswered,
+          checklistPct,
           evidenceCount: evidence.length,
           findingsCount: findings.length,
           violationsCount: 0,
