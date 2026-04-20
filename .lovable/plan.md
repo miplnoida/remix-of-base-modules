@@ -1,103 +1,76 @@
+## Verification Result: Cannot Confirm Yet — Cleanup Required First
+
+### What the C3-Wizard team is asking us to confirm
 
 
-## Compliance & Enforcement — Menu Restructure Plan (Navigation-Only)
+| Claim                                                                                            | Reality on our side                                                                                                                                                                                                                                                                                                           | Status     |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| 1. Outbound base URL read from `C3_WIZARD_BASE_URL` (DB) — no hardcoded URLs                     | **3 frontend files still hardcode** `https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1/wiz-admin-api`                                                                                                                                                                                                                     | ❌ FAIL     |
+| 2. Outbound keys read from `OUTBOUND_ADMIN_API_KEY` / `OUTBOUND_SYNC_API_KEY` — no env fallbacks | **3 frontend files still read** `VITE_WIZ_ADMIN_API_KEY` with hardcoded fallback `"uiop906754drd35fvg"`. **2 edge functions + 1 shared helper still read** `WIZ_ADMIN_API_KEY` / `C3_CONFIG_SYNC_API_KEY` / `C3_WIZARD_SYNC_URL` from `Deno.env`. **1 hook reads** `VITE_C3_WIZARD_SYNC_URL` & `VITE_C3_CONFIG_SYNC_API_KEY`. | ❌ FAIL     |
+| 3. E2E tests pass Dev + Prod                                                                     | Cannot certify until #1 and #2 are clean                                                                                                                                                                                                                                                                                      | ⏸️ BLOCKED |
 
-### 1. Current state — what's actually in DB
 
-The sidebar is **fully DB-driven** via `app_modules` + `get_user_accessible_modules` RPC. There is NO hardcoded `complianceMenuItems.ts` driving the live sidebar (the file exists but isn't used by `AppSidebar`). So all menu changes = `app_modules` updates (display_name, parent_id, sort_order, show_in_menu) + role_permissions tweaks.
+### DB state — verified good ✅
 
-Current top-level under "Compliance & Enforcement" (`ca000000-...-001`):
-- Workbench, Field (`ce_field`), Violations, Cases, Enforcement, Reports, Settings — already correct top-level shape.
+- `C3_WIZARD_BASE_URL`, `OUTBOUND_ADMIN_API_KEY`, `OUTBOUND_SYNC_API_KEY` all seeded for Dev + Prod + Production
+- `ACTIVE_ENVIRONMENT = Dev` set
+- `wizApiConfig.ts` (frontend) and `_shared/wizConfig.ts` (edge) helpers exist and work
+- 6 services + 2 edge functions already migrated to use them
 
-**Confirmed problems in DB:**
-1. **Field** group has 17+ children mixing planning, execution, employer views, audits, weekly reports, sampling — flat list, no sub-grouping.
-2. Duplicates inside Field: `My Plans`, `Plan Builder`, `Plan Execution Dashboard`, `Visit Workspace`, `Employer Visit Workspace`, `Field Execution`, `Audit Management`, `Employer 360`, `Employer Statements`, `Submit Weekly Report`, `Weekly Reports`, `Report Approvals`, `Sampling`, `Findings`.
-3. Operational reports (weekly reports, findings) live under Field — correct, but `compliance_reports` group ALSO has weekly-plan-compliance and field-activities-summary → duplicate report exposure.
-4. Workbench → no role-tailored items, just one landing page.
-5. Some retired items already hidden (Field Operations, Inspections) from Phase 1 — keep.
+### Files requiring cleanup (8 occurrences)
 
-### 2. Target structure (preserve top-level, add sub-groups under Field only)
+**Frontend — replace hardcoded URL + `VITE_WIZ_ADMIN_API_KEY` with `getWizAdminConfig()`:**
 
-```
-Compliance & Enforcement
-├─ Workbench                    [all – role-aware landing already done]
-├─ Field
-│   ├─ Plans
-│   │   ├─ Plan Builder
-│   │   ├─ My Plans
-│   │   └─ Plan Approvals       [Senior+]
-│   ├─ Visits & Execution
-│   │   ├─ Visit Workspace      (canonical execution entry)
-│   │   └─ Audits
-│   ├─ Employer
-│   │   ├─ Employer 360°
-│   │   └─ Employer Statements  [Senior+]
-│   ├─ Findings & Reports
-│   │   ├─ Findings
-│   │   ├─ Submit Weekly Report
-│   │   ├─ Weekly Reports
-│   │   └─ Report Approvals     [Senior+]
-│   └─ Sampling                 [Senior+]
-├─ Violations
-├─ Cases
-├─ Enforcement                  (unchanged — already clean)
-├─ Reports                      (analytics only — remove weekly/field-activity duplicates)
-└─ Settings                     (admin)
-```
+1. `src/services/wizPaymentService.ts` (lines 6–7, 14–22)
+2. `src/services/wizReportsService.ts` (lines 3–4, plus call site)
+3. `src/services/wizAdminApiService.ts` (lines 1–2, 11–20)
 
-**Naming fixes:** "Field Execution" → drop (Visit Workspace is canonical). "Plan Execution Dashboard" → demote (not in primary menu; remains accessible via direct URL). "Employer Visit Workspace" → drop duplicate (Visit Workspace covers it).
+**Frontend hook — replace direct env reads with edge-function proxy (already exists):**
+4. `src/hooks/useC3ConfigPublish.ts` (lines 370–397) — drop the `VITE_C3_WIZARD_SYNC_URL` direct path, always go through `c3-config-sync-publish` edge function
 
-### 3. Old → New mapping
+**Edge functions — drop env-var fallbacks (DB is source of truth):**
+5. `supabase/functions/_shared/wizConfig.ts` (lines 33–46) — remove `Deno.env.get("WIZ_API_URL")`, `C3_WIZARD_SYNC_URL`, `WIZ_ADMIN_API_KEY`, `C3_CONFIG_SYNC_API_KEY` fallbacks; keep only DB lookup + hard error if missing
+6. `supabase/functions/c3-config-sync-publish/index.ts` (lines 17–21, 30) — drop `envSyncUrl` / `envSyncKey`
+7. `supabase/functions/se-wages-sync-publish/index.ts` (lines 17–18, 23–26, 35) — same
 
-| Old menu item | New location | Action |
-|---|---|---|
-| Plan Builder | Field › Plans | move under sub-group |
-| My Plans | Field › Plans | move |
-| Plan Approvals | Field › Plans | move (Senior+) |
-| Plan Execution Dashboard | — | hide from menu (route kept) |
-| Visit Workspace | Field › Visits & Execution | canonical |
-| Field Execution | — | hide (duplicate of Visit Workspace) |
-| Employer Visit Workspace | — | hide (duplicate) |
-| Audit Management | Field › Visits & Execution | move + rename "Audits" |
-| Employer 360° | Field › Employer | move |
-| Employer Statements | Field › Employer | move (Senior+) |
-| Findings | Field › Findings & Reports | move |
-| Submit Weekly Report | Field › Findings & Reports | move |
-| Weekly Reports | Field › Findings & Reports | move |
-| Report Approvals | Field › Findings & Reports | move (Senior+) |
-| Sampling | Field › Sampling | keep |
-| Weekly Plan Compliance (in Reports) | — | hide (already in Field) |
-| Field Activities Summary (in Reports) | — | hide (already in Field) |
+**Also fallback strings in `src/lib/wizApiConfig.ts` (lines 16–18):** keep these as last-resort safety since they match current Dev URL — OR remove for full strictness. Recommend **keep** with a `console.warn` (already there) so a misconfigured DB doesn't brick the app instantly.
 
-### 4. Navigation fixes
-- All routes preserved — only `parent_id`, `sort_order`, `display_name`, `show_in_menu` change.
-- 4 sub-group container modules created under Field: `ce_field_plans`, `ce_field_execution_grp`, `ce_field_employer`, `ce_field_findings`. (Container-only, `route=NULL`, `routes_enabled=false`.)
-- 2 demoted modules: `show_in_menu=false` (Plan Execution Dashboard, legacy Field Execution if separate from Visit Workspace).
-- 2 duplicate report entries hidden from `Reports` group.
+### Plan of action
 
-### 5. Role-based visibility
-Already partially done in Phase 1. Refine via `role_permissions`:
-- **Inspector**: revoke `view` on Plan Approvals, Report Approvals, Sampling, Employer Statements (leave plans/visits/findings/employer-360/weekly-submit/own-violations/own-cases).
-- **SeniorInspector**: keep all Field items + approvals + sampling. Add explicit `view` for the 4 new container groups.
-- **ComplianceHead**: full module access (already granted).
-- Containers granted to all 3 roles so sub-items are reachable.
+1. **Edit 7 files** as above (1 PR-sized change set).
+2. **Smoke-test** each touched surface in Dev:
+  - Payment Details list, Reports, generic admin-API screen → wizPayment/Reports/AdminApi services
+  - C3 Config Publish flow → `useC3ConfigPublish` + `c3-config-sync-publish` edge function
+  - SE-Wages publish flow → `se-wages-sync-publish` edge function
+  - Self-Employed list, Reconciliation, Manage Users, C3 Details (already migrated — regression check)
+3. **Reply to C3-Wizard team** confirming all 3 points hold.
+4. **Then** delete the 3 legacy secrets.
 
-### 6. Permissions
-- Use existing `module_actions.action_name='view'` rows.
-- For each new container module → add a `view` action + grant to inspector/senior/head.
-- For revoked items above → set `is_granted=false` on inspector role rows (keep row for auditability).
+### Your secret-deletion question — answer
 
-### 7. Backward compatibility
-- ✅ Zero routes deleted, zero components touched.
-- ✅ All hidden items remain reachable by direct URL (admins can re-enable via Settings).
-- ✅ Admin sees same items because admin bypasses permission filter; admin WILL see new sub-groups (visible improvement).
-- ✅ Existing Phase-1 hidden items stay hidden.
-- ✅ Cache: users may need one hard refresh post-migration; sidebar will pick up new structure on next `get_user_accessible_modules` call.
+> Can I remove `C3_CONFIG_SYNC_API_KEY`, `C3_WIZARD_SYNC_URL`, `WIZ_ADMIN_API_KEY`?
 
-### 8. Files changed
-- **1 migration** — all `app_modules` + `module_actions` + `role_permissions` updates in one transaction.
-- **0 code files** — sidebar is DB-driven; no React changes needed.
+**Not yet.** Today they are still actively read by:
 
-### 9. What I will NOT touch
-- No new screens, no workflow changes, no new permission system, no admin menu changes, no top-level group renames, no route renames, no component edits.
+- `_shared/wizConfig.ts` → `WIZ_ADMIN_API_KEY`, `C3_CONFIG_SYNC_API_KEY`, `C3_WIZARD_SYNC_URL`
+- `c3-config-sync-publish/index.ts` → `C3_WIZARD_SYNC_URL`, `C3_CONFIG_SYNC_API_KEY`
+- `se-wages-sync-publish/index.ts` → same
 
+If you delete them right now, C3 publish + SE-wages publish keep working ONLY because the DB values exist — the env-var fallbacks would silently go missing. That's actually fine functionally, but **the cleaner sequence is**: ship the cleanup above → confirm with C3-Wizard team → delete secrets on both sides simultaneously.
+
+**Safe-to-delete-now:** the frontend `VITE_*` envs are not Lovable secrets (they're build-time vars in `.env`); they don't appear in your secrets list and need no action.
+
+### Backward compatibility & rollout
+
+- Hard cutover, no flags. DB values are already live and verified.
+- 5-minute in-memory cache on both sides → first request post-deploy may use stale config; subsequent requests pick up DB.
+- Rollback = redeploy previous edge-function version (env vars still present until you delete them).
+
+### Confirmation message to send (after cleanup ships)
+
+> Confirmed on SSB-Admin side: outbound base URL + admin/sync keys now exclusively sourced from `c3_site_settings` (`C3_WIZARD_BASE_URL`, `OUTBOUND_ADMIN_API_KEY`, `OUTBOUND_SYNC_API_KEY`). All env-var and hardcoded-URL fallbacks removed across 3 services, 1 hook, and 3 edge functions. E2E verified for Dev. Proceed with deletion of `WIZ_ADMIN_API_KEY` and `C3_CONFIG_SYNC_API_KEY` on the C3-Wizard side; we will delete our copies in parallel.
+
+Approve and I will ship the 7-file cleanup.  
+  
+  
+Important note: Make sure, not other existing functionality should be impacted.
