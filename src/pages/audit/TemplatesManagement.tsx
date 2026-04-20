@@ -99,6 +99,19 @@ export default function TemplatesManagement() {
       isLoading={isLoading}
       actions={<Button onClick={() => { resetForm(); setIsCreateOpen(true); }}><Plus className="w-4 h-4 mr-2" />New Template</Button>}
     >
+      <div className="rounded-md border border-warning/40 bg-warning/10 p-3 mb-4 flex items-start gap-2">
+        <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+        <div className="text-xs">
+          <p className="font-medium">This page is deprecated for employer-audit communications.</p>
+          <p className="text-muted-foreground mt-0.5">
+            Please use Compliance Admin →{' '}
+            <Link to="/compliance/admin/communication-templates" className="underline">Communication Templates</Link>,{' '}
+            <Link to="/compliance/admin/report-templates" className="underline">Report Templates</Link>, and{' '}
+            <Link to="/compliance/admin/document-foundation" className="underline">Shared Sections &amp; Foundation</Link>.
+            This Internal Audit page remains available for legacy IA document templates only.
+          </p>
+        </div>
+      </div>
       <StandardSearchFilterBar
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
