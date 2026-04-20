@@ -904,6 +904,27 @@ export const fieldAuditService = {
         .is('audit_report_id', null);
     }
 
+    // Phase 7: fire AUTO_EVENT_DRIVEN comms when the audit report is first created
+    // Only fire on initial creation (existing was null), not on re-fetch
+    if (row?.id && !existing && insp.employer_id) {
+      try {
+        const { fireAuditCommunicationEvent } = await import('./auditCommunicationEventService');
+        await fireAuditCommunicationEvent({
+          event_type: 'audit_completed',
+          employer_id: insp.employer_id,
+          inspection_id: inspectionId,
+          context_data: {
+            employer: { id: insp.employer_id, name: employerName, regno: employerRegNumber },
+            inspection: { id: inspectionId, audit_date: auditDate, location: auditLocation },
+            report: { id: row.id, findings_count: findingsCount, violations_count: violationsCount, evidence_count: evidenceCount },
+          },
+          triggered_by: userCode,
+        });
+      } catch (e) {
+        console.warn('[fieldAuditService] audit_completed event fire failed', e);
+      }
+    }
+
     return mapReport(row);
   },
 
