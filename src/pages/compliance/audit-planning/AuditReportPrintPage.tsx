@@ -15,6 +15,7 @@ import { fieldAuditService } from '@/services/fieldAuditService';
 import { AuditReportPrintLayout } from '@/components/compliance/audit-report/AuditReportPrintLayout';
 import type { FullAuditReport, AuditReportSignature, AuditViolationRow } from '@/types/auditReport';
 import type { InspectionFinding, InspectionEvidence } from '@/types/inspectionTypes';
+import { employerPriorContextService, type EmployerPriorContext } from '@/services/employerPriorContextService';
 import { toast } from 'sonner';
 
 type Variant = 'INTERNAL' | 'EMPLOYER';
@@ -31,6 +32,7 @@ export default function AuditReportPrintPage() {
   const [checklist, setChecklist] = useState<any[]>([]);
   const [signatures, setSignatures] = useState<AuditReportSignature[]>([]);
   const [violations, setViolations] = useState<AuditViolationRow[]>([]);
+  const [priorContext, setPriorContext] = useState<EmployerPriorContext | null>(null);
 
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -136,6 +138,7 @@ export default function AuditReportPrintPage() {
             checklist={checklist}
             signatures={signatures}
             violations={violations}
+            priorContext={priorContext}
             variant={variant}
           />
         </div>

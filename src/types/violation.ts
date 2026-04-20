@@ -82,6 +82,19 @@ export interface CreateViolationRequest {
   estimatedEmployees?: number;
   assignedToUserId?: string;
   dueDate?: string;
+  // ── NEW: strong linkage (Phase 4) ─────────────────
+  /** Evidence rows to attach explicitly to this violation. */
+  linkedEvidenceIds?: string[];
+  /** Checklist response that this violation arose from. */
+  linkedChecklistResponseId?: string;
+  /** Working paper that supports this violation. */
+  linkedWorkingPaperId?: string;
+  /** Prior open violation (same employer + type) that this one supersedes/relates to. */
+  relatedPriorViolationId?: string;
+  /** Existing payment arrangement that may need to be revisited. */
+  relatedArrangementId?: string;
+  /** Free-form linkage metadata persisted alongside the violation. */
+  linkageMetadata?: Record<string, any>;
 }
 
 export interface UpdateViolationRequest {

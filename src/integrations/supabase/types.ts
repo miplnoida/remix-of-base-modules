@@ -10234,6 +10234,8 @@ export type Database = {
           id: string
           is_final: boolean
           notes: string | null
+          payload_json: Json | null
+          payload_schema_version: string | null
           pdf_url: string | null
           report_id: string
           snapshot_json: Json
@@ -10245,6 +10247,8 @@ export type Database = {
           id?: string
           is_final?: boolean
           notes?: string | null
+          payload_json?: Json | null
+          payload_schema_version?: string | null
           pdf_url?: string | null
           report_id: string
           snapshot_json: Json
@@ -10256,6 +10260,8 @@ export type Database = {
           id?: string
           is_final?: boolean
           notes?: string | null
+          payload_json?: Json | null
+          payload_schema_version?: string | null
           pdf_url?: string | null
           report_id?: string
           snapshot_json?: Json
@@ -14252,8 +14258,10 @@ export type Database = {
           inspector_id: string | null
           inspector_name: string | null
           location_address: string | null
+          location_id: number | null
           location_lat: number | null
           location_lng: number | null
+          location_source: string | null
           notes: string | null
           photos: Json | null
           plan_item_id: string | null
@@ -14297,8 +14305,10 @@ export type Database = {
           inspector_id?: string | null
           inspector_name?: string | null
           location_address?: string | null
+          location_id?: number | null
           location_lat?: number | null
           location_lng?: number | null
+          location_source?: string | null
           notes?: string | null
           photos?: Json | null
           plan_item_id?: string | null
@@ -14342,8 +14352,10 @@ export type Database = {
           inspector_id?: string | null
           inspector_name?: string | null
           location_address?: string | null
+          location_id?: number | null
           location_lat?: number | null
           location_lng?: number | null
+          location_source?: string | null
           notes?: string | null
           photos?: Json | null
           plan_item_id?: string | null
@@ -17666,12 +17678,18 @@ export type Database = {
           is_deleted: boolean | null
           is_merged: boolean
           is_unlinked: boolean | null
+          linkage_metadata: Json | null
+          linked_checklist_response_id: string | null
+          linked_evidence_ids: string[] | null
+          linked_working_paper_id: string | null
           merged_into_id: string | null
           penalty_amount: number | null
           period_from: string | null
           period_to: string | null
           principal_amount: number | null
           priority: string | null
+          related_arrangement_id: string | null
+          related_prior_violation_id: string | null
           resolution_notes: string | null
           resolved_at: string | null
           resolved_by: string | null
@@ -17721,12 +17739,18 @@ export type Database = {
           is_deleted?: boolean | null
           is_merged?: boolean
           is_unlinked?: boolean | null
+          linkage_metadata?: Json | null
+          linked_checklist_response_id?: string | null
+          linked_evidence_ids?: string[] | null
+          linked_working_paper_id?: string | null
           merged_into_id?: string | null
           penalty_amount?: number | null
           period_from?: string | null
           period_to?: string | null
           principal_amount?: number | null
           priority?: string | null
+          related_arrangement_id?: string | null
+          related_prior_violation_id?: string | null
           resolution_notes?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
@@ -17776,12 +17800,18 @@ export type Database = {
           is_deleted?: boolean | null
           is_merged?: boolean
           is_unlinked?: boolean | null
+          linkage_metadata?: Json | null
+          linked_checklist_response_id?: string | null
+          linked_evidence_ids?: string[] | null
+          linked_working_paper_id?: string | null
           merged_into_id?: string | null
           penalty_amount?: number | null
           period_from?: string | null
           period_to?: string | null
           principal_amount?: number | null
           priority?: string | null
+          related_arrangement_id?: string | null
+          related_prior_violation_id?: string | null
           resolution_notes?: string | null
           resolved_at?: string | null
           resolved_by?: string | null

@@ -13,6 +13,7 @@
  */
 import type { FullAuditReport, AuditReportSignature, AuditViolationRow } from '@/types/auditReport';
 import type { InspectionFinding, InspectionEvidence } from '@/types/inspectionTypes';
+import type { EmployerPriorContext } from '@/services/employerPriorContextService';
 import { PRINT_CSS } from './reportShared';
 import { InternalReportLayout } from './InternalReportLayout';
 import { EmployerReportLayout } from './EmployerReportLayout';
@@ -23,12 +24,9 @@ export interface ReportLayoutProps {
   evidence: InspectionEvidence[];
   checklist: any[];
   signatures: AuditReportSignature[];
-  /**
-   * Violations attached to this audit. May be omitted by older callers
-   * (acknowledgment portal pre-update). When omitted, the report shows
-   * "No violations were issued from this audit."
-   */
   violations?: AuditViolationRow[];
+  /** Prior compliance context for the employer (repeat offences, arrangements, prior visits). */
+  priorContext?: EmployerPriorContext | null;
   variant: 'INTERNAL' | 'EMPLOYER';
 }
 
@@ -39,6 +37,7 @@ export function AuditReportPrintLayout({
   checklist,
   signatures,
   violations = [],
+  priorContext = null,
   variant,
 }: ReportLayoutProps) {
   const isDraft = report.status !== 'FINAL';
@@ -53,6 +52,7 @@ export function AuditReportPrintLayout({
           checklist={checklist}
           violations={violations}
           signatures={signatures}
+          priorContext={priorContext}
         />
       ) : (
         <EmployerReportLayout
