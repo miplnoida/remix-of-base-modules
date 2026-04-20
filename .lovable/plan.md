@@ -1,254 +1,145 @@
-# Employer Audit Case — Architecture & Phased Plan
+# Employer Compliance History & Audit Linkage — Architecture & Phased Plan
+
+> **Pivot:** No new "Audit Case" parent. Cases (`ce_cases`) are still created **only on violation escalation** — that route stays as-is. This plan instead **surfaces existing employer compliance history everywhere the audit officer works**, lets them **manually link** prior matters to the current visit/finding, and lets **report templates decide** what shows in the report.
+
+---
 
 ## Goal
-Replace the current "loose collection" of audit visits / reports / communications with a single **Employer Audit Case** lifecycle:
+Give audit officers full visibility of an employer's compliance posture (past + open) inside:
+- Employer 360
+- Audit Visit Workspace
+- Audit Report editor / preview
+- Audit Communications panel
 
-`Employer → Audit Case → Visit(s) → Findings → Evidence → Violations → Communications → Actions → Resolution`
-
-The **audit purpose** is set once at case setup and drives templates, communications, approvals, closure rules, and resolution behavior across the entire case.
+…and let them attach any prior matter to the current visit or a specific finding when relevant. Reports include prior-matter sections **only when the chosen report template enables them** (auto-fill from posture + manual links).
 
 ---
 
 ## Architecture Summary
 
-### New parent: `ce_employer_audit_cases`
-A case is the durable container; visits are short-lived events. Multiple visits, communications, findings, violations, actions, and one final report all roll up to one case.
+### What we **do not** add
+- No `ce_employer_audit_cases` parent.
+- No new case-types catalog.
+- No auto-load of prior matters into a case.
+- No new approval engine for resolution actions — reuse what's already configured per scope/case-type.
 
-```
-ce_employer_audit_cases (NEW — parent)
- ├─ ce_employer_audit_case_types (NEW — seeded catalog)
- ├─ ce_employer_audit_case_context_links (NEW — links to existing matters)
- ├─ ce_employer_audit_case_outcomes (NEW — per-action resolution log)
- ├─ ce_inspections (EXISTING — add audit_case_id FK)
- ├─ ce_inspection_findings (via inspection)
- ├─ ce_inspection_evidence (via inspection)
- ├─ ce_violations (EXISTING — add audit_case_id FK)
- ├─ ce_audit_communications (EXISTING — add audit_case_id FK)
- ├─ ce_employer_audit_reports (EXISTING — add audit_case_id FK + report_scope)
- └─ ce_follow_up_actions (EXISTING — add audit_case_id FK)
-```
+### What we **add** (small & targeted)
 
-### Pulled-in employer context (linked, not copied)
-At case open we **link** these existing employer matters into `ce_employer_audit_case_context_links`:
-- `ce_payment_arrangements` (active)
-- `ce_legal_proceedings` / `ce_legal_referrals` (open)
-- `ce_violations` (open / in-progress)
-- `ce_inspection_findings` (unresolved from prior cases)
-- `ce_follow_up_actions` (open)
-- `ce_audit_disputes` (open)
-- `ce_employer_financial_ledger` aggregate (overdue / outstanding balance snapshot)
+1. **One read-only aggregator service** — `employerComplianceHistoryService` — bundles the employer's "full posture" for the panel:
+   - Past inspections (`ce_inspections`)
+   - Past audit reports (`ce_employer_audit_reports`)
+   - Open & closed compliance cases (`ce_cases`)
+   - Open violations (`ce_violations`)
+   - Active payment arrangements (`ce_payment_arrangements`)
+   - Active legal proceedings / referrals (`ce_legal_proceedings`, `ce_legal_referrals`)
+   - Open follow-up actions (`ce_follow_up_actions`)
+   - Recent disputes (`ce_audit_disputes`)
+   - Ledger overdue snapshot (`ce_employer_financial_ledger`)
 
-### Purpose as single source of truth
-`audit_purpose` (set once on the case, validated against the seeded case type) drives:
-- which **report sections** are rendered (case type → required sections)
-- which **communication templates** are eligible (`case_type_codes` applicability)
-- which **approval chain** applies (scoped by case type / purpose)
-- which **closure checks** are required (scoped by case type)
-- which **resolution actions** are allowed (e.g., "Legal Support Audit" can update legal status; "Payment Arrangement Review" can flag arrangement breach)
+2. **One reusable panel** — `EmployerComplianceHistoryPanel` — used in Employer 360, Audit Visit Workspace, Audit Report editor, Comms. Filterable by category (Cases / Violations / Arrangements / Legal / Follow-ups / Reports / Inspections / Disputes).
 
----
+3. **One small linkage table** — `ce_audit_prior_matter_links` — manual attachments at **either visit or finding level**.
+   ```
+   id                 uuid PK
+   inspection_id      uuid (nullable) → ce_inspections
+   finding_id         uuid (nullable) → ce_inspection_findings
+   matter_type        text   -- 'CASE' | 'VIOLATION' | 'ARRANGEMENT' | 'LEGAL' | 'FOLLOW_UP' | 'PAST_INSPECTION' | 'PAST_REPORT' | 'DISPUTE'
+   matter_id          text   -- id of the linked entity (uuid or business key as appropriate)
+   relevance_note     text
+   linked_by          varchar(50)
+   linked_at          timestamptz
+   is_active          bool default true
+   ```
+   - CHECK constraint: exactly one of `inspection_id` or `finding_id` is non-null.
+   - Indexes on (inspection_id), (finding_id), (matter_type, matter_id).
 
-## Case Model Design
+4. **Report template sections** — extend the **existing** report template/section model with new optional section keys:
+   - `PRIOR_MATTERS`
+   - `OPEN_CASES`
+   - `OPEN_VIOLATIONS`
+   - `ACTIVE_ARRANGEMENTS`
+   - `LEGAL_STATUS`
+   - `OPEN_FOLLOW_UPS`
+   - `LINKED_PRIOR_MATTERS` (only items manually linked to this visit/finding)
 
-### `ce_employer_audit_cases`
-```
-id                     uuid PK
-case_number            text UNIQUE  (AC-2026-000123 via ce_number_sequences)
-employer_id            varchar(20) → er_master.regno
-case_type_id           uuid → ce_employer_audit_case_types
-audit_purpose          text   -- single source of truth
-trigger_source         text   -- 'risk_score' | 'complaint' | 'random' | 'follow_up' | 'legal_request' | 'arrangement_review' | 'enforcement'
-trigger_reference      text
-scope                  jsonb  -- { contributions:true, payroll:true, classification:false, ... }
-period_from            date
-period_to              date
-lead_inspector_code    varchar(50)
-assigned_inspectors    text[]
-status                 text   -- 'DRAFT' | 'OPEN' | 'IN_PROGRESS' | 'PENDING_APPROVAL' | 'CLOSED' | 'CANCELLED'
-approval_state         text   -- 'NOT_REQUIRED' | 'PENDING' | 'APPROVED' | 'REJECTED'
-closure_outcome        text   -- 'COMPLIANT' | 'PARTIAL' | 'NON_COMPLIANT' | 'ESCALATED' | 'WITHDRAWN'
-closure_reason         text
-report_template_id     uuid
-opened_at              timestamptz
-closed_at              timestamptz
-created_by, updated_by, created_at, updated_at
-```
+   When the report renders, each enabled section pulls from:
+   - the posture aggregator (auto, scoped to employer + period filter on the section), AND/OR
+   - `ce_audit_prior_matter_links` for the visit (manual links).
 
-### `ce_employer_audit_case_types` (seeded)
-```
-id, code (UNIQUE), name, description,
-default_purpose_text,
-default_report_template_id,
-default_communication_template_codes text[],
-required_report_sections text[],
-required_approval_levels text[],
-closure_check_keys text[],
-allowed_resolution_actions text[],
-is_active, sort_order
-```
+   Admin can toggle sections per template; whatever's in the template = what appears in the report.
 
-**Seeded case types** (6):
-1. `ROUTINE_AUDIT`
-2. `FOLLOW_UP_AUDIT` (auto-loads prior open findings/violations)
-3. `VIOLATION_REVIEW_AUDIT`
-4. `PAYMENT_ARRANGEMENT_REVIEW`
-5. `LEGAL_SUPPORT_AUDIT`
-6. `SPECIAL_ENFORCEMENT_AUDIT`
-
-### `ce_employer_audit_case_context_links`
-```
-id, audit_case_id, linked_entity_type, linked_entity_id,
-link_reason ('AUTO_OPEN' | 'MANUAL'), display_summary jsonb,
-is_addressed bool, addressed_outcome_id uuid → ce_employer_audit_case_outcomes,
-created_at, created_by
-```
-`linked_entity_type` ∈ `{PAYMENT_ARRANGEMENT, LEGAL_CASE, VIOLATION, FINDING, FOLLOW_UP, DISPUTE, LEDGER_BALANCE}`.
-
-### `ce_employer_audit_case_outcomes`
-```
-id, audit_case_id,
-action_kind text,
-target_entity_type, target_entity_id,
-new_violation_id, updated_status,
-reason, evidence_finding_ids uuid[],
-approver_code, approval_status,
-created_by, created_at
-```
-
-**`action_kind` values**:
-`OPEN_NEW_VIOLATION`, `UPDATE_EXISTING_VIOLATION`, `RESOLVE_VIOLATION`, `PARTIALLY_RESOLVE_VIOLATION`,
-`VALIDATE_ARRANGEMENT_COMPLIANCE`, `FLAG_ARRANGEMENT_BREACH`,
-`UPDATE_LEGAL_STATUS`, `CLOSE_FOLLOW_UP`, `ESCALATE_TO_LEGAL`, `ESCALATE_TO_COLLECTIONS`, `CARRY_FORWARD`.
-
-### Visit linkage
-Add nullable `audit_case_id` to `ce_inspections`. Multiple inspections per case allowed. Existing inspections without a case stay valid (backward-compatible).
-
-The Plan Item flow stays as-is, but on visit creation the planner can either attach to an **existing open case** or **create a new case** (purpose, type, scope set once in a wizard step).
-
-### Findings / Evidence / Violations / Comms / Reports
-- `ce_inspection_findings` and `ce_inspection_evidence` already key off `inspection_id` — case is implicit via the visit. **No schema change.**
-- `ce_violations` gains `audit_case_id` — case dashboard lists all violations raised under it.
-- `ce_audit_communications` gains `audit_case_id`.
-- `ce_employer_audit_reports` gains `audit_case_id` + `report_scope` (`'SINGLE_VISIT'` (legacy default) or `'CASE'` for case-consolidated reports).
-- `ce_follow_up_actions` gains `audit_case_id`.
+5. **Surface in Comms** — comms editor lets the officer attach a "Prior matter context" snippet generated from the same posture aggregator, so emails/SMS to the employer can reference open cases / arrangements when relevant. Optional and template-driven.
 
 ---
 
-## Seeded Templates
+## Schema Changes (single migration, additive only)
 
-### Report / document templates (8) — `ce_audit_report_templates` (new lightweight registry)
-1. Internal Working Paper Report
-2. Employer Acknowledgment Report
-3. Findings Memo
-4. Evidence Summary
-5. Books / Documents Required Notice
-6. Violation Notice
-7. Management Summary
-8. Legal / Enforcement Pack
+1. Create `ce_audit_prior_matter_links` (above).
+2. Add `included_section_keys text[]` to existing report-template table (if not present), seeded with current keys; add the 7 new optional section keys to the admin enum/whitelist.
+   - On read, the report renderer treats absent → off, present → on.
+3. **No** changes to `ce_cases`, `ce_violations`, `ce_payment_arrangements`, `ce_legal_*`, `ce_inspections`, `ce_follow_up_actions`, `ce_audit_communications`, `ce_employer_audit_reports`.
 
-Each template stores: `code`, `name`, `applicable_case_type_codes`, `sections (jsonb)`, `default_attachments`, `requires_approval`, `output_formats`.
-
-### Communication templates (15 codes) — extends existing `ce_audit_communication_templates`
-`AUDIT_INTIMATION`, `BOOKS_RECORDS_REQUIRED`, `VISIT_REMINDER`, `INTERIM_FINDINGS`, `EVIDENCE_SUMMARY_COMM`, `DRAFT_FINDINGS_SHARE`, `APPROVED_FINDINGS_SHARE`, `FINAL_REPORT_SHARE`, `VIOLATION_NOTICE_COMM`, `CORRECTIVE_ACTION_REQUEST`, `ACKNOWLEDGMENT_REQUEST`, `PAYMENT_ARRANGEMENT_REVIEW_NOTICE`, `LEGAL_SUPPORT_ESCALATION`, `FOLLOW_UP_REMINDER`, `FOLLOW_UP_ESCALATION`.
-
-For each: channel(s), approval level, allowed attachments, recipient resolution rules, secure-link enabled, `case_type_codes[]` applicability.
+(Per project knowledge: **no RLS** — role-based access only. Audit trail via existing `auditService.logAuditTrail`.)
 
 ---
 
-## Online Communication / Employer Interaction
-Existing `ce_audit_communication_secure_tokens` magic-link flow extended so the employer link surfaces the **case** (not just one comm): list of all comms, reports, document requests, dispute window. Acknowledgments, document uploads, clarifications, disputes write back via existing `ce_audit_employer_responses` / `ce_audit_employer_uploaded_documents` / `ce_audit_disputes` tables. Employer portal app itself stays out of scope per earlier directive.
-
----
-
-## Resolution Workflow for Existing Violations (and other matters)
-Within a case, "Resolve from Case" UI (Linked Matters → Violations):
-1. Inspector picks linked violation → action `RESOLVE_VIOLATION` / `PARTIALLY_RESOLVE_VIOLATION`.
-2. Provides reason + selects evidence findings (must belong to a visit in this case).
-3. If case type / policy requires approval → `PENDING`; supervisor approves.
-4. On approval: `ce_violations.status` updated, outcome row written, audit trail logged via existing `auditService.logAuditTrail`.
-5. Linked context entry marked `is_addressed = true`.
-
-Same pattern for arrangement breach flagging, legal status update, follow-up closure, escalations.
-
----
-
-## Admin Configuration
-- New `/compliance/admin/audit-case-types` — CRUD case types and their defaults / linkages.
-- New `/compliance/admin/report-templates` — sections editor for report/document templates.
-- Existing `/compliance/admin/communication-templates` extended with case-type applicability.
-
----
-
-## Schema / Migration Changes (single migration)
-1. Create `ce_employer_audit_case_types` + seed 6 rows.
-2. Create `ce_employer_audit_cases`.
-3. Create `ce_employer_audit_case_context_links`.
-4. Create `ce_employer_audit_case_outcomes`.
-5. Create `ce_audit_report_templates` + seed 8 templates.
-6. Add nullable `audit_case_id` columns + indexes to: `ce_inspections`, `ce_violations`, `ce_audit_communications`, `ce_employer_audit_reports`, `ce_follow_up_actions`.
-7. Add `case_type_codes text[]` to `ce_audit_communication_templates` if missing.
-8. Add `report_scope text default 'SINGLE_VISIT'` to `ce_employer_audit_reports`.
-9. Number sequence row for `AUDIT_CASE` in `ce_number_sequences`.
-10. Helper view `ce_v_audit_case_overview` (visit/finding/evidence/violation/comm counts per case).
-
-Per project knowledge: **no RLS** — role-based access only. Audit trail via existing `auditService.logAuditTrail` + DB triggers where already configured.
-
----
-
-## Files Changed (high-level)
+## Files Changed
 
 **New**
-- `src/types/auditCase.ts`
-- `src/services/auditCaseService.ts`
-- `src/services/auditCaseContextService.ts`
-- `src/services/auditCaseOutcomeService.ts`
-- `src/services/auditReportTemplateService.ts` + `src/hooks/useReportTemplates.ts`
-- `src/pages/compliance/audit-cases/AuditCaseListPage.tsx`
-- `src/pages/compliance/audit-cases/AuditCaseWorkspace.tsx`
-- `src/components/compliance/audit-cases/CreateAuditCaseDialog.tsx`
-- `src/components/compliance/audit-cases/LinkedMattersPanel.tsx`
-- `src/components/compliance/audit-cases/CaseOutcomePanel.tsx`
-- `src/pages/compliance/admin/AuditCaseTypesPage.tsx`
-- `src/pages/compliance/admin/AuditReportTemplatesPage.tsx`
+- `src/services/employerComplianceHistoryService.ts` — single aggregator returning typed bundle.
+- `src/services/auditPriorMatterLinkService.ts` — link/unlink/list at visit or finding level.
+- `src/components/compliance/employer-history/EmployerComplianceHistoryPanel.tsx` — the reusable panel (filter chips, categorized lists, "Link to this visit / finding" actions).
+- `src/components/compliance/employer-history/PriorMatterLinkDialog.tsx` — pick a target (visit or finding) + relevance note.
+- `src/components/compliance/audit-report/sections/PriorMattersSection.tsx` (+ siblings for OpenCases, OpenViolations, ActiveArrangements, LegalStatus, OpenFollowUps, LinkedPriorMatters).
+- `src/types/employerHistory.ts`
 
 **Edited**
-- `src/pages/compliance/Routes.tsx`
-- `src/pages/compliance/audit-planning/AuditVisitWorkspace.tsx`
-- `src/services/inspectionService.ts`
-- `src/services/auditCommunicationService.ts`
-- `src/services/auditReportService.ts`
-- `src/services/violationService.ts`
+- `src/pages/compliance/employers/EmployerProfilePage.tsx` (or Employer 360 entry) — drop in `<EmployerComplianceHistoryPanel employerId={…} />`.
+- `src/pages/compliance/audit-planning/AuditVisitWorkspace.tsx` — add a "History" tab using the panel; allow link from any item to this visit.
+- `src/pages/compliance/employers/EmployerVisitWorkspace.tsx` — same panel as a tab.
+- `src/components/compliance/audit-report/InternalReportLayout.tsx` (and PDF builder `auditReportPdfService.ts`) — render the new optional sections when their keys are present in the template.
+- `src/pages/compliance/admin/AuditReportTemplatesPage.tsx` (existing or new) — toggle the 7 new section keys per template.
+- `src/components/compliance/communication/AuditCommunicationsPanel.tsx` — optional "Insert prior matter context" affordance that pulls from the aggregator.
+- `src/components/compliance/inspection/FindingsTabContent.tsx` — per-finding "Link prior matter" affordance.
 
 **Migration**
-- `supabase/migrations/<timestamp>_employer_audit_cases.sql`
+- `supabase/migrations/<timestamp>_employer_compliance_history.sql` — `ce_audit_prior_matter_links` + section-key whitelist seed.
 
 ---
 
 ## Backward Compatibility
-- All new FKs (`audit_case_id`) are **nullable**. Pre-existing inspections, violations, comms, reports, follow-ups continue to work untouched.
-- The Plan → Visit flow still works without a case (legacy mode). "New Audit Case" is the new recommended entry point.
-- Existing `EmployerVisitWorkspace` / `AuditVisitWorkspace` keep working; they additionally surface a "Part of Case AC-…" link when present.
-- No data migration / backfill in this phase. (Optional later script.)
-- No RLS changes; role-based access policy preserved.
+- Purely additive: no FKs added to existing tables; no columns renamed; no data backfill.
+- Existing report templates render unchanged (new sections off by default).
+- Existing comms / cases / violations flows untouched.
+- No RLS changes per project rule.
 
 ---
 
 ## Phased Rollout
 
-- **Phase A** — Schema & Seeds (single migration).
-- **Phase B** — `auditCaseService` lifecycle + `auditCaseContextService` (auto-load prior matters) + number-sequence integration.
-- **Phase C** — Case list + Case workspace UI (Overview, Linked Matters, Visits, Findings, Communications, Reports, Outcomes, Closure tabs); `CreateAuditCaseDialog` (purpose set ONCE).
-- **Phase D** — Visit ↔ Case integration (attach existing visit / create new case from planner; AuditVisitWorkspace banner).
-- **Phase E** — Outcomes / Resolution workflow (LinkedMattersPanel actions + approvals).
-- **Phase F** — Communications & Reports purpose-driven (templates filtered by `case_type_codes`; report `report_scope` honored).
-- **Phase G** — Admin pages (case types, report templates, comm template applicability).
-- **Phase H** — Online interaction polish (case-level secure-token bundle).
+- **Phase A** — Migration: create `ce_audit_prior_matter_links` + extend section-key whitelist on report templates. Verify against `ce_cases` / `ce_violations` / `ce_payment_arrangements` / `ce_legal_*` / `ce_follow_up_actions`.
+- **Phase B** — `employerComplianceHistoryService` aggregator + types.
+- **Phase C** — `EmployerComplianceHistoryPanel` + filter chips + drop-in to Employer 360 and Audit Visit Workspace.
+- **Phase D** — `auditPriorMatterLinkService` + `PriorMatterLinkDialog`; visit-level and finding-level link actions in the panel and Findings tab.
+- **Phase E** — Report sections (UI + PDF) and admin toggles per template.
+- **Phase F** — Comms "Insert prior matter context" affordance.
 
 ---
 
 ## Assumptions / Risks
-- Will add `ce_audit_report_templates` as a new lightweight registry rather than overloading `ce_notice_templates` (which is targeted at notices) — confirmed during Phase A read.
-- Employer portal app is **not** in scope; we expose case data via existing secure-token edge function.
-- Approval engine for outcomes will reuse `ce_audit_communication_approvals` patterns; case-specific approval table can be added later if needed.
-- Migration is large but additive; risk to existing flows is low because all FKs are nullable.
-- No RLS will be added per project knowledge entry 9.
+- The existing report-template model already supports per-template section toggling; if not, Phase E adds a minimal `included_section_keys text[]` column. Decided on first read.
+- "Past audit reports" surfaced from `ce_employer_audit_reports` filtered by `employer_id`; "past inspections" from `ce_inspections` joined via `ce_weekly_plan_items.employer_id`.
+- The aggregator is read-only and bounded (last 24 months by default, configurable per call) — keeps the panel fast.
+- No new cron / edge function required.
+
+---
+
+## Deliverables Recap
+- **Architecture summary** ✅ above
+- **Schema/migration changes** ✅ one additive migration
+- **Files changed** ✅ listed
+- **Linkage design** ✅ visit-level and finding-level (`ce_audit_prior_matter_links`)
+- **Showcase design** ✅ one reusable panel surfaced in Employer 360, Audit Visit Workspace, Audit Report editor, Comms
+- **Report inclusion** ✅ template-driven (admin enables sections)
+- **Backward compatibility** ✅ fully additive, no RLS changes
+- **Phased rollout** ✅ A–F
