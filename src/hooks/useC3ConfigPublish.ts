@@ -368,41 +368,20 @@ export function usePublishToC3Wizard() {
       if (logErr) throw logErr;
 
       try {
-        // Call C3-Wizard sync API
-        const syncUrl = import.meta.env.VITE_C3_WIZARD_SYNC_URL;
-        
+        // Always route through the c3-config-sync-publish edge function.
+        // The edge function resolves the C3-Wizard URL + sync key from c3_site_settings
+        // (DB is the single source of truth — no client-side env-var paths).
         let result: any;
-        
-        if (!syncUrl) {
-          // Fallback: use edge function to proxy the call (secrets are only accessible there)
-          const { data: funcData, error: funcError } = await supabase.functions.invoke('c3-config-sync-publish', {
-            body: payload,
-          });
-          
-          if (funcError) {
-            // Try to extract meaningful error from the response
-            const errorMsg = funcError.message || 'Sync function failed';
-            throw new Error(errorMsg);
-          }
-          
-          result = funcData;
-        } else {
-          // Direct API call (for environments with URL configured)
-          const response = await fetch(syncUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-sync-api-key': import.meta.env.VITE_C3_CONFIG_SYNC_API_KEY || '',
-            },
-            body: JSON.stringify(payload),
-          });
-          
-          result = await response.json();
-          
-          if (!response.ok) {
-            throw new Error(result?.error || `Sync failed with status ${response.status}`);
-          }
+        const { data: funcData, error: funcError } = await supabase.functions.invoke('c3-config-sync-publish', {
+          body: payload,
+        });
+
+        if (funcError) {
+          const errorMsg = funcError.message || 'Sync function failed';
+          throw new Error(errorMsg);
         }
+
+        result = funcData;
 
         // Check for error status in response (edge function now always returns 200 with wrapped errors)
         if (result?.status === 'error') {

@@ -1,10 +1,11 @@
 /**
  * Payment Details API service
  * Calls the wiz-admin-api edge function for payment-related actions.
+ *
+ * Credentials & base URL are resolved via wizApiConfig (DB-driven, env-aware).
  */
 
-const WIZ_API_URL = 'https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1/wiz-admin-api';
-const WIZ_ADMIN_API_KEY = import.meta.env.VITE_WIZ_ADMIN_API_KEY || "uiop906754drd35fvg";
+import { getWizAdminConfig } from "@/lib/wizApiConfig";
 
 interface WizApiResponse<T = any> {
   status: "success" | "error";
@@ -13,11 +14,12 @@ interface WizApiResponse<T = any> {
 }
 
 async function callWizApi<T = any>(action: string, params: Record<string, any> = {}): Promise<WizApiResponse<T>> {
-  const res = await fetch(WIZ_API_URL, {
+  const { baseUrl, apiKey } = await getWizAdminConfig();
+  const res = await fetch(`${baseUrl}/wiz-admin-api`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-admin-api-key": WIZ_ADMIN_API_KEY,
+      "x-admin-api-key": apiKey,
     },
     body: JSON.stringify({ action, params }),
   });

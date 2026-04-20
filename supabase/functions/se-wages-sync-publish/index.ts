@@ -12,29 +12,21 @@ serve(async (req) => {
   }
 
   try {
-    // Resolve from c3_site_settings (env-aware) with env-var fallback.
+    // Resolve from c3_site_settings strictly (DB is source of truth).
     const { baseUrl, syncApiKey } = await getWizConfig();
-    const envSyncUrl = Deno.env.get('C3_WIZARD_SYNC_URL');
-    const envSyncKey = Deno.env.get('C3_CONFIG_SYNC_API_KEY');
-
-    // Derive SE-wages endpoint: prefer DB base URL, fall back to deriving from env URL.
-    const seWagesSyncUrl = baseUrl
-      ? `${baseUrl}/sync-se-wages`
-      : envSyncUrl
-        ? envSyncUrl.replace(/\/[^\/]*\/?$/, '/sync-se-wages')
-        : null;
-    const resolvedKey = syncApiKey || envSyncKey;
+    const seWagesSyncUrl = baseUrl ? `${baseUrl}/sync-se-wages` : null;
+    const resolvedKey = syncApiKey;
 
     if (!seWagesSyncUrl) {
       return new Response(
-        JSON.stringify({ status: 'error', error: 'C3_WIZARD_BASE_URL / C3_WIZARD_SYNC_URL is not configured. Please contact the administrator.' }),
+        JSON.stringify({ status: 'error', error: 'C3_WIZARD_BASE_URL is not configured in c3_site_settings. Please contact the administrator.' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!resolvedKey) {
       return new Response(
-        JSON.stringify({ status: 'error', error: 'OUTBOUND_SYNC_API_KEY / C3_CONFIG_SYNC_API_KEY is not configured. Please contact the administrator.' }),
+        JSON.stringify({ status: 'error', error: 'OUTBOUND_SYNC_API_KEY is not configured in c3_site_settings. Please contact the administrator.' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
