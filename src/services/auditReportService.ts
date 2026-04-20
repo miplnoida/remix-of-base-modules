@@ -19,6 +19,7 @@ import type {
   SignatureType,
 } from '@/types/auditReport';
 import type { InspectionFinding, InspectionEvidence } from '@/types/inspectionTypes';
+import { resolveOnlineResponse } from './onlineResponseResolver';
 
 const nowIso = () => new Date().toISOString();
 const whoami = async () => (await getCurrentUserCode()) ?? 'SYSTEM';
