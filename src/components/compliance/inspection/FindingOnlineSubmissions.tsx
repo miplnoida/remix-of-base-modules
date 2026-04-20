@@ -28,7 +28,7 @@ interface Props {
 }
 
 export function FindingOnlineSubmissions({ findingId }: Props) {
-  const userCode = useUserCode();
+  const { userCode } = useUserCode();
   const [expanded, setExpanded] = useState(false);
   const { data: responses = [] } = useFindingResponseSubmissions(findingId);
   const { data: disputes = [] } = useFindingDisputeSubmissions(findingId);
