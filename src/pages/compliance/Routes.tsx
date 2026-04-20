@@ -95,6 +95,7 @@ import LedgerPostingAdmin from './settings/LedgerPostingAdmin';
 import LedgerOperationsDashboard from './settings/LedgerOperationsDashboard';
 import LedgerHelpCenter from './settings/LedgerHelpCenter';
 import AuditCommunicationTemplatesPage from './admin/AuditCommunicationTemplatesPage';
+import OnlineResponseConfigPage from './admin/OnlineResponseConfigPage';
 
 // Tools
 import RuleSimulator from './tools/RuleSimulator';
@@ -211,6 +212,7 @@ const ComplianceRoutes = () => {
       <Route path="/admin/settings/risk-policy" element={<RiskRulePolicy />} />
       <Route path="/admin/settings/templates" element={<ComplianceTemplates />} />
       <Route path="/admin/communication-templates" element={<AuditCommunicationTemplatesPage />} />
+      <Route path="/admin/online-response" element={<OnlineResponseConfigPage />} />
       <Route path="/admin/settings/sampling" element={<RiskSamplingSettings />} />
       <Route path="/admin/settings/c3-ledger-sync" element={<C3LedgerSync />} />
       <Route path="/admin/settings/payment-ledger-sync" element={<PaymentLedgerSync />} />
