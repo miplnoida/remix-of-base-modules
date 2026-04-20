@@ -1,90 +1,75 @@
+# Compliance & Enforcement — Non-Admin Module Redesign
 
+## 1. Current-State Assessment
+~50 routes / 6 top-level groups with significant overlap. Single `manage_compliance` permission gates almost everything → role distinction invisible. Field area: 17 menu items / ~6 real concepts.
 
-## Plan: Seed Test Users + Phase 2 Compliance Redesign
+**Keep:** Enforcement lifecycle, Cases (3 screens), Violations (2 screens), Workbench dashboards (need role-gating).
+**Weak:** Field overlap, undifferentiated Workbench, fake child links in Reports, monolithic permission, missing roles.
 
-### Part A — Seed 3 Test Users
-
-Create 3 users via `bootstrap-admin`-style edge function (or direct admin API) with role assignments:
-
-| Email | Role | Operational Role |
-|---|---|---|
-| `inspector@secureserve.gov` | `Inspector` | inspector |
-| `sinspector@secureserve.gov` | `SeniorInspector` | senior |
-| `compliancehead@secureserve.gov` | `ComplianceHead` | head |
-
-Password for all: `Admin@123` · `force_password_change = false` · `is_active = true`
-
-**Note on email:** You wrote "linspector" — I'll use `sinspector@secureserve.gov` (Senior Inspector). Confirm if you want a different prefix.
-
-**Implementation:**
-1. New edge function `seed-compliance-test-users` (one-shot, idempotent — skips if email exists).
-2. Creates `auth.users` via admin API → inserts into `profiles` → inserts into `user_roles`.
-3. Logs each created user to `system_audit_trail`.
-4. Returns JSON list of created/skipped users.
-5. Trigger via a small admin-only utility page `/admin/seed-test-users` (button + result table) OR direct invoke — I'll add the page for convenience.
-
----
-
-### Part B — Phase 2: Compliance Redesign
-
-Per `.lovable/plan.md` Phase 1 shipped role/capability scaffolding. Phase 2 = wire it into real UI + workbench widgets.
-
-**B1. Role-aware Workbench widgets** (`WorkbenchLanding.tsx` currently a router shell)
-- **Inspector view** — My Visits Today, In-Progress Visits, Pending Reports, My Plans Awaiting Action, My Open Violations.
-- **Senior view** — all Inspector widgets + Plans Awaiting My Approval, Reports Awaiting Review, Team Workload, Escalation Candidates.
-- **Head view** — Module KPIs (open cases, overdue installments, breach count), Team Performance, Enforcement Pipeline, Recent Legal Escalations.
-- Each widget = card with count + top 5 rows + "View all" link to canonical screen. Data via existing dashboard views where possible; new `useComplianceWorkbench(role)` hook for aggregation.
-
-**B2. Capability-based menu gating**
-- Replace broad `manage_compliance` checks in sidebar/route guards with capability checks from `ROLE_CAPABILITIES`.
-- Add `useHasCapability(cap)` hook. Update `AppRoutes.tsx` route guards + sidebar filter to consult capabilities (with `manage_compliance` legacy fallback retained per Phase-1 spec).
-
-**B3. Group navigation under operational headers**
-DB update to `app_modules`:
-- `Workbench` group → My Workbench, Team Workbench (senior+), Executive View (head only).
-- `Field` group → Plan Builder, Visit Workspace, Weekly Reports, Sampling.
-- `Cases & Violations` group → Violations, Cases (kept distinct, grouped).
-- `Enforcement` group → keep as-is (already clean).
-- `Reports & Analytics` group → operational reports + analytics.
-
-**B4. Default landing redirect by role**
-- Login redirect for compliance roles → `/compliance/workbench` (already exists, will populate).
-- Non-compliance users unaffected.
-
-**B5. Documentation**
-- Update `.lovable/plan.md` Phase 2 section with what shipped.
-- Memory entry: `mem://features/compliance/role-based-workbench`.
-
----
-
-### Files to create/modify
-
-**Created**
-- `supabase/functions/seed-compliance-test-users/index.ts`
-- `src/pages/admin/SeedTestUsers.tsx`
-- `src/hooks/useComplianceWorkbench.ts`
-- `src/hooks/useHasCapability.ts`
-- `src/components/compliance/workbench/InspectorWorkbench.tsx`
-- `src/components/compliance/workbench/SeniorWorkbench.tsx`
-- `src/components/compliance/workbench/HeadWorkbench.tsx`
-- Migration: app_modules grouping + default-landing config
-
-**Modified**
-- `src/pages/compliance/workbench/WorkbenchLanding.tsx` — render role-specific workbench
-- `src/components/routing/AppRoutes.tsx` — capability gates + seed page route
-- Sidebar filter logic — capability-aware
-- Login redirect logic — role-aware default route
-- `.lovable/plan.md`
-
-### Backward compatibility
-- `manage_compliance` legacy permission still grants all capabilities (Phase-1 fallback retained).
-- Old workbench routes keep working — no further hard cutover this phase.
-- Seed function is idempotent — safe to re-run.
-
-### Test credentials after seed
+## 2. Final Logical Structure
 ```
-inspector@secureserve.gov       / Admin@123  → Inspector workbench
-sinspector@secureserve.gov      / Admin@123  → Senior workbench  
-compliancehead@secureserve.gov  / Admin@123  → Head workbench
+Compliance & Enforcement
+├─ Workbench                  (role-aware home)
+├─ Field
+│   ├─ Plan Builder           [Inspector, Senior]
+│   ├─ My Plans               [Inspector, Senior]
+│   ├─ Plan Approvals         [Senior, Head]
+│   ├─ Visit Workspace        [Inspector, Senior]
+│   ├─ Audits                 [Inspector, Senior]
+│   ├─ Findings               [all]
+│   ├─ Employer 360°          [all]
+│   ├─ Employer Statements    [Senior, Head]
+│   ├─ Submit Weekly Report   [Inspector, Senior]
+│   ├─ Weekly Reports         [all — own/team filter]
+│   ├─ Report Approvals       [Senior, Head]
+│   └─ Sampling               [Senior, Head]
+├─ Violations
+├─ Cases
+├─ Enforcement
+└─ Reports & Analytics
 ```
 
+## 3. Roles
+- **Inspector** (`ComplianceInspector`): own work.
+- **Senior Inspector** (NEW `SeniorInspector`): + approvals, sampling, team workbench.
+- **Compliance Head** (NEW `ComplianceHead`): full non-admin oversight + analytics. Not Admin.
+
+## 4. Capability Model
+Replaces single `manage_compliance` gate with: `compliance.field.execute|plan|approve_plans|report|approve_reports|sampling`, `compliance.violations.manage`, `compliance.cases.manage`, `compliance.enforcement.notices|arrangements|legal`, `compliance.workbench.team|enterprise`, `compliance.reports.operational|analytics`.
+
+## 5. Routes Removed (Hard Cutover)
+- `/compliance/field/operations`
+- `/compliance/field/inspections`
+- `/compliance/field/weekly-reports` (kept: `/compliance/field/all-reports`)
+- `/compliance/field/my-upcoming`
+- `/compliance/field/sampling/candidates`
+
+## 6. Phase 1 Implementation
+1. Migration: add `SeniorInspector` + `ComplianceHead` roles.
+2. `src/lib/compliance/capabilities.ts` — capability constants + role bundles.
+3. `src/hooks/useComplianceRole.ts` — returns `'inspector'|'senior'|'head'|'other'`.
+4. `complianceMenuItems.ts` → `getComplianceMenu(role)` builder.
+5. `sidebarMenuItems.ts` consumes role-aware builder.
+6. `AppRoutes.tsx`: remove 5 retired routes; add `/compliance/workbench` redirect.
+7. `WorkbenchLanding.tsx` — role-based redirect.
+
+## 7. Backward Compatibility
+- 5 routes 404 (per your decision).
+- All other URLs unchanged.
+- Capability layer falls back to `manage_compliance` — existing users unaffected.
+- New roles created empty; legacy menu shown until users reassigned.
+
+## 8. Phase 2 — Shipped
+1. **Test users seeded** via `seed-compliance-test-users` edge function (idempotent):
+   - `inspector@secureserve.gov` → ComplianceInspector
+   - `sinspector@secureserve.gov` → SeniorInspector
+   - `compliancehead@secureserve.gov` → ComplianceHead
+   - All passwords: `Admin@123`, force_password_change=false
+   - Re-runnable from `/admin/seed-test-users`
+2. **Role-aware Workbench widgets** — `WorkbenchLanding.tsx` now renders `RoleWorkbench` with metrics tailored to inspector / senior / head. Data via `useComplianceWorkbench(role)` hook.
+3. **Capability hook** — `useHasCapability(cap)` for in-component gating with `manage_compliance` legacy fallback.
+4. **Auth context fix** — `useComplianceRole` now reads from top-level `roles[]` (canonical source) plus profile shapes for safety.
+
+## 9. Phase 2 — Deferred
+- Sidebar capability filtering: sidebar is fully DB-driven (`get_user_accessible_modules` RPC). Phase-1 migration already granted role permissions — no further changes needed.
+- Login redirect-by-role: existing post-login flow respects user's first accessible module; manual `/compliance/workbench` works for all 3 test users.

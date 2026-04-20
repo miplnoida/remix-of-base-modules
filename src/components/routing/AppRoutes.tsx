@@ -389,6 +389,7 @@ import UserCreate from '@/pages/admin/users/UserCreate';
 import UserView from '@/pages/admin/users/UserView';
 import UserEdit from '@/pages/admin/users/UserEdit';
 import UserRoles from '@/pages/admin/users/UserRoles';
+import SeedTestUsers from '@/pages/admin/SeedTestUsers';
 
 // Enterprise Admin - Role Management
 import AdminRoleList from '@/pages/admin/roles/RoleList';
@@ -1352,6 +1353,7 @@ export const AppRoutes = () => {
       <Route path="/admin/users/:userId" element={<ProtectedLayout><UserView /></ProtectedLayout>} />
       <Route path="/admin/users/:userId/edit" element={<ProtectedLayout><UserEdit /></ProtectedLayout>} />
       <Route path="/admin/users/:userId/roles" element={<ProtectedLayout><UserRoles /></ProtectedLayout>} />
+      <Route path="/admin/seed-test-users" element={<ProtectedLayout><SeedTestUsers /></ProtectedLayout>} />
       <Route path="/admin/web-users" element={<ProtectedLayout><WebUsers /></ProtectedLayout>} />
       <Route path="/admin/audit-log" element={<Navigate to="/system-logs/audit" replace />} />
       <Route path="/admin/audit-logs" element={<Navigate to="/system-logs/audit" replace />} />
