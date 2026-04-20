@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ShieldCheck, Printer, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Printer, AlertTriangle, Lock } from 'lucide-react';
 import { auditReportService } from '@/services/auditReportService';
 import { AuditReportPrintLayout } from '@/components/compliance/audit-report/AuditReportPrintLayout';
 import { SignaturePad } from '@/components/compliance/audit-report/SignaturePad';
@@ -30,6 +30,8 @@ import type {
 import type { InspectionFinding, InspectionEvidence } from '@/types/inspectionTypes';
 import { toast } from 'sonner';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { gateFromAcknowledgment } from '@/lib/onlineResponsePortalGate';
+import { ONLINE_RESPONSE_MODE_LABELS } from '@/types/onlineResponse';
 
 export default function AuditReportAcknowledgePage() {
   const { token } = useParams<{ token: string }>();
@@ -146,6 +148,8 @@ export default function AuditReportAcknowledgePage() {
     );
   if (!report || !ack) return null;
 
+  const gate = gateFromAcknowledgment(ack);
+
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Header */}
@@ -161,6 +165,10 @@ export default function AuditReportAcknowledgePage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Badge variant="outline" className="gap-1">
+              <Lock className="h-3 w-3" />
+              {ONLINE_RESPONSE_MODE_LABELS[gate.mode]}
+            </Badge>
             <Badge variant={alreadySigned ? 'default' : 'secondary'}>{alreadySigned ? 'SIGNED' : ack.status}</Badge>
             <Button variant="outline" size="sm" onClick={() => window.print()}>
               <Printer className="h-4 w-4 mr-1" /> Print
