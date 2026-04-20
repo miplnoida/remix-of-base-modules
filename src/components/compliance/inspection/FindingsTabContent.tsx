@@ -10,6 +10,7 @@ import { Plus, AlertCircle } from 'lucide-react';
 import { InspectionVisit, InspectionFinding, FindingType, WeeklyPlanItem } from '@/types/inspectionTypes';
 import { inspectionService } from '@/services/inspectionService';
 import { CreateViolationFromFindingDialog } from '../CreateViolationFromFindingDialog';
+import { FindingPriorMatterLinks } from '../employer-history/FindingPriorMatterLinks';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -420,6 +421,9 @@ export function FindingsTabContent({ visit, employerId, planItem }: FindingsTabC
                       )}
                     </div>
                   )}
+
+                  {/* Linked prior matters (Phase D) */}
+                  <FindingPriorMatterLinks findingId={finding.id} employerId={employerId} />
                 </div>
               );
             })}

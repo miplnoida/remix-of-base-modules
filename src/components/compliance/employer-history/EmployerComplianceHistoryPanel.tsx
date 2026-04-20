@@ -23,6 +23,8 @@ import {
   ClipboardList, FileText, MessageSquareWarning, Link2,
 } from 'lucide-react';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { PriorMatterLinkDialog } from './PriorMatterLinkDialog';
+import type { PriorMatterType } from '@/types/employerHistory';
 
 type CategoryKey =
   | 'CASES' | 'VIOLATIONS' | 'ARRANGEMENTS' | 'LEGAL'
@@ -57,6 +59,17 @@ interface PanelProps {
   onLinkMatter?: (matter: { type: CategoryKey; id: string; label: string }) => void;
 }
 
+const CATEGORY_TO_MATTER: Record<CategoryKey, PriorMatterType> = {
+  CASES: 'CASE',
+  VIOLATIONS: 'VIOLATION',
+  ARRANGEMENTS: 'ARRANGEMENT',
+  LEGAL: 'LEGAL',
+  FOLLOW_UPS: 'FOLLOW_UP',
+  INSPECTIONS: 'PAST_INSPECTION',
+  REPORTS: 'PAST_REPORT',
+  DISPUTES: 'DISPUTE',
+};
+
 export function EmployerComplianceHistoryPanel({
   employerId,
   inspectionId,
@@ -64,11 +77,16 @@ export function EmployerComplianceHistoryPanel({
   monthsBack = 24,
   initialCategories,
   onLinkMatter,
-}: PanelProps) {
+  onLinked,
+}: PanelProps & { onLinked?: () => void }) {
   const { data, isLoading } = useEmployerCompliancePosture(employerId, monthsBack);
   const [active, setActive] = useState<Set<CategoryKey>>(
     () => new Set(initialCategories ?? CATEGORIES.map(c => c.key)),
   );
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [pendingMatter, setPendingMatter] =
+    useState<{ type: PriorMatterType; id: string; label: string } | null>(null);
 
   const canLink = !!(inspectionId || findingId);
   const linkScopeLabel = findingId ? 'finding' : inspectionId ? 'visit' : null;
@@ -92,13 +110,22 @@ export function EmployerComplianceHistoryPanel({
     });
   };
 
+  const handleLinkClick = (type: CategoryKey, id: string, label: string) => {
+    if (onLinkMatter) {
+      onLinkMatter({ type, id, label });
+      return;
+    }
+    setPendingMatter({ type: CATEGORY_TO_MATTER[type], id, label });
+    setDialogOpen(true);
+  };
+
   const linkBtn = (type: CategoryKey, id: string, label: string) => (
-    canLink && onLinkMatter ? (
+    canLink ? (
       <Button
         size="sm"
         variant="ghost"
         className="h-7 px-2 text-xs"
-        onClick={() => onLinkMatter({ type, id, label })}
+        onClick={() => handleLinkClick(type, id, label)}
         title={`Link to this ${linkScopeLabel}`}
       >
         <Link2 className="h-3 w-3 mr-1" />Link
@@ -290,6 +317,18 @@ export function EmployerComplianceHistoryPanel({
           </>
         )}
       </CardContent>
+
+      {!onLinkMatter && (
+        <PriorMatterLinkDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          employerId={employerId}
+          inspectionId={inspectionId}
+          findingId={findingId}
+          matter={pendingMatter}
+          onLinked={onLinked}
+        />
+      )}
     </Card>
   );
 }
