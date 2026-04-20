@@ -421,6 +421,9 @@ export function FindingsTabContent({ visit, employerId, planItem }: FindingsTabC
                       )}
                     </div>
                   )}
+
+                  {/* Linked prior matters (Phase D) */}
+                  <FindingPriorMatterLinks findingId={finding.id} employerId={employerId} />
                 </div>
               );
             })}
