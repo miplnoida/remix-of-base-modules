@@ -1292,7 +1292,7 @@ export const fieldAuditService = {
   async evaluateCompletionGate(inspectionId: string): Promise<CompletionGateResult> {
     const cfg = await this.getCompletionGateConfig('GLOBAL');
     const metrics: any = (await this.getVisitMetrics(inspectionId)) ?? {};
-    const [findings, reportRes, interactionRes] = await Promise.all([
+    const [findings, reportRes, interactionRes, wpRes] = await Promise.all([
       this.getFindingsForVisit(inspectionId),
       supabase
         .from('ce_employer_audit_reports')
@@ -1304,13 +1304,32 @@ export const fieldAuditService = {
         .select('id, representative_name, representative_designation, representative_contact, authorization_status, records_declaration')
         .eq('inspection_id', inspectionId)
         .maybeSingle(),
+      supabase
+        .from('ce_inspection_working_papers')
+        .select('payroll_reviewed, contributions_reviewed, employee_sample_size, wage_book_reviewed, inspector_observations')
+        .eq('inspection_id', inspectionId)
+        .maybeSingle(),
     ]);
 
     const report = reportRes.data;
     const interaction = interactionRes.data as any;
+    const wp = wpRes.data as any;
 
-    const checklistTotal = metrics.checklist_total ?? 0;
-    const checklistAnswered = metrics.checklist_answered ?? 0;
+    // Working Papers (5 standardized review items) + template-driven checklist
+    const WP_TOTAL = 5;
+    const wpDone = wp
+      ? [
+          wp.payroll_reviewed,
+          wp.contributions_reviewed,
+          (wp.employee_sample_size ?? 0) > 0,
+          wp.wage_book_reviewed,
+          ((wp.inspector_observations ?? '') as string).trim().length > 0,
+        ].filter(Boolean).length
+      : 0;
+    const tplTotal = Number(metrics.checklist_total ?? 0);
+    const tplAnswered = Number(metrics.checklist_answered ?? 0);
+    const checklistTotal = WP_TOTAL + tplTotal;
+    const checklistAnswered = wpDone + tplAnswered;
     const checklistComplete = checklistTotal > 0 && checklistAnswered >= checklistTotal;
 
     const findingsCount = findings.length;
@@ -1345,7 +1364,7 @@ export const fieldAuditService = {
         label: 'Checklist completed',
         required: cfg.requireChecklistComplete,
         passed: checklistComplete,
-        detail: checklistTotal === 0 ? 'No checklist questions found' : `${checklistAnswered}/${checklistTotal} answered`,
+        detail: `${checklistAnswered}/${checklistTotal} answered (Working Papers + ${tplTotal} template item${tplTotal === 1 ? '' : 's'})`,
       },
       {
         key: 'findings',
@@ -1473,6 +1492,7 @@ export const fieldAuditService = {
     let report: EmployerAuditReportRow | null = null;
     let gate: CompletionGateResult | null = null;
 
+    let workingPapers: any = null;
     if (inspectionId) {
       [metricsRaw, evidence, findings, report, gate] = await Promise.all([
         this.getVisitMetrics(inspectionId),
@@ -1481,6 +1501,13 @@ export const fieldAuditService = {
         this.getEmployerAuditReport(inspectionId),
         this.evaluateCompletionGate(inspectionId),
       ]);
+
+      const wpRes = await supabase
+        .from('ce_inspection_working_papers')
+        .select('payroll_reviewed, contributions_reviewed, employee_sample_size, wage_book_reviewed, inspector_observations')
+        .eq('inspection_id', inspectionId)
+        .maybeSingle();
+      workingPapers = wpRes.data ?? null;
     }
 
     // Follow-up count for this employer (carry-over indicator)
@@ -1495,14 +1522,38 @@ export const fieldAuditService = {
       followUpCount = count ?? 0;
     }
 
+    // Working Papers checklist (5 standardized review areas — the actual
+    // checklist surfaced on the Working Papers tab of this screen).
+    const WP_TOTAL = 5;
+    const wpDone = workingPapers
+      ? [
+          workingPapers.payroll_reviewed,
+          workingPapers.contributions_reviewed,
+          (workingPapers.employee_sample_size ?? 0) > 0,
+          workingPapers.wage_book_reviewed,
+          ((workingPapers.inspector_observations ?? '') as string).trim().length > 0,
+        ].filter(Boolean).length
+      : 0;
+
+    // Combine Working Papers (always-present) with any template-driven
+    // checklist items (ia_audit_checklists, surfaced via the metrics view).
+    // This keeps the KPI consistent with what the user actually sees on screen.
+    const tplTotal = Number(metricsRaw?.checklist_total ?? 0);
+    const tplAnswered = Number(metricsRaw?.checklist_answered ?? 0);
+    const checklistTotal = WP_TOTAL + tplTotal;
+    const checklistAnswered = wpDone + tplAnswered;
+    const checklistPct = checklistTotal > 0
+      ? Math.round((checklistAnswered * 100) / checklistTotal)
+      : 0;
+
     // Normalize snake_case view row → camelCase shape consumed by KPI cards.
     // Fall back to actual array lengths so totals always match what's listed
     // in the Evidence / Findings tabs (single source of truth = the data itself).
     const metrics = metricsRaw
       ? {
-          checklistTotal: Number(metricsRaw.checklist_total ?? 0),
-          checklistAnswered: Number(metricsRaw.checklist_answered ?? 0),
-          checklistPct: Number(metricsRaw.checklist_pct ?? 0),
+          checklistTotal,
+          checklistAnswered,
+          checklistPct,
           evidenceCount: evidence.length || Number(metricsRaw.evidence_count ?? 0),
           findingsCount: findings.length || Number(metricsRaw.findings_count ?? 0),
           violationsCount: Number(metricsRaw.violations_count ?? 0),
@@ -1511,9 +1562,9 @@ export const fieldAuditService = {
           followUpCount,
         }
       : {
-          checklistTotal: 0,
-          checklistAnswered: 0,
-          checklistPct: 0,
+          checklistTotal,
+          checklistAnswered,
+          checklistPct,
           evidenceCount: evidence.length,
           findingsCount: findings.length,
           violationsCount: 0,
