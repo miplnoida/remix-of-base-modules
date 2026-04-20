@@ -20,9 +20,9 @@ export interface PostureCase {
   case_type: string | null;
   status: string | null;
   priority: string | null;
-  created_at: string;
-  resolved_at: string | null;
-  is_locked: boolean | null;
+  created_at: string | null;
+  closed_date: string | null;
+  total_amount: number | null;
 }
 
 export interface PostureViolation {
@@ -33,7 +33,7 @@ export interface PostureViolation {
   status: string | null;
   severity: string | null;
   total_amount: number | null;
-  created_at: string;
+  created_at: string | null;
   summary: string | null;
 }
 
@@ -51,20 +51,21 @@ export interface PostureArrangement {
 
 export interface PostureLegal {
   id: string;
-  reference_number: string | null;
-  proceeding_type: string | null;
-  status: string | null;
+  case_number: string | null;
+  stage: string | null;
+  court: string | null;
   filed_date: string | null;
-  next_hearing_date: string | null;
+  next_hearing: string | null;
+  outcome: string | null;
 }
 
 export interface PostureFollowUp {
   id: string;
-  action_number: string | null;
   action_type: string | null;
   status: string | null;
   due_date: string | null;
   description: string | null;
+  priority: string | null;
 }
 
 export interface PostureInspection {
@@ -73,23 +74,22 @@ export interface PostureInspection {
   status: string | null;
   visit_date: string | null;
   inspector_name: string | null;
-  findings_count: number;
 }
 
 export interface PostureReport {
   id: string;
   report_number: string | null;
-  report_type: string | null;
   status: string | null;
   generated_at: string | null;
+  total_findings: number | null;
+  total_violations: number | null;
 }
 
 export interface PostureDispute {
   id: string;
-  dispute_number: string | null;
   status: string | null;
   raised_at: string | null;
-  reason: string | null;
+  dispute_reason: string | null;
 }
 
 export interface PostureLedgerSnapshot {
