@@ -54,6 +54,7 @@ import { EvidenceTabContent } from '@/components/compliance/inspection/EvidenceT
 import { FindingsTabContent } from '@/components/compliance/inspection/FindingsTabContent';
 import { WorkingPapersTabContent } from '@/components/compliance/inspection/WorkingPapersTabContent';
 import { EmployerInteractionTabContent } from '@/components/compliance/inspection/EmployerInteractionTabContent';
+import { EmployerComplianceHistoryPanel } from '@/components/compliance/employer-history/EmployerComplianceHistoryPanel';
 import type { InspectionVisit } from '@/types/inspectionTypes';
 
 export default function AuditVisitWorkspace() {
@@ -221,6 +222,7 @@ export default function AuditVisitWorkspace() {
             <TabsTrigger value="employer">Employer</TabsTrigger>
             <TabsTrigger value="evidence">Evidence</TabsTrigger>
             <TabsTrigger value="findings">Findings</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="report">Report</TabsTrigger>
           </TabsList>
           <TabsContent value="checklist">
@@ -238,6 +240,14 @@ export default function AuditVisitWorkspace() {
               employerId={adaptedVisit.employerId || planItem.employer_id || ''}
               planItem={planItem}
             />
+          </TabsContent>
+          <TabsContent value="history">
+            {(adaptedVisit.employerId || planItem.employer_id) && (
+              <EmployerComplianceHistoryPanel
+                employerId={adaptedVisit.employerId || planItem.employer_id}
+                inspectionId={inspectionId}
+              />
+            )}
           </TabsContent>
           <TabsContent value="report">
             <Card>
