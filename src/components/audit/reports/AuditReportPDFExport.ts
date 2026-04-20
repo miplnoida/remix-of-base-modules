@@ -41,7 +41,7 @@ interface PDFExportParams {
 }
 
 export function generateAuditReportPDF({
-  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs, foundation,
+  reportData, findings, responses, actions, engagement, departmentName, templateConfig, dbSectionRefs, foundation, priorMatters = [],
 }: PDFExportParams) {
   const baseConfig = templateConfig || DEFAULT_AUDIT_REPORT_CONFIG;
   // If DB sections are provided, inject them into the config
@@ -50,7 +50,7 @@ export function generateAuditReportPDF({
     : baseConfig;
   // Pass foundation so resolver uses DB-saved org settings
   const resolved = resolveReportTemplate(config, reportData.status, foundation);
-  const mapped = mapReportOutput(resolved, reportData, findings, responses, actions, departmentName);
+  const mapped = mapReportOutput(resolved, reportData, findings, responses, actions, departmentName, priorMatters);
   const doc = new jsPDF({ orientation: 'portrait' });
   const pw = doc.internal.pageSize.getWidth();
   const ph = doc.internal.pageSize.getHeight();
