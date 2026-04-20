@@ -13,6 +13,8 @@ import { FindingsTabContent } from '@/components/compliance/inspection/FindingsT
 import { ObservationsTabContent } from '@/components/compliance/inspection/ObservationsTabContent';
 import { ViolationsTabContent } from '@/components/compliance/inspection/ViolationsTabContent';
 import { VisitHistoryPanel } from '@/components/compliance/inspection/VisitHistoryPanel';
+import { AuditCommunicationsPanel } from '@/components/compliance/communication/AuditCommunicationsPanel';
+import { Mail } from 'lucide-react';
 import { inspectionService } from '@/services/inspectionService';
 import { InspectionVisit, InspectionVisitStatus } from '@/types/inspectionTypes';
 import { toast } from 'sonner';
@@ -202,12 +204,13 @@ export default function EmployerVisitWorkspace() {
       {/* Visit Workspace */}
       {currentVisit ? (
         <Tabs defaultValue="checkin" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="checkin">Visit Info</TabsTrigger>
             <TabsTrigger value="evidence">Evidence</TabsTrigger>
             <TabsTrigger value="findings">Findings</TabsTrigger>
             <TabsTrigger value="observations">Observations</TabsTrigger>
             <TabsTrigger value="violations">Violations</TabsTrigger>
+            <TabsTrigger value="communications"><Mail className="h-3.5 w-3.5 mr-1" />Comms</TabsTrigger>
             <TabsTrigger value="checkout"><LogOut className="h-3.5 w-3.5 mr-1" />Check-out</TabsTrigger>
             <TabsTrigger value="history"><History className="h-3.5 w-3.5 mr-1" />History</TabsTrigger>
           </TabsList>
@@ -282,6 +285,22 @@ export default function EmployerVisitWorkspace() {
               </CardHeader>
               <CardContent>
                 <ViolationsTabContent visit={currentVisit} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="communications">
+            <Card>
+              <CardHeader>
+                <CardTitle>Audit Communications</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AuditCommunicationsPanel
+                  inspectionId={currentVisit.id}
+                  employerId={employer.id}
+                  employerName={employer.name}
+                  userCode={currentUserCode}
+                />
               </CardContent>
             </Card>
           </TabsContent>
