@@ -10606,6 +10606,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_audit_prior_matter_links: {
+        Row: {
+          created_at: string
+          employer_id: string
+          finding_id: string | null
+          id: string
+          inspection_id: string | null
+          is_active: boolean
+          linked_at: string
+          linked_by: string | null
+          matter_id: string
+          matter_label: string | null
+          matter_type: string
+          relevance_note: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employer_id: string
+          finding_id?: string | null
+          id?: string
+          inspection_id?: string | null
+          is_active?: boolean
+          linked_at?: string
+          linked_by?: string | null
+          matter_id: string
+          matter_label?: string | null
+          matter_type: string
+          relevance_note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employer_id?: string
+          finding_id?: string | null
+          id?: string
+          inspection_id?: string | null
+          is_active?: boolean
+          linked_at?: string
+          linked_by?: string | null
+          matter_id?: string
+          matter_label?: string | null
+          matter_type?: string
+          relevance_note?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ce_audit_report_acknowledgments: {
         Row: {
           created_at: string
