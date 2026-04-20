@@ -636,6 +636,10 @@ export const auditReportService = {
         status: (ack as any).status as AuditReportAcknowledgment['status'],
         signatureId: (ack as any).signature_id ?? undefined,
         createdAt: (ack as any).created_at,
+        portalResolvedEnabled: (ack as any).portal_resolved_enabled ?? undefined,
+        portalResolvedMode: (ack as any).portal_resolved_mode ?? undefined,
+        portalResolvedPermissions: (ack as any).portal_resolved_permissions_json ?? undefined,
+        responseDueAt: (ack as any).response_due_at ?? null,
       },
       report,
     };

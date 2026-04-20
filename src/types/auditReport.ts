@@ -124,6 +124,16 @@ export interface AuditReportAcknowledgment {
   status: 'PENDING' | 'VIEWED' | 'SIGNED' | 'REFUSED' | 'EXPIRED' | 'REVOKED';
   signatureId?: string;
   createdAt: string;
+  // Phase 3/4 — frozen online-response permissions for this link
+  portalResolvedEnabled?: boolean;
+  portalResolvedMode?:
+    | 'NONE'
+    | 'VIEW_ONLY'
+    | 'ACKNOWLEDGMENT_ONLY'
+    | 'LIMITED_RESPONSE'
+    | 'FULL_RESPONSE';
+  portalResolvedPermissions?: Record<string, boolean>;
+  responseDueAt?: string | null;
 }
 
 export interface FullAuditReport {
