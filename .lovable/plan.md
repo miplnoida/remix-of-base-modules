@@ -58,3 +58,18 @@ Replaces single `manage_compliance` gate with: `compliance.field.execute|plan|ap
 - All other URLs unchanged.
 - Capability layer falls back to `manage_compliance` — existing users unaffected.
 - New roles created empty; legacy menu shown until users reassigned.
+
+## 8. Phase 2 — Shipped
+1. **Test users seeded** via `seed-compliance-test-users` edge function (idempotent):
+   - `inspector@secureserve.gov` → ComplianceInspector
+   - `sinspector@secureserve.gov` → SeniorInspector
+   - `compliancehead@secureserve.gov` → ComplianceHead
+   - All passwords: `Admin@123`, force_password_change=false
+   - Re-runnable from `/admin/seed-test-users`
+2. **Role-aware Workbench widgets** — `WorkbenchLanding.tsx` now renders `RoleWorkbench` with metrics tailored to inspector / senior / head. Data via `useComplianceWorkbench(role)` hook.
+3. **Capability hook** — `useHasCapability(cap)` for in-component gating with `manage_compliance` legacy fallback.
+4. **Auth context fix** — `useComplianceRole` now reads from top-level `roles[]` (canonical source) plus profile shapes for safety.
+
+## 9. Phase 2 — Deferred
+- Sidebar capability filtering: sidebar is fully DB-driven (`get_user_accessible_modules` RPC). Phase-1 migration already granted role permissions — no further changes needed.
+- Login redirect-by-role: existing post-login flow respects user's first accessible module; manual `/compliance/workbench` works for all 3 test users.
