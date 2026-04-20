@@ -11,8 +11,9 @@ import {
   Building2, FileText, Bell, ClipboardCheck, Shield, Clock, DollarSign,
   Users, AlertTriangle, Loader2, Eye, TrendingUp, Scale, ArrowLeft,
   Briefcase, MessageSquare, FolderOpen, Printer, Plus, Send, CalendarPlus,
-  ChevronUp, StickyNote, Gavel,
+  ChevronUp, StickyNote, Gavel, History,
 } from 'lucide-react';
+import { EmployerComplianceHistoryPanel } from '@/components/compliance/employer-history/EmployerComplianceHistoryPanel';
 import {
   fetchEmployerMaster, fetchEmployerFiling, fetchEmployerArrears, fetchEmployerPayments,
   fetchEmployerLegal, fetchEmployerWorkforce, fetchEmployerRisk, fetchEmployerViolations,
@@ -198,6 +199,7 @@ export default function Employer360() {
           <TabsTrigger value="communications"><MessageSquare className="h-3.5 w-3.5 mr-1" />Comms ({communications.length})</TabsTrigger>
           <TabsTrigger value="documents"><FolderOpen className="h-3.5 w-3.5 mr-1" />Docs ({documents.length})</TabsTrigger>
           <TabsTrigger value="timeline"><Clock className="h-3.5 w-3.5 mr-1" />Timeline</TabsTrigger>
+          <TabsTrigger value="history"><History className="h-3.5 w-3.5 mr-1" />History</TabsTrigger>
         </TabsList>
 
         {/* ═══ OVERVIEW TAB ═══ */}
@@ -554,6 +556,10 @@ export default function Employer360() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="history">
+          {employerId && <EmployerComplianceHistoryPanel employerId={employerId} />}
         </TabsContent>
       </Tabs>
     </div>
