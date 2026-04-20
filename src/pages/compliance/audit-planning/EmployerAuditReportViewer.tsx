@@ -62,10 +62,11 @@ export default function EmployerAuditReportViewer() {
     if (!inspectionId) return;
     try {
       setLoading(true);
-      // Always re-hydrate the report snapshot from the canonical visit context.
-      // This back-fills older/stale report rows that were created before
-      // employer interaction data existed, while preserving manual edits via
-      // fieldAuditService.generateEmployerAuditReport()'s coalesceEmpty logic.
+      // 1) Canonical count refresh from source tables (findings/evidence/violations/checklist).
+      //    Guarantees viewer summary = print = PDF = snapshot.
+      try { await fieldAuditService.recomputeReportMetrics(inspectionId); } catch {}
+      // 2) Re-hydrate report snapshot from canonical visit context (back-fills
+      //    older/stale rows; preserves manual edits via coalesceEmpty logic).
       await fieldAuditService.generateEmployerAuditReport(inspectionId);
 
       const r = await auditReportService.getReportByInspection(inspectionId);

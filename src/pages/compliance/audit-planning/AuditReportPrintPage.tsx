@@ -11,6 +11,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Printer, ArrowLeft, FileText } from 'lucide-react';
 import { auditReportService } from '@/services/auditReportService';
+import { fieldAuditService } from '@/services/fieldAuditService';
 import { AuditReportPrintLayout } from '@/components/compliance/audit-report/AuditReportPrintLayout';
 import type { FullAuditReport, AuditReportSignature, AuditViolationRow } from '@/types/auditReport';
 import type { InspectionFinding, InspectionEvidence } from '@/types/inspectionTypes';
@@ -52,7 +53,15 @@ export default function AuditReportPrintPage() {
           );
           return;
         }
-        const data = await auditReportService.assembleFullPayload(r.inspectionId);
+        // Canonical count refresh BEFORE assembling payload — guarantees print
+        // shows the same numbers as the source tables (fixes "1 violation in
+        // section, 0 in summary" mismatch when print is opened directly).
+        if (r.status !== 'FINAL') {
+          try { await fieldAuditService.recomputeReportMetrics(r.inspectionId); } catch {}
+          // Re-fetch report so totals reflect the recompute
+          r = await auditReportService.getReport(r.id);
+        }
+        const data = await auditReportService.assembleFullPayload(r!.inspectionId);
         setReport(r);
         setFindings(data.findings);
         setEvidence(data.evidence);

@@ -294,6 +294,9 @@ export const fieldAuditService = {
       .single();
     if (error) throw error;
 
+    // Canonical count refresh — keeps report.totalEvidence in sync
+    try { await this.recomputeReportMetrics(params.inspectionId); } catch {}
+
     return {
       id: data.id,
       inspectionVisitId: data.inspection_id,
@@ -372,6 +375,8 @@ export const fieldAuditService = {
         req.evidenceIds.map((evId) => this.linkEvidenceToFinding(evId, data.id))
       );
     }
+    // Canonical count refresh
+    try { await this.recomputeReportMetrics(req.inspectionId); } catch {}
     return { id: data.id };
   },
 
@@ -481,6 +486,72 @@ export const fieldAuditService = {
   },
 
   // ── Unified per-visit metrics (single source of truth) ──
+
+  /**
+   * Canonical recompute of report-level counts from source tables.
+   * Call this after ANY mutation that affects findings, evidence, violations,
+   * or checklist responses for an inspection. It updates the audit report row
+   * (if one exists) so that viewer / print / PDF / snapshot all read the same
+   * numbers from a single source of truth.
+   *
+   * Safe to call when no report exists yet — it becomes a no-op.
+   * Never overwrites a FINAL report (those are locked).
+   */
+  async recomputeReportMetrics(inspectionId: string): Promise<{
+    totalFindings: number;
+    totalEvidence: number;
+    totalViolations: number;
+    checklistCompletionPct: number;
+  }> {
+    const userCode = await whoami();
+
+    const [findingsRes, evidenceRes, violationsRes, checklistStats] = await Promise.all([
+      supabase
+        .from('ce_inspection_findings')
+        .select('id', { count: 'exact', head: true })
+        .eq('inspection_id', inspectionId),
+      supabase
+        .from('ce_inspection_evidence')
+        .select('id', { count: 'exact', head: true })
+        .eq('inspection_id', inspectionId),
+      supabase
+        .from('ce_violations')
+        .select('id', { count: 'exact', head: true })
+        .eq('inspection_id', inspectionId)
+        .or('is_deleted.is.null,is_deleted.eq.false'),
+      this.getChecklistCompletionStats(inspectionId),
+    ]);
+
+    const totals = {
+      totalFindings: findingsRes.count ?? 0,
+      totalEvidence: evidenceRes.count ?? 0,
+      totalViolations: violationsRes.count ?? 0,
+      checklistCompletionPct: checklistStats.pct,
+    };
+
+    // Update the report row only if one exists AND it's not finalized
+    const { data: existing } = await supabase
+      .from('ce_employer_audit_reports')
+      .select('id, status')
+      .eq('inspection_id', inspectionId)
+      .maybeSingle();
+
+    if (existing && existing.status !== 'FINAL') {
+      await supabase
+        .from('ce_employer_audit_reports')
+        .update({
+          total_findings: totals.totalFindings,
+          total_evidence: totals.totalEvidence,
+          total_violations: totals.totalViolations,
+          checklist_completion_pct: totals.checklistCompletionPct,
+          updated_by: userCode,
+          updated_at: nowIso(),
+        } as any)
+        .eq('id', existing.id);
+    }
+
+    return totals;
+  },
 
   async getVisitMetrics(inspectionId: string) {
     const { data, error } = await supabase
@@ -934,6 +1005,15 @@ export const fieldAuditService = {
         updated_at: nowIso(),
       } as any)
       .eq('id', params.findingId);
+
+    // Refresh canonical counts on the audit report (if any) so viewer/print/PDF
+    // immediately reflect the new violation. Best-effort — never blocks creation.
+    try {
+      await this.recomputeReportMetrics(params.inspectionId);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[fieldAuditService] post-violation count refresh failed', e);
+    }
 
     return { id: data.id, violationNumber: data.violation_number };
   },
