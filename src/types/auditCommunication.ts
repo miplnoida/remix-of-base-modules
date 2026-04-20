@@ -232,6 +232,17 @@ export interface AuditCommunication {
   updated_by: string | null;
   created_at: string;
   updated_at: string;
+  /** v2 instance fields */
+  parent_communication_id: string | null;
+  occurrence_no: number;
+  recurrence_enabled: boolean;
+  recurrence_interval_days: number | null;
+  recurrence_max_occurrences: number | null;
+  recurrence_stop_conditions_json: CeCommStopCondition[];
+  dispatch_attempts: number;
+  last_dispatch_error: string | null;
+  dispatch_locked_at: string | null;
+  materialized_by_policy_id: string | null;
   // populated by service joins:
   template?: Pick<AuditCommunicationTemplate, 'template_code' | 'template_name' | 'category'>;
   recipients?: AuditCommunicationRecipient[];
