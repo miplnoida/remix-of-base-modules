@@ -11,6 +11,7 @@ import type {
   SubmitFindingResponseInput,
   SubmitFindingDisputeInput,
 } from '@/types/auditPublicSubmissions';
+import { notifySubmissionReceived } from './auditPublicSubmissionNotifyService';
 
 interface ValidatedToken {
   acknowledgmentId: string;
@@ -84,7 +85,19 @@ export async function submitFindingResponse(input: SubmitFindingResponseInput): 
     .select('*')
     .single();
   if (error) throw error;
-  return data as FindingResponseSubmission;
+  const created = data as FindingResponseSubmission;
+  // Fire-and-forget officer notification
+  notifySubmissionReceived(
+    created.inspection_id,
+    {
+      kind: 'response',
+      submitter_name: created.submitter_name,
+      finding_ref: created.finding_id,
+      inspection_ref: created.inspection_id,
+    },
+    created.id,
+  );
+  return created;
 }
 
 export async function submitFindingDispute(input: SubmitFindingDisputeInput): Promise<FindingDisputeSubmission> {
@@ -119,7 +132,18 @@ export async function submitFindingDispute(input: SubmitFindingDisputeInput): Pr
     .select('*')
     .single();
   if (error) throw error;
-  return data as FindingDisputeSubmission;
+  const created = data as FindingDisputeSubmission;
+  notifySubmissionReceived(
+    created.inspection_id,
+    {
+      kind: 'dispute',
+      submitter_name: created.submitter_name,
+      finding_ref: created.finding_id ?? created.violation_id ?? '—',
+      inspection_ref: created.inspection_id,
+    },
+    created.id,
+  );
+  return created;
 }
 
 // ─── Public read-back: what the portal shows ──────────────────────
@@ -193,7 +217,7 @@ export async function updateResponseSubmissionStatus(
   reviewerNotes: string | null,
   reviewedBy: string | null
 ): Promise<void> {
-  const { error } = await (supabase as any)
+  const { data: updated, error } = await (supabase as any)
     .from('ce_audit_finding_response_submissions')
     .update({
       status,
@@ -201,8 +225,25 @@ export async function updateResponseSubmissionStatus(
       reviewed_by: reviewedBy,
       reviewed_at: new Date().toISOString(),
     })
-    .eq('id', id);
+    .eq('id', id)
+    .select('*')
+    .single();
   if (error) throw error;
+
+  if (status === 'ACCEPTED' && updated && !updated.linked_response_id) {
+    const { linkResponseSubmission } = await import('./auditPublicSubmissionLinkService');
+    const { notifySubmissionLinked } = await import('./auditPublicSubmissionNotifyService');
+    try {
+      const linkedId = await linkResponseSubmission(updated as FindingResponseSubmission, { userCode: reviewedBy });
+      notifySubmissionLinked(updated.inspection_id, {
+        kind: 'response',
+        submitter_name: updated.submitter_name,
+        inspection_ref: updated.inspection_id,
+      }, linkedId);
+    } catch (e) {
+      console.warn('[auto-link response]', e);
+    }
+  }
 }
 
 export async function updateDisputeSubmissionStatus(
@@ -211,7 +252,7 @@ export async function updateDisputeSubmissionStatus(
   reviewerNotes: string | null,
   reviewedBy: string | null
 ): Promise<void> {
-  const { error } = await (supabase as any)
+  const { data: updated, error } = await (supabase as any)
     .from('ce_audit_finding_dispute_submissions')
     .update({
       status,
@@ -219,6 +260,23 @@ export async function updateDisputeSubmissionStatus(
       reviewed_by: reviewedBy,
       reviewed_at: new Date().toISOString(),
     })
-    .eq('id', id);
+    .eq('id', id)
+    .select('*')
+    .single();
   if (error) throw error;
+
+  if (status === 'UPHELD' && updated && !updated.linked_dispute_id) {
+    const { linkDisputeSubmission } = await import('./auditPublicSubmissionLinkService');
+    const { notifySubmissionLinked } = await import('./auditPublicSubmissionNotifyService');
+    try {
+      const linkedId = await linkDisputeSubmission(updated as FindingDisputeSubmission, { userCode: reviewedBy });
+      notifySubmissionLinked(updated.inspection_id, {
+        kind: 'dispute',
+        submitter_name: updated.submitter_name,
+        inspection_ref: updated.inspection_id,
+      }, linkedId);
+    } catch (e) {
+      console.warn('[auto-link dispute]', e);
+    }
+  }
 }
