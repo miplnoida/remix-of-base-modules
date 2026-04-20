@@ -5,12 +5,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Building2, MapPin, PlayCircle, StopCircle, Loader2, Eye, Briefcase, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, PlayCircle, StopCircle, Loader2, Eye, Briefcase, AlertTriangle, History, LogOut } from 'lucide-react';
 import { CheckInOutTabContent } from '@/components/compliance/inspection/CheckInOutTabContent';
+import { CheckOutCloseTabContent } from '@/components/compliance/inspection/CheckOutCloseTabContent';
 import { EvidenceTabContent } from '@/components/compliance/inspection/EvidenceTabContent';
 import { FindingsTabContent } from '@/components/compliance/inspection/FindingsTabContent';
 import { ObservationsTabContent } from '@/components/compliance/inspection/ObservationsTabContent';
 import { ViolationsTabContent } from '@/components/compliance/inspection/ViolationsTabContent';
+import { VisitHistoryPanel } from '@/components/compliance/inspection/VisitHistoryPanel';
 import { inspectionService } from '@/services/inspectionService';
 import { InspectionVisit, InspectionVisitStatus } from '@/types/inspectionTypes';
 import { toast } from 'sonner';
@@ -200,12 +202,14 @@ export default function EmployerVisitWorkspace() {
       {/* Visit Workspace */}
       {currentVisit ? (
         <Tabs defaultValue="checkin" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="checkin">Visit Info</TabsTrigger>
             <TabsTrigger value="evidence">Evidence</TabsTrigger>
             <TabsTrigger value="findings">Findings</TabsTrigger>
             <TabsTrigger value="observations">Observations</TabsTrigger>
             <TabsTrigger value="violations">Violations</TabsTrigger>
+            <TabsTrigger value="checkout"><LogOut className="h-3.5 w-3.5 mr-1" />Check-out</TabsTrigger>
+            <TabsTrigger value="history"><History className="h-3.5 w-3.5 mr-1" />History</TabsTrigger>
           </TabsList>
 
           <TabsContent value="checkin">
@@ -278,6 +282,36 @@ export default function EmployerVisitWorkspace() {
               </CardHeader>
               <CardContent>
                 <ViolationsTabContent visit={currentVisit} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="checkout">
+            <Card>
+              <CardHeader>
+                <CardTitle>Check-out & Close Visit</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CheckOutCloseTabContent
+                  visit={currentVisit}
+                  planItemId={currentVisit.id}
+                  employerId={employer.id}
+                  onVisitUpdate={setCurrentVisit}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>All Visits for {employer.name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <VisitHistoryPanel
+                  employerId={employer.id}
+                  currentVisitId={currentVisit.id}
+                />
               </CardContent>
             </Card>
           </TabsContent>

@@ -9,11 +9,13 @@ import { AlertTriangle, CheckCircle, Clock, LogOut, MapPin, FileText, Search, Al
 import { InspectionVisit, InspectionVisitStatus } from '@/types/inspectionTypes';
 import { inspectionService } from '@/services/inspectionService';
 import { supabase } from '@/integrations/supabase/client';
+import { EmployerLocationPicker } from '@/components/compliance/EmployerLocationPicker';
 import { toast } from 'sonner';
 
 interface CheckOutCloseTabContentProps {
   visit: InspectionVisit;
   planItemId: string;
+  employerId?: string;
   onVisitUpdate: (visit: InspectionVisit) => void;
 }
 
@@ -34,8 +36,8 @@ interface ValidationResult {
   warnings: string[];
 }
 
-export function CheckOutCloseTabContent({ visit, planItemId, onVisitUpdate }: CheckOutCloseTabContentProps) {
-  const [checkOutLocation, setCheckOutLocation] = useState('');
+export function CheckOutCloseTabContent({ visit, planItemId, employerId, onVisitUpdate }: CheckOutCloseTabContentProps) {
+  const [checkOutPicked, setCheckOutPicked] = useState<import('@/components/compliance/EmployerLocationPicker').PickedLocation | null>(null);
   const [notes, setNotes] = useState('');
   const [nextAction, setNextAction] = useState<string>('NONE');
   const [followUpNotes, setFollowUpNotes] = useState('');
@@ -133,7 +135,7 @@ export function CheckOutCloseTabContent({ visit, planItemId, onVisitUpdate }: Ch
       ].filter(Boolean).join('\n');
 
       const updatedVisit = await inspectionService.checkOut(visit.id, {
-        location: checkOutLocation,
+        location: checkOutPicked?.address || '',
         notes: fullNotes,
       });
 
@@ -263,14 +265,12 @@ export function CheckOutCloseTabContent({ visit, planItemId, onVisitUpdate }: Ch
           Check-out Details
         </h3>
 
-        <div className="space-y-2">
-          <Label>Location (Optional)</Label>
-          <Input
-            value={checkOutLocation}
-            onChange={(e) => setCheckOutLocation(e.target.value)}
-            placeholder="Check-out location or GPS"
-          />
-        </div>
+        <EmployerLocationPicker
+          employerId={employerId ?? visit.employerId}
+          initialAddress={visit.checkInLocation}
+          onChange={setCheckOutPicked}
+          label="Check-out Location"
+        />
 
         <div className="space-y-2">
           <Label>Final Notes</Label>

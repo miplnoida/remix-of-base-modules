@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin } from 'lucide-react';
 import { WeeklyPlanItem, InspectionVisit, InspectionVisitStatus } from '@/types/inspectionTypes';
 import { inspectionService } from '@/services/inspectionService';
+import { EmployerLocationPicker, PickedLocation } from '@/components/compliance/EmployerLocationPicker';
 import { toast } from 'sonner';
 
 interface CheckInOutTabContentProps {
@@ -15,18 +14,21 @@ interface CheckInOutTabContentProps {
 }
 
 export function CheckInOutTabContent({ planItem, visit, onVisitUpdate }: CheckInOutTabContentProps) {
-  const [checkInLocation, setCheckInLocation] = useState('');
+  const [picked, setPicked] = useState<PickedLocation | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleCheckIn = async () => {
     try {
       setLoading(true);
       const newVisit = await inspectionService.checkIn(planItem.id, {
-        location: checkInLocation
+        location: picked?.address || ''
       });
       onVisitUpdate(newVisit);
-      toast.success('Checked in successfully');
-      setCheckInLocation('');
+      toast.success(
+        picked?.source && picked.source !== 'MANUAL'
+          ? `Checked in at ${picked.source === 'HQ' ? 'Head Office' : picked.source === 'BRANCH' ? 'branch' : picked.source.toLowerCase()}`
+          : 'Checked in successfully'
+      );
     } catch (error) {
       toast.error('Failed to check in');
       console.error(error);
@@ -42,16 +44,13 @@ export function CheckInOutTabContent({ planItem, visit, onVisitUpdate }: CheckIn
           Start this visit by checking in. Once checked in, you can proceed to record employer interaction, working papers, evidence, and findings.
         </div>
 
-        <div className="space-y-2">
-          <Label>Location (Optional)</Label>
-          <Input
-            value={checkInLocation}
-            onChange={(e) => setCheckInLocation(e.target.value)}
-            placeholder="Enter location or GPS coordinates"
-          />
-        </div>
+        <EmployerLocationPicker
+          employerId={planItem.employerId}
+          onChange={setPicked}
+          label="Check-in Location"
+        />
 
-        <Button onClick={handleCheckIn} disabled={loading}>
+        <Button onClick={handleCheckIn} disabled={loading || !picked?.address}>
           {loading ? 'Checking in...' : 'Check In'}
         </Button>
       </div>
