@@ -8,8 +8,11 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import { ClipboardCheck, TrendingDown, AlertTriangle, CheckCircle, Download, Loader2, Inbox } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchC3ComplianceSummary, fetchC3AggregateStats, fetchC3ByZone } from '@/services/complianceReportingService';
+import { exportReportToExcel } from '@/utils/reportExcelExport';
+import { useMemo, useState } from 'react';
 
 export default function C3Compliance() {
+  const [zoneFilter, setZoneFilter] = useState('all');
   const { data: employers = [], isLoading: empLoading } = useQuery({
     queryKey: ['ce_c3_compliance_summary'],
     queryFn: fetchC3ComplianceSummary,
