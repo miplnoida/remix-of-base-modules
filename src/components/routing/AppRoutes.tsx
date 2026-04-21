@@ -1061,8 +1061,8 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/communication-templates" element={<ProtectedLayout><AuditCommunicationTemplatesPage /></ProtectedLayout>} />
       <Route path="/compliance/admin/communication-templates/new" element={<ProtectedLayout><AuditCommunicationTemplateEditorPage /></ProtectedLayout>} />
       <Route path="/compliance/admin/communication-templates/:id" element={<ProtectedLayout><AuditCommunicationTemplateEditorPage /></ProtectedLayout>} />
-      <Route path="/compliance/admin/report-templates" element={<ProtectedLayout><Suspense fallback={<div />}><ComplianceReportTemplates /></Suspense></ProtectedLayout>} />
-      <Route path="/compliance/admin/document-foundation" element={<ProtectedLayout><Suspense fallback={<div />}><ComplianceReportTemplates /></Suspense></ProtectedLayout>} />
+      <Route path="/compliance/admin/report-templates" element={<ProtectedLayout><Suspense fallback={<div />}><ComplianceReportTemplates defaultTab="templates" /></Suspense></ProtectedLayout>} />
+      <Route path="/compliance/admin/document-foundation" element={<ProtectedLayout><Suspense fallback={<div />}><ComplianceReportTemplates defaultTab="foundation" foundationFocused pageTitle="Shared Sections & Foundation" pageDescription="Reusable section library, common clauses/disclaimers, branding and merge fields shared across all employer-audit report templates." /></Suspense></ProtectedLayout>} />
       <Route path="/compliance/admin/online-response" element={<ProtectedLayout><OnlineResponseConfigPage /></ProtectedLayout>} />
       <Route path="/compliance/admin/settings/sampling" element={<ProtectedLayout><RiskSamplingSettings /></ProtectedLayout>} />
       <Route path="/compliance/admin/settings/c3-ledger-sync" element={<ProtectedLayout><C3LedgerSync /></ProtectedLayout>} />

@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Layers, Palette, Settings2, Shield, Link2 } from "lucide-react";
+import { FileText, Layers, Palette, Settings2, Shield, Link2, Sparkles } from "lucide-react";
 import {
   CE_TEMPLATE_TYPES,
   CETemplateType,
@@ -22,64 +22,93 @@ import {
 } from "@/hooks/useComplianceDocumentTemplates";
 import { auditCommunicationTemplateService } from "@/services/auditCommunicationTemplateService";
 import { COMM_LIFECYCLE_STAGE_LABELS, COMM_LIFECYCLE_STAGE_ORDER, type CeCommLifecycleStage } from "@/types/auditCommunication";
+import { AdminAreaBanner } from "@/components/compliance/admin/AdminAreaBanner";
 
-export default function ComplianceReportTemplates() {
+type ReportTemplatesTab = "templates" | "sections" | "foundation";
+
+interface ComplianceReportTemplatesProps {
+  /** Which tab to land on. Routes for /report-templates pass "templates"; /document-foundation passes "foundation". */
+  defaultTab?: ReportTemplatesTab;
+  /** Page title override — lets the same component render two distinct admin areas. */
+  pageTitle?: string;
+  /** Page description override. */
+  pageDescription?: string;
+  /** When true (foundation route), the Templates tab is hidden so Foundation owns its own page. */
+  foundationFocused?: boolean;
+}
+
+export default function ComplianceReportTemplates({
+  defaultTab = "templates",
+  pageTitle,
+  pageDescription,
+  foundationFocused = false,
+}: ComplianceReportTemplatesProps = {}) {
   const [activeTemplate, setActiveTemplate] = useState<CETemplateType>("employer_audit_report");
+  const bannerArea = foundationFocused ? "foundation" : "report";
+
+  const title = pageTitle ?? (foundationFocused ? "Shared Sections & Foundation" : "Compliance Report Templates");
+  const description = pageDescription ?? (foundationFocused
+    ? "Reusable section library, common clauses/disclaimers, branding and merge fields shared across all employer-audit report templates."
+    : "Templates designed specifically for Social Security employer compliance audits. This module is fully separate from Internal Audit document templates.");
 
   return (
-    <div className="container mx-auto p-6 space-y-6 max-w-7xl">
+    <div className="container mx-auto p-6 space-y-4 max-w-7xl">
+      <AdminAreaBanner area={bannerArea} />
+
       <header className="space-y-2">
         <div className="flex items-center gap-2">
           <Shield className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Compliance Report Templates</h1>
+          <h1 className="text-2xl font-bold">{title}</h1>
           <Badge variant="outline" className="ml-2">Employer Audit</Badge>
         </div>
-        <p className="text-muted-foreground text-sm">
-          Templates designed specifically for Social Security <strong>employer compliance audits</strong>.
-          This module is fully separate from Internal Audit document templates.
-        </p>
+        <p className="text-muted-foreground text-sm">{description}</p>
       </header>
 
-      <Tabs defaultValue="templates" className="space-y-4">
+      <Tabs defaultValue={defaultTab} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="templates" className="gap-2"><FileText className="h-4 w-4" />Templates</TabsTrigger>
+          {!foundationFocused && (
+            <TabsTrigger value="templates" className="gap-2"><FileText className="h-4 w-4" />Report Templates</TabsTrigger>
+          )}
           <TabsTrigger value="sections" className="gap-2"><Layers className="h-4 w-4" />Section Library</TabsTrigger>
           <TabsTrigger value="foundation" className="gap-2"><Palette className="h-4 w-4" />Foundation</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="templates" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Template Types</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ScrollArea className="h-[480px]">
-                  <div className="p-2 space-y-1">
-                    {CE_TEMPLATE_TYPES.map((t) => (
-                      <button
-                        key={t.value}
-                        onClick={() => setActiveTemplate(t.value)}
-                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                          activeTemplate === t.value
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-muted"
-                        }`}
-                      >
-                        <div className="font-medium">{t.label}</div>
-                        <div className={`text-xs mt-0.5 ${activeTemplate === t.value ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-                          {t.description}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+        {!foundationFocused && (
+          <TabsContent value="templates" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Template Types</CardTitle>
+                  <CardDescription className="text-[11px]">Each output document type for employer audits.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <ScrollArea className="h-[480px]">
+                    <div className="p-2 space-y-1">
+                      {CE_TEMPLATE_TYPES.map((t) => (
+                        <button
+                          key={t.value}
+                          onClick={() => setActiveTemplate(t.value)}
+                          className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                            activeTemplate === t.value
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          }`}
+                        >
+                          <div className="font-medium">{t.label}</div>
+                          <div className={`text-xs mt-0.5 ${activeTemplate === t.value ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                            {t.description}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
 
-            <TemplateEditor templateType={activeTemplate} />
-          </div>
-        </TabsContent>
+              <TemplateEditor templateType={activeTemplate} />
+            </div>
+          </TabsContent>
+        )}
 
         <TabsContent value="sections">
           <SectionLibraryTab />
@@ -115,6 +144,8 @@ function TemplateEditor({ templateType }: { templateType: CETemplateType }) {
       </Card>
 
       <UsedByCommunications reportType={templateType} />
+
+      <RecommendedLibrarySections reportType={templateType} currentSectionKeys={(sections ?? []).map((s: any) => s.section_key)} />
 
       <Card>
         <CardHeader>
@@ -290,26 +321,40 @@ function SectionLibraryTab() {
           <p className="text-xs text-muted-foreground py-4 text-center">No sections match the selected lifecycle stage.</p>
         ) : (
           <div className="space-y-2">
-            {filtered.map((s) => (
-              <div key={s.id} className="flex items-start justify-between gap-3 p-3 rounded-md border">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium">{s.label}</span>
-                    {s.is_mandatory && <Badge variant="destructive" className="text-[10px]">Mandatory</Badge>}
-                    <Badge variant="outline" className="text-[10px]">{s.category}</Badge>
-                    {Array.isArray(s.lifecycle_tags) && s.lifecycle_tags.map((tag: string) => (
-                      <Badge key={tag} variant="secondary" className="text-[10px]">
-                        {COMM_LIFECYCLE_STAGE_LABELS[tag as CeCommLifecycleStage] ?? tag}
-                      </Badge>
-                    ))}
-                  </div>
-                  {s.description && <div className="text-xs text-muted-foreground mt-1">{s.description}</div>}
-                  <div className="text-[10px] text-muted-foreground mt-1">
-                    Applies to: {(s.applies_to ?? []).join(", ")}
+            {filtered.map((s) => {
+              const reports: string[] = Array.isArray(s.applies_to) ? s.applies_to : [];
+              return (
+                <div key={s.id} className="flex items-start justify-between gap-3 p-3 rounded-md border">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">{s.label}</span>
+                      {s.is_mandatory && <Badge variant="destructive" className="text-[10px]">Mandatory</Badge>}
+                      <Badge variant="outline" className="text-[10px]">{s.category}</Badge>
+                      {Array.isArray(s.lifecycle_tags) && s.lifecycle_tags.map((tag: string) => (
+                        <Badge key={tag} variant="secondary" className="text-[10px]">
+                          {COMM_LIFECYCLE_STAGE_LABELS[tag as CeCommLifecycleStage] ?? tag}
+                        </Badge>
+                      ))}
+                    </div>
+                    {s.description && <div className="text-xs text-muted-foreground mt-1">{s.description}</div>}
+                    <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                      <span className="text-[10px] text-muted-foreground mr-1">Used by reports:</span>
+                      {reports.length === 0 ? (
+                        <span className="text-[10px] text-muted-foreground italic">none</span>
+                      ) : reports.map((r) => {
+                        const meta = CE_TEMPLATE_TYPES.find((t) => t.value === r);
+                        return (
+                          <Badge key={r} variant="outline" className="text-[10px] gap-1">
+                            <FileText className="h-2.5 w-2.5" />
+                            {meta?.label ?? r}
+                          </Badge>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
@@ -369,6 +414,55 @@ function FoundationTab() {
             </div>
           </>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * Surfaces Section Library entries whose `applies_to` includes this report type
+ * but which are NOT yet wired into the template's section config. Read-only hint —
+ * does not mutate; admins still toggle/add via the existing Sections card above.
+ */
+function RecommendedLibrarySections({
+  reportType,
+  currentSectionKeys,
+}: {
+  reportType: CETemplateType;
+  currentSectionKeys: string[];
+}) {
+  const { data, isLoading } = useComplianceSectionLibrary();
+  const recommended = useMemo(() => {
+    const rows = (data as any[]) ?? [];
+    const inUse = new Set(currentSectionKeys);
+    return rows.filter(
+      (s) => Array.isArray(s.applies_to) && s.applies_to.includes(reportType) && !inUse.has(s.section_key)
+    );
+  }, [data, reportType, currentSectionKeys]);
+
+  if (isLoading || recommended.length === 0) return null;
+
+  return (
+    <Card className="border-dashed">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          Recommended Library Sections
+        </CardTitle>
+        <CardDescription className="text-xs">
+          These shared sections are tagged for this report type but aren't part of its current structure.
+          Manage shared content in <strong>Shared Sections & Foundation</strong>.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-1.5">
+          {recommended.map((s) => (
+            <Badge key={s.id} variant="outline" className="text-[10px] gap-1" title={s.description ?? ''}>
+              <Layers className="h-2.5 w-2.5" />
+              {s.label}
+            </Badge>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
