@@ -134,6 +134,12 @@ const ComplianceApiTab: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      <ProvisionComplianceKeyDialog
+        open={showProvision}
+        onOpenChange={setShowProvision}
+        onProvisioned={fetch}
+      />
     </div>
   );
 };
