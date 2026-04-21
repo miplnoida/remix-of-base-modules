@@ -145,6 +145,8 @@ function TemplateEditor({ templateType }: { templateType: CETemplateType }) {
 
       <UsedByCommunications reportType={templateType} />
 
+      <RecommendedLibrarySections reportType={templateType} currentSectionKeys={(sections ?? []).map((s: any) => s.section_key)} />
+
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Sections</CardTitle>
