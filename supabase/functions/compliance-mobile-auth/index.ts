@@ -33,9 +33,9 @@ async function validateApiKey(apiKey: string, sb: ReturnType<typeof createClient
   const hash = await sha256(apiKey);
   const { data } = await sb
     .from("public_api_keys")
-    .select("id, is_active, expires_at, allowed_ip_addresses, rate_limit_per_minute")
+    .select("id, status, expires_at, allowed_ip_addresses, rate_limit_per_minute")
     .eq("key_hash", hash)
-    .eq("is_active", true)
+    .eq("status", "active")
     .maybeSingle();
   if (!data) return null;
   if (data.expires_at && new Date(data.expires_at as string) < new Date()) return null;
