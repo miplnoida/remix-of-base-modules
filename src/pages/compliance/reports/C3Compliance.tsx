@@ -30,6 +30,12 @@ export default function C3Compliance() {
 
   const isLoading = empLoading || statsLoading || zoneLoading;
 
+  const zoneOptions = useMemo(() => Array.from(new Set(employers.map((e: any) => e.zone).filter(Boolean))).sort(), [employers]);
+  const filteredEmployers = useMemo(
+    () => zoneFilter === 'all' ? employers : employers.filter((e: any) => e.zone === zoneFilter),
+    [employers, zoneFilter]
+  );
+
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
@@ -45,12 +51,6 @@ export default function C3Compliance() {
     { name: 'Late', value: totalLate, color: 'hsl(var(--warning))' },
     { name: 'Missing', value: totalMissing, color: 'hsl(var(--destructive))' },
   ].filter(d => d.value > 0);
-
-  const zoneOptions = useMemo(() => Array.from(new Set(employers.map((e: any) => e.zone).filter(Boolean))).sort(), [employers]);
-  const filteredEmployers = useMemo(
-    () => zoneFilter === 'all' ? employers : employers.filter((e: any) => e.zone === zoneFilter),
-    [employers, zoneFilter]
-  );
 
   const handleExport = async () => {
     await exportReportToExcel(
