@@ -418,3 +418,52 @@ function FoundationTab() {
     </Card>
   );
 }
+
+/**
+ * Surfaces Section Library entries whose `applies_to` includes this report type
+ * but which are NOT yet wired into the template's section config. Read-only hint —
+ * does not mutate; admins still toggle/add via the existing Sections card above.
+ */
+function RecommendedLibrarySections({
+  reportType,
+  currentSectionKeys,
+}: {
+  reportType: CETemplateType;
+  currentSectionKeys: string[];
+}) {
+  const { data, isLoading } = useComplianceSectionLibrary();
+  const recommended = useMemo(() => {
+    const rows = (data as any[]) ?? [];
+    const inUse = new Set(currentSectionKeys);
+    return rows.filter(
+      (s) => Array.isArray(s.applies_to) && s.applies_to.includes(reportType) && !inUse.has(s.section_key)
+    );
+  }, [data, reportType, currentSectionKeys]);
+
+  if (isLoading || recommended.length === 0) return null;
+
+  return (
+    <Card className="border-dashed">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          Recommended Library Sections
+        </CardTitle>
+        <CardDescription className="text-xs">
+          These shared sections are tagged for this report type but aren't part of its current structure.
+          Manage shared content in <strong>Shared Sections & Foundation</strong>.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-wrap gap-1.5">
+          {recommended.map((s) => (
+            <Badge key={s.id} variant="outline" className="text-[10px] gap-1" title={s.description ?? ''}>
+              <Layers className="h-2.5 w-2.5" />
+              {s.label}
+            </Badge>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

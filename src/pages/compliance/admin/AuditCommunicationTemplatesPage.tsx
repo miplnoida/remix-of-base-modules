@@ -23,6 +23,7 @@ import {
 } from '@/types/auditCommunication';
 import { SEND_MODE_LABELS } from '@/services/auditCommunicationSchedulePolicyService';
 import { useUserCode } from '@/hooks/useUserCode';
+import { AdminAreaBanner } from '@/components/compliance/admin/AdminAreaBanner';
 
 export default function AuditCommunicationTemplatesPage() {
   const nav = useNavigate();
