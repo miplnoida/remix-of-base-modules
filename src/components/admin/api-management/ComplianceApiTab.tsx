@@ -4,9 +4,10 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, KeyRound } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import ProvisionComplianceKeyDialog from './ProvisionComplianceKeyDialog';
 
 interface RegistryEntry {
   id: string;
@@ -25,6 +26,7 @@ const ComplianceApiTab: React.FC = () => {
   const [entries, setEntries] = useState<RegistryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState<string | null>(null);
+  const [showProvision, setShowProvision] = useState(false);
 
   const fetch = async () => {
     setLoading(true);
@@ -73,9 +75,15 @@ const ComplianceApiTab: React.FC = () => {
                 Endpoints exposed to mobile compliance officer apps. Requires X-API-Key + Bearer JWT (see docs/COMPLIANCE-MOBILE-API.md).
               </p>
             </div>
-            <Button variant="outline" size="icon" onClick={fetch}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="icon" onClick={fetch}>
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+              <Button onClick={() => setShowProvision(true)}>
+                <KeyRound className="h-4 w-4 mr-2" />
+                Provision Mobile App Key
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
