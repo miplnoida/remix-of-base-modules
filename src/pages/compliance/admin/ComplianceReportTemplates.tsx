@@ -321,26 +321,40 @@ function SectionLibraryTab() {
           <p className="text-xs text-muted-foreground py-4 text-center">No sections match the selected lifecycle stage.</p>
         ) : (
           <div className="space-y-2">
-            {filtered.map((s) => (
-              <div key={s.id} className="flex items-start justify-between gap-3 p-3 rounded-md border">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-medium">{s.label}</span>
-                    {s.is_mandatory && <Badge variant="destructive" className="text-[10px]">Mandatory</Badge>}
-                    <Badge variant="outline" className="text-[10px]">{s.category}</Badge>
-                    {Array.isArray(s.lifecycle_tags) && s.lifecycle_tags.map((tag: string) => (
-                      <Badge key={tag} variant="secondary" className="text-[10px]">
-                        {COMM_LIFECYCLE_STAGE_LABELS[tag as CeCommLifecycleStage] ?? tag}
-                      </Badge>
-                    ))}
-                  </div>
-                  {s.description && <div className="text-xs text-muted-foreground mt-1">{s.description}</div>}
-                  <div className="text-[10px] text-muted-foreground mt-1">
-                    Applies to: {(s.applies_to ?? []).join(", ")}
+            {filtered.map((s) => {
+              const reports: string[] = Array.isArray(s.applies_to) ? s.applies_to : [];
+              return (
+                <div key={s.id} className="flex items-start justify-between gap-3 p-3 rounded-md border">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">{s.label}</span>
+                      {s.is_mandatory && <Badge variant="destructive" className="text-[10px]">Mandatory</Badge>}
+                      <Badge variant="outline" className="text-[10px]">{s.category}</Badge>
+                      {Array.isArray(s.lifecycle_tags) && s.lifecycle_tags.map((tag: string) => (
+                        <Badge key={tag} variant="secondary" className="text-[10px]">
+                          {COMM_LIFECYCLE_STAGE_LABELS[tag as CeCommLifecycleStage] ?? tag}
+                        </Badge>
+                      ))}
+                    </div>
+                    {s.description && <div className="text-xs text-muted-foreground mt-1">{s.description}</div>}
+                    <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                      <span className="text-[10px] text-muted-foreground mr-1">Used by reports:</span>
+                      {reports.length === 0 ? (
+                        <span className="text-[10px] text-muted-foreground italic">none</span>
+                      ) : reports.map((r) => {
+                        const meta = CE_TEMPLATE_TYPES.find((t) => t.value === r);
+                        return (
+                          <Badge key={r} variant="outline" className="text-[10px] gap-1">
+                            <FileText className="h-2.5 w-2.5" />
+                            {meta?.label ?? r}
+                          </Badge>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
