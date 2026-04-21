@@ -73,39 +73,42 @@ export default function ComplianceReportTemplates({
           <TabsTrigger value="foundation" className="gap-2"><Palette className="h-4 w-4" />Foundation</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="templates" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm">Template Types</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ScrollArea className="h-[480px]">
-                  <div className="p-2 space-y-1">
-                    {CE_TEMPLATE_TYPES.map((t) => (
-                      <button
-                        key={t.value}
-                        onClick={() => setActiveTemplate(t.value)}
-                        className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                          activeTemplate === t.value
-                            ? "bg-primary text-primary-foreground"
-                            : "hover:bg-muted"
-                        }`}
-                      >
-                        <div className="font-medium">{t.label}</div>
-                        <div className={`text-xs mt-0.5 ${activeTemplate === t.value ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-                          {t.description}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+        {!foundationFocused && (
+          <TabsContent value="templates" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm">Template Types</CardTitle>
+                  <CardDescription className="text-[11px]">Each output document type for employer audits.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <ScrollArea className="h-[480px]">
+                    <div className="p-2 space-y-1">
+                      {CE_TEMPLATE_TYPES.map((t) => (
+                        <button
+                          key={t.value}
+                          onClick={() => setActiveTemplate(t.value)}
+                          className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                            activeTemplate === t.value
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-muted"
+                          }`}
+                        >
+                          <div className="font-medium">{t.label}</div>
+                          <div className={`text-xs mt-0.5 ${activeTemplate === t.value ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                            {t.description}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
 
-            <TemplateEditor templateType={activeTemplate} />
-          </div>
-        </TabsContent>
+              <TemplateEditor templateType={activeTemplate} />
+            </div>
+          </TabsContent>
+        )}
 
         <TabsContent value="sections">
           <SectionLibraryTab />
