@@ -155,6 +155,8 @@ export default function AuditCommunicationTemplatesPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-4">
+      <AdminAreaBanner area="communication" />
+
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Audit Communication Templates</h1>
