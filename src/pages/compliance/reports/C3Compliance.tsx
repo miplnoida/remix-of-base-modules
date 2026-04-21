@@ -46,6 +46,35 @@ export default function C3Compliance() {
     { name: 'Missing', value: totalMissing, color: 'hsl(var(--destructive))' },
   ].filter(d => d.value > 0);
 
+  const zoneOptions = useMemo(() => Array.from(new Set(employers.map((e: any) => e.zone).filter(Boolean))).sort(), [employers]);
+  const filteredEmployers = useMemo(
+    () => zoneFilter === 'all' ? employers : employers.filter((e: any) => e.zone === zoneFilter),
+    [employers, zoneFilter]
+  );
+
+  const handleExport = async () => {
+    await exportReportToExcel(
+      filteredEmployers.map((r: any) => ({
+        employer_name: r.employer_name || r.employer_id,
+        zone: r.zone || '-',
+        on_time: r.on_time,
+        late: r.late,
+        missing: r.missing,
+        compliance_rate: `${r.compliance_rate}%`,
+      })),
+      [
+        { header: 'Employer', key: 'employer_name', width: 32 },
+        { header: 'Zone', key: 'zone', width: 14 },
+        { header: 'On-Time', key: 'on_time', width: 12 },
+        { header: 'Late', key: 'late', width: 12 },
+        { header: 'Missing', key: 'missing', width: 12 },
+        { header: 'Compliance Rate', key: 'compliance_rate', width: 16 },
+      ],
+      'c3_compliance',
+      'C3 Compliance'
+    );
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
@@ -57,6 +86,20 @@ export default function C3Compliance() {
           { label: 'C3 Compliance' }
         ]}
       />
+
+      <Card><CardHeader><CardTitle>Filters</CardTitle></CardHeader><CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div><label className="text-sm font-medium mb-2 block">Zone</label>
+            <Select value={zoneFilter} onValueChange={setZoneFilter}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Zones</SelectItem>
+                {zoneOptions.map(z => <SelectItem key={z as string} value={z as string}>{z as string}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardContent></Card>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
