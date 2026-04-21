@@ -16736,6 +16736,175 @@ export type Database = {
           },
         ]
       }
+      ce_mobile_audit_log: {
+        Row: {
+          action: string
+          api_key_id: string | null
+          created_at: string | null
+          device_id: string | null
+          endpoint_path: string | null
+          entity_id: string | null
+          entity_type: string | null
+          http_method: string | null
+          id: string
+          metadata: Json | null
+          request_ip: string | null
+          status_code: number | null
+          user_agent: string | null
+          user_code: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          api_key_id?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          endpoint_path?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          http_method?: string | null
+          id?: string
+          metadata?: Json | null
+          request_ip?: string | null
+          status_code?: number | null
+          user_agent?: string | null
+          user_code?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          api_key_id?: string | null
+          created_at?: string | null
+          device_id?: string | null
+          endpoint_path?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          http_method?: string | null
+          id?: string
+          metadata?: Json | null
+          request_ip?: string | null
+          status_code?: number | null
+          user_agent?: string | null
+          user_code?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_mobile_audit_log_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "ce_mobile_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_mobile_devices: {
+        Row: {
+          app_version: string | null
+          biometric_enabled: boolean | null
+          created_at: string | null
+          device_id: string
+          device_name: string | null
+          id: string
+          is_active: boolean | null
+          last_ip: string | null
+          last_seen_at: string | null
+          pin_hash: string | null
+          pin_salt: string | null
+          platform: string | null
+          registered_at: string | null
+          revoked_at: string | null
+          revoked_reason: string | null
+          updated_at: string | null
+          user_code: string
+          user_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          biometric_enabled?: boolean | null
+          created_at?: string | null
+          device_id: string
+          device_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_ip?: string | null
+          last_seen_at?: string | null
+          pin_hash?: string | null
+          pin_salt?: string | null
+          platform?: string | null
+          registered_at?: string | null
+          revoked_at?: string | null
+          revoked_reason?: string | null
+          updated_at?: string | null
+          user_code: string
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          biometric_enabled?: boolean | null
+          created_at?: string | null
+          device_id?: string
+          device_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_ip?: string | null
+          last_seen_at?: string | null
+          pin_hash?: string | null
+          pin_salt?: string | null
+          platform?: string | null
+          registered_at?: string | null
+          revoked_at?: string | null
+          revoked_reason?: string | null
+          updated_at?: string | null
+          user_code?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ce_mobile_refresh_tokens: {
+        Row: {
+          created_at: string | null
+          device_id: string
+          expires_at: string
+          id: string
+          issued_at: string | null
+          last_used_at: string | null
+          revoked_at: string | null
+          token_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_id: string
+          expires_at: string
+          id?: string
+          issued_at?: string | null
+          last_used_at?: string | null
+          revoked_at?: string | null
+          token_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string
+          expires_at?: string
+          id?: string
+          issued_at?: string | null
+          last_used_at?: string | null
+          revoked_at?: string | null
+          token_hash?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_mobile_refresh_tokens_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "ce_mobile_devices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_notice_delivery_log: {
         Row: {
           attempt_number: number
@@ -49762,6 +49931,10 @@ export type Database = {
           p_observed_by?: string
         }
         Returns: string
+      }
+      ce_mobile_get_officer_context: {
+        Args: { p_user_id: string }
+        Returns: Json
       }
       ce_post_financial_event: {
         Args: {
