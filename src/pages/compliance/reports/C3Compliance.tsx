@@ -8,8 +8,11 @@ import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Toolti
 import { ClipboardCheck, TrendingDown, AlertTriangle, CheckCircle, Download, Loader2, Inbox } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchC3ComplianceSummary, fetchC3AggregateStats, fetchC3ByZone } from '@/services/complianceReportingService';
+import { exportReportToExcel } from '@/utils/reportExcelExport';
+import { useMemo, useState } from 'react';
 
 export default function C3Compliance() {
+  const [zoneFilter, setZoneFilter] = useState('all');
   const { data: employers = [], isLoading: empLoading } = useQuery({
     queryKey: ['ce_c3_compliance_summary'],
     queryFn: fetchC3ComplianceSummary,
@@ -27,6 +30,12 @@ export default function C3Compliance() {
 
   const isLoading = empLoading || statsLoading || zoneLoading;
 
+  const zoneOptions = useMemo(() => Array.from(new Set(employers.map((e: any) => e.zone).filter(Boolean))).sort(), [employers]);
+  const filteredEmployers = useMemo(
+    () => zoneFilter === 'all' ? employers : employers.filter((e: any) => e.zone === zoneFilter),
+    [employers, zoneFilter]
+  );
+
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
@@ -43,6 +52,29 @@ export default function C3Compliance() {
     { name: 'Missing', value: totalMissing, color: 'hsl(var(--destructive))' },
   ].filter(d => d.value > 0);
 
+  const handleExport = async () => {
+    await exportReportToExcel(
+      filteredEmployers.map((r: any) => ({
+        employer_name: r.employer_name || r.employer_id,
+        zone: r.zone || '-',
+        on_time: r.on_time,
+        late: r.late,
+        missing: r.missing,
+        compliance_rate: `${r.compliance_rate}%`,
+      })),
+      [
+        { header: 'Employer', key: 'employer_name', width: 32 },
+        { header: 'Zone', key: 'zone', width: 14 },
+        { header: 'On-Time', key: 'on_time', width: 12 },
+        { header: 'Late', key: 'late', width: 12 },
+        { header: 'Missing', key: 'missing', width: 12 },
+        { header: 'Compliance Rate', key: 'compliance_rate', width: 16 },
+      ],
+      'c3_compliance',
+      'C3 Compliance'
+    );
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
@@ -54,6 +86,20 @@ export default function C3Compliance() {
           { label: 'C3 Compliance' }
         ]}
       />
+
+      <Card><CardHeader><CardTitle>Filters</CardTitle></CardHeader><CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div><label className="text-sm font-medium mb-2 block">Zone</label>
+            <Select value={zoneFilter} onValueChange={setZoneFilter}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Zones</SelectItem>
+                {zoneOptions.map(z => <SelectItem key={z as string} value={z as string}>{z as string}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardContent></Card>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -111,7 +157,7 @@ export default function C3Compliance() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Employer C3 Compliance Details</CardTitle>
-                <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" />Export CSV</Button>
+                <Button variant="outline" size="sm" onClick={handleExport} disabled={filteredEmployers.length === 0}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -127,7 +173,7 @@ export default function C3Compliance() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {employers.map((row, idx) => (
+                  {filteredEmployers.map((row: any, idx: number) => (
                     <TableRow key={idx}>
                       <TableCell className="font-medium">{row.employer_name || row.employer_id}</TableCell>
                       <TableCell>{row.zone || '-'}</TableCell>
@@ -141,7 +187,7 @@ export default function C3Compliance() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {employers.length === 0 && (
+                  {filteredEmployers.length === 0 && (
                     <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No employer compliance data</TableCell></TableRow>
                   )}
                 </TableBody>
