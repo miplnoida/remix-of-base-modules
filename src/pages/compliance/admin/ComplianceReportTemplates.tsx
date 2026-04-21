@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Layers, Palette, Settings2, Shield, Link2 } from "lucide-react";
+import { FileText, Layers, Palette, Settings2, Shield, Link2, Sparkles } from "lucide-react";
 import {
   CE_TEMPLATE_TYPES,
   CETemplateType,
@@ -22,27 +22,53 @@ import {
 } from "@/hooks/useComplianceDocumentTemplates";
 import { auditCommunicationTemplateService } from "@/services/auditCommunicationTemplateService";
 import { COMM_LIFECYCLE_STAGE_LABELS, COMM_LIFECYCLE_STAGE_ORDER, type CeCommLifecycleStage } from "@/types/auditCommunication";
+import { AdminAreaBanner } from "@/components/compliance/admin/AdminAreaBanner";
 
-export default function ComplianceReportTemplates() {
+type ReportTemplatesTab = "templates" | "sections" | "foundation";
+
+interface ComplianceReportTemplatesProps {
+  /** Which tab to land on. Routes for /report-templates pass "templates"; /document-foundation passes "foundation". */
+  defaultTab?: ReportTemplatesTab;
+  /** Page title override — lets the same component render two distinct admin areas. */
+  pageTitle?: string;
+  /** Page description override. */
+  pageDescription?: string;
+  /** When true (foundation route), the Templates tab is hidden so Foundation owns its own page. */
+  foundationFocused?: boolean;
+}
+
+export default function ComplianceReportTemplates({
+  defaultTab = "templates",
+  pageTitle,
+  pageDescription,
+  foundationFocused = false,
+}: ComplianceReportTemplatesProps = {}) {
   const [activeTemplate, setActiveTemplate] = useState<CETemplateType>("employer_audit_report");
+  const bannerArea = foundationFocused ? "foundation" : "report";
+
+  const title = pageTitle ?? (foundationFocused ? "Shared Sections & Foundation" : "Compliance Report Templates");
+  const description = pageDescription ?? (foundationFocused
+    ? "Reusable section library, common clauses/disclaimers, branding and merge fields shared across all employer-audit report templates."
+    : "Templates designed specifically for Social Security employer compliance audits. This module is fully separate from Internal Audit document templates.");
 
   return (
-    <div className="container mx-auto p-6 space-y-6 max-w-7xl">
+    <div className="container mx-auto p-6 space-y-4 max-w-7xl">
+      <AdminAreaBanner area={bannerArea} />
+
       <header className="space-y-2">
         <div className="flex items-center gap-2">
           <Shield className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Compliance Report Templates</h1>
+          <h1 className="text-2xl font-bold">{title}</h1>
           <Badge variant="outline" className="ml-2">Employer Audit</Badge>
         </div>
-        <p className="text-muted-foreground text-sm">
-          Templates designed specifically for Social Security <strong>employer compliance audits</strong>.
-          This module is fully separate from Internal Audit document templates.
-        </p>
+        <p className="text-muted-foreground text-sm">{description}</p>
       </header>
 
-      <Tabs defaultValue="templates" className="space-y-4">
+      <Tabs defaultValue={defaultTab} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="templates" className="gap-2"><FileText className="h-4 w-4" />Templates</TabsTrigger>
+          {!foundationFocused && (
+            <TabsTrigger value="templates" className="gap-2"><FileText className="h-4 w-4" />Report Templates</TabsTrigger>
+          )}
           <TabsTrigger value="sections" className="gap-2"><Layers className="h-4 w-4" />Section Library</TabsTrigger>
           <TabsTrigger value="foundation" className="gap-2"><Palette className="h-4 w-4" />Foundation</TabsTrigger>
         </TabsList>
