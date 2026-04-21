@@ -157,7 +157,7 @@ export default function C3Compliance() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Employer C3 Compliance Details</CardTitle>
-                <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" />Export CSV</Button>
+                <Button variant="outline" size="sm" onClick={handleExport} disabled={filteredEmployers.length === 0}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -173,7 +173,7 @@ export default function C3Compliance() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {employers.map((row, idx) => (
+                  {filteredEmployers.map((row: any, idx: number) => (
                     <TableRow key={idx}>
                       <TableCell className="font-medium">{row.employer_name || row.employer_id}</TableCell>
                       <TableCell>{row.zone || '-'}</TableCell>
@@ -187,7 +187,7 @@ export default function C3Compliance() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {employers.length === 0 && (
+                  {filteredEmployers.length === 0 && (
                     <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No employer compliance data</TableCell></TableRow>
                   )}
                 </TableBody>

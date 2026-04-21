@@ -4,10 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CaseStatus, CaseType } from '@/types/compliance';
-import { Loader2, Inbox } from 'lucide-react';
+import { Loader2, Inbox, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { fetchComplianceCases } from '@/services/complianceDataService';
 import { fetchCaseMonthlyTrend, fetchCaseResolutionStats } from '@/services/complianceReportingService';
+import { exportReportToExcel } from '@/utils/reportExcelExport';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(142, 76%, 36%)', 'hsl(199, 89%, 48%)', 'hsl(45, 93%, 47%)', 'hsl(0, 84%, 60%)'];
 
@@ -59,6 +61,31 @@ export default function CaseAnalytics() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader title="Case Analytics Report" subtitle="Comprehensive case management statistics and trends" breadcrumbs={[{ label: 'Compliance', href: '/compliance' }, { label: 'Reports', href: '/compliance/reports' }, { label: 'Case Analytics' }]} />
+
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" disabled={cases.length === 0} onClick={async () => {
+          await exportReportToExcel(
+            cases.map((c: any) => ({
+              case_number: c.case_number,
+              employer_name: c.employer_name,
+              case_type: c.case_type,
+              status: c.status,
+              territory: c.territory,
+              created_at: c.created_at,
+            })),
+            [
+              { header: 'Case #', key: 'case_number', width: 18 },
+              { header: 'Employer', key: 'employer_name', width: 32 },
+              { header: 'Type', key: 'case_type', width: 18 },
+              { header: 'Status', key: 'status', width: 16 },
+              { header: 'Territory', key: 'territory', width: 14 },
+              { header: 'Created', key: 'created_at', width: 18 },
+            ],
+            'case_analytics',
+            'Cases'
+          );
+        }}><Download className="h-4 w-4 mr-2" />Export CSV</Button>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card><CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Total Cases</CardTitle></CardHeader><CardContent><div className="text-3xl font-bold text-foreground">{cases.length}</div><p className="text-xs text-muted-foreground mt-1">All time</p></CardContent></Card>
