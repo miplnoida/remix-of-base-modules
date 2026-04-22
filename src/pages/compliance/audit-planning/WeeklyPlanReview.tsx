@@ -281,6 +281,12 @@ export function WeeklyPlanReview() {
                           <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{item.scheduled_start_time}{item.scheduled_end_time ? ` – ${item.scheduled_end_time}` : ''}</span>
                         )}
                         {item.visit_type && <span>{item.visit_type.replace(/_/g, ' ')}</span>}
+                        <RecommendationReasonsPopover
+                          reasons={(item as any).recommendation_reasons as any}
+                          source={(item as any).recommendation_source}
+                          totalScore={item.recommendation_score}
+                          compact
+                        />
                       </div>
                       {item.purpose && <p className="text-xs text-muted-foreground">{item.purpose}</p>}
                     </div>
