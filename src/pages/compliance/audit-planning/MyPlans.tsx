@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -154,6 +154,50 @@ export default function MyPlans() {
 
   // Buckets — include Phase 3 revision statuses where appropriate.
   const activePlans = plans.filter(p => p.status !== WeeklyPlanStatus.WITHDRAWN);
+
+  // Group by plan family (root id) + week so all versions for the same week
+  // are shown together. The "root" is parent_plan_id when present, else the
+  // plan's own id. Within a group we sort by version_no ascending so v1 is at
+  // the top and the latest revision is at the bottom.
+  type PlanGroup = {
+    rootId: string;
+    weekStart: string;
+    weekEnd: string;
+    inspectorName: string | null;
+    plans: WeeklyPlan[];
+  };
+  const planGroups: PlanGroup[] = (() => {
+    const map = new Map<string, PlanGroup>();
+    for (const p of activePlans) {
+      const rootId = ((p as any).parent_plan_id as string | null) ?? p.id;
+      const key = `${rootId}__${p.week_start_date}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.plans.push(p);
+      } else {
+        map.set(key, {
+          rootId,
+          weekStart: p.week_start_date,
+          weekEnd: p.week_end_date,
+          inspectorName: p.inspector_name,
+          plans: [p],
+        });
+      }
+    }
+    const groups = Array.from(map.values());
+    // Sort versions within each group
+    for (const g of groups) {
+      g.plans.sort((a, b) => ((a as any).version_no ?? 1) - ((b as any).version_no ?? 1));
+    }
+    // Sort groups by latest activity (most recent week first, then most recent updated_at)
+    groups.sort((a, b) => {
+      if (a.weekStart !== b.weekStart) return b.weekStart.localeCompare(a.weekStart);
+      const aLatest = a.plans[a.plans.length - 1]?.updated_at ?? '';
+      const bLatest = b.plans[b.plans.length - 1]?.updated_at ?? '';
+      return bLatest.localeCompare(aLatest);
+    });
+    return groups;
+  })();
   const draftPlans = activePlans.filter(p =>
     p.status === WeeklyPlanStatus.DRAFT ||
     p.status === WeeklyPlanStatus.REVISION_DRAFT ||
@@ -259,123 +303,169 @@ export default function MyPlans() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {activePlans.map((plan) => (
-                  <TableRow key={plan.id} className={plan.status === WeeklyPlanStatus.SUPERSEDED ? 'opacity-60' : ''}>
-                    <TableCell className="font-medium">{plan.plan_number}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs whitespace-nowrap">
-                        {getVersionLabel(plan)}
-                      </Badge>
-                      {(plan as any).is_revision && (plan as any).revision_reason_code && (
-                        <div className="text-[10px] text-muted-foreground mt-1">
-                          {(plan as any).revision_reason_code.replace(/_/g, ' ')}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span>{plan.week_start_date} - {plan.week_end_date}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(plan.status)}>
-                        <span className="flex items-center gap-1">
-                          {getStatusIcon(plan.status)}
-                          {plan.status.replace(/_/g, ' ')}
-                        </span>
-                      </Badge>
-                    </TableCell>
-                    {(() => {
-                      const items = (plan as any).ce_weekly_plan_items ?? [];
-                      const planned = items.length || plan.total_planned_visits || 0;
-                      const completed = items.filter((i: any) => i.execution_status === 'COMPLETED').length || plan.completed_visits || 0;
+                {planGroups.map((group) => (
+                  <Fragment key={`group-${group.rootId}-${group.weekStart}`}>
+                    {/* Family header row — only render when the family has more than one version */}
+                    {group.plans.length > 1 && (
+                      <TableRow
+                        key={`group-${group.rootId}-${group.weekStart}`}
+                        className="bg-muted/40 hover:bg-muted/40"
+                      >
+                        <TableCell colSpan={8} className="py-2">
+                          <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                            <GitBranch className="h-3.5 w-3.5" />
+                            <span>
+                              Plan family — week {group.weekStart} → {group.weekEnd}
+                              {group.inspectorName ? ` · ${group.inspectorName}` : ''}
+                            </span>
+                            <Badge variant="outline" className="text-[10px]">
+                              {group.plans.length} version{group.plans.length === 1 ? '' : 's'}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {group.plans.map((plan, idx) => {
+                      const isFamilyMember = group.plans.length > 1;
+                      const isLastInFamily = idx === group.plans.length - 1;
                       return (
-                        <>
-                          <TableCell>{planned}</TableCell>
-                          <TableCell>{completed} / {planned}</TableCell>
-                        </>
+                        <TableRow
+                          key={plan.id}
+                          className={[
+                            plan.status === WeeklyPlanStatus.SUPERSEDED ? 'opacity-60' : '',
+                            isFamilyMember && !isLastInFamily ? 'border-b-0' : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                        >
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              {isFamilyMember && (
+                                <span
+                                  className="inline-block w-3 border-l-2 border-b-2 border-muted-foreground/30 h-3 -mt-2 ml-2"
+                                  aria-hidden
+                                />
+                              )}
+                              {plan.plan_number}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="text-xs whitespace-nowrap">
+                              {getVersionLabel(plan)}
+                            </Badge>
+                            {(plan as any).is_revision && (plan as any).revision_reason_code && (
+                              <div className="text-[10px] text-muted-foreground mt-1">
+                                {(plan as any).revision_reason_code.replace(/_/g, ' ')}
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span>{plan.week_start_date} - {plan.week_end_date}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(plan.status)}>
+                              <span className="flex items-center gap-1">
+                                {getStatusIcon(plan.status)}
+                                {plan.status.replace(/_/g, ' ')}
+                              </span>
+                            </Badge>
+                          </TableCell>
+                          {(() => {
+                            const items = (plan as any).ce_weekly_plan_items ?? [];
+                            const planned = items.length || plan.total_planned_visits || 0;
+                            const completed = items.filter((i: any) => i.execution_status === 'COMPLETED').length || plan.completed_visits || 0;
+                            return (
+                              <>
+                                <TableCell>{planned}</TableCell>
+                                <TableCell>{completed} / {planned}</TableCell>
+                              </>
+                            );
+                          })()}
+                          <TableCell>
+                            {plan.submitted_date ? new Date(plan.submitted_date).toLocaleDateString() : '-'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex gap-2 justify-end flex-wrap">
+                              {plan.status === WeeklyPlanStatus.DRAFT && (
+                                <Button variant="outline" size="sm" onClick={() => goToBuilder(plan)}>
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                              )}
+                              {plan.status === WeeklyPlanStatus.NEEDS_CHANGES && (
+                                <Button variant="outline" size="sm" onClick={() => goToBuilder(plan)}>
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Update & Resubmit
+                                </Button>
+                              )}
+                              {isRevisionEditable(plan.status) && (
+                                <Button variant="outline" size="sm" onClick={() => goToBuilder(plan)}>
+                                  <GitBranch className="h-4 w-4 mr-1" />
+                                  Edit Revision
+                                </Button>
+                              )}
+                              {(plan.status === WeeklyPlanStatus.SUBMITTED ||
+                                plan.status === WeeklyPlanStatus.RESUBMITTED ||
+                                plan.status === WeeklyPlanStatus.REVISION_SUBMITTED) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-destructive border-destructive/30 hover:bg-destructive/5"
+                                  onClick={() => setWithdrawDialogPlan(plan)}
+                                >
+                                  <Undo2 className="h-4 w-4 mr-1" />
+                                  Withdraw
+                                </Button>
+                              )}
+                              {(plan.status === WeeklyPlanStatus.APPROVED ||
+                                plan.status === WeeklyPlanStatus.IN_EXECUTION ||
+                                plan.status === WeeklyPlanStatus.OUTCOME_SUBMITTED ||
+                                plan.status === WeeklyPlanStatus.COMPLETED) && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => navigate(`/compliance/field/execution-dashboard/${plan.id}`)}
+                                >
+                                  <Play className="h-4 w-4 mr-1" />
+                                  {plan.status === WeeklyPlanStatus.COMPLETED ? 'View' : 'Execute'}
+                                </Button>
+                              )}
+                              {(plan.status === WeeklyPlanStatus.APPROVED ||
+                                plan.status === WeeklyPlanStatus.IN_EXECUTION) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setRevisionPlan(plan)}
+                                  title="Create a revision draft of this approved plan"
+                                >
+                                  <GitBranch className="h-4 w-4 mr-1" />
+                                  Revise
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setHistoryPlan(plan)}
+                                title="View version history"
+                              >
+                                <History className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => navigate(`/compliance/field/execution-dashboard/${plan.id}`)}
+                                title="View plan details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
                       );
-                    })()}
-                    <TableCell>
-                      {plan.submitted_date ? new Date(plan.submitted_date).toLocaleDateString() : '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex gap-2 justify-end flex-wrap">
-                        {plan.status === WeeklyPlanStatus.DRAFT && (
-                          <Button variant="outline" size="sm" onClick={() => goToBuilder(plan)}>
-                            <Edit className="h-4 w-4 mr-1" />
-                            Edit
-                          </Button>
-                        )}
-                        {plan.status === WeeklyPlanStatus.NEEDS_CHANGES && (
-                          <Button variant="outline" size="sm" onClick={() => goToBuilder(plan)}>
-                            <Edit className="h-4 w-4 mr-1" />
-                            Update & Resubmit
-                          </Button>
-                        )}
-                        {isRevisionEditable(plan.status) && (
-                          <Button variant="outline" size="sm" onClick={() => goToBuilder(plan)}>
-                            <GitBranch className="h-4 w-4 mr-1" />
-                            Edit Revision
-                          </Button>
-                        )}
-                        {(plan.status === WeeklyPlanStatus.SUBMITTED ||
-                          plan.status === WeeklyPlanStatus.RESUBMITTED ||
-                          plan.status === WeeklyPlanStatus.REVISION_SUBMITTED) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-destructive border-destructive/30 hover:bg-destructive/5"
-                            onClick={() => setWithdrawDialogPlan(plan)}
-                          >
-                            <Undo2 className="h-4 w-4 mr-1" />
-                            Withdraw
-                          </Button>
-                        )}
-                        {(plan.status === WeeklyPlanStatus.APPROVED ||
-                          plan.status === WeeklyPlanStatus.IN_EXECUTION ||
-                          plan.status === WeeklyPlanStatus.OUTCOME_SUBMITTED ||
-                          plan.status === WeeklyPlanStatus.COMPLETED) && (
-                          <Button
-                            size="sm"
-                            onClick={() => navigate(`/compliance/field/execution-dashboard/${plan.id}`)}
-                          >
-                            <Play className="h-4 w-4 mr-1" />
-                            {plan.status === WeeklyPlanStatus.COMPLETED ? 'View' : 'Execute'}
-                          </Button>
-                        )}
-                        {(plan.status === WeeklyPlanStatus.APPROVED ||
-                          plan.status === WeeklyPlanStatus.IN_EXECUTION) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setRevisionPlan(plan)}
-                            title="Create a revision draft of this approved plan"
-                          >
-                            <GitBranch className="h-4 w-4 mr-1" />
-                            Revise
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setHistoryPlan(plan)}
-                          title="View version history"
-                        >
-                          <History className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => navigate(`/compliance/field/execution-dashboard/${plan.id}`)}
-                          title="View plan details"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                    })}
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
