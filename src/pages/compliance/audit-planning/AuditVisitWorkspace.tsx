@@ -611,6 +611,61 @@ export default function AuditVisitWorkspace() {
         gate={gate}
         onClosed={load}
       />
+
+      {/* Inline communication composer — opened by gate quick-actions. */}
+      {composerState && inspectionId && (adaptedVisit?.employerId || planItem.employer_id) && (
+        <CommunicationComposer
+          open={!!composerState}
+          onClose={() => setComposerState(null)}
+          onChanged={() => { commStatus.refresh(); load(); }}
+          inspectionId={inspectionId}
+          employerId={adaptedVisit?.employerId || planItem.employer_id}
+          employerName={planItem.employer_name ?? undefined}
+          userCode={userCode ?? undefined}
+          templateId={composerState.templateId}
+          visitContext={{
+            visit_date: planItem?.planned_date ?? undefined,
+            officer: inspection?.inspector_name ?? undefined,
+            // Surface intimation policy + late-send context so the composer
+            // can stamp sent_late on the row when the audit_intimation is
+            // sent after the policy's required-by deadline.
+            ...(composerState.commType === 'audit_intimation' ? {
+              planned_date: planItem?.planned_date ?? undefined,
+              min_lead_hours: intimationMinLeadHours,
+              session_started_at: inspection?.session_started_at ?? undefined,
+              send_late_expected: !!composerState.sendLate,
+            } : {}),
+          } as any}
+        />
+      )}
+
+      {/* Pre-visit intimation governance exception. */}
+      {inspectionId && (adaptedVisit?.employerId || planItem.employer_id) && (
+        <IntimationExceptionDialog
+          open={exceptionDialogOpen}
+          onOpenChange={setExceptionDialogOpen}
+          inspectionId={inspectionId}
+          employerId={adaptedVisit?.employerId || planItem.employer_id}
+          userCode={userCode ?? undefined}
+          onRecorded={(r) => {
+            setIntimationException(true);
+            commStatus.refresh();
+            if (r.sendLate) {
+              if (!intimationTemplateId) {
+                toast.error('No active Audit Intimation template is mapped.', {
+                  description: 'Configure one in Settings → Communications → Templates.',
+                });
+                return;
+              }
+              setComposerState({
+                commType: 'audit_intimation',
+                templateId: intimationTemplateId,
+                sendLate: true,
+              });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
