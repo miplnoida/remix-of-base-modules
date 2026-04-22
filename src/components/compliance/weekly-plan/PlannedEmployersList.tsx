@@ -221,7 +221,7 @@ function PlannedRow({
           </div>
           {mode === 'EXCEPTION' && (exCategory || exNote) && (
             <div className="mt-2 text-[11px] bg-warning/5 border border-warning/30 rounded px-2 py-1.5">
-              {exCategory && <span className="font-medium">{exCategory.replaceAll('_', ' ')}</span>}
+              {exCategory && <span className="font-medium">{exCategory.replace(/_/g, ' ')}</span>}
               {exNote && <span className="text-muted-foreground"> — {exNote}</span>}
             </div>
           )}
@@ -283,7 +283,7 @@ function PlanAuditTrailDialog({
                       <Badge variant="outline" className="text-[10px]">{row.action}</Badge>
                       {row.selection_mode && modeBadge(row.selection_mode)}
                       {row.exception_category && (
-                        <span className="text-muted-foreground">{row.exception_category.replaceAll('_', ' ')}</span>
+                        <span className="text-muted-foreground">{row.exception_category.replace(/_/g, ' ')}</span>
                       )}
                     </div>
                     <span className="text-[10px] text-muted-foreground">
