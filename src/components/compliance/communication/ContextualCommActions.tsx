@@ -30,8 +30,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { fieldStageTemplateMapService } from '@/services/fieldStageTemplateMapService';
 import { auditCommunicationTemplateService } from '@/services/auditCommunicationTemplateService';
-import { auditCommunicationService } from '@/services/auditCommunicationService';
-import CommunicationDraftEditorDialog from './CommunicationDraftEditorDialog';
+import CommunicationComposer from './CommunicationComposer';
 import type { AuditCommunicationTemplate, CeCommType } from '@/types/auditCommunication';
 import type { FieldExecutionStage } from '@/types/fieldStageMapping';
 
