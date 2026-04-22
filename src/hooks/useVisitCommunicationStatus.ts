@@ -117,6 +117,51 @@ export function useVisitCommunicationStatus(
     (itemsByType[it.comm_type] ||= []).push(it);
   }
 
+  // ── Intelligence derivations ─────────────────────────────────
+  const intelligence = useMemo(() => {
+    const now = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+    const sentLike = (c: AuditCommExt) => c.status === 'sent' || c.status === 'partial';
+    const toItem = (c: AuditCommExt, due: string | null | undefined): CommIntelligenceItem => ({
+      id: c.id,
+      comm_type: c.comm_type,
+      label: COMM_TYPE_LABELS[c.comm_type] ?? c.comm_type,
+      status: c.status,
+      due_at: due ?? null,
+      days_overdue: due ? Math.max(0, Math.floor((now - new Date(due).getTime()) / dayMs)) : 0,
+    });
+
+    const overdueAcknowledgments: CommIntelligenceItem[] = [];
+    const overdueResponses: CommIntelligenceItem[] = [];
+    const escalationItems: CommIntelligenceItem[] = [];
+    let maxEscalationLevel = 0;
+    let lastSent: AuditCommunication | null = null;
+
+    for (const raw of items) {
+      const c = raw as AuditCommExt;
+      const due = c.response_due_at ? new Date(c.response_due_at).getTime() : null;
+
+      if (sentLike(c) && due && due < now) {
+        if (!c.acknowledged_at) overdueAcknowledgments.push(toItem(c, c.response_due_at));
+        if (!c.responded_at) overdueResponses.push(toItem(c, c.response_due_at));
+      }
+
+      const lvl = c.escalation_level ?? 0;
+      if (lvl > 0) {
+        escalationItems.push(toItem(c, c.response_due_at));
+        if (lvl > maxEscalationLevel) maxEscalationLevel = lvl;
+      }
+
+      if (sentLike(c) && c.sent_at) {
+        if (!lastSent || new Date(c.sent_at).getTime() > new Date(lastSent.sent_at!).getTime()) {
+          lastSent = c;
+        }
+      }
+    }
+
+    return { overdueAcknowledgments, overdueResponses, escalationItems, maxEscalationLevel, lastSent };
+  }, [items]);
+
   return {
     loading,
     total: items.length,
@@ -129,6 +174,11 @@ export function useVisitCommunicationStatus(
     hasOpenItems,
     items,
     itemsByType,
+    overdueAcknowledgments: intelligence.overdueAcknowledgments,
+    overdueResponses: intelligence.overdueResponses,
+    escalationItems: intelligence.escalationItems,
+    maxEscalationLevel: intelligence.maxEscalationLevel,
+    lastSent: intelligence.lastSent,
     refresh: () => setVersion((v) => v + 1),
   };
 }
