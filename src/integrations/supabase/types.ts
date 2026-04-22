@@ -10567,7 +10567,7 @@ export type Database = {
         Row: {
           actor_name: string | null
           actor_user_id: string | null
-          communication_id: string
+          communication_id: string | null
           created_at: string
           event_type: string
           id: string
@@ -10576,7 +10576,7 @@ export type Database = {
         Insert: {
           actor_name?: string | null
           actor_user_id?: string | null
-          communication_id: string
+          communication_id?: string | null
           created_at?: string
           event_type: string
           id?: string
@@ -10585,7 +10585,7 @@ export type Database = {
         Update: {
           actor_name?: string | null
           actor_user_id?: string | null
-          communication_id?: string
+          communication_id?: string | null
           created_at?: string
           event_type?: string
           id?: string
