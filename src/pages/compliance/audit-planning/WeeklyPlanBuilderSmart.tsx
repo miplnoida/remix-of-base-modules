@@ -410,12 +410,21 @@ export default function WeeklyPlanBuilderSmart({ onSwitchToLegacy }: Props) {
                       </div>
 
                       {/* Per-day metrics — no hours */}
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground mb-2">
-                        <span title="Total items">{items.length} items</span>
-                        {visits > 0 && <span title="Visits">· {visits} visits</span>}
+                      <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5 text-[10px] text-muted-foreground mb-2">
+                        <span title="Total items">
+                          {items.length} {items.length === 1 ? 'item' : 'items'}
+                        </span>
+                        {visits > 0 && (
+                          <span title="Visits" className="flex items-center gap-1">
+                            <span aria-hidden="true">·</span>
+                            {visits} {visits === 1 ? 'visit' : 'visits'}
+                          </span>
+                        )}
                         {highRisk > 0 && (
-                          <span className="flex items-center gap-0.5 text-destructive font-medium" title="High risk">
-                            · <Flame className="h-2.5 w-2.5" /> {highRisk}
+                          <span className="flex items-center gap-1 text-destructive font-medium" title="High risk">
+                            <span aria-hidden="true">·</span>
+                            <Flame className="h-2.5 w-2.5" />
+                            {highRisk}
                           </span>
                         )}
                       </div>
