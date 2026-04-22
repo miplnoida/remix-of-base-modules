@@ -120,6 +120,25 @@ export default function AuditVisitWorkspace() {
   const { userCode } = useUserCode();
   const commStatus = useVisitCommunicationStatus(inspectionId);
 
+  // ─── Stage-aware orchestrator ───────────────────────────────
+  // Single façade composing templates ↔ stage map ↔ visit comms ↔
+  // trigger engine ↔ approval workflow ↔ status. Drives the unified
+  // completion-gate "Communications" sub-section and surfaces the
+  // next recommended action to the auditor.
+  const orchestrator = useVisitCommunicationOrchestrator({
+    inspectionId,
+    employerId: inspection?.employer_id ?? planItem?.employer_id ?? null,
+    employerName: planItem?.employer_name ?? inspection?.employer_name ?? undefined,
+    triggerContext: {
+      sessionStarted,
+      sessionClosed,
+      reportStatus,
+      hasViolations,
+    },
+    userCode: userCode ?? undefined,
+    enabled: !!inspectionId,
+  });
+
   // ─── Rule-based visibility context for ContextualCommActions ───
   // Single source of truth for *when* each action button should be offered.
   // Keep this purely derived from already-loaded state — no extra fetches.
@@ -339,6 +358,9 @@ export default function AuditVisitWorkspace() {
           }}
           onCommChanged={commStatus.refresh}
           commActionContext={commActionContext}
+          orchestratorBlockers={orchestrator.completionGate.blockers}
+          orchestratorReady={orchestrator.completionGate.ready}
+          nextRecommendedLabel={orchestrator.nextRecommended?.rule.rule_name ?? null}
           commAdvisory={
             sessionClosed && hasViolations && !commStatus.finalStageIssued
               ? 'No final-stage communication (final report / violation notice / corrective action) has been sent to the employer yet.'
@@ -593,6 +615,9 @@ function CompletionGatePanel({
   gateContext,
   onCommChanged,
   commActionContext,
+  orchestratorBlockers,
+  orchestratorReady,
+  nextRecommendedLabel,
 }: {
   gate: CompletionGateResult;
   commAdvisory?: string | null;
@@ -605,6 +630,10 @@ function CompletionGatePanel({
   gateContext?: import('@/components/compliance/communication/CommunicationGateChecks').CommunicationGateContext;
   onCommChanged?: () => void;
   commActionContext?: import('@/components/compliance/communication/ContextualCommActions').CommActionVisibilityContext;
+  /** Orchestrator-derived blockers (composed across status + triggers + approvals). */
+  orchestratorBlockers?: string[];
+  orchestratorReady?: boolean;
+  nextRecommendedLabel?: string | null;
 }) {
   const headerColor = gate.ready
     ? 'text-success'
@@ -657,6 +686,42 @@ function CompletionGatePanel({
             <span>{commAdvisory}</span>
           </div>
         )}
+
+        {/* Orchestrator-derived communications gate sub-section.
+            Composes status + triggers + approval signals into a single
+            advisory list so the auditor sees every communication blocker
+            in one place — not scattered across tabs. */}
+        {(orchestratorBlockers && orchestratorBlockers.length > 0) || nextRecommendedLabel ? (
+          <div
+            className={`rounded border p-2 text-xs space-y-1.5 ${
+              orchestratorReady
+                ? 'border-success/30 bg-success/5'
+                : 'border-warning/30 bg-warning/5'
+            }`}
+          >
+            <div className="flex items-center gap-2 font-medium">
+              {orchestratorReady ? (
+                <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+              ) : (
+                <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+              )}
+              <span>Communications gate</span>
+            </div>
+            {orchestratorBlockers && orchestratorBlockers.length > 0 && (
+              <ul className="list-disc list-inside text-warning space-y-0.5">
+                {orchestratorBlockers.map((b, i) => (
+                  <li key={i}>{b}</li>
+                ))}
+              </ul>
+            )}
+            {nextRecommendedLabel && (
+              <div className="text-muted-foreground">
+                <span className="font-medium text-foreground">Next recommended:</span>{' '}
+                {nextRecommendedLabel}
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {commStatus && (
           <div className="rounded border bg-card p-2 text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
