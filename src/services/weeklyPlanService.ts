@@ -93,25 +93,32 @@ export const weeklyPlanService = {
     return data as unknown as WeeklyPlan | null;
   },
 
-  // Check for existing active plan for this inspector and week
+  // Check for existing active plan for this inspector and week.
+  // Mirrors the partial unique index `ce_weekly_plans_unique_active_per_week`
+  // (is_current_version = true AND status NOT IN ('WITHDRAWN','SUPERSEDED')).
   async checkDuplicatePlan(inspectorId: string, weekStartDate: string): Promise<WeeklyPlan | null> {
     const { data, error } = await supabase
       .from('ce_weekly_plans')
-      .select('id, plan_number, status')
+      .select('id, plan_number, status, version_no')
       .eq('inspector_id', inspectorId)
       .eq('week_start_date', weekStartDate)
-      .neq('status', WeeklyPlanStatus.WITHDRAWN)
-      .maybeSingle();
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = multiple rows (shouldn't happen with constraint)
-    return data as unknown as WeeklyPlan | null;
+      .eq('is_current_version', true)
+      .not('status', 'in', `(${WeeklyPlanStatus.WITHDRAWN},SUPERSEDED)`)
+      .order('version_no', { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    return data && data.length > 0 ? (data[0] as unknown as WeeklyPlan) : null;
   },
 
   // Create a new weekly plan (with duplicate check)
   async create(req: CreateWeeklyPlanRequest): Promise<WeeklyPlan> {
-    // Check for existing active plan
+    // Pre-check for an existing active plan so the user gets a clear message.
     const existing = await this.checkDuplicatePlan(req.inspector_id, req.week_start_date);
     if (existing) {
-      throw new Error(`An active plan (${existing.plan_number}) already exists for this week. Status: ${existing.status}`);
+      throw new Error(
+        `An active plan (${existing.plan_number}) already exists for this week with status "${existing.status}". ` +
+        `Open it from "My Plans" to continue editing, or use "Revise Approved Plan" if it has already been approved.`
+      );
     }
 
     const planNumber = generatePlanNumber(req.week_start_date);
@@ -130,7 +137,17 @@ export const weeklyPlanService = {
       })
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      // Translate the partial-unique-index violation into an actionable message.
+      const msg = (error.message || '').toLowerCase();
+      if ((error as any).code === '23505' || msg.includes('ce_weekly_plans_unique_active_per_week')) {
+        throw new Error(
+          'You already have an active weekly plan for this week. ' +
+          'Open it from "My Plans" to keep editing, or revise the approved version instead of creating a new one.'
+        );
+      }
+      throw error;
+    }
     return data as unknown as WeeklyPlan;
   },
 
