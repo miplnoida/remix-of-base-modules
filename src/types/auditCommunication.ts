@@ -281,6 +281,10 @@ export interface CreateCommunicationDraftInput {
   reportVersionId?: string | null;
   scheduledAt?: string | null;
   createdBy?: string;
+  /** Optional context for approval-policy resolution. */
+  severity?: 'none' | 'low' | 'medium' | 'high' | 'critical';
+  caseType?: string | null;
+  enforcementStage?: string | null;
 }
 
 export const COMM_TYPE_LABELS: Record<CeCommType, string> = {
