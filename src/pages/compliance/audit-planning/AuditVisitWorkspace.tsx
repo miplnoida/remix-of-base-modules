@@ -825,3 +825,114 @@ function CloseSessionDialog({
     </Dialog>
   );
 }
+
+// ============================================================================
+// Contextual communication action catalogs.
+//
+// Each entry declares: which field-execution stage to consult in the central
+// stage→template mapping table, and the preferred comm_types for that action
+// (used both to narrow mapped templates and as a zero-config fallback).
+// Templates themselves are NEVER hardcoded here — they come from Settings.
+// ============================================================================
+
+const WORKING_PAPERS_ACTIONS: ContextualAction[] = [
+  {
+    key: 'wp_request_missing_documents',
+    label: 'Request Missing Documents',
+    description: 'Ask the employer for outstanding books / records discovered during the checklist review.',
+    fieldStage: 'during_audit_missing_documents',
+    commTypeHints: ['additional_info_request', 'books_required'],
+    icon: FileSearch,
+  },
+  {
+    key: 'wp_send_pbc',
+    label: 'Send PBC / Document Request',
+    description: 'Send the Prepared-By-Client document checklist to the employer.',
+    fieldStage: 'during_audit_missing_documents',
+    commTypeHints: ['books_required', 'additional_info_request'],
+    icon: ClipboardCheck,
+  },
+  {
+    key: 'wp_reminder_incomplete',
+    label: 'Send Reminder (Incomplete Records)',
+    description: 'Remind the employer that requested records remain outstanding.',
+    fieldStage: 'reminder_stage',
+    commTypeHints: ['due_date_reminder', 'visit_reminder'],
+    icon: BellRing,
+  },
+];
+
+const FINDINGS_ACTIONS: ContextualAction[] = [
+  {
+    key: 'fn_request_clarification',
+    label: 'Request Clarification',
+    description: 'Ask the employer to clarify entries flagged in the findings list.',
+    fieldStage: 'during_audit_clarification_required',
+    commTypeHints: ['clarification_request', 'additional_info_request'],
+    icon: HelpCircle,
+  },
+  {
+    key: 'fn_send_interim',
+    label: 'Send Interim Findings',
+    description: 'Share preliminary findings with the employer before the audit closes.',
+    fieldStage: 'during_audit_interim_findings',
+    commTypeHints: ['interim_findings', 'evidence_summary'],
+    icon: FileWarning,
+  },
+  {
+    key: 'fn_followup',
+    label: 'Send Findings Follow-up',
+    description: 'Follow up on a previously shared finding awaiting response.',
+    fieldStage: 'reminder_stage',
+    commTypeHints: ['due_date_reminder', 'clarification_request'],
+    icon: BellRing,
+  },
+];
+
+const REPORT_ACTIONS: ContextualAction[] = [
+  {
+    key: 'rp_send_draft',
+    label: 'Send Draft Report',
+    description: 'Send the draft audit report to the employer for review.',
+    fieldStage: 'post_review_draft_findings',
+    commTypeHints: ['draft_findings', 'dispute_instructions'],
+    icon: FileSignature,
+  },
+  {
+    key: 'rp_send_final',
+    label: 'Send Final Audit Report',
+    description: 'Issue the final, signed audit report to the employer.',
+    fieldStage: 'final_report_issuance',
+    commTypeHints: ['final_report'],
+    icon: FileBadge,
+    variant: 'default',
+  },
+  {
+    key: 'rp_request_ack',
+    label: 'Send Report Acknowledgment Request',
+    description: 'Request the employer formally acknowledge receipt of the report.',
+    fieldStage: 'post_review_draft_findings',
+    commTypeHints: ['acknowledgment_request'],
+    icon: FileCheck2,
+  },
+];
+
+const GATE_ACTIONS: ContextualAction[] = [
+  {
+    key: 'gate_send_reminder',
+    label: 'Send Reminder',
+    description: 'Send a reminder for outstanding employer obligations.',
+    fieldStage: 'reminder_stage',
+    commTypeHints: ['due_date_reminder', 'visit_reminder'],
+    icon: AlarmClock,
+  },
+  {
+    key: 'gate_trigger_escalation',
+    label: 'Trigger Escalation',
+    description: 'Issue a formal escalation notice for non-response or non-compliance.',
+    fieldStage: 'escalation_stage',
+    commTypeHints: ['escalation_notice', 'violation_notice'],
+    icon: ShieldX,
+    variant: 'destructive',
+  },
+];
