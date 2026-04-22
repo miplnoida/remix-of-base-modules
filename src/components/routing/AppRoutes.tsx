@@ -81,6 +81,7 @@ import AuditCommunicationTemplatesPage from '@/pages/compliance/admin/AuditCommu
 import AuditCommunicationTemplateEditorPage from '@/pages/compliance/admin/AuditCommunicationTemplateEditorPage';
 import OnlineResponseConfigPage from '@/pages/compliance/admin/OnlineResponseConfigPage';
 import WeeklyPlanBuilder from '@/pages/compliance/audit-planning/WeeklyPlanBuilder';
+import WeeklyPlanBuilderV2 from '@/pages/compliance/audit-planning/WeeklyPlanBuilderV2';
 import MyPlans from '@/pages/compliance/audit-planning/MyPlans';
 import AllWeeklyReports from '@/pages/compliance/audit-planning/AllWeeklyReports';
 import FieldExecution from '@/pages/compliance/audit-planning/FieldExecution';
@@ -1010,6 +1011,7 @@ export const AppRoutes = () => {
 
       {/* ── Field — planning, execution, inspections, employer views ── */}
       <Route path="/compliance/field/plan-builder" element={<ProtectedLayout><WeeklyPlanBuilder /></ProtectedLayout>} />
+      <Route path="/compliance/field/plan-builder-v2" element={<ProtectedLayout><WeeklyPlanBuilderV2 /></ProtectedLayout>} />
       <Route path="/compliance/field/my-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
       <Route path="/compliance/field/pending-review" element={<ProtectedLayout><CompliancePendingReview /></ProtectedLayout>} />
       <Route path="/compliance/field/pending-review/:planId" element={<ProtectedLayout><WeeklyPlanReview /></ProtectedLayout>} />

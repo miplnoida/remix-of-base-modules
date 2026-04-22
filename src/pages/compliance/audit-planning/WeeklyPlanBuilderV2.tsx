@@ -194,7 +194,7 @@ export default function WeeklyPlanBuilderV2() {
         onClose={() => setRevisionOpen(false)}
       />
       <PlanVersionHistoryDialog
-        planId={historyOpen ? plan?.id ?? null : null}
+        plan={historyOpen ? plan : null}
         onClose={() => setHistoryOpen(false)}
       />
     </div>
