@@ -49,6 +49,20 @@ export interface GroupedCandidates {
   NOTICE: PlanCandidate[];
 }
 
+export type CandidatesByBucket = Record<PlanCandidateV3['bucket'], PlanCandidateV3[]>;
+export type CandidatesByMandatoryClass = Record<
+  PlanCandidateV3['mandatory_class'],
+  PlanCandidateV3[]
+>;
+
+const EMPTY_BUCKETS: CandidatesByBucket = {
+  MUST_SCHEDULE: [],
+  REACTIVE_ENFORCEMENT: [],
+  RISK_MONITORING: [],
+  ROUTINE_COVERAGE: [],
+  CAMPAIGN_INTEL: [],
+};
+
 export function useWeeklyPlanBuilder() {
   const { toast } = useToast();
   const { userCode, userId, fullName, isLoading: userLoading } = useUserCode();
