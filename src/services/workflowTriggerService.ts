@@ -107,10 +107,10 @@ export async function triggerIPRegistrationWorkflow({
     // 1. Status-aware duplicate check
     const { data: existing, error: existErr } = await supabase
       .from('workflow_instances')
-      .select('id, status, created_at')
+      .select("id, status, started_at")
       .eq('source_module', sourceModule)
       .eq('source_record_id', uniqueUuid)
-      .order('created_at', { ascending: false });
+      .order("started_at", { ascending: false });
 
     if (existErr) {
       console.error('[workflowTriggerService] Failed to check existing instances:', existErr);

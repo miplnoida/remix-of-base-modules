@@ -68,10 +68,10 @@ export async function checkWorkflowEligibility({
 
     const { data: existingInstances, error: existErr } = await supabase
       .from('workflow_instances')
-      .select('id, status, created_at')
+      .select("id, status, started_at")
       .eq('source_module', sourceModule)
       .eq('source_record_id', sourceRecordId)
-      .order('created_at', { ascending: false });
+      .order("started_at", { ascending: false });
 
     if (existErr) {
       return {
