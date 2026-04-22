@@ -10272,6 +10272,77 @@ export type Database = {
           },
         ]
       }
+      ce_audit_comm_trigger_rules: {
+        Row: {
+          comm_type: string
+          condition_json: Json
+          cooldown_hours: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          field_stage: string
+          id: string
+          is_active: boolean
+          max_per_visit: number
+          priority: number
+          requires_approval: boolean
+          rule_code: string
+          rule_name: string
+          template_id: string | null
+          trigger_mode: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          comm_type: string
+          condition_json?: Json
+          cooldown_hours?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          field_stage: string
+          id?: string
+          is_active?: boolean
+          max_per_visit?: number
+          priority?: number
+          requires_approval?: boolean
+          rule_code: string
+          rule_name: string
+          template_id?: string | null
+          trigger_mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          comm_type?: string
+          condition_json?: Json
+          cooldown_hours?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          field_stage?: string
+          id?: string
+          is_active?: boolean
+          max_per_visit?: number
+          priority?: number
+          requires_approval?: boolean
+          rule_code?: string
+          rule_name?: string
+          template_id?: string | null
+          trigger_mode?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_comm_trigger_rules_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communication_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_audit_communication_approvals: {
         Row: {
           approver_name: string | null
