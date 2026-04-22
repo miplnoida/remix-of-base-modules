@@ -341,6 +341,228 @@ export type Database = {
         }
         Relationships: []
       }
+      api_test_environments: {
+        Row: {
+          base_url: string
+          color_hex: string | null
+          created_at: string
+          created_by: string | null
+          default_api_key_id: string | null
+          description: string | null
+          destructive_allowed: boolean
+          edge_functions_url: string
+          env_key: string
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          base_url: string
+          color_hex?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_api_key_id?: string | null
+          description?: string | null
+          destructive_allowed?: boolean
+          edge_functions_url: string
+          env_key: string
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          base_url?: string
+          color_hex?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_api_key_id?: string | null
+          description?: string | null
+          destructive_allowed?: boolean
+          edge_functions_url?: string
+          env_key?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_test_environments_default_api_key_id_fkey"
+            columns: ["default_api_key_id"]
+            isOneToOne: false
+            referencedRelation: "public_api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_test_executions: {
+        Row: {
+          api_key_id: string | null
+          duration_ms: number | null
+          environment_id: string | null
+          executed_at: string
+          executed_by: string | null
+          expected_status: number | null
+          failure_reason: string | null
+          full_url: string
+          http_method: string
+          id: string
+          notes: string | null
+          request_body: Json | null
+          request_headers: Json | null
+          response_body: Json | null
+          response_headers: Json | null
+          response_status: number | null
+          result: string
+          saved_case_id: string | null
+          test_name: string | null
+        }
+        Insert: {
+          api_key_id?: string | null
+          duration_ms?: number | null
+          environment_id?: string | null
+          executed_at?: string
+          executed_by?: string | null
+          expected_status?: number | null
+          failure_reason?: string | null
+          full_url: string
+          http_method: string
+          id?: string
+          notes?: string | null
+          request_body?: Json | null
+          request_headers?: Json | null
+          response_body?: Json | null
+          response_headers?: Json | null
+          response_status?: number | null
+          result?: string
+          saved_case_id?: string | null
+          test_name?: string | null
+        }
+        Update: {
+          api_key_id?: string | null
+          duration_ms?: number | null
+          environment_id?: string | null
+          executed_at?: string
+          executed_by?: string | null
+          expected_status?: number | null
+          failure_reason?: string | null
+          full_url?: string
+          http_method?: string
+          id?: string
+          notes?: string | null
+          request_body?: Json | null
+          request_headers?: Json | null
+          response_body?: Json | null
+          response_headers?: Json | null
+          response_status?: number | null
+          result?: string
+          saved_case_id?: string | null
+          test_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_test_executions_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "public_api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_test_executions_environment_id_fkey"
+            columns: ["environment_id"]
+            isOneToOne: false
+            referencedRelation: "api_test_environments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_test_executions_saved_case_id_fkey"
+            columns: ["saved_case_id"]
+            isOneToOne: false
+            referencedRelation: "api_test_saved_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_test_saved_cases: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          default_body: Json | null
+          default_headers: Json | null
+          default_query_params: Json | null
+          description: string | null
+          endpoint_path: string
+          expected_response_shape: Json | null
+          expected_status: number | null
+          http_method: string
+          id: string
+          is_active: boolean
+          is_destructive: boolean
+          name: string
+          owner_user_id: string | null
+          requires_api_key: boolean
+          requires_auth: boolean
+          tags: string[] | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          default_body?: Json | null
+          default_headers?: Json | null
+          default_query_params?: Json | null
+          description?: string | null
+          endpoint_path: string
+          expected_response_shape?: Json | null
+          expected_status?: number | null
+          http_method?: string
+          id?: string
+          is_active?: boolean
+          is_destructive?: boolean
+          name: string
+          owner_user_id?: string | null
+          requires_api_key?: boolean
+          requires_auth?: boolean
+          tags?: string[] | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          default_body?: Json | null
+          default_headers?: Json | null
+          default_query_params?: Json | null
+          description?: string | null
+          endpoint_path?: string
+          expected_response_shape?: Json | null
+          expected_status?: number | null
+          http_method?: string
+          id?: string
+          is_active?: boolean
+          is_destructive?: boolean
+          name?: string
+          owner_user_id?: string | null
+          requires_api_key?: boolean
+          requires_auth?: boolean
+          tags?: string[] | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       app_lockdown_state: {
         Row: {
           created_at: string
