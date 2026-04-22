@@ -24,9 +24,9 @@ Generation status legend: ✅ documented · 🟡 pending (next batch) · ⚪ not
 
 | # | Display Name | Route | Page Component | Doc |
 |---|---|---|---|---|
-| 8 | Zones | `/compliance/admin/geography/zones` | `src/pages/compliance/geography/ZoneManagement.tsx` | 🟡 pending |
-| 9 | Office-to-Zone Mapping | `/compliance/admin/geography/office-zone-mapping` | `src/pages/compliance/geography/OfficeZoneMapping.tsx` | 🟡 pending |
-| 10 | Village-to-Zone Mapping | `/compliance/admin/geography/village-zone-mapping` | `src/pages/compliance/geography/VillageZoneMapping.tsx` | 🟡 pending |
+| 8 | Zones | `/compliance/admin/geography/zones` | `src/pages/compliance/geography/ZoneManagement.tsx` | ✅ [zones.md](./geography/zones.md) |
+| 9 | Office-to-Zone Mapping | `/compliance/admin/geography/office-zone-mapping` | `src/pages/compliance/geography/OfficeZoneMapping.tsx` | ✅ [office-zone-mapping.md](./geography/office-zone-mapping.md) |
+| 10 | Village-to-Zone Mapping | `/compliance/admin/geography/village-zone-mapping` | `src/pages/compliance/geography/VillageZoneMapping.tsx` | ✅ [village-zone-mapping.md](./geography/village-zone-mapping.md) |
 
 ## Section C — Staff (parent: `ca…0130`)
 
