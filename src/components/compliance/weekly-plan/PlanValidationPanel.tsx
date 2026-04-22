@@ -41,31 +41,42 @@ export function computePlanReadiness(
     detail: hasItems ? `${planItems.length} item(s) planned` : 'Add visits before submitting',
   });
 
-  // 2) Mandatory / critical items covered
+  // 2) Mandatory / critical items covered (advisory — never hard-blocks)
+  const totalCritical = candidates.filter(
+    c => c.priority === 'CRITICAL' || classifyCandidate(c) === 'OVERDUE'
+  ).length;
   const unaddressedCritical = candidates.filter(
     c => !addedSourceIds.has(c.source_id) &&
       (c.priority === 'CRITICAL' || classifyCandidate(c) === 'OVERDUE')
   ).length;
+  const addressedCritical = totalCritical - unaddressedCritical;
+  // Pass if at least one critical addressed OR no critical exist; warn otherwise. Never fail.
   checks.push({
     key: 'critical',
     label: 'Mandatory & critical items covered',
-    status: unaddressedCritical === 0 ? 'pass' : unaddressedCritical <= 2 ? 'warn' : 'fail',
-    detail: unaddressedCritical === 0
-      ? 'All critical items addressed'
-      : `${unaddressedCritical} critical item(s) still in suggestions`,
+    status: totalCritical === 0 || addressedCritical > 0 ? 'pass' : 'warn',
+    detail: totalCritical === 0
+      ? 'No critical items pending'
+      : unaddressedCritical === 0
+      ? `All ${totalCritical} critical item(s) addressed`
+      : `${addressedCritical} of ${totalCritical} critical addressed · ${unaddressedCritical} remain in suggestions`,
   });
 
-  // 3) Overdue items addressed
+  // 3) Overdue items addressed (advisory — never hard-blocks)
+  const totalOverdue = candidates.filter(c => classifyCandidate(c) === 'OVERDUE').length;
   const overdueRemaining = candidates.filter(
     c => !addedSourceIds.has(c.source_id) && classifyCandidate(c) === 'OVERDUE'
   ).length;
+  const addressedOverdue = totalOverdue - overdueRemaining;
   checks.push({
     key: 'overdue',
     label: 'Overdue items addressed',
-    status: overdueRemaining === 0 ? 'pass' : overdueRemaining <= 1 ? 'warn' : 'fail',
-    detail: overdueRemaining === 0
-      ? 'No overdue items remaining'
-      : `${overdueRemaining} overdue item(s) not yet scheduled`,
+    status: totalOverdue === 0 || addressedOverdue > 0 ? 'pass' : 'warn',
+    detail: totalOverdue === 0
+      ? 'No overdue items'
+      : overdueRemaining === 0
+      ? `All ${totalOverdue} overdue item(s) scheduled`
+      : `${addressedOverdue} of ${totalOverdue} overdue scheduled · ${overdueRemaining} remain`,
   });
 
   // 4) High-risk presence in plan
@@ -91,11 +102,8 @@ export function computePlanReadiness(
   let balanceStatus: 'pass' | 'warn' | 'fail' = 'pass';
   let balanceDetail = 'Workload distributed across the week';
   if (planItems.length === 0) {
-    balanceStatus = 'fail';
-    balanceDetail = 'No items to balance';
-  } else if (heavyDays > 0 && emptyDays >= 2) {
-    balanceStatus = 'fail';
-    balanceDetail = `${heavyDays} overloaded day(s), ${emptyDays} empty day(s)`;
+    balanceStatus = 'warn';
+    balanceDetail = 'Add items to assess balance';
   } else if (heavyDays > 0 || emptyDays >= 3) {
     balanceStatus = 'warn';
     balanceDetail = heavyDays > 0
@@ -115,8 +123,10 @@ export function computePlanReadiness(
     0,
   );
 
-  // Ready if no fail and at least one item
-  const isReady = hasItems && checks.every(c => c.status !== 'fail');
+  // Submission gate: Inspector can submit as soon as the plan has at least one item.
+  // All other checks are advisory and influence the readiness score / warnings only.
+  // Reviewer makes the final call on coverage adequacy.
+  const isReady = hasItems;
 
   return { score, isReady, checks };
 }
@@ -152,7 +162,7 @@ export function PlanValidationPanel({ readiness }: PlanValidationPanelProps) {
             <span className={`text-xl font-bold ${tone}`}>{score}</span>
             <span className="text-xs text-muted-foreground">/100</span>
             <Badge variant="outline" className={`${tone} border-current text-[10px]`}>
-              {isReady ? 'Ready to Submit' : 'Needs Attention'}
+              {!isReady ? 'Add items to submit' : score >= 80 ? 'Ready to Submit' : 'Submittable · Warnings'}
             </Badge>
           </div>
         </CardTitle>
