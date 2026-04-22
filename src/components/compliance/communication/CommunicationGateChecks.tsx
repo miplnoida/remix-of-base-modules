@@ -33,6 +33,9 @@ import type { AuditCommunication, CeCommType } from '@/types/auditCommunication'
 
 export type GateCheckStatus = 'PASS' | 'FAIL' | 'WARN' | 'INFO';
 
+/** Action a quick-button can request from the parent. */
+export type GateQuickActionKind = 'send' | 'record_exception';
+
 export interface CommGateCheck {
   key: string;
   label: string;
@@ -42,6 +45,25 @@ export interface CommGateCheck {
   actionLabel?: string;
   /** comm_type the user should send to satisfy the check (used to scroll-to / filter). */
   suggestCommType?: CeCommType;
+  /** What the parent should do when the action button is clicked. Defaults to 'send'. */
+  actionKind?: GateQuickActionKind;
+  /** Optional secondary action (e.g. "Send Late Intimation" alongside "Record Exception"). */
+  secondaryAction?: {
+    label: string;
+    kind: GateQuickActionKind;
+    suggestCommType?: CeCommType;
+  };
+}
+
+export interface IntimationContext {
+  /** ISO date / datetime when the visit is planned. */
+  plannedDate?: string | null;
+  /** ISO datetime when the field session actually started (null = not started). */
+  sessionStartedAt?: string | null;
+  /** Minimum lead time required by the intimation template (hours). Defaults to 48. */
+  minLeadHours?: number | null;
+  /** True once an exception has been formally recorded for this visit. */
+  exceptionRecorded?: boolean;
 }
 
 export interface CommunicationGateContext {
@@ -54,6 +76,8 @@ export interface CommunicationGateContext {
   enforcementThreshold?: 'MEDIUM' | 'HIGH' | 'CRITICAL';
   /** True if any employer obligation has passed its due date. */
   hasOverdueItems?: boolean;
+  /** Pre-visit intimation context — drives nuanced PASS/WARN/FAIL for intimation. */
+  intimation?: IntimationContext;
 }
 
 interface Props {
@@ -61,7 +85,17 @@ interface Props {
   context: CommunicationGateContext;
   /** Tab anchor (e.g. "?tab=communications") on this same page. */
   communicationsHref?: string;
-  /** Quick-action callback (opens composer) — receives the suggested comm_type. */
+  /**
+   * Quick-action callback. Receives the check itself so the parent can
+   * distinguish 'send' (open composer) vs 'record_exception' (open exception
+   * dialog), and act on `secondaryAction` when present.
+   */
+  onQuickAction?: (
+    check: CommGateCheck,
+    kind: GateQuickActionKind,
+    commType?: CeCommType,
+  ) => void;
+  /** @deprecated — use onQuickAction. Kept for back-compat with older callers. */
   onQuickSend?: (commType: CeCommType) => void;
 }
 
