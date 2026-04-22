@@ -101,6 +101,11 @@ export default function AuditVisitWorkspace() {
   const gate: CompletionGateResult | null = data?.gate ?? null;
   const sessionStarted = !!inspection?.session_started_at;
   const sessionClosed = !!inspection?.session_closed_at;
+  const reportStatus: string | null = data?.report?.status ?? data?.metrics?.reportStatus ?? null;
+  const hasViolations: boolean = (data?.metrics?.violationsCount ?? 0) > 0;
+
+  const { userCode } = useUserCode();
+  const commStatus = useVisitCommunicationStatus(inspectionId);
 
   const planId = planIdFromRoute ?? plan?.id;
 
