@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
+import WeeklyPlanBuilderSmart from './WeeklyPlanBuilderSmart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -38,7 +39,29 @@ import { DayDetailPanel } from '@/components/compliance/weekly-plan/DayDetailPan
 import { WeeklyPlanStatus } from '@/types/weeklyPlan';
 import { generateSmartDraft, draftToRequests } from '@/lib/smartDraftEngine';
 
+const STORAGE_KEY = 'compliance.weeklyPlan.viewMode';
+type ViewMode = 'smart' | 'legacy';
+
 export default function WeeklyPlanBuilder() {
+  const [mode, setMode] = useState<ViewMode>(() => {
+    if (typeof window === 'undefined') return 'smart';
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    return stored === 'legacy' ? 'legacy' : 'smart';
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(STORAGE_KEY, mode);
+    }
+  }, [mode]);
+
+  if (mode === 'smart') {
+    return <WeeklyPlanBuilderSmart onSwitchToLegacy={() => setMode('legacy')} />;
+  }
+  return <WeeklyPlanBuilderLegacy onSwitchToSmart={() => setMode('smart')} />;
+}
+
+function WeeklyPlanBuilderLegacy({ onSwitchToSmart }: { onSwitchToSmart: () => void }) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const builder = useWeeklyPlanBuilder();
@@ -174,12 +197,18 @@ export default function WeeklyPlanBuilder() {
     <div className="container mx-auto p-4 md:p-6 space-y-4">
       <PageHeader
         title="Weekly Plan Builder"
-        subtitle={`Plan your compliance field work for the week of ${builder.week.days[0].label} – ${builder.week.days[4].label}`}
+        subtitle={`Legacy View · Week of ${builder.week.days[0].label} – ${builder.week.days[4].label}`}
         breadcrumbs={[
           { label: 'Compliance', href: '/compliance/dashboard' },
           { label: 'Audit Planning', href: '/compliance/audit-planning/sampling-dashboard' },
           { label: 'Weekly Plan Builder' },
         ]}
+        actions={
+          <Button variant="default" size="sm" className="gap-1.5" onClick={onSwitchToSmart}>
+            <Wand2 className="h-3.5 w-3.5" />
+            Switch to Smart Planner
+          </Button>
+        }
       />
 
       {/* KPI Summary */}
