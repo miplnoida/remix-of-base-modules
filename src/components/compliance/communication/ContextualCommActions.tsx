@@ -34,6 +34,42 @@ import CommunicationComposer from './CommunicationComposer';
 import type { AuditCommunicationTemplate, CeCommType } from '@/types/auditCommunication';
 import type { FieldExecutionStage } from '@/types/fieldStageMapping';
 
+/**
+ * Runtime signals consumed by per-action `visibleWhen` predicates so the
+ * toolbar stays contextual: a button only renders when its precondition
+ * actually applies to the current visit. Every field is optional — when a
+ * predicate is omitted the action is always shown (legacy behaviour).
+ */
+export interface CommActionVisibilityContext {
+  // Lifecycle
+  sessionStarted?: boolean;
+  sessionClosed?: boolean;
+
+  // Working papers / evidence completeness
+  checklistComplete?: boolean;       // all checklist items answered
+  hasMissingDocuments?: boolean;     // checklist gaps OR explicit doc requests open
+  hasMissingEvidence?: boolean;      // no evidence captured yet
+
+  // Findings
+  hasFindings?: boolean;
+  hasClarificationNeeded?: boolean;  // ≥1 finding flagged "needs clarification"
+  hasViolations?: boolean;
+  maxSeverity?: 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  enforcementThreshold?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+  // Report
+  hasReport?: boolean;
+  reportStatus?: string | null;      // e.g. DRAFT / REVIEW / APPROVED / ISSUED
+  reportApproved?: boolean;          // convenience derived flag
+  finalReportIssued?: boolean;       // a final-stage comm has been sent
+
+  // Reminder / response cycle
+  hasOpenObligations?: boolean;      // any unresolved sent comm awaiting reply
+  hasOverdueWithoutResponse?: boolean; // due date has lapsed and no response captured
+  reminderCount?: number;            // how many reminders already issued
+  hasPendingApproval?: boolean;      // a comm is sitting in pending_approval
+}
+
 export interface ContextualAction {
   /** Stable id for React keys + analytics. */
   key: string;
@@ -52,6 +88,17 @@ export interface ContextualAction {
   icon?: React.ComponentType<{ className?: string }>;
   /** Visual variant. */
   variant?: 'default' | 'outline' | 'secondary' | 'destructive';
+  /**
+   * Visibility predicate. Return `false` to hide the button for the current
+   * visit state. Omit to always show. Keep these pure — no side effects.
+   */
+  visibleWhen?: (ctx: CommActionVisibilityContext) => boolean;
+  /**
+   * Optional human-readable reason shown as a muted tooltip when the action
+   * is hidden in *debug* mode (set via `showHiddenReasons`). Helps admins
+   * understand why a button isn't there.
+   */
+  hiddenReason?: string;
 }
 
 interface Props {
@@ -66,6 +113,17 @@ interface Props {
   onChanged?: () => void;
   /** Hide the toolbar entirely if no actions resolve to any template. */
   hideIfEmpty?: boolean;
+  /**
+   * Runtime signals fed to each action's `visibleWhen` predicate. When
+   * omitted, all actions are considered visible (legacy behaviour).
+   */
+  visibilityContext?: CommActionVisibilityContext;
+  /**
+   * When true, hidden actions render as disabled ghost buttons with their
+   * `hiddenReason` shown in tooltip. Useful for admins / QA to see what
+   * would appear under different conditions. Defaults to false.
+   */
+  showHiddenReasons?: boolean;
 }
 
 interface ResolvedAction extends ContextualAction {
