@@ -34,6 +34,8 @@ import {
   Play,
   Undo2,
   Loader2,
+  GitBranch,
+  History,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -41,6 +43,8 @@ import { weeklyPlanService } from '@/services/weeklyPlanService';
 import { WeeklyPlan, WeeklyPlanStatus } from '@/types/weeklyPlan';
 import { useNavigate } from 'react-router-dom';
 import { useUserCode } from '@/hooks/useUserCode';
+import { PlanRevisionDialog } from '@/components/compliance/weekly-plan/PlanRevisionDialog';
+import { PlanVersionHistoryDialog } from '@/components/compliance/weekly-plan/PlanVersionHistoryDialog';
 
 export default function MyPlans() {
   const { toast } = useToast();
