@@ -272,8 +272,11 @@ export function draftToRequests(
       priority: draft.candidate.priority || 'MEDIUM',
       recommendation_score: draft.candidate.recommendation_score,
       purpose: draft.candidate.description,
-      is_mandatory: draft.candidate.priority === 'CRITICAL' ||
-        classifyCandidate(draft.candidate) === 'OVERDUE',
+      is_mandatory:
+        draft.candidate.priority === 'CRITICAL' ||
+        classifyCandidate(draft.candidate) === 'OVERDUE' ||
+        ['MANDATORY_HIGH_RISK_REVIEW', 'LEGAL_STAGE_TRIGGER', 'ARRANGEMENT_BREACH', 'ROUTINE_CYCLE_DUE']
+          .includes((draft.candidate.source_status ?? '').toUpperCase()),
     };
   });
 }
