@@ -286,7 +286,25 @@ export default function AuditVisitWorkspace() {
         </div>
       )}
 
-      {/* Completion gate panel */}
+      {/* Communications intelligence — surfaces overdue acks/responses,
+          escalation alerts, last sent, and next recommended action so the
+          auditor sees comm posture before opening the Communications tab
+          or hitting the completion gate. */}
+      {sessionStarted && inspectionId && (adaptedVisit?.employerId || planItem.employer_id) && (
+        <VisitCommunicationsIntelligenceCard
+          inspectionId={inspectionId}
+          employerId={adaptedVisit?.employerId || planItem.employer_id}
+          employerName={planItem.employer_name ?? undefined}
+          triggerContext={{
+            sessionStarted,
+            sessionClosed,
+            reportStatus,
+            hasViolations,
+          }}
+          userCode={userCode ?? undefined}
+          status={commStatus}
+          onOpenCommunicationsTab={() => setActiveTab('communications')}
+        />
       {sessionStarted && gate && (
         <CompletionGatePanel
           gate={gate}
