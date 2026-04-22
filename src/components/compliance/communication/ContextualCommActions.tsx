@@ -83,8 +83,9 @@ export function ContextualCommActions({
   // Picker dialog state (shown when multiple templates match an action).
   const [picker, setPicker] = useState<{ action: ResolvedAction; chosenId: string } | null>(null);
 
-  // Composer dialog state (the existing draft editor).
-  const [editingId, setEditingId] = useState<string | null>(null);
+  // Composer dialog state — opens the unified CommunicationComposer for the
+  // chosen action. The composer itself creates the draft from the template.
+  const [composerFor, setComposerFor] = useState<{ action: ResolvedAction; templateId: string } | null>(null);
 
   const actionsKey = useMemo(
     () => actions.map((a) => `${a.key}:${a.fieldStage}:${a.commTypeHints.join(',')}`).join('|'),
