@@ -53,6 +53,8 @@ export default function MyPlans() {
   const { userCode, userId } = useUserCode();
   const [withdrawDialogPlan, setWithdrawDialogPlan] = useState<WeeklyPlan | null>(null);
   const [withdrawReason, setWithdrawReason] = useState('');
+  const [revisionPlan, setRevisionPlan] = useState<WeeklyPlan | null>(null);
+  const [historyPlan, setHistoryPlan] = useState<WeeklyPlan | null>(null);
 
   const plansQuery = useQuery({
     queryKey: ['my-weekly-plans'],
