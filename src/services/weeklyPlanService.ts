@@ -179,7 +179,15 @@ export const weeklyPlanService = {
         updated_by: userId,
       })
       .eq('id', planId);
-    if (updateError) throw updateError;
+    if (updateError) {
+      const msg = (updateError.message || '').toLowerCase();
+      if ((updateError as any).code === '23505' || msg.includes('ce_weekly_plans_unique_active_per_week')) {
+        throw new Error(
+          'Another active weekly plan already exists for this week. Open the current plan from "My Plans" or revise the approved version instead of submitting this one.'
+        );
+      }
+      throw updateError;
+    }
 
     // Log review action
     const { error: reviewError } = await supabase
