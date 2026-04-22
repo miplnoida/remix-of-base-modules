@@ -377,7 +377,7 @@ export default function WeeklyPlanBuilderV3() {
                 className="w-full mt-3"
                 size="sm"
                 disabled={!builder.canEdit || builder.planItems.length === 0 || builder.isSubmitting}
-                onClick={() => builder.submitPlan()}
+                onClick={() => builder.submitPlan(undefined)}
               >
                 <Send className="h-3.5 w-3.5 mr-1" />
                 Submit for review
