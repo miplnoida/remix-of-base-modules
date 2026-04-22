@@ -30,8 +30,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { fieldStageTemplateMapService } from '@/services/fieldStageTemplateMapService';
 import { auditCommunicationTemplateService } from '@/services/auditCommunicationTemplateService';
-import { auditCommunicationService } from '@/services/auditCommunicationService';
-import CommunicationDraftEditorDialog from './CommunicationDraftEditorDialog';
+import CommunicationComposer from './CommunicationComposer';
 import type { AuditCommunicationTemplate, CeCommType } from '@/types/auditCommunication';
 import type { FieldExecutionStage } from '@/types/fieldStageMapping';
 
@@ -84,8 +83,9 @@ export function ContextualCommActions({
   // Picker dialog state (shown when multiple templates match an action).
   const [picker, setPicker] = useState<{ action: ResolvedAction; chosenId: string } | null>(null);
 
-  // Composer dialog state (the existing draft editor).
-  const [editingId, setEditingId] = useState<string | null>(null);
+  // Composer dialog state — opens the unified CommunicationComposer for the
+  // chosen action. The composer itself creates the draft from the template.
+  const [composerFor, setComposerFor] = useState<{ action: ResolvedAction; templateId: string } | null>(null);
 
   const actionsKey = useMemo(
     () => actions.map((a) => `${a.key}:${a.fieldStage}:${a.commTypeHints.join(',')}`).join('|'),
@@ -137,32 +137,11 @@ export function ContextualCommActions({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionsKey]);
 
-  const createDraftAndOpen = async (action: ResolvedAction, templateId: string) => {
-    setBusyKey(action.key);
-    try {
-      const created = await auditCommunicationService.createDraft({
-        inspectionId,
-        employerId,
-        templateId,
-        contextData: {
-          employer_name: employerName || employerId,
-          visit_date: new Date().toISOString().slice(0, 10),
-          field_stage: action.fieldStage,
-          action_key: action.key,
-        },
-        createdBy: userCode,
-      });
-      toast.success(`Draft created: ${action.label}`);
-      setEditingId(created.id);
-      onChanged?.();
-    } catch (e: any) {
-      toast.error('Could not create draft', { description: e?.message });
-    } finally {
-      setBusyKey(null);
-    }
+  const openComposer = (action: ResolvedAction, templateId: string) => {
+    setComposerFor({ action, templateId });
   };
 
-  const handleClick = async (action: ResolvedAction) => {
+  const handleClick = (action: ResolvedAction) => {
     if (action.candidates.length === 0) {
       toast.error(`No template available for "${action.label}"`, {
         description: 'Link one in Field Stage → Template Mapping.',
@@ -174,7 +153,7 @@ export function ContextualCommActions({
       return;
     }
     if (action.candidates.length === 1) {
-      await createDraftAndOpen(action, action.candidates[0].id);
+      openComposer(action, action.candidates[0].id);
       return;
     }
     setPicker({ action, chosenId: action.candidates[0].id });
@@ -282,28 +261,37 @@ export function ContextualCommActions({
           <DialogFooter>
             <Button variant="outline" onClick={() => setPicker(null)}>Cancel</Button>
             <Button
-              onClick={async () => {
+              onClick={() => {
                 if (!picker) return;
                 const action = picker.action;
                 const tpl = picker.chosenId;
                 setPicker(null);
-                await createDraftAndOpen(action, tpl);
+                openComposer(action, tpl);
               }}
             >
-              <Send className="h-3.5 w-3.5 mr-1" /> Create draft
+              <Send className="h-3.5 w-3.5 mr-1" /> Open composer
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Reuse the existing composer for the freshly-created draft */}
-      {editingId && (
-        <CommunicationDraftEditorDialog
-          communicationId={editingId}
-          open={!!editingId}
-          onClose={() => setEditingId(null)}
-          onSaved={() => { setEditingId(null); onChanged?.(); }}
+      {/* Unified composer — handles draft creation, edit, approval, and send */}
+      {composerFor && (
+        <CommunicationComposer
+          open={!!composerFor}
+          onClose={() => setComposerFor(null)}
+          onChanged={() => { onChanged?.(); }}
+          inspectionId={inspectionId}
+          employerId={employerId}
+          employerName={employerName}
           userCode={userCode}
+          templateId={composerFor.templateId}
+          action={{
+            label: composerFor.action.label,
+            description: composerFor.action.description,
+            fieldStage: composerFor.action.fieldStage,
+            commTypeHints: composerFor.action.commTypeHints,
+          }}
         />
       )}
     </>
