@@ -133,19 +133,23 @@ export default function AuditVisitWorkspace() {
     const reportApproved = (reportStatus ?? '').toUpperCase() === 'APPROVED'
       || (reportStatus ?? '').toUpperCase() === 'ISSUED';
 
-    // Overdue without response: any *sent* comm whose scheduled_at is past
-    // and that has not been acknowledged. Best-effort — server-side response
-    // tracking will improve this later.
-    const now = Date.now();
-    const overdue = commStatus.items.some((c) => {
-      if (c.status !== 'sent' && c.status !== 'partial') return false;
-      const due = c.scheduled_at ? new Date(c.scheduled_at).getTime() : null;
-      if (!due || due > now) return false;
-      return c.status !== ('acknowledged' as any);
-    });
+    // Overdue without recorded response: defer to the hook's intelligence
+    // derivation, which uses `response_due_at` + `responded_at` from the
+    // ce_audit_communications lifecycle columns (migration 20260422112003).
+    const overdue = commStatus.overdueResponses.length > 0
+      || commStatus.overdueAcknowledgments.length > 0;
 
     const reminderCount = (commStatus.itemsByType?.due_date_reminder?.length ?? 0)
       + (commStatus.itemsByType?.visit_reminder?.length ?? 0);
+
+    // "Clarification needed" = there are concrete findings worth asking
+    // the employer to explain — i.e. at least one non-trivial finding
+    // that hasn't already hardened into a high-severity violation (where
+    // the Violation Notice action takes over instead).
+    const clarificationNeeded =
+      findingsCount > 0
+      && (SEV_RANK[maxSeverity] ?? 0) >= (SEV_RANK.LOW ?? 1)
+      && !(hasViolations && (SEV_RANK[maxSeverity] ?? 0) >= (SEV_RANK.HIGH ?? 3));
 
     return {
       sessionStarted,
@@ -154,7 +158,7 @@ export default function AuditVisitWorkspace() {
       hasMissingDocuments: !checklistComplete || evidenceCount === 0,
       hasMissingEvidence: evidenceCount === 0,
       hasFindings: findingsCount > 0,
-      hasClarificationNeeded: findingsCount > 0,
+      hasClarificationNeeded: clarificationNeeded,
       hasViolations,
       maxSeverity,
       enforcementThreshold: 'MEDIUM',
@@ -169,8 +173,9 @@ export default function AuditVisitWorkspace() {
     };
   }, [
     metrics, reportStatus, hasViolations, sessionStarted, sessionClosed,
-    commStatus.items, commStatus.itemsByType, commStatus.finalStageIssued,
+    commStatus.itemsByType, commStatus.finalStageIssued,
     commStatus.hasOpenItems, commStatus.pendingApproval,
+    commStatus.overdueResponses, commStatus.overdueAcknowledgments,
   ]);
 
   const planId = planIdFromRoute ?? plan?.id;
