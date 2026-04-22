@@ -1404,6 +1404,13 @@ export const AppRoutes = () => {
       <Route path="/admin/users/update-password" element={<ProtectedLayout><UpdateUserPassword /></ProtectedLayout>} />
       <Route path="/admin/module-button-bindings" element={<ProtectedLayout><ModuleButtonBindings /></ProtectedLayout>} />
       <Route path="/admin/api-keys" element={<ProtectedLayout><ApiKeysManagement /></ProtectedLayout>} />
+      {/* SSC Compliance API Test Console */}
+      <Route path="/admin/api-test-console" element={<ProtectedLayout><ApiTestDashboard /></ProtectedLayout>} />
+      <Route path="/admin/api-test-console/keys" element={<ProtectedLayout><ApiKeysConsole /></ProtectedLayout>} />
+      <Route path="/admin/api-test-console/environments" element={<ProtectedLayout><EnvironmentsConsole /></ProtectedLayout>} />
+      <Route path="/admin/api-test-console/auth-lab" element={<ProtectedLayout><AuthTestLab /></ProtectedLayout>} />
+      <Route path="/admin/api-test-console/endpoints" element={<ProtectedLayout><EndpointExplorer /></ProtectedLayout>} />
+      <Route path="/admin/api-test-console/runner" element={<ProtectedLayout><ComplianceRunner /></ProtectedLayout>} />
       <Route path="/admin/public-api" element={<ProtectedLayout><PublicApiManagement /></ProtectedLayout>} />
       <Route path="/admin/external-apis" element={<ProtectedLayout><ExternalApiManagement /></ProtectedLayout>} />
       <Route path="/external/api-docs" element={<ProtectedLayout><ExternalApiDocs /></ProtectedLayout>} />
