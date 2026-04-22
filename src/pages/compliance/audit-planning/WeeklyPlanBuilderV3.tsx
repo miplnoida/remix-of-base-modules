@@ -27,6 +27,7 @@ import {
   ACTION_TYPE_LABELS,
   type PlannerCandidateAction,
 } from '@/services/plannerCandidateActionsService';
+import { plannerApprovalService } from '@/services/plannerApprovalService';
 import { CandidateCardV3 } from '@/components/compliance/weekly-plan/v3/CandidateCardV3';
 import {
   PlannerExceptionDialog,
@@ -128,7 +129,7 @@ export default function WeeklyPlanBuilderV3() {
     }> = {},
   ) => {
     try {
-      await plannerCandidateActionsService.record({
+      const recorded = await plannerCandidateActionsService.record({
         planId: builder.activePlanId,
         inspectorId: builder.inspectorId,
         weekStartDate: builder.week.weekStart,
@@ -153,10 +154,31 @@ export default function WeeklyPlanBuilderV3() {
         userCode: builder.userCode ?? undefined,
       });
       await refreshActions();
-      toast({
-        title: ACTION_TYPE_LABELS[actionType],
-        description: `${c.employer_name || c.employer_id} updated.`,
-      });
+
+      // Trigger approval workflow for governance-gated actions
+      const needsApproval =
+        (actionType === 'convert_exception' && extras.exception?.approvalRequired) ||
+        actionType === 'merge_duplicate';
+      if (needsApproval && recorded?.id && builder.userCode) {
+        try {
+          const result = await plannerApprovalService.submit(recorded.id, builder.userCode);
+          toast({
+            title: 'Approval requested',
+            description: `${result.approvers} Supervisor(s) notified by email. Status: pending.`,
+          });
+        } catch (apprErr: any) {
+          toast({
+            title: 'Action saved — approval request failed',
+            description: apprErr?.message ?? 'Could not enqueue approval emails.',
+            variant: 'destructive',
+          });
+        }
+      } else {
+        toast({
+          title: ACTION_TYPE_LABELS[actionType],
+          description: `${c.employer_name || c.employer_id} updated.`,
+        });
+      }
     } catch (err: any) {
       toast({
         title: 'Action failed', description: err?.message,
