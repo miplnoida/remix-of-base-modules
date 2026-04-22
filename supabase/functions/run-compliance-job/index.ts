@@ -31,8 +31,14 @@ const EDGE_FUNCTION_JOBS: Record<string, string> = {
 
 // Jobs that have RPC handlers
 const RPC_JOBS: Record<string, string> = {
-  // Add mappings here as RPC handlers are implemented
-  // e.g. 'JOB-BREACH-DETECTION': 'ce_execute_breach_detection',
+  'JOB-INHERENT-RISK-RECALC': 'ce_run_employer_risk_refresh',
+  'JOB-AUDIT-PRIORITY-RECALC': 'fn_ce_run_audit_priority_refresh',
+};
+
+// Some RPCs use a non-standard parameter signature (no p_job_code/p_triggered_by).
+const RPC_PARAM_SIGNATURES: Record<string, (dry: boolean) => Record<string, unknown>> = {
+  'JOB-INHERENT-RISK-RECALC': (dry) => ({ p_dry_run: dry, p_batch_size: 500 }),
+  'JOB-AUDIT-PRIORITY-RECALC': (dry) => ({ p_dry_run: dry, p_zone_id: null, p_changed_only: false, p_batch_size: 1000 }),
 };
 
 Deno.serve(async (req) => {
@@ -165,11 +171,11 @@ Deno.serve(async (req) => {
     // ── Route to RPC handler if applicable ──
     const rpcFn = RPC_JOBS[job_code];
     if (rpcFn) {
-      const { data, error } = await serviceClient.rpc(rpcFn, {
-        p_job_code: job_code,
-        p_dry_run: dry_run,
-        p_triggered_by: user.email || user.id,
-      });
+      const sigBuilder = RPC_PARAM_SIGNATURES[job_code];
+      const rpcParams = sigBuilder
+        ? sigBuilder(dry_run)
+        : { p_job_code: job_code, p_dry_run: dry_run, p_triggered_by: user.email || user.id };
+      const { data, error } = await serviceClient.rpc(rpcFn, rpcParams);
 
       if (error) {
         return new Response(JSON.stringify({ ok: false, error: error.message }), {
