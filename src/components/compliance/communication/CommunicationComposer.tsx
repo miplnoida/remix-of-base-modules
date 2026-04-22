@@ -574,12 +574,20 @@ export function CommunicationComposer(props: CommunicationComposerProps) {
         )}
 
         {phase === 'ready' && comm && (
-          <Tabs defaultValue="compose">
-            <TabsList className="grid grid-cols-5">
+          <Tabs defaultValue={comm.status === 'pending_approval' || comm.status === 'rejected' ? 'approval' : 'compose'}>
+            <TabsList className="grid grid-cols-6">
               <TabsTrigger value="compose">Compose</TabsTrigger>
               <TabsTrigger value="recipients">Recipients</TabsTrigger>
               <TabsTrigger value="attachments">Attachments</TabsTrigger>
               <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              <TabsTrigger value="approval" className="relative">
+                Approval
+                {comm.approvals && comm.approvals.some((a) => a.status === 'pending') && (
+                  <span className="ml-1 inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[10px]">
+                    {comm.approvals.filter((a) => a.status === 'pending').length}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="preview">Preview</TabsTrigger>
             </TabsList>
 
