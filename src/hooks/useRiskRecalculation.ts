@@ -93,20 +93,19 @@ export function useRiskOpsSummary() {
   return useQuery({
     queryKey: ['risk-ops-summary'],
     queryFn: async () => {
-      const [{ data: profileAgg }, { data: activePolicy }] = await Promise.all([
-        supabase
-          .from('ce_risk_profiles')
-          .select('last_inherent_calculated_at, last_audit_priority_calculated_at, audit_priority_score, total_score'),
-        supabase
-          .from('ce_risk_policies')
-          .select('id, policy_name, version, is_active, updated_at')
-          .eq('is_active', true)
-          .order('updated_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ]);
+      const profilesRes: any = await (supabase as any)
+        .from('ce_risk_profiles')
+        .select('last_inherent_calculated_at, last_audit_priority_calculated_at, audit_priority_score, total_score');
 
-      const rows = (profileAgg as any[]) || [];
+      const policyRes: any = await (supabase as any)
+        .from('ce_risk_policies')
+        .select('id, policy_name, policy_code, status, updated_at')
+        .eq('status', 'ACTIVE')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const rows: any[] = profilesRes.data || [];
       const lastInherent = rows
         .map((r) => r.last_inherent_calculated_at)
         .filter(Boolean)
@@ -124,8 +123,8 @@ export function useRiskOpsSummary() {
         withAuditPriority: rows.filter((r) => Number(r.audit_priority_score ?? 0) > 0).length,
         lastInherent,
         lastAuditPriority,
-        activePolicy: activePolicy as
-          | { id: string; policy_name: string; version: string | null; is_active: boolean; updated_at: string }
+        activePolicy: policyRes.data as
+          | { id: string; policy_name: string; policy_code: string | null; status: string; updated_at: string }
           | null,
       };
     },
