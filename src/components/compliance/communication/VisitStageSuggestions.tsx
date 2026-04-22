@@ -1,11 +1,16 @@
 /**
- * VisitStageSuggestions — stage-aware shortcuts for the visit Communications tab.
+ * VisitStageSuggestions — stage-aware shortcuts for the Communications tab.
  *
- * Reads the same `ce_audit_communication_templates` configured in Settings,
- * filters them by `lifecycle_stage` matching the current visit stage (and the
- * next logical stage), and lets the inspector create a draft in one click.
+ * Driven by the central `ce_audit_field_stage_template_map` mapping
+ * (managed under Settings → Field Stage → Template Mapping):
+ *   1. Resolve the visit's current FieldExecutionStage from runtime context.
+ *   2. For the current + next adjacent stage, fetch templates linked via
+ *      the mapping table.
+ *   3. Fallback: if a stage has zero mapped templates, show templates whose
+ *      lifecycle_stage matches the stage's lifecycle bucket (zero-config
+ *      grace until an admin links one).
  *
- * No new template config — pure consumer of the existing admin-managed setup.
+ * No comm_type / template logic is hardcoded here.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,62 +21,80 @@ import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { auditCommunicationTemplateService } from '@/services/auditCommunicationTemplateService';
 import { auditCommunicationService } from '@/services/auditCommunicationService';
-import type { AuditCommunicationTemplate, CeCommLifecycleStage } from '@/types/auditCommunication';
-import { COMM_LIFECYCLE_STAGE_LABELS, COMM_LIFECYCLE_STAGE_HINTS } from '@/types/auditCommunication';
+import { fieldStageTemplateMapService } from '@/services/fieldStageTemplateMapService';
+import type { AuditCommunicationTemplate } from '@/types/auditCommunication';
 import {
-  resolveVisitStage,
-  suggestedStages,
-  VISIT_STAGE_LABELS,
-  VISIT_STAGE_HINTS,
-  type VisitStageContext,
-} from '@/lib/compliance/visitStageMapping';
+  FIELD_STAGE_LABELS, FIELD_STAGE_HINTS, FIELD_STAGE_TO_LIFECYCLE,
+  type FieldExecutionStage,
+} from '@/types/fieldStageMapping';
+import {
+  resolveFieldStage, adjacentFieldStages,
+  type FieldStageContext,
+} from '@/lib/compliance/fieldStageResolver';
+import type { VisitStageContext } from '@/lib/compliance/visitStageMapping';
 
 interface Props {
   inspectionId: string;
   employerId: string;
   employerName?: string;
+  /** Legacy visit context; converted internally to FieldStageContext. */
   visitContext: VisitStageContext;
   userCode?: string;
   onDraftCreated: (communicationId: string) => void;
 }
 
+interface StageBucket {
+  templates: AuditCommunicationTemplate[];
+  fromFallback: boolean;
+}
+
 export function VisitStageSuggestions({
-  inspectionId,
-  employerId,
-  employerName,
-  visitContext,
-  userCode,
-  onDraftCreated,
+  inspectionId, employerId, employerName, visitContext, userCode, onDraftCreated,
 }: Props) {
-  const [templates, setTemplates] = useState<AuditCommunicationTemplate[]>([]);
+  const [buckets, setBuckets] = useState<Record<string, StageBucket>>({});
   const [loading, setLoading] = useState(true);
   const [creatingId, setCreatingId] = useState<string | null>(null);
 
-  const currentStage = useMemo(() => resolveVisitStage(visitContext), [visitContext]);
-  const stagesToShow = useMemo(() => suggestedStages(currentStage), [currentStage]);
+  const fieldCtx: FieldStageContext = useMemo(() => ({
+    sessionStarted: visitContext.sessionStarted,
+    sessionClosed: visitContext.sessionClosed,
+    reportStatus: visitContext.reportStatus,
+    hasViolations: visitContext.hasViolations,
+  }), [visitContext]);
+
+  const currentStage = useMemo(() => resolveFieldStage(fieldCtx), [fieldCtx]);
+  const stagesToShow = useMemo(() => adjacentFieldStages(currentStage), [currentStage]);
+  const stagesKey = stagesToShow.join('|');
 
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
     setLoading(true);
-    auditCommunicationTemplateService
-      .list({ activeOnly: true })
-      .then((rows) => {
-        if (mounted) setTemplates(rows);
-      })
-      .catch((e) => toast.error('Failed to load templates', { description: e?.message }))
-      .finally(() => mounted && setLoading(false));
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const grouped = useMemo(() => {
-    const map: Record<string, AuditCommunicationTemplate[]> = {};
-    for (const stage of stagesToShow) {
-      map[stage] = templates.filter((t) => (t.lifecycle_stage ?? null) === stage);
-    }
-    return map;
-  }, [templates, stagesToShow]);
+    (async () => {
+      const next: Record<string, StageBucket> = {};
+      for (const stage of stagesToShow) {
+        try {
+          const mapped = await fieldStageTemplateMapService.listForStage(stage);
+          if (mapped.length > 0) {
+            next[stage] = { templates: mapped, fromFallback: false };
+          } else {
+            const lifecycle = FIELD_STAGE_TO_LIFECYCLE[stage];
+            const fallback = await auditCommunicationTemplateService.list({
+              activeOnly: true, lifecycleStage: lifecycle,
+            });
+            next[stage] = { templates: fallback, fromFallback: true };
+          }
+        } catch {
+          next[stage] = { templates: [], fromFallback: false };
+        }
+      }
+      if (!cancelled) {
+        setBuckets(next);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stagesKey]);
 
   const handleQuickCreate = async (template: AuditCommunicationTemplate) => {
     try {
@@ -83,6 +106,7 @@ export function VisitStageSuggestions({
         contextData: {
           employer_name: employerName || employerId,
           visit_date: new Date().toISOString().slice(0, 10),
+          field_stage: currentStage,
         },
         createdBy: userCode,
       });
@@ -117,14 +141,14 @@ export function VisitStageSuggestions({
             <p className="text-xs text-muted-foreground mt-1">
               Stage:{' '}
               <span className="font-medium text-foreground">
-                {VISIT_STAGE_LABELS[currentStage]}
+                {FIELD_STAGE_LABELS[currentStage]}
               </span>{' '}
-              — {VISIT_STAGE_HINTS[currentStage]}
+              — {FIELD_STAGE_HINTS[currentStage]}
             </p>
           </div>
           <Button asChild variant="ghost" size="sm">
-            <Link to="/compliance/admin/audit-communication-templates">
-              <Settings2 className="h-3.5 w-3.5 mr-1" /> Manage templates
+            <Link to="/compliance/admin/field-stage-template-mapping">
+              <Settings2 className="h-3.5 w-3.5 mr-1" /> Manage stage mapping
             </Link>
           </Button>
         </div>
@@ -134,7 +158,7 @@ export function VisitStageSuggestions({
           <StageGroup
             key={stage}
             stage={stage}
-            templates={grouped[stage] ?? []}
+            bucket={buckets[stage] ?? { templates: [], fromFallback: false }}
             isCurrent={stage === currentStage}
             creatingId={creatingId}
             onCreate={handleQuickCreate}
@@ -146,37 +170,38 @@ export function VisitStageSuggestions({
 }
 
 function StageGroup({
-  stage,
-  templates,
-  isCurrent,
-  creatingId,
-  onCreate,
+  stage, bucket, isCurrent, creatingId, onCreate,
 }: {
-  stage: CeCommLifecycleStage;
-  templates: AuditCommunicationTemplate[];
+  stage: FieldExecutionStage;
+  bucket: StageBucket;
   isCurrent: boolean;
   creatingId: string | null;
   onCreate: (t: AuditCommunicationTemplate) => void;
 }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Badge variant={isCurrent ? 'default' : 'outline'}>
-          {COMM_LIFECYCLE_STAGE_LABELS[stage]}
+          {FIELD_STAGE_LABELS[stage]}
         </Badge>
         {isCurrent && <span className="text-xs text-primary">Recommended now</span>}
-        <span className="text-xs text-muted-foreground hidden md:inline">
-          {COMM_LIFECYCLE_STAGE_HINTS[stage]}
-        </span>
+        {bucket.fromFallback && bucket.templates.length > 0 && (
+          <Badge variant="outline" className="text-[10px]">
+            Lifecycle fallback — link templates in admin to override
+          </Badge>
+        )}
       </div>
 
-      {templates.length === 0 ? (
+      {bucket.templates.length === 0 ? (
         <p className="text-xs text-muted-foreground italic pl-1">
-          No templates configured for this stage.
+          No templates linked to this stage.{' '}
+          <Link to="/compliance/admin/field-stage-template-mapping" className="underline">
+            Configure mapping
+          </Link>
         </p>
       ) : (
         <div className="grid gap-2 md:grid-cols-2">
-          {templates.map((t) => (
+          {bucket.templates.map((t) => (
             <div
               key={t.id}
               className="flex items-center justify-between gap-2 rounded border bg-card p-2"
@@ -194,9 +219,7 @@ function StageGroup({
                   )}
                   <span>{t.send_mode.replace(/_/g, ' ').toLowerCase()}</span>
                   {t.requires_approval_before_send && (
-                    <Badge variant="outline" className="text-[10px] py-0 px-1">
-                      approval
-                    </Badge>
+                    <Badge variant="outline" className="text-[10px] py-0 px-1">approval</Badge>
                   )}
                 </div>
               </div>
