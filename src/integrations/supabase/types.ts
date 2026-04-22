@@ -10937,20 +10937,26 @@ export type Database = {
       }
       ce_audit_communications: {
         Row: {
+          acknowledged_at: string | null
           applied_policy_id: string | null
           approved_at: string | null
+          approved_by: string | null
           attachment_summary_json: Json
           cancellation_reason: string | null
           cancelled_at: string | null
+          case_id: string | null
           channel: Database["public"]["Enums"]["ce_comm_channel"]
           comm_type: Database["public"]["Enums"]["ce_comm_type"]
           context_data_json: Json
           created_at: string
           created_by: string | null
+          delivered_at: string | null
           dispatch_attempts: number
           dispatch_locked_at: string | null
           email_body_snapshot: string | null
           employer_id: string
+          escalation_level: number
+          extension_json: Json
           id: string
           inspection_id: string | null
           last_dispatch_error: string | null
@@ -10972,6 +10978,7 @@ export type Database = {
           recurrence_stop_conditions_json: Json
           rejection_reason: string | null
           report_version_id: string | null
+          responded_at: string | null
           response_due_at: string | null
           response_mode:
             | Database["public"]["Enums"]["ce_online_response_mode"]
@@ -10980,28 +10987,37 @@ export type Database = {
           sent_at: string | null
           severity_snapshot: string | null
           sms_body_snapshot: string | null
+          stage_key: string | null
           status: Database["public"]["Enums"]["ce_comm_status"]
           subject_snapshot: string | null
           submitted_at: string | null
           template_id: string | null
+          trigger_type: Database["public"]["Enums"]["ce_comm_trigger_type"]
           updated_at: string
           updated_by: string | null
+          visit_id: string | null
         }
         Insert: {
+          acknowledged_at?: string | null
           applied_policy_id?: string | null
           approved_at?: string | null
+          approved_by?: string | null
           attachment_summary_json?: Json
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          case_id?: string | null
           channel: Database["public"]["Enums"]["ce_comm_channel"]
           comm_type: Database["public"]["Enums"]["ce_comm_type"]
           context_data_json?: Json
           created_at?: string
           created_by?: string | null
+          delivered_at?: string | null
           dispatch_attempts?: number
           dispatch_locked_at?: string | null
           email_body_snapshot?: string | null
           employer_id: string
+          escalation_level?: number
+          extension_json?: Json
           id?: string
           inspection_id?: string | null
           last_dispatch_error?: string | null
@@ -11023,6 +11039,7 @@ export type Database = {
           recurrence_stop_conditions_json?: Json
           rejection_reason?: string | null
           report_version_id?: string | null
+          responded_at?: string | null
           response_due_at?: string | null
           response_mode?:
             | Database["public"]["Enums"]["ce_online_response_mode"]
@@ -11031,28 +11048,37 @@ export type Database = {
           sent_at?: string | null
           severity_snapshot?: string | null
           sms_body_snapshot?: string | null
+          stage_key?: string | null
           status?: Database["public"]["Enums"]["ce_comm_status"]
           subject_snapshot?: string | null
           submitted_at?: string | null
           template_id?: string | null
+          trigger_type?: Database["public"]["Enums"]["ce_comm_trigger_type"]
           updated_at?: string
           updated_by?: string | null
+          visit_id?: string | null
         }
         Update: {
+          acknowledged_at?: string | null
           applied_policy_id?: string | null
           approved_at?: string | null
+          approved_by?: string | null
           attachment_summary_json?: Json
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          case_id?: string | null
           channel?: Database["public"]["Enums"]["ce_comm_channel"]
           comm_type?: Database["public"]["Enums"]["ce_comm_type"]
           context_data_json?: Json
           created_at?: string
           created_by?: string | null
+          delivered_at?: string | null
           dispatch_attempts?: number
           dispatch_locked_at?: string | null
           email_body_snapshot?: string | null
           employer_id?: string
+          escalation_level?: number
+          extension_json?: Json
           id?: string
           inspection_id?: string | null
           last_dispatch_error?: string | null
@@ -11074,6 +11100,7 @@ export type Database = {
           recurrence_stop_conditions_json?: Json
           rejection_reason?: string | null
           report_version_id?: string | null
+          responded_at?: string | null
           response_due_at?: string | null
           response_mode?:
             | Database["public"]["Enums"]["ce_online_response_mode"]
@@ -11082,12 +11109,15 @@ export type Database = {
           sent_at?: string | null
           severity_snapshot?: string | null
           sms_body_snapshot?: string | null
+          stage_key?: string | null
           status?: Database["public"]["Enums"]["ce_comm_status"]
           subject_snapshot?: string | null
           submitted_at?: string | null
           template_id?: string | null
+          trigger_type?: Database["public"]["Enums"]["ce_comm_trigger_type"]
           updated_at?: string
           updated_by?: string | null
+          visit_id?: string | null
         }
         Relationships: [
           {
@@ -53179,6 +53209,7 @@ export type Database = {
         | "partial"
         | "failed"
         | "cancelled"
+      ce_comm_trigger_type: "manual" | "automatic" | "recommended"
       ce_comm_type:
         | "audit_intimation"
         | "books_required"
@@ -53644,6 +53675,7 @@ export const Constants = {
         "failed",
         "cancelled",
       ],
+      ce_comm_trigger_type: ["manual", "automatic", "recommended"],
       ce_comm_type: [
         "audit_intimation",
         "books_required",
