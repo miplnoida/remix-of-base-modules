@@ -120,6 +120,25 @@ export default function AuditVisitWorkspace() {
   const { userCode } = useUserCode();
   const commStatus = useVisitCommunicationStatus(inspectionId);
 
+  // ─── Stage-aware orchestrator ───────────────────────────────
+  // Single façade composing templates ↔ stage map ↔ visit comms ↔
+  // trigger engine ↔ approval workflow ↔ status. Drives the unified
+  // completion-gate "Communications" sub-section and surfaces the
+  // next recommended action to the auditor.
+  const orchestrator = useVisitCommunicationOrchestrator({
+    inspectionId,
+    employerId: inspection?.employer_id ?? planItem?.employer_id ?? null,
+    employerName: planItem?.employer_name ?? inspection?.employer_name ?? undefined,
+    triggerContext: {
+      sessionStarted,
+      sessionClosed,
+      reportStatus,
+      hasViolations,
+    },
+    userCode: userCode ?? undefined,
+    enabled: !!inspectionId,
+  });
+
   // ─── Rule-based visibility context for ContextualCommActions ───
   // Single source of truth for *when* each action button should be offered.
   // Keep this purely derived from already-loaded state — no extra fetches.
