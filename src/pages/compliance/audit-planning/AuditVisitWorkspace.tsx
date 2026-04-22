@@ -57,7 +57,15 @@ import { WorkingPapersTabContent } from '@/components/compliance/inspection/Work
 import { EmployerInteractionTabContent } from '@/components/compliance/inspection/EmployerInteractionTabContent';
 import { EmployerComplianceHistoryPanel } from '@/components/compliance/employer-history/EmployerComplianceHistoryPanel';
 import { VisitCommunicationsTab } from '@/components/compliance/communication/VisitCommunicationsTab';
+import {
+  ContextualCommActions,
+  type ContextualAction,
+} from '@/components/compliance/communication/ContextualCommActions';
 import { useVisitCommunicationStatus } from '@/hooks/useVisitCommunicationStatus';
+import {
+  FileSearch, FileWarning, BellRing, HelpCircle, FileCheck2,
+  FileSignature, FileBadge, ClipboardCheck, AlarmClock, ShieldX,
+} from 'lucide-react';
 import { useUserCode } from '@/hooks/useUserCode';
 import type { InspectionVisit } from '@/types/inspectionTypes';
 
