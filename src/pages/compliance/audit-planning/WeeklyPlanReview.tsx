@@ -173,14 +173,33 @@ export function WeeklyPlanReview() {
       {/* Plan Summary */}
       <Card>
         <CardHeader>
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between flex-wrap gap-2">
             <div>
-              <CardTitle>{plan.plan_number}</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                {plan.plan_number}
+                {((plan as any).version_no ?? 1) > 1 && (
+                  <Badge variant="outline" className="text-xs">
+                    v{(plan as any).version_no} revision
+                  </Badge>
+                )}
+              </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 Week of {plan.week_start_date} to {plan.week_end_date}
               </p>
             </div>
-            {getStatusBadge(plan.status)}
+            <div className="flex items-center gap-2">
+              {((plan as any).version_no ?? 1) > 1 && (
+                <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}>
+                  <GitCompare className="h-4 w-4 mr-1" />
+                  Compare to Previous
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+                <History className="h-4 w-4 mr-1" />
+                History
+              </Button>
+              {getStatusBadge(plan.status)}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
