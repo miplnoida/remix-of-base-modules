@@ -37,6 +37,8 @@ export function WeeklyPlanReview() {
   const [managerComments, setManagerComments] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isActioning, setIsActioning] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     if (planId) loadPlan();
