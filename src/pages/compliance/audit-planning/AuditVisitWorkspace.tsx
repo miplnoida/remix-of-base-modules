@@ -627,6 +627,10 @@ function CompletionGatePanel({
   gateContext?: import('@/components/compliance/communication/CommunicationGateChecks').CommunicationGateContext;
   onCommChanged?: () => void;
   commActionContext?: import('@/components/compliance/communication/ContextualCommActions').CommActionVisibilityContext;
+  /** Orchestrator-derived blockers (composed across status + triggers + approvals). */
+  orchestratorBlockers?: string[];
+  orchestratorReady?: boolean;
+  nextRecommendedLabel?: string | null;
 }) {
   const headerColor = gate.ready
     ? 'text-success'
