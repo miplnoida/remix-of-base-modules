@@ -107,8 +107,12 @@ export default function ComplianceRunner() {
     for (const k of endpoint.pathParams || []) {
       if (!pathValues[k] && !urlOverride) { toast.error(`Path parameter "${k}" is required`); return; }
     }
-    const apiKey = endpoint.requiresApiKey ? await ctx.getApiKeyPlaintext() : null;
-    if (endpoint.requiresApiKey && !apiKey) { toast.error('Could not resolve API key — pick one in Environments / API Keys'); return; }
+    let apiKey: string | null = null;
+    if (endpoint.requiresApiKey) {
+      const res = await ctx.getApiKeyPlaintext();
+      if (!res.key) { toast.error(res.error || 'Could not resolve API key — pick one in API Keys'); return; }
+      apiKey = res.key;
+    }
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (apiKey) headers['X-API-Key'] = apiKey;

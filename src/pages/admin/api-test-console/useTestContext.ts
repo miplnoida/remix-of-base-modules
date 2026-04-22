@@ -90,16 +90,28 @@ export function useTestContext() {
   };
 
   /** Returns the API-key plaintext, fetching via `reveal` on first use. */
-  const getApiKeyPlaintext = async (): Promise<string | null> => {
-    if (!selectedKeyId) return null;
-    const cached = getRevealedKey(selectedKeyId);
-    if (cached) return cached;
-    const { data } = await supabase.functions.invoke('manage-api-keys', { body: { action: 'reveal', key_id: selectedKeyId } });
-    if (data?.status === 'success' && data.api_key) {
-      setRevealedKey(selectedKeyId, data.api_key);
-      return data.api_key;
+  const getApiKeyPlaintext = async (): Promise<{ key: string | null; error: string | null }> => {
+    // Resolve a key id even if state isn't set yet (race on first render)
+    let keyId = selectedKeyId;
+    if (!keyId) {
+      const { data: list } = await supabase.functions.invoke('manage-api-keys', { body: { action: 'list' } });
+      const all: ApiKey[] = list?.data || [];
+      const firstActive = all.find((k) => k.status === 'active');
+      keyId = firstActive?.id || null;
+      if (keyId) { setSelectedKeyId(keyId); _setSelectedKeyId(keyId); setKeys(all); }
     }
-    return null;
+    if (!keyId) return { key: null, error: 'No active API key found. Create or activate one in API Keys.' };
+
+    const cached = getRevealedKey(keyId);
+    if (cached) return { key: cached, error: null };
+
+    const { data, error } = await supabase.functions.invoke('manage-api-keys', { body: { action: 'reveal', key_id: keyId } });
+    if (error) return { key: null, error: error.message || 'reveal call failed' };
+    if (data?.status === 'success' && data.api_key) {
+      setRevealedKey(keyId, data.api_key);
+      return { key: data.api_key, error: null };
+    }
+    return { key: null, error: data?.message || data?.error || 'Reveal returned no key (check admin role)' };
   };
 
   return { env, keys, selectedKeyId, selectKey, loading, getApiKeyPlaintext };
