@@ -152,7 +152,26 @@ export default function MyPlans() {
     }
   };
 
-  return (
+  // Buckets — include Phase 3 revision statuses where appropriate.
+  const activePlans = plans.filter(p => p.status !== WeeklyPlanStatus.WITHDRAWN);
+  const draftPlans = activePlans.filter(p =>
+    p.status === WeeklyPlanStatus.DRAFT ||
+    p.status === WeeklyPlanStatus.REVISION_DRAFT ||
+    p.status === WeeklyPlanStatus.REVISION_QUERIED
+  );
+  const needsChangesPlans = activePlans.filter(p => p.status === WeeklyPlanStatus.NEEDS_CHANGES);
+  const pendingPlans = activePlans.filter(p =>
+    p.status === WeeklyPlanStatus.SUBMITTED ||
+    p.status === WeeklyPlanStatus.RESUBMITTED ||
+    p.status === WeeklyPlanStatus.REVISION_SUBMITTED
+  );
+  const approvedPlans = activePlans.filter(p =>
+    p.status === WeeklyPlanStatus.APPROVED ||
+    p.status === WeeklyPlanStatus.IN_EXECUTION ||
+    p.status === WeeklyPlanStatus.REVISION_APPROVED
+  );
+  const completedPlans = activePlans.filter(p => p.status === WeeklyPlanStatus.COMPLETED);
+
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
         title="My Weekly Plans"
