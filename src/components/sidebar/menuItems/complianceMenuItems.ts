@@ -178,7 +178,14 @@ export const complianceMenuItems = [
             url: "/compliance/field/plan-builder",
             icon: Calendar,
             requiresPermission: "create_weekly_plan",
-            description: "Create and manage weekly audit plans",
+            description: "Create and manage weekly audit plans (legacy)",
+          },
+          {
+            title: "Plan Builder (Enhanced)",
+            url: "/compliance/field/plan-builder-v2",
+            icon: Calendar,
+            requiresPermission: "create_weekly_plan",
+            description: "Enhanced weekly planner with multi-zone filter, version labels, and revision workflow",
           },
           {
             title: "My Plans",
