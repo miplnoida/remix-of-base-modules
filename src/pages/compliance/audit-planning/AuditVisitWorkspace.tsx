@@ -43,6 +43,7 @@ import {
   ListChecks,
   ClipboardList,
   ShieldAlert,
+  MessageSquare,
 } from 'lucide-react';
 import {
   fieldAuditService,
@@ -55,6 +56,9 @@ import { FindingsTabContent } from '@/components/compliance/inspection/FindingsT
 import { WorkingPapersTabContent } from '@/components/compliance/inspection/WorkingPapersTabContent';
 import { EmployerInteractionTabContent } from '@/components/compliance/inspection/EmployerInteractionTabContent';
 import { EmployerComplianceHistoryPanel } from '@/components/compliance/employer-history/EmployerComplianceHistoryPanel';
+import { VisitCommunicationsTab } from '@/components/compliance/communication/VisitCommunicationsTab';
+import { useVisitCommunicationStatus } from '@/hooks/useVisitCommunicationStatus';
+import { useUserCode } from '@/hooks/useUserCode';
 import type { InspectionVisit } from '@/types/inspectionTypes';
 
 export default function AuditVisitWorkspace() {
