@@ -465,7 +465,7 @@ export default function MyPlans() {
                         </TableRow>
                       );
                     })}
-                  </>
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
