@@ -18800,6 +18800,132 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_planner_candidate_actions: {
+        Row: {
+          action_type: string
+          approval_required: boolean
+          approval_status: string
+          approved_at: string | null
+          approved_by_user_code: string | null
+          audit_program: string | null
+          capacity_impact_hours: number
+          created_at: string
+          created_by: string | null
+          displaces_candidate: boolean
+          employer_id: string
+          exception_category: string | null
+          exception_justification: string | null
+          id: string
+          inspector_id: string | null
+          is_active: boolean
+          linked_campaign_id: string | null
+          linked_case_id: string | null
+          linked_violation_id: string | null
+          notes: string | null
+          plan_id: string | null
+          reason: string | null
+          requested_by_user_code: string | null
+          updated_at: string
+          updated_by: string | null
+          week_start_date: string
+          zone_id: string | null
+        }
+        Insert: {
+          action_type: string
+          approval_required?: boolean
+          approval_status?: string
+          approved_at?: string | null
+          approved_by_user_code?: string | null
+          audit_program?: string | null
+          capacity_impact_hours?: number
+          created_at?: string
+          created_by?: string | null
+          displaces_candidate?: boolean
+          employer_id: string
+          exception_category?: string | null
+          exception_justification?: string | null
+          id?: string
+          inspector_id?: string | null
+          is_active?: boolean
+          linked_campaign_id?: string | null
+          linked_case_id?: string | null
+          linked_violation_id?: string | null
+          notes?: string | null
+          plan_id?: string | null
+          reason?: string | null
+          requested_by_user_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          week_start_date: string
+          zone_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          approval_required?: boolean
+          approval_status?: string
+          approved_at?: string | null
+          approved_by_user_code?: string | null
+          audit_program?: string | null
+          capacity_impact_hours?: number
+          created_at?: string
+          created_by?: string | null
+          displaces_candidate?: boolean
+          employer_id?: string
+          exception_category?: string | null
+          exception_justification?: string | null
+          id?: string
+          inspector_id?: string | null
+          is_active?: boolean
+          linked_campaign_id?: string | null
+          linked_case_id?: string | null
+          linked_violation_id?: string | null
+          notes?: string | null
+          plan_id?: string | null
+          reason?: string | null
+          requested_by_user_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          week_start_date?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_planner_candidate_actions_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["inspector_id"]
+          },
+          {
+            foreignKeyName: "ce_planner_candidate_actions_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_planner_candidate_actions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_plan_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_planner_candidate_actions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_report_summary"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "ce_planner_candidate_actions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_posting_queue: {
         Row: {
           amount: number

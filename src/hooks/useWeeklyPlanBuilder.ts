@@ -423,6 +423,7 @@ export function useWeeklyPlanBuilder() {
     userCode,
     fullName,
     userLoading,
+    inspectorId,
     // Week
     week,
     selectedWeekRef,
