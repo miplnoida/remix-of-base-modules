@@ -417,6 +417,31 @@ export default function AuditVisitWorkspace() {
             maxSeverity: deriveMaxSeverity(metrics),
             enforcementThreshold: 'MEDIUM',
             hasOverdueItems: (metrics?.followUpCount ?? 0) > 0,
+            intimation: {
+              plannedDate: planItem?.planned_date ?? null,
+              sessionStartedAt: inspection?.session_started_at ?? null,
+              minLeadHours: intimationMinLeadHours,
+              exceptionRecorded: intimationException,
+            },
+          }}
+          onGateQuickAction={(check, kind, commType) => {
+            if (kind === 'record_exception') {
+              setExceptionDialogOpen(true);
+              return;
+            }
+            const ct = commType ?? 'audit_intimation';
+            if (ct === 'audit_intimation' && !intimationTemplateId) {
+              toast.error(
+                'No active Audit Intimation template is mapped for this visit stage.',
+                { description: 'Configure one in Settings → Communications → Templates.' },
+              );
+              return;
+            }
+            setComposerState({
+              commType: ct,
+              templateId: ct === 'audit_intimation' ? intimationTemplateId ?? undefined : undefined,
+              sendLate: ct === 'audit_intimation' && sessionStarted,
+            });
           }}
           onCommChanged={commStatus.refresh}
           commActionContext={commActionContext}
