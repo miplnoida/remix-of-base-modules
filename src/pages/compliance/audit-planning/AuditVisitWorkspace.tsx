@@ -173,8 +173,9 @@ export default function AuditVisitWorkspace() {
     };
   }, [
     metrics, reportStatus, hasViolations, sessionStarted, sessionClosed,
-    commStatus.items, commStatus.itemsByType, commStatus.finalStageIssued,
+    commStatus.itemsByType, commStatus.finalStageIssued,
     commStatus.hasOpenItems, commStatus.pendingApproval,
+    commStatus.overdueResponses, commStatus.overdueAcknowledgments,
   ]);
 
   const planId = planIdFromRoute ?? plan?.id;
