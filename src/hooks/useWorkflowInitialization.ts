@@ -173,23 +173,23 @@ export function useWorkflowInitialization({
     console.log(`[useWorkflowInitialization] User confirmed workflow initiation for ${uniqueUuid}`);
 
     try {
-      const instanceId = await triggerIPRegistrationWorkflow({
+      const result = await triggerIPRegistrationWorkflow({
         uniqueUuid,
         ssn: ssn || '',
         recordName,
         userId,
+        allowReinitiate: true,
       });
 
-      if (instanceId) {
-        setWorkflowInstanceId(instanceId);
+      if (result.created && result.instanceId) {
+        setWorkflowInstanceId(result.instanceId);
         setExistingInstanceFound(true);
         toast.success(`Workflow "${eligibility.workflowName}" initiated successfully`);
-        console.log(`[useWorkflowInitialization] Workflow instance created: ${instanceId}`);
+        console.log(`[useWorkflowInitialization] Workflow instance created: ${result.instanceId}`);
 
-        // Invalidate workflow-actions query so WorkflowActionButtons re-fetches
         queryClient.invalidateQueries({ queryKey: ['workflow-actions'] });
 
-        // Audit log
+        // Audit log — only when a NEW instance was actually created
         await supabase.from('ip_audit_log').insert({
           table_name: 'ip_master',
           record_id: uniqueUuid,
@@ -197,20 +197,35 @@ export function useWorkflowInitialization({
           action: 'WORKFLOW_INITIATED',
           changed_by: userId,
           field_name: 'workflow_instance',
-          new_value: instanceId,
+          new_value: result.instanceId,
+        });
+      } else if (!result.created && result.instanceId) {
+        // An existing instance was returned (active duplicate) — don't claim success
+        setWorkflowInstanceId(result.instanceId);
+        setExistingInstanceFound(true);
+        toast.info(result.reason || 'A workflow is already in progress for this record.');
+
+        await supabase.from('ip_audit_log').insert({
+          table_name: 'ip_master',
+          record_id: uniqueUuid,
+          unique_uuid: uniqueUuid,
+          action: 'WORKFLOW_REUSED',
+          changed_by: userId,
+          field_name: 'workflow_instance',
+          new_value: result.instanceId,
         });
       } else {
-        toast.error('Failed to create workflow instance');
-        console.error('[useWorkflowInitialization] triggerIPRegistrationWorkflow returned null');
+        toast.error(result.reason || 'Failed to create workflow instance');
+        console.error('[useWorkflowInitialization] Workflow not created:', result.reason);
       }
     } catch (err) {
       console.error('[useWorkflowInitialization] Error initiating workflow:', err);
-      toast.error('Error initiating workflow');
+      toast.error(err instanceof Error ? err.message : 'Error initiating workflow');
     } finally {
       setIsInitiating(false);
       setShowDialog(false);
     }
-  }, [uniqueUuid, ssn, recordName, userId, eligibility]);
+  }, [uniqueUuid, ssn, recordName, userId, eligibility, queryClient]);
 
   const recheck = useCallback(() => {
     hasCheckedRef.current = false;
