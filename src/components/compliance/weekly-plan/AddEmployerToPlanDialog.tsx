@@ -188,7 +188,6 @@ function RecommendedTab({
   const [query, setQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [sourceFilter, setSourceFilter] = useState<string>('ALL');
-  const [visibleCount, setVisibleCount] = useState(50);
 
   const available = useMemo(
     () =>
@@ -225,9 +224,6 @@ function RecommendedTab({
     });
   }, [available, query, priorityFilter, sourceFilter]);
 
-  const visible = filtered.slice(0, visibleCount);
-  const hasMore = filtered.length > visible.length;
-
   if (available.length === 0) {
     return (
       <div className="py-10 text-center text-sm text-muted-foreground">
@@ -244,12 +240,12 @@ function RecommendedTab({
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             value={query}
-            onChange={e => { setQuery(e.target.value); setVisibleCount(50); }}
+            onChange={e => setQuery(e.target.value)}
             placeholder="Search by employer name, ID, sector, territory…"
             className="pl-8 h-9"
           />
         </div>
-        <Select value={priorityFilter} onValueChange={v => { setPriorityFilter(v); setVisibleCount(50); }}>
+        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
           <SelectTrigger className="h-9 w-full sm:w-[140px]"><SelectValue placeholder="Priority" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All priorities</SelectItem>
@@ -260,7 +256,7 @@ function RecommendedTab({
           </SelectContent>
         </Select>
         {sources.length > 1 && (
-          <Select value={sourceFilter} onValueChange={v => { setSourceFilter(v); setVisibleCount(50); }}>
+          <Select value={sourceFilter} onValueChange={setSourceFilter}>
             <SelectTrigger className="h-9 w-full sm:w-[160px]"><SelectValue placeholder="Source" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">All sources</SelectItem>
@@ -272,15 +268,15 @@ function RecommendedTab({
 
       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
         <span>
-          Showing <strong>{visible.length}</strong> of <strong>{filtered.length}</strong>
-          {filtered.length !== available.length && ` (filtered from ${available.length})`}
+          Showing <strong>{filtered.length}</strong> of <strong>{available.length}</strong> recommended employers
+          {filtered.length !== available.length && ' (after filters)'}
         </span>
         {(query || priorityFilter !== 'ALL' || sourceFilter !== 'ALL') && (
           <Button
             variant="ghost"
             size="sm"
             className="h-6 text-[11px]"
-            onClick={() => { setQuery(''); setPriorityFilter('ALL'); setSourceFilter('ALL'); setVisibleCount(50); }}
+            onClick={() => { setQuery(''); setPriorityFilter('ALL'); setSourceFilter('ALL'); }}
           >
             Clear filters
           </Button>
@@ -293,7 +289,7 @@ function RecommendedTab({
         </div>
       ) : (
         <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-          {visible.map(c => (
+          {filtered.map(c => (
             <div key={c.source_id || c.source_ref} className="border rounded-md p-3 bg-card">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -322,16 +318,6 @@ function RecommendedTab({
               </div>
             </div>
           ))}
-          {hasMore && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => setVisibleCount(c => c + 50)}
-            >
-              Show 50 more ({filtered.length - visible.length} remaining)
-            </Button>
-          )}
         </div>
       )}
     </div>
