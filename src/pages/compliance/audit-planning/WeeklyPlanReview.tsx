@@ -391,6 +391,10 @@ export function WeeklyPlanReview() {
           </CardContent>
         </Card>
       )}
+
+      {/* Phase 4 — Manager compare & version history dialogs */}
+      <PlanCompareDialog plan={compareOpen ? plan : null} onClose={() => setCompareOpen(false)} />
+      <PlanVersionHistoryDialog plan={historyOpen ? plan : null} onClose={() => setHistoryOpen(false)} />
     </div>
   );
 }
