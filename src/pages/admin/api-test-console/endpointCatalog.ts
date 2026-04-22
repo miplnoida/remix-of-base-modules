@@ -15,6 +15,8 @@ export interface CatalogEndpoint {
   sampleBody?: any;
   pathParams?: string[];
   expectedStatus?: number;
+  /** Optional api_settings.setting_key — when set, base URL is resolved from api_settings instead of the environment. */
+  apiSettingKey?: string;
 }
 
 export const ENDPOINT_CATALOG: CatalogEndpoint[] = [
