@@ -15306,6 +15306,13 @@ export type Database = {
             foreignKeyName: "ce_field_activities_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
+            referencedRelation: "ce_v_weekly_plan_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_field_activities_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
             referencedRelation: "ce_v_weekly_report_summary"
             referencedColumns: ["plan_id"]
           },
@@ -18412,6 +18419,13 @@ export type Database = {
             foreignKeyName: "ce_planned_visits_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
+            referencedRelation: "ce_v_weekly_plan_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_planned_visits_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
             referencedRelation: "ce_v_weekly_report_summary"
             referencedColumns: ["plan_id"]
           },
@@ -18976,6 +18990,7 @@ export type Database = {
         Row: {
           arrears_score: number | null
           assessed_by: string | null
+          audit_frequency_override: string | null
           created_at: string | null
           created_by: string | null
           employer_id: string
@@ -18984,6 +18999,7 @@ export type Database = {
           filing_score: number | null
           id: string
           last_calculated_at: string | null
+          last_inspected_at: string | null
           legal_history_score: number | null
           next_review_date: string | null
           notes: string | null
@@ -18998,10 +19014,12 @@ export type Database = {
           updated_at: string | null
           updated_by: string | null
           violation_score: number | null
+          zone_id: string | null
         }
         Insert: {
           arrears_score?: number | null
           assessed_by?: string | null
+          audit_frequency_override?: string | null
           created_at?: string | null
           created_by?: string | null
           employer_id: string
@@ -19010,6 +19028,7 @@ export type Database = {
           filing_score?: number | null
           id?: string
           last_calculated_at?: string | null
+          last_inspected_at?: string | null
           legal_history_score?: number | null
           next_review_date?: string | null
           notes?: string | null
@@ -19024,10 +19043,12 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           violation_score?: number | null
+          zone_id?: string | null
         }
         Update: {
           arrears_score?: number | null
           assessed_by?: string | null
+          audit_frequency_override?: string | null
           created_at?: string | null
           created_by?: string | null
           employer_id?: string
@@ -19036,6 +19057,7 @@ export type Database = {
           filing_score?: number | null
           id?: string
           last_calculated_at?: string | null
+          last_inspected_at?: string | null
           legal_history_score?: number | null
           next_review_date?: string | null
           notes?: string | null
@@ -19050,8 +19072,17 @@ export type Database = {
           updated_at?: string | null
           updated_by?: string | null
           violation_score?: number | null
+          zone_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ce_risk_profiles_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ce_risk_score_history: {
         Row: {
@@ -20078,6 +20109,7 @@ export type Database = {
       ce_weekly_plan_items: {
         Row: {
           area_name: string | null
+          audit_cycle_due_date: string | null
           carried_forward_to: string | null
           check_in_gps_lat: number | null
           check_in_gps_lng: number | null
@@ -20101,7 +20133,9 @@ export type Database = {
           plan_id: string
           priority: string | null
           purpose: string | null
+          recommendation_reasons: Json | null
           recommendation_score: number | null
+          recommendation_source: string | null
           reschedule_reason: string | null
           rescheduled_to: string | null
           scheduled_date: string | null
@@ -20116,9 +20150,11 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           visit_type: string | null
+          zone_id: string | null
         }
         Insert: {
           area_name?: string | null
+          audit_cycle_due_date?: string | null
           carried_forward_to?: string | null
           check_in_gps_lat?: number | null
           check_in_gps_lng?: number | null
@@ -20142,7 +20178,9 @@ export type Database = {
           plan_id: string
           priority?: string | null
           purpose?: string | null
+          recommendation_reasons?: Json | null
           recommendation_score?: number | null
+          recommendation_source?: string | null
           reschedule_reason?: string | null
           rescheduled_to?: string | null
           scheduled_date?: string | null
@@ -20157,9 +20195,11 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           visit_type?: string | null
+          zone_id?: string | null
         }
         Update: {
           area_name?: string | null
+          audit_cycle_due_date?: string | null
           carried_forward_to?: string | null
           check_in_gps_lat?: number | null
           check_in_gps_lng?: number | null
@@ -20183,7 +20223,9 @@ export type Database = {
           plan_id?: string
           priority?: string | null
           purpose?: string | null
+          recommendation_reasons?: Json | null
           recommendation_score?: number | null
+          recommendation_source?: string | null
           reschedule_reason?: string | null
           rescheduled_to?: string | null
           scheduled_date?: string | null
@@ -20198,8 +20240,16 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           visit_type?: string | null
+          zone_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ce_weekly_plan_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_plan_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ce_weekly_plan_items_plan_id_fkey"
             columns: ["plan_id"]
@@ -20212,6 +20262,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plan_items_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
             referencedColumns: ["id"]
           },
           {
@@ -20253,6 +20310,13 @@ export type Database = {
             foreignKeyName: "ce_weekly_plan_reviews_plan_id_fkey"
             columns: ["plan_id"]
             isOneToOne: false
+            referencedRelation: "ce_v_weekly_plan_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plan_reviews_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
             referencedRelation: "ce_v_weekly_report_summary"
             referencedColumns: ["plan_id"]
           },
@@ -20277,24 +20341,31 @@ export type Database = {
           id: string
           inspector_id: string | null
           inspector_name: string | null
+          is_current_version: boolean
           narrative: string | null
           outcome_narrative: string | null
           outcome_reviewed_at: string | null
           outcome_reviewed_by: string | null
           outcome_submitted_at: string | null
+          parent_plan_id: string | null
           plan_number: string
           rejected_date: string | null
           rejection_count: number | null
           reviewer_comments: string | null
           reviewer_id: string | null
+          revision_reason: string | null
           status: string | null
           submitted_date: string | null
+          superseded_at: string | null
+          superseded_by_plan_id: string | null
           supervisor_comments: string | null
           total_planned_visits: number | null
           updated_at: string | null
           updated_by: string | null
+          version_no: number
           week_end_date: string
           week_start_date: string
+          zone_id: string | null
         }
         Insert: {
           approved_by?: string | null
@@ -20307,24 +20378,31 @@ export type Database = {
           id?: string
           inspector_id?: string | null
           inspector_name?: string | null
+          is_current_version?: boolean
           narrative?: string | null
           outcome_narrative?: string | null
           outcome_reviewed_at?: string | null
           outcome_reviewed_by?: string | null
           outcome_submitted_at?: string | null
+          parent_plan_id?: string | null
           plan_number: string
           rejected_date?: string | null
           rejection_count?: number | null
           reviewer_comments?: string | null
           reviewer_id?: string | null
+          revision_reason?: string | null
           status?: string | null
           submitted_date?: string | null
+          superseded_at?: string | null
+          superseded_by_plan_id?: string | null
           supervisor_comments?: string | null
           total_planned_visits?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          version_no?: number
           week_end_date: string
           week_start_date: string
+          zone_id?: string | null
         }
         Update: {
           approved_by?: string | null
@@ -20337,26 +20415,40 @@ export type Database = {
           id?: string
           inspector_id?: string | null
           inspector_name?: string | null
+          is_current_version?: boolean
           narrative?: string | null
           outcome_narrative?: string | null
           outcome_reviewed_at?: string | null
           outcome_reviewed_by?: string | null
           outcome_submitted_at?: string | null
+          parent_plan_id?: string | null
           plan_number?: string
           rejected_date?: string | null
           rejection_count?: number | null
           reviewer_comments?: string | null
           reviewer_id?: string | null
+          revision_reason?: string | null
           status?: string | null
           submitted_date?: string | null
+          superseded_at?: string | null
+          superseded_by_plan_id?: string | null
           supervisor_comments?: string | null
           total_planned_visits?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          version_no?: number
           week_end_date?: string
           week_start_date?: string
+          zone_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ce_weekly_plans_carry_forward_from_fkey"
+            columns: ["carry_forward_from"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_plan_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ce_weekly_plans_carry_forward_from_fkey"
             columns: ["carry_forward_from"]
@@ -20383,6 +20475,55 @@ export type Database = {
             columns: ["inspector_id"]
             isOneToOne: false
             referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_parent_plan_id_fkey"
+            columns: ["parent_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_plan_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_parent_plan_id_fkey"
+            columns: ["parent_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_report_summary"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_parent_plan_id_fkey"
+            columns: ["parent_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_superseded_by_plan_id_fkey"
+            columns: ["superseded_by_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_plan_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_superseded_by_plan_id_fkey"
+            columns: ["superseded_by_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_report_summary"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_superseded_by_plan_id_fkey"
+            columns: ["superseded_by_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -49865,6 +50006,139 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_v_weekly_plan_versions: {
+        Row: {
+          approved_by: string | null
+          approved_date: string | null
+          created_at: string | null
+          id: string | null
+          inspector_id: string | null
+          inspector_name: string | null
+          is_current_version: boolean | null
+          parent_plan_id: string | null
+          plan_family_id: string | null
+          plan_number: string | null
+          revision_reason: string | null
+          status: string | null
+          submitted_date: string | null
+          superseded_at: string | null
+          superseded_by_plan_id: string | null
+          updated_at: string | null
+          version_no: number | null
+          week_end_date: string | null
+          week_start_date: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          approved_by?: string | null
+          approved_date?: string | null
+          created_at?: string | null
+          id?: string | null
+          inspector_id?: string | null
+          inspector_name?: string | null
+          is_current_version?: boolean | null
+          parent_plan_id?: string | null
+          plan_family_id?: never
+          plan_number?: string | null
+          revision_reason?: string | null
+          status?: string | null
+          submitted_date?: string | null
+          superseded_at?: string | null
+          superseded_by_plan_id?: string | null
+          updated_at?: string | null
+          version_no?: number | null
+          week_end_date?: string | null
+          week_start_date?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          approved_by?: string | null
+          approved_date?: string | null
+          created_at?: string | null
+          id?: string | null
+          inspector_id?: string | null
+          inspector_name?: string | null
+          is_current_version?: boolean | null
+          parent_plan_id?: string | null
+          plan_family_id?: never
+          plan_number?: string | null
+          revision_reason?: string | null
+          status?: string | null
+          submitted_date?: string | null
+          superseded_at?: string | null
+          superseded_by_plan_id?: string | null
+          updated_at?: string | null
+          version_no?: number | null
+          week_end_date?: string | null
+          week_start_date?: string | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_weekly_plans_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspector_profiles"
+            referencedColumns: ["inspector_id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_inspector_id_fkey"
+            columns: ["inspector_id"]
+            isOneToOne: false
+            referencedRelation: "ce_inspectors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_parent_plan_id_fkey"
+            columns: ["parent_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_plan_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_parent_plan_id_fkey"
+            columns: ["parent_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_report_summary"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_parent_plan_id_fkey"
+            columns: ["parent_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_superseded_by_plan_id_fkey"
+            columns: ["superseded_by_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_plan_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_superseded_by_plan_id_fkey"
+            columns: ["superseded_by_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_report_summary"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_superseded_by_plan_id_fkey"
+            columns: ["superseded_by_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "ce_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_v_weekly_report_summary: {
         Row: {
           cancelled_visits: number | null
@@ -51005,9 +51279,17 @@ export type Database = {
         Args: { p_performed_by?: string; p_violation_id: string }
         Returns: Json
       }
+      fn_ce_create_plan_revision: {
+        Args: { p_actor: string; p_plan_id: string; p_reason: string }
+        Returns: string
+      }
       fn_ce_generate_legal_recommendations: {
         Args: { p_created_by?: string }
         Returns: number
+      }
+      fn_ce_promote_plan_revision: {
+        Args: { p_actor: string; p_revision_id: string }
+        Returns: undefined
       }
       fn_ce_recalculate_case_severity: {
         Args: { p_case_id: string }
