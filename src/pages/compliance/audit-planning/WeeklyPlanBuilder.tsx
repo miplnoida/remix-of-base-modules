@@ -39,7 +39,29 @@ import { DayDetailPanel } from '@/components/compliance/weekly-plan/DayDetailPan
 import { WeeklyPlanStatus } from '@/types/weeklyPlan';
 import { generateSmartDraft, draftToRequests } from '@/lib/smartDraftEngine';
 
+const STORAGE_KEY = 'compliance.weeklyPlan.viewMode';
+type ViewMode = 'smart' | 'legacy';
+
 export default function WeeklyPlanBuilder() {
+  const [mode, setMode] = useState<ViewMode>(() => {
+    if (typeof window === 'undefined') return 'smart';
+    const stored = window.localStorage.getItem(STORAGE_KEY);
+    return stored === 'legacy' ? 'legacy' : 'smart';
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(STORAGE_KEY, mode);
+    }
+  }, [mode]);
+
+  if (mode === 'smart') {
+    return <WeeklyPlanBuilderSmart onSwitchToLegacy={() => setMode('legacy')} />;
+  }
+  return <WeeklyPlanBuilderLegacy onSwitchToSmart={() => setMode('smart')} />;
+}
+
+function WeeklyPlanBuilderLegacy({ onSwitchToSmart }: { onSwitchToSmart: () => void }) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const builder = useWeeklyPlanBuilder();
