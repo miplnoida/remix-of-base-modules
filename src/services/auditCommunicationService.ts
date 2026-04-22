@@ -14,12 +14,12 @@ import type {
   AuditCommunicationRecipient,
   CeCommApprovalRole,
   CeCommChannel,
-  CommApprovalRule,
   CreateCommunicationDraftInput,
 } from '@/types/auditCommunication';
 import { auditCommunicationTemplateService } from './auditCommunicationTemplateService';
 import { auditCommunicationRecipientService } from './auditCommunicationRecipientService';
 import { resolveOnlineResponse } from './onlineResponseResolver';
+import { commApprovalPolicyService } from './commApprovalPolicyService';
 
 const COMM = 'ce_audit_communications' as any;
 const REC = 'ce_audit_communication_recipients' as any;
@@ -66,6 +66,20 @@ export const auditCommunicationService = {
     const smsBody = renderTemplate(tpl.sms_body, ctx);
     const channel: CeCommChannel = input.channel || tpl.channel;
 
+    // Resolve the approval plan via the configurable policy layer.
+    // Falls back to the template's static approval_rule_json if no policy matches.
+    const fallbackRoles = ((tpl.approval_rule_json as any)?.roles ?? []) as any[];
+    const plan = await commApprovalPolicyService.resolve(
+      {
+        commType: tpl.comm_type,
+        lifecycleStage: tpl.lifecycle_stage ?? null,
+        caseType: input.caseType ?? (input.contextData as any)?.case_type ?? null,
+        enforcementStage: input.enforcementStage ?? (input.contextData as any)?.enforcement_stage ?? null,
+        severity: input.severity ?? 'none',
+      },
+      fallbackRoles,
+    );
+
     const { data: comm, error } = await (supabase.from(COMM) as any)
       .insert({
         inspection_id: input.inspectionId ?? null,
@@ -82,6 +96,8 @@ export const auditCommunicationService = {
         scheduled_at: input.scheduledAt ?? null,
         created_by: input.createdBy,
         updated_by: input.createdBy,
+        severity_snapshot: input.severity ?? 'none',
+        applied_policy_id: plan.policyId,
       })
       .select()
       .single();
@@ -116,11 +132,10 @@ export const auditCommunicationService = {
       if (recErr) throw recErr;
     }
 
-    // Build approval chain from template's approval_rule_json
-    const rule: CommApprovalRule = (tpl.approval_rule_json as any) || { roles: [] };
-    if (rule.roles?.length) {
+    // Build approval chain from the resolved policy plan
+    if (plan.requiredRoles.length) {
       await (supabase.from(APP) as any).insert(
-        rule.roles.map((role, idx) => ({
+        plan.requiredRoles.map((role, idx) => ({
           communication_id: (comm as any).id,
           step_no: idx + 1,
           required_role: role,
@@ -129,7 +144,13 @@ export const auditCommunicationService = {
       );
     }
 
-    await logEvent((comm as any).id, 'draft_created', input.createdBy);
+    await logEvent((comm as any).id, 'draft_created', input.createdBy, {
+      policy_id: plan.policyId,
+      policy_code: plan.policyCode,
+      direct_send_allowed: plan.directSendAllowed,
+      required_roles: plan.requiredRoles,
+      severity: input.severity ?? 'none',
+    });
     return this.getById((comm as any).id) as Promise<CommRow>;
   },
 

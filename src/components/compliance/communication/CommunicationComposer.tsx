@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/select';
 import {
   AlertTriangle, CheckCircle2, ExternalLink, FileText, Loader2, Lock, Mail,
-  MessageSquare, Paperclip, Plus, Send, Settings2, ShieldCheck, Trash2,
+  MessageSquare, Paperclip, Plus, Send, Settings2, ShieldCheck, ThumbsDown, Trash2, UserCheck,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -54,12 +54,14 @@ import {
 } from '@/services/auditCommunicationInstanceService';
 import { auditCommunicationTemplateService } from '@/services/auditCommunicationTemplateService';
 import { auditCommunicationRecipientService } from '@/services/auditCommunicationRecipientService';
+import { auditCommunicationApprovalService } from '@/services/auditCommunicationApprovalService';
 import { fieldStageTemplateMapService } from '@/services/fieldStageTemplateMapService';
 import {
   renderMergeFields, DEFAULT_PREVIEW_SAMPLE,
 } from '@/lib/audit/communicationMergePreview';
 import type {
-  AuditCommunication, AuditCommunicationTemplate, CeCommChannel, CeCommType,
+  AuditCommunication, AuditCommunicationApproval, AuditCommunicationTemplate,
+  CeCommApprovalRole, CeCommChannel, CeCommType,
 } from '@/types/auditCommunication';
 import type { FieldExecutionStage } from '@/types/fieldStageMapping';
 
@@ -105,6 +107,11 @@ export interface CommunicationComposerProps {
   employerId: string;
   employerName?: string;
   userCode?: string;
+  /**
+   * Roles held by the current user — used to gate the Approve/Reject controls.
+   * If a pending step's `required_role` is in this list the user can act on it.
+   */
+  approverRoles?: CeCommApprovalRole[];
 
   /** Mode A — open the composer for an existing draft (e.g. from the panel). */
   communicationId?: string;
@@ -116,6 +123,11 @@ export interface CommunicationComposerProps {
   /** Auto-fill context — merged into the template snapshot at draft time. */
   caseContext?: ComposerCaseContext;
   visitContext?: ComposerVisitContext;
+  /**
+   * Severity feeds the approval-policy resolver. Defaults to 'none'.
+   * Pass the highest live finding severity for the visit.
+   */
+  severity?: 'none' | 'low' | 'medium' | 'high' | 'critical';
 }
 
 /* ─────────────────────────── Helpers ─────────────────────────── */
@@ -163,9 +175,9 @@ async function deleteAttachment(id: string) {
 export function CommunicationComposer(props: CommunicationComposerProps) {
   const {
     open, onClose, onChanged,
-    inspectionId, employerId, employerName, userCode,
+    inspectionId, employerId, employerName, userCode, approverRoles = [],
     communicationId, templateId, action,
-    caseContext, visitContext,
+    caseContext, visitContext, severity = 'none',
   } = props;
 
   // ----- Lifecycle state
@@ -329,6 +341,9 @@ export function CommunicationComposer(props: CommunicationComposerProps) {
       templateId: tplId,
       contextData: ctx,
       createdBy: userCode,
+      severity,
+      caseType: caseContext?.case_type ?? null,
+      enforcementStage: caseContext?.enforcement_stage ?? null,
     });
     await loadCommunication(created.id);
   }
@@ -559,12 +574,20 @@ export function CommunicationComposer(props: CommunicationComposerProps) {
         )}
 
         {phase === 'ready' && comm && (
-          <Tabs defaultValue="compose">
-            <TabsList className="grid grid-cols-5">
+          <Tabs defaultValue={comm.status === 'pending_approval' || comm.status === 'rejected' ? 'approval' : 'compose'}>
+            <TabsList className="grid grid-cols-6">
               <TabsTrigger value="compose">Compose</TabsTrigger>
               <TabsTrigger value="recipients">Recipients</TabsTrigger>
               <TabsTrigger value="attachments">Attachments</TabsTrigger>
               <TabsTrigger value="schedule">Schedule</TabsTrigger>
+              <TabsTrigger value="approval" className="relative">
+                Approval
+                {comm.approvals && comm.approvals.some((a) => a.status === 'pending') && (
+                  <span className="ml-1 inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-primary text-primary-foreground text-[10px]">
+                    {comm.approvals.filter((a) => a.status === 'pending').length}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="preview">Preview</TabsTrigger>
             </TabsList>
 
@@ -724,6 +747,80 @@ export function CommunicationComposer(props: CommunicationComposerProps) {
               </div>
             </TabsContent>
 
+            {/* ─────── Approval workflow ─────── */}
+            <TabsContent value="approval" className="space-y-3 pt-3">
+              {(comm.approvals?.length ?? 0) === 0 ? (
+                <div className="rounded border bg-muted/30 p-3 text-sm flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                  <span>
+                    No approval required for this communication
+                    {comm.severity_snapshot && comm.severity_snapshot !== 'none' && (
+                      <> (severity: <Badge variant="outline" className="text-[10px]">{comm.severity_snapshot}</Badge>)</>
+                    )}
+                    . It can be sent directly once a draft is ready.
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div className="text-xs text-muted-foreground">
+                    Approval chain resolved by policy at draft creation. Author:{' '}
+                    <span className="font-medium text-foreground">{comm.created_by || 'system'}</span>
+                    {comm.severity_snapshot && (
+                      <> · severity <Badge variant="outline" className="text-[10px]">{comm.severity_snapshot}</Badge></>
+                    )}
+                  </div>
+                  <ol className="space-y-2">
+                    {(comm.approvals || []).slice().sort((a, b) => a.step_no - b.step_no).map((a: AuditCommunicationApproval) => {
+                      const canAct = a.status === 'pending' && approverRoles.includes(a.required_role);
+                      return (
+                        <li key={a.id} className="border rounded p-3 space-y-2">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">Step {a.step_no}</Badge>
+                              <span className="font-medium capitalize">{a.required_role.replace('_', ' ')}</span>
+                              <Badge
+                                variant={a.status === 'approved' ? 'default' : a.status === 'rejected' ? 'destructive' : 'secondary'}
+                                className="capitalize"
+                              >
+                                {a.status}
+                              </Badge>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {a.approver_user_id && <>by <span className="font-medium text-foreground">{a.approver_name || a.approver_user_id}</span> · </>}
+                              {a.decided_at && <>{new Date(a.decided_at).toLocaleString()}</>}
+                            </div>
+                          </div>
+                          {a.comments && (
+                            <div className="text-xs bg-muted/40 rounded p-2 whitespace-pre-wrap">
+                              <span className="font-medium">{a.status === 'rejected' ? 'Rejection reason' : 'Comment'}:</span> {a.comments}
+                            </div>
+                          )}
+                          {canAct && (
+                            <ApprovalActionRow
+                              approvalId={a.id}
+                              userCode={userCode}
+                              onDone={async () => { if (comm) await loadCommunication(comm.id); onChanged?.(); }}
+                            />
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                  {comm.rejection_reason && comm.status === 'rejected' && (
+                    <div className="rounded border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                      <div className="flex items-center gap-2 text-destructive font-medium">
+                        <AlertTriangle className="h-4 w-4" /> Communication rejected
+                      </div>
+                      <p className="mt-1 text-xs">{comm.rejection_reason}</p>
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        Edit the draft to address the feedback, then re-submit for approval.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </TabsContent>
+
             {/* ─────── Preview ─────── */}
             <TabsContent value="preview" className="space-y-3 pt-3">
               <div className="rounded border bg-card p-3 space-y-2">
@@ -784,3 +881,67 @@ export function CommunicationComposer(props: CommunicationComposerProps) {
 }
 
 export default CommunicationComposer;
+
+/* ─────────────────────────── ApprovalActionRow ─────────────────────────── */
+/**
+ * Inline approve/reject controls for the current step. Records approver +
+ * timestamp + comment; rejection reason is mirrored onto the parent
+ * communication via the approval service.
+ */
+function ApprovalActionRow({
+  approvalId, userCode, onDone,
+}: { approvalId: string; userCode?: string; onDone: () => void | Promise<void> }) {
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState<null | 'approve' | 'reject'>(null);
+
+  const approve = async () => {
+    setBusy('approve');
+    try {
+      await auditCommunicationApprovalService.approve(
+        approvalId, { userCode: userCode || 'system', name: userCode }, comment || undefined,
+      );
+      toast.success('Approved');
+      await onDone();
+    } catch (e: any) {
+      toast.error('Approve failed', { description: e?.message });
+    } finally { setBusy(null); }
+  };
+
+  const reject = async () => {
+    if (!comment.trim()) {
+      toast.error('Please provide a rejection reason.');
+      return;
+    }
+    setBusy('reject');
+    try {
+      await auditCommunicationApprovalService.reject(
+        approvalId, { userCode: userCode || 'system', name: userCode }, comment.trim(),
+      );
+      toast.success('Rejected');
+      await onDone();
+    } catch (e: any) {
+      toast.error('Reject failed', { description: e?.message });
+    } finally { setBusy(null); }
+  };
+
+  return (
+    <div className="space-y-2 pt-1">
+      <Textarea
+        rows={2}
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Comment (required for rejection)"
+      />
+      <div className="flex gap-2 justify-end">
+        <Button size="sm" variant="destructive" onClick={reject} disabled={busy !== null}>
+          {busy === 'reject' ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <ThumbsDown className="h-3.5 w-3.5 mr-1" />}
+          Reject
+        </Button>
+        <Button size="sm" onClick={approve} disabled={busy !== null}>
+          {busy === 'approve' ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <UserCheck className="h-3.5 w-3.5 mr-1" />}
+          Approve
+        </Button>
+      </div>
+    </div>
+  );
+}

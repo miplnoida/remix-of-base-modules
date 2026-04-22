@@ -75,8 +75,10 @@ export const auditCommunicationApprovalService = {
       .single();
     if (error) throw error;
     const commId = (row as any).communication_id;
-    await (supabase.from(COMM) as any).update({ status: 'rejected' }).eq('id', commId);
-    await logEvent(commId, 'rejected', approver.userCode, { reason });
+    await (supabase.from(COMM) as any)
+      .update({ status: 'rejected', rejection_reason: reason })
+      .eq('id', commId);
+    await logEvent(commId, 'rejected', approver.userCode, { reason, step_no: (row as any).step_no, role: (row as any).required_role });
     return row;
   },
 };

@@ -264,6 +264,10 @@ export interface AuditCommunication {
   last_dispatch_error: string | null;
   dispatch_locked_at: string | null;
   materialized_by_policy_id: string | null;
+  /** Approval-policy audit fields. */
+  severity_snapshot?: 'none' | 'low' | 'medium' | 'high' | 'critical' | null;
+  applied_policy_id?: string | null;
+  rejection_reason?: string | null;
   // populated by service joins:
   template?: Pick<AuditCommunicationTemplate, 'template_code' | 'template_name' | 'category'>;
   recipients?: AuditCommunicationRecipient[];
@@ -281,6 +285,10 @@ export interface CreateCommunicationDraftInput {
   reportVersionId?: string | null;
   scheduledAt?: string | null;
   createdBy?: string;
+  /** Optional context for approval-policy resolution. */
+  severity?: 'none' | 'low' | 'medium' | 'high' | 'critical';
+  caseType?: string | null;
+  enforcementStage?: string | null;
 }
 
 export const COMM_TYPE_LABELS: Record<CeCommType, string> = {
