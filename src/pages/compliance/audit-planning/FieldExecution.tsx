@@ -45,6 +45,16 @@ function endOfWeekISO(d = new Date()): string {
   return dt.toISOString().slice(0, 10);
 }
 
+// Upcoming horizon: surface visits at least one month ahead so inspectors
+// can prepare beyond the current week.
+const UPCOMING_HORIZON_DAYS = 30;
+
+function addDaysISO(baseISO: string, days: number): string {
+  const dt = new Date(baseISO);
+  dt.setDate(dt.getDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+
 function statusBadge(status: InspectionVisitStatus) {
   switch (status) {
     case InspectionVisitStatus.COMPLETED:
@@ -114,6 +124,7 @@ export default function FieldExecution() {
 
   const today = new Date().toISOString().slice(0, 10);
   const weekEnd = endOfWeekISO();
+  const upcomingHorizonEnd = addDaysISO(today, UPCOMING_HORIZON_DAYS);
 
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -147,11 +158,11 @@ export default function FieldExecution() {
         .filter(
           (item) =>
             item.plannedDate > today &&
-            item.plannedDate <= weekEnd &&
+            item.plannedDate <= upcomingHorizonEnd &&
             ACTIONABLE_STATUSES.has(item.status)
         )
         .sort((a, b) => a.plannedDate.localeCompare(b.plannedDate)),
-    [filteredItems, today, weekEnd]
+    [filteredItems, today, upcomingHorizonEnd]
   );
 
   const completedThisWeek = useMemo(
@@ -386,13 +397,16 @@ export default function FieldExecution() {
       {/* Other visits — tabbed */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">All Visits This Week</CardTitle>
+          <CardTitle className="text-base">Upcoming, Overdue & Completed Visits</CardTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Upcoming covers the next {UPCOMING_HORIZON_DAYS} days
+          </p>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="upcoming" className="w-full">
             <TabsList>
               <TabsTrigger value="upcoming">
-                Upcoming
+                Upcoming (next {UPCOMING_HORIZON_DAYS}d)
                 <Badge variant="secondary" className="ml-2">
                   {upcomingThisWeek.length}
                 </Badge>
@@ -413,7 +427,7 @@ export default function FieldExecution() {
 
             <TabsContent value="upcoming" className="mt-4">
               {upcomingThisWeek.length === 0
-                ? emptyState('No upcoming visits this week')
+                ? emptyState(`No upcoming visits in the next ${UPCOMING_HORIZON_DAYS} days`)
                 : (
                   <div className="space-y-2">
                     {upcomingThisWeek.map((item) => renderVisitRow(item))}
