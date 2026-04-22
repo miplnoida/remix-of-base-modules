@@ -97,6 +97,7 @@ import LedgerHelpCenter from './settings/LedgerHelpCenter';
 import AuditCommunicationTemplatesPage from './admin/AuditCommunicationTemplatesPage';
 import AuditCommunicationTemplateEditorPage from './admin/AuditCommunicationTemplateEditorPage';
 import OnlineResponseConfigPage from './admin/OnlineResponseConfigPage';
+import RiskOperations from './admin/RiskOperations';
 // Reuses the audit module's Document & Output Settings page (Foundation, Section
 // Library, Report Templates) under Compliance Admin routes so officers don't
 // have to leave the Compliance module to manage report-level templates.
@@ -169,6 +170,7 @@ const ComplianceRoutes = () => {
       <Route path="/field/employer-360" element={<Employer360Search />} />
       <Route path="/field/employer-360/:employerId" element={<Employer360 />} />
       <Route path="/field/employer-risk/:employerId" element={<EmployerRiskProfile />} />
+      <Route path="/admin/risk-operations" element={<RiskOperations />} />
       {/* Removed: /field/employer-hierarchy (EmployerHierarchy), /field/employer-management (EmployerComplianceManagement) */}
       <Route path="/field/audit-management" element={<AuditManagement />} />
       <Route path="/field/audit/:id" element={<AuditDetails />} />

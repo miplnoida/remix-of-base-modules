@@ -152,13 +152,16 @@ export default function EmployerRiskProfile() {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="space-y-2">
               <div className="flex items-center gap-3 flex-wrap">
                 <CardTitle className="text-2xl">{profile.employer_name}</CardTitle>
                 <Badge variant={getRiskBadgeVariant(profile.risk_band)}>
                   {profile.risk_band || 'Unrated'} Risk
                 </Badge>
+                {(profile as any).audit_program && (
+                  <Badge variant="outline">{(profile as any).audit_program}</Badge>
+                )}
               </div>
               <div className="flex gap-4 text-sm text-muted-foreground flex-wrap">
                 <span>ID: {profile.employer_id}</span>
@@ -166,13 +169,63 @@ export default function EmployerRiskProfile() {
                 {profile.scoring_version && <><span>•</span><span>Model: {profile.scoring_version}</span></>}
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-muted-foreground">Current Risk Score</div>
-              <div className="text-4xl font-bold text-destructive">{Number(profile.total_score || 0).toFixed(1)}</div>
-            </div>
           </div>
         </CardHeader>
       </Card>
+
+      {/* Two-Score Model — first-class display */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="border-l-4 border-l-destructive">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Inherent Risk Score</CardTitle>
+            <p className="text-xs text-muted-foreground">Long-term employer profile</p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-3">
+              <div className="text-4xl font-bold text-destructive">{Number(profile.total_score || 0).toFixed(1)}</div>
+              <Badge variant={getRiskBadgeVariant((profile as any).inherent_band || profile.risk_band)}>
+                {(profile as any).inherent_band || profile.risk_band || '—'}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Last recalculated:{' '}
+              {(profile as any).last_inherent_calculated_at
+                ? new Date((profile as any).last_inherent_calculated_at).toLocaleString()
+                : profile.last_calculated_at
+                  ? new Date(profile.last_calculated_at).toLocaleString()
+                  : '—'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-warning">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Audit Priority Score</CardTitle>
+            <p className="text-xs text-muted-foreground">Short-term planning urgency</p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-baseline gap-3">
+              <div className="text-4xl font-bold text-warning">
+                {Number((profile as any).audit_priority_score || 0).toFixed(1)}
+              </div>
+              <Badge variant={getRiskBadgeVariant((profile as any).audit_priority_band)}>
+                {(profile as any).audit_priority_band || '—'}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Last recalculated:{' '}
+              {(profile as any).last_audit_priority_calculated_at
+                ? new Date((profile as any).last_audit_priority_calculated_at).toLocaleString()
+                : '—'}
+            </p>
+            {(profile as any).audit_priority_why && (
+              <p className="text-xs mt-2 text-foreground">
+                <span className="text-muted-foreground">Why selected:</span> {(profile as any).audit_priority_why}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
@@ -184,13 +237,20 @@ export default function EmployerRiskProfile() {
         <Card>
           <CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Last Audit</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{inspections[0]?.scheduled_date || '—'}</div>
+            <div className="text-2xl font-bold text-foreground">
+              {(profile as any).last_audit_date || inspections[0]?.scheduled_date || '—'}
+            </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Next Review</CardTitle></CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-sm font-medium text-muted-foreground">Next Due</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-warning">{profile.next_review_date || '—'}</div>
+            <div className="text-2xl font-bold text-warning">
+              {(profile as any).next_audit_due_date || profile.next_review_date || '—'}
+            </div>
+            {Number((profile as any).overdue_audit_days || 0) > 0 && (
+              <p className="text-xs text-destructive mt-1">{(profile as any).overdue_audit_days} days overdue</p>
+            )}
           </CardContent>
         </Card>
         <Card>
