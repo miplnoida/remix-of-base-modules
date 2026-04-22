@@ -278,6 +278,26 @@ export default function MyPlans() {
                             {plan.status === WeeklyPlanStatus.COMPLETED ? 'View' : 'Execute'}
                           </Button>
                         )}
+                        {(plan.status === WeeklyPlanStatus.APPROVED ||
+                          plan.status === WeeklyPlanStatus.IN_EXECUTION) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setRevisionPlan(plan)}
+                            title="Create a revision draft of this approved plan"
+                          >
+                            <GitBranch className="h-4 w-4 mr-1" />
+                            Revise
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setHistoryPlan(plan)}
+                          title="View version history"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
