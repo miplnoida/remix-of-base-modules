@@ -198,23 +198,23 @@ export default function MyPlans() {
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{draftPlans.length}</div></CardContent>
         </Card>
-        <Card className={needsChangesPlans.length > 0 ? 'border-amber-300' : ''}>
+        <Card className={needsChangesPlans.length > 0 ? 'border-warning/40' : ''}>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Needs Changes</CardTitle>
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-amber-600">{needsChangesPlans.length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-warning">{needsChangesPlans.length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Pending Review</CardTitle>
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-blue-600">{pendingPlans.length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-primary">{pendingPlans.length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Approved/Active</CardTitle>
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-green-600">{approvedPlans.length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-success">{approvedPlans.length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
@@ -249,6 +249,7 @@ export default function MyPlans() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Plan Number</TableHead>
+                  <TableHead>Version</TableHead>
                   <TableHead>Week Period</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Planned Visits</TableHead>
