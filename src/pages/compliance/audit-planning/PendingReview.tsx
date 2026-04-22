@@ -274,7 +274,7 @@ export default function PendingReview() {
                         {plan.submittedAt ? new Date(plan.submittedAt).toLocaleDateString() : '-'}
                       </div>
                     </TableCell>
-                    <TableCell>{plan.totalPlannedVisits}</TableCell>
+                    <TableCell>{plan.plannedVisits?.length ?? plan.totalPlannedVisits ?? 0}</TableCell>
                     <TableCell className="text-right">
                       <Button
                         variant="outline"
@@ -315,7 +315,7 @@ export default function PendingReview() {
                 </div>
                 <div>
                   <Label className="text-sm text-muted-foreground">Planned Visits</Label>
-                  <p className="font-medium">{selectedPlan.totalPlannedVisits}</p>
+                  <p className="font-medium">{selectedPlan.plannedVisits?.length ?? selectedPlan.totalPlannedVisits ?? 0}</p>
                 </div>
                 <div>
                   <Label className="text-sm text-muted-foreground">Status</Label>
