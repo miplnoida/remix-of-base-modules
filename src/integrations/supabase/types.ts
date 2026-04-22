@@ -18406,6 +18406,36 @@ export type Database = {
           },
         ]
       }
+      ce_plan_revision_reasons: {
+        Row: {
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          label: string
+          reason_code: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          label: string
+          reason_code: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          label?: string
+          reason_code?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       ce_planned_visits: {
         Row: {
           case_id: string | null
@@ -20189,6 +20219,7 @@ export type Database = {
           execution_status: string
           findings: string | null
           id: string
+          is_locked_by_execution: boolean
           is_mandatory: boolean | null
           item_type: string
           not_done_reason: string | null
@@ -20207,6 +20238,7 @@ export type Database = {
           scouting_confidence: string | null
           scouting_type: string | null
           source_id: string | null
+          source_item_id: string | null
           source_ref: string | null
           source_type: string | null
           territory: string | null
@@ -20234,6 +20266,7 @@ export type Database = {
           execution_status?: string
           findings?: string | null
           id?: string
+          is_locked_by_execution?: boolean
           is_mandatory?: boolean | null
           item_type?: string
           not_done_reason?: string | null
@@ -20252,6 +20285,7 @@ export type Database = {
           scouting_confidence?: string | null
           scouting_type?: string | null
           source_id?: string | null
+          source_item_id?: string | null
           source_ref?: string | null
           source_type?: string | null
           territory?: string | null
@@ -20279,6 +20313,7 @@ export type Database = {
           execution_status?: string
           findings?: string | null
           id?: string
+          is_locked_by_execution?: boolean
           is_mandatory?: boolean | null
           item_type?: string
           not_done_reason?: string | null
@@ -20297,6 +20332,7 @@ export type Database = {
           scouting_confidence?: string | null
           scouting_type?: string | null
           source_id?: string | null
+          source_item_id?: string | null
           source_ref?: string | null
           source_type?: string | null
           territory?: string | null
@@ -20325,6 +20361,13 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plan_items_source_item_id_fkey"
+            columns: ["source_item_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plan_items"
             referencedColumns: ["id"]
           },
           {
@@ -20394,10 +20437,14 @@ export type Database = {
       }
       ce_weekly_plans: {
         Row: {
+          approval_decision_notes: string | null
           approved_by: string | null
           approved_by_name: string | null
           approved_date: string | null
+          approved_version_flag: boolean
+          base_version_no: number | null
           carry_forward_from: string | null
+          change_summary_json: Json | null
           completed_visits: number | null
           created_at: string | null
           created_by: string | null
@@ -20405,6 +20452,7 @@ export type Database = {
           inspector_id: string | null
           inspector_name: string | null
           is_current_version: boolean
+          is_revision: boolean
           narrative: string | null
           outcome_narrative: string | null
           outcome_reviewed_at: string | null
@@ -20417,10 +20465,13 @@ export type Database = {
           reviewer_comments: string | null
           reviewer_id: string | null
           revision_reason: string | null
+          revision_reason_code: string | null
+          revision_reason_text: string | null
           status: string | null
           submitted_date: string | null
           superseded_at: string | null
           superseded_by_plan_id: string | null
+          supersedes_plan_id: string | null
           supervisor_comments: string | null
           total_planned_visits: number | null
           updated_at: string | null
@@ -20431,10 +20482,14 @@ export type Database = {
           zone_id: string | null
         }
         Insert: {
+          approval_decision_notes?: string | null
           approved_by?: string | null
           approved_by_name?: string | null
           approved_date?: string | null
+          approved_version_flag?: boolean
+          base_version_no?: number | null
           carry_forward_from?: string | null
+          change_summary_json?: Json | null
           completed_visits?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -20442,6 +20497,7 @@ export type Database = {
           inspector_id?: string | null
           inspector_name?: string | null
           is_current_version?: boolean
+          is_revision?: boolean
           narrative?: string | null
           outcome_narrative?: string | null
           outcome_reviewed_at?: string | null
@@ -20454,10 +20510,13 @@ export type Database = {
           reviewer_comments?: string | null
           reviewer_id?: string | null
           revision_reason?: string | null
+          revision_reason_code?: string | null
+          revision_reason_text?: string | null
           status?: string | null
           submitted_date?: string | null
           superseded_at?: string | null
           superseded_by_plan_id?: string | null
+          supersedes_plan_id?: string | null
           supervisor_comments?: string | null
           total_planned_visits?: number | null
           updated_at?: string | null
@@ -20468,10 +20527,14 @@ export type Database = {
           zone_id?: string | null
         }
         Update: {
+          approval_decision_notes?: string | null
           approved_by?: string | null
           approved_by_name?: string | null
           approved_date?: string | null
+          approved_version_flag?: boolean
+          base_version_no?: number | null
           carry_forward_from?: string | null
+          change_summary_json?: Json | null
           completed_visits?: number | null
           created_at?: string | null
           created_by?: string | null
@@ -20479,6 +20542,7 @@ export type Database = {
           inspector_id?: string | null
           inspector_name?: string | null
           is_current_version?: boolean
+          is_revision?: boolean
           narrative?: string | null
           outcome_narrative?: string | null
           outcome_reviewed_at?: string | null
@@ -20491,10 +20555,13 @@ export type Database = {
           reviewer_comments?: string | null
           reviewer_id?: string | null
           revision_reason?: string | null
+          revision_reason_code?: string | null
+          revision_reason_text?: string | null
           status?: string | null
           submitted_date?: string | null
           superseded_at?: string | null
           superseded_by_plan_id?: string | null
+          supersedes_plan_id?: string | null
           supervisor_comments?: string | null
           total_planned_visits?: number | null
           updated_at?: string | null
@@ -20578,6 +20645,27 @@ export type Database = {
           {
             foreignKeyName: "ce_weekly_plans_superseded_by_plan_id_fkey"
             columns: ["superseded_by_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_weekly_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_supersedes_plan_id_fkey"
+            columns: ["supersedes_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_plan_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_supersedes_plan_id_fkey"
+            columns: ["supersedes_plan_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_weekly_report_summary"
+            referencedColumns: ["plan_id"]
+          },
+          {
+            foreignKeyName: "ce_weekly_plans_supersedes_plan_id_fkey"
+            columns: ["supersedes_plan_id"]
             isOneToOne: false
             referencedRelation: "ce_weekly_plans"
             referencedColumns: ["id"]
@@ -51337,13 +51425,30 @@ export type Database = {
           user_name: string
         }[]
       }
+      fn_ce_approve_plan_revision: {
+        Args: {
+          p_actor: string
+          p_decision_notes: string
+          p_revision_id: string
+        }
+        Returns: undefined
+      }
       fn_ce_backfill_unassigned_violations: { Args: never; Returns: Json }
+      fn_ce_compare_plan_versions: {
+        Args: { p_base_id: string; p_revised_id: string }
+        Returns: Json
+      }
       fn_ce_consolidate_violation_to_case: {
         Args: { p_performed_by?: string; p_violation_id: string }
         Returns: Json
       }
       fn_ce_create_plan_revision: {
-        Args: { p_actor: string; p_plan_id: string; p_reason: string }
+        Args: {
+          p_actor: string
+          p_plan_id: string
+          p_reason_code: string
+          p_reason_text: string
+        }
         Returns: string
       }
       fn_ce_generate_legal_recommendations: {
@@ -51354,9 +51459,21 @@ export type Database = {
         Args: { p_actor: string; p_revision_id: string }
         Returns: undefined
       }
+      fn_ce_query_plan_revision: {
+        Args: { p_actor: string; p_query_notes: string; p_revision_id: string }
+        Returns: undefined
+      }
       fn_ce_recalculate_case_severity: {
         Args: { p_case_id: string }
         Returns: Json
+      }
+      fn_ce_reject_plan_revision: {
+        Args: {
+          p_actor: string
+          p_decision_notes: string
+          p_revision_id: string
+        }
+        Returns: undefined
       }
       fn_ce_resolve_case_family: {
         Args: { p_violation_type_id: string }
@@ -51449,6 +51566,10 @@ export type Database = {
           p_source_type: string
         }
         Returns: number
+      }
+      fn_ce_submit_plan_revision: {
+        Args: { p_actor: string; p_revision_id: string }
+        Returns: undefined
       }
       generate_application_id: { Args: never; Returns: string }
       generate_depend_id: { Args: { p_ssn: string }; Returns: string }
