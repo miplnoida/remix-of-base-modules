@@ -51691,6 +51691,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_ce_audit_run_reminder_escalation: {
+        Args: never
+        Returns: {
+          escalations_created: number
+          reminders_created: number
+        }[]
+      }
       fn_ce_backfill_unassigned_violations: { Args: never; Returns: Json }
       fn_ce_compare_plan_versions: {
         Args: { p_base_id: string; p_revised_id: string }
