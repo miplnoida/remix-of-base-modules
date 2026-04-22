@@ -154,6 +154,50 @@ export default function MyPlans() {
 
   // Buckets — include Phase 3 revision statuses where appropriate.
   const activePlans = plans.filter(p => p.status !== WeeklyPlanStatus.WITHDRAWN);
+
+  // Group by plan family (root id) + week so all versions for the same week
+  // are shown together. The "root" is parent_plan_id when present, else the
+  // plan's own id. Within a group we sort by version_no ascending so v1 is at
+  // the top and the latest revision is at the bottom.
+  type PlanGroup = {
+    rootId: string;
+    weekStart: string;
+    weekEnd: string;
+    inspectorName: string | null;
+    plans: WeeklyPlan[];
+  };
+  const planGroups: PlanGroup[] = (() => {
+    const map = new Map<string, PlanGroup>();
+    for (const p of activePlans) {
+      const rootId = ((p as any).parent_plan_id as string | null) ?? p.id;
+      const key = `${rootId}__${p.week_start_date}`;
+      const existing = map.get(key);
+      if (existing) {
+        existing.plans.push(p);
+      } else {
+        map.set(key, {
+          rootId,
+          weekStart: p.week_start_date,
+          weekEnd: p.week_end_date,
+          inspectorName: p.inspector_name,
+          plans: [p],
+        });
+      }
+    }
+    const groups = Array.from(map.values());
+    // Sort versions within each group
+    for (const g of groups) {
+      g.plans.sort((a, b) => ((a as any).version_no ?? 1) - ((b as any).version_no ?? 1));
+    }
+    // Sort groups by latest activity (most recent week first, then most recent updated_at)
+    groups.sort((a, b) => {
+      if (a.weekStart !== b.weekStart) return b.weekStart.localeCompare(a.weekStart);
+      const aLatest = a.plans[a.plans.length - 1]?.updated_at ?? '';
+      const bLatest = b.plans[b.plans.length - 1]?.updated_at ?? '';
+      return bLatest.localeCompare(aLatest);
+    });
+    return groups;
+  })();
   const draftPlans = activePlans.filter(p =>
     p.status === WeeklyPlanStatus.DRAFT ||
     p.status === WeeklyPlanStatus.REVISION_DRAFT ||
