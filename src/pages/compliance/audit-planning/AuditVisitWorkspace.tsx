@@ -43,6 +43,7 @@ import {
   ListChecks,
   ClipboardList,
   ShieldAlert,
+  MessageSquare,
 } from 'lucide-react';
 import {
   fieldAuditService,
@@ -55,6 +56,9 @@ import { FindingsTabContent } from '@/components/compliance/inspection/FindingsT
 import { WorkingPapersTabContent } from '@/components/compliance/inspection/WorkingPapersTabContent';
 import { EmployerInteractionTabContent } from '@/components/compliance/inspection/EmployerInteractionTabContent';
 import { EmployerComplianceHistoryPanel } from '@/components/compliance/employer-history/EmployerComplianceHistoryPanel';
+import { VisitCommunicationsTab } from '@/components/compliance/communication/VisitCommunicationsTab';
+import { useVisitCommunicationStatus } from '@/hooks/useVisitCommunicationStatus';
+import { useUserCode } from '@/hooks/useUserCode';
 import type { InspectionVisit } from '@/types/inspectionTypes';
 
 export default function AuditVisitWorkspace() {
@@ -97,6 +101,11 @@ export default function AuditVisitWorkspace() {
   const gate: CompletionGateResult | null = data?.gate ?? null;
   const sessionStarted = !!inspection?.session_started_at;
   const sessionClosed = !!inspection?.session_closed_at;
+  const reportStatus: string | null = data?.report?.status ?? data?.metrics?.reportStatus ?? null;
+  const hasViolations: boolean = (data?.metrics?.violationsCount ?? 0) > 0;
+
+  const { userCode } = useUserCode();
+  const commStatus = useVisitCommunicationStatus(inspectionId);
 
   const planId = planIdFromRoute ?? plan?.id;
 
@@ -212,7 +221,18 @@ export default function AuditVisitWorkspace() {
       )}
 
       {/* Completion gate panel */}
-      {sessionStarted && gate && <CompletionGatePanel gate={gate} />}
+      {sessionStarted && gate && (
+        <CompletionGatePanel
+          gate={gate}
+          commAdvisory={
+            sessionClosed && hasViolations && !commStatus.finalStageIssued
+              ? 'No final-stage communication (final report / violation notice / corrective action) has been sent to the employer yet.'
+              : commStatus.failed > 0
+              ? `${commStatus.failed} communication(s) failed delivery — review the Communications tab.`
+              : null
+          }
+        />
+      )}
 
       {/* Tabs */}
       {sessionStarted && adaptedVisit ? (
@@ -222,6 +242,15 @@ export default function AuditVisitWorkspace() {
             <TabsTrigger value="employer">Employer</TabsTrigger>
             <TabsTrigger value="evidence">Evidence</TabsTrigger>
             <TabsTrigger value="findings">Findings</TabsTrigger>
+            <TabsTrigger value="communications" className="gap-1">
+              <MessageSquare className="h-3.5 w-3.5" />
+              Communications
+              {commStatus.total > 0 && (
+                <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                  {commStatus.total}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="report">Report</TabsTrigger>
           </TabsList>
@@ -240,6 +269,29 @@ export default function AuditVisitWorkspace() {
               employerId={adaptedVisit.employerId || planItem.employer_id || ''}
               planItem={planItem}
             />
+          </TabsContent>
+          <TabsContent value="communications">
+            {inspectionId && (adaptedVisit.employerId || planItem.employer_id) ? (
+              <VisitCommunicationsTab
+                inspectionId={inspectionId}
+                employerId={adaptedVisit.employerId || planItem.employer_id}
+                employerName={planItem.employer_name ?? undefined}
+                visitContext={{
+                  sessionStarted,
+                  sessionClosed,
+                  reportStatus,
+                  hasViolations,
+                  gateBlocked: !!gate && !gate.ready,
+                }}
+                userCode={userCode ?? undefined}
+              />
+            ) : (
+              <Card>
+                <CardContent className="py-6 text-sm text-muted-foreground">
+                  Communications become available once the visit has an employer and active session.
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
           <TabsContent value="history">
             {(adaptedVisit.employerId || planItem.employer_id) && (
@@ -378,7 +430,13 @@ function SessionStrip({ inspection }: { inspection: any }) {
   );
 }
 
-function CompletionGatePanel({ gate }: { gate: CompletionGateResult }) {
+function CompletionGatePanel({
+  gate,
+  commAdvisory,
+}: {
+  gate: CompletionGateResult;
+  commAdvisory?: string | null;
+}) {
   const headerColor = gate.ready
     ? 'text-success'
     : gate.enforcementMode === 'SOFT_WARNING'
@@ -423,6 +481,12 @@ function CompletionGatePanel({ gate }: { gate: CompletionGateResult }) {
             </li>
           ))}
         </ul>
+        {commAdvisory && (
+          <div className="mt-3 rounded border border-warning/30 bg-warning/5 p-2 text-xs text-warning flex items-start gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>{commAdvisory}</span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
