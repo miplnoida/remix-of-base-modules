@@ -722,6 +722,12 @@ function CompletionGatePanel({
   orchestratorBlockers?: string[];
   orchestratorReady?: boolean;
   nextRecommendedLabel?: string | null;
+  /** Quick-action handler from CommunicationGateChecks. */
+  onGateQuickAction?: (
+    check: CommGateCheck,
+    kind: GateQuickActionKind,
+    commType?: CeCommType,
+  ) => void;
 }) {
   const headerColor = gate.ready
     ? 'text-success'
