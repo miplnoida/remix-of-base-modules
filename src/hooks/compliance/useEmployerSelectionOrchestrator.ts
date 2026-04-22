@@ -169,7 +169,7 @@ export function useEmployerSelectionOrchestrator(opts: OrchestratorOptions) {
     }) => {
       if (!planId) return;
       try {
-        await supabase.from('ce_weekly_plan_item_audit').insert({
+        await supabase.from('ce_weekly_plan_item_audit').insert([{
           plan_id: planId,
           item_id: row.itemId ?? null,
           action: row.action,
@@ -179,9 +179,9 @@ export function useEmployerSelectionOrchestrator(opts: OrchestratorOptions) {
           exception_category: row.exception_category ?? null,
           exception_reason_note: row.exception_reason_note ?? null,
           override_note: row.override_note ?? null,
-          snapshot: row.snapshot ?? null,
+          snapshot: (row.snapshot as any) ?? null,
           performed_by: userCode || 'unknown',
-        });
+        }]);
         qc.invalidateQueries({ queryKey: ['ce-wpi-audit', planId] });
       } catch (e) {
         console.warn('[plan-audit] failed', e);
@@ -211,8 +211,7 @@ export function useEmployerSelectionOrchestrator(opts: OrchestratorOptions) {
         source_type: 'MANUAL',
         purpose: extras?.purpose,
         ...(extras ?? {}),
-        // @ts-expect-error — extra DB columns not in CreatePlanItemRequest type
-        selection_mode: selectionMode,
+        ...({ selection_mode: selectionMode } as any),
       };
     },
     [weekDays],
@@ -273,12 +272,11 @@ export function useEmployerSelectionOrchestrator(opts: OrchestratorOptions) {
         'EXCEPTION',
         {
           purpose: params.purpose,
-          // @ts-expect-error extended columns
-          exception_category: params.category,
-          // @ts-expect-error extended columns
-          exception_reason_note: params.reasonNote || null,
-          // @ts-expect-error extended columns
-          exception_status: approvalRequired ? 'PENDING_APPROVAL' : 'NOT_REQUIRED',
+          ...({
+            exception_category: params.category,
+            exception_reason_note: params.reasonNote || null,
+            exception_status: approvalRequired ? 'PENDING_APPROVAL' : 'NOT_REQUIRED',
+          } as any),
         },
       );
       await addItem(req);
@@ -326,13 +324,10 @@ export function useEmployerSelectionOrchestrator(opts: OrchestratorOptions) {
     const { error } = await supabase
       .from('ce_weekly_plan_items')
       .update({
-        // @ts-expect-error extended columns
         exception_status: 'APPROVED',
-        // @ts-expect-error extended columns
         exception_approved_by: userCode || 'unknown',
-        // @ts-expect-error extended columns
         exception_approved_at: new Date().toISOString(),
-      })
+      } as any)
       .eq('id', itemId);
     if (error) throw error;
     await writeAudit({ action: 'EXCEPTION_APPROVED', itemId, override_note: note });
@@ -344,13 +339,10 @@ export function useEmployerSelectionOrchestrator(opts: OrchestratorOptions) {
     const { error } = await supabase
       .from('ce_weekly_plan_items')
       .update({
-        // @ts-expect-error extended columns
         exception_status: 'REJECTED',
-        // @ts-expect-error extended columns
         exception_approved_by: userCode || 'unknown',
-        // @ts-expect-error extended columns
         exception_approved_at: new Date().toISOString(),
-      })
+      } as any)
       .eq('id', itemId);
     if (error) throw error;
     await writeAudit({ action: 'EXCEPTION_REJECTED', itemId, override_note: note });
