@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/select';
 import {
   AlertTriangle, CheckCircle2, ExternalLink, FileText, Loader2, Lock, Mail,
-  MessageSquare, Paperclip, Plus, Send, Settings2, ShieldCheck, Trash2,
+  MessageSquare, Paperclip, Plus, Send, Settings2, ShieldCheck, ThumbsDown, Trash2, UserCheck,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -54,12 +54,14 @@ import {
 } from '@/services/auditCommunicationInstanceService';
 import { auditCommunicationTemplateService } from '@/services/auditCommunicationTemplateService';
 import { auditCommunicationRecipientService } from '@/services/auditCommunicationRecipientService';
+import { auditCommunicationApprovalService } from '@/services/auditCommunicationApprovalService';
 import { fieldStageTemplateMapService } from '@/services/fieldStageTemplateMapService';
 import {
   renderMergeFields, DEFAULT_PREVIEW_SAMPLE,
 } from '@/lib/audit/communicationMergePreview';
 import type {
-  AuditCommunication, AuditCommunicationTemplate, CeCommChannel, CeCommType,
+  AuditCommunication, AuditCommunicationApproval, AuditCommunicationTemplate,
+  CeCommApprovalRole, CeCommChannel, CeCommType,
 } from '@/types/auditCommunication';
 import type { FieldExecutionStage } from '@/types/fieldStageMapping';
 
@@ -105,6 +107,11 @@ export interface CommunicationComposerProps {
   employerId: string;
   employerName?: string;
   userCode?: string;
+  /**
+   * Roles held by the current user — used to gate the Approve/Reject controls.
+   * If a pending step's `required_role` is in this list the user can act on it.
+   */
+  approverRoles?: CeCommApprovalRole[];
 
   /** Mode A — open the composer for an existing draft (e.g. from the panel). */
   communicationId?: string;
@@ -116,6 +123,11 @@ export interface CommunicationComposerProps {
   /** Auto-fill context — merged into the template snapshot at draft time. */
   caseContext?: ComposerCaseContext;
   visitContext?: ComposerVisitContext;
+  /**
+   * Severity feeds the approval-policy resolver. Defaults to 'none'.
+   * Pass the highest live finding severity for the visit.
+   */
+  severity?: 'none' | 'low' | 'medium' | 'high' | 'critical';
 }
 
 /* ─────────────────────────── Helpers ─────────────────────────── */
@@ -163,9 +175,9 @@ async function deleteAttachment(id: string) {
 export function CommunicationComposer(props: CommunicationComposerProps) {
   const {
     open, onClose, onChanged,
-    inspectionId, employerId, employerName, userCode,
+    inspectionId, employerId, employerName, userCode, approverRoles = [],
     communicationId, templateId, action,
-    caseContext, visitContext,
+    caseContext, visitContext, severity = 'none',
   } = props;
 
   // ----- Lifecycle state
@@ -329,6 +341,9 @@ export function CommunicationComposer(props: CommunicationComposerProps) {
       templateId: tplId,
       contextData: ctx,
       createdBy: userCode,
+      severity,
+      caseType: caseContext?.case_type ?? null,
+      enforcementStage: caseContext?.enforcement_stage ?? null,
     });
     await loadCommunication(created.id);
   }
