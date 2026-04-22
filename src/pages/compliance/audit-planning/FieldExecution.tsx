@@ -53,7 +53,8 @@ function statusBadge(status: InspectionVisitStatus) {
       return 'bg-warning/10 text-warning border-warning/20';
     case InspectionVisitStatus.RESCHEDULED:
       return 'bg-accent/20 text-accent-foreground border-accent/30';
-    case InspectionVisitStatus.CANCELLED:
+    case InspectionVisitStatus.NOT_DONE:
+    case InspectionVisitStatus.ABORTED:
       return 'bg-destructive/10 text-destructive border-destructive/20';
     default:
       return 'bg-muted text-muted-foreground border-border';
