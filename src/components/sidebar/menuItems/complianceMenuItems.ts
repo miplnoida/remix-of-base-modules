@@ -202,6 +202,13 @@ export const complianceMenuItems = [
             description: "Review and approve submitted inspector plans",
           },
           {
+            title: "Revisions Pending",
+            url: "/compliance/field/revisions-pending",
+            icon: ArrowRightLeft,
+            requiresPermission: "approve_weekly_plan",
+            description: "Review revised approved plans awaiting re-approval",
+          },
+          {
             title: "Field Execution",
             url: "/compliance/field/execution",
             icon: MapPin,
