@@ -197,12 +197,18 @@ function WeeklyPlanBuilderLegacy({ onSwitchToSmart }: { onSwitchToSmart: () => v
     <div className="container mx-auto p-4 md:p-6 space-y-4">
       <PageHeader
         title="Weekly Plan Builder"
-        subtitle={`Plan your compliance field work for the week of ${builder.week.days[0].label} – ${builder.week.days[4].label}`}
+        subtitle={`Legacy View · Week of ${builder.week.days[0].label} – ${builder.week.days[4].label}`}
         breadcrumbs={[
           { label: 'Compliance', href: '/compliance/dashboard' },
           { label: 'Audit Planning', href: '/compliance/audit-planning/sampling-dashboard' },
           { label: 'Weekly Plan Builder' },
         ]}
+        actions={
+          <Button variant="default" size="sm" className="gap-1.5" onClick={onSwitchToSmart}>
+            <Wand2 className="h-3.5 w-3.5" />
+            Switch to Smart Planner
+          </Button>
+        }
       />
 
       {/* KPI Summary */}
