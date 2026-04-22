@@ -58,8 +58,8 @@ export function PlanRevisionDialog({ plan, onClose }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 flex gap-2">
-          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+        <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-foreground flex gap-2">
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning" />
           <div>
             A new <strong>DRAFT</strong> version will be created with all visits cloned. You can
             edit it freely and submit it for approval. Execution data on the original plan is preserved.
