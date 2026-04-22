@@ -324,6 +324,9 @@ import EnvironmentsConsole from '@/pages/admin/api-test-console/EnvironmentsCons
 import AuthTestLab from '@/pages/admin/api-test-console/AuthTestLab';
 import EndpointExplorer from '@/pages/admin/api-test-console/EndpointExplorer';
 import ComplianceRunner from '@/pages/admin/api-test-console/ComplianceRunner';
+import SavedCasesConsole from '@/pages/admin/api-test-console/SavedCasesConsole';
+import SuitesConsole from '@/pages/admin/api-test-console/SuitesConsole';
+import ExecutionLogs from '@/pages/admin/api-test-console/ExecutionLogs';
 import PublicApiManagement from '@/pages/admin/PublicApiManagement';
 import DocumentConfigurationPage from '@/pages/admin/DocumentConfigurationPage';
 import ExternalApiManagement from '@/pages/admin/ExternalApiManagement';

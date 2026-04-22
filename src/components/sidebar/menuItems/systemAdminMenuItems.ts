@@ -221,9 +221,22 @@ export const systemAdminMenuItems = [
       },
       {
         title: "External API Management",
-        url: "/admin/external-apis",
         icon: Globe,
-        requiresPermission: "system_administration"
+        requiresPermission: "system_administration",
+        subItems: [
+          {
+            title: "External API Configuration",
+            url: "/admin/external-apis",
+            icon: Globe,
+            requiresPermission: "system_administration"
+          },
+          {
+            title: "API Test Console",
+            url: "/admin/api-test-console",
+            icon: Globe,
+            requiresPermission: "system_administration"
+          }
+        ]
       },
       {
         title: "API Configuration",
