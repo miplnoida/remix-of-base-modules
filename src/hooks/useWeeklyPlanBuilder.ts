@@ -14,10 +14,12 @@ import {
   WeeklyPlanItem,
   WeeklyPlanStatus,
   PlanCandidate,
+  PlanCandidateV3,
   CreateWeeklyPlanRequest,
   CreatePlanItemRequest,
   PlanItemExecutionStatus,
 } from '@/types/weeklyPlan';
+import { CANDIDATE_REASON_LABELS } from '@/services/planCandidateService';
 import { startOfWeek, endOfWeek, addDays, format } from 'date-fns';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
