@@ -309,6 +309,7 @@ export default function AuditVisitWorkspace() {
             hasOverdueItems: (metrics?.followUpCount ?? 0) > 0,
           }}
           onCommChanged={commStatus.refresh}
+          commActionContext={commActionContext}
           commAdvisory={
             sessionClosed && hasViolations && !commStatus.finalStageIssued
               ? 'No final-stage communication (final report / violation notice / corrective action) has been sent to the employer yet.'
