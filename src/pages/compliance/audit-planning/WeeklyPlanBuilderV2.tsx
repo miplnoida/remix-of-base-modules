@@ -15,7 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { GitBranch, History, Sparkles, ArrowLeft, Info } from 'lucide-react';
+import { GitBranch, History, Sparkles, ArrowLeft, Info, Users } from 'lucide-react';
 
 import WeeklyPlanBuilderSmart from './WeeklyPlanBuilderSmart';
 import { useWeeklyPlanBuilder } from '@/hooks/useWeeklyPlanBuilder';
@@ -24,6 +24,8 @@ import { WeeklyPlanStatus } from '@/types/weeklyPlan';
 import { MultiZoneFilter } from '@/components/compliance/weekly-plan/MultiZoneFilter';
 import { PlanRevisionDialog } from '@/components/compliance/weekly-plan/PlanRevisionDialog';
 import { PlanVersionHistoryDialog } from '@/components/compliance/weekly-plan/PlanVersionHistoryDialog';
+import { AddEmployerToPlanDialog } from '@/components/compliance/weekly-plan/AddEmployerToPlanDialog';
+import { PlannedEmployersList } from '@/components/compliance/weekly-plan/PlannedEmployersList';
 
 export default function WeeklyPlanBuilderV2() {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ export default function WeeklyPlanBuilderV2() {
   const [zoneFilter, setZoneFilter] = useState<string[]>([]);
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [addEmployerOpen, setAddEmployerOpen] = useState(false);
 
   const plan: any = builder.activePlan;
   const status = plan?.status as string | undefined;
