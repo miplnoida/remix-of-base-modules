@@ -58,7 +58,16 @@ import { EmployerInteractionTabContent } from '@/components/compliance/inspectio
 import { EmployerComplianceHistoryPanel } from '@/components/compliance/employer-history/EmployerComplianceHistoryPanel';
 import { VisitCommunicationsTab } from '@/components/compliance/communication/VisitCommunicationsTab';
 import { VisitCommunicationsIntelligenceCard } from '@/components/compliance/communication/VisitCommunicationsIntelligenceCard';
-import { CommunicationGateChecks } from '@/components/compliance/communication/CommunicationGateChecks';
+import {
+  CommunicationGateChecks,
+  type CommGateCheck,
+  type GateQuickActionKind,
+} from '@/components/compliance/communication/CommunicationGateChecks';
+import CommunicationComposer from '@/components/compliance/communication/CommunicationComposer';
+import IntimationExceptionDialog from '@/components/compliance/communication/IntimationExceptionDialog';
+import { auditCommunicationTemplateService } from '@/services/auditCommunicationTemplateService';
+import { supabase } from '@/integrations/supabase/client';
+import type { CeCommType } from '@/types/auditCommunication';
 import {
   ContextualCommActions,
   type ContextualAction,
