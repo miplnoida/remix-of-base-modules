@@ -563,6 +563,7 @@ function CompletionGatePanel({
   itemsByType,
   gateContext,
   onCommChanged,
+  commActionContext,
 }: {
   gate: CompletionGateResult;
   commAdvisory?: string | null;
@@ -574,6 +575,7 @@ function CompletionGatePanel({
   itemsByType?: Partial<Record<import('@/types/auditCommunication').CeCommType, import('@/types/auditCommunication').AuditCommunication[]>>;
   gateContext?: import('@/components/compliance/communication/CommunicationGateChecks').CommunicationGateContext;
   onCommChanged?: () => void;
+  commActionContext?: import('@/components/compliance/communication/ContextualCommActions').CommActionVisibilityContext;
 }) {
   const headerColor = gate.ready
     ? 'text-success'
