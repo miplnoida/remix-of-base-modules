@@ -305,33 +305,96 @@ export const weeklyPlanService = {
   // ============================================
 
   /**
-   * Request a revision on an APPROVED plan. Clones the plan + items into a new
-   * DRAFT version (parent_plan_id, version_no=N+1) using fn_ce_create_plan_revision.
-   * The original APPROVED plan stays immutable until the revision is later promoted.
+   * Phase 3 — Request a revision on an APPROVED (or IN_EXECUTION) plan.
+   * Clones the plan into a new REVISION_DRAFT version and locks completed/in-progress items.
    */
-  async requestRevision(planId: string, reason: string, actor: string): Promise<string> {
-    if (!reason || reason.trim().length < 5) {
-      throw new Error('Please provide a revision reason (min 5 characters).');
+  async requestRevision(
+    planId: string,
+    reasonCode: string,
+    reasonText: string,
+    actor: string,
+  ): Promise<string> {
+    if (!reasonCode) throw new Error('Please choose a revision reason.');
+    if (!reasonText || reasonText.trim().length < 5) {
+      throw new Error('Please describe the revision (min 5 characters).');
     }
     const { data, error } = await supabase.rpc('fn_ce_create_plan_revision', {
       p_plan_id: planId,
-      p_reason: reason.trim(),
+      p_reason_code: reasonCode,
+      p_reason_text: reasonText.trim(),
       p_actor: actor,
     });
     if (error) throw error;
     return data as string;
   },
 
-  /**
-   * Promote an APPROVED revision to current. Marks the previous current version
-   * as SUPERSEDED and sets is_current_version on the revision.
-   */
+  /** Phase 3 — Submit a draft revision for re-approval. */
+  async submitRevision(revisionId: string, actor: string): Promise<void> {
+    const { error } = await supabase.rpc('fn_ce_submit_plan_revision' as any, {
+      p_revision_id: revisionId,
+      p_actor: actor,
+    });
+    if (error) throw error;
+  },
+
+  /** Phase 3 — Approve a submitted revision; auto-supersedes the prior version. */
+  async approveRevision(revisionId: string, decisionNotes: string, actor: string): Promise<void> {
+    const { error } = await supabase.rpc('fn_ce_approve_plan_revision' as any, {
+      p_revision_id: revisionId,
+      p_decision_notes: decisionNotes ?? null,
+      p_actor: actor,
+    });
+    if (error) throw error;
+  },
+
+  /** Phase 3 — Reject a revision; restores the prior approved version as current. */
+  async rejectRevision(revisionId: string, decisionNotes: string, actor: string): Promise<void> {
+    const { error } = await supabase.rpc('fn_ce_reject_plan_revision' as any, {
+      p_revision_id: revisionId,
+      p_decision_notes: decisionNotes ?? null,
+      p_actor: actor,
+    });
+    if (error) throw error;
+  },
+
+  /** Phase 3 — Query a revision (send back to inspector for changes). */
+  async queryRevision(revisionId: string, queryNotes: string, actor: string): Promise<void> {
+    const { error } = await supabase.rpc('fn_ce_query_plan_revision' as any, {
+      p_revision_id: revisionId,
+      p_query_notes: queryNotes,
+      p_actor: actor,
+    });
+    if (error) throw error;
+  },
+
+  /** Phase 3 — Compute structured diff between base and revised plan. */
+  async comparePlanVersions(baseId: string, revisedId: string): Promise<any> {
+    const { data, error } = await supabase.rpc('fn_ce_compare_plan_versions' as any, {
+      p_base_id: baseId,
+      p_revised_id: revisedId,
+    });
+    if (error) throw error;
+    return data;
+  },
+
+  /** Phase 3 — Promote APPROVED revision (legacy helper kept for compatibility). */
   async promoteRevision(revisionId: string, actor: string): Promise<void> {
     const { error } = await supabase.rpc('fn_ce_promote_plan_revision', {
       p_revision_id: revisionId,
       p_actor: actor,
     });
     if (error) throw error;
+  },
+
+  /** Phase 3 — Fetch active reason codes for the revision picker. */
+  async getRevisionReasons(): Promise<{ reason_code: string; label: string; description: string | null }[]> {
+    const { data, error } = await supabase
+      .from('ce_plan_revision_reasons' as any)
+      .select('reason_code,label,description,sort_order')
+      .eq('enabled', true)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as any[];
   },
 
   /**
