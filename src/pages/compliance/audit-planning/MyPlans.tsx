@@ -91,35 +91,84 @@ export default function MyPlans() {
       case WeeklyPlanStatus.OUTCOME_SUBMITTED: return <FileText className="h-4 w-4" />;
       case WeeklyPlanStatus.COMPLETED: return <CheckCircle className="h-4 w-4" />;
       case WeeklyPlanStatus.WITHDRAWN: return <Undo2 className="h-4 w-4" />;
+      case WeeklyPlanStatus.REVISION_DRAFT: return <GitBranch className="h-4 w-4" />;
+      case WeeklyPlanStatus.REVISION_SUBMITTED: return <Send className="h-4 w-4" />;
+      case WeeklyPlanStatus.REVISION_QUERIED: return <AlertCircle className="h-4 w-4" />;
+      case WeeklyPlanStatus.REVISION_APPROVED: return <CheckCircle className="h-4 w-4" />;
+      case WeeklyPlanStatus.REVISION_REJECTED: return <XCircle className="h-4 w-4" />;
+      case WeeklyPlanStatus.SUPERSEDED: return <History className="h-4 w-4" />;
       default: return <FileText className="h-4 w-4" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      [WeeklyPlanStatus.DRAFT]: 'bg-gray-100 text-gray-800',
-      [WeeklyPlanStatus.SUBMITTED]: 'bg-blue-100 text-blue-800',
-      [WeeklyPlanStatus.NEEDS_CHANGES]: 'bg-yellow-100 text-yellow-800',
-      [WeeklyPlanStatus.RESUBMITTED]: 'bg-purple-100 text-purple-800',
-      [WeeklyPlanStatus.APPROVED]: 'bg-green-100 text-green-800',
-      [WeeklyPlanStatus.IN_EXECUTION]: 'bg-cyan-100 text-cyan-800',
-      [WeeklyPlanStatus.OUTCOME_SUBMITTED]: 'bg-indigo-100 text-indigo-800',
-      [WeeklyPlanStatus.COMPLETED]: 'bg-gray-100 text-gray-800',
-      [WeeklyPlanStatus.WITHDRAWN]: 'bg-red-50 text-red-600',
+      [WeeklyPlanStatus.DRAFT]: 'bg-muted text-muted-foreground',
+      [WeeklyPlanStatus.SUBMITTED]: 'bg-primary/10 text-primary',
+      [WeeklyPlanStatus.NEEDS_CHANGES]: 'bg-warning/15 text-warning',
+      [WeeklyPlanStatus.RESUBMITTED]: 'bg-accent/20 text-accent-foreground',
+      [WeeklyPlanStatus.APPROVED]: 'bg-success/15 text-success',
+      [WeeklyPlanStatus.IN_EXECUTION]: 'bg-primary/15 text-primary',
+      [WeeklyPlanStatus.OUTCOME_SUBMITTED]: 'bg-primary/10 text-primary',
+      [WeeklyPlanStatus.COMPLETED]: 'bg-muted text-muted-foreground',
+      [WeeklyPlanStatus.WITHDRAWN]: 'bg-destructive/10 text-destructive',
+      [WeeklyPlanStatus.REVISION_DRAFT]: 'bg-warning/15 text-warning',
+      [WeeklyPlanStatus.REVISION_SUBMITTED]: 'bg-primary/15 text-primary',
+      [WeeklyPlanStatus.REVISION_QUERIED]: 'bg-warning/20 text-warning',
+      [WeeklyPlanStatus.REVISION_APPROVED]: 'bg-success/15 text-success',
+      [WeeklyPlanStatus.REVISION_REJECTED]: 'bg-destructive/10 text-destructive',
+      [WeeklyPlanStatus.SUPERSEDED]: 'bg-muted/60 text-muted-foreground line-through',
     };
     return colors[status] || 'bg-muted text-muted-foreground';
   };
 
+  const getVersionLabel = (plan: any): string => {
+    const v = plan.version_no ?? 1;
+    switch (plan.status) {
+      case WeeklyPlanStatus.REVISION_DRAFT: return `Working Revision v${v}`;
+      case WeeklyPlanStatus.REVISION_QUERIED: return `Revision v${v} — Queried`;
+      case WeeklyPlanStatus.REVISION_SUBMITTED: return `Revision v${v} — In Review`;
+      case WeeklyPlanStatus.SUPERSEDED: return `v${v} — Superseded`;
+      case WeeklyPlanStatus.APPROVED:
+      case WeeklyPlanStatus.IN_EXECUTION:
+      case WeeklyPlanStatus.OUTCOME_SUBMITTED:
+      case WeeklyPlanStatus.COMPLETED:
+        return plan.is_revision ? `Approved Revision v${v}` : `Approved v${v}`;
+      default:
+        return `v${v}`;
+    }
+  };
+
+  const isRevisionEditable = (status: string) =>
+    status === WeeklyPlanStatus.REVISION_DRAFT ||
+    status === WeeklyPlanStatus.REVISION_QUERIED;
+
+  const goToBuilder = (plan: any) => {
+    // Revisions open in the Enhanced builder (V2) so the version banner is shown.
+    if (plan.is_revision || isRevisionEditable(plan.status)) {
+      navigate(`/compliance/field/plan-builder-v2?planId=${plan.id}`);
+    } else {
+      navigate('/compliance/field/plan-builder');
+    }
+  };
+
+  // Buckets — include Phase 3 revision statuses where appropriate.
   const activePlans = plans.filter(p => p.status !== WeeklyPlanStatus.WITHDRAWN);
+  const draftPlans = activePlans.filter(p =>
+    p.status === WeeklyPlanStatus.DRAFT ||
+    p.status === WeeklyPlanStatus.REVISION_DRAFT ||
+    p.status === WeeklyPlanStatus.REVISION_QUERIED
+  );
   const needsChangesPlans = activePlans.filter(p => p.status === WeeklyPlanStatus.NEEDS_CHANGES);
-  const draftPlans = activePlans.filter(p => p.status === WeeklyPlanStatus.DRAFT);
   const pendingPlans = activePlans.filter(p =>
     p.status === WeeklyPlanStatus.SUBMITTED ||
-    p.status === WeeklyPlanStatus.RESUBMITTED
+    p.status === WeeklyPlanStatus.RESUBMITTED ||
+    p.status === WeeklyPlanStatus.REVISION_SUBMITTED
   );
   const approvedPlans = activePlans.filter(p =>
     p.status === WeeklyPlanStatus.APPROVED ||
-    p.status === WeeklyPlanStatus.IN_EXECUTION
+    p.status === WeeklyPlanStatus.IN_EXECUTION ||
+    p.status === WeeklyPlanStatus.REVISION_APPROVED
   );
   const completedPlans = activePlans.filter(p => p.status === WeeklyPlanStatus.COMPLETED);
 
@@ -149,23 +198,23 @@ export default function MyPlans() {
           </CardHeader>
           <CardContent><div className="text-2xl font-bold">{draftPlans.length}</div></CardContent>
         </Card>
-        <Card className={needsChangesPlans.length > 0 ? 'border-amber-300' : ''}>
+        <Card className={needsChangesPlans.length > 0 ? 'border-warning/40' : ''}>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Needs Changes</CardTitle>
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-amber-600">{needsChangesPlans.length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-warning">{needsChangesPlans.length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Pending Review</CardTitle>
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-blue-600">{pendingPlans.length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-primary">{pendingPlans.length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">Approved/Active</CardTitle>
           </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-green-600">{approvedPlans.length}</div></CardContent>
+          <CardContent><div className="text-2xl font-bold text-success">{approvedPlans.length}</div></CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
@@ -200,6 +249,7 @@ export default function MyPlans() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Plan Number</TableHead>
+                  <TableHead>Version</TableHead>
                   <TableHead>Week Period</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Planned Visits</TableHead>
@@ -210,8 +260,18 @@ export default function MyPlans() {
               </TableHeader>
               <TableBody>
                 {activePlans.map((plan) => (
-                  <TableRow key={plan.id}>
+                  <TableRow key={plan.id} className={plan.status === WeeklyPlanStatus.SUPERSEDED ? 'opacity-60' : ''}>
                     <TableCell className="font-medium">{plan.plan_number}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs whitespace-nowrap">
+                        {getVersionLabel(plan)}
+                      </Badge>
+                      {(plan as any).is_revision && (plan as any).revision_reason_code && (
+                        <div className="text-[10px] text-muted-foreground mt-1">
+                          {(plan as any).revision_reason_code.replace(/_/g, ' ')}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -236,26 +296,26 @@ export default function MyPlans() {
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end flex-wrap">
                         {plan.status === WeeklyPlanStatus.DRAFT && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate('/compliance/audit-planning/weekly-plan-builder')}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => goToBuilder(plan)}>
                             <Edit className="h-4 w-4 mr-1" />
                             Edit
                           </Button>
                         )}
                         {plan.status === WeeklyPlanStatus.NEEDS_CHANGES && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate('/compliance/audit-planning/weekly-plan-builder')}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => goToBuilder(plan)}>
                             <Edit className="h-4 w-4 mr-1" />
                             Update & Resubmit
                           </Button>
                         )}
-                        {(plan.status === WeeklyPlanStatus.SUBMITTED || plan.status === WeeklyPlanStatus.RESUBMITTED) && (
+                        {isRevisionEditable(plan.status) && (
+                          <Button variant="outline" size="sm" onClick={() => goToBuilder(plan)}>
+                            <GitBranch className="h-4 w-4 mr-1" />
+                            Edit Revision
+                          </Button>
+                        )}
+                        {(plan.status === WeeklyPlanStatus.SUBMITTED ||
+                          plan.status === WeeklyPlanStatus.RESUBMITTED ||
+                          plan.status === WeeklyPlanStatus.REVISION_SUBMITTED) && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -313,9 +373,9 @@ export default function MyPlans() {
 
       {/* Need Changes Section */}
       {needsChangesPlans.length > 0 && (
-        <Card className="border-yellow-200 bg-yellow-50">
+        <Card className="border-warning/40 bg-warning/5">
           <CardHeader>
-            <CardTitle className="text-yellow-800 flex items-center gap-2">
+            <CardTitle className="text-warning flex items-center gap-2">
               <AlertCircle className="h-5 w-5" />
               Plans Requiring Changes
             </CardTitle>
@@ -323,7 +383,7 @@ export default function MyPlans() {
           <CardContent>
             <div className="space-y-3">
               {needsChangesPlans.map(plan => (
-                <div key={plan.id} className="bg-white p-4 rounded-lg">
+                <div key={plan.id} className="bg-card border border-border p-4 rounded-lg">
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-medium">{plan.plan_number}</p>
@@ -331,7 +391,7 @@ export default function MyPlans() {
                         Week: {plan.week_start_date} - {plan.week_end_date}
                       </p>
                       {plan.reviewer_comments && (
-                        <p className="text-sm mt-2 text-yellow-800">
+                        <p className="text-sm mt-2 text-foreground">
                           <span className="font-medium">Feedback:</span> {plan.reviewer_comments}
                         </p>
                       )}
@@ -339,7 +399,7 @@ export default function MyPlans() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate('/compliance/audit-planning/weekly-plan-builder')}
+                      onClick={() => goToBuilder(plan)}
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Update Plan
