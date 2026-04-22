@@ -77,7 +77,9 @@ export function useWeeklyPlanBuilder() {
   // Active plan for this week
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
 
-  // Check if a plan already exists for this week
+  // Check if a plan already exists for this week.
+  // Prefer the current-version row (e.g. an editable DRAFT revision) over a
+  // superseded/non-current APPROVED original so the planner is editable.
   const existingPlanQuery = useQuery({
     queryKey: ['weekly-plan-existing', week.weekStart, inspectorId],
     queryFn: async () => {
@@ -86,7 +88,9 @@ export function useWeeklyPlanBuilder() {
         inspectorId: inspectorId,
         weekStartDate: week.weekStart,
       });
-      return plans.length > 0 ? plans[0] : null;
+      if (plans.length === 0) return null;
+      const current = plans.find((p: any) => p.is_current_version === true);
+      return current ?? plans[0];
     },
     enabled: !!inspectorId,
   });
