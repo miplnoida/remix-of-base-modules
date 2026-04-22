@@ -676,6 +676,7 @@ function CompletionGatePanel({
               title="Gate communications"
               onChanged={onCommChanged}
               actions={GATE_ACTIONS}
+              visibilityContext={commActionContext}
               hideIfEmpty
             />
           </div>
@@ -937,6 +938,13 @@ function CloseSessionDialog({
 // Templates themselves are NEVER hardcoded here — they come from Settings.
 // ============================================================================
 
+// ============================================================================
+// Contextual action constants
+// Each action carries a `visibleWhen(ctx)` predicate that decides whether the
+// button should appear. Predicates read only from CommActionVisibilityContext
+// (built once in AuditVisitWorkspace) — no side effects, no fetches.
+// ============================================================================
+
 const WORKING_PAPERS_ACTIONS: ContextualAction[] = [
   {
     key: 'wp_request_missing_documents',
@@ -945,6 +953,9 @@ const WORKING_PAPERS_ACTIONS: ContextualAction[] = [
     fieldStage: 'during_audit_missing_documents',
     commTypeHints: ['additional_info_request', 'books_required'],
     icon: FileSearch,
+    // Only when the checklist is incomplete or evidence is missing.
+    visibleWhen: (c) => !!(c.hasMissingDocuments || c.hasMissingEvidence) && !c.sessionClosed,
+    hiddenReason: 'Checklist & evidence are complete — no missing items to request.',
   },
   {
     key: 'wp_send_pbc',
@@ -953,6 +964,9 @@ const WORKING_PAPERS_ACTIONS: ContextualAction[] = [
     fieldStage: 'during_audit_missing_documents',
     commTypeHints: ['books_required', 'additional_info_request'],
     icon: ClipboardCheck,
+    // Most useful before / during fieldwork; hide once session closed.
+    visibleWhen: (c) => !c.sessionClosed,
+    hiddenReason: 'Visit session is already closed.',
   },
   {
     key: 'wp_reminder_incomplete',
@@ -961,6 +975,9 @@ const WORKING_PAPERS_ACTIONS: ContextualAction[] = [
     fieldStage: 'reminder_stage',
     commTypeHints: ['due_date_reminder', 'visit_reminder'],
     icon: BellRing,
+    // Only when there's an outstanding obligation OR something is overdue.
+    visibleWhen: (c) => !!(c.hasOpenObligations || c.hasOverdueWithoutResponse),
+    hiddenReason: 'No outstanding records / open obligations.',
   },
 ];
 
@@ -972,6 +989,9 @@ const FINDINGS_ACTIONS: ContextualAction[] = [
     fieldStage: 'during_audit_clarification_required',
     commTypeHints: ['clarification_request', 'additional_info_request'],
     icon: HelpCircle,
+    // Only when at least one finding exists that may need clarification.
+    visibleWhen: (c) => !!c.hasClarificationNeeded,
+    hiddenReason: 'No findings recorded yet — nothing to clarify.',
   },
   {
     key: 'fn_send_interim',
@@ -980,6 +1000,9 @@ const FINDINGS_ACTIONS: ContextualAction[] = [
     fieldStage: 'during_audit_interim_findings',
     commTypeHints: ['interim_findings', 'evidence_summary'],
     icon: FileWarning,
+    // Show while session is open AND findings exist (interim by definition).
+    visibleWhen: (c) => !!c.hasFindings && !c.sessionClosed,
+    hiddenReason: 'Interim findings only apply while the audit is in progress with findings recorded.',
   },
   {
     key: 'fn_followup',
@@ -988,6 +1011,9 @@ const FINDINGS_ACTIONS: ContextualAction[] = [
     fieldStage: 'reminder_stage',
     commTypeHints: ['due_date_reminder', 'clarification_request'],
     icon: BellRing,
+    // Only when something was previously sent and is overdue / open.
+    visibleWhen: (c) => !!(c.hasOverdueWithoutResponse || c.hasOpenObligations),
+    hiddenReason: 'No outstanding finding awaiting employer response.',
   },
 ];
 
@@ -999,6 +1025,9 @@ const REPORT_ACTIONS: ContextualAction[] = [
     fieldStage: 'post_review_draft_findings',
     commTypeHints: ['draft_findings', 'dispute_instructions'],
     icon: FileSignature,
+    // Show only when a report exists but isn't yet approved/issued.
+    visibleWhen: (c) => !!c.hasReport && !c.reportApproved,
+    hiddenReason: 'No draft report exists yet, or the final report has already been approved.',
   },
   {
     key: 'rp_send_final',
@@ -1008,6 +1037,9 @@ const REPORT_ACTIONS: ContextualAction[] = [
     commTypeHints: ['final_report'],
     icon: FileBadge,
     variant: 'default',
+    // Only when the report is approved AND not already issued to employer.
+    visibleWhen: (c) => !!c.reportApproved && !c.finalReportIssued,
+    hiddenReason: 'Report is not yet approved, or final report has already been issued.',
   },
   {
     key: 'rp_request_ack',
@@ -1016,8 +1048,16 @@ const REPORT_ACTIONS: ContextualAction[] = [
     fieldStage: 'post_review_draft_findings',
     commTypeHints: ['acknowledgment_request'],
     icon: FileCheck2,
+    // Only meaningful once the final report has actually been sent.
+    visibleWhen: (c) => !!c.finalReportIssued,
+    hiddenReason: 'Final report has not been issued yet.',
   },
 ];
+
+/** Severity threshold helper — returns true when current ≥ threshold. */
+const SEV_RANK: Record<string, number> = { NONE: 0, LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
+const meetsSeverity = (current?: string, threshold?: string) =>
+  (SEV_RANK[current ?? 'NONE'] ?? 0) >= (SEV_RANK[threshold ?? 'MEDIUM'] ?? 2);
 
 const GATE_ACTIONS: ContextualAction[] = [
   {
@@ -1027,6 +1067,22 @@ const GATE_ACTIONS: ContextualAction[] = [
     fieldStage: 'reminder_stage',
     commTypeHints: ['due_date_reminder', 'visit_reminder'],
     icon: AlarmClock,
+    // Only if obligations are still open / something is overdue.
+    visibleWhen: (c) => !!(c.hasOpenObligations || c.hasOverdueWithoutResponse),
+    hiddenReason: 'No outstanding obligations to remind about.',
+  },
+  {
+    key: 'gate_send_violation_notice',
+    label: 'Send Violation Notice',
+    description: 'Issue a violation notice when enforcement conditions are met.',
+    fieldStage: 'enforcement_stage',
+    commTypeHints: ['violation_notice'],
+    icon: ShieldX,
+    variant: 'destructive',
+    // Enforcement conditions: violations exist AND severity ≥ threshold.
+    visibleWhen: (c) =>
+      !!c.hasViolations && meetsSeverity(c.maxSeverity, c.enforcementThreshold ?? 'MEDIUM'),
+    hiddenReason: 'No violations meet the configured enforcement severity threshold.',
   },
   {
     key: 'gate_trigger_escalation',
@@ -1036,5 +1092,9 @@ const GATE_ACTIONS: ContextualAction[] = [
     commTypeHints: ['escalation_notice', 'violation_notice'],
     icon: ShieldX,
     variant: 'destructive',
+    // Escalation only when due date has lapsed AND no valid response recorded
+    // (i.e. there's an overdue item without acknowledgment).
+    visibleWhen: (c) => !!c.hasOverdueWithoutResponse,
+    hiddenReason: 'No overdue communications without a recorded response.',
   },
 ];
