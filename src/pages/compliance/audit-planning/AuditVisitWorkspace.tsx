@@ -349,6 +349,7 @@ export default function AuditVisitWorkspace() {
                 title="Checklist communications"
                 onChanged={commStatus.refresh}
                 actions={WORKING_PAPERS_ACTIONS}
+                visibilityContext={commActionContext}
               />
             )}
             <WorkingPapersTabContent visit={adaptedVisit} planItemId={planItemId} />
@@ -369,6 +370,7 @@ export default function AuditVisitWorkspace() {
                 title="Findings communications"
                 onChanged={commStatus.refresh}
                 actions={FINDINGS_ACTIONS}
+                visibilityContext={commActionContext}
               />
             )}
             <FindingsTabContent
@@ -418,6 +420,7 @@ export default function AuditVisitWorkspace() {
                 title="Report communications"
                 onChanged={commStatus.refresh}
                 actions={REPORT_ACTIONS}
+                visibilityContext={commActionContext}
               />
             )}
             <Card>
