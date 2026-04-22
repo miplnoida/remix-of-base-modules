@@ -67,7 +67,7 @@ BEGIN
   -- planner facts view.
   INSERT INTO ce_risk_profiles (
     employer_id, employer_name, territory, zone_id,
-    risk_band, risk_score,
+    risk_band, total_score,
     last_inspected_at, last_audit_date, next_audit_due_date,
     audit_cycle_type, audit_program,
     last_calculated_at, scoring_version, created_by, updated_by
