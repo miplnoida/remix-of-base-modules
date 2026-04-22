@@ -32,10 +32,10 @@ Generation status legend: ✅ documented · 🟡 pending (next batch) · ⚪ not
 
 | # | Display Name | Route | Page Component | Doc |
 |---|---|---|---|---|
-| 11 | Officers / Inspectors | `/compliance/admin/staff/officers` | `src/pages/compliance/staff/OfficerManagement.tsx` | 🟡 pending |
-| 12 | Queue Members | `/compliance/admin/staff/queue-members` | `src/pages/compliance/staff/QueueMembers.tsx` | 🟡 pending |
-| 13 | Supervisor Hierarchy | `/compliance/admin/staff/supervisors` | `src/pages/compliance/staff/SupervisorHierarchy.tsx` | 🟡 pending |
-| 14 | Link Legacy Inspectors | `/compliance/admin/staff/link-legacy` | `src/pages/compliance/staff/LegacyInspectorLinking.tsx` | 🟡 pending |
+| 11 | Officers / Inspectors | `/compliance/admin/staff/officers` | `src/pages/compliance/staff/OfficerManagement.tsx` | ✅ [officers.md](./staff/officers.md) |
+| 12 | Queue Members | `/compliance/admin/staff/queue-members` | `src/pages/compliance/staff/QueueMembers.tsx` | ✅ [queue-members.md](./staff/queue-members.md) |
+| 13 | Supervisor Hierarchy | `/compliance/admin/staff/supervisors` | `src/pages/compliance/staff/SupervisorHierarchy.tsx` | ✅ [supervisor-hierarchy.md](./staff/supervisor-hierarchy.md) |
+| 14 | Link Legacy Inspectors | `/compliance/admin/staff/link-legacy` | `src/pages/compliance/staff/LegacyInspectorLinking.tsx` | ✅ [legacy-inspector-linking.md](./staff/legacy-inspector-linking.md) |
 
 ## Section D — Automation & Jobs (parent: `ca…0115`)
 
