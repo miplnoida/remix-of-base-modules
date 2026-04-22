@@ -236,7 +236,13 @@ export default function AuditVisitWorkspace() {
           employerId={adaptedVisit?.employerId || planItem.employer_id}
           employerName={planItem.employer_name ?? undefined}
           userCode={userCode ?? undefined}
-          commStatus={commStatus}
+          commStatus={{
+            total: commStatus.total,
+            sent: commStatus.sent,
+            pending: commStatus.drafts + commStatus.pendingApproval + commStatus.scheduled,
+            failed: commStatus.failed,
+            finalStageIssued: commStatus.finalStageIssued,
+          }}
           onCommChanged={commStatus.refresh}
           commAdvisory={
             sessionClosed && hasViolations && !commStatus.finalStageIssued
