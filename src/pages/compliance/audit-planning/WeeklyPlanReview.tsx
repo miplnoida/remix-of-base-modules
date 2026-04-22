@@ -17,11 +17,16 @@ import {
   Clock,
   FileText,
   Loader2,
+  GitCompare,
+  History,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUserCode } from '@/hooks/useUserCode';
 import { weeklyPlanService } from '@/services/weeklyPlanService';
 import { WeeklyPlan, WeeklyPlanItem, WeeklyPlanReview as PlanReview } from '@/types/weeklyPlan';
+import { PlanCompareDialog } from '@/components/compliance/weekly-plan/PlanCompareDialog';
+import { PlanVersionHistoryDialog } from '@/components/compliance/weekly-plan/PlanVersionHistoryDialog';
+import { RecommendationReasonsPopover } from '@/components/compliance/weekly-plan/RecommendationReasonsPopover';
 
 export function WeeklyPlanReview() {
   const navigate = useNavigate();
