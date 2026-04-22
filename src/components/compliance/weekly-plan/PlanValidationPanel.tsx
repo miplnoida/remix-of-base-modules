@@ -162,7 +162,7 @@ export function PlanValidationPanel({ readiness }: PlanValidationPanelProps) {
             <span className={`text-xl font-bold ${tone}`}>{score}</span>
             <span className="text-xs text-muted-foreground">/100</span>
             <Badge variant="outline" className={`${tone} border-current text-[10px]`}>
-              {isReady ? 'Ready to Submit' : 'Needs Attention'}
+              {!isReady ? 'Add items to submit' : score >= 80 ? 'Ready to Submit' : 'Submittable · Warnings'}
             </Badge>
           </div>
         </CardTitle>
