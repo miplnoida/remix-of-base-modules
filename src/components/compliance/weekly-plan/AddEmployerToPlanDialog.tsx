@@ -287,7 +287,10 @@ function DirectTab({
       />
 
       {employer && (
-        <EmployerCard employer={employer} validation={validation} recentCount={recent.data?.length ?? 0} />
+        <>
+          <EmployerCard employer={employer} validation={validation} recentCount={recent.data?.length ?? 0} />
+          <EmployerIntelligencePanel employerId={employer.regno} validation={validation} />
+        </>
       )}
 
       <div className="grid grid-cols-3 gap-3">
@@ -416,7 +419,10 @@ function ExceptionTab({
       />
 
       {employer && (
-        <EmployerCard employer={employer} validation={validation} recentCount={recent.data?.length ?? 0} />
+        <>
+          <EmployerCard employer={employer} validation={validation} recentCount={recent.data?.length ?? 0} />
+          <EmployerIntelligencePanel employerId={employer.regno} validation={validation} />
+        </>
       )}
 
       <div className="grid grid-cols-2 gap-3">
