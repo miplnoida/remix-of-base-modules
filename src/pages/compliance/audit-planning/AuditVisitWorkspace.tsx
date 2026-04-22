@@ -232,6 +232,12 @@ export default function AuditVisitWorkspace() {
       {sessionStarted && gate && (
         <CompletionGatePanel
           gate={gate}
+          inspectionId={inspectionId}
+          employerId={adaptedVisit?.employerId || planItem.employer_id}
+          employerName={planItem.employer_name ?? undefined}
+          userCode={userCode ?? undefined}
+          commStatus={commStatus}
+          onCommChanged={commStatus.refresh}
           commAdvisory={
             sessionClosed && hasViolations && !commStatus.finalStageIssued
               ? 'No final-stage communication (final report / violation notice / corrective action) has been sent to the employer yet.'
