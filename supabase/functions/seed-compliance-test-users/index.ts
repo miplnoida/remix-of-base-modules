@@ -74,6 +74,15 @@ Deno.serve(async (req: Request) => {
 
         if (found) {
           userId = found.id;
+          // Always reset password + ensure email is confirmed so the
+          // mobile API login works with the documented credentials.
+          await admin.auth.admin.updateUserById(userId, {
+            password: u.password,
+            email_confirm: true,
+            user_metadata: {
+              full_name: `${u.first_name} ${u.last_name}`.trim(),
+            },
+          });
         } else {
           const { data: created, error: createErr } = await admin.auth.admin.createUser({
             email: u.email,
