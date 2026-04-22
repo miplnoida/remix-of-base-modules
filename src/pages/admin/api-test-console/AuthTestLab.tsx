@@ -108,21 +108,22 @@ export default function AuthTestLab() {
               <TabsContent value="pin-unlock" className="space-y-3 pt-3">
                 <FormField label="Device ID"><Input value={deviceId} onChange={(e) => setDeviceId(e.target.value)} /></FormField>
                 <FormField label="PIN"><Input value={pin} onChange={(e) => setPin(e.target.value)} /></FormField>
-                <Button disabled={isRunning} onClick={() => execute('/compliance-mobile-auth/pin-unlock', { device_id: deviceId, pin }, 200)}>
+                <Button disabled={isRunning || !refreshToken} onClick={() => execute('/compliance-mobile-auth/pin-unlock', { device_id: deviceId, pin, refresh_token: refreshToken }, 200)}>
                   <PlayCircle className="mr-1 h-4 w-4" /> Run pin-unlock
                 </Button>
+                {!refreshToken && <p className="text-xs text-destructive">Run login first to capture a refresh token.</p>}
               </TabsContent>
 
               <TabsContent value="refresh" className="space-y-3 pt-3">
                 <FormField label="Refresh token"><Input value={refreshToken} onChange={(e) => setRefreshToken(e.target.value)} /></FormField>
-                <Button disabled={isRunning || !refreshToken} onClick={() => execute('/compliance-mobile-auth/refresh', { refresh_token: refreshToken }, 200)}>
+                <Button disabled={isRunning || !refreshToken} onClick={() => execute('/compliance-mobile-auth/refresh', { refresh_token: refreshToken, device_id: deviceId }, 200)}>
                   <PlayCircle className="mr-1 h-4 w-4" /> Run refresh
                 </Button>
               </TabsContent>
 
               <TabsContent value="logout" className="space-y-3 pt-3">
                 <FormField label="Device ID"><Input value={deviceId} onChange={(e) => setDeviceId(e.target.value)} /></FormField>
-                <Button disabled={isRunning || !accessToken} onClick={() => execute('/compliance-mobile-auth/logout', { device_id: deviceId }, 200, true)}>
+                <Button disabled={isRunning || !accessToken} onClick={() => execute('/compliance-mobile-auth/logout', { device_id: deviceId, refresh_token: refreshToken || undefined, revoke_device: true }, 200, true)}>
                   <PlayCircle className="mr-1 h-4 w-4" /> Run logout
                 </Button>
               </TabsContent>
