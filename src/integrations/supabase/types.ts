@@ -53282,6 +53282,9 @@ export type Database = {
         | "partial"
         | "failed"
         | "cancelled"
+        | "delivered"
+        | "acknowledged"
+        | "responded"
       ce_comm_trigger_type: "manual" | "automatic" | "recommended"
       ce_comm_type:
         | "audit_intimation"
@@ -53747,6 +53750,9 @@ export const Constants = {
         "partial",
         "failed",
         "cancelled",
+        "delivered",
+        "acknowledged",
+        "responded",
       ],
       ce_comm_trigger_type: ["manual", "automatic", "recommended"],
       ce_comm_type: [
