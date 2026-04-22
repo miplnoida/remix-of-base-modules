@@ -360,7 +360,7 @@ export default function AuditVisitWorkspace() {
           commActionContext={commActionContext}
           orchestratorBlockers={orchestrator.completionGate.blockers}
           orchestratorReady={orchestrator.completionGate.ready}
-          nextRecommendedLabel={orchestrator.nextRecommended?.label ?? null}
+          nextRecommendedLabel={orchestrator.nextRecommended?.rule.rule_name ?? null}
           commAdvisory={
             sessionClosed && hasViolations && !commStatus.finalStageIssued
               ? 'No final-stage communication (final report / violation notice / corrective action) has been sent to the employer yet.'
