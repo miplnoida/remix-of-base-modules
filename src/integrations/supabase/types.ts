@@ -11400,6 +11400,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_audit_priority_weights: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          enabled: boolean
+          id: string
+          label: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+          weight_key: string
+          weight_pct: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          label: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          weight_key: string
+          weight_pct: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          label?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          weight_key?: string
+          weight_pct?: number
+        }
+        Relationships: []
+      }
       ce_audit_report_acknowledgments: {
         Row: {
           created_at: string
@@ -51360,9 +51402,12 @@ export type Database = {
         Returns: {
           any_breach_detected: boolean
           audit_cycle_due_date: string
+          audit_priority_score: number
+          audit_program: string
           candidate_reason: string
           candidate_source: string
           carry_forward_count: number
+          case_count: number
           cycle_overdue_days: number
           days_since_last_inspection: number
           derived_priority: string
@@ -51370,15 +51415,21 @@ export type Database = {
           employer_name: string
           escalated_violation_count: number
           financial_exposure: number
+          inherent_risk_score: number
           is_cycle_overdue: boolean
+          last_audit_date: string
+          next_due_date: string
           notice_days_remaining: number
           open_violation_count: number
+          overdue_days: number
           overdue_followup_count: number
           recommendation_reasons: Json
           recommendation_score: number
           risk_band: string
           risk_score: number
           territory: string
+          violation_count: number
+          why_selected: string
           zone_id: string
         }[]
       }
