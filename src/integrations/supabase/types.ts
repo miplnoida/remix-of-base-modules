@@ -18990,7 +18990,10 @@ export type Database = {
         Row: {
           arrears_score: number | null
           assessed_by: string | null
+          audit_cycle_type: string | null
           audit_frequency_override: string | null
+          audit_program: string | null
+          consecutive_cycles_skipped: number | null
           created_at: string | null
           created_by: string | null
           employer_id: string
@@ -18998,11 +19001,15 @@ export type Database = {
           enforcement_risk_score: number | null
           filing_score: number | null
           id: string
+          last_audit_date: string | null
           last_calculated_at: string | null
           last_inspected_at: string | null
           legal_history_score: number | null
+          months_in_current_band: number | null
+          next_audit_due_date: string | null
           next_review_date: string | null
           notes: string | null
+          overdue_audit_days: number | null
           override_band: string | null
           override_by: string | null
           override_reason: string | null
@@ -19019,7 +19026,10 @@ export type Database = {
         Insert: {
           arrears_score?: number | null
           assessed_by?: string | null
+          audit_cycle_type?: string | null
           audit_frequency_override?: string | null
+          audit_program?: string | null
+          consecutive_cycles_skipped?: number | null
           created_at?: string | null
           created_by?: string | null
           employer_id: string
@@ -19027,11 +19037,15 @@ export type Database = {
           enforcement_risk_score?: number | null
           filing_score?: number | null
           id?: string
+          last_audit_date?: string | null
           last_calculated_at?: string | null
           last_inspected_at?: string | null
           legal_history_score?: number | null
+          months_in_current_band?: number | null
+          next_audit_due_date?: string | null
           next_review_date?: string | null
           notes?: string | null
+          overdue_audit_days?: number | null
           override_band?: string | null
           override_by?: string | null
           override_reason?: string | null
@@ -19048,7 +19062,10 @@ export type Database = {
         Update: {
           arrears_score?: number | null
           assessed_by?: string | null
+          audit_cycle_type?: string | null
           audit_frequency_override?: string | null
+          audit_program?: string | null
+          consecutive_cycles_skipped?: number | null
           created_at?: string | null
           created_by?: string | null
           employer_id?: string
@@ -19056,11 +19073,15 @@ export type Database = {
           enforcement_risk_score?: number | null
           filing_score?: number | null
           id?: string
+          last_audit_date?: string | null
           last_calculated_at?: string | null
           last_inspected_at?: string | null
           legal_history_score?: number | null
+          months_in_current_band?: number | null
+          next_audit_due_date?: string | null
           next_review_date?: string | null
           notes?: string | null
+          overdue_audit_days?: number | null
           override_band?: string | null
           override_by?: string | null
           override_reason?: string | null
