@@ -18755,6 +18755,198 @@ export type Database = {
           },
         ]
       }
+      ce_planner_action_approvals: {
+        Row: {
+          action_id: string
+          action_type: string
+          approver_emails: string[]
+          approver_user_codes: string[]
+          audit_program: string | null
+          capacity_impact_hours: number
+          created_at: string
+          decided_at: string | null
+          decided_by_user_code: string | null
+          decided_via: string | null
+          decision_notes: string | null
+          employer_id: string
+          escalated_at: string | null
+          escalation_count: number
+          exception_category: string | null
+          exception_justification: string | null
+          id: string
+          inspector_id: string | null
+          last_reminder_at: string | null
+          reminder_sent_count: number
+          requested_at: string
+          requested_by_user_code: string
+          sla_due_at: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          week_start_date: string
+          zone_id: string | null
+        }
+        Insert: {
+          action_id: string
+          action_type: string
+          approver_emails?: string[]
+          approver_user_codes?: string[]
+          audit_program?: string | null
+          capacity_impact_hours?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by_user_code?: string | null
+          decided_via?: string | null
+          decision_notes?: string | null
+          employer_id: string
+          escalated_at?: string | null
+          escalation_count?: number
+          exception_category?: string | null
+          exception_justification?: string | null
+          id?: string
+          inspector_id?: string | null
+          last_reminder_at?: string | null
+          reminder_sent_count?: number
+          requested_at?: string
+          requested_by_user_code: string
+          sla_due_at: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          week_start_date: string
+          zone_id?: string | null
+        }
+        Update: {
+          action_id?: string
+          action_type?: string
+          approver_emails?: string[]
+          approver_user_codes?: string[]
+          audit_program?: string | null
+          capacity_impact_hours?: number
+          created_at?: string
+          decided_at?: string | null
+          decided_by_user_code?: string | null
+          decided_via?: string | null
+          decision_notes?: string | null
+          employer_id?: string
+          escalated_at?: string | null
+          escalation_count?: number
+          exception_category?: string | null
+          exception_justification?: string | null
+          id?: string
+          inspector_id?: string | null
+          last_reminder_at?: string | null
+          reminder_sent_count?: number
+          requested_at?: string
+          requested_by_user_code?: string
+          sla_due_at?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          week_start_date?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_planner_action_approvals_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "ce_planner_candidate_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_planner_approval_audit: {
+        Row: {
+          actor_user_code: string | null
+          approval_id: string
+          channel: string | null
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          recipient_email: string | null
+        }
+        Insert: {
+          actor_user_code?: string | null
+          approval_id: string
+          channel?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          recipient_email?: string | null
+        }
+        Update: {
+          actor_user_code?: string | null
+          approval_id?: string
+          channel?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          recipient_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_planner_approval_audit_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "ce_planner_action_approvals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_planner_approval_tokens: {
+        Row: {
+          approval_id: string
+          approver_email: string
+          approver_user_code: string
+          created_at: string
+          expires_at: string
+          id: string
+          intent: string
+          token_hash: string
+          used_at: string | null
+          used_ip: unknown
+          used_user_agent: string | null
+        }
+        Insert: {
+          approval_id: string
+          approver_email: string
+          approver_user_code: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          intent: string
+          token_hash: string
+          used_at?: string | null
+          used_ip?: unknown
+          used_user_agent?: string | null
+        }
+        Update: {
+          approval_id?: string
+          approver_email?: string
+          approver_user_code?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          intent?: string
+          token_hash?: string
+          used_at?: string | null
+          used_ip?: unknown
+          used_user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_planner_approval_tokens_approval_id_fkey"
+            columns: ["approval_id"]
+            isOneToOne: false
+            referencedRelation: "ce_planner_action_approvals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_planner_bucket_policy: {
         Row: {
           bucket_key: string
@@ -28038,6 +28230,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_send_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          message_id: string | null
+          metadata: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email: string
+          status: string
+          template_name: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_id?: string | null
+          metadata?: Json | null
+          recipient_email?: string
+          status?: string
+          template_name?: string
+        }
+        Relationships: []
+      }
+      email_send_state: {
+        Row: {
+          auth_email_ttl_minutes: number
+          batch_size: number
+          id: number
+          retry_after_until: string | null
+          send_delay_ms: number
+          transactional_email_ttl_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
+        }
+        Update: {
+          auth_email_ttl_minutes?: number
+          batch_size?: number
+          id?: number
+          retry_after_until?: string | null
+          send_delay_ms?: number
+          transactional_email_ttl_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      email_unsubscribe_tokens: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: []
       }
       er_application_documents: {
         Row: {
@@ -43696,6 +43975,30 @@ export type Database = {
         }
         Relationships: []
       }
+      suppressed_emails: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          metadata: Json | null
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          metadata?: Json | null
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          metadata?: Json | null
+          reason?: string
+        }
+        Relationships: []
+      }
       system_audit_trail: {
         Row: {
           action: string | null
@@ -51898,6 +52201,10 @@ export type Database = {
         }
         Returns: string
       }
+      delete_email: {
+        Args: { message_id: number; queue_name: string }
+        Returns: boolean
+      }
       delete_head_cashier_override: {
         Args: { p_deleted_by?: string; p_override_id: string }
         Returns: Json
@@ -51916,6 +52223,10 @@ export type Database = {
           p_user_code?: string
         }
         Returns: undefined
+      }
+      enqueue_email: {
+        Args: { payload: Json; queue_name: string }
+        Returns: number
       }
       evaluate_levy_amounts: {
         Args: {
@@ -52791,6 +53102,15 @@ export type Database = {
         }
         Returns: string
       }
+      move_to_dlq: {
+        Args: {
+          dlq_name: string
+          message_id: number
+          payload: Json
+          source_queue: string
+        }
+        Returns: number
+      }
       pay_invoices_with_receipt:
         | {
             Args: {
@@ -53007,6 +53327,14 @@ export type Database = {
           p_sequence_no: number
         }
         Returns: Json
+      }
+      read_email_batch: {
+        Args: { batch_size: number; queue_name: string; vt: number }
+        Returns: {
+          message: Json
+          msg_id: number
+          read_ct: number
+        }[]
       }
       register_voluntary_contributor: {
         Args: {
