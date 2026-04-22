@@ -260,8 +260,18 @@ export default function MyPlans() {
               </TableHeader>
               <TableBody>
                 {activePlans.map((plan) => (
-                  <TableRow key={plan.id}>
+                  <TableRow key={plan.id} className={plan.status === WeeklyPlanStatus.SUPERSEDED ? 'opacity-60' : ''}>
                     <TableCell className="font-medium">{plan.plan_number}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs whitespace-nowrap">
+                        {getVersionLabel(plan)}
+                      </Badge>
+                      {(plan as any).is_revision && (plan as any).revision_reason_code && (
+                        <div className="text-[10px] text-muted-foreground mt-1">
+                          {(plan as any).revision_reason_code.replace(/_/g, ' ')}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -286,26 +296,26 @@ export default function MyPlans() {
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end flex-wrap">
                         {plan.status === WeeklyPlanStatus.DRAFT && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate('/compliance/audit-planning/weekly-plan-builder')}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => goToBuilder(plan)}>
                             <Edit className="h-4 w-4 mr-1" />
                             Edit
                           </Button>
                         )}
                         {plan.status === WeeklyPlanStatus.NEEDS_CHANGES && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate('/compliance/audit-planning/weekly-plan-builder')}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => goToBuilder(plan)}>
                             <Edit className="h-4 w-4 mr-1" />
                             Update & Resubmit
                           </Button>
                         )}
-                        {(plan.status === WeeklyPlanStatus.SUBMITTED || plan.status === WeeklyPlanStatus.RESUBMITTED) && (
+                        {isRevisionEditable(plan.status) && (
+                          <Button variant="outline" size="sm" onClick={() => goToBuilder(plan)}>
+                            <GitBranch className="h-4 w-4 mr-1" />
+                            Edit Revision
+                          </Button>
+                        )}
+                        {(plan.status === WeeklyPlanStatus.SUBMITTED ||
+                          plan.status === WeeklyPlanStatus.RESUBMITTED ||
+                          plan.status === WeeklyPlanStatus.REVISION_SUBMITTED) && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -363,9 +373,9 @@ export default function MyPlans() {
 
       {/* Need Changes Section */}
       {needsChangesPlans.length > 0 && (
-        <Card className="border-yellow-200 bg-yellow-50">
+        <Card className="border-warning/40 bg-warning/5">
           <CardHeader>
-            <CardTitle className="text-yellow-800 flex items-center gap-2">
+            <CardTitle className="text-warning flex items-center gap-2">
               <AlertCircle className="h-5 w-5" />
               Plans Requiring Changes
             </CardTitle>
@@ -373,7 +383,7 @@ export default function MyPlans() {
           <CardContent>
             <div className="space-y-3">
               {needsChangesPlans.map(plan => (
-                <div key={plan.id} className="bg-white p-4 rounded-lg">
+                <div key={plan.id} className="bg-card border border-border p-4 rounded-lg">
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-medium">{plan.plan_number}</p>
@@ -381,7 +391,7 @@ export default function MyPlans() {
                         Week: {plan.week_start_date} - {plan.week_end_date}
                       </p>
                       {plan.reviewer_comments && (
-                        <p className="text-sm mt-2 text-yellow-800">
+                        <p className="text-sm mt-2 text-foreground">
                           <span className="font-medium">Feedback:</span> {plan.reviewer_comments}
                         </p>
                       )}
