@@ -63,6 +63,8 @@ import {
   PlanValidationPanel,
   computePlanReadiness,
 } from '@/components/compliance/weekly-plan/PlanValidationPanel';
+import { EmployerSelectionWorkbench } from '@/components/compliance/weekly-plan/EmployerSelectionWorkbench';
+import { useComplianceRole } from '@/hooks/useComplianceRole';
 
 const DAYS: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
@@ -105,6 +107,7 @@ export default function WeeklyPlanBuilderSmart({ onSwitchToLegacy }: Props) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const builder = useWeeklyPlanBuilder();
+  const role = useComplianceRole();
 
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
@@ -248,6 +251,22 @@ export default function WeeklyPlanBuilderSmart({ onSwitchToLegacy }: Props) {
         planItems={builder.planItems}
         candidates={builder.candidates}
         addedSourceIds={builder.addedSourceIds}
+      />
+
+      {/* Three-path Employer Selection Workbench
+          (Recommended | Direct | Exception | Planned) — always visible so the
+          redesigned selection model is discoverable from any builder route. */}
+      <EmployerSelectionWorkbench
+        planId={builder.activePlanId}
+        userCode={builder.userCode}
+        weekDays={builder.week.days}
+        planItems={builder.planItems}
+        recommended={builder.candidates}
+        addedSourceIds={builder.addedSourceIds}
+        canEdit={builder.canEdit}
+        canApproveExceptions={role === 'head' || role === 'senior'}
+        addItem={builder.addManualItem}
+        onAddRecommended={(c, d) => builder.addCandidateToDay(c, d)}
       />
 
       {/* Action ribbon — week nav, status, primary flow */}
