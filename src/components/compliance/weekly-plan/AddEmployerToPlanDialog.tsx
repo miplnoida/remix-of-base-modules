@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 
 import { EmployerMasterSearch, type EmployerMasterRecord } from './EmployerMasterSearch';
+import { EmployerIntelligencePanel } from './EmployerIntelligencePanel';
 import { DayOfWeek } from '@/hooks/useWeeklyPlanBuilder';
 import {
   EXCEPTION_CATEGORIES,
