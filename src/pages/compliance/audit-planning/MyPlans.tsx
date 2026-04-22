@@ -399,7 +399,7 @@ export default function MyPlans() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => navigate('/compliance/audit-planning/weekly-plan-builder')}
+                      onClick={() => goToBuilder(plan)}
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Update Plan
