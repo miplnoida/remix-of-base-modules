@@ -1,6 +1,6 @@
 /**
  * Shared Workflow Trigger Service
- * 
+ *
  * Centralizes the logic for triggering workflow instances on IP Registration submissions.
  * Used by both manual submission (useIPRegistrationSubmit) and programmatic conversion
  * (useConvertToIPRegistration) to ensure consistency.
@@ -39,11 +39,45 @@ export interface TriggerWorkflowParams {
   userId?: string;
   sourceModule?: string;
   moduleId?: string;
+  /**
+   * When true, allows creating a fresh workflow instance even if a CLOSED
+   * (Completed/Approved/Rejected/Cancelled) instance already exists.
+   * Active instances (Pending/InProgress/Escalated/Query/AwaitingMeeting)
+   * always block re-initiation regardless of this flag.
+   */
+  allowReinitiate?: boolean;
 }
+
+export interface TriggerWorkflowResult {
+  /** The workflow instance id — either newly created or the existing active one. */
+  instanceId: string | null;
+  /** True only when a NEW instance was inserted in this call. */
+  created: boolean;
+  /** Human-readable explanation when created=false or instanceId=null. */
+  reason?: string;
+  /** When an existing instance is returned, its current status. */
+  existingStatus?: string | null;
+}
+
+const ACTIVE_STATUSES = new Set([
+  'Pending',
+  'InProgress',
+  'Escalated',
+  'Query',
+  'AwaitingMeeting',
+]);
+
+const CLOSED_STATUSES = new Set([
+  'Completed',
+  'Approved',
+  'Rejected',
+  'Cancelled',
+]);
 
 /**
  * Triggers a workflow instance for an IP Registration record.
- * Returns the workflow instance ID if a workflow was triggered, null otherwise.
+ * Returns a structured result so callers can distinguish a brand-new instance
+ * from a reused/blocked one and surface the right toast.
  */
 export async function triggerIPRegistrationWorkflow({
   uniqueUuid,
@@ -52,22 +86,64 @@ export async function triggerIPRegistrationWorkflow({
   userId,
   sourceModule = 'insured_person_registration',
   moduleId = '305eaff7-8446-47e0-a7ac-186da08b91ee',
-}: TriggerWorkflowParams): Promise<string | null> {
+  allowReinitiate = true,
+}: TriggerWorkflowParams): Promise<TriggerWorkflowResult> {
   try {
-    // 1. Check for duplicate — don't create if one already exists
-    const { data: existing } = await supabase
-      .from('workflow_instances')
-      .select('id')
-      .eq('source_module', sourceModule)
-      .eq('source_record_id', uniqueUuid)
-      .limit(1);
-
-    if (existing && existing.length > 0) {
-      console.log(`[workflowTriggerService] Workflow instance already exists for ${uniqueUuid}, skipping`);
-      return existing[0].id;
+    // 0. Resolve auth user if not provided — we MUST stamp started_by accurately.
+    let resolvedUserId = userId;
+    if (!resolvedUserId) {
+      const { data: authData } = await supabase.auth.getUser();
+      resolvedUserId = authData?.user?.id;
+    }
+    if (!resolvedUserId) {
+      console.warn('[workflowTriggerService] No authenticated user; refusing to create workflow instance');
+      return {
+        instanceId: null,
+        created: false,
+        reason: 'Not authenticated. Please sign in and try again.',
+      };
     }
 
-    // 2. Look up workflow trigger for insured_person_registration + submit
+    // 1. Status-aware duplicate check
+    const { data: existing, error: existErr } = await supabase
+      .from('workflow_instances')
+      .select('id, status, created_at')
+      .eq('source_module', sourceModule)
+      .eq('source_record_id', uniqueUuid)
+      .order('created_at', { ascending: false });
+
+    if (existErr) {
+      console.error('[workflowTriggerService] Failed to check existing instances:', existErr);
+      return { instanceId: null, created: false, reason: existErr.message };
+    }
+
+    if (existing && existing.length > 0) {
+      const active = existing.find((i) => ACTIVE_STATUSES.has(i.status as string));
+      if (active) {
+        console.log(
+          `[workflowTriggerService] Active workflow instance already exists for ${uniqueUuid} (status=${active.status}); not creating a new one`
+        );
+        return {
+          instanceId: active.id,
+          created: false,
+          reason: `An active workflow instance already exists (status: ${active.status}).`,
+          existingStatus: active.status as string,
+        };
+      }
+
+      const latestClosed = existing.find((i) => CLOSED_STATUSES.has(i.status as string));
+      if (latestClosed && !allowReinitiate) {
+        return {
+          instanceId: latestClosed.id,
+          created: false,
+          reason: `Previous workflow ended as ${latestClosed.status}. Re-initiation not permitted.`,
+          existingStatus: latestClosed.status as string,
+        };
+      }
+      // Otherwise: closed and re-initiation allowed — fall through to create a new one.
+    }
+
+    // 2. Look up workflow trigger
     const { data: triggers, error: triggerError } = await supabase
       .from('workflow_triggers')
       .select('id, workflow_id, action_name, is_active')
@@ -76,13 +152,15 @@ export async function triggerIPRegistrationWorkflow({
       .eq('module_id', moduleId);
 
     if (triggerError || !triggers || triggers.length === 0) {
-      console.log('[workflowTriggerService] No workflow trigger configured for IP registration submit');
-      return null;
+      return {
+        instanceId: null,
+        created: false,
+        reason: 'No workflow trigger configured for IP registration submit.',
+      };
     }
-
     const trigger = triggers[0] as WorkflowTrigger;
 
-    // 3. Get workflow definition
+    // 3. Workflow definition
     const { data: workflow, error: workflowError } = await supabase
       .from('workflow_definitions')
       .select('id, name, default_sla_hours')
@@ -90,13 +168,11 @@ export async function triggerIPRegistrationWorkflow({
       .single();
 
     if (workflowError || !workflow) {
-      console.log('[workflowTriggerService] Workflow definition not found');
-      return null;
+      return { instanceId: null, created: false, reason: 'Workflow definition not found.' };
     }
-
     const workflowDef = workflow as WorkflowDefinition;
 
-    // 4. Get workflow steps
+    // 4. Steps
     const { data: steps, error: stepsError } = await supabase
       .from('workflow_steps')
       .select('id, step_name, step_number, sla_hours, approver_type, approver_role_ids, approver_designation_ids, approver_user_ids')
@@ -104,24 +180,24 @@ export async function triggerIPRegistrationWorkflow({
       .order('step_number', { ascending: true });
 
     if (stepsError || !steps || steps.length === 0) {
-      console.log('[workflowTriggerService] Workflow has no steps configured');
-      return null;
+      return { instanceId: null, created: false, reason: 'Workflow has no steps configured.' };
     }
-
     const workflowSteps = steps as WorkflowStep[];
 
-    // 5. Get user profile
+    // 5. Profile lookup for started_by_name
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name')
-      .eq('id', userId)
+      .select('full_name, user_code')
+      .eq('id', resolvedUserId)
       .single();
+
+    const startedByName = profile?.full_name || profile?.user_code || 'System';
 
     const firstStep = workflowSteps[0];
     const dueAt = new Date();
     dueAt.setHours(dueAt.getHours() + (workflowDef.default_sla_hours || 24));
 
-    // 6. Create workflow instance
+    // 6. Insert workflow instance
     const { data: instance, error: instanceError } = await supabase
       .from('workflow_instances')
       .insert({
@@ -132,8 +208,8 @@ export async function triggerIPRegistrationWorkflow({
         source_record_name: recordName,
         current_step_id: firstStep.id,
         status: 'InProgress',
-        started_by: userId,
-        started_by_name: profile?.full_name || 'System',
+        started_by: resolvedUserId,
+        started_by_name: startedByName,
         due_at: dueAt.toISOString(),
         metadata: {
           ssn,
@@ -145,10 +221,30 @@ export async function triggerIPRegistrationWorkflow({
 
     if (instanceError || !instance) {
       console.error('[workflowTriggerService] Error creating workflow instance:', instanceError);
-      return null;
+      return {
+        instanceId: null,
+        created: false,
+        reason: instanceError?.message || 'Failed to create workflow instance.',
+      };
     }
 
-    // 7. Create first task with proper role/designation/user assignment
+    // 6b. Verify the insert actually committed (catches silent RLS rejection)
+    const { data: verifyRow, error: verifyErr } = await supabase
+      .from('workflow_instances')
+      .select('id')
+      .eq('id', instance.id)
+      .maybeSingle();
+
+    if (verifyErr || !verifyRow) {
+      console.error('[workflowTriggerService] Workflow instance insert did not persist:', verifyErr);
+      return {
+        instanceId: null,
+        created: false,
+        reason: 'Workflow instance insert did not persist. Please retry.',
+      };
+    }
+
+    // 7. First task assignment resolution
     const taskDueAt = new Date();
     taskDueAt.setHours(taskDueAt.getHours() + (firstStep.sla_hours || 24));
 
@@ -167,9 +263,7 @@ export async function triggerIPRegistrationWorkflow({
           .select('role_name')
           .eq('id', firstStep.approver_role_ids[0])
           .single();
-        if (roleData) {
-          taskAssignment.assigned_role = roleData.role_name;
-        }
+        if (roleData) taskAssignment.assigned_role = roleData.role_name;
       }
     } else if (approverType === 'designation' && firstStep.approver_designation_ids?.length) {
       if (firstStep.approver_designation_ids.length === 1) {
@@ -182,14 +276,17 @@ export async function triggerIPRegistrationWorkflow({
       if (firstStep.approver_user_ids.length === 1) {
         taskAssignment.assigned_to = firstStep.approver_user_ids[0];
       }
-    } else if (approverType === 'reporting_manager' && userId) {
-      const resolved = await resolveReportingManagerForTask(userId, instance.id, firstStep.id, firstStep.step_name);
-      if (resolved) {
-        taskAssignment.assigned_to = resolved.managerId;
-      }
+    } else if (approverType === 'reporting_manager') {
+      const resolved = await resolveReportingManagerForTask(
+        resolvedUserId,
+        instance.id,
+        firstStep.id,
+        firstStep.step_name,
+      );
+      if (resolved) taskAssignment.assigned_to = resolved.managerId;
     }
 
-    const { data: taskData } = await supabase
+    const { data: taskData, error: taskError } = await supabase
       .from('workflow_tasks')
       .insert({
         instance_id: instance.id,
@@ -204,37 +301,47 @@ export async function triggerIPRegistrationWorkflow({
       .select('id')
       .single();
 
+    if (taskError || !taskData) {
+      console.error('[workflowTriggerService] Failed to create first workflow task:', taskError);
+      return {
+        instanceId: instance.id,
+        created: true,
+        reason: `Workflow instance created but first task assignment failed: ${taskError?.message || 'unknown'}`,
+      };
+    }
+
     // 8. Log workflow start
     await supabase.from('workflow_logs').insert({
       instance_id: instance.id,
       step_id: firstStep.id,
       step_name: firstStep.step_name,
       action: 'workflow_started',
-      performed_by: userId,
-      performed_by_name: profile?.full_name || 'System',
+      performed_by: resolvedUserId,
+      performed_by_name: startedByName,
       details: `Workflow started for IP Registration: ${recordName}`,
     });
 
-    // 9. Notify via configurable notification engine (step_entry trigger)
-    if (taskData?.id) {
-      try {
-        await supabase.functions.invoke('workflow-process-notifications', {
-          body: {
-            instance_id: instance.id,
-            step_id: firstStep.id,
-            trigger: 'step_entry',
-          },
-        });
-        console.log('[workflowTriggerService] Step entry notification processed successfully');
-      } catch (notifyError) {
-        console.error('[workflowTriggerService] Failed to process step notifications (non-critical):', notifyError);
-      }
+    // 9. Notifications (non-critical)
+    try {
+      await supabase.functions.invoke('workflow-process-notifications', {
+        body: {
+          instance_id: instance.id,
+          step_id: firstStep.id,
+          trigger: 'step_entry',
+        },
+      });
+    } catch (notifyError) {
+      console.error('[workflowTriggerService] Failed to process step notifications (non-critical):', notifyError);
     }
 
     console.log(`[workflowTriggerService] Workflow instance ${instance.id} created for record ${uniqueUuid}`);
-    return instance.id;
+    return { instanceId: instance.id, created: true };
   } catch (error) {
     console.error('[workflowTriggerService] Error triggering workflow:', error);
-    return null;
+    return {
+      instanceId: null,
+      created: false,
+      reason: error instanceof Error ? error.message : String(error),
+    };
   }
 }

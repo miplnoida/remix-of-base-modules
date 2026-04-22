@@ -51,12 +51,27 @@ export async function checkWorkflowEligibility({
   actionName = 'submit',
 }: EligibilityCheckParams): Promise<WorkflowEligibilityResult> {
   try {
-    // 1. Check for existing workflow instances for this record
+    // 1. Check for existing workflow instances for this record (status-aware)
+    const ACTIVE_STATUSES = new Set([
+      'Pending',
+      'InProgress',
+      'Escalated',
+      'Query',
+      'AwaitingMeeting',
+    ]);
+    const CLOSED_STATUSES = new Set([
+      'Completed',
+      'Approved',
+      'Rejected',
+      'Cancelled',
+    ]);
+
     const { data: existingInstances, error: existErr } = await supabase
       .from('workflow_instances')
-      .select('id, status')
+      .select('id, status, created_at')
       .eq('source_module', sourceModule)
-      .eq('source_record_id', sourceRecordId);
+      .eq('source_record_id', sourceRecordId)
+      .order('created_at', { ascending: false });
 
     if (existErr) {
       return {
@@ -65,11 +80,10 @@ export async function checkWorkflowEligibility({
       };
     }
 
-    // If an active/in-progress instance exists, workflow is not eligible
+    // Active instances always block — surface the existing id/status to the caller.
+    let latestClosedInstance: { id: string; status: string } | null = null;
     if (existingInstances && existingInstances.length > 0) {
-      const activeInstance = existingInstances.find(
-        (i) => i.status === 'InProgress' || i.status === 'Pending'
-      );
+      const activeInstance = existingInstances.find((i) => ACTIVE_STATUSES.has(i.status as string));
       if (activeInstance) {
         return {
           eligible: false,
@@ -79,13 +93,10 @@ export async function checkWorkflowEligibility({
         };
       }
 
-      // If completed/cancelled instances exist, still allow new workflow
-      const completedInstance = existingInstances.find(
-        (i) => i.status === 'Approved' || i.status === 'Rejected'
-      );
-      if (completedInstance) {
-        // Allow re-initiation but note the previous instance
-        // Continue to eligibility checks below
+      const closed = existingInstances.find((i) => CLOSED_STATUSES.has(i.status as string));
+      if (closed) {
+        latestClosedInstance = { id: closed.id, status: closed.status as string };
+        // Continue — re-initiation is allowed but we propagate the previous status.
       }
     }
 
@@ -141,18 +152,21 @@ export async function checkWorkflowEligibility({
       };
     }
 
-    // All checks passed — workflow is eligible
+    // All checks passed — workflow is eligible. If a closed instance exists,
+    // surface it so the UI can warn the user that this will be a re-initiation.
     return {
       eligible: true,
-      reason: 'Workflow is eligible to be initiated.',
+      reason: latestClosedInstance
+        ? `Workflow is eligible to be re-initiated (previous instance ended as ${latestClosedInstance.status}).`
+        : 'Workflow is eligible to be initiated.',
       workflowName: workflow.name,
       workflowId: workflow.id,
       triggerId: trigger.id,
       firstStepName: steps[0].step_name,
       defaultSlaHours: workflow.default_sla_hours ?? 24,
       totalSteps: steps.length,
-      existingInstanceId: null,
-      existingInstanceStatus: null,
+      existingInstanceId: latestClosedInstance?.id ?? null,
+      existingInstanceStatus: latestClosedInstance?.status ?? null,
     };
   } catch (err) {
     return {
