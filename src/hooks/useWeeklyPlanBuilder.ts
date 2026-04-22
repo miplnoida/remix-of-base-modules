@@ -437,7 +437,10 @@ export function useWeeklyPlanBuilder() {
     isLoading: existingPlanQuery.isLoading || planItemsQuery.isLoading,
     // Candidates
     candidates,
+    candidatesV3,
     groupedCandidates,
+    candidatesByBucket,
+    candidatesByMandatoryClass,
     candidatesLoading: candidatesQuery.isLoading,
     addedSourceIds,
     // Actions
@@ -451,7 +454,8 @@ export function useWeeklyPlanBuilder() {
     isSubmitting: submitMutation.isPending || resubmitMutation.isPending,
     isSaving: saveNarrativeMutation.isPending || addItemMutation.isPending,
     // Refresh
-    refreshCandidates: () => queryClient.invalidateQueries({ queryKey: ['plan-candidates'] }),
+    refreshCandidates: () =>
+      queryClient.invalidateQueries({ queryKey: ['plan-candidates-v3'] }),
     refreshPlan: () => {
       queryClient.invalidateQueries({ queryKey: ['weekly-plan-existing'] });
       queryClient.invalidateQueries({ queryKey: ['weekly-plan-items'] });
