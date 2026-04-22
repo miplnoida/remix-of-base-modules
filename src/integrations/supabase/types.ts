@@ -50615,6 +50615,13 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_v_employer_compliance_status: {
+        Row: {
+          bucket: string | null
+          employer_id: string | null
+        }
+        Relationships: []
+      }
       dashboard_v_financial_summary: {
         Row: {
           benefits_paid_mtd: number | null
