@@ -615,6 +615,9 @@ function CompletionGatePanel({
   gateContext,
   onCommChanged,
   commActionContext,
+  orchestratorBlockers,
+  orchestratorReady,
+  nextRecommendedLabel,
 }: {
   gate: CompletionGateResult;
   commAdvisory?: string | null;
@@ -683,6 +686,42 @@ function CompletionGatePanel({
             <span>{commAdvisory}</span>
           </div>
         )}
+
+        {/* Orchestrator-derived communications gate sub-section.
+            Composes status + triggers + approval signals into a single
+            advisory list so the auditor sees every communication blocker
+            in one place — not scattered across tabs. */}
+        {(orchestratorBlockers && orchestratorBlockers.length > 0) || nextRecommendedLabel ? (
+          <div
+            className={`rounded border p-2 text-xs space-y-1.5 ${
+              orchestratorReady
+                ? 'border-success/30 bg-success/5'
+                : 'border-warning/30 bg-warning/5'
+            }`}
+          >
+            <div className="flex items-center gap-2 font-medium">
+              {orchestratorReady ? (
+                <CheckCircle2 className="h-3.5 w-3.5 text-success" />
+              ) : (
+                <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+              )}
+              <span>Communications gate</span>
+            </div>
+            {orchestratorBlockers && orchestratorBlockers.length > 0 && (
+              <ul className="list-disc list-inside text-warning space-y-0.5">
+                {orchestratorBlockers.map((b, i) => (
+                  <li key={i}>{b}</li>
+                ))}
+              </ul>
+            )}
+            {nextRecommendedLabel && (
+              <div className="text-muted-foreground">
+                <span className="font-medium text-foreground">Next recommended:</span>{' '}
+                {nextRecommendedLabel}
+              </div>
+            )}
+          </div>
+        ) : null}
 
         {commStatus && (
           <div className="rounded border bg-card p-2 text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
