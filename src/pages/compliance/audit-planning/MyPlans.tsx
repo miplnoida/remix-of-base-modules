@@ -172,6 +172,7 @@ export default function MyPlans() {
   );
   const completedPlans = activePlans.filter(p => p.status === WeeklyPlanStatus.COMPLETED);
 
+  return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
         title="My Weekly Plans"
