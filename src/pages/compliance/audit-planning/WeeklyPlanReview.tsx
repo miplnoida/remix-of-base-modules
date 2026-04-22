@@ -17,11 +17,16 @@ import {
   Clock,
   FileText,
   Loader2,
+  GitCompare,
+  History,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUserCode } from '@/hooks/useUserCode';
 import { weeklyPlanService } from '@/services/weeklyPlanService';
 import { WeeklyPlan, WeeklyPlanItem, WeeklyPlanReview as PlanReview } from '@/types/weeklyPlan';
+import { PlanCompareDialog } from '@/components/compliance/weekly-plan/PlanCompareDialog';
+import { PlanVersionHistoryDialog } from '@/components/compliance/weekly-plan/PlanVersionHistoryDialog';
+import { RecommendationReasonsPopover } from '@/components/compliance/weekly-plan/RecommendationReasonsPopover';
 
 export function WeeklyPlanReview() {
   const navigate = useNavigate();
@@ -32,6 +37,8 @@ export function WeeklyPlanReview() {
   const [managerComments, setManagerComments] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isActioning, setIsActioning] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => {
     if (planId) loadPlan();
@@ -166,14 +173,33 @@ export function WeeklyPlanReview() {
       {/* Plan Summary */}
       <Card>
         <CardHeader>
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between flex-wrap gap-2">
             <div>
-              <CardTitle>{plan.plan_number}</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                {plan.plan_number}
+                {((plan as any).version_no ?? 1) > 1 && (
+                  <Badge variant="outline" className="text-xs">
+                    v{(plan as any).version_no} revision
+                  </Badge>
+                )}
+              </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 Week of {plan.week_start_date} to {plan.week_end_date}
               </p>
             </div>
-            {getStatusBadge(plan.status)}
+            <div className="flex items-center gap-2">
+              {((plan as any).version_no ?? 1) > 1 && (
+                <Button variant="outline" size="sm" onClick={() => setCompareOpen(true)}>
+                  <GitCompare className="h-4 w-4 mr-1" />
+                  Compare to Previous
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+                <History className="h-4 w-4 mr-1" />
+                History
+              </Button>
+              {getStatusBadge(plan.status)}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -255,6 +281,12 @@ export function WeeklyPlanReview() {
                           <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{item.scheduled_start_time}{item.scheduled_end_time ? ` – ${item.scheduled_end_time}` : ''}</span>
                         )}
                         {item.visit_type && <span>{item.visit_type.replace(/_/g, ' ')}</span>}
+                        <RecommendationReasonsPopover
+                          reasons={(item as any).recommendation_reasons as any}
+                          source={(item as any).recommendation_source}
+                          totalScore={item.recommendation_score}
+                          compact
+                        />
                       </div>
                       {item.purpose && <p className="text-xs text-muted-foreground">{item.purpose}</p>}
                     </div>
@@ -359,6 +391,10 @@ export function WeeklyPlanReview() {
           </CardContent>
         </Card>
       )}
+
+      {/* Phase 4 — Manager compare & version history dialogs */}
+      <PlanCompareDialog plan={compareOpen ? plan : null} onClose={() => setCompareOpen(false)} />
+      <PlanVersionHistoryDialog plan={historyOpen ? plan : null} onClose={() => setHistoryOpen(false)} />
     </div>
   );
 }

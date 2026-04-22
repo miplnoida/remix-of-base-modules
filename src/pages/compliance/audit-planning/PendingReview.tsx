@@ -27,7 +27,8 @@ import {
   Eye,
   Calendar,
   Clock,
-  User
+  User,
+  MapPin,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -36,6 +37,7 @@ import {
   ReviewPlanRequest
 } from '@/types/weeklyAuditPlan';
 import { weeklyAuditPlanService } from '@/services/weeklyAuditPlanService';
+import { ZoneSelector } from '@/components/compliance/weekly-plan/ZoneSelector';
 
 export default function PendingReview() {
   const { toast } = useToast();
@@ -44,6 +46,7 @@ export default function PendingReview() {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [comments, setComments] = useState('');
   const [loading, setLoading] = useState(false);
+  const [zoneFilter, setZoneFilter] = useState<string | null>(null);
 
   useEffect(() => {
     loadPendingPlans();
@@ -209,16 +212,29 @@ export default function PendingReview() {
       {/* Plans Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Weekly Plans Awaiting Review</CardTitle>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <CardTitle>Weekly Plans Awaiting Review</CardTitle>
+            <div className="flex items-center gap-2 min-w-[260px]">
+              <ZoneSelector value={zoneFilter} onChange={setZoneFilter} className="w-full" />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {plans.length === 0 ? (
-            <div className="text-center py-12">
-              <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
-              <p className="text-lg font-medium">All plans reviewed!</p>
-              <p className="text-sm text-muted-foreground">No plans pending review at this time.</p>
-            </div>
-          ) : (
+          {(() => {
+            const filteredPlans = zoneFilter
+              ? plans.filter((p) => (p as any).zone_id === zoneFilter)
+              : plans;
+            return filteredPlans.length === 0 ? (
+              <div className="text-center py-12">
+                <CheckCircle className="h-12 w-12 text-success mx-auto mb-4" />
+                <p className="text-lg font-medium">
+                  {zoneFilter ? 'No plans in selected zone' : 'All plans reviewed!'}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {zoneFilter ? 'Try a different zone filter.' : 'No plans pending review at this time.'}
+                </p>
+              </div>
+            ) : (
             <Table>
               <TableHeader>
                 <TableRow>
@@ -232,7 +248,7 @@ export default function PendingReview() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {plans.map((plan) => (
+                {filteredPlans.map((plan) => (
                   <TableRow key={plan.id}>
                     <TableCell className="font-medium">{plan.planNumber}</TableCell>
                     <TableCell>
@@ -273,7 +289,8 @@ export default function PendingReview() {
                 ))}
               </TableBody>
             </Table>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
 
