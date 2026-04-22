@@ -262,7 +262,18 @@ export default function AuditVisitWorkspace() {
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="report">Report</TabsTrigger>
           </TabsList>
-          <TabsContent value="checklist">
+          <TabsContent value="checklist" className="space-y-3">
+            {inspectionId && (adaptedVisit.employerId || planItem.employer_id) && (
+              <ContextualCommActions
+                inspectionId={inspectionId}
+                employerId={adaptedVisit.employerId || planItem.employer_id}
+                employerName={planItem.employer_name ?? undefined}
+                userCode={userCode ?? undefined}
+                title="Checklist communications"
+                onChanged={commStatus.refresh}
+                actions={WORKING_PAPERS_ACTIONS}
+              />
+            )}
             <WorkingPapersTabContent visit={adaptedVisit} planItemId={planItemId} />
           </TabsContent>
           <TabsContent value="employer">
@@ -271,7 +282,18 @@ export default function AuditVisitWorkspace() {
           <TabsContent value="evidence">
             <EvidenceTabContent visit={adaptedVisit} />
           </TabsContent>
-          <TabsContent value="findings">
+          <TabsContent value="findings" className="space-y-3">
+            {inspectionId && (adaptedVisit.employerId || planItem.employer_id) && (
+              <ContextualCommActions
+                inspectionId={inspectionId}
+                employerId={adaptedVisit.employerId || planItem.employer_id}
+                employerName={planItem.employer_name ?? undefined}
+                userCode={userCode ?? undefined}
+                title="Findings communications"
+                onChanged={commStatus.refresh}
+                actions={FINDINGS_ACTIONS}
+              />
+            )}
             <FindingsTabContent
               visit={adaptedVisit}
               employerId={adaptedVisit.employerId || planItem.employer_id || ''}
