@@ -221,7 +221,18 @@ export default function AuditVisitWorkspace() {
       )}
 
       {/* Completion gate panel */}
-      {sessionStarted && gate && <CompletionGatePanel gate={gate} />}
+      {sessionStarted && gate && (
+        <CompletionGatePanel
+          gate={gate}
+          commAdvisory={
+            sessionClosed && hasViolations && !commStatus.finalStageIssued
+              ? 'No final-stage communication (final report / violation notice / corrective action) has been sent to the employer yet.'
+              : commStatus.failed > 0
+              ? `${commStatus.failed} communication(s) failed delivery — review the Communications tab.`
+              : null
+          }
+        />
+      )}
 
       {/* Tabs */}
       {sessionStarted && adaptedVisit ? (
@@ -231,6 +242,15 @@ export default function AuditVisitWorkspace() {
             <TabsTrigger value="employer">Employer</TabsTrigger>
             <TabsTrigger value="evidence">Evidence</TabsTrigger>
             <TabsTrigger value="findings">Findings</TabsTrigger>
+            <TabsTrigger value="communications" className="gap-1">
+              <MessageSquare className="h-3.5 w-3.5" />
+              Communications
+              {commStatus.total > 0 && (
+                <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                  {commStatus.total}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="report">Report</TabsTrigger>
           </TabsList>
@@ -249,6 +269,29 @@ export default function AuditVisitWorkspace() {
               employerId={adaptedVisit.employerId || planItem.employer_id || ''}
               planItem={planItem}
             />
+          </TabsContent>
+          <TabsContent value="communications">
+            {inspectionId && (adaptedVisit.employerId || planItem.employer_id) ? (
+              <VisitCommunicationsTab
+                inspectionId={inspectionId}
+                employerId={adaptedVisit.employerId || planItem.employer_id}
+                employerName={planItem.employer_name ?? undefined}
+                visitContext={{
+                  sessionStarted,
+                  sessionClosed,
+                  reportStatus,
+                  hasViolations,
+                  gateBlocked: !!gate && !gate.ready,
+                }}
+                userCode={userCode ?? undefined}
+              />
+            ) : (
+              <Card>
+                <CardContent className="py-6 text-sm text-muted-foreground">
+                  Communications become available once the visit has an employer and active session.
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
           <TabsContent value="history">
             {(adaptedVisit.employerId || planItem.employer_id) && (
