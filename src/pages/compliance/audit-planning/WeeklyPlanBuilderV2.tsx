@@ -15,7 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { GitBranch, History, Sparkles, ArrowLeft, Info } from 'lucide-react';
+import { GitBranch, History, Sparkles, ArrowLeft, Info, Users } from 'lucide-react';
 
 import WeeklyPlanBuilderSmart from './WeeklyPlanBuilderSmart';
 import { useWeeklyPlanBuilder } from '@/hooks/useWeeklyPlanBuilder';
@@ -24,6 +24,8 @@ import { WeeklyPlanStatus } from '@/types/weeklyPlan';
 import { MultiZoneFilter } from '@/components/compliance/weekly-plan/MultiZoneFilter';
 import { PlanRevisionDialog } from '@/components/compliance/weekly-plan/PlanRevisionDialog';
 import { PlanVersionHistoryDialog } from '@/components/compliance/weekly-plan/PlanVersionHistoryDialog';
+import { AddEmployerToPlanDialog } from '@/components/compliance/weekly-plan/AddEmployerToPlanDialog';
+import { PlannedEmployersList } from '@/components/compliance/weekly-plan/PlannedEmployersList';
 
 export default function WeeklyPlanBuilderV2() {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ export default function WeeklyPlanBuilderV2() {
   const [zoneFilter, setZoneFilter] = useState<string[]>([]);
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [addEmployerOpen, setAddEmployerOpen] = useState(false);
 
   const plan: any = builder.activePlan;
   const status = plan?.status as string | undefined;
@@ -129,6 +132,18 @@ export default function WeeklyPlanBuilderV2() {
                 </Button>
               )}
 
+              {builder.canEdit && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="h-8"
+                  onClick={() => setAddEmployerOpen(true)}
+                >
+                  <Users className="h-3.5 w-3.5 mr-1.5" />
+                  Add Employer
+                </Button>
+              )}
+
               <Button
                 variant="ghost"
                 size="sm"
@@ -186,6 +201,30 @@ export default function WeeklyPlanBuilderV2() {
         onSwitchToLegacy={() =>
           navigate('/compliance/field/plan-builder')
         }
+      />
+
+      {/* Planned Employers — selection-mode aware list with audit trail */}
+      <PlannedEmployersList
+        planId={builder.activePlanId}
+        userCode={builder.userCode}
+        weekDays={builder.week.days}
+        items={builder.planItems}
+        canApproveExceptions={role === 'head' || role === 'senior'}
+        addItem={builder.addManualItem}
+      />
+
+      {/* Three-path employer add dialog (Recommended / Direct / Exception) */}
+      <AddEmployerToPlanDialog
+        open={addEmployerOpen}
+        onOpenChange={setAddEmployerOpen}
+        weekDays={builder.week.days}
+        planId={builder.activePlanId}
+        userCode={builder.userCode}
+        existingItems={builder.planItems}
+        addItem={builder.addManualItem}
+        recommended={builder.candidates}
+        addedSourceIds={builder.addedSourceIds}
+        onAddRecommended={(c, d) => builder.addCandidateToDay(c, d)}
       />
 
       {/* Phase 3 dialogs — wired here so the entry points live in the enhanced header. */}

@@ -20450,6 +20450,54 @@ export type Database = {
           },
         ]
       }
+      ce_weekly_plan_item_audit: {
+        Row: {
+          action: string
+          employer_id: string | null
+          employer_name: string | null
+          exception_category: string | null
+          exception_reason_note: string | null
+          id: string
+          item_id: string | null
+          override_note: string | null
+          performed_at: string
+          performed_by: string
+          plan_id: string
+          selection_mode: string | null
+          snapshot: Json | null
+        }
+        Insert: {
+          action: string
+          employer_id?: string | null
+          employer_name?: string | null
+          exception_category?: string | null
+          exception_reason_note?: string | null
+          id?: string
+          item_id?: string | null
+          override_note?: string | null
+          performed_at?: string
+          performed_by: string
+          plan_id: string
+          selection_mode?: string | null
+          snapshot?: Json | null
+        }
+        Update: {
+          action?: string
+          employer_id?: string | null
+          employer_name?: string | null
+          exception_category?: string | null
+          exception_reason_note?: string | null
+          id?: string
+          item_id?: string | null
+          override_note?: string | null
+          performed_at?: string
+          performed_by?: string
+          plan_id?: string
+          selection_mode?: string | null
+          snapshot?: Json | null
+        }
+        Relationships: []
+      }
       ce_weekly_plan_items: {
         Row: {
           area_name: string | null
@@ -20467,6 +20515,11 @@ export type Database = {
           duration: string | null
           employer_id: string | null
           employer_name: string | null
+          exception_approved_at: string | null
+          exception_approved_by: string | null
+          exception_category: string | null
+          exception_reason_note: string | null
+          exception_status: string | null
           execution_status: string
           findings: string | null
           id: string
@@ -20488,6 +20541,7 @@ export type Database = {
           scheduled_start_time: string | null
           scouting_confidence: string | null
           scouting_type: string | null
+          selection_mode: string | null
           source_id: string | null
           source_item_id: string | null
           source_ref: string | null
@@ -20514,6 +20568,11 @@ export type Database = {
           duration?: string | null
           employer_id?: string | null
           employer_name?: string | null
+          exception_approved_at?: string | null
+          exception_approved_by?: string | null
+          exception_category?: string | null
+          exception_reason_note?: string | null
+          exception_status?: string | null
           execution_status?: string
           findings?: string | null
           id?: string
@@ -20535,6 +20594,7 @@ export type Database = {
           scheduled_start_time?: string | null
           scouting_confidence?: string | null
           scouting_type?: string | null
+          selection_mode?: string | null
           source_id?: string | null
           source_item_id?: string | null
           source_ref?: string | null
@@ -20561,6 +20621,11 @@ export type Database = {
           duration?: string | null
           employer_id?: string | null
           employer_name?: string | null
+          exception_approved_at?: string | null
+          exception_approved_by?: string | null
+          exception_category?: string | null
+          exception_reason_note?: string | null
+          exception_status?: string | null
           execution_status?: string
           findings?: string | null
           id?: string
@@ -20582,6 +20647,7 @@ export type Database = {
           scheduled_start_time?: string | null
           scouting_confidence?: string | null
           scouting_type?: string | null
+          selection_mode?: string | null
           source_id?: string | null
           source_item_id?: string | null
           source_ref?: string | null
