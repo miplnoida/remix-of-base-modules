@@ -58,7 +58,16 @@ import { EmployerInteractionTabContent } from '@/components/compliance/inspectio
 import { EmployerComplianceHistoryPanel } from '@/components/compliance/employer-history/EmployerComplianceHistoryPanel';
 import { VisitCommunicationsTab } from '@/components/compliance/communication/VisitCommunicationsTab';
 import { VisitCommunicationsIntelligenceCard } from '@/components/compliance/communication/VisitCommunicationsIntelligenceCard';
-import { CommunicationGateChecks } from '@/components/compliance/communication/CommunicationGateChecks';
+import {
+  CommunicationGateChecks,
+  type CommGateCheck,
+  type GateQuickActionKind,
+} from '@/components/compliance/communication/CommunicationGateChecks';
+import CommunicationComposer from '@/components/compliance/communication/CommunicationComposer';
+import IntimationExceptionDialog from '@/components/compliance/communication/IntimationExceptionDialog';
+import { auditCommunicationTemplateService } from '@/services/auditCommunicationTemplateService';
+import { supabase } from '@/integrations/supabase/client';
+import type { CeCommType } from '@/types/auditCommunication';
 import {
   ContextualCommActions,
   type ContextualAction,
@@ -119,6 +128,59 @@ export default function AuditVisitWorkspace() {
 
   const { userCode } = useUserCode();
   const commStatus = useVisitCommunicationStatus(inspectionId);
+
+  // ─── Pre-visit intimation governance state ──────────────────
+  // Drives the nuanced PASS / WARN / FAIL on the Audit Intimation gate
+  // check, and powers the inline composer + exception dialog opened from
+  // the gate's quick-action buttons.
+  const [intimationMinLeadHours, setIntimationMinLeadHours] = useState<number>(48);
+  const [intimationTemplateId, setIntimationTemplateId] = useState<string | null>(null);
+  const [intimationException, setIntimationException] = useState<boolean>(false);
+  const [composerState, setComposerState] = useState<{
+    commType: CeCommType;
+    templateId?: string;
+    sendLate?: boolean;
+  } | null>(null);
+  const [exceptionDialogOpen, setExceptionDialogOpen] = useState(false);
+
+  // Resolve the active Audit Intimation template once so we can read its
+  // policy (min_lead_hours) and pre-select it in the composer.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await auditCommunicationTemplateService.list({ activeOnly: true });
+        const tpl = list.find((t: any) => t.comm_type === 'audit_intimation');
+        if (cancelled) return;
+        if (tpl) {
+          setIntimationTemplateId(tpl.id);
+          const lead = (tpl as any).min_lead_hours;
+          if (typeof lead === 'number' && lead > 0) setIntimationMinLeadHours(lead);
+        }
+      } catch {
+        /* non-fatal — gate falls back to 48h. */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Detect a recorded exception event for this inspection.
+  useEffect(() => {
+    if (!inspectionId) { setIntimationException(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await (supabase.from('ce_audit_communication_events' as any) as any)
+          .select('id, payload')
+          .eq('event_type', 'intimation_exception_recorded')
+          .contains('payload', { inspection_id: inspectionId })
+          .limit(1);
+        if (!cancelled) setIntimationException((data ?? []).length > 0);
+      } catch {
+        if (!cancelled) setIntimationException(false);
+      }
+    })();
+  }, [inspectionId, commStatus.total]);
 
   // ─── Stage-aware orchestrator ───────────────────────────────
   // Single façade composing templates ↔ stage map ↔ visit comms ↔
@@ -355,6 +417,31 @@ export default function AuditVisitWorkspace() {
             maxSeverity: deriveMaxSeverity(metrics),
             enforcementThreshold: 'MEDIUM',
             hasOverdueItems: (metrics?.followUpCount ?? 0) > 0,
+            intimation: {
+              plannedDate: planItem?.planned_date ?? null,
+              sessionStartedAt: inspection?.session_started_at ?? null,
+              minLeadHours: intimationMinLeadHours,
+              exceptionRecorded: intimationException,
+            },
+          }}
+          onGateQuickAction={(check, kind, commType) => {
+            if (kind === 'record_exception') {
+              setExceptionDialogOpen(true);
+              return;
+            }
+            const ct = commType ?? 'audit_intimation';
+            if (ct === 'audit_intimation' && !intimationTemplateId) {
+              toast.error(
+                'No active Audit Intimation template is mapped for this visit stage.',
+                { description: 'Configure one in Settings → Communications → Templates.' },
+              );
+              return;
+            }
+            setComposerState({
+              commType: ct,
+              templateId: ct === 'audit_intimation' ? intimationTemplateId ?? undefined : undefined,
+              sendLate: ct === 'audit_intimation' && sessionStarted,
+            });
           }}
           onCommChanged={commStatus.refresh}
           commActionContext={commActionContext}
@@ -524,6 +611,61 @@ export default function AuditVisitWorkspace() {
         gate={gate}
         onClosed={load}
       />
+
+      {/* Inline communication composer — opened by gate quick-actions. */}
+      {composerState && inspectionId && (adaptedVisit?.employerId || planItem.employer_id) && (
+        <CommunicationComposer
+          open={!!composerState}
+          onClose={() => setComposerState(null)}
+          onChanged={() => { commStatus.refresh(); load(); }}
+          inspectionId={inspectionId}
+          employerId={adaptedVisit?.employerId || planItem.employer_id}
+          employerName={planItem.employer_name ?? undefined}
+          userCode={userCode ?? undefined}
+          templateId={composerState.templateId}
+          visitContext={{
+            visit_date: planItem?.planned_date ?? undefined,
+            officer: inspection?.inspector_name ?? undefined,
+            // Surface intimation policy + late-send context so the composer
+            // can stamp sent_late on the row when the audit_intimation is
+            // sent after the policy's required-by deadline.
+            ...(composerState.commType === 'audit_intimation' ? {
+              planned_date: planItem?.planned_date ?? undefined,
+              min_lead_hours: intimationMinLeadHours,
+              session_started_at: inspection?.session_started_at ?? undefined,
+              send_late_expected: !!composerState.sendLate,
+            } : {}),
+          } as any}
+        />
+      )}
+
+      {/* Pre-visit intimation governance exception. */}
+      {inspectionId && (adaptedVisit?.employerId || planItem.employer_id) && (
+        <IntimationExceptionDialog
+          open={exceptionDialogOpen}
+          onOpenChange={setExceptionDialogOpen}
+          inspectionId={inspectionId}
+          employerId={adaptedVisit?.employerId || planItem.employer_id}
+          userCode={userCode ?? undefined}
+          onRecorded={(r) => {
+            setIntimationException(true);
+            commStatus.refresh();
+            if (r.sendLate) {
+              if (!intimationTemplateId) {
+                toast.error('No active Audit Intimation template is mapped.', {
+                  description: 'Configure one in Settings → Communications → Templates.',
+                });
+                return;
+              }
+              setComposerState({
+                commType: 'audit_intimation',
+                templateId: intimationTemplateId,
+                sendLate: true,
+              });
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -618,6 +760,7 @@ function CompletionGatePanel({
   orchestratorBlockers,
   orchestratorReady,
   nextRecommendedLabel,
+  onGateQuickAction,
 }: {
   gate: CompletionGateResult;
   commAdvisory?: string | null;
@@ -634,6 +777,12 @@ function CompletionGatePanel({
   orchestratorBlockers?: string[];
   orchestratorReady?: boolean;
   nextRecommendedLabel?: string | null;
+  /** Quick-action handler from CommunicationGateChecks. */
+  onGateQuickAction?: (
+    check: CommGateCheck,
+    kind: GateQuickActionKind,
+    commType?: CeCommType,
+  ) => void;
 }) {
   const headerColor = gate.ready
     ? 'text-success'
@@ -750,12 +899,15 @@ function CompletionGatePanel({
           <CommunicationGateChecks
             itemsByType={itemsByType}
             context={gateContext}
-            onQuickSend={() => {
-              // The actions panel below routes the user to the right composer
-              // via field-stage mapping; scrolling there is the cleanest UX.
-              document.getElementById('gate-comm-actions')?.scrollIntoView({
-                behavior: 'smooth', block: 'center',
-              });
+            onQuickAction={(check, kind, commType) => {
+              if (onGateQuickAction) {
+                onGateQuickAction(check, kind, commType);
+              } else {
+                // Fallback: scroll to inline action panel.
+                document.getElementById('gate-comm-actions')?.scrollIntoView({
+                  behavior: 'smooth', block: 'center',
+                });
+              }
             }}
           />
         )}

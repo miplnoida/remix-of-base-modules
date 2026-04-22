@@ -66,6 +66,7 @@ import type {
 import type { FieldExecutionStage } from '@/types/fieldStageMapping';
 
 const ATT = 'ce_audit_communication_attachments' as any;
+const COMM = 'ce_audit_communications' as any;
 
 /* ─────────────────────────── Public types ─────────────────────────── */
 
@@ -445,9 +446,44 @@ export function CommunicationComposer(props: CommunicationComposerProps) {
     if (!comm) return;
     setBusy('send');
     try {
+      // Pre-stamp sent_late + late_reason on audit_intimation rows when the
+      // visit context indicates the policy lead time has been violated. The
+      // database trigger on send will then propagate this into the audit log.
+      try {
+        if (comm.comm_type === 'audit_intimation') {
+          const v: any = visitContext ?? {};
+          const planned = v.planned_date ? new Date(v.planned_date) : null;
+          const minLeadHours = typeof v.min_lead_hours === 'number' ? v.min_lead_hours : 48;
+          const requiredBy = planned
+            ? new Date(planned.getTime() - minLeadHours * 3600_000)
+            : null;
+          const late = !!v.send_late_expected
+            || (requiredBy ? new Date() > requiredBy : false);
+          if (late) {
+            await (supabase.from(COMM) as any)
+              .update({
+                sent_late: true,
+                late_reason: v.send_late_expected
+                  ? 'Sent after visit start (governance exception)'
+                  : `Sent inside the ${minLeadHours}h pre-visit lead window.`,
+              })
+              .eq('id', comm.id);
+          }
+        }
+      } catch {
+        /* non-fatal — proceed with send so the user is not blocked. */
+      }
+
       const r = await auditCommunicationService.send(comm.id, userCode);
-      if (r.ok) toast.success(`Sent to ${r.sent} recipient(s)`);
-      else toast.warning(`Sent ${r.sent}, failed ${r.failed}`);
+      if (r.ok) {
+        toast.success(
+          comm.comm_type === 'audit_intimation' && (visitContext as any)?.send_late_expected
+            ? `Late intimation sent to ${r.sent} recipient(s)`
+            : `Sent to ${r.sent} recipient(s)`,
+        );
+      } else {
+        toast.warning(`Sent ${r.sent}, failed ${r.failed}`);
+      }
       onChanged?.();
       onClose();
     } catch (e: any) {
