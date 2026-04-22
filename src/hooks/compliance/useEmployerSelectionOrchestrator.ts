@@ -14,6 +14,7 @@ import { useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { planExceptionNotifier } from '@/services/compliance/planExceptionNotifier';
 import { DayOfWeek } from '@/hooks/useWeeklyPlanBuilder';
 import {
   CreatePlanItemRequest,
@@ -288,6 +289,17 @@ export function useEmployerSelectionOrchestrator(opts: OrchestratorOptions) {
         exception_reason_note: params.reasonNote,
         snapshot: req as Record<string, unknown>,
       });
+      // Fire-and-forget supervisor notification when approval is required.
+      if (approvalRequired && planId) {
+        void planExceptionNotifier.submitted({
+          planId,
+          employerName: params.employer.name || params.employer.trade_name || params.employer.regno,
+          employerId: params.employer.regno,
+          exceptionCategory: params.category,
+          reasonNote: params.reasonNote,
+          performedBy: userCode || 'unknown',
+        });
+      }
       toast({
         title: approvalRequired ? 'Exception Submitted for Approval' : 'Exception Added',
         description: approvalRequired
@@ -320,6 +332,31 @@ export function useEmployerSelectionOrchestrator(opts: OrchestratorOptions) {
     [writeAudit],
   );
 
+  const notifyDecision = useCallback(
+    async (itemId: string, outcome: 'APPROVED' | 'REJECTED', note?: string) => {
+      if (!planId) return;
+      try {
+        const { data: item } = await (supabase as any)
+          .from('ce_weekly_plan_items')
+          .select('employer_id, employer_name')
+          .eq('id', itemId)
+          .maybeSingle();
+        void planExceptionNotifier.decision({
+          planId,
+          itemId,
+          employerName: item?.employer_name ?? null,
+          employerId: item?.employer_id ?? null,
+          performedBy: userCode || 'unknown',
+          outcome,
+          note,
+        });
+      } catch (e) {
+        console.warn('[exception-decision-notify] failed', e);
+      }
+    },
+    [planId, userCode],
+  );
+
   const approveException = useCallback(async (itemId: string, note?: string) => {
     const { error } = await supabase
       .from('ce_weekly_plan_items')
@@ -331,9 +368,10 @@ export function useEmployerSelectionOrchestrator(opts: OrchestratorOptions) {
       .eq('id', itemId);
     if (error) throw error;
     await writeAudit({ action: 'EXCEPTION_APPROVED', itemId, override_note: note });
+    await notifyDecision(itemId, 'APPROVED', note);
     qc.invalidateQueries({ queryKey: ['weekly-plan-items'] });
     toast({ title: 'Exception Approved' });
-  }, [userCode, writeAudit, qc, toast]);
+  }, [userCode, writeAudit, notifyDecision, qc, toast]);
 
   const rejectException = useCallback(async (itemId: string, note?: string) => {
     const { error } = await supabase
@@ -346,9 +384,10 @@ export function useEmployerSelectionOrchestrator(opts: OrchestratorOptions) {
       .eq('id', itemId);
     if (error) throw error;
     await writeAudit({ action: 'EXCEPTION_REJECTED', itemId, override_note: note });
+    await notifyDecision(itemId, 'REJECTED', note);
     qc.invalidateQueries({ queryKey: ['weekly-plan-items'] });
     toast({ title: 'Exception Rejected', variant: 'destructive' });
-  }, [userCode, writeAudit, qc, toast]);
+  }, [userCode, writeAudit, notifyDecision, qc, toast]);
 
   return useMemo(
     () => ({
