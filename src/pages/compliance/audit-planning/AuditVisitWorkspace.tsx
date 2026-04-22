@@ -65,6 +65,7 @@ import {
   type CommActionVisibilityContext,
 } from '@/components/compliance/communication/ContextualCommActions';
 import { useVisitCommunicationStatus } from '@/hooks/useVisitCommunicationStatus';
+import { useVisitCommunicationOrchestrator } from '@/hooks/compliance/useVisitCommunicationOrchestrator';
 import {
   FileSearch, FileWarning, BellRing, HelpCircle, FileCheck2,
   FileSignature, FileBadge, ClipboardCheck, AlarmClock, ShieldX,
