@@ -27,7 +27,8 @@ import {
   Eye,
   Calendar,
   Clock,
-  User
+  User,
+  MapPin,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -36,6 +37,7 @@ import {
   ReviewPlanRequest
 } from '@/types/weeklyAuditPlan';
 import { weeklyAuditPlanService } from '@/services/weeklyAuditPlanService';
+import { ZoneSelector } from '@/components/compliance/weekly-plan/ZoneSelector';
 
 export default function PendingReview() {
   const { toast } = useToast();
@@ -44,6 +46,7 @@ export default function PendingReview() {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [comments, setComments] = useState('');
   const [loading, setLoading] = useState(false);
+  const [zoneFilter, setZoneFilter] = useState<string | null>(null);
 
   useEffect(() => {
     loadPendingPlans();
