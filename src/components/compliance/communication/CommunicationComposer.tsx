@@ -66,6 +66,7 @@ import type {
 import type { FieldExecutionStage } from '@/types/fieldStageMapping';
 
 const ATT = 'ce_audit_communication_attachments' as any;
+const COMM = 'ce_audit_communications' as any;
 
 /* ─────────────────────────── Public types ─────────────────────────── */
 
