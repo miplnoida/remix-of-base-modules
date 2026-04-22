@@ -20,6 +20,7 @@ import type {
 import { auditCommunicationTemplateService } from './auditCommunicationTemplateService';
 import { auditCommunicationRecipientService } from './auditCommunicationRecipientService';
 import { resolveOnlineResponse } from './onlineResponseResolver';
+import { commApprovalPolicyService } from './commApprovalPolicyService';
 
 const COMM = 'ce_audit_communications' as any;
 const REC = 'ce_audit_communication_recipients' as any;
