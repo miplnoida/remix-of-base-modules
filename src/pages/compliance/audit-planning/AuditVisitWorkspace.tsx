@@ -129,6 +129,59 @@ export default function AuditVisitWorkspace() {
   const { userCode } = useUserCode();
   const commStatus = useVisitCommunicationStatus(inspectionId);
 
+  // ─── Pre-visit intimation governance state ──────────────────
+  // Drives the nuanced PASS / WARN / FAIL on the Audit Intimation gate
+  // check, and powers the inline composer + exception dialog opened from
+  // the gate's quick-action buttons.
+  const [intimationMinLeadHours, setIntimationMinLeadHours] = useState<number>(48);
+  const [intimationTemplateId, setIntimationTemplateId] = useState<string | null>(null);
+  const [intimationException, setIntimationException] = useState<boolean>(false);
+  const [composerState, setComposerState] = useState<{
+    commType: CeCommType;
+    templateId?: string;
+    sendLate?: boolean;
+  } | null>(null);
+  const [exceptionDialogOpen, setExceptionDialogOpen] = useState(false);
+
+  // Resolve the active Audit Intimation template once so we can read its
+  // policy (min_lead_hours) and pre-select it in the composer.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await auditCommunicationTemplateService.list({ activeOnly: true });
+        const tpl = list.find((t: any) => t.comm_type === 'audit_intimation');
+        if (cancelled) return;
+        if (tpl) {
+          setIntimationTemplateId(tpl.id);
+          const lead = (tpl as any).min_lead_hours;
+          if (typeof lead === 'number' && lead > 0) setIntimationMinLeadHours(lead);
+        }
+      } catch {
+        /* non-fatal — gate falls back to 48h. */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Detect a recorded exception event for this inspection.
+  useEffect(() => {
+    if (!inspectionId) { setIntimationException(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data } = await (supabase.from('ce_audit_communication_events' as any) as any)
+          .select('id, payload')
+          .eq('event_type', 'intimation_exception_recorded')
+          .contains('payload', { inspection_id: inspectionId })
+          .limit(1);
+        if (!cancelled) setIntimationException((data ?? []).length > 0);
+      } catch {
+        if (!cancelled) setIntimationException(false);
+      }
+    })();
+  }, [inspectionId, commStatus.total]);
+
   // ─── Stage-aware orchestrator ───────────────────────────────
   // Single façade composing templates ↔ stage map ↔ visit comms ↔
   // trigger engine ↔ approval workflow ↔ status. Drives the unified
