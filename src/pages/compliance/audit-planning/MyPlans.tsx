@@ -286,10 +286,17 @@ export default function MyPlans() {
                         </span>
                       </Badge>
                     </TableCell>
-                    <TableCell>{plan.total_planned_visits}</TableCell>
-                    <TableCell>
-                      {plan.completed_visits} / {plan.total_planned_visits}
-                    </TableCell>
+                    {(() => {
+                      const items = (plan as any).ce_weekly_plan_items ?? [];
+                      const planned = items.length || plan.total_planned_visits || 0;
+                      const completed = items.filter((i: any) => i.execution_status === 'COMPLETED').length || plan.completed_visits || 0;
+                      return (
+                        <>
+                          <TableCell>{planned}</TableCell>
+                          <TableCell>{completed} / {planned}</TableCell>
+                        </>
+                      );
+                    })()}
                     <TableCell>
                       {plan.submitted_date ? new Date(plan.submitted_date).toLocaleDateString() : '-'}
                     </TableCell>
@@ -358,7 +365,12 @@ export default function MyPlans() {
                         >
                           <History className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => navigate(`/compliance/field/execution-dashboard/${plan.id}`)}
+                          title="View plan details"
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
                       </div>
