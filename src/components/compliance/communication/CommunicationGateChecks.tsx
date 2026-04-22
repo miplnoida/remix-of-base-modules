@@ -395,16 +395,32 @@ export function CommunicationGateChecks({
                 <div className="text-xs text-muted-foreground mt-0.5">{c.detail}</div>
               )}
             </div>
-            {c.actionLabel && c.suggestCommType && onQuickSend && (
-              <Button
-                size="sm"
-                variant={c.status === 'FAIL' ? 'default' : 'outline'}
-                className="shrink-0 gap-1 h-7 text-xs"
-                onClick={() => onQuickSend(c.suggestCommType!)}
-              >
-                {c.actionLabel}
-                <ArrowRight className="h-3 w-3" />
-              </Button>
+            {c.actionLabel && (onQuickAction || onQuickSend) && (
+              <div className="flex flex-col gap-1 shrink-0">
+                <Button
+                  size="sm"
+                  variant={c.status === 'FAIL' ? 'default' : 'outline'}
+                  className="gap-1 h-7 text-xs"
+                  onClick={() => {
+                    const kind = c.actionKind ?? 'send';
+                    if (onQuickAction) onQuickAction(c, kind, c.suggestCommType);
+                    else if (onQuickSend && c.suggestCommType) onQuickSend(c.suggestCommType);
+                  }}
+                >
+                  {c.actionLabel}
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
+                {c.secondaryAction && onQuickAction && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1 h-6 text-[11px]"
+                    onClick={() => onQuickAction(c, c.secondaryAction!.kind, c.secondaryAction!.suggestCommType)}
+                  >
+                    {c.secondaryAction.label}
+                  </Button>
+                )}
+              </div>
             )}
           </li>
         ))}
