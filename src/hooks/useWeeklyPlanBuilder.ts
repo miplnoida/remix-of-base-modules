@@ -78,19 +78,28 @@ export function useWeeklyPlanBuilder() {
   const [activePlanId, setActivePlanId] = useState<string | null>(null);
 
   // Check if a plan already exists for this week.
-  // Prefer the current-version row (e.g. an editable DRAFT revision) over a
-  // superseded/non-current APPROVED original so the planner is editable.
+  // Prefer the real active/current version that matches the unique active-plan
+  // rule, then fall back to editable drafts. This avoids selecting a withdrawn
+  // historical row when an approved/current version already exists.
   const existingPlanQuery = useQuery({
     queryKey: ['weekly-plan-existing', week.weekStart, inspectorId],
     queryFn: async () => {
       if (!inspectorId) return null;
       const plans = await weeklyPlanService.getAll({
-        inspectorId: inspectorId,
+        inspectorId,
         weekStartDate: week.weekStart,
       });
       if (plans.length === 0) return null;
-      const current = plans.find((p: any) => p.is_current_version === true);
-      return current ?? plans[0];
+
+      const activeCurrent = plans.find((p: any) =>
+        p.is_current_version === true && !['WITHDRAWN', 'SUPERSEDED'].includes(p.status)
+      );
+      if (activeCurrent) return activeCurrent;
+
+      const editableFallback = plans.find((p: any) =>
+        [WeeklyPlanStatus.DRAFT, WeeklyPlanStatus.NEEDS_CHANGES, WeeklyPlanStatus.WITHDRAWN].includes(p.status)
+      );
+      return editableFallback ?? plans[0];
     },
     enabled: !!inspectorId,
   });
