@@ -430,7 +430,13 @@ function SessionStrip({ inspection }: { inspection: any }) {
   );
 }
 
-function CompletionGatePanel({ gate }: { gate: CompletionGateResult }) {
+function CompletionGatePanel({
+  gate,
+  commAdvisory,
+}: {
+  gate: CompletionGateResult;
+  commAdvisory?: string | null;
+}) {
   const headerColor = gate.ready
     ? 'text-success'
     : gate.enforcementMode === 'SOFT_WARNING'
