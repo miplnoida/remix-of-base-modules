@@ -243,6 +243,15 @@ export default function AuditVisitWorkspace() {
             failed: commStatus.failed,
             finalStageIssued: commStatus.finalStageIssued,
           }}
+          itemsByType={commStatus.itemsByType}
+          gateContext={{
+            sessionClosed,
+            reportStatus,
+            hasViolations,
+            maxSeverity: deriveMaxSeverity(metrics),
+            enforcementThreshold: 'MEDIUM',
+            hasOverdueItems: (metrics?.followUpCount ?? 0) > 0,
+          }}
           onCommChanged={commStatus.refresh}
           commAdvisory={
             sessionClosed && hasViolations && !commStatus.finalStageIssued
