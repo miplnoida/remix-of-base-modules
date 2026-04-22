@@ -61,6 +61,7 @@ import { CommunicationGateChecks } from '@/components/compliance/communication/C
 import {
   ContextualCommActions,
   type ContextualAction,
+  type CommActionVisibilityContext,
 } from '@/components/compliance/communication/ContextualCommActions';
 import { useVisitCommunicationStatus } from '@/hooks/useVisitCommunicationStatus';
 import {
@@ -115,6 +116,60 @@ export default function AuditVisitWorkspace() {
 
   const { userCode } = useUserCode();
   const commStatus = useVisitCommunicationStatus(inspectionId);
+
+  // ─── Rule-based visibility context for ContextualCommActions ───
+  // Single source of truth for *when* each action button should be offered.
+  // Keep this purely derived from already-loaded state — no extra fetches.
+  const commActionContext: CommActionVisibilityContext = useMemo(() => {
+    const checklistTotal = metrics?.checklistTotal ?? 0;
+    const checklistAnswered = metrics?.checklistAnswered ?? 0;
+    const checklistComplete = checklistTotal > 0 && checklistAnswered >= checklistTotal;
+    const evidenceCount = metrics?.evidenceCount ?? 0;
+    const findingsCount = metrics?.findingsCount ?? 0;
+    const maxSeverity = deriveMaxSeverity(metrics);
+    const hasReport = !!metrics?.hasReport;
+    const reportApproved = (reportStatus ?? '').toUpperCase() === 'APPROVED'
+      || (reportStatus ?? '').toUpperCase() === 'ISSUED';
+
+    // Overdue without response: any *sent* comm whose scheduled_at is past
+    // and that has not been acknowledged. Best-effort — server-side response
+    // tracking will improve this later.
+    const now = Date.now();
+    const overdue = commStatus.items.some((c) => {
+      if (c.status !== 'sent' && c.status !== 'partial') return false;
+      const due = c.scheduled_at ? new Date(c.scheduled_at).getTime() : null;
+      if (!due || due > now) return false;
+      return c.status !== ('acknowledged' as any);
+    });
+
+    const reminderCount = (commStatus.itemsByType?.due_date_reminder?.length ?? 0)
+      + (commStatus.itemsByType?.visit_reminder?.length ?? 0);
+
+    return {
+      sessionStarted,
+      sessionClosed,
+      checklistComplete,
+      hasMissingDocuments: !checklistComplete || evidenceCount === 0,
+      hasMissingEvidence: evidenceCount === 0,
+      hasFindings: findingsCount > 0,
+      hasClarificationNeeded: findingsCount > 0,
+      hasViolations,
+      maxSeverity,
+      enforcementThreshold: 'MEDIUM',
+      hasReport,
+      reportStatus,
+      reportApproved,
+      finalReportIssued: commStatus.finalStageIssued,
+      hasOpenObligations: commStatus.hasOpenItems,
+      hasOverdueWithoutResponse: overdue,
+      reminderCount,
+      hasPendingApproval: commStatus.pendingApproval > 0,
+    };
+  }, [
+    metrics, reportStatus, hasViolations, sessionStarted, sessionClosed,
+    commStatus.items, commStatus.itemsByType, commStatus.finalStageIssued,
+    commStatus.hasOpenItems, commStatus.pendingApproval,
+  ]);
 
   const planId = planIdFromRoute ?? plan?.id;
 
@@ -254,6 +309,7 @@ export default function AuditVisitWorkspace() {
             hasOverdueItems: (metrics?.followUpCount ?? 0) > 0,
           }}
           onCommChanged={commStatus.refresh}
+          commActionContext={commActionContext}
           commAdvisory={
             sessionClosed && hasViolations && !commStatus.finalStageIssued
               ? 'No final-stage communication (final report / violation notice / corrective action) has been sent to the employer yet.'
@@ -294,6 +350,7 @@ export default function AuditVisitWorkspace() {
                 title="Checklist communications"
                 onChanged={commStatus.refresh}
                 actions={WORKING_PAPERS_ACTIONS}
+                visibilityContext={commActionContext}
               />
             )}
             <WorkingPapersTabContent visit={adaptedVisit} planItemId={planItemId} />
@@ -314,6 +371,7 @@ export default function AuditVisitWorkspace() {
                 title="Findings communications"
                 onChanged={commStatus.refresh}
                 actions={FINDINGS_ACTIONS}
+                visibilityContext={commActionContext}
               />
             )}
             <FindingsTabContent
@@ -363,6 +421,7 @@ export default function AuditVisitWorkspace() {
                 title="Report communications"
                 onChanged={commStatus.refresh}
                 actions={REPORT_ACTIONS}
+                visibilityContext={commActionContext}
               />
             )}
             <Card>
@@ -504,6 +563,7 @@ function CompletionGatePanel({
   itemsByType,
   gateContext,
   onCommChanged,
+  commActionContext,
 }: {
   gate: CompletionGateResult;
   commAdvisory?: string | null;
@@ -515,6 +575,7 @@ function CompletionGatePanel({
   itemsByType?: Partial<Record<import('@/types/auditCommunication').CeCommType, import('@/types/auditCommunication').AuditCommunication[]>>;
   gateContext?: import('@/components/compliance/communication/CommunicationGateChecks').CommunicationGateContext;
   onCommChanged?: () => void;
+  commActionContext?: import('@/components/compliance/communication/ContextualCommActions').CommActionVisibilityContext;
 }) {
   const headerColor = gate.ready
     ? 'text-success'
@@ -615,6 +676,7 @@ function CompletionGatePanel({
               title="Gate communications"
               onChanged={onCommChanged}
               actions={GATE_ACTIONS}
+              visibilityContext={commActionContext}
               hideIfEmpty
             />
           </div>
@@ -876,6 +938,13 @@ function CloseSessionDialog({
 // Templates themselves are NEVER hardcoded here — they come from Settings.
 // ============================================================================
 
+// ============================================================================
+// Contextual action constants
+// Each action carries a `visibleWhen(ctx)` predicate that decides whether the
+// button should appear. Predicates read only from CommActionVisibilityContext
+// (built once in AuditVisitWorkspace) — no side effects, no fetches.
+// ============================================================================
+
 const WORKING_PAPERS_ACTIONS: ContextualAction[] = [
   {
     key: 'wp_request_missing_documents',
@@ -884,6 +953,9 @@ const WORKING_PAPERS_ACTIONS: ContextualAction[] = [
     fieldStage: 'during_audit_missing_documents',
     commTypeHints: ['additional_info_request', 'books_required'],
     icon: FileSearch,
+    // Only when the checklist is incomplete or evidence is missing.
+    visibleWhen: (c) => !!(c.hasMissingDocuments || c.hasMissingEvidence) && !c.sessionClosed,
+    hiddenReason: 'Checklist & evidence are complete — no missing items to request.',
   },
   {
     key: 'wp_send_pbc',
@@ -892,6 +964,9 @@ const WORKING_PAPERS_ACTIONS: ContextualAction[] = [
     fieldStage: 'during_audit_missing_documents',
     commTypeHints: ['books_required', 'additional_info_request'],
     icon: ClipboardCheck,
+    // Most useful before / during fieldwork; hide once session closed.
+    visibleWhen: (c) => !c.sessionClosed,
+    hiddenReason: 'Visit session is already closed.',
   },
   {
     key: 'wp_reminder_incomplete',
@@ -900,6 +975,9 @@ const WORKING_PAPERS_ACTIONS: ContextualAction[] = [
     fieldStage: 'reminder_stage',
     commTypeHints: ['due_date_reminder', 'visit_reminder'],
     icon: BellRing,
+    // Only when there's an outstanding obligation OR something is overdue.
+    visibleWhen: (c) => !!(c.hasOpenObligations || c.hasOverdueWithoutResponse),
+    hiddenReason: 'No outstanding records / open obligations.',
   },
 ];
 
@@ -911,6 +989,9 @@ const FINDINGS_ACTIONS: ContextualAction[] = [
     fieldStage: 'during_audit_clarification_required',
     commTypeHints: ['clarification_request', 'additional_info_request'],
     icon: HelpCircle,
+    // Only when at least one finding exists that may need clarification.
+    visibleWhen: (c) => !!c.hasClarificationNeeded,
+    hiddenReason: 'No findings recorded yet — nothing to clarify.',
   },
   {
     key: 'fn_send_interim',
@@ -919,6 +1000,9 @@ const FINDINGS_ACTIONS: ContextualAction[] = [
     fieldStage: 'during_audit_interim_findings',
     commTypeHints: ['interim_findings', 'evidence_summary'],
     icon: FileWarning,
+    // Show while session is open AND findings exist (interim by definition).
+    visibleWhen: (c) => !!c.hasFindings && !c.sessionClosed,
+    hiddenReason: 'Interim findings only apply while the audit is in progress with findings recorded.',
   },
   {
     key: 'fn_followup',
@@ -927,6 +1011,9 @@ const FINDINGS_ACTIONS: ContextualAction[] = [
     fieldStage: 'reminder_stage',
     commTypeHints: ['due_date_reminder', 'clarification_request'],
     icon: BellRing,
+    // Only when something was previously sent and is overdue / open.
+    visibleWhen: (c) => !!(c.hasOverdueWithoutResponse || c.hasOpenObligations),
+    hiddenReason: 'No outstanding finding awaiting employer response.',
   },
 ];
 
@@ -938,6 +1025,9 @@ const REPORT_ACTIONS: ContextualAction[] = [
     fieldStage: 'post_review_draft_findings',
     commTypeHints: ['draft_findings', 'dispute_instructions'],
     icon: FileSignature,
+    // Show only when a report exists but isn't yet approved/issued.
+    visibleWhen: (c) => !!c.hasReport && !c.reportApproved,
+    hiddenReason: 'No draft report exists yet, or the final report has already been approved.',
   },
   {
     key: 'rp_send_final',
@@ -947,6 +1037,9 @@ const REPORT_ACTIONS: ContextualAction[] = [
     commTypeHints: ['final_report'],
     icon: FileBadge,
     variant: 'default',
+    // Only when the report is approved AND not already issued to employer.
+    visibleWhen: (c) => !!c.reportApproved && !c.finalReportIssued,
+    hiddenReason: 'Report is not yet approved, or final report has already been issued.',
   },
   {
     key: 'rp_request_ack',
@@ -955,8 +1048,16 @@ const REPORT_ACTIONS: ContextualAction[] = [
     fieldStage: 'post_review_draft_findings',
     commTypeHints: ['acknowledgment_request'],
     icon: FileCheck2,
+    // Only meaningful once the final report has actually been sent.
+    visibleWhen: (c) => !!c.finalReportIssued,
+    hiddenReason: 'Final report has not been issued yet.',
   },
 ];
+
+/** Severity threshold helper — returns true when current ≥ threshold. */
+const SEV_RANK: Record<string, number> = { NONE: 0, LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4 };
+const meetsSeverity = (current?: string, threshold?: string) =>
+  (SEV_RANK[current ?? 'NONE'] ?? 0) >= (SEV_RANK[threshold ?? 'MEDIUM'] ?? 2);
 
 const GATE_ACTIONS: ContextualAction[] = [
   {
@@ -966,6 +1067,22 @@ const GATE_ACTIONS: ContextualAction[] = [
     fieldStage: 'reminder_stage',
     commTypeHints: ['due_date_reminder', 'visit_reminder'],
     icon: AlarmClock,
+    // Only if obligations are still open / something is overdue.
+    visibleWhen: (c) => !!(c.hasOpenObligations || c.hasOverdueWithoutResponse),
+    hiddenReason: 'No outstanding obligations to remind about.',
+  },
+  {
+    key: 'gate_send_violation_notice',
+    label: 'Send Violation Notice',
+    description: 'Issue a violation notice when enforcement conditions are met.',
+    fieldStage: 'enforcement_stage',
+    commTypeHints: ['violation_notice'],
+    icon: ShieldX,
+    variant: 'destructive',
+    // Enforcement conditions: violations exist AND severity ≥ threshold.
+    visibleWhen: (c) =>
+      !!c.hasViolations && meetsSeverity(c.maxSeverity, c.enforcementThreshold ?? 'MEDIUM'),
+    hiddenReason: 'No violations meet the configured enforcement severity threshold.',
   },
   {
     key: 'gate_trigger_escalation',
@@ -975,5 +1092,9 @@ const GATE_ACTIONS: ContextualAction[] = [
     commTypeHints: ['escalation_notice', 'violation_notice'],
     icon: ShieldX,
     variant: 'destructive',
+    // Escalation only when due date has lapsed AND no valid response recorded
+    // (i.e. there's an overdue item without acknowledgment).
+    visibleWhen: (c) => !!c.hasOverdueWithoutResponse,
+    hiddenReason: 'No overdue communications without a recorded response.',
   },
 ];

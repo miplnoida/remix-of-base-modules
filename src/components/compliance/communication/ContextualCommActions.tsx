@@ -34,6 +34,42 @@ import CommunicationComposer from './CommunicationComposer';
 import type { AuditCommunicationTemplate, CeCommType } from '@/types/auditCommunication';
 import type { FieldExecutionStage } from '@/types/fieldStageMapping';
 
+/**
+ * Runtime signals consumed by per-action `visibleWhen` predicates so the
+ * toolbar stays contextual: a button only renders when its precondition
+ * actually applies to the current visit. Every field is optional — when a
+ * predicate is omitted the action is always shown (legacy behaviour).
+ */
+export interface CommActionVisibilityContext {
+  // Lifecycle
+  sessionStarted?: boolean;
+  sessionClosed?: boolean;
+
+  // Working papers / evidence completeness
+  checklistComplete?: boolean;       // all checklist items answered
+  hasMissingDocuments?: boolean;     // checklist gaps OR explicit doc requests open
+  hasMissingEvidence?: boolean;      // no evidence captured yet
+
+  // Findings
+  hasFindings?: boolean;
+  hasClarificationNeeded?: boolean;  // ≥1 finding flagged "needs clarification"
+  hasViolations?: boolean;
+  maxSeverity?: 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  enforcementThreshold?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+
+  // Report
+  hasReport?: boolean;
+  reportStatus?: string | null;      // e.g. DRAFT / REVIEW / APPROVED / ISSUED
+  reportApproved?: boolean;          // convenience derived flag
+  finalReportIssued?: boolean;       // a final-stage comm has been sent
+
+  // Reminder / response cycle
+  hasOpenObligations?: boolean;      // any unresolved sent comm awaiting reply
+  hasOverdueWithoutResponse?: boolean; // due date has lapsed and no response captured
+  reminderCount?: number;            // how many reminders already issued
+  hasPendingApproval?: boolean;      // a comm is sitting in pending_approval
+}
+
 export interface ContextualAction {
   /** Stable id for React keys + analytics. */
   key: string;
@@ -52,6 +88,17 @@ export interface ContextualAction {
   icon?: React.ComponentType<{ className?: string }>;
   /** Visual variant. */
   variant?: 'default' | 'outline' | 'secondary' | 'destructive';
+  /**
+   * Visibility predicate. Return `false` to hide the button for the current
+   * visit state. Omit to always show. Keep these pure — no side effects.
+   */
+  visibleWhen?: (ctx: CommActionVisibilityContext) => boolean;
+  /**
+   * Optional human-readable reason shown as a muted tooltip when the action
+   * is hidden in *debug* mode (set via `showHiddenReasons`). Helps admins
+   * understand why a button isn't there.
+   */
+  hiddenReason?: string;
 }
 
 interface Props {
@@ -66,6 +113,17 @@ interface Props {
   onChanged?: () => void;
   /** Hide the toolbar entirely if no actions resolve to any template. */
   hideIfEmpty?: boolean;
+  /**
+   * Runtime signals fed to each action's `visibleWhen` predicate. When
+   * omitted, all actions are considered visible (legacy behaviour).
+   */
+  visibilityContext?: CommActionVisibilityContext;
+  /**
+   * When true, hidden actions render as disabled ghost buttons with their
+   * `hiddenReason` shown in tooltip. Useful for admins / QA to see what
+   * would appear under different conditions. Defaults to false.
+   */
+  showHiddenReasons?: boolean;
 }
 
 interface ResolvedAction extends ContextualAction {
@@ -75,6 +133,7 @@ interface ResolvedAction extends ContextualAction {
 export function ContextualCommActions({
   inspectionId, employerId, employerName, userCode,
   actions, title, onChanged, hideIfEmpty = false,
+  visibilityContext, showHiddenReasons = false,
 }: Props) {
   const [resolved, setResolved] = useState<ResolvedAction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,9 +218,23 @@ export function ContextualCommActions({
     setPicker({ action, chosenId: action.candidates[0].id });
   };
 
+  // Apply the per-action visibility predicate against the supplied context.
+  // When no context is provided every action is treated as visible.
+  const passesVisibility = (a: ContextualAction): boolean => {
+    if (!a.visibleWhen) return true;
+    if (!visibilityContext) return true;
+    try {
+      return a.visibleWhen(visibilityContext);
+    } catch {
+      return true; // never crash the toolbar over a faulty predicate
+    }
+  };
+
+  const visibleByRule = resolved.filter(passesVisibility);
+  const hiddenByRule = resolved.filter((a) => !passesVisibility(a));
   const visible = hideIfEmpty
-    ? resolved.filter((a) => a.candidates.length > 0)
-    : resolved;
+    ? visibleByRule.filter((a) => a.candidates.length > 0)
+    : visibleByRule;
 
   if (loading) {
     return (
@@ -170,7 +243,14 @@ export function ContextualCommActions({
       </div>
     );
   }
-  if (visible.length === 0 && hideIfEmpty) return null;
+  // Hide the entire toolbar when nothing is contextually relevant. The
+  // `hideIfEmpty` flag (used on the Completion Gate) hides on no candidates;
+  // independently, if every action is rule-hidden we also collapse the panel
+  // unless the caller is in showHiddenReasons (debug) mode.
+  if (visible.length === 0 && !showHiddenReasons) {
+    if (hideIfEmpty) return null;
+    if (resolved.length > 0 && hiddenByRule.length === resolved.length) return null;
+  }
 
   return (
     <>
@@ -181,7 +261,7 @@ export function ContextualCommActions({
               {title ?? 'Communications'}
             </div>
             <div className="text-[11px] text-muted-foreground">
-              Open a draft using the template mapped to this stage.
+              Only actions relevant to the current visit state are shown.
             </div>
           </div>
           <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
@@ -220,7 +300,31 @@ export function ContextualCommActions({
               </Button>
             );
           })}
+          {showHiddenReasons && hiddenByRule.map((action) => {
+            const Icon = action.icon ?? Send;
+            return (
+              <Button
+                key={`hidden-${action.key}`}
+                size="sm"
+                variant="ghost"
+                disabled
+                title={action.hiddenReason ?? 'Not applicable in current visit state'}
+                className="gap-1 opacity-60"
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {action.label}
+                <Badge variant="outline" className="ml-1 h-4 px-1 text-[9px]">
+                  hidden
+                </Badge>
+              </Button>
+            );
+          })}
         </div>
+        {visible.length === 0 && (
+          <p className="text-[11px] text-muted-foreground italic mt-1">
+            No communication actions are currently applicable for this visit.
+          </p>
+        )}
       </div>
 
       {/* Multi-template picker */}
