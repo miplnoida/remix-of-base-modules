@@ -73,10 +73,18 @@ export function CandidateCard({ candidate, onAddToDay, isAdded, disabled }: Cand
     ? formatDistanceToNowStrict(new Date(candidate.source_created_at), { addSuffix: true })
     : null;
 
+  // V3 two-score fields (optional — present when planner uses V3 candidates)
+  const inherent = (candidate as any).inherent_risk_score as number | undefined;
+  const auditPriority = (candidate as any).audit_priority_score as number | undefined;
+  const riskBand = (candidate as any).risk_band as string | undefined;
+  const auditProgram = (candidate as any).audit_program as string | undefined;
+  const overdueDays = Number((candidate as any).overdue_days ?? 0);
+  const whySelected = (candidate as any).why_selected as string | undefined;
+
   return (
     <Card className={`transition-all ${isAdded ? 'opacity-50 border-dashed' : 'hover:shadow-md'}`}>
       <CardContent className="p-3 space-y-2">
-        {/* Top row: score + priority + source ref */}
+        {/* Top row: legacy score + priority + source ref */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
             <Badge variant="outline" className={`text-xs font-mono ${getScoreBadgeClass(score)}`}>
@@ -91,6 +99,29 @@ export function CandidateCard({ candidate, onAddToDay, isAdded, disabled }: Cand
           <span className="text-xs text-muted-foreground font-mono shrink-0">{candidate.source_ref}</span>
         </div>
 
+        {/* Two-score row (only when V3 data present) */}
+        {(inherent !== undefined || auditPriority !== undefined) && (
+          <div className="flex items-center gap-2 flex-wrap text-[10px]">
+            {inherent !== undefined && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-destructive/30 bg-destructive/5">
+                <span className="text-muted-foreground">Inherent</span>
+                <span className="font-semibold text-destructive">{Math.round(inherent)}</span>
+              </span>
+            )}
+            {auditPriority !== undefined && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-warning/30 bg-warning/5">
+                <span className="text-muted-foreground">Priority</span>
+                <span className="font-semibold text-warning">{Math.round(auditPriority)}</span>
+              </span>
+            )}
+            {riskBand && <Badge variant="outline" className="text-[10px] px-1 py-0">{riskBand}</Badge>}
+            {auditProgram && <Badge variant="secondary" className="text-[10px] px-1 py-0">{auditProgram}</Badge>}
+            {overdueDays > 0 && (
+              <Badge variant="destructive" className="text-[10px] px-1 py-0">{overdueDays}d overdue</Badge>
+            )}
+          </div>
+        )}
+
         {/* Employer */}
         {candidate.employer_name && (
           <div className="flex items-center gap-1.5 text-sm">
@@ -99,8 +130,10 @@ export function CandidateCard({ candidate, onAddToDay, isAdded, disabled }: Cand
           </div>
         )}
 
-        {/* Description */}
-        <p className="text-xs text-muted-foreground line-clamp-2">{candidate.description}</p>
+        {/* Description / why selected */}
+        <p className="text-xs text-muted-foreground line-clamp-2">
+          {whySelected || candidate.description}
+        </p>
 
         {/* Reason badges + Why? popover */}
         <div className="flex flex-wrap items-center gap-1">

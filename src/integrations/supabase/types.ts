@@ -19064,6 +19064,10 @@ export type Database = {
           assessed_by: string | null
           audit_cycle_type: string | null
           audit_frequency_override: string | null
+          audit_priority_band: string | null
+          audit_priority_reasons: Json | null
+          audit_priority_score: number | null
+          audit_priority_why: string | null
           audit_program: string | null
           consecutive_cycles_skipped: number | null
           created_at: string | null
@@ -19073,9 +19077,13 @@ export type Database = {
           enforcement_risk_score: number | null
           filing_score: number | null
           id: string
+          inherent_band: string | null
           last_audit_date: string | null
+          last_audit_priority_calculated_at: string | null
           last_calculated_at: string | null
+          last_inherent_calculated_at: string | null
           last_inspected_at: string | null
+          last_recalc_policy_id: string | null
           legal_history_score: number | null
           months_in_current_band: number | null
           next_audit_due_date: string | null
@@ -19100,6 +19108,10 @@ export type Database = {
           assessed_by?: string | null
           audit_cycle_type?: string | null
           audit_frequency_override?: string | null
+          audit_priority_band?: string | null
+          audit_priority_reasons?: Json | null
+          audit_priority_score?: number | null
+          audit_priority_why?: string | null
           audit_program?: string | null
           consecutive_cycles_skipped?: number | null
           created_at?: string | null
@@ -19109,9 +19121,13 @@ export type Database = {
           enforcement_risk_score?: number | null
           filing_score?: number | null
           id?: string
+          inherent_band?: string | null
           last_audit_date?: string | null
+          last_audit_priority_calculated_at?: string | null
           last_calculated_at?: string | null
+          last_inherent_calculated_at?: string | null
           last_inspected_at?: string | null
+          last_recalc_policy_id?: string | null
           legal_history_score?: number | null
           months_in_current_band?: number | null
           next_audit_due_date?: string | null
@@ -19136,6 +19152,10 @@ export type Database = {
           assessed_by?: string | null
           audit_cycle_type?: string | null
           audit_frequency_override?: string | null
+          audit_priority_band?: string | null
+          audit_priority_reasons?: Json | null
+          audit_priority_score?: number | null
+          audit_priority_why?: string | null
           audit_program?: string | null
           consecutive_cycles_skipped?: number | null
           created_at?: string | null
@@ -19145,9 +19165,13 @@ export type Database = {
           enforcement_risk_score?: number | null
           filing_score?: number | null
           id?: string
+          inherent_band?: string | null
           last_audit_date?: string | null
+          last_audit_priority_calculated_at?: string | null
           last_calculated_at?: string | null
+          last_inherent_calculated_at?: string | null
           last_inspected_at?: string | null
+          last_recalc_policy_id?: string | null
           legal_history_score?: number | null
           months_in_current_band?: number | null
           next_audit_due_date?: string | null
@@ -51463,6 +51487,10 @@ export type Database = {
         Args: { p_actor: string; p_query_notes: string; p_revision_id: string }
         Returns: undefined
       }
+      fn_ce_recalc_audit_priority_for_employer: {
+        Args: { p_employer_id: string; p_policy_id?: string }
+        Returns: Json
+      }
       fn_ce_recalculate_case_severity: {
         Args: { p_case_id: string }
         Returns: Json
@@ -51492,6 +51520,15 @@ export type Database = {
         }[]
       }
       fn_ce_route_violation: { Args: { p_violation_id: string }; Returns: Json }
+      fn_ce_run_audit_priority_refresh: {
+        Args: {
+          p_batch_size?: number
+          p_changed_only?: boolean
+          p_dry_run?: boolean
+          p_zone_id?: string
+        }
+        Returns: Json
+      }
       fn_ce_score_candidates_batch: {
         Args: { p_limit?: number }
         Returns: {
