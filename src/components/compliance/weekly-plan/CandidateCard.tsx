@@ -19,6 +19,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { formatDistanceToNowStrict } from 'date-fns';
+import { RecommendationReasonsPopover } from './RecommendationReasonsPopover';
 
 const DAYS: DayOfWeek[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
@@ -101,16 +102,20 @@ export function CandidateCard({ candidate, onAddToDay, isAdded, disabled }: Cand
         {/* Description */}
         <p className="text-xs text-muted-foreground line-clamp-2">{candidate.description}</p>
 
-        {/* Reason badges */}
-        {reasons.length > 0 && (
-          <div className="flex flex-wrap gap-1">
-            {reasons.map((r, i) => (
-              <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">
-                {r}
-              </Badge>
-            ))}
-          </div>
-        )}
+        {/* Reason badges + Why? popover */}
+        <div className="flex flex-wrap items-center gap-1">
+          {reasons.map((r, i) => (
+            <Badge key={i} variant="secondary" className="text-[10px] px-1.5 py-0">
+              {r}
+            </Badge>
+          ))}
+          <RecommendationReasonsPopover
+            reasons={(candidate as any).recommendation_reasons as any}
+            source={(candidate as any).recommendation_source}
+            totalScore={candidate.recommendation_score}
+            compact
+          />
+        </div>
 
         {/* Bottom row: age + add button */}
         <div className="flex items-center justify-between pt-1">
