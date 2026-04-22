@@ -159,16 +159,22 @@ export default function ExecutionLogs() {
             <div className="mt-4 space-y-4">
               <div className="text-xs text-muted-foreground">{active.test_name || 'Ad-hoc request'} • {new Date(active.executed_at).toLocaleString()}</div>
               <ResponseInspector
-                method={active.http_method}
-                url={active.full_url}
-                requestHeaders={active.request_headers}
-                requestBody={active.request_body}
-                status={active.response_status}
-                responseHeaders={active.response_headers}
-                responseBody={active.response_body}
-                durationMs={active.duration_ms}
-                result={active.result}
-                failureReason={active.failure_reason}
+                requestPreview={{
+                  method: active.http_method,
+                  url: active.full_url,
+                  headers: (active.request_headers as any) || {},
+                  body: active.request_body,
+                }}
+                result={{
+                  status: active.response_status,
+                  durationMs: active.duration_ms || 0,
+                  responseHeaders: (active.response_headers as any) || {},
+                  responseBody: active.response_body,
+                  result: (active.result === 'warning' || active.result === 'pending' ? 'fail' : active.result) as any,
+                  failureReason: active.failure_reason,
+                  executionId: active.id,
+                }}
+                expectedStatus={active.expected_status ?? undefined}
               />
             </div>
           )}
