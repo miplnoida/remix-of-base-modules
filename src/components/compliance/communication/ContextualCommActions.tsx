@@ -261,28 +261,37 @@ export function ContextualCommActions({
           <DialogFooter>
             <Button variant="outline" onClick={() => setPicker(null)}>Cancel</Button>
             <Button
-              onClick={async () => {
+              onClick={() => {
                 if (!picker) return;
                 const action = picker.action;
                 const tpl = picker.chosenId;
                 setPicker(null);
-                await createDraftAndOpen(action, tpl);
+                openComposer(action, tpl);
               }}
             >
-              <Send className="h-3.5 w-3.5 mr-1" /> Create draft
+              <Send className="h-3.5 w-3.5 mr-1" /> Open composer
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Reuse the existing composer for the freshly-created draft */}
-      {editingId && (
-        <CommunicationDraftEditorDialog
-          communicationId={editingId}
-          open={!!editingId}
-          onClose={() => setEditingId(null)}
-          onSaved={() => { setEditingId(null); onChanged?.(); }}
+      {/* Unified composer — handles draft creation, edit, approval, and send */}
+      {composerFor && (
+        <CommunicationComposer
+          open={!!composerFor}
+          onClose={() => setComposerFor(null)}
+          onChanged={() => { onChanged?.(); }}
+          inspectionId={inspectionId}
+          employerId={employerId}
+          employerName={employerName}
           userCode={userCode}
+          templateId={composerFor.templateId}
+          action={{
+            label: composerFor.action.label,
+            description: composerFor.action.description,
+            fieldStage: composerFor.action.fieldStage,
+            commTypeHints: composerFor.action.commTypeHints,
+          }}
         />
       )}
     </>
