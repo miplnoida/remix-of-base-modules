@@ -264,6 +264,10 @@ export interface AuditCommunication {
   last_dispatch_error: string | null;
   dispatch_locked_at: string | null;
   materialized_by_policy_id: string | null;
+  /** Approval-policy audit fields. */
+  severity_snapshot?: 'none' | 'low' | 'medium' | 'high' | 'critical' | null;
+  applied_policy_id?: string | null;
+  rejection_reason?: string | null;
   // populated by service joins:
   template?: Pick<AuditCommunicationTemplate, 'template_code' | 'template_name' | 'category'>;
   recipients?: AuditCommunicationRecipient[];

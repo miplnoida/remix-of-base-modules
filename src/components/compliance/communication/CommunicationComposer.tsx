@@ -881,3 +881,67 @@ export function CommunicationComposer(props: CommunicationComposerProps) {
 }
 
 export default CommunicationComposer;
+
+/* ─────────────────────────── ApprovalActionRow ─────────────────────────── */
+/**
+ * Inline approve/reject controls for the current step. Records approver +
+ * timestamp + comment; rejection reason is mirrored onto the parent
+ * communication via the approval service.
+ */
+function ApprovalActionRow({
+  approvalId, userCode, onDone,
+}: { approvalId: string; userCode?: string; onDone: () => void | Promise<void> }) {
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState<null | 'approve' | 'reject'>(null);
+
+  const approve = async () => {
+    setBusy('approve');
+    try {
+      await auditCommunicationApprovalService.approve(
+        approvalId, { userCode: userCode || 'system', name: userCode }, comment || undefined,
+      );
+      toast.success('Approved');
+      await onDone();
+    } catch (e: any) {
+      toast.error('Approve failed', { description: e?.message });
+    } finally { setBusy(null); }
+  };
+
+  const reject = async () => {
+    if (!comment.trim()) {
+      toast.error('Please provide a rejection reason.');
+      return;
+    }
+    setBusy('reject');
+    try {
+      await auditCommunicationApprovalService.reject(
+        approvalId, { userCode: userCode || 'system', name: userCode }, comment.trim(),
+      );
+      toast.success('Rejected');
+      await onDone();
+    } catch (e: any) {
+      toast.error('Reject failed', { description: e?.message });
+    } finally { setBusy(null); }
+  };
+
+  return (
+    <div className="space-y-2 pt-1">
+      <Textarea
+        rows={2}
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        placeholder="Comment (required for rejection)"
+      />
+      <div className="flex gap-2 justify-end">
+        <Button size="sm" variant="destructive" onClick={reject} disabled={busy !== null}>
+          {busy === 'reject' ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <ThumbsDown className="h-3.5 w-3.5 mr-1" />}
+          Reject
+        </Button>
+        <Button size="sm" onClick={approve} disabled={busy !== null}>
+          {busy === 'approve' ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <UserCheck className="h-3.5 w-3.5 mr-1" />}
+          Approve
+        </Button>
+      </div>
+    </div>
+  );
+}
