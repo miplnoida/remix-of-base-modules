@@ -137,32 +137,11 @@ export function ContextualCommActions({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionsKey]);
 
-  const createDraftAndOpen = async (action: ResolvedAction, templateId: string) => {
-    setBusyKey(action.key);
-    try {
-      const created = await auditCommunicationService.createDraft({
-        inspectionId,
-        employerId,
-        templateId,
-        contextData: {
-          employer_name: employerName || employerId,
-          visit_date: new Date().toISOString().slice(0, 10),
-          field_stage: action.fieldStage,
-          action_key: action.key,
-        },
-        createdBy: userCode,
-      });
-      toast.success(`Draft created: ${action.label}`);
-      setEditingId(created.id);
-      onChanged?.();
-    } catch (e: any) {
-      toast.error('Could not create draft', { description: e?.message });
-    } finally {
-      setBusyKey(null);
-    }
+  const openComposer = (action: ResolvedAction, templateId: string) => {
+    setComposerFor({ action, templateId });
   };
 
-  const handleClick = async (action: ResolvedAction) => {
+  const handleClick = (action: ResolvedAction) => {
     if (action.candidates.length === 0) {
       toast.error(`No template available for "${action.label}"`, {
         description: 'Link one in Field Stage → Template Mapping.',
@@ -174,7 +153,7 @@ export function ContextualCommActions({
       return;
     }
     if (action.candidates.length === 1) {
-      await createDraftAndOpen(action, action.candidates[0].id);
+      openComposer(action, action.candidates[0].id);
       return;
     }
     setPicker({ action, chosenId: action.candidates[0].id });
