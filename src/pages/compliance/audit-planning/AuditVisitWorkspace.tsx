@@ -705,6 +705,7 @@ function CompletionGatePanel({
   orchestratorBlockers,
   orchestratorReady,
   nextRecommendedLabel,
+  onGateQuickAction,
 }: {
   gate: CompletionGateResult;
   commAdvisory?: string | null;
