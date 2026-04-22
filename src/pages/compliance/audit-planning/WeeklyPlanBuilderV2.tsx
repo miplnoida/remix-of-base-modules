@@ -15,7 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { GitBranch, History, Sparkles, ArrowLeft, Info, Users } from 'lucide-react';
+import { GitBranch, History, Sparkles, ArrowLeft, Info } from 'lucide-react';
 
 import WeeklyPlanBuilderSmart from './WeeklyPlanBuilderSmart';
 import { useWeeklyPlanBuilder } from '@/hooks/useWeeklyPlanBuilder';
