@@ -383,6 +383,10 @@ export default function MyPlans() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Phase 3 — Approved-plan revision flow */}
+      <PlanRevisionDialog plan={revisionPlan} onClose={() => setRevisionPlan(null)} />
+      <PlanVersionHistoryDialog plan={historyPlan} onClose={() => setHistoryPlan(null)} />
     </div>
   );
 }
