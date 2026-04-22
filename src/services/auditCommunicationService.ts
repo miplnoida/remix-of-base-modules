@@ -14,7 +14,6 @@ import type {
   AuditCommunicationRecipient,
   CeCommApprovalRole,
   CeCommChannel,
-  CommApprovalRule,
   CreateCommunicationDraftInput,
 } from '@/types/auditCommunication';
 import { auditCommunicationTemplateService } from './auditCommunicationTemplateService';
