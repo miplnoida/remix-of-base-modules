@@ -324,6 +324,9 @@ import EnvironmentsConsole from '@/pages/admin/api-test-console/EnvironmentsCons
 import AuthTestLab from '@/pages/admin/api-test-console/AuthTestLab';
 import EndpointExplorer from '@/pages/admin/api-test-console/EndpointExplorer';
 import ComplianceRunner from '@/pages/admin/api-test-console/ComplianceRunner';
+import SavedCasesConsole from '@/pages/admin/api-test-console/SavedCasesConsole';
+import SuitesConsole from '@/pages/admin/api-test-console/SuitesConsole';
+import ExecutionLogs from '@/pages/admin/api-test-console/ExecutionLogs';
 import PublicApiManagement from '@/pages/admin/PublicApiManagement';
 import DocumentConfigurationPage from '@/pages/admin/DocumentConfigurationPage';
 import ExternalApiManagement from '@/pages/admin/ExternalApiManagement';
@@ -1417,6 +1420,9 @@ export const AppRoutes = () => {
       <Route path="/admin/api-test-console/auth-lab" element={<ProtectedLayout><AuthTestLab /></ProtectedLayout>} />
       <Route path="/admin/api-test-console/endpoints" element={<ProtectedLayout><EndpointExplorer /></ProtectedLayout>} />
       <Route path="/admin/api-test-console/runner" element={<ProtectedLayout><ComplianceRunner /></ProtectedLayout>} />
+      <Route path="/admin/api-test-console/saved-cases" element={<ProtectedLayout><SavedCasesConsole /></ProtectedLayout>} />
+      <Route path="/admin/api-test-console/suites" element={<ProtectedLayout><SuitesConsole /></ProtectedLayout>} />
+      <Route path="/admin/api-test-console/logs" element={<ProtectedLayout><ExecutionLogs /></ProtectedLayout>} />
       <Route path="/admin/public-api" element={<ProtectedLayout><PublicApiManagement /></ProtectedLayout>} />
       <Route path="/admin/external-apis" element={<ProtectedLayout><ExternalApiManagement /></ProtectedLayout>} />
       <Route path="/external/api-docs" element={<ProtectedLayout><ExternalApiDocs /></ProtectedLayout>} />

@@ -3,7 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Shield, Activity, KeyRound, Globe2, LockKeyhole, BookOpen, PlayCircle } from 'lucide-react';
+import { Shield, Activity, KeyRound, Globe2, LockKeyhole, BookOpen, PlayCircle, FlaskConical, Layers, ScrollText } from 'lucide-react';
 import type { TestEnvironment } from './types';
 
 const NAV = [
@@ -13,6 +13,9 @@ const NAV = [
   { to: '/admin/api-test-console/auth-lab', label: 'Auth Test Lab', icon: LockKeyhole },
   { to: '/admin/api-test-console/endpoints', label: 'Endpoint Explorer', icon: BookOpen },
   { to: '/admin/api-test-console/runner', label: 'Compliance Runner', icon: PlayCircle },
+  { to: '/admin/api-test-console/saved-cases', label: 'Saved Cases', icon: FlaskConical },
+  { to: '/admin/api-test-console/suites', label: 'Suites', icon: Layers },
+  { to: '/admin/api-test-console/logs', label: 'Execution Logs', icon: ScrollText },
 ];
 
 export default function ConsoleLayout({ children }: { children: ReactNode }) {

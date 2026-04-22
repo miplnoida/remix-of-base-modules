@@ -423,6 +423,7 @@ export type Database = {
           response_status: number | null
           result: string
           saved_case_id: string | null
+          suite_run_id: string | null
           test_name: string | null
         }
         Insert: {
@@ -444,6 +445,7 @@ export type Database = {
           response_status?: number | null
           result?: string
           saved_case_id?: string | null
+          suite_run_id?: string | null
           test_name?: string | null
         }
         Update: {
@@ -465,6 +467,7 @@ export type Database = {
           response_status?: number | null
           result?: string
           saved_case_id?: string | null
+          suite_run_id?: string | null
           test_name?: string | null
         }
         Relationships: [
@@ -487,6 +490,13 @@ export type Database = {
             columns: ["saved_case_id"]
             isOneToOne: false
             referencedRelation: "api_test_saved_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_test_executions_suite_run_id_fkey"
+            columns: ["suite_run_id"]
+            isOneToOne: false
+            referencedRelation: "api_test_suite_runs"
             referencedColumns: ["id"]
           },
         ]
@@ -557,6 +567,150 @@ export type Database = {
           owner_user_id?: string | null
           requires_api_key?: boolean
           requires_auth?: boolean
+          tags?: string[] | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      api_test_suite_cases: {
+        Row: {
+          created_at: string
+          id: string
+          override_expected_status: number | null
+          saved_case_id: string
+          sort_order: number
+          suite_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          override_expected_status?: number | null
+          saved_case_id: string
+          sort_order?: number
+          suite_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          override_expected_status?: number | null
+          saved_case_id?: string
+          sort_order?: number
+          suite_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_test_suite_cases_saved_case_id_fkey"
+            columns: ["saved_case_id"]
+            isOneToOne: false
+            referencedRelation: "api_test_saved_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_test_suite_cases_suite_id_fkey"
+            columns: ["suite_id"]
+            isOneToOne: false
+            referencedRelation: "api_test_suites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_test_suite_runs: {
+        Row: {
+          duration_ms: number | null
+          environment_id: string | null
+          errored: number
+          failed: number
+          finished_at: string | null
+          id: string
+          notes: string | null
+          passed: number
+          started_at: string
+          suite_id: string
+          total_cases: number
+          triggered_by: string | null
+        }
+        Insert: {
+          duration_ms?: number | null
+          environment_id?: string | null
+          errored?: number
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          notes?: string | null
+          passed?: number
+          started_at?: string
+          suite_id: string
+          total_cases?: number
+          triggered_by?: string | null
+        }
+        Update: {
+          duration_ms?: number | null
+          environment_id?: string | null
+          errored?: number
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          notes?: string | null
+          passed?: number
+          started_at?: string
+          suite_id?: string
+          total_cases?: number
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_test_suite_runs_environment_id_fkey"
+            columns: ["environment_id"]
+            isOneToOne: false
+            referencedRelation: "api_test_environments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_test_suite_runs_suite_id_fkey"
+            columns: ["suite_id"]
+            isOneToOne: false
+            referencedRelation: "api_test_suites"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      api_test_suites: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          stop_on_failure: boolean
+          tags: string[] | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          stop_on_failure?: boolean
+          tags?: string[] | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          stop_on_failure?: boolean
           tags?: string[] | null
           updated_at?: string
           updated_by?: string | null
