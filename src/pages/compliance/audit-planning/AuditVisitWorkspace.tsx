@@ -117,6 +117,60 @@ export default function AuditVisitWorkspace() {
   const { userCode } = useUserCode();
   const commStatus = useVisitCommunicationStatus(inspectionId);
 
+  // ─── Rule-based visibility context for ContextualCommActions ───
+  // Single source of truth for *when* each action button should be offered.
+  // Keep this purely derived from already-loaded state — no extra fetches.
+  const commActionContext: CommActionVisibilityContext = useMemo(() => {
+    const checklistTotal = metrics?.checklistTotal ?? 0;
+    const checklistAnswered = metrics?.checklistAnswered ?? 0;
+    const checklistComplete = checklistTotal > 0 && checklistAnswered >= checklistTotal;
+    const evidenceCount = metrics?.evidenceCount ?? 0;
+    const findingsCount = metrics?.findingsCount ?? 0;
+    const maxSeverity = deriveMaxSeverity(metrics);
+    const hasReport = !!metrics?.hasReport;
+    const reportApproved = (reportStatus ?? '').toUpperCase() === 'APPROVED'
+      || (reportStatus ?? '').toUpperCase() === 'ISSUED';
+
+    // Overdue without response: any *sent* comm whose scheduled_at is past
+    // and that has not been acknowledged. Best-effort — server-side response
+    // tracking will improve this later.
+    const now = Date.now();
+    const overdue = commStatus.items.some((c) => {
+      if (c.status !== 'sent' && c.status !== 'partial') return false;
+      const due = c.scheduled_at ? new Date(c.scheduled_at).getTime() : null;
+      if (!due || due > now) return false;
+      return c.status !== ('acknowledged' as any);
+    });
+
+    const reminderCount = (commStatus.itemsByType?.due_date_reminder?.length ?? 0)
+      + (commStatus.itemsByType?.visit_reminder?.length ?? 0);
+
+    return {
+      sessionStarted,
+      sessionClosed,
+      checklistComplete,
+      hasMissingDocuments: !checklistComplete || evidenceCount === 0,
+      hasMissingEvidence: evidenceCount === 0,
+      hasFindings: findingsCount > 0,
+      hasClarificationNeeded: findingsCount > 0,
+      hasViolations,
+      maxSeverity,
+      enforcementThreshold: 'MEDIUM',
+      hasReport,
+      reportStatus,
+      reportApproved,
+      finalReportIssued: commStatus.finalStageIssued,
+      hasOpenObligations: commStatus.hasOpenItems,
+      hasOverdueWithoutResponse: overdue,
+      reminderCount,
+      hasPendingApproval: commStatus.pendingApproval > 0,
+    };
+  }, [
+    metrics, reportStatus, hasViolations, sessionStarted, sessionClosed,
+    commStatus.items, commStatus.itemsByType, commStatus.finalStageIssued,
+    commStatus.hasOpenItems, commStatus.pendingApproval,
+  ]);
+
   const planId = planIdFromRoute ?? plan?.id;
 
   const breadcrumbs = useMemo(() => {
