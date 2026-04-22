@@ -86,6 +86,7 @@ export default function AuditVisitWorkspace() {
   const [data, setData] = useState<any>(null);
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('checklist');
 
   const load = async () => {
     try {
