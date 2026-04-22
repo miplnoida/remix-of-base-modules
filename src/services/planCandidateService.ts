@@ -264,6 +264,20 @@ export const planCandidateService = {
       recommendation_score: Number(row.recommendation_score ?? row.audit_priority_score ?? 0),
       recommendation_reasons: (row.recommendation_reasons ?? []) as RecommendationReason[],
       why_selected: row.why_selected ?? null,
+      mandatory_class: (row.mandatory_class ?? 'WATCHLIST') as PlanCandidateV3['mandatory_class'],
+      bucket: (row.bucket ?? 'CAMPAIGN_INTEL') as PlanCandidateV3['bucket'],
+      estimated_effort: Number(row.estimated_effort ?? 0),
     }));
+  },
+
+  /** Phase 3: Read the configurable bucket allocation policy. */
+  async getBucketPolicy() {
+    const { data, error } = await supabase
+      .from('ce_planner_bucket_policy' as any)
+      .select('*')
+      .eq('enabled', true)
+      .order('sort_order', { ascending: true });
+    if (error) throw error;
+    return (data as any[]) ?? [];
   },
 };

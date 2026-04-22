@@ -14,10 +14,12 @@ import {
   WeeklyPlanItem,
   WeeklyPlanStatus,
   PlanCandidate,
+  PlanCandidateV3,
   CreateWeeklyPlanRequest,
   CreatePlanItemRequest,
   PlanItemExecutionStatus,
 } from '@/types/weeklyPlan';
+import { CANDIDATE_REASON_LABELS } from '@/services/planCandidateService';
 import { startOfWeek, endOfWeek, addDays, format } from 'date-fns';
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as const;
@@ -46,6 +48,20 @@ export interface GroupedCandidates {
   CASE: PlanCandidate[];
   NOTICE: PlanCandidate[];
 }
+
+export type CandidatesByBucket = Record<PlanCandidateV3['bucket'], PlanCandidateV3[]>;
+export type CandidatesByMandatoryClass = Record<
+  PlanCandidateV3['mandatory_class'],
+  PlanCandidateV3[]
+>;
+
+const EMPTY_BUCKETS: CandidatesByBucket = {
+  MUST_SCHEDULE: [],
+  REACTIVE_ENFORCEMENT: [],
+  RISK_MONITORING: [],
+  ROUTINE_COVERAGE: [],
+  CAMPAIGN_INTEL: [],
+};
 
 export function useWeeklyPlanBuilder() {
   const { toast } = useToast();
@@ -142,18 +158,45 @@ export function useWeeklyPlanBuilder() {
     return map;
   }, [planItems]);
 
-  // Candidates
+  // Candidates — Phase 3: V3 zone-aware engine. The server enforces zone
+  // visibility from the inspector record, so the UI cannot bypass it.
   const candidatesQuery = useQuery({
-    queryKey: ['plan-candidates', userId],
+    queryKey: ['plan-candidates-v3', inspectorId],
     queryFn: () =>
-      planCandidateService.getScoredCandidates({
-        assignedToUserId: userId || undefined,
-        topN: 5000,
+      planCandidateService.getScoredCandidatesV3({
+        inspectorId: inspectorId || undefined,
+        limit: 500,
       }),
-    enabled: !!userId,
+    enabled: !!inspectorId,
+    staleTime: 60_000,
   });
 
-  const candidates = candidatesQuery.data ?? [];
+  const candidatesV3: PlanCandidateV3[] = candidatesQuery.data ?? [];
+
+  // Map V3 → legacy PlanCandidate shape (kept for downstream UI compatibility),
+  // preserving why_selected / mandatory_class / bucket via reason labels.
+  const candidates = useMemo<PlanCandidate[]>(() => {
+    return candidatesV3.map((v): PlanCandidate => {
+      const reasonLabel =
+        CANDIDATE_REASON_LABELS[v.candidate_reason] || v.candidate_reason;
+      return {
+        source_type: v.candidate_source,
+        source_id: `${v.employer_id}-${v.candidate_source}`,
+        source_ref: v.employer_id,
+        employer_id: v.employer_id,
+        employer_name: v.employer_name,
+        territory: v.territory,
+        priority: v.derived_priority,
+        source_status: v.candidate_reason,
+        financial_exposure: v.financial_exposure,
+        due_date: v.next_due_date,
+        assigned_to_user_id: null,
+        source_created_at: new Date().toISOString(),
+        description: v.why_selected || reasonLabel,
+        recommendation_score: v.audit_priority_score,
+      };
+    });
+  }, [candidatesV3]);
 
   const groupedCandidates = useMemo<GroupedCandidates>(() => {
     const groups: GroupedCandidates = {
@@ -165,6 +208,32 @@ export function useWeeklyPlanBuilder() {
     }
     return groups;
   }, [candidates]);
+
+  // Phase 3: bucket allocation grouping (Must Schedule / Reactive / etc.)
+  const candidatesByBucket = useMemo<CandidatesByBucket>(() => {
+    const groups: CandidatesByBucket = {
+      MUST_SCHEDULE: [],
+      REACTIVE_ENFORCEMENT: [],
+      RISK_MONITORING: [],
+      ROUTINE_COVERAGE: [],
+      CAMPAIGN_INTEL: [],
+    };
+    for (const v of candidatesV3) {
+      (groups[v.bucket] ?? groups.CAMPAIGN_INTEL).push(v);
+    }
+    return groups;
+  }, [candidatesV3]);
+
+  // Phase 3: mandatory class grouping
+  const candidatesByMandatoryClass = useMemo<CandidatesByMandatoryClass>(() => {
+    const groups: CandidatesByMandatoryClass = {
+      MANDATORY: [], PRIORITY: [], WATCHLIST: [],
+    };
+    for (const v of candidatesV3) {
+      (groups[v.mandatory_class] ?? groups.WATCHLIST).push(v);
+    }
+    return groups;
+  }, [candidatesV3]);
 
   // Already-added source IDs (to prevent duplicates)
   const addedSourceIds = useMemo(
@@ -368,7 +437,10 @@ export function useWeeklyPlanBuilder() {
     isLoading: existingPlanQuery.isLoading || planItemsQuery.isLoading,
     // Candidates
     candidates,
+    candidatesV3,
     groupedCandidates,
+    candidatesByBucket,
+    candidatesByMandatoryClass,
     candidatesLoading: candidatesQuery.isLoading,
     addedSourceIds,
     // Actions
@@ -382,7 +454,8 @@ export function useWeeklyPlanBuilder() {
     isSubmitting: submitMutation.isPending || resubmitMutation.isPending,
     isSaving: saveNarrativeMutation.isPending || addItemMutation.isPending,
     // Refresh
-    refreshCandidates: () => queryClient.invalidateQueries({ queryKey: ['plan-candidates'] }),
+    refreshCandidates: () =>
+      queryClient.invalidateQueries({ queryKey: ['plan-candidates-v3'] }),
     refreshPlan: () => {
       queryClient.invalidateQueries({ queryKey: ['weekly-plan-existing'] });
       queryClient.invalidateQueries({ queryKey: ['weekly-plan-items'] });
