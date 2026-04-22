@@ -16,8 +16,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, GitBranch, AlertTriangle } from 'lucide-react';
-import { useWeeklyPlanRevision } from '@/hooks/useWeeklyPlanRevision';
+import { useWeeklyPlanRevision, useRevisionReasons } from '@/hooks/useWeeklyPlanRevision';
 import type { WeeklyPlan } from '@/types/weeklyPlan';
 
 interface Props {
@@ -26,23 +27,26 @@ interface Props {
 }
 
 export function PlanRevisionDialog({ plan, onClose }: Props) {
-  const [reason, setReason] = useState('');
+  const [reasonCode, setReasonCode] = useState<string>('other');
+  const [reasonText, setReasonText] = useState('');
   const { requestRevision } = useWeeklyPlanRevision();
+  const { data: reasons = [] } = useRevisionReasons();
 
   const handleSubmit = () => {
     if (!plan) return;
     requestRevision.mutate(
-      { planId: plan.id, reason },
+      { planId: plan.id, reasonCode, reasonText },
       {
         onSuccess: () => {
-          setReason('');
+          setReasonText('');
+          setReasonCode('other');
           onClose();
         },
       },
     );
   };
 
-  const reasonValid = reason.trim().length >= 5;
+  const reasonValid = reasonText.trim().length >= 5 && !!reasonCode;
 
   return (
     <Dialog open={!!plan} onOpenChange={(open) => !open && onClose()}>
@@ -67,19 +71,41 @@ export function PlanRevisionDialog({ plan, onClose }: Props) {
         </div>
 
         <div className="space-y-2 py-2">
+          <Label htmlFor="revision-reason-code">
+            Reason category <span className="text-destructive">*</span>
+          </Label>
+          <Select value={reasonCode} onValueChange={setReasonCode}>
+            <SelectTrigger id="revision-reason-code">
+              <SelectValue placeholder="Select a reason" />
+            </SelectTrigger>
+            <SelectContent>
+              {reasons.length === 0 ? (
+                <SelectItem value="other">Other</SelectItem>
+              ) : (
+                reasons.map((r: any) => (
+                  <SelectItem key={r.reason_code} value={r.reason_code}>
+                    {r.reason_label || r.reason_code}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2 py-2">
           <Label htmlFor="revision-reason">
-            Reason for revision <span className="text-destructive">*</span>
+            Details <span className="text-destructive">*</span>
           </Label>
           <Textarea
             id="revision-reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
+            value={reasonText}
+            onChange={(e) => setReasonText(e.target.value)}
             placeholder="E.g. Add 2 carry-forward audits, swap Wed slot due to inspector leave..."
             rows={4}
             maxLength={500}
           />
           <p className="text-xs text-muted-foreground">
-            {reason.trim().length}/500 — minimum 5 characters required.
+            {reasonText.trim().length}/500 — minimum 5 characters required.
           </p>
         </div>
 
