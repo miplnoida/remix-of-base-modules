@@ -24,8 +24,7 @@ import { WeeklyPlanStatus } from '@/types/weeklyPlan';
 import { MultiZoneFilter } from '@/components/compliance/weekly-plan/MultiZoneFilter';
 import { PlanRevisionDialog } from '@/components/compliance/weekly-plan/PlanRevisionDialog';
 import { PlanVersionHistoryDialog } from '@/components/compliance/weekly-plan/PlanVersionHistoryDialog';
-import { AddEmployerToPlanDialog } from '@/components/compliance/weekly-plan/AddEmployerToPlanDialog';
-import { PlannedEmployersList } from '@/components/compliance/weekly-plan/PlannedEmployersList';
+import { EmployerSelectionWorkbench } from '@/components/compliance/weekly-plan/EmployerSelectionWorkbench';
 
 export default function WeeklyPlanBuilderV2() {
   const navigate = useNavigate();
@@ -35,7 +34,6 @@ export default function WeeklyPlanBuilderV2() {
   const [zoneFilter, setZoneFilter] = useState<string[]>([]);
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [addEmployerOpen, setAddEmployerOpen] = useState(false);
 
   const plan: any = builder.activePlan;
   const status = plan?.status as string | undefined;
@@ -132,18 +130,6 @@ export default function WeeklyPlanBuilderV2() {
                 </Button>
               )}
 
-              {builder.canEdit && (
-                <Button
-                  size="sm"
-                  variant="default"
-                  className="h-8"
-                  onClick={() => setAddEmployerOpen(true)}
-                >
-                  <Users className="h-3.5 w-3.5 mr-1.5" />
-                  Add Employer
-                </Button>
-              )}
-
               <Button
                 variant="ghost"
                 size="sm"
@@ -195,36 +181,29 @@ export default function WeeklyPlanBuilderV2() {
         </CardContent>
       </Card>
 
+      {/* === Three-path Employer Selection Workbench ===
+          Always-visible structural surface so the redesigned model
+          (Recommended / Direct / Exception / Planned) is discoverable
+          regardless of whether the plan is editable. */}
+      <EmployerSelectionWorkbench
+        planId={builder.activePlanId}
+        userCode={builder.userCode}
+        weekDays={builder.week.days}
+        planItems={builder.planItems}
+        recommended={builder.candidates}
+        addedSourceIds={builder.addedSourceIds}
+        canEdit={builder.canEdit}
+        canApproveExceptions={role === 'head' || role === 'senior'}
+        addItem={builder.addManualItem}
+        onAddRecommended={(c, d) => builder.addCandidateToDay(c, d)}
+      />
+
       {/* Reuse the existing Smart builder — heavy lifting (overview, validation,
           smart draft, recommendations, drag/drop) is already implemented there. */}
       <WeeklyPlanBuilderSmart
         onSwitchToLegacy={() =>
           navigate('/compliance/field/plan-builder')
         }
-      />
-
-      {/* Planned Employers — selection-mode aware list with audit trail */}
-      <PlannedEmployersList
-        planId={builder.activePlanId}
-        userCode={builder.userCode}
-        weekDays={builder.week.days}
-        items={builder.planItems}
-        canApproveExceptions={role === 'head' || role === 'senior'}
-        addItem={builder.addManualItem}
-      />
-
-      {/* Three-path employer add dialog (Recommended / Direct / Exception) */}
-      <AddEmployerToPlanDialog
-        open={addEmployerOpen}
-        onOpenChange={setAddEmployerOpen}
-        weekDays={builder.week.days}
-        planId={builder.activePlanId}
-        userCode={builder.userCode}
-        existingItems={builder.planItems}
-        addItem={builder.addManualItem}
-        recommended={builder.candidates}
-        addedSourceIds={builder.addedSourceIds}
-        onAddRecommended={(c, d) => builder.addCandidateToDay(c, d)}
       />
 
       {/* Phase 3 dialogs — wired here so the entry points live in the enhanced header. */}
