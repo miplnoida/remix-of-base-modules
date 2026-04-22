@@ -18755,6 +18755,51 @@ export type Database = {
           },
         ]
       }
+      ce_planner_bucket_policy: {
+        Row: {
+          bucket_key: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          enabled: boolean
+          id: string
+          label: string
+          min_priority_score: number
+          sort_order: number
+          target_pct: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bucket_key: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          label: string
+          min_priority_score?: number
+          sort_order?: number
+          target_pct: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bucket_key?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          label?: string
+          min_priority_score?: number
+          sort_order?: number
+          target_pct?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ce_posting_queue: {
         Row: {
           amount: number
@@ -51883,6 +51928,7 @@ export type Database = {
           audit_cycle_due_date: string
           audit_priority_score: number
           audit_program: string
+          bucket: string
           candidate_reason: string
           candidate_source: string
           carry_forward_count: number
@@ -51893,10 +51939,12 @@ export type Database = {
           employer_id: string
           employer_name: string
           escalated_violation_count: number
+          estimated_effort: number
           financial_exposure: number
           inherent_risk_score: number
           is_cycle_overdue: boolean
           last_audit_date: string
+          mandatory_class: string
           next_due_date: string
           notice_days_remaining: number
           open_violation_count: number
