@@ -68,7 +68,7 @@ export default function EnvironmentsConsole() {
             <Globe2 className="h-5 w-5" />
             <CardTitle className="text-base">Environment Management</CardTitle>
           </div>
-          <p className="text-xs text-muted-foreground">Two environments: Test (safe to break) and Live (production). Pick the active one — it is used by every screen in the Console.</p>
+          <p className="text-xs text-muted-foreground">Two environments: Test (safe to break) and Live (production). Pick the active one — it is used as a <strong>fallback</strong> by the Runner. When an endpoint is mapped to an entry in <strong>API Settings → API Configuration</strong>, that base URL takes precedence and you do not need to configure it here.</p>
         </CardHeader>
         <CardContent>
           {loading ? (
