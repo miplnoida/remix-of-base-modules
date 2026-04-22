@@ -133,6 +133,7 @@ interface ResolvedAction extends ContextualAction {
 export function ContextualCommActions({
   inspectionId, employerId, employerName, userCode,
   actions, title, onChanged, hideIfEmpty = false,
+  visibilityContext, showHiddenReasons = false,
 }: Props) {
   const [resolved, setResolved] = useState<ResolvedAction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -217,9 +218,23 @@ export function ContextualCommActions({
     setPicker({ action, chosenId: action.candidates[0].id });
   };
 
+  // Apply the per-action visibility predicate against the supplied context.
+  // When no context is provided every action is treated as visible.
+  const passesVisibility = (a: ContextualAction): boolean => {
+    if (!a.visibleWhen) return true;
+    if (!visibilityContext) return true;
+    try {
+      return a.visibleWhen(visibilityContext);
+    } catch {
+      return true; // never crash the toolbar over a faulty predicate
+    }
+  };
+
+  const visibleByRule = resolved.filter(passesVisibility);
+  const hiddenByRule = resolved.filter((a) => !passesVisibility(a));
   const visible = hideIfEmpty
-    ? resolved.filter((a) => a.candidates.length > 0)
-    : resolved;
+    ? visibleByRule.filter((a) => a.candidates.length > 0)
+    : visibleByRule;
 
   if (loading) {
     return (
