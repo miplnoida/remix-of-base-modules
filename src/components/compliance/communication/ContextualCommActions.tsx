@@ -243,7 +243,14 @@ export function ContextualCommActions({
       </div>
     );
   }
-  if (visible.length === 0 && hideIfEmpty) return null;
+  // Hide the entire toolbar when nothing is contextually relevant. The
+  // `hideIfEmpty` flag (used on the Completion Gate) hides on no candidates;
+  // independently, if every action is rule-hidden we also collapse the panel
+  // unless the caller is in showHiddenReasons (debug) mode.
+  if (visible.length === 0 && !showHiddenReasons) {
+    if (hideIfEmpty) return null;
+    if (resolved.length > 0 && hiddenByRule.length === resolved.length) return null;
+  }
 
   return (
     <>
@@ -254,7 +261,7 @@ export function ContextualCommActions({
               {title ?? 'Communications'}
             </div>
             <div className="text-[11px] text-muted-foreground">
-              Open a draft using the template mapped to this stage.
+              Only actions relevant to the current visit state are shown.
             </div>
           </div>
           <Button asChild variant="ghost" size="sm" className="h-7 text-xs">
@@ -293,7 +300,31 @@ export function ContextualCommActions({
               </Button>
             );
           })}
+          {showHiddenReasons && hiddenByRule.map((action) => {
+            const Icon = action.icon ?? Send;
+            return (
+              <Button
+                key={`hidden-${action.key}`}
+                size="sm"
+                variant="ghost"
+                disabled
+                title={action.hiddenReason ?? 'Not applicable in current visit state'}
+                className="gap-1 opacity-60"
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {action.label}
+                <Badge variant="outline" className="ml-1 h-4 px-1 text-[9px]">
+                  hidden
+                </Badge>
+              </Button>
+            );
+          })}
         </div>
+        {visible.length === 0 && (
+          <p className="text-[11px] text-muted-foreground italic mt-1">
+            No communication actions are currently applicable for this visit.
+          </p>
+        )}
       </div>
 
       {/* Multi-template picker */}
