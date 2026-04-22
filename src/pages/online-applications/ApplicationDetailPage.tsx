@@ -737,17 +737,19 @@ export default function ApplicationDetailPage() {
           if (!pendingConversionResult) return;
           setIsInitiatingWorkflow(true);
           try {
-            const wfId = await triggerIPRegistrationWorkflow({
+            const wfResult = await triggerIPRegistrationWorkflow({
               uniqueUuid: pendingConversionResult.unique_uuid,
               ssn: pendingConversionResult.ssn,
               recordName: pendingConversionResult.recordName,
               userId: user?.id,
             });
-            if (wfId) {
+            if (wfResult.created && wfResult.instanceId) {
               toast.success('Workflow instance initiated successfully.');
               queryClient.invalidateQueries({ queryKey: ['workflow-instances'] });
+            } else if (wfResult.instanceId) {
+              toast.info(wfResult.reason || 'A workflow is already in progress for this record.');
             } else {
-              toast.error('Failed to initiate workflow instance.');
+              toast.error(wfResult.reason || 'Failed to initiate workflow instance.');
             }
           } catch (err) {
             toast.error(`Workflow initiation error: ${err instanceof Error ? err.message : String(err)}`);

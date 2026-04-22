@@ -229,12 +229,13 @@ export function useIPRegistrationSubmit() {
 
       // Step 6: Trigger workflow (if configured) — uses shared service
       const recordName = `${recordData.first_name || ''} ${recordData.last_name || ''}`.trim();
-      const workflowInstanceId = await triggerIPRegistrationWorkflow({
+      const workflowResult = await triggerIPRegistrationWorkflow({
         uniqueUuid,
         ssn: ssnData,
         recordName,
         userId,
       });
+      const workflowInstanceId = workflowResult.instanceId;
 
       // Step 7: Log audit entry
       if (recordData.id) {
