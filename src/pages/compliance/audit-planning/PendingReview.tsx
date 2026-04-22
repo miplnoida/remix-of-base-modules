@@ -235,13 +235,6 @@ export default function PendingReview() {
                 </p>
               </div>
             ) : (
-          {plans.length === 0 ? (
-            <div className="text-center py-12">
-              <CheckCircle className="h-12 w-12 text-green-600 mx-auto mb-4" />
-              <p className="text-lg font-medium">All plans reviewed!</p>
-              <p className="text-sm text-muted-foreground">No plans pending review at this time.</p>
-            </div>
-          ) : (
             <Table>
               <TableHeader>
                 <TableRow>
