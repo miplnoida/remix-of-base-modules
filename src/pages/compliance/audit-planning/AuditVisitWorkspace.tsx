@@ -844,12 +844,15 @@ function CompletionGatePanel({
           <CommunicationGateChecks
             itemsByType={itemsByType}
             context={gateContext}
-            onQuickSend={() => {
-              // The actions panel below routes the user to the right composer
-              // via field-stage mapping; scrolling there is the cleanest UX.
-              document.getElementById('gate-comm-actions')?.scrollIntoView({
-                behavior: 'smooth', block: 'center',
-              });
+            onQuickAction={(check, kind, commType) => {
+              if (onGateQuickAction) {
+                onGateQuickAction(check, kind, commType);
+              } else {
+                // Fallback: scroll to inline action panel.
+                document.getElementById('gate-comm-actions')?.scrollIntoView({
+                  behavior: 'smooth', block: 'center',
+                });
+              }
             }}
           />
         )}
