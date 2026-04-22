@@ -747,6 +747,80 @@ export function CommunicationComposer(props: CommunicationComposerProps) {
               </div>
             </TabsContent>
 
+            {/* ─────── Approval workflow ─────── */}
+            <TabsContent value="approval" className="space-y-3 pt-3">
+              {(comm.approvals?.length ?? 0) === 0 ? (
+                <div className="rounded border bg-muted/30 p-3 text-sm flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                  <span>
+                    No approval required for this communication
+                    {comm.severity_snapshot && comm.severity_snapshot !== 'none' && (
+                      <> (severity: <Badge variant="outline" className="text-[10px]">{comm.severity_snapshot}</Badge>)</>
+                    )}
+                    . It can be sent directly once a draft is ready.
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <div className="text-xs text-muted-foreground">
+                    Approval chain resolved by policy at draft creation. Author:{' '}
+                    <span className="font-medium text-foreground">{comm.created_by || 'system'}</span>
+                    {comm.severity_snapshot && (
+                      <> · severity <Badge variant="outline" className="text-[10px]">{comm.severity_snapshot}</Badge></>
+                    )}
+                  </div>
+                  <ol className="space-y-2">
+                    {(comm.approvals || []).slice().sort((a, b) => a.step_no - b.step_no).map((a: AuditCommunicationApproval) => {
+                      const canAct = a.status === 'pending' && approverRoles.includes(a.required_role);
+                      return (
+                        <li key={a.id} className="border rounded p-3 space-y-2">
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="outline">Step {a.step_no}</Badge>
+                              <span className="font-medium capitalize">{a.required_role.replace('_', ' ')}</span>
+                              <Badge
+                                variant={a.status === 'approved' ? 'default' : a.status === 'rejected' ? 'destructive' : 'secondary'}
+                                className="capitalize"
+                              >
+                                {a.status}
+                              </Badge>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {a.approver_user_id && <>by <span className="font-medium text-foreground">{a.approver_name || a.approver_user_id}</span> · </>}
+                              {a.decided_at && <>{new Date(a.decided_at).toLocaleString()}</>}
+                            </div>
+                          </div>
+                          {a.comments && (
+                            <div className="text-xs bg-muted/40 rounded p-2 whitespace-pre-wrap">
+                              <span className="font-medium">{a.status === 'rejected' ? 'Rejection reason' : 'Comment'}:</span> {a.comments}
+                            </div>
+                          )}
+                          {canAct && (
+                            <ApprovalActionRow
+                              approvalId={a.id}
+                              userCode={userCode}
+                              onDone={async () => { if (comm) await loadCommunication(comm.id); onChanged?.(); }}
+                            />
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ol>
+                  {comm.rejection_reason && comm.status === 'rejected' && (
+                    <div className="rounded border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                      <div className="flex items-center gap-2 text-destructive font-medium">
+                        <AlertTriangle className="h-4 w-4" /> Communication rejected
+                      </div>
+                      <p className="mt-1 text-xs">{comm.rejection_reason}</p>
+                      <p className="mt-2 text-[11px] text-muted-foreground">
+                        Edit the draft to address the feedback, then re-submit for approval.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
+            </TabsContent>
+
             {/* ─────── Preview ─────── */}
             <TabsContent value="preview" className="space-y-3 pt-3">
               <div className="rounded border bg-card p-3 space-y-2">
