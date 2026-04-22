@@ -337,6 +337,30 @@ export interface PlanCandidateV3 extends PlanCandidateV2 {
   recommendation_reasons: RecommendationReason[];
   /** One-line "why this employer was selected" summary for UI */
   why_selected: string | null;
+  /** Phase 3 — class for ranking and gating */
+  mandatory_class: 'MANDATORY' | 'PRIORITY' | 'WATCHLIST';
+  /** Phase 3 — operational bucket for allocation */
+  bucket:
+    | 'MUST_SCHEDULE'
+    | 'REACTIVE_ENFORCEMENT'
+    | 'RISK_MONITORING'
+    | 'ROUTINE_COVERAGE'
+    | 'CAMPAIGN_INTEL';
+  /** Phase 3 — estimated visit effort in hours */
+  estimated_effort: number;
+}
+
+export type PlannerBucketKey = PlanCandidateV3['bucket'];
+
+export interface PlannerBucketPolicy {
+  id: string;
+  bucket_key: PlannerBucketKey;
+  label: string;
+  description: string | null;
+  target_pct: number;
+  min_priority_score: number;
+  enabled: boolean;
+  sort_order: number;
 }
 
 // ============================================
