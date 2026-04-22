@@ -44,17 +44,28 @@ function getTimeBlock(itemType: string): 'AM' | 'PM' | 'FLEXIBLE' {
   }
 }
 
+// Phase 2: Mandatory / overdue ALWAYS schedule first.
+// Lower number = higher priority.
 function prioritySortOrder(candidate: PlanCandidate): number {
+  const desc = (candidate.description ?? '').toUpperCase();
+  const status = (candidate.source_status ?? '').toUpperCase();
+
+  // Tier 0: Mandatory high-risk reviews & legal stage
+  if (status === 'MANDATORY_HIGH_RISK_REVIEW' || status === 'LEGAL_STAGE_TRIGGER') return 0;
+  // Tier 1: overdue (by due_date or routine cycle due)
   if (candidate.due_date) {
     const daysUntilDue = Math.ceil(
       (new Date(candidate.due_date).getTime() - Date.now()) / 86400000
     );
-    if (daysUntilDue < 0) return 0;
-    if (daysUntilDue <= 7) return 1;
+    if (daysUntilDue < 0) return 1;
+    if (daysUntilDue <= 7) return 2;
   }
+  if (status === 'ROUTINE_CYCLE_DUE' || status === 'ARRANGEMENT_BREACH') return 1;
+  if (status === 'POST_ENFORCEMENT_RECHECK' || status === 'COMPLAINT_DRIVEN_AUDIT') return 2;
+  // Tier by derived priority
   switch (candidate.priority) {
-    case 'CRITICAL': return 2;
-    case 'HIGH': return 3;
+    case 'CRITICAL': return 3;
+    case 'HIGH': return 4;
     case 'MEDIUM': return 5;
     case 'LOW': return 7;
     default: return 6;
@@ -261,8 +272,11 @@ export function draftToRequests(
       priority: draft.candidate.priority || 'MEDIUM',
       recommendation_score: draft.candidate.recommendation_score,
       purpose: draft.candidate.description,
-      is_mandatory: draft.candidate.priority === 'CRITICAL' ||
-        classifyCandidate(draft.candidate) === 'OVERDUE',
+      is_mandatory:
+        draft.candidate.priority === 'CRITICAL' ||
+        classifyCandidate(draft.candidate) === 'OVERDUE' ||
+        ['MANDATORY_HIGH_RISK_REVIEW', 'LEGAL_STAGE_TRIGGER', 'ARRANGEMENT_BREACH', 'ROUTINE_CYCLE_DUE']
+          .includes((draft.candidate.source_status ?? '').toUpperCase()),
     };
   });
 }
