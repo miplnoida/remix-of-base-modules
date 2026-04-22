@@ -305,6 +305,9 @@ export default function AuditVisitWorkspace() {
           status={commStatus}
           onOpenCommunicationsTab={() => setActiveTab('communications')}
         />
+      )}
+
+      {/* Completion gate panel */}
       {sessionStarted && gate && (
         <CompletionGatePanel
           gate={gate}
@@ -342,7 +345,7 @@ export default function AuditVisitWorkspace() {
 
       {/* Tabs */}
       {sessionStarted && adaptedVisit ? (
-        <Tabs defaultValue="checklist" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="flex w-full flex-wrap gap-1">
             <TabsTrigger value="checklist">Working Papers</TabsTrigger>
             <TabsTrigger value="employer">Employer</TabsTrigger>
