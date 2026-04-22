@@ -500,6 +500,8 @@ function CompletionGatePanel({
   employerName,
   userCode,
   commStatus,
+  itemsByType,
+  gateContext,
   onCommChanged,
 }: {
   gate: CompletionGateResult;
@@ -509,6 +511,8 @@ function CompletionGatePanel({
   employerName?: string;
   userCode?: string;
   commStatus?: { total: number; sent: number; pending: number; failed: number; finalStageIssued: boolean };
+  itemsByType?: Partial<Record<import('@/types/auditCommunication').CeCommType, import('@/types/auditCommunication').AuditCommunication[]>>;
+  gateContext?: import('@/components/compliance/communication/CommunicationGateChecks').CommunicationGateContext;
   onCommChanged?: () => void;
 }) {
   const headerColor = gate.ready
@@ -586,21 +590,48 @@ function CompletionGatePanel({
           </div>
         )}
 
-        {inspectionId && employerId && (
-          <ContextualCommActions
-            inspectionId={inspectionId}
-            employerId={employerId}
-            employerName={employerName}
-            userCode={userCode}
-            title="Gate communications"
-            onChanged={onCommChanged}
-            actions={GATE_ACTIONS}
-            hideIfEmpty
+        {itemsByType && gateContext && (
+          <CommunicationGateChecks
+            itemsByType={itemsByType}
+            context={gateContext}
+            onQuickSend={() => {
+              // The actions panel below routes the user to the right composer
+              // via field-stage mapping; scrolling there is the cleanest UX.
+              document.getElementById('gate-comm-actions')?.scrollIntoView({
+                behavior: 'smooth', block: 'center',
+              });
+            }}
           />
+        )}
+
+        {inspectionId && employerId && (
+          <div id="gate-comm-actions">
+            <ContextualCommActions
+              inspectionId={inspectionId}
+              employerId={employerId}
+              employerName={employerName}
+              userCode={userCode}
+              title="Gate communications"
+              onChanged={onCommChanged}
+              actions={GATE_ACTIONS}
+              hideIfEmpty
+            />
+          </div>
         )}
       </CardContent>
     </Card>
   );
+}
+
+/** Map findingsByseverity → highest severity present (or NONE). */
+function deriveMaxSeverity(metrics: any): 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' {
+  const sev = metrics?.findingsByseverity;
+  if (!sev) return 'NONE';
+  if ((sev.Critical ?? 0) > 0) return 'CRITICAL';
+  if ((sev.High ?? 0) > 0) return 'HIGH';
+  if ((sev.Medium ?? 0) > 0) return 'MEDIUM';
+  if ((sev.Low ?? 0) > 0) return 'LOW';
+  return 'NONE';
 }
 
 function StartSessionDialog({
