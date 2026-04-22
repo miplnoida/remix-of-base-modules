@@ -300,6 +300,63 @@ export const weeklyPlanService = {
     if (reviewError) throw reviewError;
   },
 
+  // ============================================
+  // PHASE 3 — Approved Plan Revision Flow
+  // ============================================
+
+  /**
+   * Request a revision on an APPROVED plan. Clones the plan + items into a new
+   * DRAFT version (parent_plan_id, version_no=N+1) using fn_ce_create_plan_revision.
+   * The original APPROVED plan stays immutable until the revision is later promoted.
+   */
+  async requestRevision(planId: string, reason: string, actor: string): Promise<string> {
+    if (!reason || reason.trim().length < 5) {
+      throw new Error('Please provide a revision reason (min 5 characters).');
+    }
+    const { data, error } = await supabase.rpc('fn_ce_create_plan_revision', {
+      p_plan_id: planId,
+      p_reason: reason.trim(),
+      p_actor: actor,
+    });
+    if (error) throw error;
+    return data as string;
+  },
+
+  /**
+   * Promote an APPROVED revision to current. Marks the previous current version
+   * as SUPERSEDED and sets is_current_version on the revision.
+   */
+  async promoteRevision(revisionId: string, actor: string): Promise<void> {
+    const { error } = await supabase.rpc('fn_ce_promote_plan_revision', {
+      p_revision_id: revisionId,
+      p_actor: actor,
+    });
+    if (error) throw error;
+  },
+
+  /**
+   * Fetch the full version history (all versions) of a plan family. Accepts any
+   * plan id within the family (root or revision). Returns ordered by version_no.
+   */
+  async getVersionHistory(planId: string): Promise<WeeklyPlan[]> {
+    const { data: anchor, error: anchorErr } = await supabase
+      .from('ce_weekly_plans')
+      .select('id, parent_plan_id')
+      .eq('id', planId)
+      .single();
+    if (anchorErr) throw anchorErr;
+    const rootId = anchor?.parent_plan_id ?? anchor?.id;
+    if (!rootId) return [];
+
+    const { data, error } = await supabase
+      .from('ce_weekly_plans')
+      .select('*')
+      .or(`id.eq.${rootId},parent_plan_id.eq.${rootId}`)
+      .order('version_no', { ascending: true });
+    if (error) throw error;
+    return (data ?? []) as WeeklyPlan[];
+  },
+
   // Start execution (status = IN_EXECUTION)
   async startExecution(planId: string, userId: string): Promise<void> {
     await supabase

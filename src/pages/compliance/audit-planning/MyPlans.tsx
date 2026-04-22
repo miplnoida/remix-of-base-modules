@@ -34,6 +34,8 @@ import {
   Play,
   Undo2,
   Loader2,
+  GitBranch,
+  History,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -41,6 +43,8 @@ import { weeklyPlanService } from '@/services/weeklyPlanService';
 import { WeeklyPlan, WeeklyPlanStatus } from '@/types/weeklyPlan';
 import { useNavigate } from 'react-router-dom';
 import { useUserCode } from '@/hooks/useUserCode';
+import { PlanRevisionDialog } from '@/components/compliance/weekly-plan/PlanRevisionDialog';
+import { PlanVersionHistoryDialog } from '@/components/compliance/weekly-plan/PlanVersionHistoryDialog';
 
 export default function MyPlans() {
   const { toast } = useToast();
@@ -49,6 +53,8 @@ export default function MyPlans() {
   const { userCode, userId } = useUserCode();
   const [withdrawDialogPlan, setWithdrawDialogPlan] = useState<WeeklyPlan | null>(null);
   const [withdrawReason, setWithdrawReason] = useState('');
+  const [revisionPlan, setRevisionPlan] = useState<WeeklyPlan | null>(null);
+  const [historyPlan, setHistoryPlan] = useState<WeeklyPlan | null>(null);
 
   const plansQuery = useQuery({
     queryKey: ['my-weekly-plans'],
@@ -272,6 +278,26 @@ export default function MyPlans() {
                             {plan.status === WeeklyPlanStatus.COMPLETED ? 'View' : 'Execute'}
                           </Button>
                         )}
+                        {(plan.status === WeeklyPlanStatus.APPROVED ||
+                          plan.status === WeeklyPlanStatus.IN_EXECUTION) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setRevisionPlan(plan)}
+                            title="Create a revision draft of this approved plan"
+                          >
+                            <GitBranch className="h-4 w-4 mr-1" />
+                            Revise
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setHistoryPlan(plan)}
+                          title="View version history"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -357,6 +383,10 @@ export default function MyPlans() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Phase 3 — Approved-plan revision flow */}
+      <PlanRevisionDialog plan={revisionPlan} onClose={() => setRevisionPlan(null)} />
+      <PlanVersionHistoryDialog plan={historyPlan} onClose={() => setHistoryPlan(null)} />
     </div>
   );
 }
