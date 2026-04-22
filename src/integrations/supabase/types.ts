@@ -11156,6 +11156,56 @@ export type Database = {
           },
         ]
       }
+      ce_audit_field_stage_template_map: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          field_stage: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          notes: string | null
+          sort_order: number
+          template_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          field_stage: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          notes?: string | null
+          sort_order?: number
+          template_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          field_stage?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          notes?: string | null
+          sort_order?: number
+          template_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_audit_field_stage_template_map_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_communication_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_audit_finding_dispute_submissions: {
         Row: {
           acknowledgment_id: string | null
