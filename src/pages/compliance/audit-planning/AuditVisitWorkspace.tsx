@@ -331,7 +331,18 @@ export default function AuditVisitWorkspace() {
               />
             )}
           </TabsContent>
-          <TabsContent value="report">
+          <TabsContent value="report" className="space-y-3">
+            {inspectionId && (adaptedVisit.employerId || planItem.employer_id) && (
+              <ContextualCommActions
+                inspectionId={inspectionId}
+                employerId={adaptedVisit.employerId || planItem.employer_id}
+                employerName={planItem.employer_name ?? undefined}
+                userCode={userCode ?? undefined}
+                title="Report communications"
+                onChanged={commStatus.refresh}
+                actions={REPORT_ACTIONS}
+              />
+            )}
             <Card>
               <CardHeader>
                 <CardTitle>Employer Audit Report</CardTitle>
