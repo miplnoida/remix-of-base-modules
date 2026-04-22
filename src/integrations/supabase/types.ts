@@ -51812,6 +51812,10 @@ export type Database = {
         Args: { p_actor: string; p_revision_id: string }
         Returns: undefined
       }
+      fn_ce_supersede_stranded_approved: {
+        Args: { p_actor: string; p_keep_id: string; p_root_id: string }
+        Returns: undefined
+      }
       generate_application_id: { Args: never; Returns: string }
       generate_depend_id: { Args: { p_ssn: string }; Returns: string }
       generate_er_regno: { Args: never; Returns: string }
