@@ -153,16 +153,74 @@ export function CommunicationGateChecks({
       ? SEVERITY_RANK[context.maxSeverity] >= SEVERITY_RANK[threshold]
       : false;
 
-    // 1. Audit intimation must be sent before closure.
+    // 1. Audit intimation — nuanced state-aware check.
     {
-      const sent = (itemsByType.audit_intimation ?? []).some(isSent);
+      const items = itemsByType.audit_intimation ?? [];
+      const sentItems = items.filter(isSent);
+      const sent = sentItems.length > 0;
+      const intimation = context.intimation ?? {};
+      const planned = intimation.plannedDate ? new Date(intimation.plannedDate) : null;
+      const startedAt = intimation.sessionStartedAt ? new Date(intimation.sessionStartedAt) : null;
+      const minLeadHours = intimation.minLeadHours ?? 48;
+
+      // Earliest send timestamp (sent_at if available, else created_at).
+      const earliestSentAt = sentItems
+        .map((c: any) => c.sent_at ?? c.created_at)
+        .filter(Boolean)
+        .map((s: string) => new Date(s))
+        .sort((a, b) => a.getTime() - b.getTime())[0];
+
+      const requiredBy = planned
+        ? new Date(planned.getTime() - minLeadHours * 3600_000)
+        : null;
+
+      let status: GateCheckStatus = 'INFO';
+      let detail: string | undefined;
+      let actionLabel: string | undefined;
+      let actionKind: GateQuickActionKind = 'send';
+      let secondary: CommGateCheck['secondaryAction'];
+
+      if (sent) {
+        const onTime = !requiredBy || (earliestSentAt && earliestSentAt <= requiredBy);
+        const isLate = (sentItems as any[]).some((c) => c.sent_late) || !onTime;
+        status = isLate ? 'WARN' : 'PASS';
+        detail = isLate
+          ? `Sent late — required ${minLeadHours}h before planned visit.`
+          : 'Audit intimation delivered on time.';
+      } else if (!startedAt) {
+        // Visit not started yet → normal pre-visit CTA.
+        status = 'FAIL';
+        detail = `Required pre-visit: send the Audit Intimation at least ${minLeadHours}h before the planned date.`;
+        actionLabel = 'Send Audit Intimation';
+      } else {
+        // Visit already started without intimation → governance exception.
+        if (intimation.exceptionRecorded) {
+          status = 'WARN';
+          detail = 'Pre-visit intimation was missed — exception recorded.';
+          actionLabel = 'Send Late Intimation';
+          actionKind = 'send';
+        } else {
+          status = 'FAIL';
+          detail = 'Pre-visit intimation was missed — record an exception or send a late intimation.';
+          actionLabel = 'Record Exception';
+          actionKind = 'record_exception';
+          secondary = {
+            label: 'Send Late Intimation',
+            kind: 'send',
+            suggestCommType: 'audit_intimation',
+          };
+        }
+      }
+
       out.push({
         key: 'intimation',
         label: 'Audit intimation sent to employer',
-        status: sent ? 'PASS' : 'FAIL',
-        detail: sent ? undefined : 'Required: send the Audit Intimation before closing the visit.',
-        actionLabel: sent ? undefined : 'Send Audit Intimation',
+        status,
+        detail,
+        actionLabel,
+        actionKind,
         suggestCommType: 'audit_intimation',
+        secondaryAction: secondary,
       });
     }
 
