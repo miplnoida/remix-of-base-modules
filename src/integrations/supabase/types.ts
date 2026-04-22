@@ -10272,6 +10272,66 @@ export type Database = {
           },
         ]
       }
+      ce_audit_comm_approval_policies: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          direct_send_allowed: boolean
+          id: string
+          is_active: boolean
+          match_case_type: string | null
+          match_comm_type: string | null
+          match_enforcement_stage: string | null
+          match_lifecycle_stage: string | null
+          min_severity: string
+          policy_code: string
+          policy_name: string
+          priority: number
+          required_roles: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          direct_send_allowed?: boolean
+          id?: string
+          is_active?: boolean
+          match_case_type?: string | null
+          match_comm_type?: string | null
+          match_enforcement_stage?: string | null
+          match_lifecycle_stage?: string | null
+          min_severity?: string
+          policy_code: string
+          policy_name: string
+          priority?: number
+          required_roles?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          direct_send_allowed?: boolean
+          id?: string
+          is_active?: boolean
+          match_case_type?: string | null
+          match_comm_type?: string | null
+          match_enforcement_stage?: string | null
+          match_lifecycle_stage?: string | null
+          min_severity?: string
+          policy_code?: string
+          policy_name?: string
+          priority?: number
+          required_roles?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ce_audit_comm_trigger_rules: {
         Row: {
           comm_type: string
@@ -10877,6 +10937,7 @@ export type Database = {
       }
       ce_audit_communications: {
         Row: {
+          applied_policy_id: string | null
           approved_at: string | null
           attachment_summary_json: Json
           cancellation_reason: string | null
@@ -10909,6 +10970,7 @@ export type Database = {
           recurrence_interval_days: number | null
           recurrence_max_occurrences: number | null
           recurrence_stop_conditions_json: Json
+          rejection_reason: string | null
           report_version_id: string | null
           response_due_at: string | null
           response_mode:
@@ -10916,6 +10978,7 @@ export type Database = {
             | null
           scheduled_at: string | null
           sent_at: string | null
+          severity_snapshot: string | null
           sms_body_snapshot: string | null
           status: Database["public"]["Enums"]["ce_comm_status"]
           subject_snapshot: string | null
@@ -10925,6 +10988,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          applied_policy_id?: string | null
           approved_at?: string | null
           attachment_summary_json?: Json
           cancellation_reason?: string | null
@@ -10957,6 +11021,7 @@ export type Database = {
           recurrence_interval_days?: number | null
           recurrence_max_occurrences?: number | null
           recurrence_stop_conditions_json?: Json
+          rejection_reason?: string | null
           report_version_id?: string | null
           response_due_at?: string | null
           response_mode?:
@@ -10964,6 +11029,7 @@ export type Database = {
             | null
           scheduled_at?: string | null
           sent_at?: string | null
+          severity_snapshot?: string | null
           sms_body_snapshot?: string | null
           status?: Database["public"]["Enums"]["ce_comm_status"]
           subject_snapshot?: string | null
@@ -10973,6 +11039,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          applied_policy_id?: string | null
           approved_at?: string | null
           attachment_summary_json?: Json
           cancellation_reason?: string | null
@@ -11005,6 +11072,7 @@ export type Database = {
           recurrence_interval_days?: number | null
           recurrence_max_occurrences?: number | null
           recurrence_stop_conditions_json?: Json
+          rejection_reason?: string | null
           report_version_id?: string | null
           response_due_at?: string | null
           response_mode?:
@@ -11012,6 +11080,7 @@ export type Database = {
             | null
           scheduled_at?: string | null
           sent_at?: string | null
+          severity_snapshot?: string | null
           sms_body_snapshot?: string | null
           status?: Database["public"]["Enums"]["ce_comm_status"]
           subject_snapshot?: string | null
@@ -11021,6 +11090,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ce_audit_communications_applied_policy_id_fkey"
+            columns: ["applied_policy_id"]
+            isOneToOne: false
+            referencedRelation: "ce_audit_comm_approval_policies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ce_audit_communications_materialized_by_policy_id_fkey"
             columns: ["materialized_by_policy_id"]
