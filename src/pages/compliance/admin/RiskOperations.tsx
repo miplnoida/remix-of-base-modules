@@ -109,7 +109,7 @@ export default function RiskOperations() {
             {summary.data?.activePolicy ? (
               <>
                 <div className="font-semibold truncate">{summary.data.activePolicy.policy_name}</div>
-                <div className="text-xs text-muted-foreground">v{summary.data.activePolicy.version || '—'}</div>
+                <div className="text-xs text-muted-foreground">{summary.data.activePolicy.policy_code || '—'}</div>
               </>
             ) : (
               <div className="text-sm text-muted-foreground">No active policy</div>
