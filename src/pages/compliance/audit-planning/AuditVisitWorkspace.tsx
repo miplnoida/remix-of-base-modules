@@ -57,6 +57,7 @@ import { WorkingPapersTabContent } from '@/components/compliance/inspection/Work
 import { EmployerInteractionTabContent } from '@/components/compliance/inspection/EmployerInteractionTabContent';
 import { EmployerComplianceHistoryPanel } from '@/components/compliance/employer-history/EmployerComplianceHistoryPanel';
 import { VisitCommunicationsTab } from '@/components/compliance/communication/VisitCommunicationsTab';
+import { VisitCommunicationsIntelligenceCard } from '@/components/compliance/communication/VisitCommunicationsIntelligenceCard';
 import { CommunicationGateChecks } from '@/components/compliance/communication/CommunicationGateChecks';
 import {
   ContextualCommActions,
