@@ -144,7 +144,7 @@ function responseRecorded(items: AuditCommunication[]): boolean {
 }
 
 export function CommunicationGateChecks({
-  itemsByType, context, communicationsHref, onQuickSend,
+  itemsByType, context, communicationsHref, onQuickAction, onQuickSend,
 }: Props) {
   const checks = useMemo<CommGateCheck[]>(() => {
     const out: CommGateCheck[] = [];
