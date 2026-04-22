@@ -57,6 +57,7 @@ import { WorkingPapersTabContent } from '@/components/compliance/inspection/Work
 import { EmployerInteractionTabContent } from '@/components/compliance/inspection/EmployerInteractionTabContent';
 import { EmployerComplianceHistoryPanel } from '@/components/compliance/employer-history/EmployerComplianceHistoryPanel';
 import { VisitCommunicationsTab } from '@/components/compliance/communication/VisitCommunicationsTab';
+import { VisitCommunicationsIntelligenceCard } from '@/components/compliance/communication/VisitCommunicationsIntelligenceCard';
 import { CommunicationGateChecks } from '@/components/compliance/communication/CommunicationGateChecks';
 import {
   ContextualCommActions,
@@ -85,6 +86,7 @@ export default function AuditVisitWorkspace() {
   const [data, setData] = useState<any>(null);
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('checklist');
 
   const load = async () => {
     try {
@@ -284,6 +286,27 @@ export default function AuditVisitWorkspace() {
         </div>
       )}
 
+      {/* Communications intelligence — surfaces overdue acks/responses,
+          escalation alerts, last sent, and next recommended action so the
+          auditor sees comm posture before opening the Communications tab
+          or hitting the completion gate. */}
+      {sessionStarted && inspectionId && (adaptedVisit?.employerId || planItem.employer_id) && (
+        <VisitCommunicationsIntelligenceCard
+          inspectionId={inspectionId}
+          employerId={adaptedVisit?.employerId || planItem.employer_id}
+          employerName={planItem.employer_name ?? undefined}
+          triggerContext={{
+            sessionStarted,
+            sessionClosed,
+            reportStatus,
+            hasViolations,
+          }}
+          userCode={userCode ?? undefined}
+          status={commStatus}
+          onOpenCommunicationsTab={() => setActiveTab('communications')}
+        />
+      )}
+
       {/* Completion gate panel */}
       {sessionStarted && gate && (
         <CompletionGatePanel
@@ -322,7 +345,7 @@ export default function AuditVisitWorkspace() {
 
       {/* Tabs */}
       {sessionStarted && adaptedVisit ? (
-        <Tabs defaultValue="checklist" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="flex w-full flex-wrap gap-1">
             <TabsTrigger value="checklist">Working Papers</TabsTrigger>
             <TabsTrigger value="employer">Employer</TabsTrigger>
