@@ -10852,6 +10852,7 @@ export type Database = {
           lifecycle_stage: string | null
           linked_report_template_type: string | null
           merge_fields_json: Json
+          min_lead_hours: number | null
           preview_sample_json: Json
           recipient_rule_json: Json
           requires_approval_before_send: boolean
@@ -10886,6 +10887,7 @@ export type Database = {
           lifecycle_stage?: string | null
           linked_report_template_type?: string | null
           merge_fields_json?: Json
+          min_lead_hours?: number | null
           preview_sample_json?: Json
           recipient_rule_json?: Json
           requires_approval_before_send?: boolean
@@ -10920,6 +10922,7 @@ export type Database = {
           lifecycle_stage?: string | null
           linked_report_template_type?: string | null
           merge_fields_json?: Json
+          min_lead_hours?: number | null
           preview_sample_json?: Json
           recipient_rule_json?: Json
           requires_approval_before_send?: boolean
@@ -10956,10 +10959,14 @@ export type Database = {
           email_body_snapshot: string | null
           employer_id: string
           escalation_level: number
+          exception_reason: string | null
+          exception_recorded_at: string | null
+          exception_recorded_by: string | null
           extension_json: Json
           id: string
           inspection_id: string | null
           last_dispatch_error: string | null
+          late_reason: string | null
           materialized_by_policy_id: string | null
           occurrence_no: number
           parent_communication_id: string | null
@@ -10985,6 +10992,7 @@ export type Database = {
             | null
           scheduled_at: string | null
           sent_at: string | null
+          sent_late: boolean
           severity_snapshot: string | null
           sms_body_snapshot: string | null
           stage_key: string | null
@@ -11017,10 +11025,14 @@ export type Database = {
           email_body_snapshot?: string | null
           employer_id: string
           escalation_level?: number
+          exception_reason?: string | null
+          exception_recorded_at?: string | null
+          exception_recorded_by?: string | null
           extension_json?: Json
           id?: string
           inspection_id?: string | null
           last_dispatch_error?: string | null
+          late_reason?: string | null
           materialized_by_policy_id?: string | null
           occurrence_no?: number
           parent_communication_id?: string | null
@@ -11046,6 +11058,7 @@ export type Database = {
             | null
           scheduled_at?: string | null
           sent_at?: string | null
+          sent_late?: boolean
           severity_snapshot?: string | null
           sms_body_snapshot?: string | null
           stage_key?: string | null
@@ -11078,10 +11091,14 @@ export type Database = {
           email_body_snapshot?: string | null
           employer_id?: string
           escalation_level?: number
+          exception_reason?: string | null
+          exception_recorded_at?: string | null
+          exception_recorded_by?: string | null
           extension_json?: Json
           id?: string
           inspection_id?: string | null
           last_dispatch_error?: string | null
+          late_reason?: string | null
           materialized_by_policy_id?: string | null
           occurrence_no?: number
           parent_communication_id?: string | null
@@ -11107,6 +11124,7 @@ export type Database = {
             | null
           scheduled_at?: string | null
           sent_at?: string | null
+          sent_late?: boolean
           severity_snapshot?: string | null
           sms_body_snapshot?: string | null
           stage_key?: string | null

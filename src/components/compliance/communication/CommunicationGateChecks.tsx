@@ -33,6 +33,9 @@ import type { AuditCommunication, CeCommType } from '@/types/auditCommunication'
 
 export type GateCheckStatus = 'PASS' | 'FAIL' | 'WARN' | 'INFO';
 
+/** Action a quick-button can request from the parent. */
+export type GateQuickActionKind = 'send' | 'record_exception';
+
 export interface CommGateCheck {
   key: string;
   label: string;
@@ -42,6 +45,25 @@ export interface CommGateCheck {
   actionLabel?: string;
   /** comm_type the user should send to satisfy the check (used to scroll-to / filter). */
   suggestCommType?: CeCommType;
+  /** What the parent should do when the action button is clicked. Defaults to 'send'. */
+  actionKind?: GateQuickActionKind;
+  /** Optional secondary action (e.g. "Send Late Intimation" alongside "Record Exception"). */
+  secondaryAction?: {
+    label: string;
+    kind: GateQuickActionKind;
+    suggestCommType?: CeCommType;
+  };
+}
+
+export interface IntimationContext {
+  /** ISO date / datetime when the visit is planned. */
+  plannedDate?: string | null;
+  /** ISO datetime when the field session actually started (null = not started). */
+  sessionStartedAt?: string | null;
+  /** Minimum lead time required by the intimation template (hours). Defaults to 48. */
+  minLeadHours?: number | null;
+  /** True once an exception has been formally recorded for this visit. */
+  exceptionRecorded?: boolean;
 }
 
 export interface CommunicationGateContext {
@@ -54,6 +76,8 @@ export interface CommunicationGateContext {
   enforcementThreshold?: 'MEDIUM' | 'HIGH' | 'CRITICAL';
   /** True if any employer obligation has passed its due date. */
   hasOverdueItems?: boolean;
+  /** Pre-visit intimation context — drives nuanced PASS/WARN/FAIL for intimation. */
+  intimation?: IntimationContext;
 }
 
 interface Props {
@@ -61,7 +85,17 @@ interface Props {
   context: CommunicationGateContext;
   /** Tab anchor (e.g. "?tab=communications") on this same page. */
   communicationsHref?: string;
-  /** Quick-action callback (opens composer) — receives the suggested comm_type. */
+  /**
+   * Quick-action callback. Receives the check itself so the parent can
+   * distinguish 'send' (open composer) vs 'record_exception' (open exception
+   * dialog), and act on `secondaryAction` when present.
+   */
+  onQuickAction?: (
+    check: CommGateCheck,
+    kind: GateQuickActionKind,
+    commType?: CeCommType,
+  ) => void;
+  /** @deprecated — use onQuickAction. Kept for back-compat with older callers. */
   onQuickSend?: (commType: CeCommType) => void;
 }
 
@@ -110,7 +144,7 @@ function responseRecorded(items: AuditCommunication[]): boolean {
 }
 
 export function CommunicationGateChecks({
-  itemsByType, context, communicationsHref, onQuickSend,
+  itemsByType, context, communicationsHref, onQuickAction, onQuickSend,
 }: Props) {
   const checks = useMemo<CommGateCheck[]>(() => {
     const out: CommGateCheck[] = [];
@@ -119,16 +153,74 @@ export function CommunicationGateChecks({
       ? SEVERITY_RANK[context.maxSeverity] >= SEVERITY_RANK[threshold]
       : false;
 
-    // 1. Audit intimation must be sent before closure.
+    // 1. Audit intimation — nuanced state-aware check.
     {
-      const sent = (itemsByType.audit_intimation ?? []).some(isSent);
+      const items = itemsByType.audit_intimation ?? [];
+      const sentItems = items.filter(isSent);
+      const sent = sentItems.length > 0;
+      const intimation = context.intimation ?? {};
+      const planned = intimation.plannedDate ? new Date(intimation.plannedDate) : null;
+      const startedAt = intimation.sessionStartedAt ? new Date(intimation.sessionStartedAt) : null;
+      const minLeadHours = intimation.minLeadHours ?? 48;
+
+      // Earliest send timestamp (sent_at if available, else created_at).
+      const earliestSentAt = sentItems
+        .map((c: any) => c.sent_at ?? c.created_at)
+        .filter(Boolean)
+        .map((s: string) => new Date(s))
+        .sort((a, b) => a.getTime() - b.getTime())[0];
+
+      const requiredBy = planned
+        ? new Date(planned.getTime() - minLeadHours * 3600_000)
+        : null;
+
+      let status: GateCheckStatus = 'INFO';
+      let detail: string | undefined;
+      let actionLabel: string | undefined;
+      let actionKind: GateQuickActionKind = 'send';
+      let secondary: CommGateCheck['secondaryAction'];
+
+      if (sent) {
+        const onTime = !requiredBy || (earliestSentAt && earliestSentAt <= requiredBy);
+        const isLate = (sentItems as any[]).some((c) => c.sent_late) || !onTime;
+        status = isLate ? 'WARN' : 'PASS';
+        detail = isLate
+          ? `Sent late — required ${minLeadHours}h before planned visit.`
+          : 'Audit intimation delivered on time.';
+      } else if (!startedAt) {
+        // Visit not started yet → normal pre-visit CTA.
+        status = 'FAIL';
+        detail = `Required pre-visit: send the Audit Intimation at least ${minLeadHours}h before the planned date.`;
+        actionLabel = 'Send Audit Intimation';
+      } else {
+        // Visit already started without intimation → governance exception.
+        if (intimation.exceptionRecorded) {
+          status = 'WARN';
+          detail = 'Pre-visit intimation was missed — exception recorded.';
+          actionLabel = 'Send Late Intimation';
+          actionKind = 'send';
+        } else {
+          status = 'FAIL';
+          detail = 'Pre-visit intimation was missed — record an exception or send a late intimation.';
+          actionLabel = 'Record Exception';
+          actionKind = 'record_exception';
+          secondary = {
+            label: 'Send Late Intimation',
+            kind: 'send',
+            suggestCommType: 'audit_intimation',
+          };
+        }
+      }
+
       out.push({
         key: 'intimation',
         label: 'Audit intimation sent to employer',
-        status: sent ? 'PASS' : 'FAIL',
-        detail: sent ? undefined : 'Required: send the Audit Intimation before closing the visit.',
-        actionLabel: sent ? undefined : 'Send Audit Intimation',
+        status,
+        detail,
+        actionLabel,
+        actionKind,
         suggestCommType: 'audit_intimation',
+        secondaryAction: secondary,
       });
     }
 
@@ -303,16 +395,32 @@ export function CommunicationGateChecks({
                 <div className="text-xs text-muted-foreground mt-0.5">{c.detail}</div>
               )}
             </div>
-            {c.actionLabel && c.suggestCommType && onQuickSend && (
-              <Button
-                size="sm"
-                variant={c.status === 'FAIL' ? 'default' : 'outline'}
-                className="shrink-0 gap-1 h-7 text-xs"
-                onClick={() => onQuickSend(c.suggestCommType!)}
-              >
-                {c.actionLabel}
-                <ArrowRight className="h-3 w-3" />
-              </Button>
+            {c.actionLabel && (onQuickAction || onQuickSend) && (
+              <div className="flex flex-col gap-1 shrink-0">
+                <Button
+                  size="sm"
+                  variant={c.status === 'FAIL' ? 'default' : 'outline'}
+                  className="gap-1 h-7 text-xs"
+                  onClick={() => {
+                    const kind = c.actionKind ?? 'send';
+                    if (onQuickAction) onQuickAction(c, kind, c.suggestCommType);
+                    else if (onQuickSend && c.suggestCommType) onQuickSend(c.suggestCommType);
+                  }}
+                >
+                  {c.actionLabel}
+                  <ArrowRight className="h-3 w-3" />
+                </Button>
+                {c.secondaryAction && onQuickAction && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1 h-6 text-[11px]"
+                    onClick={() => onQuickAction(c, c.secondaryAction!.kind, c.secondaryAction!.suggestCommType)}
+                  >
+                    {c.secondaryAction.label}
+                  </Button>
+                )}
+              </div>
             )}
           </li>
         ))}
