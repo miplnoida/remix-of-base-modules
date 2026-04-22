@@ -6,6 +6,8 @@
 //   • Exception    — controlled override with category + reason note + approval
 // ============================================
 import { useMemo, useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -183,16 +185,50 @@ function RecommendedTab({
   addedSourceIds: Set<string | null>;
   onAdd: (c: PlanCandidate, d: DayOfWeek) => Promise<void> | void;
 }) {
-  const items = useMemo(
+  const [query, setQuery] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
+  const [sourceFilter, setSourceFilter] = useState<string>('ALL');
+  const [visibleCount, setVisibleCount] = useState(50);
+
+  const available = useMemo(
     () =>
       recommended
         .filter(c => !addedSourceIds.has(c.source_id))
-        .sort((a, b) => (b.recommendation_score ?? 0) - (a.recommendation_score ?? 0))
-        .slice(0, 25),
+        .sort((a, b) => (b.recommendation_score ?? 0) - (a.recommendation_score ?? 0)),
     [recommended, addedSourceIds],
   );
 
-  if (items.length === 0) {
+  const sources = useMemo(() => {
+    const set = new Set<string>();
+    available.forEach(c => c.source_type && set.add(c.source_type));
+    return Array.from(set).sort();
+  }, [available]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return available.filter(c => {
+      if (priorityFilter !== 'ALL' && c.priority !== priorityFilter) return false;
+      if (sourceFilter !== 'ALL' && c.source_type !== sourceFilter) return false;
+      if (!q) return true;
+      const hay = [
+        c.employer_name,
+        c.employer_id,
+        c.source_ref,
+        c.territory,
+        c.description,
+        c.source_type,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }, [available, query, priorityFilter, sourceFilter]);
+
+  const visible = filtered.slice(0, visibleCount);
+  const hasMore = filtered.length > visible.length;
+
+  if (available.length === 0) {
     return (
       <div className="py-10 text-center text-sm text-muted-foreground">
         <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-success" />
@@ -202,36 +238,102 @@ function RecommendedTab({
   }
 
   return (
-    <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-      {items.map(c => (
-        <div key={c.source_id || c.source_ref} className="border rounded-md p-3 bg-card">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-medium truncate">{c.employer_name || c.source_ref}</span>
-                {c.employer_id && (
-                  <span className="font-mono text-[11px] text-muted-foreground">{c.employer_id}</span>
-                )}
-                {c.priority && (
-                  <Badge variant="outline" className="text-[10px]">{c.priority}</Badge>
-                )}
-                {typeof c.recommendation_score === 'number' && (
-                  <Badge variant="secondary" className="text-[10px]">score {c.recommendation_score}</Badge>
-                )}
-              </div>
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                {c.source_type && <span>Source: {c.source_type}</span>}
-                {c.territory && <span>· {c.territory}</span>}
-                {c.due_date && <span>· Due {new Date(c.due_date).toLocaleDateString()}</span>}
-              </div>
-              {c.description && (
-                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{c.description}</p>
-              )}
-            </div>
-            <DayPicker onPick={d => onAdd(c, d)} label="Add" />
-          </div>
+    <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={e => { setQuery(e.target.value); setVisibleCount(50); }}
+            placeholder="Search by employer name, ID, sector, territory…"
+            className="pl-8 h-9"
+          />
         </div>
-      ))}
+        <Select value={priorityFilter} onValueChange={v => { setPriorityFilter(v); setVisibleCount(50); }}>
+          <SelectTrigger className="h-9 w-full sm:w-[140px]"><SelectValue placeholder="Priority" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">All priorities</SelectItem>
+            <SelectItem value="CRITICAL">Critical</SelectItem>
+            <SelectItem value="HIGH">High</SelectItem>
+            <SelectItem value="MEDIUM">Medium</SelectItem>
+            <SelectItem value="LOW">Low</SelectItem>
+          </SelectContent>
+        </Select>
+        {sources.length > 1 && (
+          <Select value={sourceFilter} onValueChange={v => { setSourceFilter(v); setVisibleCount(50); }}>
+            <SelectTrigger className="h-9 w-full sm:w-[160px]"><SelectValue placeholder="Source" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All sources</SelectItem>
+              {sources.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <span>
+          Showing <strong>{visible.length}</strong> of <strong>{filtered.length}</strong>
+          {filtered.length !== available.length && ` (filtered from ${available.length})`}
+        </span>
+        {(query || priorityFilter !== 'ALL' || sourceFilter !== 'ALL') && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 text-[11px]"
+            onClick={() => { setQuery(''); setPriorityFilter('ALL'); setSourceFilter('ALL'); setVisibleCount(50); }}
+          >
+            Clear filters
+          </Button>
+        )}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="py-10 text-center text-sm text-muted-foreground border rounded-md">
+          No recommended employers match your filters.
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+          {visible.map(c => (
+            <div key={c.source_id || c.source_ref} className="border rounded-md p-3 bg-card">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium truncate">{c.employer_name || c.source_ref}</span>
+                    {c.employer_id && (
+                      <span className="font-mono text-[11px] text-muted-foreground">{c.employer_id}</span>
+                    )}
+                    {c.priority && (
+                      <Badge variant="outline" className="text-[10px]">{c.priority}</Badge>
+                    )}
+                    {typeof c.recommendation_score === 'number' && (
+                      <Badge variant="secondary" className="text-[10px]">score {c.recommendation_score}</Badge>
+                    )}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                    {c.source_type && <span>Source: {c.source_type}</span>}
+                    {c.territory && <span>· {c.territory}</span>}
+                    {c.due_date && <span>· Due {new Date(c.due_date).toLocaleDateString()}</span>}
+                  </div>
+                  {c.description && (
+                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{c.description}</p>
+                  )}
+                </div>
+                <DayPicker onPick={d => onAdd(c, d)} label="Add" />
+              </div>
+            </div>
+          ))}
+          {hasMore && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => setVisibleCount(c => c + 50)}
+            >
+              Show 50 more ({filtered.length - visible.length} remaining)
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

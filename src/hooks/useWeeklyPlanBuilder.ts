@@ -148,7 +148,7 @@ export function useWeeklyPlanBuilder() {
     queryFn: () =>
       planCandidateService.getScoredCandidates({
         assignedToUserId: userId || undefined,
-        topN: 100,
+        topN: 5000,
       }),
     enabled: !!userId,
   });
