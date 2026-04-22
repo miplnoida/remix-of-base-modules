@@ -1,18 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import ConsoleLayout from './ConsoleLayout';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { PlayCircle, AlertTriangle } from 'lucide-react';
+import { PlayCircle, AlertTriangle, RefreshCw, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ENDPOINT_CATALOG, type CatalogEndpoint } from './endpointCatalog';
 import { useTestContext, getLastAccessToken } from './useTestContext';
 import { useTestRunner } from './useTestRunner';
 import ResponseInspector from './ResponseInspector';
+
+interface ApiSettingRow {
+  id: string;
+  setting_key: string;
+  setting_name: string;
+  base_url: string | null;
+  linked_module: string | null;
+  is_active: boolean | null;
+}
+
+function joinUrl(base: string, path: string): string {
+  if (!base) return path;
+  const b = base.replace(/\/+$/, '');
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return `${b}${p}`;
+}
 
 export default function ComplianceRunner() {
   const ctx = useTestContext();
@@ -26,28 +43,72 @@ export default function ComplianceRunner() {
   const [token, setToken] = useState<string>(getLastAccessToken() || '');
   const [requestPreview, setRequestPreview] = useState<any>(null);
 
+  // API Settings (used to resolve base URL automatically per endpoint)
+  const [apiSettings, setApiSettings] = useState<ApiSettingRow[]>([]);
+  const [overrideSettingId, setOverrideSettingId] = useState<string>('');
+  const [urlOverride, setUrlOverride] = useState<string>(''); // user-edited final URL
+
+  useEffect(() => {
+    supabase
+      .from('api_settings')
+      .select('id, setting_key, setting_name, base_url, linked_module, is_active')
+      .eq('is_active', true)
+      .order('setting_name')
+      .then(({ data }) => setApiSettings((data as any) || []));
+  }, []);
+
+  // Reset per-endpoint state on change
   useEffect(() => {
     setBodyText(endpoint.sampleBody ? JSON.stringify(endpoint.sampleBody, null, 2) : '');
     setPathValues({});
+    setOverrideSettingId('');
+    setUrlOverride('');
   }, [endpointId]);
 
-  const buildUrl = () => {
-    if (!ctx.env) return '';
+  // The api_settings row that auto-applies to this endpoint (if any)
+  const matchedSetting = useMemo(() => {
+    if (!endpoint.apiSettingKey) return null;
+    return apiSettings.find((s) => s.setting_key === endpoint.apiSettingKey) || null;
+  }, [apiSettings, endpoint.apiSettingKey]);
+
+  // The setting actually used (override > matched)
+  const effectiveSetting = useMemo(() => {
+    if (overrideSettingId) return apiSettings.find((s) => s.id === overrideSettingId) || null;
+    return matchedSetting;
+  }, [overrideSettingId, apiSettings, matchedSetting]);
+
+  const baseUrlSource: 'override' | 'api_settings' | 'environment' | 'none' = useMemo(() => {
+    if (urlOverride) return 'override';
+    if (effectiveSetting?.base_url) return 'api_settings';
+    if (ctx.env?.edge_functions_url) return 'environment';
+    return 'none';
+  }, [urlOverride, effectiveSetting, ctx.env]);
+
+  const resolvedBaseUrl = useMemo(() => {
+    if (effectiveSetting?.base_url) return effectiveSetting.base_url;
+    return ctx.env?.edge_functions_url || '';
+  }, [effectiveSetting, ctx.env]);
+
+  const computedUrl = useMemo(() => {
     let p = endpoint.path;
     (endpoint.pathParams || []).forEach((k) => {
       p = p.replace(`{${k}}`, encodeURIComponent(pathValues[k] || `{${k}}`));
     });
-    return `${ctx.env.edge_functions_url}${p}`;
-  };
+    return joinUrl(resolvedBaseUrl, p);
+  }, [endpoint, pathValues, resolvedBaseUrl]);
+
+  const finalUrl = urlOverride || computedUrl;
 
   const execute = async () => {
-    if (!ctx.env) { toast.error('No environment selected'); return; }
-    if (endpoint.destructive && !ctx.env.destructive_allowed) { toast.error('Destructive endpoints are disabled in this environment'); return; }
+    if (!finalUrl) { toast.error('No URL resolved. Configure an API setting or environment.'); return; }
+    if (endpoint.destructive && ctx.env && !ctx.env.destructive_allowed) {
+      toast.error('Destructive endpoints are disabled in this environment'); return;
+    }
     for (const k of endpoint.pathParams || []) {
-      if (!pathValues[k]) { toast.error(`Path parameter "${k}" is required`); return; }
+      if (!pathValues[k] && !urlOverride) { toast.error(`Path parameter "${k}" is required`); return; }
     }
     const apiKey = endpoint.requiresApiKey ? await ctx.getApiKeyPlaintext() : null;
-    if (endpoint.requiresApiKey && !apiKey) { toast.error('Could not resolve API key'); return; }
+    if (endpoint.requiresApiKey && !apiKey) { toast.error('Could not resolve API key — pick one in Environments / API Keys'); return; }
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (apiKey) headers['X-API-Key'] = apiKey;
@@ -62,9 +123,17 @@ export default function ComplianceRunner() {
       catch { toast.error('Body is not valid JSON'); return; }
     }
 
-    const url = buildUrl();
-    setRequestPreview({ method: endpoint.method, url, headers, body });
-    await run({ method: endpoint.method, url, headers, body, expectedStatus: endpoint.expectedStatus, testName: endpoint.name, environmentId: ctx.env.id, apiKeyId: ctx.selectedKeyId });
+    setRequestPreview({ method: endpoint.method, url: finalUrl, headers, body });
+    await run({
+      method: endpoint.method,
+      url: finalUrl,
+      headers,
+      body,
+      expectedStatus: endpoint.expectedStatus,
+      testName: endpoint.name,
+      environmentId: ctx.env?.id ?? null,
+      apiKeyId: ctx.selectedKeyId,
+    });
   };
 
   return (
@@ -72,8 +141,10 @@ export default function ComplianceRunner() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Compliance API Test Runner</CardTitle>
-            {ctx.env && <p className="text-xs text-muted-foreground">Active env: <Badge style={{ backgroundColor: ctx.env.color_hex, color: 'white' }}>{ctx.env.label}</Badge></p>}
+            <CardTitle className="text-base">API Test Runner</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              The base URL is resolved automatically from <strong>API Settings</strong> when available, otherwise from the active <strong>Environment</strong>. You can override the final URL inline.
+            </p>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
@@ -89,6 +160,48 @@ export default function ComplianceRunner() {
                 {endpoint.destructive && <Badge variant="destructive" className="text-[10px]"><AlertTriangle className="mr-1 h-3 w-3" />destructive</Badge>}
               </div>
               <p className="mt-1 text-xs">{endpoint.description}</p>
+            </div>
+
+            {/* Base URL resolution panel */}
+            <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs flex items-center gap-1"><Settings2 className="h-3 w-3" /> Base URL source</Label>
+                <Badge variant={baseUrlSource === 'api_settings' ? 'default' : baseUrlSource === 'environment' ? 'secondary' : baseUrlSource === 'override' ? 'outline' : 'destructive'} className="text-[10px]">
+                  {baseUrlSource === 'api_settings' && (effectiveSetting?.setting_name || 'API Settings')}
+                  {baseUrlSource === 'environment' && (ctx.env?.label || 'Environment')}
+                  {baseUrlSource === 'override' && 'Manual override'}
+                  {baseUrlSource === 'none' && 'No URL configured'}
+                </Badge>
+              </div>
+
+              <div>
+                <Label className="text-xs text-muted-foreground">Override with API setting</Label>
+                <select
+                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+                  value={overrideSettingId}
+                  onChange={(e) => { setOverrideSettingId(e.target.value); setUrlOverride(''); }}
+                >
+                  <option value="">{matchedSetting ? `Auto: ${matchedSetting.setting_name}` : '— Use environment URL —'}</option>
+                  {apiSettings.map((s) => (
+                    <option key={s.id} value={s.id}>{s.setting_name} ({s.setting_key})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label className="text-xs">Final URL (editable)</Label>
+                <div className="mt-1 flex gap-1">
+                  <Input
+                    value={finalUrl}
+                    onChange={(e) => setUrlOverride(e.target.value)}
+                    className="h-9 font-mono text-xs"
+                    placeholder="https://…/path"
+                  />
+                  <Button type="button" size="sm" variant="outline" onClick={() => setUrlOverride('')} title="Reset to computed URL">
+                    <RefreshCw className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
             </div>
 
             {(endpoint.pathParams || []).map((k) => (
@@ -114,7 +227,7 @@ export default function ComplianceRunner() {
 
             <div className="flex items-center justify-between">
               <p className="text-xs text-muted-foreground">{endpoint.expectedStatus ? `Expects HTTP ${endpoint.expectedStatus}` : 'No expected status set'}</p>
-              <Button onClick={execute} disabled={isRunning || !ctx.env}>
+              <Button onClick={execute} disabled={isRunning || !finalUrl}>
                 <PlayCircle className="mr-1 h-4 w-4" /> {isRunning ? 'Running…' : 'Run request'}
               </Button>
             </div>
