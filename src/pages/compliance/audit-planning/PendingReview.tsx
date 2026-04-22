@@ -296,7 +296,8 @@ export default function PendingReview() {
                 ))}
               </TableBody>
             </Table>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
 
