@@ -41,9 +41,9 @@ Generation status legend: ✅ documented · 🟡 pending (next batch) · ⚪ not
 
 | # | Display Name | Route | Page Component | Doc |
 |---|---|---|---|---|
-| 15 | Job Configuration | `/compliance/admin/automation/jobs` | `src/pages/compliance/automation/ComplianceJobConfiguration.tsx` | 🟡 pending |
-| 16 | Job History | `/compliance/admin/automation/history` | `src/pages/compliance/automation/ComplianceJobHistory.tsx` | 🟡 pending |
-| 17 | Employer Compliance Jobs | `/compliance/admin/automation/employer-jobs` | `src/pages/compliance/automation/EmployerComplianceJobs.tsx` | 🟡 pending |
+| 15 | Job Configuration | `/compliance/admin/automation/jobs` | `src/pages/compliance/automation/JobConfiguration.tsx` | ✅ [job-configuration.md](./automation/job-configuration.md) |
+| 16 | Job History | `/compliance/admin/automation/history` | `src/pages/compliance/automation/JobHistory.tsx` | ✅ [job-history.md](./automation/job-history.md) |
+| 17 | Employer Compliance Jobs | `/compliance/admin/automation/employer-jobs` | `src/pages/compliance/automation/EmployerComplianceJobs.tsx` | ✅ [employer-compliance-jobs.md](./automation/employer-compliance-jobs.md) |
 
 ## Section E — Integrations & Ledger (parent: `ca…0118`)
 
