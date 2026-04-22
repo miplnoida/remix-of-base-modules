@@ -16,8 +16,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, GitBranch, AlertTriangle } from 'lucide-react';
-import { useWeeklyPlanRevision } from '@/hooks/useWeeklyPlanRevision';
+import { useWeeklyPlanRevision, useRevisionReasons } from '@/hooks/useWeeklyPlanRevision';
 import type { WeeklyPlan } from '@/types/weeklyPlan';
 
 interface Props {
