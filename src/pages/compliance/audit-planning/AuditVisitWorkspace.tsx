@@ -481,6 +481,12 @@ function CompletionGatePanel({
             </li>
           ))}
         </ul>
+        {commAdvisory && (
+          <div className="mt-3 rounded border border-warning/30 bg-warning/5 p-2 text-xs text-warning flex items-start gap-2">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <span>{commAdvisory}</span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
