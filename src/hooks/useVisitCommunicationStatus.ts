@@ -30,6 +30,10 @@ export interface VisitCommunicationStatus {
   finalStageIssued: boolean;
   /** True if any communication is currently in a non-terminal state. */
   hasOpenItems: boolean;
+  /** Raw items (read-only) for downstream gate checks. */
+  items: AuditCommunication[];
+  /** Items grouped by comm_type — convenience for gate-check lookups. */
+  itemsByType: Partial<Record<CeCommType, AuditCommunication[]>>;
   refresh: () => void;
 }
 
@@ -74,6 +78,11 @@ export function useVisitCommunicationStatus(
   );
   const hasOpenItems = drafts + pendingApproval + scheduled > 0;
 
+  const itemsByType: Partial<Record<CeCommType, AuditCommunication[]>> = {};
+  for (const it of items) {
+    (itemsByType[it.comm_type] ||= []).push(it);
+  }
+
   return {
     loading,
     total: items.length,
@@ -84,6 +93,8 @@ export function useVisitCommunicationStatus(
     failed,
     finalStageIssued,
     hasOpenItems,
+    items,
+    itemsByType,
     refresh: () => setVersion((v) => v + 1),
   };
 }
