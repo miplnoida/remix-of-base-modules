@@ -91,37 +91,66 @@ export default function MyPlans() {
       case WeeklyPlanStatus.OUTCOME_SUBMITTED: return <FileText className="h-4 w-4" />;
       case WeeklyPlanStatus.COMPLETED: return <CheckCircle className="h-4 w-4" />;
       case WeeklyPlanStatus.WITHDRAWN: return <Undo2 className="h-4 w-4" />;
+      case WeeklyPlanStatus.REVISION_DRAFT: return <GitBranch className="h-4 w-4" />;
+      case WeeklyPlanStatus.REVISION_SUBMITTED: return <Send className="h-4 w-4" />;
+      case WeeklyPlanStatus.REVISION_QUERIED: return <AlertCircle className="h-4 w-4" />;
+      case WeeklyPlanStatus.REVISION_APPROVED: return <CheckCircle className="h-4 w-4" />;
+      case WeeklyPlanStatus.REVISION_REJECTED: return <XCircle className="h-4 w-4" />;
+      case WeeklyPlanStatus.SUPERSEDED: return <History className="h-4 w-4" />;
       default: return <FileText className="h-4 w-4" />;
     }
   };
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      [WeeklyPlanStatus.DRAFT]: 'bg-gray-100 text-gray-800',
-      [WeeklyPlanStatus.SUBMITTED]: 'bg-blue-100 text-blue-800',
-      [WeeklyPlanStatus.NEEDS_CHANGES]: 'bg-yellow-100 text-yellow-800',
-      [WeeklyPlanStatus.RESUBMITTED]: 'bg-purple-100 text-purple-800',
-      [WeeklyPlanStatus.APPROVED]: 'bg-green-100 text-green-800',
-      [WeeklyPlanStatus.IN_EXECUTION]: 'bg-cyan-100 text-cyan-800',
-      [WeeklyPlanStatus.OUTCOME_SUBMITTED]: 'bg-indigo-100 text-indigo-800',
-      [WeeklyPlanStatus.COMPLETED]: 'bg-gray-100 text-gray-800',
-      [WeeklyPlanStatus.WITHDRAWN]: 'bg-red-50 text-red-600',
+      [WeeklyPlanStatus.DRAFT]: 'bg-muted text-muted-foreground',
+      [WeeklyPlanStatus.SUBMITTED]: 'bg-primary/10 text-primary',
+      [WeeklyPlanStatus.NEEDS_CHANGES]: 'bg-warning/15 text-warning',
+      [WeeklyPlanStatus.RESUBMITTED]: 'bg-accent/20 text-accent-foreground',
+      [WeeklyPlanStatus.APPROVED]: 'bg-success/15 text-success',
+      [WeeklyPlanStatus.IN_EXECUTION]: 'bg-primary/15 text-primary',
+      [WeeklyPlanStatus.OUTCOME_SUBMITTED]: 'bg-primary/10 text-primary',
+      [WeeklyPlanStatus.COMPLETED]: 'bg-muted text-muted-foreground',
+      [WeeklyPlanStatus.WITHDRAWN]: 'bg-destructive/10 text-destructive',
+      [WeeklyPlanStatus.REVISION_DRAFT]: 'bg-warning/15 text-warning',
+      [WeeklyPlanStatus.REVISION_SUBMITTED]: 'bg-primary/15 text-primary',
+      [WeeklyPlanStatus.REVISION_QUERIED]: 'bg-warning/20 text-warning',
+      [WeeklyPlanStatus.REVISION_APPROVED]: 'bg-success/15 text-success',
+      [WeeklyPlanStatus.REVISION_REJECTED]: 'bg-destructive/10 text-destructive',
+      [WeeklyPlanStatus.SUPERSEDED]: 'bg-muted/60 text-muted-foreground line-through',
     };
     return colors[status] || 'bg-muted text-muted-foreground';
   };
 
-  const activePlans = plans.filter(p => p.status !== WeeklyPlanStatus.WITHDRAWN);
-  const needsChangesPlans = activePlans.filter(p => p.status === WeeklyPlanStatus.NEEDS_CHANGES);
-  const draftPlans = activePlans.filter(p => p.status === WeeklyPlanStatus.DRAFT);
-  const pendingPlans = activePlans.filter(p =>
-    p.status === WeeklyPlanStatus.SUBMITTED ||
-    p.status === WeeklyPlanStatus.RESUBMITTED
-  );
-  const approvedPlans = activePlans.filter(p =>
-    p.status === WeeklyPlanStatus.APPROVED ||
-    p.status === WeeklyPlanStatus.IN_EXECUTION
-  );
-  const completedPlans = activePlans.filter(p => p.status === WeeklyPlanStatus.COMPLETED);
+  const getVersionLabel = (plan: any): string => {
+    const v = plan.version_no ?? 1;
+    switch (plan.status) {
+      case WeeklyPlanStatus.REVISION_DRAFT: return `Working Revision v${v}`;
+      case WeeklyPlanStatus.REVISION_QUERIED: return `Revision v${v} — Queried`;
+      case WeeklyPlanStatus.REVISION_SUBMITTED: return `Revision v${v} — In Review`;
+      case WeeklyPlanStatus.SUPERSEDED: return `v${v} — Superseded`;
+      case WeeklyPlanStatus.APPROVED:
+      case WeeklyPlanStatus.IN_EXECUTION:
+      case WeeklyPlanStatus.OUTCOME_SUBMITTED:
+      case WeeklyPlanStatus.COMPLETED:
+        return plan.is_revision ? `Approved Revision v${v}` : `Approved v${v}`;
+      default:
+        return `v${v}`;
+    }
+  };
+
+  const isRevisionEditable = (status: string) =>
+    status === WeeklyPlanStatus.REVISION_DRAFT ||
+    status === WeeklyPlanStatus.REVISION_QUERIED;
+
+  const goToBuilder = (plan: any) => {
+    // Revisions open in the Enhanced builder (V2) so the version banner is shown.
+    if (plan.is_revision || isRevisionEditable(plan.status)) {
+      navigate(`/compliance/field/plan-builder-v2?planId=${plan.id}`);
+    } else {
+      navigate('/compliance/field/plan-builder');
+    }
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
