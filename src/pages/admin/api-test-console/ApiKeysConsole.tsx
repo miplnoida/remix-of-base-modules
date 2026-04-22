@@ -60,8 +60,9 @@ export default function ApiKeysConsole() {
       toast.error(data?.message || 'Failed to generate key');
       return;
     }
-    setRevealKey(data.api_key);
-    setRevealedFor({ id: data.id, app_name: genName, key_prefix: data.api_key?.slice(0, 8) || '', status: 'active', rate_limit_per_minute: genRate, expires_at: null, created_at: new Date().toISOString(), revoked_at: null });
+    const plainKey = data?.data?.plain_key || null;
+    setRevealKey(plainKey);
+    setRevealedFor({ id: data?.data?.id || crypto.randomUUID(), app_name: genName, key_prefix: plainKey?.slice(0, 8) || '', status: 'active', rate_limit_per_minute: genRate, expires_at: null, created_at: new Date().toISOString(), revoked_at: null });
     setGenerateOpen(false);
     setGenName('');
     load();
@@ -75,9 +76,9 @@ export default function ApiKeysConsole() {
       toast.error(data?.message || 'Reveal failed');
       return;
     }
-    setRevealKey(data.api_key);
+    setRevealKey(data?.data?.plain_key || null);
     setRevealedFor(k);
-    if (data.regenerated) toast.warning('Key was rotated automatically — old value invalidated.');
+    if (data?.data?.regenerated) toast.warning('Key was rotated automatically — old value invalidated.');
   };
 
   const handleRegenerate = async (k: ApiKeyRow) => {
@@ -85,7 +86,7 @@ export default function ApiKeysConsole() {
     const { data, error } = await supabase.functions.invoke('manage-api-keys', { body: { action: 'regenerate', key_id: k.id } });
     setBusyId(null);
     if (error || data?.status !== 'success') { toast.error('Regenerate failed'); return; }
-    setRevealKey(data.api_key);
+    setRevealKey(data?.data?.plain_key || null);
     setRevealedFor(k);
     load();
   };

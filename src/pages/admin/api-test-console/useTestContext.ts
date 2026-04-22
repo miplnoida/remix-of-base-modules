@@ -107,11 +107,17 @@ export function useTestContext() {
 
     const { data, error } = await supabase.functions.invoke('manage-api-keys', { body: { action: 'reveal', key_id: keyId } });
     if (error) return { key: null, error: error.message || 'reveal call failed' };
-    if (data?.status === 'success' && data.api_key) {
-      setRevealedKey(keyId, data.api_key);
-      return { key: data.api_key, error: null };
+
+    const plaintext = data?.data?.plain_key || null;
+    if (data?.status === 'success' && plaintext) {
+      setRevealedKey(keyId, plaintext);
+      return { key: plaintext, error: null };
     }
-    return { key: null, error: data?.message || data?.error || 'Reveal returned no key (check admin role)' };
+
+    return {
+      key: null,
+      error: data?.message || data?.error || 'Reveal returned no key',
+    };
   };
 
   return { env, keys, selectedKeyId, selectKey, loading, getApiKeyPlaintext };
