@@ -143,9 +143,9 @@ export default function WeeklyPlanBuilderV2() {
 
           {/* Contextual banners */}
           {isApproved && (
-            <Alert className="mt-3 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-900">
-              <Info className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
-              <AlertDescription className="text-xs text-emerald-900 dark:text-emerald-200">
+            <Alert className="mt-3 border-success/30 bg-success/10">
+              <Info className="h-4 w-4 text-success" />
+              <AlertDescription className="text-xs text-foreground">
                 This plan is <strong>approved and locked</strong>. To make changes,
                 start a controlled revision — the original approved version will be
                 preserved until the revision is reviewed.
@@ -153,18 +153,18 @@ export default function WeeklyPlanBuilderV2() {
             </Alert>
           )}
           {isRevisionDraft && (
-            <Alert className="mt-3 border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900">
-              <Info className="h-4 w-4 text-amber-700 dark:text-amber-400" />
-              <AlertDescription className="text-xs text-amber-900 dark:text-amber-200">
+            <Alert className="mt-3 border-warning/30 bg-warning/10">
+              <Info className="h-4 w-4 text-warning" />
+              <AlertDescription className="text-xs text-foreground">
                 You are editing a <strong>working revision</strong>. The previous
                 approved version remains live until this revision is approved.
               </AlertDescription>
             </Alert>
           )}
           {isRevisionInFlight && (
-            <Alert className="mt-3 border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-900">
-              <Info className="h-4 w-4 text-blue-700 dark:text-blue-400" />
-              <AlertDescription className="text-xs text-blue-900 dark:text-blue-200">
+            <Alert className="mt-3 border-primary/30 bg-primary/10">
+              <Info className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-xs text-foreground">
                 Revision submitted — awaiting manager review. The previous approved
                 version is still in effect.
               </AlertDescription>
