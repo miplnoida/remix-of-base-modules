@@ -119,16 +119,6 @@ export default function AuditVisitWorkspace() {
 
   const { userCode } = useUserCode();
   const commStatus = useVisitCommunicationStatus(inspectionId);
-  // Stage-aware orchestrator — single completionGate signal combining
-  // drafts/pending-approval/overdue/escalation/final-stage checks.
-  const commOrchestrator = useVisitCommunicationOrchestrator({
-    inspectionId,
-    employerId: adaptedVisit?.employerId || planItem?.employer_id || null,
-    employerName: planItem?.employer_name ?? undefined,
-    triggerContext: { sessionStarted, sessionClosed, reportStatus, hasViolations },
-    userCode: userCode ?? undefined,
-    enabled: !!inspectionId && sessionStarted,
-  });
 
   // ─── Rule-based visibility context for ContextualCommActions ───
   // Single source of truth for *when* each action button should be offered.
