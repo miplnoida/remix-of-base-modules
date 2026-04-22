@@ -255,7 +255,7 @@ export default function PendingReview() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {plans.map((plan) => (
+                {filteredPlans.map((plan) => (
                   <TableRow key={plan.id}>
                     <TableCell className="font-medium">{plan.planNumber}</TableCell>
                     <TableCell>
