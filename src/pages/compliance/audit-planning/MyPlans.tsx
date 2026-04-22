@@ -304,7 +304,7 @@ export default function MyPlans() {
               </TableHeader>
               <TableBody>
                 {planGroups.map((group) => (
-                  <>
+                  <Fragment key={`group-${group.rootId}-${group.weekStart}`}>
                     {/* Family header row — only render when the family has more than one version */}
                     {group.plans.length > 1 && (
                       <TableRow
