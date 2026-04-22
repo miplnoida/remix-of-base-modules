@@ -480,9 +480,21 @@ function SessionStrip({ inspection }: { inspection: any }) {
 function CompletionGatePanel({
   gate,
   commAdvisory,
+  inspectionId,
+  employerId,
+  employerName,
+  userCode,
+  commStatus,
+  onCommChanged,
 }: {
   gate: CompletionGateResult;
   commAdvisory?: string | null;
+  inspectionId?: string;
+  employerId?: string;
+  employerName?: string;
+  userCode?: string;
+  commStatus?: { total: number; sent: number; pending: number; failed: number; finalStageIssued: boolean };
+  onCommChanged?: () => void;
 }) {
   const headerColor = gate.ready
     ? 'text-success'
@@ -501,7 +513,7 @@ function CompletionGatePanel({
           Completion Gate — {gate.enforcementMode.replace('_', ' ')}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-3">
         <ul className="space-y-2">
           {gate.checks.map((c) => (
             <li key={c.key} className="flex items-start gap-2 text-sm">
@@ -528,11 +540,48 @@ function CompletionGatePanel({
             </li>
           ))}
         </ul>
+
         {commAdvisory && (
-          <div className="mt-3 rounded border border-warning/30 bg-warning/5 p-2 text-xs text-warning flex items-start gap-2">
+          <div className="rounded border border-warning/30 bg-warning/5 p-2 text-xs text-warning flex items-start gap-2">
             <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             <span>{commAdvisory}</span>
           </div>
+        )}
+
+        {commStatus && (
+          <div className="rounded border bg-card p-2 text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span className="font-medium">Pending communication obligations:</span>
+            <span className="flex items-center gap-1">
+              <Badge variant="outline">{commStatus.total}</Badge> total
+            </span>
+            <span className="flex items-center gap-1">
+              <Badge variant="secondary">{commStatus.pending}</Badge> awaiting send
+            </span>
+            <span className="flex items-center gap-1">
+              <Badge variant={commStatus.failed > 0 ? 'destructive' : 'outline'}>
+                {commStatus.failed}
+              </Badge>{' '}
+              failed
+            </span>
+            <span className="flex items-center gap-1">
+              <Badge variant={commStatus.finalStageIssued ? 'default' : 'outline'}>
+                {commStatus.finalStageIssued ? 'Final issued' : 'Final not issued'}
+              </Badge>
+            </span>
+          </div>
+        )}
+
+        {inspectionId && employerId && (
+          <ContextualCommActions
+            inspectionId={inspectionId}
+            employerId={employerId}
+            employerName={employerName}
+            userCode={userCode}
+            title="Gate communications"
+            onChanged={onCommChanged}
+            actions={GATE_ACTIONS}
+            hideIfEmpty
+          />
         )}
       </CardContent>
     </Card>
