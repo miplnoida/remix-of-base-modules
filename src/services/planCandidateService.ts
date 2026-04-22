@@ -14,6 +14,7 @@ import { PlanCandidate, PlanCandidateV2, PlanCandidateV3, RecommendationReason }
 // ── Candidate Reason labels for UI ─────────────────────────
 
 export const CANDIDATE_REASON_LABELS: Record<string, string> = {
+  // Existing reasons (preserved)
   ESCALATED_VIOLATION: 'Escalated violation requiring urgent attention',
   AGING_VIOLATION: 'Open violation aging beyond 90 days',
   MULTIPLE_VIOLATIONS: '3+ concurrent open violations',
@@ -26,6 +27,15 @@ export const CANDIDATE_REASON_LABELS: Record<string, string> = {
   LAST_AUDIT_EXCEEDED: 'No audit/visit in 180+ days',
   CARRY_FORWARD_INCOMPLETE: 'Incomplete work from prior plan',
   SCOUTING_LEAD: 'Active scouting lead requiring investigation',
+  // Phase 2 — richer planning-oriented reasons
+  ROUTINE_CYCLE_DUE: 'Routine audit cycle is due or overdue',
+  MANDATORY_HIGH_RISK_REVIEW: 'Mandatory review for high-risk employer',
+  POST_ENFORCEMENT_RECHECK: 'Post-enforcement compliance recheck',
+  COMPLAINT_DRIVEN_AUDIT: 'Audit triggered by complaint/intelligence',
+  SECTOR_SWEEP: 'Selected as part of sector sweep / campaign',
+  BENEFIT_PAYROLL_MISMATCH_REVIEW: 'Benefit/payroll mismatch requires review',
+  ARRANGEMENT_BREACH: 'Payment arrangement breached',
+  LEGAL_STAGE_TRIGGER: 'Active legal/enforcement stage trigger',
 };
 
 // ── V2: Batch-scored candidates from DB ────────────────────
@@ -227,15 +237,23 @@ export const planCandidateService = {
       employer_name: row.employer_name,
       territory: row.territory,
       zone_id: row.zone_id ?? null,
+      audit_program: row.audit_program ?? null,
       candidate_source: row.candidate_source ?? '',
       candidate_reason: row.candidate_reason ?? 'OPEN_VIOLATION',
       derived_priority: row.derived_priority ?? 'MEDIUM',
       risk_band: row.risk_band,
       risk_score: Number(row.risk_score ?? 0),
+      inherent_risk_score: Number(row.inherent_risk_score ?? row.risk_score ?? 0),
+      audit_priority_score: Number(row.audit_priority_score ?? row.recommendation_score ?? 0),
       days_since_last_inspection: row.days_since_last_inspection,
+      last_audit_date: row.last_audit_date ?? null,
+      next_due_date: row.next_due_date ?? null,
+      overdue_days: Number(row.overdue_days ?? 0),
       open_violation_count: Number(row.open_violation_count ?? 0),
       escalated_violation_count: Number(row.escalated_violation_count ?? 0),
       overdue_followup_count: Number(row.overdue_followup_count ?? 0),
+      violation_count: Number(row.violation_count ?? row.open_violation_count ?? 0),
+      case_count: Number(row.case_count ?? 0),
       financial_exposure: Number(row.financial_exposure ?? 0),
       notice_days_remaining: row.notice_days_remaining,
       any_breach_detected: Boolean(row.any_breach_detected),
@@ -243,8 +261,9 @@ export const planCandidateService = {
       audit_cycle_due_date: row.audit_cycle_due_date ?? null,
       cycle_overdue_days: Number(row.cycle_overdue_days ?? 0),
       is_cycle_overdue: Boolean(row.is_cycle_overdue),
-      recommendation_score: Number(row.recommendation_score ?? 0),
+      recommendation_score: Number(row.recommendation_score ?? row.audit_priority_score ?? 0),
       recommendation_reasons: (row.recommendation_reasons ?? []) as RecommendationReason[],
+      why_selected: row.why_selected ?? null,
     }));
   },
 };

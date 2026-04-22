@@ -311,13 +311,25 @@ export interface RecommendationReason {
   detail?: string;
 }
 
-/** V3: zone-aware, audit-cycle-aware, explainable candidate */
+/** V3: zone-aware, audit-cycle-aware, explainable candidate (Phase 2 extended) */
 export interface PlanCandidateV3 extends PlanCandidateV2 {
   zone_id: string | null;
+  audit_program: string | null;
+  /** Long-term employer profile score (0-100) */
+  inherent_risk_score: number;
+  /** Short-term planning priority score (0-100) — used by weekly planner */
+  audit_priority_score: number;
+  last_audit_date: string | null;
+  next_due_date: string | null;
+  overdue_days: number;
+  violation_count: number;
+  case_count: number;
   audit_cycle_due_date: string | null;
   cycle_overdue_days: number;
   is_cycle_overdue: boolean;
   recommendation_reasons: RecommendationReason[];
+  /** One-line "why this employer was selected" summary for UI */
+  why_selected: string | null;
 }
 
 // ============================================
