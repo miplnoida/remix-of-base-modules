@@ -51334,6 +51334,33 @@ export type Database = {
           territory: string
         }[]
       }
+      fn_ce_score_candidates_v3: {
+        Args: { p_inspector_id?: string; p_limit?: number; p_zone_id?: string }
+        Returns: {
+          any_breach_detected: boolean
+          audit_cycle_due_date: string
+          candidate_reason: string
+          candidate_source: string
+          carry_forward_count: number
+          cycle_overdue_days: number
+          days_since_last_inspection: number
+          derived_priority: string
+          employer_id: string
+          employer_name: string
+          escalated_violation_count: number
+          financial_exposure: number
+          is_cycle_overdue: boolean
+          notice_days_remaining: number
+          open_violation_count: number
+          overdue_followup_count: number
+          recommendation_reasons: Json
+          recommendation_score: number
+          risk_band: string
+          risk_score: number
+          territory: string
+          zone_id: string
+        }[]
+      }
       fn_ce_score_plan_candidate: {
         Args: {
           p_days_overdue?: number

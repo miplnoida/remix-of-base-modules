@@ -303,6 +303,23 @@ export interface PlanCandidateV2 {
   recommendation_score: number;
 }
 
+/** A single explainability reason emitted by fn_ce_score_candidates_v3 */
+export interface RecommendationReason {
+  code: string;
+  label: string;
+  weight: number;
+  detail?: string;
+}
+
+/** V3: zone-aware, audit-cycle-aware, explainable candidate */
+export interface PlanCandidateV3 extends PlanCandidateV2 {
+  zone_id: string | null;
+  audit_cycle_due_date: string | null;
+  cycle_overdue_days: number;
+  is_cycle_overdue: boolean;
+  recommendation_reasons: RecommendationReason[];
+}
+
 // ============================================
 // REQUEST TYPES
 // ============================================
