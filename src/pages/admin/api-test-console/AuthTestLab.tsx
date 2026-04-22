@@ -31,6 +31,7 @@ export default function AuthTestLab() {
   const [accessToken, setAccessToken] = useState(getLastAccessToken() || '');
   const [refreshToken, setRefreshToken] = useState(getLastRefreshToken() || '');
   const [includeApiKey, setIncludeApiKey] = useState(true);
+  const [revokeDeviceOnLogout, setRevokeDeviceOnLogout] = useState(false);
 
   const execute = async (path: string, body: any, expectedStatus = 200, withBearer = false) => {
     if (!ctx.env) { toast.error('No environment selected'); return; }
@@ -56,6 +57,14 @@ export default function AuthTestLab() {
       const rt = r.responseBody.refresh_token;
       if (at) { setAccessToken(at); setLastTokens(at, rt); toast.success('Access token captured'); }
       if (rt) setRefreshToken(rt);
+    }
+
+    // After a successful logout the refresh token is revoked server-side.
+    // Clear local tokens so the UI doesn't try to reuse a dead token.
+    if (r.result === 'pass' && tab === 'logout') {
+      setAccessToken('');
+      setRefreshToken('');
+      setLastTokens(null, null);
     }
   };
 
@@ -123,9 +132,14 @@ export default function AuthTestLab() {
 
               <TabsContent value="logout" className="space-y-3 pt-3">
                 <FormField label="Device ID"><Input value={deviceId} onChange={(e) => setDeviceId(e.target.value)} /></FormField>
-                <Button disabled={isRunning || !accessToken} onClick={() => execute('/compliance-mobile-auth/logout', { device_id: deviceId, refresh_token: refreshToken || undefined, revoke_device: true }, 200, true)}>
+                <label className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={revokeDeviceOnLogout} onChange={(e) => setRevokeDeviceOnLogout(e.target.checked)} />
+                  Also revoke device (PIN unlock will stop working)
+                </label>
+                <Button disabled={isRunning || !accessToken} onClick={() => execute('/compliance-mobile-auth/logout', { device_id: deviceId, refresh_token: refreshToken || undefined, revoke_device: revokeDeviceOnLogout }, 200, true)}>
                   <PlayCircle className="mr-1 h-4 w-4" /> Run logout
                 </Button>
+                <p className="text-xs text-muted-foreground">Logout revokes the current refresh token. Run <strong>Login</strong> again before using <strong>Refresh</strong>.</p>
               </TabsContent>
             </Tabs>
 
