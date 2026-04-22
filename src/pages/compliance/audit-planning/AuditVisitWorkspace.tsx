@@ -61,6 +61,7 @@ import { CommunicationGateChecks } from '@/components/compliance/communication/C
 import {
   ContextualCommActions,
   type ContextualAction,
+  type CommActionVisibilityContext,
 } from '@/components/compliance/communication/ContextualCommActions';
 import { useVisitCommunicationStatus } from '@/hooks/useVisitCommunicationStatus';
 import {
