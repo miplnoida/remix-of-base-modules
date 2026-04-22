@@ -72,7 +72,7 @@ class InspectionService {
       .select('*')
       .order('scheduled_date', { ascending: true });
     if (weekStartDate) query = query.gte('scheduled_date', weekStartDate);
-    const { data, error } = await query.limit(100);
+    const { data, error } = await query.limit(2000);
     if (error) throw error;
     return (data ?? []).map(mapPlanItem);
   }
