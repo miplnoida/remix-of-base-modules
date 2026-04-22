@@ -8,15 +8,36 @@
  *
  * Read-only — does not mutate gate enforcement on the server.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { auditCommunicationService } from '@/services/auditCommunicationService';
-import type { AuditCommunication, CeCommType } from '@/types/auditCommunication';
+import { COMM_TYPE_LABELS, type AuditCommunication, type CeCommType } from '@/types/auditCommunication';
 
 const FINAL_STAGE_TYPES: CeCommType[] = [
   'final_report',
   'violation_notice',
   'corrective_action',
 ];
+
+/**
+ * Fields added to the table by migration 20260422112003 but not yet in the
+ * generated TS type. We read them defensively via this loose extension.
+ */
+type AuditCommExt = AuditCommunication & {
+  delivered_at?: string | null;
+  acknowledged_at?: string | null;
+  response_due_at?: string | null;
+  responded_at?: string | null;
+  escalation_level?: number | null;
+};
+
+export interface CommIntelligenceItem {
+  id: string;
+  comm_type: CeCommType;
+  label: string;
+  status: string;
+  due_at?: string | null;
+  days_overdue: number;
+}
 
 export interface VisitCommunicationStatus {
   loading: boolean;
@@ -34,6 +55,19 @@ export interface VisitCommunicationStatus {
   items: AuditCommunication[];
   /** Items grouped by comm_type — convenience for gate-check lookups. */
   itemsByType: Partial<Record<CeCommType, AuditCommunication[]>>;
+
+  /** ── Intelligence summary ───────────────────────────────── */
+  /** Sent items still awaiting acknowledgment past their due date. */
+  overdueAcknowledgments: CommIntelligenceItem[];
+  /** Sent items still awaiting employer response past their due date. */
+  overdueResponses: CommIntelligenceItem[];
+  /** Items where escalation_level >= 1, indicating escalation is needed/active. */
+  escalationItems: CommIntelligenceItem[];
+  /** Highest escalation_level across all items (0 if none). */
+  maxEscalationLevel: number;
+  /** Most recent successfully sent communication (sent_at desc). */
+  lastSent: AuditCommunication | null;
+
   refresh: () => void;
 }
 
