@@ -67,10 +67,10 @@ Generation status legend: ✅ documented · 🟡 pending (next batch) · ⚪ not
 
 | # | Display Name | Route | Page Component | Doc |
 |---|---|---|---|---|
-| 26 | Communication Templates | `/compliance/admin/communication-templates` | `src/pages/compliance/admin/AuditCommunicationTemplatesPage.tsx` | 🟡 pending |
-| 27 | Communication Template Editor | `/compliance/admin/communication-templates/:id` | `src/pages/compliance/admin/AuditCommunicationTemplateEditorPage.tsx` | 🟡 pending |
-| 28 | Report Templates | `/compliance/admin/report-templates` | `src/pages/compliance/admin/ComplianceReportTemplates.tsx` | 🟡 pending |
-| 29 | Shared Sections & Foundation | `/compliance/admin/document-foundation` | `src/pages/compliance/admin/ComplianceReportTemplates.tsx` (foundation tab) | 🟡 pending |
+| 26 | Communication Templates | `/compliance/admin/communication-templates` | `src/pages/compliance/admin/AuditCommunicationTemplatesPage.tsx` | ✅ [communication-templates.md](./communication-reports/communication-templates.md) |
+| 27 | Communication Template Editor | `/compliance/admin/communication-templates/:id` | `src/pages/compliance/admin/AuditCommunicationTemplateEditorPage.tsx` | ✅ [communication-template-editor.md](./communication-reports/communication-template-editor.md) |
+| 28 | Report Templates | `/compliance/admin/report-templates` | `src/pages/compliance/admin/ComplianceReportTemplates.tsx` | ✅ [report-templates.md](./communication-reports/report-templates.md) |
+| 29 | Shared Sections & Foundation | `/compliance/admin/document-foundation` | `src/pages/compliance/admin/ComplianceReportTemplates.tsx` (foundation tab) | ✅ [shared-sections-and-foundation.md](./communication-reports/shared-sections-and-foundation.md) |
 
 ## Section H — Online Response (parent: `ca…0180`)
 
