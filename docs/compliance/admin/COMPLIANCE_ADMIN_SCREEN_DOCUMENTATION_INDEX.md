@@ -49,12 +49,12 @@ Generation status legend: ✅ documented · 🟡 pending (next batch) · ⚪ not
 
 | # | Display Name | Route | Page Component | Doc |
 |---|---|---|---|---|
-| 18 | C3 Ledger Sync | `/compliance/admin/settings/c3-ledger-sync` | `src/pages/compliance/settings/C3LedgerSync.tsx` | 🟡 pending |
-| 19 | Payment Ledger Sync | `/compliance/admin/settings/payment-ledger-sync` | `src/pages/compliance/settings/PaymentLedgerSync.tsx` | 🟡 pending |
-| 20 | Ledger Administration | `/compliance/admin/settings/ledger-admin` | `src/pages/compliance/settings/LedgerAdministration.tsx` | 🟡 pending |
-| 21 | Ledger Posting Framework | `/compliance/admin/settings/ledger-posting` | `src/pages/compliance/settings/LedgerPostingAdmin.tsx` | 🟡 pending |
-| 22 | Ledger Operations | `/compliance/admin/settings/ledger-operations` | `src/pages/compliance/settings/LedgerOperationsDashboard.tsx` | 🟡 pending |
-| 23 | Ledger Help & SOP | `/compliance/admin/settings/ledger-help` | `src/pages/compliance/settings/LedgerHelpCenter.tsx` | 🟡 pending |
+| 18 | C3 Ledger Sync | `/compliance/admin/settings/c3-ledger-sync` | `src/pages/compliance/settings/C3LedgerSync.tsx` | ✅ [c3-ledger-sync.md](./integrations-ledger/c3-ledger-sync.md) |
+| 19 | Payment Ledger Sync | `/compliance/admin/settings/payment-ledger-sync` | `src/pages/compliance/settings/PaymentLedgerSync.tsx` | ✅ [payment-ledger-sync.md](./integrations-ledger/payment-ledger-sync.md) |
+| 20 | Ledger Administration | `/compliance/admin/settings/ledger-admin` | `src/pages/compliance/settings/LedgerAdministration.tsx` | ✅ [ledger-administration.md](./integrations-ledger/ledger-administration.md) |
+| 21 | Ledger Posting Framework | `/compliance/admin/settings/ledger-posting` | `src/pages/compliance/settings/LedgerPostingAdmin.tsx` | ✅ [ledger-posting-admin.md](./integrations-ledger/ledger-posting-admin.md) |
+| 22 | Ledger Operations | `/compliance/admin/settings/ledger-operations` | `src/pages/compliance/settings/LedgerOperationsDashboard.tsx` | ✅ [ledger-operations-dashboard.md](./integrations-ledger/ledger-operations-dashboard.md) |
+| 23 | Ledger Help & SOP | `/compliance/admin/settings/ledger-help` | `src/pages/compliance/settings/LedgerHelpCenter.tsx` | ✅ [ledger-help-and-sop.md](./integrations-ledger/ledger-help-and-sop.md) |
 
 ## Section F — Tools (parent: `ca…0140`)
 
