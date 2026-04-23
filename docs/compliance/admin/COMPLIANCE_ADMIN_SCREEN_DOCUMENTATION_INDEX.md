@@ -60,8 +60,8 @@ Generation status legend: ✅ documented · 🟡 pending (next batch) · ⚪ not
 
 | # | Display Name | Route | Page Component | Doc |
 |---|---|---|---|---|
-| 24 | Rule Simulator | `/compliance/admin/tools/rule-simulator` | `src/pages/compliance/tools/ComplianceRuleSimulator.tsx` | 🟡 pending |
-| 25 | Risk Simulator | `/compliance/admin/tools/risk-simulator` | `src/pages/compliance/tools/ComplianceRiskSimulator.tsx` | 🟡 pending |
+| 24 | Rule Simulator | `/compliance/admin/tools/rule-simulator` | `src/pages/compliance/tools/RuleSimulator.tsx` | ✅ [rule-simulator.md](./tools/rule-simulator.md) |
+| 25 | Risk Simulator | `/compliance/admin/tools/risk-simulator` | `src/pages/compliance/tools/RiskSimulator.tsx` | ✅ [risk-simulator.md](./tools/risk-simulator.md) |
 
 ## Section G — Communication & Reports (parent: `ca…0170`)
 
