@@ -1,73 +1,60 @@
 
 
-## Issue: False "workflow initiated" success on `/ip-registration/view/:uuid`
+## Fix: Publish Failure on `dashboard_v_employer_compliance_status`
 
-### Root cause (verified in DB and code)
+### Problem
 
-For record `Deacon Moody` (`unique_uuid 64a5b904-…`, `status='P'`), there is already a workflow instance in `workflow_instances` with **`status='Completed'`** (id `7f016d3a-…`, `started_by=NULL`, `started_by_name='System'`).
+Publish to Live fails with:
+```
+ERROR: 42P01: relation "dashboard_v_employer_compliance_status" does not exist
+LINE 2338: FROM dashboard_v_employer_compliance_status
+```
 
-The flow has two separate, inconsistent guards that interact badly:
+### Root cause
 
-1. **`src/services/workflowEligibilityService.ts`** — only treats existing instances with status `InProgress` or `Pending` as blocking. A `Completed` (or `Rejected`, `Cancelled`, `Approved`, `Escalated`, `Query`, `AwaitingMeeting`) instance is silently ignored, and the function returns `eligible: true`. The dialog therefore opens even though a terminal instance exists.
-2. **`src/services/workflowTriggerService.ts` (`triggerIPRegistrationWorkflow`)** — its own duplicate check at the top is wider: ANY existing row for the same `source_module + source_record_id` causes it to **return the existing instance's id** instead of inserting a new one.
+Two pending migrations apply to Live together:
+- `20260422102700` — creates the base view `dashboard_v_employer_compliance_status` AND replaces the dependents (`dashboard_v_compliance_distribution`, `dashboard_v_compliance_metrics`) so they now reference it.
+- `20260422102813` — refines the base view's CASE logic.
 
-The hook (`useWorkflowInitialization.confirmWorkflow`) treats any non-null return as success and shows `toast.success("Workflow … initiated successfully")` and writes a `WORKFLOW_INITIATED` audit row — **but no new workflow instance, task, or log is created**. Hence the false success.
+Live currently has the **older** versions of `dashboard_v_compliance_distribution` and `dashboard_v_compliance_metrics` (from migration `20260411212407`), and does NOT have `dashboard_v_employer_compliance_status` at all.
 
-A secondary issue: `started_by` is being inserted as `auth user.id`, which is sometimes `undefined` (the older row has `NULL`). When undefined, the `.insert` still succeeds with `started_by_name='System'`, masking the auth context loss.
+When Lovable's diff engine bundles both pending migrations into one transaction against Live, the SQL ordering ends up trying to recreate a dependent view (which now references the base view) before the base view itself is created in the same batch — causing the "relation does not exist" error.
 
-### Fix plan
+### Fix
 
-**1. Make the two guards agree on one rule (single source of truth for "is there an active instance?")**
+Add **one new consolidating migration** that:
 
-In `workflowEligibilityService.ts`:
-- Treat the following statuses as **blocking** (an instance exists and is not closed): `Pending`, `InProgress`, `Escalated`, `Query`, `AwaitingMeeting`.
-- Treat `Completed`, `Approved`, `Rejected`, `Cancelled` as **closed** — eligible to re-initiate, BUT return the previous instance id/status in the result so the UI can warn ("a previous workflow ended as Completed/Rejected; a new one will be created").
-- Return `existingInstanceId` / `existingInstanceStatus` in BOTH branches (currently nulled out in the eligible branch).
+1. `DROP VIEW IF EXISTS public.dashboard_v_compliance_metrics CASCADE;`
+2. `DROP VIEW IF EXISTS public.dashboard_v_compliance_distribution CASCADE;`
+3. `DROP VIEW IF EXISTS public.dashboard_v_employer_compliance_status CASCADE;`
+4. `CREATE VIEW public.dashboard_v_employer_compliance_status AS ...` (final version, copied verbatim from migration `20260422102813`)
+5. `CREATE VIEW public.dashboard_v_compliance_distribution AS ...` (version from `20260422102700` that references the base view)
+6. `CREATE VIEW public.dashboard_v_compliance_metrics AS ...` (version from `20260422102700` that references the base view)
 
-In `workflowTriggerService.ts` (`triggerIPRegistrationWorkflow`):
-- Replace the blanket "return existing.id if anything exists" with the same status-aware check. Only short-circuit when an **active** instance exists. Otherwise proceed to insert a fresh instance.
-- Add an explicit `allowReinitiate` boolean param (default `false`) so callers can opt in to creating a new instance after a closed one. The view-page confirmation flow will pass `true`.
+Because this migration runs **after** the two failing ones, and uses `DROP ... CASCADE` + plain `CREATE VIEW` (not `CREATE OR REPLACE`), it bypasses any column-shape / dependency-ordering check the diff engine performs. Live ends up with exactly the same final state Test currently has.
 
-**2. Make success truly mean "a new row was created"**
+### Why not just edit existing migrations
 
-In `useWorkflowInitialization.confirmWorkflow`:
-- Change `triggerIPRegistrationWorkflow` to return a richer result: `{ instanceId: string; created: boolean; reason?: string }` instead of `string | null`.
-- Only show `toast.success(...)` when `created === true`. When `created === false` (active duplicate) show `toast.info("A workflow is already in progress for this record")`. On any thrown/returned error show `toast.error(reason)`.
-- Only insert the `WORKFLOW_INITIATED` audit row when `created === true`. Use a new `WORKFLOW_REUSED` action when an existing instance is returned.
+The two existing migrations have already been applied successfully to Test. Editing applied migrations causes hash mismatches. A new forward-only migration is the safe, standard fix.
 
-**3. Persist the correct creator on the instance**
+### Files
 
-- `started_by` is `uuid NOT NULL`-ish (currently nullable but should be populated). Look up the user via `auth.getUser()` inside the service and fall back to `null` only if truly unauthenticated. Always set `started_by_name` from `profiles.full_name` when possible, else from `useUserCode`'s `user_code`, else `'System'`.
-- Block initiation entirely (return `created:false, reason:'Not authenticated'`) if no auth user is found, instead of silently inserting `NULL`.
+| Change | File |
+|---|---|
+| New migration | `supabase/migrations/<new_timestamp>_fix_dashboard_compliance_views.sql` |
 
-**4. Verify the insert actually committed before declaring success**
+No application code changes required. No data loss (views only).
 
-After the `workflow_instances` insert returns, do a follow-up `select id from workflow_instances where id = $newId` round trip. If the row is missing, throw — this catches any silent RLS/policy rejection. Same for `workflow_tasks` insert.
+### Verification after publish
 
-**5. Update the confirmation dialog copy**
-
-In `WorkflowInitiationDialog`, when `eligibility.existingInstanceId` is set AND its status is closed, render a small amber notice: "A previous workflow ended as `<status>`. Confirming will start a NEW workflow instance." This eliminates user surprise.
-
-**6. Remove the broken success path on the view route specifically**
-
-In `IPRegistrationForm.tsx` line ~1238–1248, no UI change needed beyond reflecting the new `created` flag in toasts (the hook handles it).
-
-### Files to change
-
-- `src/services/workflowEligibilityService.ts` — status-aware blocking, always populate `existingInstanceId`/`existingInstanceStatus`.
-- `src/services/workflowTriggerService.ts` — return `{ instanceId, created, reason }`, status-aware duplicate check, post-insert verification, proper `started_by` resolution.
-- `src/hooks/useWorkflowInitialization.ts` — handle the new return shape, only toast success when `created`, only audit `WORKFLOW_INITIATED` when `created`.
-- `src/components/workflow/WorkflowInitiationDialog.tsx` — show "previous workflow ended as X" notice when applicable.
-- (Other call sites already importing `triggerIPRegistrationWorkflow` — `useIPRegistrationSubmit`, `useConvertToIPRegistration`, `StartMeetingPage`, `ApplicationDetailPage` — will be updated to read `.instanceId` from the new return shape; behaviour unchanged for them.)
-
-### Verification after implementation
-
-1. Open `/ip-registration/view/64a5b904-318c-4fbf-9b73-3fa171b9a8c8` (status `P`, has Completed instance). Dialog opens with the amber re-initiation notice. Click **Confirm & Initiate**.
-2. Confirm a NEW row in `workflow_instances` (`status='InProgress'`, `started_by` populated, fresh `started_at`).
-3. Confirm a NEW row in `workflow_tasks` for the first step, and a `workflow_started` row in `workflow_logs`.
-4. Confirm a `WORKFLOW_INITIATED` row in `ip_audit_log`.
-5. Re-open the page — dialog should NOT appear (the new InProgress instance now blocks eligibility).
-6. Force a failure (e.g. temporarily break the RPC) and confirm the toast says **error**, not success.
-
-No DB schema migrations are required.
+Query Live:
+```sql
+SELECT table_name FROM information_schema.views
+WHERE table_name IN (
+  'dashboard_v_employer_compliance_status',
+  'dashboard_v_compliance_distribution',
+  'dashboard_v_compliance_metrics'
+);
+```
+All three should be present.
 
