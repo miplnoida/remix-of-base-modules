@@ -1,144 +1,107 @@
 
-## Fix the publish blocker by collapsing the conflicting compliance-view migration chain, then re-aligning Live once
+Fix the publish blocker by removing the one destructive migration that is still forcing an invalid drop order, then re-apply the compliance views non-destructively.
 
 ### What is confirmed
-- The current publish failure is:
-```sql
-ERROR: 2BP01: cannot drop view dashboard_v_employer_compliance_status because other objects depend on it
-DETAIL: view dashboard_v_compliance_distribution depends on view dashboard_v_employer_compliance_status
-```
-- The stored view SQL in both Test and Live is currently the same:
-  - `dashboard_v_employer_compliance_status` exists
-  - `dashboard_v_compliance_distribution` is still the older inline version
-  - `dashboard_v_compliance_metrics` is still the older inline version
-- Both environments already have all `dashboard_v_%` views present (`14` total).
-- That means the blocker is no longer “missing object in Live”. The blocker is the migration history for these 3 views.
+- The current Live publish blocker is still:
+  ```sql
+  ERROR: 2BP01: cannot drop view dashboard_v_employer_compliance_status because other objects depend on it
+  DETAIL: view dashboard_v_compliance_distribution depends on view dashboard_v_employer_compliance_status
+  ```
+- Test currently has the canonical dependency graph:
+  - `dashboard_v_employer_compliance_status`
+  - `dashboard_v_compliance_distribution` depends on the base view
+  - `dashboard_v_compliance_metrics` depends on the base view
+- Live currently has:
+  - the base view already present in final shape
+  - the dependent views still in the older inline shape
+- The migration most directly causing the current failure is:
+  - `supabase/migrations/20260423145045_344860a0-36b0-4491-a713-8bf3e8d3b1aa.sql`
+- That file explicitly does:
+  ```sql
+  DROP VIEW IF EXISTS public.dashboard_v_compliance_metrics;
+  DROP VIEW IF EXISTS public.dashboard_v_compliance_distribution;
+  DROP VIEW IF EXISTS public.dashboard_v_employer_compliance_status;
+  ```
+  which is exactly consistent with the `2BP01` failure.
 
 ### Root cause
-The compliance dashboard view chain has been rewritten multiple times across these migrations:
-- `20260422102659_207c2603-2da9-48ec-b549-48880660e8c8_bootstrap_dashboard_employer_compliance_status.sql`
-- `20260422102700_e8ed6cdd-3055-4c1c-a249-abd303d4fdc6.sql`
-- `20260422102813_e106fcf1-2f02-40c5-ae7f-5e47a7204efa.sql`
-- `20260423135757_f2d08f70-0604-46cd-9f4c-0d55947bfa5b.sql`
-- `20260423140526_d0dad13a-b076-43b7-a164-4ba459f79b3c.sql`
-- `20260423141322_207c2603-2da9-48ec-b549-48880660e8c8.sql`
-- `20260423144024_b8b212a0-e56f-4839-a309-5457c842b3ac.sql`
+The blocker is no longer a missing object problem.
 
-The publish worker is generating a self-conflicting apply sequence from that history:
-1. a dependent view is made to reference `dashboard_v_employer_compliance_status`
-2. later in the same publish flow the base view is treated like it must be dropped/replaced
-3. PostgreSQL blocks the drop because the new dependent already exists
+The current blocker is a destructive migration in the history that tries to drop the base compliance view during publish. By the time the publish worker reaches that drop, the dependency graph already treats `dashboard_v_compliance_distribution` as depending on `dashboard_v_employer_compliance_status`, so PostgreSQL rejects the drop.
 
-So the remaining problem is the migration graph itself, not the persisted schema snapshot.
-
-### Implementation
-#### 1) Neutralize the conflicting migration chain
-Replace the contents of these compliance-view repair/bootstrap migrations with a no-op:
-- `20260422102659_207c2603-2da9-48ec-b549-48880660e8c8_bootstrap_dashboard_employer_compliance_status.sql`
-- `20260422102700_e8ed6cdd-3055-4c1c-a249-abd303d4fdc6.sql`
-- `20260422102813_e106fcf1-2f02-40c5-ae7f-5e47a7204efa.sql`
-- `20260423135757_f2d08f70-0604-46cd-9f4c-0d55947bfa5b.sql`
-- `20260423140526_d0dad13a-b076-43b7-a164-4ba459f79b3c.sql`
-- `20260423141322_207c2603-2da9-48ec-b549-48880660e8c8.sql`
-- `20260423144024_b8b212a0-e56f-4839-a309-5457c842b3ac.sql`
+### Fix
+#### 1) Neutralize the breaking destructive migration
+Replace the contents of this file with a no-op:
+- `supabase/migrations/20260423145045_344860a0-36b0-4491-a713-8bf3e8d3b1aa.sql`
 
 Use:
 ```sql
 SELECT 1;
 ```
 
-This removes the broken historical instructions that are causing the publish worker to build an invalid drop/create order.
+This removes the exact drop sequence that is triggering the current `2BP01`.
 
-#### 2) Add one new canonical migration for the 3 views
-Create one new migration that becomes the single source of truth for the compliance dashboard views.
+#### 2) Add one new safe canonical migration
+Create a new migration that aligns all 3 compliance views using only `CREATE OR REPLACE VIEW`.
 
 File:
-- `supabase/migrations/<new_timestamp>_rebuild_dashboard_compliance_views_canonical.sql`
+- `supabase/migrations/<new_timestamp>_align_dashboard_compliance_views_non_destructive.sql`
 
-In that migration:
-1. Drop dependents first
-2. Drop base
-3. Recreate base
-4. Recreate dependents
-
-Use explicit order:
+Use this approach:
 ```sql
-DROP VIEW IF EXISTS public.dashboard_v_compliance_metrics;
-DROP VIEW IF EXISTS public.dashboard_v_compliance_distribution;
-DROP VIEW IF EXISTS public.dashboard_v_employer_compliance_status;
+CREATE OR REPLACE VIEW public.dashboard_v_employer_compliance_status AS ...;
 
-CREATE VIEW public.dashboard_v_employer_compliance_status AS ...;
-CREATE VIEW public.dashboard_v_compliance_distribution AS ...;
-CREATE VIEW public.dashboard_v_compliance_metrics AS ...;
+CREATE OR REPLACE VIEW public.dashboard_v_compliance_distribution AS
+WITH base AS (
+  SELECT bucket FROM public.dashboard_v_employer_compliance_status
+)
+...
+
+CREATE OR REPLACE VIEW public.dashboard_v_compliance_metrics AS
+SELECT
+  ...,
+  (SELECT count(*)::integer
+   FROM public.dashboard_v_employer_compliance_status
+   WHERE bucket = 'Compliant') AS compliant_employers,
+  ...;
 ```
 
-#### 3) Use one final canonical definition set
-Use:
-- Base view logic from `20260422102813...` / `20260423135757...`
-- Dependent view logic from `20260422102700...` / `20260423144024...`
+Important:
+- no `DROP VIEW`
+- no `CASCADE`
+- no table changes
+- no app code changes
 
-Canonical target:
+#### 3) Use the current canonical definitions already proven in Test
+Use the current Test definitions as the source of truth:
+- base view logic matching the existing final definition of `dashboard_v_employer_compliance_status`
+- dependent view logic matching the existing canonical Test definitions that read from the base view
+
+That means:
 - `dashboard_v_employer_compliance_status`
   - active employers from `er_master`
-  - latest compliance status from `ce_employer_compliance_status`
+  - latest status from `ce_employer_compliance_status`
   - violation severity fallback
-  - bucket output only:
+  - outputs only:
     - `Compliant`
     - `Minor Issues`
     - `Under Review`
     - `Non-Compliant`
 - `dashboard_v_compliance_distribution`
-  - must read from `public.dashboard_v_employer_compliance_status`
+  - reads from `public.dashboard_v_employer_compliance_status`
 - `dashboard_v_compliance_metrics`
-  - `compliant_employers` must read from `public.dashboard_v_employer_compliance_status`
+  - `compliant_employers` reads from `public.dashboard_v_employer_compliance_status`
 
-#### 4) Apply the canonical migration in Test
-After the new migration is created:
-- let it rebuild the 3 views in Test
-- confirm the actual Test schema now matches the canonical SQL
-
-#### 5) Manually align Live once using the same canonical SQL
-Because publish is currently blocked, run the same canonical view rebuild SQL directly in the Live SQL runner once.
-
-Important:
-- drop dependents first
-- then drop base
-- then recreate base and dependents
-- no `CASCADE`
-- no table changes
-- no data migration
-
-This follows the project migration standard for persistent schema-conflict publish loops: neutralize the breaking migrations and manually align Live once.
+### Why this should fix publish
+- The current failure is caused by a `DROP VIEW` sequence.
+- After neutralizing `20260423145045...`, there is no remaining migration that needs to drop `dashboard_v_employer_compliance_status` in order to align these 3 views.
+- A new `CREATE OR REPLACE VIEW` migration is non-destructive and preserves the dependency chain while bringing Live to the same view definitions as Test.
+- This removes the exact condition that triggers `2BP01`.
 
 ### Verification
-Run these checks in both Test and Live after the canonical rebuild.
+After implementation, verify all of the following.
 
-#### A. All 3 views exist
-```sql
-SELECT table_name
-FROM information_schema.views
-WHERE table_schema = 'public'
-  AND table_name IN (
-    'dashboard_v_employer_compliance_status',
-    'dashboard_v_compliance_distribution',
-    'dashboard_v_compliance_metrics'
-  )
-ORDER BY table_name;
-```
-
-#### B. Dependency shape is correct
-```sql
-SELECT viewname
-FROM pg_views
-WHERE schemaname = 'public'
-  AND definition ILIKE '%dashboard_v_employer_compliance_status%'
-ORDER BY viewname;
-```
-Expected:
-- `dashboard_v_compliance_distribution`
-- `dashboard_v_compliance_metrics`
-
-#### C. Exact definitions match between Test and Live
+#### A. Test view definitions are canonical
 ```sql
 SELECT viewname, pg_get_viewdef(('public.' || viewname)::regclass, true) AS definition
 FROM pg_views
@@ -151,7 +114,24 @@ WHERE schemaname = 'public'
 ORDER BY viewname;
 ```
 
-#### D. No other dashboard gaps exist
+#### B. Publish again
+
+#### C. Live now has the correct dependency shape
+```sql
+SELECT viewname
+FROM pg_views
+WHERE schemaname = 'public'
+  AND definition ILIKE '%dashboard_v_employer_compliance_status%'
+ORDER BY viewname;
+```
+Expected:
+- `dashboard_v_compliance_distribution`
+- `dashboard_v_compliance_metrics`
+
+#### D. Test and Live definitions match
+Run the same `pg_get_viewdef` query in both environments and confirm parity for the same 3 views.
+
+#### E. No dashboard view gaps exist
 ```sql
 SELECT COUNT(*) AS dashboard_view_count
 FROM information_schema.views
@@ -163,23 +143,13 @@ Expected in both environments:
 14
 ```
 
-#### E. Publish again
-Expected result:
-- no `42P01`
-- no `2BP01`
-- no further blocker from the compliance dashboard view chain
-
 ### Files to change
 | Change | File |
 |---|---|
-| Neutralize old bootstrap/repair migrations | `supabase/migrations/20260422102659_207c2603-2da9-48ec-b549-48880660e8c8_bootstrap_dashboard_employer_compliance_status.sql` |
-| Neutralize old conflicting migration | `supabase/migrations/20260422102700_e8ed6cdd-3055-4c1c-a249-abd303d4fdc6.sql` |
-| Neutralize old conflicting migration | `supabase/migrations/20260422102813_e106fcf1-2f02-40c5-ae7f-5e47a7204efa.sql` |
-| Neutralize old conflicting migration | `supabase/migrations/20260423135757_f2d08f70-0604-46cd-9f4c-0d55947bfa5b.sql` |
-| Neutralize duplicate bootstrap | `supabase/migrations/20260423140526_d0dad13a-b076-43b7-a164-4ba459f79b3c.sql` |
-| Neutralize duplicate bootstrap | `supabase/migrations/20260423141322_207c2603-2da9-48ec-b549-48880660e8c8.sql` |
-| Neutralize late dependent rewrite | `supabase/migrations/20260423144024_b8b212a0-e56f-4839-a309-5457c842b3ac.sql` |
-| Add single canonical rebuild migration | `supabase/migrations/<new_timestamp>_rebuild_dashboard_compliance_views_canonical.sql` |
+| Neutralize breaking destructive migration | `supabase/migrations/20260423145045_344860a0-36b0-4491-a713-8bf3e8d3b1aa.sql` |
+| Add safe canonical alignment migration | `supabase/migrations/<new_timestamp>_align_dashboard_compliance_views_non_destructive.sql` |
 
 ### Expected outcome
-This removes the conflicting historical instructions that are causing the publish worker to generate an invalid drop order, while preserving one final canonical definition for the 3 compliance views. After the one-time Live alignment, there should be no remaining issue in this dependency chain to stop publish.
+After this change, the compliance dashboard migration chain will no longer contain a publish-time drop of `dashboard_v_employer_compliance_status`, and the next publish should be able to align Live without hitting `2BP01`.
+
+If Live still resists alignment after that, the same non-destructive `CREATE OR REPLACE VIEW` SQL can be run once directly against Live, but the primary fix is removing the destructive migration from the publish path.
