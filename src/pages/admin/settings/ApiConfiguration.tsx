@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Settings, Plus, Pencil, Trash2, Eye, EyeOff, Save, AlertTriangle, Check, X, Globe, Key, Link2, LinkIcon } from 'lucide-react';
 import { useIsAdmin } from '@/hooks/useNavigationMenu';
 import { format } from 'date-fns';
+import { DmsQueuePanel } from '@/components/admin/DmsQueuePanel';
 
 // Predefined modules that can be linked to APIs
 const LINKABLE_MODULES = [
