@@ -74,6 +74,23 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
     });
   }, [externalDocFieldKeys, platformOverrides]);
 
+  // Rehydrate supportive selections from persisted uploads (catId -> code).
+  // User in-session selections (userSupportiveSelectionsRef) win over persisted.
+  useEffect(() => {
+    if (Object.keys(supportivePlatformOverrides).length === 0 &&
+        Object.keys(userSupportiveSelectionsRef.current).length === 0) return;
+    setSupportiveSelections(prev => {
+      const next = { ...prev };
+      for (const [catId, code] of Object.entries(supportivePlatformOverrides)) {
+        if (!next[catId]) next[catId] = code;
+      }
+      for (const [catId, code] of Object.entries(userSupportiveSelectionsRef.current)) {
+        next[catId] = code;
+      }
+      return next;
+    });
+  }, [supportivePlatformOverrides]);
+
   // Auto-select from category autoSelectCode
   useEffect(() => {
     verificationCategories.forEach(cat => {
