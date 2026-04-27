@@ -111,49 +111,33 @@ async function buildEmployerDocumentsForConversion(
   applicationReference?: string,
   userCode?: string,
 ): Promise<object[]> {
-  // Start with the documents from the external application payload
   const appDocs = (applicationData.documents || []).map(mapDocToRpcFormat);
 
-  // If conversion is triggered from a meeting, fetch documents uploaded during the meeting
-  if (meetingId && applicationReference) {
-    console.log(`[buildEmployerDocumentsForConversion] Fetching meeting docs for meeting=${meetingId}, appRef=${applicationReference}`);
-
-    const { data: meetingDocs, error } = await supabase
-      .from('meeting_uploaded_documents')
-      .select('*')
-      .eq('meeting_id', meetingId)
-      .eq('application_reference', applicationReference)
-      .eq('is_active', true);
-
-    if (error) {
-      console.error('[buildEmployerDocumentsForConversion] Failed to fetch meeting documents:', error);
-      throw new Error(`Failed to fetch meeting documents: ${error.message}. Document transfer aborted.`);
-    }
-
-    const meetingMapped = (meetingDocs || []).map(mapDocToRpcFormat);
-    console.log(`[buildEmployerDocumentsForConversion] Found ${appDocs.length} app doc(s) + ${meetingMapped.length} meeting doc(s)`);
-
-    // Deduplicate: meeting docs take precedence (by document_type)
-    const seen = new Set<string>();
-    const merged: object[] = [];
-
-    for (const doc of meetingMapped) {
-      const key = (doc as any).document_type || (doc as any).doc_code || '';
-      if (key) seen.add(key);
-      merged.push(doc);
-    }
-    for (const doc of appDocs) {
-      const key = (doc as any).document_type || (doc as any).doc_code || '';
-      if (key && seen.has(key)) continue;
-      merged.push(doc);
-    }
-
-    console.log(`[buildEmployerDocumentsForConversion] Total documents for conversion: ${merged.length}`);
-    return merged;
+  if (!applicationReference) {
+    console.log(`[buildEmployerDocumentsForConversion] No application reference — using ${appDocs.length} external doc(s)`);
+    return appDocs;
   }
 
-  console.log(`[buildEmployerDocumentsForConversion] No meeting context — using ${appDocs.length} app doc(s)`);
-  return appDocs;
+  // Single source of truth: server-side resolver merges externals + overrides
+  // and removes any external docs that have been replaced or deleted at the meeting stage.
+  try {
+    const { data, error } = await (supabase.rpc as any)('er_app_docs_resolve', {
+      p_source_application_reference: applicationReference,
+      p_external_docs: applicationData.documents || [],
+    });
+
+    if (error) {
+      console.error('[buildEmployerDocumentsForConversion] Resolver RPC failed, falling back to external-only:', error);
+      return appDocs;
+    }
+
+    const merged = ((data?.merged || []) as any[]).map(mapDocToRpcFormat);
+    console.log(`[buildEmployerDocumentsForConversion] Resolver returned ${merged.length} effective doc(s)`);
+    return merged;
+  } catch (err) {
+    console.error('[buildEmployerDocumentsForConversion] Resolver threw, falling back to external-only:', err);
+    return appDocs;
+  }
 }
 
 // ─── Hook ───────────────────────────────────────────────────────────────────
