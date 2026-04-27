@@ -79,14 +79,30 @@ Deno.serve(async (req) => {
 
   for (const row of rows) {
     try {
+      // ER documents are not yet supported by dms-transfer-single; skip with a clear error
+      if (row.scope !== "ip") {
+        await supabase.rpc("dms_queue_mark_result", {
+          p_queue_id: row.id,
+          p_success: false,
+          p_error: `Scope '${row.scope}' not yet supported by dms-transfer-single`,
+        });
+        results.push({
+          queueId: row.id,
+          documentId: row.document_id,
+          scope: row.scope,
+          success: false,
+          error: "scope not supported",
+        });
+        failed++;
+        continue;
+      }
+
       const { data: invokeResult, error: invokeError } =
         await supabase.functions.invoke("dms-transfer-single", {
           body: {
-            scope: row.scope,
             documentId: row.document_id,
             ssn: row.ssn,
-            regno: row.regno,
-            triggeredBy: "dms-transfer-retry",
+            userCode: "SYSTEM",
           },
         });
 
