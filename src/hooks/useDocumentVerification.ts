@@ -50,6 +50,7 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
 
   // Track user-initiated selections (highest priority)
   const userSelectionsRef = useRef<Record<string, string>>({});
+  const userSupportiveSelectionsRef = useRef<Record<string, string>>({});
   const prevSelectionsRef = useRef<Record<string, string>>({});
 
   // --- Active documents ---
