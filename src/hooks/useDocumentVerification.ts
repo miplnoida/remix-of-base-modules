@@ -293,6 +293,7 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
 
     if (!CODES_REQUIRING_SUPPORTIVE.includes(newCode)) {
       setSupportiveSelections(prev => { const n = { ...prev }; delete n[cat.id]; return n; });
+      delete userSupportiveSelectionsRef.current[cat.id];
     }
 
     if (oldCode && oldCode !== newCode && adapter.deactivateByCategory) {
