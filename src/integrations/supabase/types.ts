@@ -52028,15 +52028,6 @@ export type Database = {
         }
         Returns: Json
       }
-      convert_application_atomic_with_master: {
-        Args: {
-          p_application_reference: string
-          p_ssn: string
-          p_unique_uuid: string
-          p_user_id: string
-        }
-        Returns: number
-      }
       convert_application_to_employer:
         | {
             Args: {
