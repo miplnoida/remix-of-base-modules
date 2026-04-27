@@ -28329,10 +28329,12 @@ export type Database = {
           file_size: number | null
           id: string
           is_active: boolean | null
+          is_deleted: boolean
           metadata: Json | null
           mime_type: string | null
           regno: string
           source_application_reference: string
+          source_document_id: string | null
           storage_url: string
           transferred_at: string | null
           transferred_by: string | null
@@ -28350,10 +28352,12 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_active?: boolean | null
+          is_deleted?: boolean
           metadata?: Json | null
           mime_type?: string | null
           regno: string
           source_application_reference: string
+          source_document_id?: string | null
           storage_url: string
           transferred_at?: string | null
           transferred_by?: string | null
@@ -28371,16 +28375,66 @@ export type Database = {
           file_size?: number | null
           id?: string
           is_active?: boolean | null
+          is_deleted?: boolean
           metadata?: Json | null
           mime_type?: string | null
           regno?: string
           source_application_reference?: string
+          source_document_id?: string | null
           storage_url?: string
           transferred_at?: string | null
           transferred_by?: string | null
           updated_at?: string | null
           uploaded_by?: string | null
           uploaded_by_code?: string | null
+        }
+        Relationships: []
+      }
+      er_audit_log: {
+        Row: {
+          action: string
+          changed_by: string | null
+          changed_by_code: string | null
+          created_at: string
+          field_name: string | null
+          id: string
+          metadata: Json | null
+          new_value: string | null
+          old_value: string | null
+          record_id: string | null
+          regno: string | null
+          source_application_reference: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          changed_by?: string | null
+          changed_by_code?: string | null
+          created_at?: string
+          field_name?: string | null
+          id?: string
+          metadata?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+          record_id?: string | null
+          regno?: string | null
+          source_application_reference?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          changed_by?: string | null
+          changed_by_code?: string | null
+          created_at?: string
+          field_name?: string | null
+          id?: string
+          metadata?: Json | null
+          new_value?: string | null
+          old_value?: string | null
+          record_id?: string | null
+          regno?: string | null
+          source_application_reference?: string | null
+          table_name?: string
         }
         Relationships: []
       }
@@ -35935,6 +35989,7 @@ export type Database = {
           file_path: string | null
           file_size: number | null
           id: string
+          is_deleted: boolean
           is_supportive: boolean | null
           marital_status: string | null
           metadata: Json | null
@@ -35972,6 +36027,7 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          is_deleted?: boolean
           is_supportive?: boolean | null
           marital_status?: string | null
           metadata?: Json | null
@@ -36009,6 +36065,7 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          is_deleted?: boolean
           is_supportive?: boolean | null
           marital_status?: string | null
           metadata?: Json | null
@@ -36524,6 +36581,7 @@ export type Database = {
           is_supportive: boolean | null
           is_temp: boolean | null
           mime_type: string | null
+          ssn: string | null
           supportive_doc_type: string | null
           unique_uuid: string
           uploaded_at: string | null
@@ -36539,6 +36597,7 @@ export type Database = {
           is_supportive?: boolean | null
           is_temp?: boolean | null
           mime_type?: string | null
+          ssn?: string | null
           supportive_doc_type?: string | null
           unique_uuid: string
           uploaded_at?: string | null
@@ -36554,6 +36613,7 @@ export type Database = {
           is_supportive?: boolean | null
           is_temp?: boolean | null
           mime_type?: string | null
+          ssn?: string | null
           supportive_doc_type?: string | null
           unique_uuid?: string
           uploaded_at?: string | null
@@ -51890,6 +51950,15 @@ export type Database = {
         }
         Returns: Json
       }
+      convert_application_atomic_with_master: {
+        Args: {
+          p_application_reference: string
+          p_ssn: string
+          p_unique_uuid: string
+          p_user_id: string
+        }
+        Returns: number
+      }
       convert_application_to_employer:
         | {
             Args: {
@@ -52227,6 +52296,29 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      er_app_doc_delete: {
+        Args: {
+          p_doc_id_or_source_id: string
+          p_source_application_reference: string
+          p_user_code: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      er_app_doc_upsert: {
+        Args: {
+          p_file_meta: Json
+          p_source_application_reference: string
+          p_source_document_id: string
+          p_user_code: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      er_app_docs_resolve: {
+        Args: { p_external_docs?: Json; p_source_application_reference: string }
+        Returns: Json
       }
       evaluate_levy_amounts: {
         Args: {
@@ -53020,6 +53112,38 @@ export type Database = {
           p_term_start_date?: string
         }
         Returns: Json
+      }
+      ip_app_doc_delete: {
+        Args: {
+          p_application_reference: string
+          p_doc_id_or_source_id: string
+          p_user_code: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      ip_app_doc_upsert: {
+        Args: {
+          p_application_reference: string
+          p_file_meta: Json
+          p_source_document_id: string
+          p_user_code: string
+          p_user_id: string
+        }
+        Returns: string
+      }
+      ip_app_docs_resolve: {
+        Args: { p_application_reference: string; p_external_docs?: Json }
+        Returns: Json
+      }
+      ip_mirror_app_docs_to_master: {
+        Args: {
+          p_application_reference: string
+          p_ssn: string
+          p_unique_uuid: string
+          p_user_id: string
+        }
+        Returns: number
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_c3_ready_for_acceptance: {

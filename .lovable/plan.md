@@ -1,183 +1,189 @@
+## Goal
 
-Fix the publish blocker by removing the broken mid-chain compliance view migrations that fail before the final safe migration can run.
+Refactor and standardize the document lifecycle for both **Insured Person (IP)** and **Employer (ER)** application flows so that:
 
-### What is confirmed now
-- Both environments currently have only `11` dashboard views.
-- Both environments are missing all 3 compliance views:
-  - `dashboard_v_employer_compliance_status`
-  - `dashboard_v_compliance_distribution`
-  - `dashboard_v_compliance_metrics`
-- The current publish failure is still caused by a migration-order problem, not by frontend code.
-- The repo still contains these broken migrations:
-  - `supabase/migrations/20260423135757_f2d08f70-0604-46cd-9f4c-0d55947bfa5b.sql`
-    - destructive `DROP VIEW ... CASCADE`
-  - `supabase/migrations/20260423144024_b8b212a0-e56f-4839-a309-5457c842b3ac.sql`
-    - updates dependent views only and assumes the base view already exists
-  - `supabase/migrations/20260423145045_344860a0-36b0-4491-a713-8bf3e8d3b1aa.sql`
-    - destructive `DROP VIEW`
-- The recently added file
-  - `supabase/migrations/20260423153921_12a5e532-b595-475c-be6d-ca5975dc4e50.sql`
-  is not fixing publish because the failure happens earlier in the chain.
+1. External API documents are read-only at the online-application stage (no premature persistence).
+2. Meeting-stage edits (upload / replace / delete) are persisted to dedicated override tables (`ip_application_documents`, `er_application_documents`) backed by Supabase Storage.
+3. Conversion to registration is **fully transactional** and migrates effective documents into master tables (`ip_documents`, `er_documents`) with binaries moved into the DMS.
+4. All write/read paths go through Supabase endpoints (RPCs + edge functions) — no client-side direct DB manipulation outside thin hooks.
+5. SSN finalization (status `V`) cascades the temporary SSN → final SSN across `ip_documents`, mirroring `ip_depend`.
 
-### Root cause
-The migration chain still contains two invalid behaviors:
+## Current state (verified)
 
-1. Destructive rebuild steps
-   - They attempt to drop `dashboard_v_employer_compliance_status`.
-   - When dependents exist, publish hits `2BP01`.
+- Storage buckets: `ip-documents` (private), `employer-documents` (public). No DMS-specific bucket yet.
+- Override tables exist: `ip_application_documents` (keyed by `ssn`, has DMS transfer columns), `er_application_documents` (keyed by `regno`).
+- Master tables exist: `ip_documents` (keyed by `unique_uuid`), `er_documents` (keyed by `regno`).
+- `meeting_uploaded_documents` is currently used for meeting-stage uploads, keyed by `meeting_id` + `application_reference`.
+- `convert_application_atomic` handles IP conversion but does not write to `ip_documents` (gap).
+- `convert_application_to_employer` writes to both `er_application_documents` and `er_documents` but does not move binaries into a DMS bucket.
+- `change_ip_status` finalizes SSN on `V` transition for `ip_master`/`ip_depend` but does not cascade into `ip_documents`.
+- Two edge functions exist: `dms-transfer`, `dms-transfer-single` (~900 lines each) — currently used asynchronously after IP conversion.
 
-2. Dependent-only step before guaranteed base creation
-   - `20260423144024...` references `dashboard_v_employer_compliance_status` without creating it.
-   - When the base view is absent, publish hits `42P01`.
-
-The newly added non-destructive migration is too late in the sequence to rescue the chain. Publish fails before it gets there.
-
-### Proper fix
-#### 1) Neutralize the broken intermediate migrations
-Replace the full contents of these files with:
-```sql
-SELECT 1;
-```
-
-Files:
-- `supabase/migrations/20260423135757_f2d08f70-0604-46cd-9f4c-0d55947bfa5b.sql`
-- `supabase/migrations/20260423144024_b8b212a0-e56f-4839-a309-5457c842b3ac.sql`
-- `supabase/migrations/20260423145045_344860a0-36b0-4491-a713-8bf3e8d3b1aa.sql`
-
-#### 2) Collapse the duplicate end-state migrations to one canonical file
-Keep only one active full compliance alignment migration.
-
-Recommended:
-- Keep `supabase/migrations/20260423151406_377a538e-90b8-4761-a030-badd4e94ebf5.sql` as the single canonical migration
-- Replace the contents of `supabase/migrations/20260423153921_12a5e532-b595-475c-be6d-ca5975dc4e50.sql` with:
-```sql
-SELECT 1;
-```
-
-Why:
-- `20260423153921...` is redundant with `20260423151406...`
-- keeping one canonical file avoids future ambiguity and diff noise
-- the fix becomes: bootstrap path + one final non-destructive alignment step
-
-#### 3) Preserve the canonical non-destructive view definitions
-The kept migration must define the 3 views in this order:
-1. `dashboard_v_employer_compliance_status`
-2. `dashboard_v_compliance_distribution`
-3. `dashboard_v_compliance_metrics`
-
-Requirements:
-- `CREATE OR REPLACE VIEW` only
-- no `DROP VIEW`
-- no `CASCADE`
-- no table changes
-- no app code changes
-
-### Technical details
-#### Safe path after cleanup
-After neutralization, the effective path becomes:
+## Architecture
 
 ```text
-bootstrap base view if missing
--> create dependent views
--> replace base view with canonical logic
--> final canonical create/replace of all 3 views in dependency order
+┌────────────────┐          ┌─────────────────────────┐         ┌─────────────────────┐
+│ External API   │──read───▶│ Meeting screen          │──edit──▶│ Override tables     │
+│ (initial docs) │          │  (merged view)          │         │  ip/er_application_ │
+└────────────────┘          └─────────────────────────┘         │  documents          │
+                                       │                         └──────────┬──────────┘
+                                       │                                    │
+                                       ▼                                    │
+                            ┌─────────────────────┐                         │
+                            │ Conversion RPC      │◀────────────────────────┘
+                            │ (atomic)            │
+                            └──────────┬──────────┘
+                                       │  writes ip_documents / er_documents
+                                       │  moves binaries: app bucket → DMS bucket
+                                       ▼
+                            ┌─────────────────────┐
+                            │ Registration master │
+                            │ + DMS storage       │
+                            └─────────────────────┘
 ```
 
-That supports first-time creation cleanly when the views do not exist in Live.
+**Single source of truth at each stage:**
 
-#### Source of truth to preserve
-- `dashboard_v_employer_compliance_status`
-  - active employers from `er_master`
-  - latest status from `ce_employer_compliance_status`
-  - violation severity fallback
-  - buckets limited to:
-    - `Compliant`
-    - `Minor Issues`
-    - `Under Review`
-    - `Non-Compliant`
-- `dashboard_v_compliance_distribution`
-  - reads from `public.dashboard_v_employer_compliance_status`
-  - output shape stays `(name, value, color)`
-- `dashboard_v_compliance_metrics`
-  - `compliant_employers` reads from `public.dashboard_v_employer_compliance_status`
-  - output shape stays `(total_employers, compliant_employers, active_violations, pending_audits)`
+| Stage | IP source | ER source |
+|---|---|---|
+| Online list/detail | External API only | External API only |
+| Meeting (review/edit) | External API ⊕ `ip_application_documents` overrides | External API ⊕ `er_application_documents` overrides |
+| Post-conversion | `ip_documents` (DMS bucket) | `er_documents` (DMS bucket) |
+| Post-verify (status V) | `ip_documents` re-keyed to final SSN | `er_documents` (regno is permanent — no cascade needed) |
 
-### Why this should fix publish
-- Right now publish fails before the final safe migration can execute.
-- Removing the destructive and dependent-only broken steps eliminates both failure modes:
-  - `2BP01` from invalid drop order
-  - `42P01` from referencing a missing base view
-- Because both Test and Live currently lack the trio, the corrected chain must support first-time creation from scratch.
-- After cleanup, publish will have one safe route to create the missing views.
+## Plan
 
-### Verification
-#### A. Confirm the broken chain is gone
-Search migrations for:
+### 1. Storage layout
+
+Create two new private buckets representing the DMS:
+- `ip-dms` — finalized IP documents, path: `{ssn}/{unique_uuid}/{doc_id}.{ext}`
+- `er-dms` — finalized employer documents, path: `{regno}/{doc_id}.{ext}`
+
+Keep `ip-documents` and `employer-documents` as **staging** buckets used during meeting-stage uploads, path: `{application_reference}/{uuid}.{ext}`.
+
+### 2. Override tables — minor adjustments
+
+- `ip_application_documents`: add `is_deleted boolean default false`, `source_document_id` already exists (used to mark which external doc was overridden/deleted). Add unique partial index on `(application_reference_number, source_document_id) where is_deleted = true` to enforce one tombstone per external doc.
+- `er_application_documents`: add `source_document_id text` and `is_deleted boolean default false` (same semantics). Existing `is_active` will continue to flag active uploads.
+
+Override semantics:
+- **Upload new:** insert override row, `source_document_id = null`, `is_deleted = false`.
+- **Replace external:** insert override row with `source_document_id = <external doc id>`, `is_deleted = false`. Merge logic hides the external doc.
+- **Delete external:** insert tombstone row (no file), `source_document_id = <external doc id>`, `is_deleted = true`.
+- **Delete own override:** soft-delete by setting `is_deleted = true` and removing storage object.
+
+### 3. Reusable backend services (RPCs)
+
+All write paths go through these RPCs (called via `supabase.rpc()` from hooks) — no direct table writes from the client.
+
+- `ip_app_doc_upsert(p_application_reference, p_source_document_id, p_file_meta jsonb, p_user_code)` — insert/update override.
+- `ip_app_doc_delete(p_application_reference, p_doc_id_or_source_id, p_user_code)` — soft-delete + tombstone.
+- `er_app_doc_upsert(...)` / `er_app_doc_delete(...)` — same semantics for employer.
+- `ip_app_docs_resolve(p_application_reference, p_external_docs jsonb)` returns `setof jsonb` — pure function that takes external docs JSON + reads override table and returns the merged effective set. Used by both meeting UI and conversion.
+- `er_app_docs_resolve(...)` — same for employer.
+
+Authorization is enforced inside each RPC by checking `auth.uid()` against `user_roles` (per the No-RLS rule, role-based checks live in the RPC body).
+
+### 4. Conversion RPC updates
+
+**`convert_application_atomic` (IP)** — extend to:
+1. Accept `p_documents` (already does) — caller passes the **resolved merged set** from `ip_app_docs_resolve`.
+2. For each doc, **insert into `ip_documents`** keyed by the new `unique_uuid` and the temp SSN.
+3. Call `dms-transfer` edge function asynchronously (via `pg_net` or return a job id and let the client invoke it) to copy binaries from staging bucket → `ip-dms` bucket. Update `ip_application_documents.transfer_status` to `Transferred` on success.
+4. The whole DB portion stays atomic; binary copy is tracked via `transfer_status` for retry.
+
+**`convert_application_to_employer` (ER)** — already writes to `er_documents`; extend to:
+1. Accept resolved merged set.
+2. Trigger DMS transfer to `er-dms` bucket.
+3. Mark `er_application_documents.transferred_at` on success.
+
+### 5. SSN finalization cascade (IP only)
+
+Update `change_ip_status` so when transitioning to `V`:
+- Generate the final SSN via `generate_ip_ssn()`.
+- Update `ip_master.ssn`, then cascade to `ip_depend`, **`ip_documents`** (new), and `ip_application_documents` via `ON UPDATE CASCADE` (already in place for `ip_application_documents`). Add the FK on `ip_documents.unique_uuid` instead — since `ip_documents` is keyed by `unique_uuid` (not SSN), no SSN rewrite needed there. **Decision:** add `ssn` column to `ip_documents` and keep it in sync with `ip_master.ssn` via FK + `ON UPDATE CASCADE` so the user’s requirement (“update SSN reference in `ip_documents` from temporary to final”) is met.
+- Move binaries from `{temp_ssn}/...` to `{final_ssn}/...` inside `ip-dms` bucket via an edge function call queued by the RPC.
+
+### 6. DMS edge function consolidation
+
+- Refactor `dms-transfer` and `dms-transfer-single` into one function `dms-transfer` that accepts `{ scope: 'ip' | 'er', application_reference | unique_uuid | regno }`.
+- Delete `dms-transfer-single` after migration.
+- Function responsibilities:
+  - Read `ip_application_documents` / `er_application_documents` rows with `transfer_status = 'Pending'`.
+  - Stream binary from staging bucket → DMS bucket (server-side `storage.from(src).download` then `storage.from(dst).upload`).
+  - Update row status (`Transferred` / `Failed`), capture HTTP status, request id, error snippet.
+  - Idempotent: skip rows already `Transferred`.
+
+### 7. Frontend changes (thin hooks only)
+
+- Replace `meeting_uploaded_documents` writes in `EmployerMeetingDocumentsTab` and `MeetingDocumentVerificationTab` with calls to the new `ip_app_doc_upsert` / `er_app_doc_upsert` RPCs.
+- Replace direct merge logic in `useConvertToIPRegistration.buildDocumentsForConversion` with a single call to `ip_app_docs_resolve(application_reference, external_docs_json)`.
+- Same for `useConvertToEmployerRegistration`.
+- Add a small `useApplicationDocuments(applicationReference, scope)` hook that returns the resolved merged set for the meeting/review UIs, fed by `*_app_docs_resolve`.
+
+### 8. Audit logging
+
+Every write RPC inserts into `ip_audit_log` / a new `er_audit_log` (or existing equivalent) with:
+- `action` ∈ `DOC_UPLOAD | DOC_REPLACE | DOC_DELETE | DOC_MIGRATED | DOC_SSN_CASCADE`
+- `changed_by` = `auth.uid()`
+- `metadata` capturing source_document_id, file_path, transfer status.
+
+### 9. Migration of existing data
+
+One-shot migration:
+1. Move every active row in `meeting_uploaded_documents` whose meeting links to an IP application → `ip_application_documents`, preserving timestamps and storage paths.
+2. Move every active row whose meeting links to an Employer application → `er_application_documents`.
+3. Mark migrated rows in `meeting_uploaded_documents` as `is_active = false` (don’t drop the table yet — keep for rollback for one release cycle).
+
+### 10. Testing
+
+For each scope (IP, ER) and each transition (online → meeting → conversion → verify):
+- Upload new doc → appears in merged view, NOT in master until conversion.
+- Replace external doc → external hidden, override shown.
+- Delete external doc → tombstone hides it.
+- Convert → all effective docs land in master table; binaries in DMS bucket; staging rows marked `Transferred`.
+- IP only: finalize SSN → master rows + `ip_documents` rows + DMS paths all reflect final SSN; no orphans.
+- Failure simulation: kill DMS transfer mid-way → `Failed` status with retry; conversion remains atomic.
+
+## Technical details
+
+### New RPC signatures (summary)
+
 ```sql
-DROP VIEW IF EXISTS public.dashboard_v_employer_compliance_status
-DROP VIEW IF EXISTS public.dashboard_v_compliance_distribution
-DROP VIEW IF EXISTS public.dashboard_v_compliance_metrics
-```
-Expected:
-- no active matches in the compliance repair chain
-
-Also confirm the dependent-only migration no longer references the base view.
-
-#### B. Confirm only one final canonical migration remains active
-Expected:
-- `20260423151406_377a538e-90b8-4761-a030-badd4e94ebf5.sql` remains active
-- `20260423153921_12a5e532-b595-475c-be6d-ca5975dc4e50.sql` is a no-op
-
-#### C. Confirm Test creates the 3 views
-```sql
-SELECT table_name
-FROM information_schema.views
-WHERE table_schema = 'public'
-  AND table_name IN (
-    'dashboard_v_employer_compliance_status',
-    'dashboard_v_compliance_distribution',
-    'dashboard_v_compliance_metrics'
-  )
-ORDER BY table_name;
-```
-Expected:
-- all 3 rows returned
-
-#### D. Publish again
-Expected:
-- no `42P01`
-- no `2BP01`
-
-#### E. Confirm Live now has all 3 views
-Run the same query in Live.
-Expected:
-- all 3 rows returned
-
-#### F. Confirm dashboard view count
-```sql
-SELECT COUNT(*) AS dashboard_view_count
-FROM information_schema.views
-WHERE table_schema = 'public'
-  AND table_name LIKE 'dashboard_v_%';
-```
-Expected after fix:
-```sql
-14
+ip_app_doc_upsert(p_application_reference text, p_source_document_id text, p_file_meta jsonb, p_user_code text) returns uuid
+ip_app_doc_delete(p_application_reference text, p_doc_id_or_source_id text, p_user_code text) returns void
+ip_app_docs_resolve(p_application_reference text, p_external_docs jsonb) returns setof jsonb
+er_app_doc_upsert(p_source_application_reference text, p_source_document_id text, p_file_meta jsonb, p_user_code text) returns uuid
+er_app_doc_delete(...) returns void
+er_app_docs_resolve(...) returns setof jsonb
 ```
 
-### Files to change
-| Change | File |
-|---|---|
-| Neutralize destructive migration | `supabase/migrations/20260423135757_f2d08f70-0604-46cd-9f4c-0d55947bfa5b.sql` |
-| Neutralize dependent-only migration | `supabase/migrations/20260423144024_b8b212a0-e56f-4839-a309-5457c842b3ac.sql` |
-| Neutralize destructive migration | `supabase/migrations/20260423145045_344860a0-36b0-4491-a713-8bf3e8d3b1aa.sql` |
-| Keep as single canonical full alignment migration | `supabase/migrations/20260423151406_377a538e-90b8-4761-a030-badd4e94ebf5.sql` |
-| Neutralize duplicate rescue migration | `supabase/migrations/20260423153921_12a5e532-b595-475c-be6d-ca5975dc4e50.sql` |
+### Schema changes
 
-### Expected outcome
-After this cleanup, the compliance migration history will no longer contain:
-- a destructive drop of the base view
-- a dependent-only step that assumes the base already exists
-- duplicate end-state migrations competing as the final source of truth
+- `ip_application_documents`: `+ is_deleted boolean default false`
+- `er_application_documents`: `+ source_document_id text`, `+ is_deleted boolean default false`
+- `ip_documents`: `+ ssn varchar(6)`, FK to `ip_master(ssn) on update cascade on delete cascade`
+- New buckets: `ip-dms`, `er-dms` (both private)
 
-The next publish should be able to create the missing compliance views on Live and complete successfully.
+### Edge functions
+
+- Consolidate to single `dms-transfer` function (~400 lines after dedup).
+- Remove `dms-transfer-single`.
+
+### Files to be touched
+
+- `supabase/migrations/<new>_doc_lifecycle_refactor.sql` (schema + RPCs + cascade)
+- `supabase/functions/dms-transfer/index.ts` (rewrite)
+- `supabase/functions/dms-transfer-single/` (delete)
+- `src/hooks/useConvertToIPRegistration.ts` (use resolve RPC)
+- `src/hooks/useConvertToEmployerRegistration.ts` (use resolve RPC)
+- `src/hooks/useApplicationDocuments.ts` (new)
+- `src/components/meetings/MeetingDocumentVerificationTab.tsx` (use upsert/delete RPCs)
+- `src/components/meetings/EmployerMeetingDocumentsTab.tsx` (use upsert/delete RPCs)
+- `src/components/meetings/EmployerApplicationEditForm.tsx` (use new hook)
+
+### Out of scope
+
+- Replacing `meeting_uploaded_documents` for non-IP/ER meeting types.
+- Changing the external API contract.
+- UI redesign — only the persistence/data layer changes.

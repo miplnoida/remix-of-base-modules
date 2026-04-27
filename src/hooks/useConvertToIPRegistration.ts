@@ -200,52 +200,46 @@ function mapDocToRpcFormat(doc: any) {
   };
 }
 
+/**
+ * Build the document list to send to convert_application_atomic.
+ *
+ * Single source of truth: call the backend `ip_app_docs_resolve` RPC, which:
+ *   1. Filters out external docs that have been replaced or deleted via overrides.
+ *   2. Adds the active override rows from `ip_application_documents`.
+ *
+ * Falls back to the local external-only list if the resolver fails for any reason
+ * so a transient backend issue does not abort the conversion.
+ */
 async function buildDocumentsForConversion(
   app: ExternalApplicationDetail,
-  meetingId?: string,
+  _meetingId?: string,
   applicationReference?: string,
 ): Promise<object[]> {
-  // Start with the documents from the external application payload
   const appDocs = (app.documents || []).map(mapDocToRpcFormat);
 
-  // If conversion is triggered from a meeting, fetch documents uploaded during the meeting
-  if (meetingId && applicationReference) {
-    console.log(`[buildDocumentsForConversion] Fetching meeting docs for meeting=${meetingId}, appRef=${applicationReference}`);
-    
-    const { data: meetingDocs, error } = await supabase
-      .from('meeting_uploaded_documents')
-      .select('*')
-      .eq('meeting_id', meetingId)
-      .eq('application_reference', applicationReference)
-      .eq('is_active', true);
-
-    if (error) {
-      console.error('[buildDocumentsForConversion] Failed to fetch meeting documents:', error);
-      throw new Error(`Failed to fetch meeting documents: ${error.message}. Document transfer aborted.`);
-    }
-
-    const meetingMapped = (meetingDocs || []).map(mapDocToRpcFormat);
-    console.log(`[buildDocumentsForConversion] Found ${appDocs.length} app doc(s) + ${meetingMapped.length} meeting doc(s)`);
-
-    // Deduplicate by id (meeting docs take precedence)
-    const seen = new Set<string>();
-    const merged: object[] = [];
-
-    for (const doc of meetingMapped) {
-      if ((doc as any).id) seen.add((doc as any).id);
-      merged.push(doc);
-    }
-    for (const doc of appDocs) {
-      if ((doc as any).id && seen.has((doc as any).id)) continue;
-      merged.push(doc);
-    }
-
-    console.log(`[buildDocumentsForConversion] Total documents for conversion: ${merged.length}`);
-    return merged;
+  if (!applicationReference) {
+    console.log(`[buildDocumentsForConversion] No application reference — using ${appDocs.length} external doc(s)`);
+    return appDocs;
   }
 
-  console.log(`[buildDocumentsForConversion] No meeting context — using ${appDocs.length} app doc(s)`);
-  return appDocs;
+  try {
+    const { data, error } = await (supabase.rpc as any)('ip_app_docs_resolve', {
+      p_application_reference: applicationReference,
+      p_external_docs: app.documents || [],
+    });
+
+    if (error) {
+      console.error('[buildDocumentsForConversion] Resolver RPC failed, falling back to external-only:', error);
+      return appDocs;
+    }
+
+    const merged = ((data?.merged || []) as any[]).map(mapDocToRpcFormat);
+    console.log(`[buildDocumentsForConversion] Resolver returned ${merged.length} effective doc(s)`);
+    return merged;
+  } catch (err) {
+    console.error('[buildDocumentsForConversion] Resolver threw, falling back to external-only:', err);
+    return appDocs;
+  }
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
