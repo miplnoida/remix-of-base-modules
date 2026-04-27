@@ -42,6 +42,7 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
   const [currentStep, setCurrentStep] = useState<'selection' | 'upload'>('selection');
   const [pendingReupload, setPendingReupload] = useState<Record<string, string>>({});
   const [platformOverrides, setPlatformOverrides] = useState<Record<string, string>>({});
+  const [supportivePlatformOverrides, setSupportivePlatformOverrides] = useState<Record<string, string>>({});
 
   // Preview state
   const [previewOpen, setPreviewOpen] = useState(false);
