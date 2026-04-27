@@ -27962,6 +27962,51 @@ export type Database = {
           },
         ]
       }
+      dms_transfer_queue: {
+        Row: {
+          attempts: number
+          created_at: string
+          document_id: string
+          id: string
+          last_error: string | null
+          max_attempts: number
+          next_attempt_at: string
+          regno: string | null
+          scope: string
+          ssn: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          document_id: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          regno?: string | null
+          scope: string
+          ssn?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          document_id?: string
+          id?: string
+          last_error?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          regno?: string | null
+          scope?: string
+          ssn?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       document_purpose_rules: {
         Row: {
           ai_prompt_hint: string | null
@@ -28341,6 +28386,7 @@ export type Database = {
           updated_at: string | null
           uploaded_by: string | null
           uploaded_by_code: string | null
+          version: number
         }
         Insert: {
           created_at?: string | null
@@ -28364,6 +28410,7 @@ export type Database = {
           updated_at?: string | null
           uploaded_by?: string | null
           uploaded_by_code?: string | null
+          version?: number
         }
         Update: {
           created_at?: string | null
@@ -28387,6 +28434,7 @@ export type Database = {
           updated_at?: string | null
           uploaded_by?: string | null
           uploaded_by_code?: string | null
+          version?: number
         }
         Relationships: []
       }
@@ -35989,6 +36037,7 @@ export type Database = {
           file_path: string | null
           file_size: number | null
           id: string
+          is_active: boolean
           is_deleted: boolean
           is_supportive: boolean | null
           marital_status: string | null
@@ -36013,6 +36062,7 @@ export type Database = {
           url: string | null
           verification_category: string | null
           verification_type: string | null
+          version: number
         }
         Insert: {
           application_reference_number?: string | null
@@ -36027,6 +36077,7 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          is_active?: boolean
           is_deleted?: boolean
           is_supportive?: boolean | null
           marital_status?: string | null
@@ -36051,6 +36102,7 @@ export type Database = {
           url?: string | null
           verification_category?: string | null
           verification_type?: string | null
+          version?: number
         }
         Update: {
           application_reference_number?: string | null
@@ -36065,6 +36117,7 @@ export type Database = {
           file_path?: string | null
           file_size?: number | null
           id?: string
+          is_active?: boolean
           is_deleted?: boolean
           is_supportive?: boolean | null
           marital_status?: string | null
@@ -36089,6 +36142,7 @@ export type Database = {
           url?: string | null
           verification_category?: string | null
           verification_type?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -36573,48 +36627,72 @@ export type Database = {
       }
       ip_documents: {
         Row: {
+          application_reference_number: string | null
+          dms_document_id: string | null
+          dms_uploaded_at: string | null
+          doc_code: string | null
           document_name: string
           document_type: string
           file_path: string
           file_size: number | null
           id: string
+          is_active: boolean
           is_supportive: boolean | null
           is_temp: boolean | null
           mime_type: string | null
+          source_document_id: string | null
           ssn: string | null
           supportive_doc_type: string | null
+          transfer_error: string | null
+          transfer_status: string
           unique_uuid: string
           uploaded_at: string | null
           uploaded_by: string | null
           verification_category: string | null
         }
         Insert: {
+          application_reference_number?: string | null
+          dms_document_id?: string | null
+          dms_uploaded_at?: string | null
+          doc_code?: string | null
           document_name: string
           document_type: string
           file_path: string
           file_size?: number | null
           id?: string
+          is_active?: boolean
           is_supportive?: boolean | null
           is_temp?: boolean | null
           mime_type?: string | null
+          source_document_id?: string | null
           ssn?: string | null
           supportive_doc_type?: string | null
+          transfer_error?: string | null
+          transfer_status?: string
           unique_uuid: string
           uploaded_at?: string | null
           uploaded_by?: string | null
           verification_category?: string | null
         }
         Update: {
+          application_reference_number?: string | null
+          dms_document_id?: string | null
+          dms_uploaded_at?: string | null
+          doc_code?: string | null
           document_name?: string
           document_type?: string
           file_path?: string
           file_size?: number | null
           id?: string
+          is_active?: boolean
           is_supportive?: boolean | null
           is_temp?: boolean | null
           mime_type?: string | null
+          source_document_id?: string | null
           ssn?: string | null
           supportive_doc_type?: string | null
+          transfer_error?: string | null
+          transfer_status?: string
           unique_uuid?: string
           uploaded_at?: string | null
           uploaded_by?: string | null
