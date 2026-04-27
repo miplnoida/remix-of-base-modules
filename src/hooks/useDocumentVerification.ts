@@ -240,9 +240,27 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
       }
       setPlatformOverrides(overrides);
 
+      // Derive supportive platform overrides (catId -> code) from persisted supportive uploads
+      const supOverrides: Record<string, string> = {};
+      for (const doc of docs) {
+        if (
+          doc.is_active &&
+          doc.is_supportive &&
+          doc.verification_category &&
+          (doc.supportive_doc_type || doc.doc_code) &&
+          doc.source === 'platform'
+        ) {
+          supOverrides[doc.verification_category] = (doc.supportive_doc_type || doc.doc_code) as string;
+        }
+      }
+      setSupportivePlatformOverrides(supOverrides);
+
       // Clear user selections that are now persisted
       for (const [fieldKey, code] of Object.entries(userSelectionsRef.current)) {
         if (overrides[fieldKey] === code) delete userSelectionsRef.current[fieldKey];
+      }
+      for (const [catId, code] of Object.entries(userSupportiveSelectionsRef.current)) {
+        if (supOverrides[catId] === code) delete userSupportiveSelectionsRef.current[catId];
       }
 
       // Clear pending re-upload flags
