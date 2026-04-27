@@ -1,189 +1,98 @@
 ## Goal
 
-Refactor and standardize the document lifecycle for both **Insured Person (IP)** and **Employer (ER)** application flows so that:
+Make the document lifecycle for the **online IP application → IP registration** flow truly consistent and database-driven, fix the "replaced external doc not showing in Documents tab" bug, ensure conversion populates **`ip_documents`** (not just `ip_application_documents`), and reliably trigger the **`dms_service`** transfer from finalized state. All operations go through Supabase RPCs/Edge Functions; no direct client writes.
 
-1. External API documents are read-only at the online-application stage (no premature persistence).
-2. Meeting-stage edits (upload / replace / delete) are persisted to dedicated override tables (`ip_application_documents`, `er_application_documents`) backed by Supabase Storage.
-3. Conversion to registration is **fully transactional** and migrates effective documents into master tables (`ip_documents`, `er_documents`) with binaries moved into the DMS.
-4. All write/read paths go through Supabase endpoints (RPCs + edge functions) — no client-side direct DB manipulation outside thin hooks.
-5. SSN finalization (status `V`) cascades the temporary SSN → final SSN across `ip_documents`, mirroring `ip_depend`.
+## Problems found in current implementation
 
-## Current state (verified)
+1. **Two competing override stores.** Replacement uploads in the meeting screen go to `meeting_uploaded_documents` (via `MeetingDocumentVerificationTab`), but the Phase-1 resolver `ip_app_docs_resolve` only reads from `ip_application_documents`. Result: a replaced document does not appear in the Documents tab and is not picked up at conversion.
+2. **Documents tab uses external API list directly** and only joins `ip_application_documents` by SSN (which doesn't exist before conversion). It must be driven by `ip_app_docs_resolve(applicationReference, externalDocs)` so replacements are visible immediately.
+3. **`ip_documents` (master) is not populated at conversion.** `convert_application_atomic` writes only to `ip_application_documents`. The mirror trigger `trg_ip_master_post_insert_mirror_docs` fires on `ip_master` INSERT — which happens *before* the documents are inserted in the same RPC — so it copies zero rows.
+4. **DMS trigger** (`dms_service` via the `dms-transfer` edge function) currently runs on workflow approval and reads `ip_application_documents`. After fix #3 it must read from `ip_documents` (the canonical post-registration table) and use the `dms_service` row in `api_settings` as the single source of truth (already the case but needs to survive the table switch). Failures must log to `external_api_execution_logs` and `er_audit_log` without rolling back the registration.
 
-- Storage buckets: `ip-documents` (private), `employer-documents` (public). No DMS-specific bucket yet.
-- Override tables exist: `ip_application_documents` (keyed by `ssn`, has DMS transfer columns), `er_application_documents` (keyed by `regno`).
-- Master tables exist: `ip_documents` (keyed by `unique_uuid`), `er_documents` (keyed by `regno`).
-- `meeting_uploaded_documents` is currently used for meeting-stage uploads, keyed by `meeting_id` + `application_reference`.
-- `convert_application_atomic` handles IP conversion but does not write to `ip_documents` (gap).
-- `convert_application_to_employer` writes to both `er_application_documents` and `er_documents` but does not move binaries into a DMS bucket.
-- `change_ip_status` finalizes SSN on `V` transition for `ip_master`/`ip_depend` but does not cascade into `ip_documents`.
-- Two edge functions exist: `dms-transfer`, `dms-transfer-single` (~900 lines each) — currently used asynchronously after IP conversion.
+## Changes
 
-## Architecture
+### 1. Unify replacement storage (DB)
 
-```text
-┌────────────────┐          ┌─────────────────────────┐         ┌─────────────────────┐
-│ External API   │──read───▶│ Meeting screen          │──edit──▶│ Override tables     │
-│ (initial docs) │          │  (merged view)          │         │  ip/er_application_ │
-└────────────────┘          └─────────────────────────┘         │  documents          │
-                                       │                         └──────────┬──────────┘
-                                       │                                    │
-                                       ▼                                    │
-                            ┌─────────────────────┐                         │
-                            │ Conversion RPC      │◀────────────────────────┘
-                            │ (atomic)            │
-                            └──────────┬──────────┘
-                                       │  writes ip_documents / er_documents
-                                       │  moves binaries: app bucket → DMS bucket
-                                       ▼
-                            ┌─────────────────────┐
-                            │ Registration master │
-                            │ + DMS storage       │
-                            └─────────────────────┘
-```
+- **Stop writing to `meeting_uploaded_documents`** for IP replacements. Refactor `MeetingDocumentVerificationTab` so its adapter calls the existing RPCs:
+  - Upload binary to the `ip-documents` bucket under `app/<applicationReference>/<categoryId>_<ts>.<ext>`.
+  - `insertRecord` → `ip_app_doc_upsert(p_application_reference, p_source_document_id, p_file_meta, p_user_id, p_user_code)` — pass `source_document_id` when replacing an external API doc.
+  - `deactivateByCategory` / `deleteDocument` → `ip_app_doc_delete(...)`.
+  - `fetchDocuments` → `ip_app_docs_resolve(applicationReference, externalDocs)` and map the `merged` array into `UnifiedDocument[]` (source `external` vs `override`).
+- Keep `meeting_uploaded_documents` only for read-back of legacy rows; add a one-time backfill RPC `ip_backfill_meeting_docs_to_overrides(p_application_reference)` that copies any active legacy rows for that reference into `ip_application_documents` before the resolver runs (idempotent on `(application_reference_number, source_document_id, file_path)`).
+- Mirror the same change for the Employer flow (`EmployerMeetingDocumentsTab`) using the ER RPCs already created in Phase 1.
 
-**Single source of truth at each stage:**
+### 2. Drive the Documents tab from the resolver (UI)
 
-| Stage | IP source | ER source |
-|---|---|---|
-| Online list/detail | External API only | External API only |
-| Meeting (review/edit) | External API ⊕ `ip_application_documents` overrides | External API ⊕ `er_application_documents` overrides |
-| Post-conversion | `ip_documents` (DMS bucket) | `er_documents` (DMS bucket) |
-| Post-verify (status V) | `ip_documents` re-keyed to final SSN | `er_documents` (regno is permanent — no cascade needed) |
+- Refactor `ApplicationDocumentsTab` to use the new hook `useApplicationDocuments({ scope: 'ip', applicationReference, externalDocs })`. Render `merged` only — no separate join on `ip_application_documents` by SSN.
+- Each row shows a `Source` badge (`External` / `Replaced` / `Uploaded`). Replaced externals are shown with a strike-through link to the original and the new file inline.
+- After any upload/replace/delete, invalidate `['app-documents','ip',applicationReference]` so the tab refreshes immediately (no stale API cache).
+- Apply the same change to the Review step and Admin Application Detail views so all three screens read from one source.
 
-## Plan
+### 3. Fix `ip_documents` population at conversion (DB, transactional)
 
-### 1. Storage layout
+- Drop the after-INSERT trigger `trg_ip_master_post_insert_mirror_docs` (it fires before docs exist in the same RPC).
+- Modify `convert_application_atomic` so that **after** it has inserted the document overrides into `ip_application_documents`, it inlines the mirror logic:
+  - `INSERT INTO ip_documents (unique_uuid, ssn, document_type, document_name, doc_code, file_path, file_size, mime_type, uploaded_at, uploaded_by, verification_category, supportive_doc_type, is_supportive, source_document_id, application_reference_number)` selecting from `ip_application_documents` where `application_reference_number = p_application_ref_number AND is_deleted = false AND COALESCE(file_path,url,'') <> ''`.
+  - Add the missing columns (`doc_code`, `source_document_id`, `application_reference_number`, `is_active`) to `ip_documents` if not present (additive migration, no destructive change). Default `is_active = true`.
+  - Return `documents_added` in the RPC result so the client can verify and surface failure.
+- Wrap the mirror in the same `BEGIN…EXCEPTION` block so any failure rolls back the entire conversion.
+- Keep `ip_application_documents` as the staging/audit table (do not delete its rows after mirror); link via `source_document_id` for traceability.
+- Keep the `ip_master_ssn_cascade` trigger (still useful when SSN changes after verification).
 
-Create two new private buckets representing the DMS:
-- `ip-dms` — finalized IP documents, path: `{ssn}/{unique_uuid}/{doc_id}.{ext}`
-- `er-dms` — finalized employer documents, path: `{regno}/{doc_id}.{ext}`
+### 4. Ensure latest-version transfer at conversion (DB)
 
-Keep `ip-documents` and `employer-documents` as **staging** buckets used during meeting-stage uploads, path: `{application_reference}/{uuid}.{ext}`.
+- The resolver already returns the **effective** doc set. The conversion hook now passes that set to `convert_application_atomic`, which will (a) insert each effective doc into `ip_application_documents` if not already there, then (b) mirror to `ip_documents` in the same transaction. This guarantees the replacement (not the original API URL) lands in `ip_documents`.
+- Add a `version` column on `ip_application_documents` plus a unique index `(application_reference_number, source_document_id, version)`; auto-increment on each upsert when `source_document_id` matches an existing active row, and set `is_active = false` on the previous row (history preserved, only latest active visible to the resolver — already filters on `is_deleted = false`; extend filter to `AND is_active = true`).
 
-### 2. Override tables — minor adjustments
+### 5. DMS upload via `dms_service` (Edge Functions)
 
-- `ip_application_documents`: add `is_deleted boolean default false`, `source_document_id` already exists (used to mark which external doc was overridden/deleted). Add unique partial index on `(application_reference_number, source_document_id) where is_deleted = true` to enforce one tombstone per external doc.
-- `er_application_documents`: add `source_document_id text` and `is_deleted boolean default false` (same semantics). Existing `is_active` will continue to flag active uploads.
+- Repoint `dms-transfer` and `dms-transfer-single` to read from `ip_documents` instead of `ip_application_documents` once the IP is in registration status (V or A). Source of truth for the URL/path remains `ip-documents` storage; for documents already moved to `ip-dms` skip.
+- After successful upload to DMS, write back `dms_document_id`, `dms_uploaded_at`, `transfer_status='Transferred'` on the matching `ip_documents` row, and copy the file from `ip-documents` to the private `ip-dms` bucket so the original staging bucket can be cleaned up later.
+- On failure: insert into `external_api_execution_logs` and `er_audit_log`, mark the row `transfer_status='Failed'` with `transfer_error`, and enqueue retry (a new lightweight `dms_transfer_queue` table consumed by a scheduled cron). The registration transaction is **not** affected.
+- Trigger points (unchanged contract):
+  - Workflow approval (`useWorkflowActions.ts`) — invokes `dms-transfer` for the SSN.
+  - Manual button in `DocumentVerificationTab.tsx` — invokes `dms-transfer-single` for one document id.
+  - New: also invoke `dms-transfer` automatically (fire-and-forget) at the end of `convert_application_atomic` via an `AFTER INSERT` trigger on `ip_documents` that only enqueues a row in `dms_transfer_queue` (no HTTP from the DB).
 
-Override semantics:
-- **Upload new:** insert override row, `source_document_id = null`, `is_deleted = false`.
-- **Replace external:** insert override row with `source_document_id = <external doc id>`, `is_deleted = false`. Merge logic hides the external doc.
-- **Delete external:** insert tombstone row (no file), `source_document_id = <external doc id>`, `is_deleted = true`.
-- **Delete own override:** soft-delete by setting `is_deleted = true` and removing storage object.
+### 6. Audit & visibility
 
-### 3. Reusable backend services (RPCs)
+- Every RPC (`ip_app_doc_upsert`, `ip_app_doc_delete`, `convert_application_atomic` mirror step, `dms-transfer*`) writes to `er_audit_log` with `entity='ip_document'`, `action`, `before/after`, `user_code`.
+- Admin "API Configuration → dms_service" detail page already shows `external_api_execution_logs`; surface counts of `Failed` transfers and a one-click retry that calls `dms-transfer-single`.
 
-All write paths go through these RPCs (called via `supabase.rpc()` from hooks) — no direct table writes from the client.
+## Migrations (additive only — no destructive changes to Live data)
 
-- `ip_app_doc_upsert(p_application_reference, p_source_document_id, p_file_meta jsonb, p_user_code)` — insert/update override.
-- `ip_app_doc_delete(p_application_reference, p_doc_id_or_source_id, p_user_code)` — soft-delete + tombstone.
-- `er_app_doc_upsert(...)` / `er_app_doc_delete(...)` — same semantics for employer.
-- `ip_app_docs_resolve(p_application_reference, p_external_docs jsonb)` returns `setof jsonb` — pure function that takes external docs JSON + reads override table and returns the merged effective set. Used by both meeting UI and conversion.
-- `er_app_docs_resolve(...)` — same for employer.
+1. `add_columns_ip_documents.sql` — add `doc_code`, `source_document_id`, `application_reference_number`, `is_active`, `transfer_status`, `transfer_error`, `dms_document_id`, `dms_uploaded_at` if missing.
+2. `add_version_ip_application_documents.sql` — add `version int default 1`, `is_active bool default true`, partial unique index on `(application_reference_number, source_document_id) where is_active`.
+3. `replace_convert_application_atomic.sql` — append the in-transaction mirror block; drop `trg_ip_master_post_insert_mirror_docs`.
+4. `dms_transfer_queue.sql` — new table + AFTER INSERT trigger on `ip_documents`.
+5. `update_ip_app_docs_resolve.sql` — filter on `is_active = true`.
 
-Authorization is enforced inside each RPC by checking `auth.uid()` against `user_roles` (per the No-RLS rule, role-based checks live in the RPC body).
+(No destructive `DROP COLUMN`/`DROP TABLE` on Live; legacy `meeting_uploaded_documents` rows are migrated by the backfill RPC, not deleted.)
 
-### 4. Conversion RPC updates
+## Edge Function changes
 
-**`convert_application_atomic` (IP)** — extend to:
-1. Accept `p_documents` (already does) — caller passes the **resolved merged set** from `ip_app_docs_resolve`.
-2. For each doc, **insert into `ip_documents`** keyed by the new `unique_uuid` and the temp SSN.
-3. Call `dms-transfer` edge function asynchronously (via `pg_net` or return a job id and let the client invoke it) to copy binaries from staging bucket → `ip-dms` bucket. Update `ip_application_documents.transfer_status` to `Transferred` on success.
-4. The whole DB portion stays atomic; binary copy is tracked via `transfer_status` for retry.
+- `dms-transfer/index.ts` and `dms-transfer-single/index.ts`: switch source query from `ip_application_documents` to `ip_documents`; add post-success copy from `ip-documents` to `ip-dms`; on failure update `dms_transfer_queue` with retry metadata.
+- New cron edge function `dms-transfer-retry` (every 5 min) that drains `dms_transfer_queue` with backoff (max 5 attempts).
 
-**`convert_application_to_employer` (ER)** — already writes to `er_documents`; extend to:
-1. Accept resolved merged set.
-2. Trigger DMS transfer to `er-dms` bucket.
-3. Mark `er_application_documents.transferred_at` on success.
+## Frontend changes
 
-### 5. SSN finalization cascade (IP only)
+- `MeetingDocumentVerificationTab.tsx` and `EmployerMeetingDocumentsTab.tsx`: swap adapter to use `useApplicationDocuments` RPCs; remove direct writes to `meeting_uploaded_documents`.
+- `ApplicationDocumentsTab.tsx`: drop SSN-based query; consume `useApplicationDocuments({ scope:'ip' })`; render Source/Status badges; refresh on mutation.
+- `useConvertToIPRegistration.ts`: no behavioral change required (already passes resolved docs); just assert `result.documents_added > 0` when `merged.length > 0` and surface a warning if not.
+- `useConvertToEmployerRegistration.ts`: mirror the same assertion using ER RPCs.
+- IP registration `DocumentVerificationTab.tsx`: read from `ip_documents` (already does post-registration); no functional change beyond column rename support.
 
-Update `change_ip_status` so when transitioning to `V`:
-- Generate the final SSN via `generate_ip_ssn()`.
-- Update `ip_master.ssn`, then cascade to `ip_depend`, **`ip_documents`** (new), and `ip_application_documents` via `ON UPDATE CASCADE` (already in place for `ip_application_documents`). Add the FK on `ip_documents.unique_uuid` instead — since `ip_documents` is keyed by `unique_uuid` (not SSN), no SSN rewrite needed there. **Decision:** add `ssn` column to `ip_documents` and keep it in sync with `ip_master.ssn` via FK + `ON UPDATE CASCADE` so the user’s requirement (“update SSN reference in `ip_documents` from temporary to final”) is met.
-- Move binaries from `{temp_ssn}/...` to `{final_ssn}/...` inside `ip-dms` bucket via an edge function call queued by the RPC.
+## QA scenarios (to verify after implementation)
 
-### 6. DMS edge function consolidation
+1. Replace a `birth_status` external doc in the meeting screen → row appears immediately in Documents tab with `Replaced` badge; original API row is hidden.
+2. Delete a previously uploaded override → resolver hides it; original external doc reappears.
+3. Convert application → `ip_documents` count == effective merged count; `dms_transfer_queue` has one row per doc.
+4. Run `dms-transfer` → docs land in DMS, `transfer_status='Transferred'`, files copied to `ip-dms`, queue row deleted.
+5. Force DMS API down → registration still succeeds; queue rows marked `Failed` with retry; admin sees them under `api-configuration → dms_service`.
+6. SSN updated post-verification → `ip_documents.ssn` cascades via existing trigger; DMS `dms_document_id` retained.
+7. Employer flow: same six checks against ER RPCs and ER audit/queue.
 
-- Refactor `dms-transfer` and `dms-transfer-single` into one function `dms-transfer` that accepts `{ scope: 'ip' | 'er', application_reference | unique_uuid | regno }`.
-- Delete `dms-transfer-single` after migration.
-- Function responsibilities:
-  - Read `ip_application_documents` / `er_application_documents` rows with `transfer_status = 'Pending'`.
-  - Stream binary from staging bucket → DMS bucket (server-side `storage.from(src).download` then `storage.from(dst).upload`).
-  - Update row status (`Transferred` / `Failed`), capture HTTP status, request id, error snippet.
-  - Idempotent: skip rows already `Transferred`.
+## Out of scope
 
-### 7. Frontend changes (thin hooks only)
-
-- Replace `meeting_uploaded_documents` writes in `EmployerMeetingDocumentsTab` and `MeetingDocumentVerificationTab` with calls to the new `ip_app_doc_upsert` / `er_app_doc_upsert` RPCs.
-- Replace direct merge logic in `useConvertToIPRegistration.buildDocumentsForConversion` with a single call to `ip_app_docs_resolve(application_reference, external_docs_json)`.
-- Same for `useConvertToEmployerRegistration`.
-- Add a small `useApplicationDocuments(applicationReference, scope)` hook that returns the resolved merged set for the meeting/review UIs, fed by `*_app_docs_resolve`.
-
-### 8. Audit logging
-
-Every write RPC inserts into `ip_audit_log` / a new `er_audit_log` (or existing equivalent) with:
-- `action` ∈ `DOC_UPLOAD | DOC_REPLACE | DOC_DELETE | DOC_MIGRATED | DOC_SSN_CASCADE`
-- `changed_by` = `auth.uid()`
-- `metadata` capturing source_document_id, file_path, transfer status.
-
-### 9. Migration of existing data
-
-One-shot migration:
-1. Move every active row in `meeting_uploaded_documents` whose meeting links to an IP application → `ip_application_documents`, preserving timestamps and storage paths.
-2. Move every active row whose meeting links to an Employer application → `er_application_documents`.
-3. Mark migrated rows in `meeting_uploaded_documents` as `is_active = false` (don’t drop the table yet — keep for rollback for one release cycle).
-
-### 10. Testing
-
-For each scope (IP, ER) and each transition (online → meeting → conversion → verify):
-- Upload new doc → appears in merged view, NOT in master until conversion.
-- Replace external doc → external hidden, override shown.
-- Delete external doc → tombstone hides it.
-- Convert → all effective docs land in master table; binaries in DMS bucket; staging rows marked `Transferred`.
-- IP only: finalize SSN → master rows + `ip_documents` rows + DMS paths all reflect final SSN; no orphans.
-- Failure simulation: kill DMS transfer mid-way → `Failed` status with retry; conversion remains atomic.
-
-## Technical details
-
-### New RPC signatures (summary)
-
-```sql
-ip_app_doc_upsert(p_application_reference text, p_source_document_id text, p_file_meta jsonb, p_user_code text) returns uuid
-ip_app_doc_delete(p_application_reference text, p_doc_id_or_source_id text, p_user_code text) returns void
-ip_app_docs_resolve(p_application_reference text, p_external_docs jsonb) returns setof jsonb
-er_app_doc_upsert(p_source_application_reference text, p_source_document_id text, p_file_meta jsonb, p_user_code text) returns uuid
-er_app_doc_delete(...) returns void
-er_app_docs_resolve(...) returns setof jsonb
-```
-
-### Schema changes
-
-- `ip_application_documents`: `+ is_deleted boolean default false`
-- `er_application_documents`: `+ source_document_id text`, `+ is_deleted boolean default false`
-- `ip_documents`: `+ ssn varchar(6)`, FK to `ip_master(ssn) on update cascade on delete cascade`
-- New buckets: `ip-dms`, `er-dms` (both private)
-
-### Edge functions
-
-- Consolidate to single `dms-transfer` function (~400 lines after dedup).
-- Remove `dms-transfer-single`.
-
-### Files to be touched
-
-- `supabase/migrations/<new>_doc_lifecycle_refactor.sql` (schema + RPCs + cascade)
-- `supabase/functions/dms-transfer/index.ts` (rewrite)
-- `supabase/functions/dms-transfer-single/` (delete)
-- `src/hooks/useConvertToIPRegistration.ts` (use resolve RPC)
-- `src/hooks/useConvertToEmployerRegistration.ts` (use resolve RPC)
-- `src/hooks/useApplicationDocuments.ts` (new)
-- `src/components/meetings/MeetingDocumentVerificationTab.tsx` (use upsert/delete RPCs)
-- `src/components/meetings/EmployerMeetingDocumentsTab.tsx` (use upsert/delete RPCs)
-- `src/components/meetings/EmployerApplicationEditForm.tsx` (use new hook)
-
-### Out of scope
-
-- Replacing `meeting_uploaded_documents` for non-IP/ER meeting types.
-- Changing the external API contract.
-- UI redesign — only the persistence/data layer changes.
+- Re-architecting `meeting_uploaded_documents` away entirely (kept for legacy read until backfill is verified in Live).
+- UI for the `dms_transfer_queue` retry dashboard beyond a row count + manual retry button on the existing `dms_service` admin page.
