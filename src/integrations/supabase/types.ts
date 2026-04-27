@@ -28515,7 +28515,10 @@ export type Database = {
       }
       er_documents: {
         Row: {
+          application_reference_number: string | null
           created_at: string
+          dms_document_id: string | null
+          dms_uploaded_at: string | null
           doc_code: string | null
           document_description: string | null
           document_type: string | null
@@ -28529,15 +28532,22 @@ export type Database = {
           mime_type: string | null
           regno: string
           source_application_reference: string | null
+          source_document_id: string | null
           storage_url: string | null
+          transfer_error: string | null
+          transfer_status: string
           transferred_at: string | null
           transferred_by: string | null
+          unique_uuid: string | null
           updated_at: string
           uploaded_by: string | null
           uploaded_by_code: string | null
         }
         Insert: {
+          application_reference_number?: string | null
           created_at?: string
+          dms_document_id?: string | null
+          dms_uploaded_at?: string | null
           doc_code?: string | null
           document_description?: string | null
           document_type?: string | null
@@ -28551,15 +28561,22 @@ export type Database = {
           mime_type?: string | null
           regno: string
           source_application_reference?: string | null
+          source_document_id?: string | null
           storage_url?: string | null
+          transfer_error?: string | null
+          transfer_status?: string
           transferred_at?: string | null
           transferred_by?: string | null
+          unique_uuid?: string | null
           updated_at?: string
           uploaded_by?: string | null
           uploaded_by_code?: string | null
         }
         Update: {
+          application_reference_number?: string | null
           created_at?: string
+          dms_document_id?: string | null
+          dms_uploaded_at?: string | null
           doc_code?: string | null
           document_description?: string | null
           document_type?: string | null
@@ -28573,9 +28590,13 @@ export type Database = {
           mime_type?: string | null
           regno?: string
           source_application_reference?: string | null
+          source_document_id?: string | null
           storage_url?: string | null
+          transfer_error?: string | null
+          transfer_status?: string
           transferred_at?: string | null
           transferred_by?: string | null
+          unique_uuid?: string | null
           updated_at?: string
           uploaded_by?: string | null
           uploaded_by_code?: string | null
@@ -52346,6 +52367,33 @@ export type Database = {
       delete_head_cashier_override: {
         Args: { p_deleted_by?: string; p_override_id: string }
         Returns: Json
+      }
+      dms_queue_claim_batch: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          created_at: string
+          document_id: string
+          id: string
+          last_error: string | null
+          max_attempts: number
+          next_attempt_at: string
+          regno: string | null
+          scope: string
+          ssn: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "dms_transfer_queue"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      dms_queue_mark_result: {
+        Args: { p_error?: string; p_queue_id: string; p_success: boolean }
+        Returns: undefined
       }
       edit_and_verify_batch_cheque: {
         Args: {
