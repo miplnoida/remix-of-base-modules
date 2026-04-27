@@ -248,7 +248,7 @@ export const MeetingDocumentVerificationTab = forwardRef<MeetingDocumentVerifica
               externalDocFieldKeys={externalDocFieldKeys}
               platformOverrides={hook.platformOverrides}
               onVerificationChange={hook.handleVerificationChange}
-              onSupportiveChange={(catId, code) => hook.setSupportiveSelections(prev => ({ ...prev, [catId]: code }))}
+              onSupportiveChange={(catId, code) => hook.handleSupportiveChange(catId, code)}
               onProceedToUpload={() => hook.setCurrentStep('upload')}
             />
           )}

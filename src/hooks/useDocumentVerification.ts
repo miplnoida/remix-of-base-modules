@@ -42,6 +42,7 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
   const [currentStep, setCurrentStep] = useState<'selection' | 'upload'>('selection');
   const [pendingReupload, setPendingReupload] = useState<Record<string, string>>({});
   const [platformOverrides, setPlatformOverrides] = useState<Record<string, string>>({});
+  const [supportivePlatformOverrides, setSupportivePlatformOverrides] = useState<Record<string, string>>({});
 
   // Preview state
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -49,6 +50,7 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
 
   // Track user-initiated selections (highest priority)
   const userSelectionsRef = useRef<Record<string, string>>({});
+  const userSupportiveSelectionsRef = useRef<Record<string, string>>({});
   const prevSelectionsRef = useRef<Record<string, string>>({});
 
   // --- Active documents ---
@@ -71,6 +73,23 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
       return next;
     });
   }, [externalDocFieldKeys, platformOverrides]);
+
+  // Rehydrate supportive selections from persisted uploads (catId -> code).
+  // User in-session selections (userSupportiveSelectionsRef) win over persisted.
+  useEffect(() => {
+    if (Object.keys(supportivePlatformOverrides).length === 0 &&
+        Object.keys(userSupportiveSelectionsRef.current).length === 0) return;
+    setSupportiveSelections(prev => {
+      const next = { ...prev };
+      for (const [catId, code] of Object.entries(supportivePlatformOverrides)) {
+        if (!next[catId]) next[catId] = code;
+      }
+      for (const [catId, code] of Object.entries(userSupportiveSelectionsRef.current)) {
+        next[catId] = code;
+      }
+      return next;
+    });
+  }, [supportivePlatformOverrides]);
 
   // Auto-select from category autoSelectCode
   useEffect(() => {
@@ -221,9 +240,27 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
       }
       setPlatformOverrides(overrides);
 
+      // Derive supportive platform overrides (catId -> code) from persisted supportive uploads
+      const supOverrides: Record<string, string> = {};
+      for (const doc of docs) {
+        if (
+          doc.is_active &&
+          doc.is_supportive &&
+          doc.verification_category &&
+          (doc.supportive_doc_type || doc.doc_code) &&
+          doc.source === 'platform'
+        ) {
+          supOverrides[doc.verification_category] = (doc.supportive_doc_type || doc.doc_code) as string;
+        }
+      }
+      setSupportivePlatformOverrides(supOverrides);
+
       // Clear user selections that are now persisted
       for (const [fieldKey, code] of Object.entries(userSelectionsRef.current)) {
         if (overrides[fieldKey] === code) delete userSelectionsRef.current[fieldKey];
+      }
+      for (const [catId, code] of Object.entries(userSupportiveSelectionsRef.current)) {
+        if (supOverrides[catId] === code) delete userSupportiveSelectionsRef.current[catId];
       }
 
       // Clear pending re-upload flags
@@ -256,6 +293,7 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
 
     if (!CODES_REQUIRING_SUPPORTIVE.includes(newCode)) {
       setSupportiveSelections(prev => { const n = { ...prev }; delete n[cat.id]; return n; });
+      delete userSupportiveSelectionsRef.current[cat.id];
     }
 
     if (oldCode && oldCode !== newCode && adapter.deactivateByCategory) {
@@ -271,6 +309,17 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
 
     prevSelectionsRef.current[cat.fieldKey] = newCode;
   }, [verifySelections, adapter, verifyTypes, onSelectionChange, fetchDocuments]);
+
+  // --- Handle supportive selection change (records user choice so it survives a refetch) ---
+  const handleSupportiveChange = useCallback((catId: string, code: string) => {
+    if (code) {
+      userSupportiveSelectionsRef.current[catId] = code;
+      setSupportiveSelections(prev => ({ ...prev, [catId]: code }));
+    } else {
+      delete userSupportiveSelectionsRef.current[catId];
+      setSupportiveSelections(prev => { const n = { ...prev }; delete n[catId]; return n; });
+    }
+  }, []);
 
   // --- File upload ---
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, slot: UploadSlot) => {
@@ -523,6 +572,7 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
     purposeValidation,
     // Actions
     handleVerificationChange,
+    handleSupportiveChange,
     handleFileUpload,
     handleDeleteDocument,
     handleDownloadDocument,

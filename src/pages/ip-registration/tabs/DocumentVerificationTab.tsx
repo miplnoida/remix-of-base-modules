@@ -637,7 +637,7 @@ export default function DocumentVerificationTab({ formData, onChange, onSave, er
             pendingReupload={hook.pendingReupload}
             platformOverrides={hook.platformOverrides}
             onVerificationChange={hook.handleVerificationChange}
-            onSupportiveChange={(catId, code) => hook.setSupportiveSelections(prev => ({ ...prev, [catId]: code }))}
+            onSupportiveChange={(catId, code) => hook.handleSupportiveChange(catId, code)}
             onProceedToUpload={() => hook.setCurrentStep('upload')}
           />
         )}
