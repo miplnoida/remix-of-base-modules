@@ -394,6 +394,7 @@ export function useConvertToIPRegistration() {
         unique_uuid?: string;
         dependants_added?: number;
         documents_added?: number;
+        master_documents_mirrored?: number;
         application_reference_number?: string;
         workflow_instance_id?: string;
         message?: string;
@@ -401,6 +402,16 @@ export function useConvertToIPRegistration() {
 
       if (!result?.success) {
         throw new Error(result?.message || 'Atomic conversion returned failure without a message');
+      }
+
+      // Verify document mirror integrity — staging count should equal master mirror count
+      const stagingCount = result.documents_added ?? 0;
+      const mirroredCount = result.master_documents_mirrored ?? 0;
+      if (stagingCount > 0 && mirroredCount < stagingCount) {
+        console.warn(
+          `[useConvertToIPRegistration] Document mirror mismatch: staging=${stagingCount} mirrored=${mirroredCount}. ` +
+            `Some documents may not be transferred to DMS.`
+        );
       }
 
       // ── Step 6: Workflow is now auto-initiated server-side ────────────

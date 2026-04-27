@@ -96,3 +96,15 @@ Make the document lifecycle for the **online IP application → IP registration*
 
 - Re-architecting `meeting_uploaded_documents` away entirely (kept for legacy read until backfill is verified in Live).
 - UI for the `dms_transfer_queue` retry dashboard beyond a row count + manual retry button on the existing `dms_service` admin page.
+
+## Phase 2 — Step 2 status (in progress)
+
+Done:
+- Migration 1 (Phase 2 schema): `ip_documents` extra cols, `ip_application_documents`/`er_application_documents` versioning, `dms_transfer_queue` table, resolver filter on `is_active`, upsert versioning, `trg_ip_documents_enqueue_dms`, dropped broken pre-doc mirror trigger.
+- Migration 2 (this step): rewrote `convert_application_atomic` to inline-mirror the active staging docs into `ip_documents` in the same transaction; returns `master_documents_mirrored`. Dropped obsolete `convert_application_atomic_with_master`.
+- `useConvertToIPRegistration.ts` now logs warning when staging vs mirror counts diverge.
+
+Next (still to do):
+- ER convert RPC mirror to `er_documents` (mirror Phase 2 step 2 for Employer flow).
+- Edge functions `dms-transfer` / `dms-transfer-single` to source from `ip_documents` + queue draining (`dms-transfer-retry` cron).
+- UI: `ApplicationDocumentsTab`, meeting tabs to use `useApplicationDocuments` resolver hook; `dms_service` admin retry button.
