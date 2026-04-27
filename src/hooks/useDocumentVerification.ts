@@ -310,6 +310,17 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
     prevSelectionsRef.current[cat.fieldKey] = newCode;
   }, [verifySelections, adapter, verifyTypes, onSelectionChange, fetchDocuments]);
 
+  // --- Handle supportive selection change (records user choice so it survives a refetch) ---
+  const handleSupportiveChange = useCallback((catId: string, code: string) => {
+    if (code) {
+      userSupportiveSelectionsRef.current[catId] = code;
+      setSupportiveSelections(prev => ({ ...prev, [catId]: code }));
+    } else {
+      delete userSupportiveSelectionsRef.current[catId];
+      setSupportiveSelections(prev => { const n = { ...prev }; delete n[catId]; return n; });
+    }
+  }, []);
+
   // --- File upload ---
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, slot: UploadSlot) => {
     const files = e.target.files;
