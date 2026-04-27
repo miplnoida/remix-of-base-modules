@@ -252,10 +252,10 @@ export function MeetingDetailView({ meetingId: initialMeetingId, onClose }: Meet
             <History className="h-4 w-4" />
             History ({history.length})
           </TabsTrigger>
-          <TabsTrigger value="api" className="gap-2">
+          {/* <TabsTrigger value="api" className="gap-2">
             <Globe className="h-4 w-4" />
             API Logs ({apiLogs.length})
-          </TabsTrigger>
+          </TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="history">
@@ -298,7 +298,7 @@ export function MeetingDetailView({ meetingId: initialMeetingId, onClose }: Meet
           </Card>
         </TabsContent>
 
-        <TabsContent value="api">
+        {/* <TabsContent value="api">
           <Card>
             <CardContent className="p-0">
               <ScrollArea className="h-64">
@@ -348,7 +348,7 @@ export function MeetingDetailView({ meetingId: initialMeetingId, onClose }: Meet
               </ScrollArea>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
     </div>
   );
