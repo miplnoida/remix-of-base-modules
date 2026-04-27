@@ -572,6 +572,7 @@ export function useDocumentVerification(config: UseDocumentVerificationConfig) {
     purposeValidation,
     // Actions
     handleVerificationChange,
+    handleSupportiveChange,
     handleFileUpload,
     handleDeleteDocument,
     handleDownloadDocument,
