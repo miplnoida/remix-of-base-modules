@@ -22,6 +22,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
       theme={"system"}
       className="toaster group"
       duration={defaultDuration}
+      expand
+      gap={12}
+      visibleToasts={6}
       toastOptions={{
         classNames: {
           toast:
