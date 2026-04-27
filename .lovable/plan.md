@@ -108,3 +108,34 @@ Next (still to do):
 - ER convert RPC mirror to `er_documents` (mirror Phase 2 step 2 for Employer flow).
 - Edge functions `dms-transfer` / `dms-transfer-single` to source from `ip_documents` + queue draining (`dms-transfer-retry` cron).
 - UI: `ApplicationDocumentsTab`, meeting tabs to use `useApplicationDocuments` resolver hook; `dms_service` admin retry button.
+
+## Phase 2 — Step 3 status (done in this iteration)
+
+Done:
+- Added DMS-tracking columns + enqueue trigger on `er_documents` (parity with `ip_documents`).
+- `dms_queue_claim_batch(limit)` RPC: atomic SKIP-LOCKED claim of N pending queue rows, marks them `Processing` and increments attempts.
+- `dms_queue_mark_result(queue_id, success, error)` RPC: on success → `Transferred` (+ updates the master doc row); on failure → exponential backoff (60s × 2^attempts, max 1h) and `Failed` after `max_attempts`.
+- New edge function `dms-transfer-retry`: drains the queue in batches by invoking the existing `dms-transfer-single` (IP scope). ER scope is recorded as not-yet-supported so it won't be silently lost.
+
+Next (recommended, not done in this iteration to avoid regression risk on 1700+ lines of existing edge code and meeting/review UI):
+- Refactor `dms-transfer` and `dms-transfer-single` to read from `ip_documents` (master) instead of `ip_application_documents` (staging) — current logic still works because conversion now mirrors all docs into staging+master, but reading from master is cleaner.
+- Add ER scope handling to `dms-transfer-single`.
+- Refactor `ApplicationDocumentsTab`, `MeetingDocumentVerificationTab`, `EmployerMeetingDocumentsTab` to consume `useApplicationDocuments` resolver hook with Source/Status badges.
+- Surface `dms_transfer_queue` Failed-row count + manual retry button on the `dms_service` admin page (calls `dms-transfer-retry`).
+
+## Cron schedule (run separately, contains user-specific keys)
+
+To schedule the retry function every 5 minutes, run in Cloud SQL editor (Live):
+```sql
+select cron.schedule(
+  'dms-transfer-retry-5min',
+  '*/5 * * * *',
+  $$
+  select net.http_post(
+    url := 'https://xynceskeiiisiefqlgxo.supabase.co/functions/v1/dms-transfer-retry',
+    headers := '{"Content-Type":"application/json","Authorization":"Bearer YOUR_ANON_KEY"}'::jsonb,
+    body := '{"batchSize": 10}'::jsonb
+  ) as request_id;
+  $$
+);
+```
