@@ -182,65 +182,89 @@ function resolveVerificationType(doc: any): string | null {
 }
 
 function mapDocToRpcFormat(doc: any) {
+  const rawDocType = doc.documentType || doc.type || doc.document_type || null;
+  const verificationCategory = doc.verification_category || null;
+  const explicitSupportive = doc.is_supportive === true || doc.isSupportive === true;
+  const isSupportive =
+    explicitSupportive ||
+    verificationCategory === 'supportive' ||
+    Boolean(doc.supportive_doc_type || doc.supportiveDocType);
+  const docCodeFromMeta = doc.doc_code || doc.docCode || (doc.metadata && doc.metadata.doc_code) || null;
+  const docCode =
+    docCodeFromMeta ||
+    (typeof rawDocType === 'string' && rawDocType.length === 1 ? rawDocType.toUpperCase() : null);
+  const rawSize = doc.fileSize ?? doc.file_size;
   return {
     id:               doc.id || null,
-    name:             doc.name || doc.fileName || doc.document_name || null,
-    fileName:         doc.fileName || doc.name || doc.file_name || null,
-    documentType:     doc.documentType || doc.type || doc.document_type || null,
-    type:             doc.type || doc.documentType || doc.document_type || null,
+    name:             doc.name || doc.fileName || doc.document_name || doc.file_name || null,
+    fileName:         doc.fileName || doc.file_name || doc.name || doc.document_name || null,
+    documentType:     rawDocType,
+    type:             rawDocType,
     verificationType: resolveVerificationType(doc),
     filePath:         doc.filePath || doc.file_path || null,
     url:              doc.url || doc.storage_url || null,
     signedUrl:        doc.signedUrl || doc.signed_url || null,
-    mimeType:         doc.mimeType || doc.mime_type || null,
-    fileSize:         doc.fileSize || doc.file_size ? String(doc.fileSize || doc.file_size) : null,
-    uploadedAt:       doc.uploadedAt || doc.created_at || null,
-    isSupportive:     doc.is_supportive || false,
+    mimeType:         doc.mimeType || doc.mime_type || doc.mimetype || null,
+    fileSize:         rawSize !== undefined && rawSize !== null && rawSize !== '' ? String(rawSize).replace(/\D/g, '') || null : null,
+    uploadedAt:       doc.uploadedAt || doc.uploaded_at || doc.created_at || null,
+    isSupportive,
     supportiveDocType: doc.supportive_doc_type || doc.supportiveDocType || null,
-    docCode:          doc.doc_code || doc.docCode || null,
+    docCode,
+    metadata:         { ...(doc.metadata || {}), doc_code: docCode },
   };
 }
 
 /**
- * Build the document list to send to convert_application_atomic.
- *
- * Single source of truth: call the backend `ip_app_docs_resolve` RPC, which:
- *   1. Filters out external docs that have been replaced or deleted via overrides.
- *   2. Adds the active override rows from `ip_application_documents`.
- *
- * Falls back to the local external-only list if the resolver fails for any reason
- * so a transient backend issue does not abort the conversion.
+ * Result of the strict conversion resolver.
+ *  - `merged` is the final document list to send to convert_application_atomic.
+ *  - `decisions` is the per-document audit trail (kept_external / replaced_by_reviewer /
+ *     reviewer_added / deleted_by_reviewer) to be persisted in ip_application_doc_merge_audit.
+ *  - `missing_mandatory` lists categories required by business rules that are not
+ *     present in the merged set; conversion must be aborted when this is non-empty.
  */
-async function buildDocumentsForConversion(
+interface ConversionDocResolution {
+  merged: any[];
+  decisions: any[];
+  missing_mandatory: string[];
+}
+
+/**
+ * STRICT resolver for the conversion path.
+ * - Always calls `ip_app_docs_resolve_for_conversion` so reviewer overrides win.
+ * - On any error, throws — the conversion MUST NOT silently fall back to API-only,
+ *   because that would lose reviewer uploads (the regression we are guarding against).
+ */
+async function resolveDocumentsForConversion(
   app: ExternalApplicationDetail,
-  _meetingId?: string,
-  applicationReference?: string,
-): Promise<object[]> {
-  const appDocs = (app.documents || []).map(mapDocToRpcFormat);
+  applicationReference: string,
+): Promise<ConversionDocResolution> {
+  // Pre-normalize external docs so the resolver can pattern-match cleanly and the merged
+  // output is already in the canonical RPC shape consumed by convert_application_atomic.
+  const externalNormalized = (app.documents || []).map(mapDocToRpcFormat);
 
-  if (!applicationReference) {
-    console.log(`[buildDocumentsForConversion] No application reference — using ${appDocs.length} external doc(s)`);
-    return appDocs;
+  const { data, error } = await (supabase.rpc as any)('ip_app_docs_resolve_for_conversion', {
+    p_application_reference: applicationReference,
+    p_external_docs: externalNormalized,
+  });
+
+  if (error) {
+    throw new Error(`DOCUMENT_RESOLVER_FAILED: ${error.message || String(error)}`);
   }
 
-  try {
-    const { data, error } = await (supabase.rpc as any)('ip_app_docs_resolve', {
-      p_application_reference: applicationReference,
-      p_external_docs: app.documents || [],
-    });
+  // Map merged through `mapDocToRpcFormat` once more to guarantee shape parity
+  // (override rows come back in the canonical shape already; this is a no-op for them).
+  const merged = ((data?.merged || []) as any[]).map(mapDocToRpcFormat);
+  const decisions = (data?.decisions || []) as any[];
+  const missing_mandatory = (data?.missing_mandatory || []) as string[];
 
-    if (error) {
-      console.error('[buildDocumentsForConversion] Resolver RPC failed, falling back to external-only:', error);
-      return appDocs;
-    }
+  console.log('[resolveDocumentsForConversion]', {
+    external_in: externalNormalized.length,
+    merged_out: merged.length,
+    decisions: decisions.length,
+    missing_mandatory,
+  });
 
-    const merged = ((data?.merged || []) as any[]).map(mapDocToRpcFormat);
-    console.log(`[buildDocumentsForConversion] Resolver returned ${merged.length} effective doc(s)`);
-    return merged;
-  } catch (err) {
-    console.error('[buildDocumentsForConversion] Resolver threw, falling back to external-only:', err);
-    return appDocs;
-  }
+  return { merged, decisions, missing_mandatory };
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
@@ -315,6 +339,18 @@ export function useConvertToIPRegistration() {
         throw new Error('VALIDATION_FAILED: Cannot determine application reference number from referenceNumber, id, or applicationId');
       }
 
+      // ── Step 4b: Strict document resolution (reviewer overrides win, mandatory check) ──
+      const docResolution = await resolveDocumentsForConversion(
+        app,
+        applicationReference || resolvedAppRefNumber,
+      );
+      if (docResolution.missing_mandatory && docResolution.missing_mandatory.length > 0) {
+        const missing = docResolution.missing_mandatory.join(', ');
+        throw new Error(
+          `MANDATORY_DOCUMENTS_MISSING: Cannot convert — required document(s) missing: ${missing}.`,
+        );
+      }
+
       const { data: rpcResult, error: rpcError } = await (supabase.rpc as any)(
         'convert_application_atomic',
         {
@@ -384,7 +420,8 @@ export function useConvertToIPRegistration() {
           p_remarks:               app.remarks || null,
           p_application_ref_number: resolvedAppRefNumber,
           p_dependants:            dependantsJson,
-          p_documents:             await buildDocumentsForConversion(app, meetingId, applicationReference || resolvedAppRefNumber),
+          p_documents:             docResolution.merged,
+          p_doc_decisions:         docResolution.decisions,
         }
       );
 
@@ -490,6 +527,10 @@ export function useConvertToIPRegistration() {
       // Classify error for actionable toasts
       if (message.includes('DUPLICATE_CONVERSION') || message.includes('already been converted')) {
         toast.error('This application has already been converted to an IP record.');
+      } else if (message.includes('MANDATORY_DOCUMENTS_MISSING')) {
+        toast.error(message.replace('MANDATORY_DOCUMENTS_MISSING: ', ''));
+      } else if (message.includes('DOCUMENT_RESOLVER_FAILED')) {
+        toast.error('Could not resolve the reviewer document set. Conversion aborted to avoid losing uploaded documents. Please retry.');
       } else if (message.includes('SUBMIT_FAILED')) {
         toast.error(`Registration submission failed: ${message}`);
       } else if (message.includes('INSERT_FAILED')) {
