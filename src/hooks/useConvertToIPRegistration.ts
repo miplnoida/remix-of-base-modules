@@ -472,14 +472,20 @@ export function useConvertToIPRegistration() {
       const message = err instanceof Error ? err.message : String(err);
       console.error('[useConvertToIPRegistration]', message);
 
-      // Fire-and-forget: persist for /system-logs/errors with full context
-      void logApplicationError(err, {
-        module: 'online-applications/convert',
-        action: 'convert_application_atomic',
-        entity_type: 'ip_application',
-        entity_id: resolvedAppRefNumberForLog || undefined,
-        request_payload: { applicationReference, meetingId, userId },
-      });
+      // Persist to /system-logs/errors with full context. Awaited so the insert
+      // completes before the hook returns / the page potentially navigates.
+      // The error logger swallows its own failures, so this can never rethrow.
+      try {
+        await logApplicationError(err, {
+          module: 'online-applications/convert',
+          action: 'convert_application_atomic',
+          entity_type: 'ip_application',
+          entity_id: resolvedAppRefNumberForLog || undefined,
+          request_payload: { applicationReference, meetingId, userId },
+        });
+      } catch (logErr) {
+        console.error('[useConvertToIPRegistration] Error logger failed:', logErr);
+      }
 
       // Classify error for actionable toasts
       if (message.includes('DUPLICATE_CONVERSION') || message.includes('already been converted')) {
