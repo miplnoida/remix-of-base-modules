@@ -339,6 +339,18 @@ export function useConvertToIPRegistration() {
         throw new Error('VALIDATION_FAILED: Cannot determine application reference number from referenceNumber, id, or applicationId');
       }
 
+      // ── Step 4b: Strict document resolution (reviewer overrides win, mandatory check) ──
+      const docResolution = await resolveDocumentsForConversion(
+        app,
+        applicationReference || resolvedAppRefNumber,
+      );
+      if (docResolution.missing_mandatory && docResolution.missing_mandatory.length > 0) {
+        const missing = docResolution.missing_mandatory.join(', ');
+        throw new Error(
+          `MANDATORY_DOCUMENTS_MISSING: Cannot convert — required document(s) missing: ${missing}.`,
+        );
+      }
+
       const { data: rpcResult, error: rpcError } = await (supabase.rpc as any)(
         'convert_application_atomic',
         {
