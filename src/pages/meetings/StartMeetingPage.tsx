@@ -1827,30 +1827,17 @@ function InsuredPersonEditForm({ data, onChange, onDataChange, meetingId, applic
           />
         )}
 
-        {/* Application-submitted documents (read-only view), filtered to exclude replaced docs */}
-        {data.documents && data.documents.length > 0 && meetingId && applicationReference && (() => {
-          const VERIFY_TYPE_TO_CATEGORY: Record<string, string> = {
-            birth_status: 'birth',
-            name_status: 'name',
-            marital_status: 'marital',
-            death_status: 'death',
-          };
-          const filteredDocs = data.documents.filter((doc: any) => {
-            const vt = doc.verificationType as string | undefined;
-            if (!vt) return true;
-            const category = VERIFY_TYPE_TO_CATEGORY[vt];
-            if (!category) return true;
-            return !replacedDocCategories?.has(category);
-          });
-          if (filteredDocs.length === 0) return null;
-          return (
-            <ApplicationDocumentsTab 
-              documents={filteredDocs} 
-              photoUrl={data.photoUrl}
-              ssn={applicationReference}
-            />
-          );
-        })()}
+        {/* Application-submitted documents (read-only view): externals (minus replaced) + platform uploads */}
+        {meetingId && applicationReference && (
+          <MeetingAttachedDocumentsCard
+            meetingId={meetingId}
+            applicationReference={applicationReference}
+            externalDocuments={data.documents}
+            photoUrl={data.photoUrl}
+            replacedDocCategories={replacedDocCategories}
+          />
+        )}
+
 
         {/* Document Delete Confirmation */}
         <Dialog open={docDeleteIndex !== null} onOpenChange={(open) => { if (!open) setDocDeleteIndex(null); }}>
