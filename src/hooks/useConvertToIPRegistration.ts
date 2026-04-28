@@ -406,7 +406,16 @@ export function useConvertToIPRegistration() {
       };
 
       if (!result?.success) {
-        throw new Error(result?.message || 'Atomic conversion returned failure without a message');
+        const failMsg = result?.message || 'Atomic conversion returned failure without a message';
+        // Fire-and-forget: persist for /system-logs/errors
+        void logApplicationError(new Error(failMsg), {
+          module: 'online-applications/convert',
+          action: 'convert_application_atomic',
+          entity_type: 'ip_application',
+          entity_id: resolvedAppRefNumber || undefined,
+          request_payload: { applicationReference, meetingId, userId },
+        });
+        throw new Error(failMsg);
       }
 
       // Verify document mirror integrity — staging count should equal master mirror count
