@@ -480,6 +480,15 @@ export function useConvertToIPRegistration() {
       const message = err instanceof Error ? err.message : String(err);
       console.error('[useConvertToIPRegistration]', message);
 
+      // Fire-and-forget: persist for /system-logs/errors with full context
+      void logApplicationError(err, {
+        module: 'online-applications/convert',
+        action: 'convert_application_atomic',
+        entity_type: 'ip_application',
+        entity_id: resolvedAppRefNumberForLog || undefined,
+        request_payload: { applicationReference, meetingId, userId },
+      });
+
       // Classify error for actionable toasts
       if (message.includes('DUPLICATE_CONVERSION') || message.includes('already been converted')) {
         toast.error('This application has already been converted to an IP record.');
