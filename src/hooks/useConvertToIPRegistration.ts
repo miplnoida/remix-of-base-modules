@@ -263,6 +263,9 @@ export function useConvertToIPRegistration() {
     setConversionErrors([]);
     startBlocking('Converting to IP Registration...');
 
+    // Captured early so the catch block can include it in error logs even if a step fails before assignment.
+    let resolvedAppRefNumberForLog: string | null = applicationReference || null;
+
     try {
       // ── Step 1: Client-side preflight ────────────────────────────────────
       const preflightErrors = validateApplicationForConversion(applicationDetail);
