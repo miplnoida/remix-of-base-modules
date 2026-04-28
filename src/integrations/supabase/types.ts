@@ -36654,12 +36654,14 @@ export type Database = {
           doc_code: string | null
           document_name: string
           document_type: string
+          file_name: string | null
           file_path: string
           file_size: number | null
           id: string
           is_active: boolean
           is_supportive: boolean | null
           is_temp: boolean | null
+          metadata: Json | null
           mime_type: string | null
           source_document_id: string | null
           ssn: string | null
@@ -36670,6 +36672,7 @@ export type Database = {
           uploaded_at: string | null
           uploaded_by: string | null
           verification_category: string | null
+          verification_type: string | null
         }
         Insert: {
           application_reference_number?: string | null
@@ -36678,12 +36681,14 @@ export type Database = {
           doc_code?: string | null
           document_name: string
           document_type: string
+          file_name?: string | null
           file_path: string
           file_size?: number | null
           id?: string
           is_active?: boolean
           is_supportive?: boolean | null
           is_temp?: boolean | null
+          metadata?: Json | null
           mime_type?: string | null
           source_document_id?: string | null
           ssn?: string | null
@@ -36694,6 +36699,7 @@ export type Database = {
           uploaded_at?: string | null
           uploaded_by?: string | null
           verification_category?: string | null
+          verification_type?: string | null
         }
         Update: {
           application_reference_number?: string | null
@@ -36702,12 +36708,14 @@ export type Database = {
           doc_code?: string | null
           document_name?: string
           document_type?: string
+          file_name?: string | null
           file_path?: string
           file_size?: number | null
           id?: string
           is_active?: boolean
           is_supportive?: boolean | null
           is_temp?: boolean | null
+          metadata?: Json | null
           mime_type?: string | null
           source_document_id?: string | null
           ssn?: string | null
@@ -36718,6 +36726,7 @@ export type Database = {
           uploaded_at?: string | null
           uploaded_by?: string | null
           verification_category?: string | null
+          verification_type?: string | null
         }
         Relationships: []
       }
