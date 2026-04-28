@@ -303,6 +303,7 @@ export function useConvertToIPRegistration() {
 
       // ── Step 5: Call the single atomic RPC — everything runs in ONE transaction ──
       const resolvedAppRefNumber = app.referenceNumber || app.id || (app as any).applicationId || null;
+      resolvedAppRefNumberForLog = resolvedAppRefNumber || resolvedAppRefNumberForLog;
       console.log('[useConvertToIPRegistration] Resolved application_ref_number:', {
         referenceNumber: app.referenceNumber,
         id: app.id,
