@@ -448,7 +448,16 @@ export function useConvertToIPRegistration() {
         new_value: 'P',
         field_name: 'status',
       }).then(({ error }) => {
-        if (error) console.error('[useConvertToIPRegistration] Audit log insert failed:', error);
+        if (error) {
+          console.error('[useConvertToIPRegistration] Audit log insert failed:', error);
+          void logApplicationError(error, {
+            module: 'online-applications/convert',
+            action: 'ip_audit_log.insert',
+            entity_type: 'ip_master',
+            entity_id: result.ip_master_id || undefined,
+            request_payload: { applicationReference, meetingId, userId },
+          });
+        }
       });
 
       // ── Step 8: Invalidate caches ─────────────────────────────────────────
