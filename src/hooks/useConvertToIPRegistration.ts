@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useGlobalBlocking } from '@/contexts/GlobalBlockingContext';
+import { logApplicationError } from '@/lib/globalErrorHandler';
 import type { ExternalApplicationDetail } from '@/types/externalApplication';
 
 // ─── Field-length helpers matching ip_master / ip_depend schemas ─────────────
