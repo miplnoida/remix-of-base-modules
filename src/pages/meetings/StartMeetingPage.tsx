@@ -59,6 +59,7 @@ import { useConvertToIPRegistration, validateApplicationForConversion } from '@/
 import { useConvertToEmployerRegistration, validateEmployerApplicationForConversion } from '@/hooks/useConvertToEmployerRegistration';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
 import { useValidateApplicationForConversion } from '@/hooks/useValidateApplicationForConversion';
