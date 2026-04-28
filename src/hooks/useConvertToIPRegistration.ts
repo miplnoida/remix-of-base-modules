@@ -420,7 +420,8 @@ export function useConvertToIPRegistration() {
           p_remarks:               app.remarks || null,
           p_application_ref_number: resolvedAppRefNumber,
           p_dependants:            dependantsJson,
-          p_documents:             await buildDocumentsForConversion(app, meetingId, applicationReference || resolvedAppRefNumber),
+          p_documents:             docResolution.merged,
+          p_doc_decisions:         docResolution.decisions,
         }
       );
 
