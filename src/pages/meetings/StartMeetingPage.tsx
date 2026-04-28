@@ -2053,3 +2053,94 @@ function EditableField({
     </div>
   );
 }
+
+// --- Attached Documents card for meetings: merges externals (minus replaced) + active platform uploads ---
+const MEETING_CATEGORY_TO_VERIFY_TYPE: Record<string, string> = {
+  birth: 'birth_status',
+  name: 'name_status',
+  marital: 'marital_status',
+  death: 'death_status',
+};
+const MEETING_VERIFY_TYPE_TO_CATEGORY: Record<string, string> = {
+  birth_status: 'birth',
+  name_status: 'name',
+  marital_status: 'marital',
+  death_status: 'death',
+};
+
+function MeetingAttachedDocumentsCard({
+  meetingId,
+  applicationReference,
+  externalDocuments,
+  photoUrl,
+  replacedDocCategories,
+}: {
+  meetingId: string;
+  applicationReference: string;
+  externalDocuments?: any[];
+  photoUrl?: string | null;
+  replacedDocCategories?: Set<string>;
+}) {
+  const { data: platformRows = [] } = useQuery({
+    queryKey: ['meeting-attached-platform-docs', meetingId, applicationReference],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('meeting_uploaded_documents')
+        .select('id, document_name, file_name, file_path, file_size, mime_type, storage_url, verification_category, is_supportive, doc_code, supportive_doc_type, created_at, is_active')
+        .eq('meeting_id', meetingId)
+        .eq('application_reference', applicationReference)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!meetingId && !!applicationReference,
+    staleTime: 15_000,
+  });
+
+  // Filter externals: drop those whose verificationType maps to a replaced category
+  const filteredExternals = useMemo(() => {
+    if (!externalDocuments || externalDocuments.length === 0) return [] as any[];
+    return externalDocuments.filter((doc: any) => {
+      const vt = doc.verificationType as string | undefined;
+      if (!vt) return true;
+      const category = MEETING_VERIFY_TYPE_TO_CATEGORY[vt];
+      if (!category) return true;
+      return !replacedDocCategories?.has(category);
+    });
+  }, [externalDocuments, replacedDocCategories]);
+
+  // Map platform rows to ExternalDocument shape expected by ApplicationDocumentsTab
+  const mappedPlatformDocs = useMemo(() => {
+    return (platformRows as any[]).map(row => {
+      const verificationType = row.verification_category
+        ? MEETING_CATEGORY_TO_VERIFY_TYPE[row.verification_category] || undefined
+        : undefined;
+      return {
+        id: row.id,
+        fileName: row.file_name || row.document_name || 'Document',
+        name: row.file_name || row.document_name || 'Document',
+        documentType: row.document_name || (row.is_supportive ? 'Supportive Document' : 'Mandatory Document'),
+        verificationType,
+        mimeType: row.mime_type || undefined,
+        signedUrl: row.storage_url || undefined,
+        url: row.storage_url || undefined,
+        fileSize: row.file_size ?? undefined,
+        uploadedAt: row.created_at || undefined,
+      };
+    });
+  }, [platformRows]);
+
+  const mergedDocs = useMemo(() => [...filteredExternals, ...mappedPlatformDocs], [filteredExternals, mappedPlatformDocs]);
+
+  if (mergedDocs.length === 0 && !photoUrl) return null;
+
+  return (
+    <ApplicationDocumentsTab
+      documents={mergedDocs}
+      photoUrl={photoUrl}
+      ssn={applicationReference}
+    />
+  );
+}
+
