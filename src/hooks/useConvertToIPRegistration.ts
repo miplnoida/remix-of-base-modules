@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useGlobalBlocking } from '@/contexts/GlobalBlockingContext';
+import { logApplicationError } from '@/lib/globalErrorHandler';
 import type { ExternalApplicationDetail } from '@/types/externalApplication';
 
 // ─── Field-length helpers matching ip_master / ip_depend schemas ─────────────
@@ -262,6 +263,9 @@ export function useConvertToIPRegistration() {
     setConversionErrors([]);
     startBlocking('Converting to IP Registration...');
 
+    // Captured early so the catch block can include it in error logs even if a step fails before assignment.
+    let resolvedAppRefNumberForLog: string | null = applicationReference || null;
+
     try {
       // ── Step 1: Client-side preflight ────────────────────────────────────
       const preflightErrors = validateApplicationForConversion(applicationDetail);
@@ -299,6 +303,7 @@ export function useConvertToIPRegistration() {
 
       // ── Step 5: Call the single atomic RPC — everything runs in ONE transaction ──
       const resolvedAppRefNumber = app.referenceNumber || app.id || (app as any).applicationId || null;
+      resolvedAppRefNumberForLog = resolvedAppRefNumber || resolvedAppRefNumberForLog;
       console.log('[useConvertToIPRegistration] Resolved application_ref_number:', {
         referenceNumber: app.referenceNumber,
         id: app.id,
@@ -401,6 +406,7 @@ export function useConvertToIPRegistration() {
       };
 
       if (!result?.success) {
+        // Logged centrally by the catch block below
         throw new Error(result?.message || 'Atomic conversion returned failure without a message');
       }
 
@@ -434,7 +440,16 @@ export function useConvertToIPRegistration() {
         new_value: 'P',
         field_name: 'status',
       }).then(({ error }) => {
-        if (error) console.error('[useConvertToIPRegistration] Audit log insert failed:', error);
+        if (error) {
+          console.error('[useConvertToIPRegistration] Audit log insert failed:', error);
+          void logApplicationError(error, {
+            module: 'online-applications/convert',
+            action: 'ip_audit_log.insert',
+            entity_type: 'ip_master',
+            entity_id: result.ip_master_id || undefined,
+            request_payload: { applicationReference, meetingId, userId },
+          });
+        }
       });
 
       // ── Step 8: Invalidate caches ─────────────────────────────────────────
@@ -456,6 +471,15 @@ export function useConvertToIPRegistration() {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error('[useConvertToIPRegistration]', message);
+
+      // Fire-and-forget: persist for /system-logs/errors with full context
+      void logApplicationError(err, {
+        module: 'online-applications/convert',
+        action: 'convert_application_atomic',
+        entity_type: 'ip_application',
+        entity_id: resolvedAppRefNumberForLog || undefined,
+        request_payload: { applicationReference, meetingId, userId },
+      });
 
       // Classify error for actionable toasts
       if (message.includes('DUPLICATE_CONVERSION') || message.includes('already been converted')) {
