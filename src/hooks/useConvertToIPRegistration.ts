@@ -182,22 +182,35 @@ function resolveVerificationType(doc: any): string | null {
 }
 
 function mapDocToRpcFormat(doc: any) {
+  const rawDocType = doc.documentType || doc.type || doc.document_type || null;
+  const verificationCategory = doc.verification_category || null;
+  const explicitSupportive = doc.is_supportive === true || doc.isSupportive === true;
+  const isSupportive =
+    explicitSupportive ||
+    verificationCategory === 'supportive' ||
+    Boolean(doc.supportive_doc_type || doc.supportiveDocType);
+  const docCodeFromMeta = doc.doc_code || doc.docCode || (doc.metadata && doc.metadata.doc_code) || null;
+  const docCode =
+    docCodeFromMeta ||
+    (typeof rawDocType === 'string' && rawDocType.length === 1 ? rawDocType.toUpperCase() : null);
+  const rawSize = doc.fileSize ?? doc.file_size;
   return {
     id:               doc.id || null,
-    name:             doc.name || doc.fileName || doc.document_name || null,
-    fileName:         doc.fileName || doc.name || doc.file_name || null,
-    documentType:     doc.documentType || doc.type || doc.document_type || null,
-    type:             doc.type || doc.documentType || doc.document_type || null,
+    name:             doc.name || doc.fileName || doc.document_name || doc.file_name || null,
+    fileName:         doc.fileName || doc.file_name || doc.name || doc.document_name || null,
+    documentType:     rawDocType,
+    type:             rawDocType,
     verificationType: resolveVerificationType(doc),
     filePath:         doc.filePath || doc.file_path || null,
     url:              doc.url || doc.storage_url || null,
     signedUrl:        doc.signedUrl || doc.signed_url || null,
-    mimeType:         doc.mimeType || doc.mime_type || null,
-    fileSize:         doc.fileSize || doc.file_size ? String(doc.fileSize || doc.file_size) : null,
-    uploadedAt:       doc.uploadedAt || doc.created_at || null,
-    isSupportive:     doc.is_supportive || false,
+    mimeType:         doc.mimeType || doc.mime_type || doc.mimetype || null,
+    fileSize:         rawSize !== undefined && rawSize !== null && rawSize !== '' ? String(rawSize).replace(/\D/g, '') || null : null,
+    uploadedAt:       doc.uploadedAt || doc.uploaded_at || doc.created_at || null,
+    isSupportive,
     supportiveDocType: doc.supportive_doc_type || doc.supportiveDocType || null,
-    docCode:          doc.doc_code || doc.docCode || null,
+    docCode,
+    metadata:         { ...(doc.metadata || {}), doc_code: docCode },
   };
 }
 
