@@ -215,45 +215,56 @@ function mapDocToRpcFormat(doc: any) {
 }
 
 /**
- * Build the document list to send to convert_application_atomic.
- *
- * Single source of truth: call the backend `ip_app_docs_resolve` RPC, which:
- *   1. Filters out external docs that have been replaced or deleted via overrides.
- *   2. Adds the active override rows from `ip_application_documents`.
- *
- * Falls back to the local external-only list if the resolver fails for any reason
- * so a transient backend issue does not abort the conversion.
+ * Result of the strict conversion resolver.
+ *  - `merged` is the final document list to send to convert_application_atomic.
+ *  - `decisions` is the per-document audit trail (kept_external / replaced_by_reviewer /
+ *     reviewer_added / deleted_by_reviewer) to be persisted in ip_application_doc_merge_audit.
+ *  - `missing_mandatory` lists categories required by business rules that are not
+ *     present in the merged set; conversion must be aborted when this is non-empty.
  */
-async function buildDocumentsForConversion(
+interface ConversionDocResolution {
+  merged: any[];
+  decisions: any[];
+  missing_mandatory: string[];
+}
+
+/**
+ * STRICT resolver for the conversion path.
+ * - Always calls `ip_app_docs_resolve_for_conversion` so reviewer overrides win.
+ * - On any error, throws — the conversion MUST NOT silently fall back to API-only,
+ *   because that would lose reviewer uploads (the regression we are guarding against).
+ */
+async function resolveDocumentsForConversion(
   app: ExternalApplicationDetail,
-  _meetingId?: string,
-  applicationReference?: string,
-): Promise<object[]> {
-  const appDocs = (app.documents || []).map(mapDocToRpcFormat);
+  applicationReference: string,
+): Promise<ConversionDocResolution> {
+  // Pre-normalize external docs so the resolver can pattern-match cleanly and the merged
+  // output is already in the canonical RPC shape consumed by convert_application_atomic.
+  const externalNormalized = (app.documents || []).map(mapDocToRpcFormat);
 
-  if (!applicationReference) {
-    console.log(`[buildDocumentsForConversion] No application reference — using ${appDocs.length} external doc(s)`);
-    return appDocs;
+  const { data, error } = await (supabase.rpc as any)('ip_app_docs_resolve_for_conversion', {
+    p_application_reference: applicationReference,
+    p_external_docs: externalNormalized,
+  });
+
+  if (error) {
+    throw new Error(`DOCUMENT_RESOLVER_FAILED: ${error.message || String(error)}`);
   }
 
-  try {
-    const { data, error } = await (supabase.rpc as any)('ip_app_docs_resolve', {
-      p_application_reference: applicationReference,
-      p_external_docs: app.documents || [],
-    });
+  // Map merged through `mapDocToRpcFormat` once more to guarantee shape parity
+  // (override rows come back in the canonical shape already; this is a no-op for them).
+  const merged = ((data?.merged || []) as any[]).map(mapDocToRpcFormat);
+  const decisions = (data?.decisions || []) as any[];
+  const missing_mandatory = (data?.missing_mandatory || []) as string[];
 
-    if (error) {
-      console.error('[buildDocumentsForConversion] Resolver RPC failed, falling back to external-only:', error);
-      return appDocs;
-    }
+  console.log('[resolveDocumentsForConversion]', {
+    external_in: externalNormalized.length,
+    merged_out: merged.length,
+    decisions: decisions.length,
+    missing_mandatory,
+  });
 
-    const merged = ((data?.merged || []) as any[]).map(mapDocToRpcFormat);
-    console.log(`[buildDocumentsForConversion] Resolver returned ${merged.length} effective doc(s)`);
-    return merged;
-  } catch (err) {
-    console.error('[buildDocumentsForConversion] Resolver threw, falling back to external-only:', err);
-    return appDocs;
-  }
+  return { merged, decisions, missing_mandatory };
 }
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
