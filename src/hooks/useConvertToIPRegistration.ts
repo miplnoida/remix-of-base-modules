@@ -527,6 +527,10 @@ export function useConvertToIPRegistration() {
       // Classify error for actionable toasts
       if (message.includes('DUPLICATE_CONVERSION') || message.includes('already been converted')) {
         toast.error('This application has already been converted to an IP record.');
+      } else if (message.includes('MANDATORY_DOCUMENTS_MISSING')) {
+        toast.error(message.replace('MANDATORY_DOCUMENTS_MISSING: ', ''));
+      } else if (message.includes('DOCUMENT_RESOLVER_FAILED')) {
+        toast.error('Could not resolve the reviewer document set. Conversion aborted to avoid losing uploaded documents. Please retry.');
       } else if (message.includes('SUBMIT_FAILED')) {
         toast.error(`Registration submission failed: ${message}`);
       } else if (message.includes('INSERT_FAILED')) {
