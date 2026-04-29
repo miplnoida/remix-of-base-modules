@@ -143,6 +143,7 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
 
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
       queryClient.invalidateQueries({ queryKey: ['c3-config-period'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
       toast.success('Configuration split successfully. Historical data preserved, new period created.');
 
       setShowSplitConfirm(false);
