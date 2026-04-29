@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Save } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { logC3ConfigChange } from '@/lib/c3AuditLogger';
 
 interface C3ConfigDetailsDialogProps {
   isOpen: boolean;
