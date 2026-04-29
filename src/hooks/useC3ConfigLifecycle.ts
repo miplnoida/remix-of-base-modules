@@ -76,6 +76,7 @@ export function useUpsertC3ConfigWithSplit() {
 }
 
 export function useCreateC3ConfigPeriod() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['C3Config', 'c3_config_lifecycle', 'create'],
     mutationFn: async (params: {
@@ -99,6 +100,10 @@ export function useCreateC3ConfigPeriod() {
       const result = data as unknown as { error?: string; success?: boolean; period_id?: string };
       if (result.error) throw new Error(result.error);
       return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
     },
   });
 }
