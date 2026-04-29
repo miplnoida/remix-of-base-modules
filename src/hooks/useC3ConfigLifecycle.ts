@@ -84,7 +84,8 @@ export function useCreateC3ConfigPeriod() {
         p_start_date: params.startDate,
         p_end_date: params.endDate || null,
         p_description: params.description || null,
-        p_details_json: JSON.stringify(params.detailsJson),
+        // jsonb param: pass plain object (not stringified)
+        p_details_json: (params.detailsJson ?? {}) as any,
         p_user_code: params.userCode || null,
       });
 
