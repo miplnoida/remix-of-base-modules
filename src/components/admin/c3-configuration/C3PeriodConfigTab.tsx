@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { useC3ConfigPeriods, useToggleC3ConfigActive, C3ConfigWithDetails } from '@/hooks/useC3ConfigManagement';
+import { useC3ConfigPeriods, useToggleC3ConfigActive, useDeleteC3ConfigPeriod, useC3PeriodsDeletability, C3ConfigWithDetails } from '@/hooks/useC3ConfigManagement';
 import { useUserCode } from '@/hooks/useUserCode';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Copy, Settings, Calendar, Plus } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Loader2, Copy, Settings, Calendar, Plus, Trash2 } from 'lucide-react';
 import { formatDisplayDate } from '@/lib/dateFormat';
 import { C3ConfigCloneDialog } from '@/components/admin/c3-period-config/C3ConfigCloneDialog';
 import { C3ConfigDetailsDialog } from '@/components/admin/c3-period-config/C3ConfigDetailsDialog';
