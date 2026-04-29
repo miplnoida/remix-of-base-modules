@@ -183,6 +183,7 @@ export function useUpdateC3ConfigDetails() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
       queryClient.invalidateQueries({ queryKey: ['c3-config-period'] });
       toast.success('Configuration updated successfully');
     },
@@ -236,6 +237,7 @@ export function useCloneC3Config() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
       toast.success('Configuration cloned successfully');
     },
     onError: (error) => {
@@ -277,6 +279,7 @@ export function useToggleC3ConfigActive() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
       queryClient.invalidateQueries({ queryKey: ['c3-unified-audit-logs'] });
       toast.success('Configuration status updated');
     },
@@ -372,6 +375,7 @@ export function useDeleteC3ConfigPeriod() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
       queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
       queryClient.invalidateQueries({ queryKey: ['c3-unified-audit-logs'] });
       queryClient.invalidateQueries({ queryKey: ['c3-config-period'] });
