@@ -34,7 +34,10 @@ export function useAnalyzeC3ConfigChange() {
         p_id: params.id || null,
         p_date_from: params.dateFrom,
         p_date_to: params.dateTo || null,
-        p_scope_filter: params.scopeFilter ? JSON.stringify(params.scopeFilter) : null,
+        // jsonb param: pass plain object; supabase-js handles JSON encoding.
+        // Pre-stringifying causes Postgres to receive a JSON string scalar,
+        // breaking jsonb_each_text() inside the RPC.
+        p_scope_filter: (params.scopeFilter ?? null) as any,
       });
 
       if (error) throw error;
