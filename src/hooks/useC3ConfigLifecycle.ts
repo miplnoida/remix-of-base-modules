@@ -34,7 +34,10 @@ export function useAnalyzeC3ConfigChange() {
         p_id: params.id || null,
         p_date_from: params.dateFrom,
         p_date_to: params.dateTo || null,
-        p_scope_filter: params.scopeFilter ? JSON.stringify(params.scopeFilter) : null,
+        // jsonb param: pass plain object; supabase-js handles JSON encoding.
+        // Pre-stringifying causes Postgres to receive a JSON string scalar,
+        // breaking jsonb_each_text() inside the RPC.
+        p_scope_filter: (params.scopeFilter ?? null) as any,
       });
 
       if (error) throw error;
@@ -52,7 +55,8 @@ export function useUpsertC3ConfigWithSplit() {
         p_id: params.id || null,
         p_date_from: params.dateFrom,
         p_date_to: params.dateTo || null,
-        p_values_json: JSON.stringify(params.valuesJson),
+        // jsonb param: pass plain object (not stringified)
+        p_values_json: (params.valuesJson ?? {}) as any,
         p_user_code: params.userCode || null,
         p_force_split: params.forceSplit ?? false,
       });
@@ -80,7 +84,8 @@ export function useCreateC3ConfigPeriod() {
         p_start_date: params.startDate,
         p_end_date: params.endDate || null,
         p_description: params.description || null,
-        p_details_json: JSON.stringify(params.detailsJson),
+        // jsonb param: pass plain object (not stringified)
+        p_details_json: (params.detailsJson ?? {}) as any,
         p_user_code: params.userCode || null,
       });
 
