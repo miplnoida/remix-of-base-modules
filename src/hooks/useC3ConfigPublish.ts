@@ -108,17 +108,6 @@ export function useC3SyncStatus() {
   });
 }
 
-// Legacy timestamp-based detector (kept for reference / future use)
-function _legacyTimestampSyncStatus_unused() {
-  return null;
-}
-
-// Old implementation start (dead code, retained as comment for diff):
-function _oldDetector(lastPublishedAt: string) {
-  // intentionally empty — replaced by hash-based check above
-  return lastPublishedAt;
-}
-
 
 // Fetch sync history log
 export function useC3SyncLog() {
