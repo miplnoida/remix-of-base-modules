@@ -212,6 +212,48 @@ export function C3PeriodConfigTab() {
         onClose={() => setShowDetailsDialog(false)}
         config={selectedConfig}
       />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!periodToDelete} onOpenChange={(open) => !open && setPeriodToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Configuration Period?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {periodToDelete && (
+                <>
+                  This will permanently delete the configuration for{' '}
+                  <strong>{formatDate(periodToDelete.start_date)}</strong> –{' '}
+                  <strong>{periodToDelete.end_date ? formatDate(periodToDelete.end_date) : 'Open-ended'}</strong>{' '}
+                  along with its calculation details. This action cannot be undone.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletePeriod.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deletePeriod.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!periodToDelete) return;
+                try {
+                  await deletePeriod.mutateAsync({
+                    periodId: periodToDelete.id,
+                    userCode: userCode || undefined,
+                    periodInfo: { start_date: periodToDelete.start_date, end_date: periodToDelete.end_date },
+                  });
+                  setPeriodToDelete(null);
+                } catch {
+                  // toast handled in hook
+                }
+              }}
+            >
+              {deletePeriod.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
