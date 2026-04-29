@@ -91,13 +91,14 @@ export function useC3SyncStatus() {
 
       // Check for modifications since last publish across all tables
       const [
-        { count: pMod }, { count: sMod },
+        { count: pMod }, { count: pdMod }, { count: sMod },
         { count: bpMod }, { count: beMod },
         { count: hpMod }, { count: heMod },
         { count: ccMod },
         { count: icpMod }, { count: iceMod },
       ] = await Promise.all([
         supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
+        supabase.from('c3_config_details').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('c3_bonus_policy_default').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('c3_bonus_policy_exceptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
