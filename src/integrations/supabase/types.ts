@@ -51565,6 +51565,10 @@ export type Database = {
           total_weeks: number
         }[]
       }
+      c3_config_period_deletability: {
+        Args: { p_period_id: string }
+        Returns: Json
+      }
       calculate_c3_contributions: {
         Args: {
           p_employee_data: Json
@@ -52481,6 +52485,10 @@ export type Database = {
           p_target_year: number
         }
         Returns: string
+      }
+      delete_c3_config_period: {
+        Args: { p_period_id: string; p_user_code?: string }
+        Returns: Json
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }
