@@ -17,12 +17,15 @@ import { C3ConfigCreateDialog } from '@/components/admin/c3-period-config/C3Conf
 export function C3PeriodConfigTab() {
   const { data: configs, isLoading, error } = useC3ConfigPeriods();
   const toggleActive = useToggleC3ConfigActive();
+  const deletePeriod = useDeleteC3ConfigPeriod();
+  const { data: deletability } = useC3PeriodsDeletability(configs);
   const { userCode } = useUserCode();
 
   const [selectedConfig, setSelectedConfig] = useState<C3ConfigWithDetails | null>(null);
   const [showCloneDialog, setShowCloneDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [periodToDelete, setPeriodToDelete] = useState<C3ConfigWithDetails | null>(null);
 
   if (isLoading) {
     return (
