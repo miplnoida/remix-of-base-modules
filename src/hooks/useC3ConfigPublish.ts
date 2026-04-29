@@ -42,116 +42,72 @@ export interface SyncPendingCounts {
   incomeCodeExceptions: number;
 }
 
-// Check if any config has been modified since last publish
+// Check if any config has been modified since last publish.
+// Compares actual payload hash against last successful sync to avoid
+// false positives caused by `modified_on` being bumped without value changes.
 export function useC3SyncStatus() {
   return useQuery({
     queryKey: ['c3-sync-status'],
     queryFn: async (): Promise<{ hasPendingChanges: boolean; lastPublishedAt: string | null; pendingCounts: SyncPendingCounts }> => {
       const { data: lastSync } = await supabase
         .from('c3_config_sync_log')
-        .select('published_at')
+        .select('published_at, payload_hash')
         .eq('status', 'success')
         .order('published_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       const lastPublishedAt = lastSync?.published_at || null;
+      const lastPublishedHash = lastSync?.payload_hash || null;
 
-      if (!lastPublishedAt) {
-        const [{ count: pCount }, { count: pdCount }, { count: sCount }, { count: bpCount }, { count: beCount }, { count: hpCount }, { count: heCount }, { count: ccCount }, { count: icCount }, { count: catCount }, { count: seCount }, { count: icpCount }, { count: iceCount }] = await Promise.all([
-          supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }),
-          supabase.from('c3_config_details').select('*', { count: 'exact', head: true }),
-          supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }),
-          supabase.from('c3_bonus_policy_default').select('*', { count: 'exact', head: true }).eq('is_active', true),
-          supabase.from('c3_bonus_policy_exceptions').select('*', { count: 'exact', head: true }).eq('is_active', true),
-          supabase.from('c3_holiday_pay_policy_default').select('*', { count: 'exact', head: true }).eq('is_active', true),
-          supabase.from('c3_holiday_pay_policy_exceptions').select('*', { count: 'exact', head: true }).eq('is_active', true),
-          supabase.from('c3_calculation_config').select('*', { count: 'exact', head: true }).eq('is_active', true),
-          (supabase as any).from('tb_income_codes').select('*', { count: 'exact', head: true }),
-          (supabase as any).from('tb_income_cat').select('*', { count: 'exact', head: true }),
-          (supabase as any).from('tb_self_emp_contrib_rate').select('*', { count: 'exact', head: true }),
-          (supabase as any).from('c3_income_code_policy_default').select('*', { count: 'exact', head: true }).eq('is_active', true),
-          (supabase as any).from('c3_income_code_policy_exceptions').select('*', { count: 'exact', head: true }).eq('is_active', true),
-        ]);
-        const periodsTotal = (pCount || 0) + (pdCount || 0);
-        const total = periodsTotal + (sCount || 0) + (bpCount || 0) + (beCount || 0) + (hpCount || 0) + (heCount || 0) + (ccCount || 0) + (icCount || 0) + (catCount || 0) + (seCount || 0) + (icpCount || 0) + (iceCount || 0);
+      // Build the current payload and compare hashes — this is the source of truth.
+      let currentHash: string | null = null;
+      let currentCounts: SyncPendingCounts = {
+        periods: 0, slabs: 0, bonusPolicies: 0, bonusExceptions: 0,
+        holidayPolicies: 0, holidayExceptions: 0, calculationConfigs: 0,
+        incomeCodes: 0, incomeCategories: 0, selfEmpRates: 0,
+        incomeCodePolicies: 0, incomeCodeExceptions: 0,
+      };
+      try {
+        const { payloadHash, counts } = await buildSyncPayload();
+        currentHash = payloadHash;
+        currentCounts = {
+          periods: counts.periods,
+          slabs: counts.slabs,
+          bonusPolicies: counts.bonusPolicies,
+          bonusExceptions: counts.bonusExceptions,
+          holidayPolicies: counts.holidayPolicies,
+          holidayExceptions: counts.holidayExceptions,
+          calculationConfigs: counts.calculationConfigs,
+          incomeCodes: counts.incomeCodes,
+          incomeCategories: counts.incomeCategories,
+          selfEmpRates: counts.selfEmpRates,
+          incomeCodePolicies: counts.incomeCodePolicies,
+          incomeCodeExceptions: counts.incomeCodeExceptions,
+        };
+      } catch (e) {
+        // If payload build fails, fall back to "no pending" so UI doesn't lie.
         return {
-          hasPendingChanges: total > 0,
-          lastPublishedAt: null,
-          pendingCounts: {
-            periods: periodsTotal, slabs: sCount || 0,
-            bonusPolicies: bpCount || 0, bonusExceptions: beCount || 0,
-            holidayPolicies: hpCount || 0, holidayExceptions: heCount || 0,
-            calculationConfigs: ccCount || 0, incomeCodes: icCount || 0,
-            incomeCategories: catCount || 0, selfEmpRates: seCount || 0,
-            incomeCodePolicies: icpCount || 0, incomeCodeExceptions: iceCount || 0,
-          }
+          hasPendingChanges: false,
+          lastPublishedAt,
+          pendingCounts: currentCounts,
         };
       }
 
-      // Check for modifications since last publish across all tables
-      const [
-        { count: pMod }, { count: pdMod }, { count: sMod },
-        { count: bpMod }, { count: beMod },
-        { count: hpMod }, { count: heMod },
-        { count: ccMod },
-        { count: icpMod }, { count: iceMod },
-      ] = await Promise.all([
-        supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
-        supabase.from('c3_config_details').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
-        supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
-        supabase.from('c3_bonus_policy_default').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
-        supabase.from('c3_bonus_policy_exceptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
-        supabase.from('c3_holiday_pay_policy_default').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
-        supabase.from('c3_holiday_pay_policy_exceptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
-        supabase.from('c3_calculation_config').select('*', { count: 'exact', head: true }).gt('updated_at', lastPublishedAt),
-        (supabase as any).from('c3_income_code_policy_default').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
-        (supabase as any).from('c3_income_code_policy_exceptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
-      ]);
-
-      // Check for never-published records (tables with last_published_at column)
-      const [
-        { count: pNew }, { count: sNew },
-        { count: bpNew }, { count: beNew },
-        { count: hpNew }, { count: heNew },
-      ] = await Promise.all([
-        supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }).is('last_published_at', null),
-        supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }).is('last_published_at', null),
-        supabase.from('c3_bonus_policy_default').select('*', { count: 'exact', head: true }).is('last_published_at', null),
-        supabase.from('c3_bonus_policy_exceptions').select('*', { count: 'exact', head: true }).is('last_published_at', null),
-        supabase.from('c3_holiday_pay_policy_default').select('*', { count: 'exact', head: true }).is('last_published_at', null),
-        supabase.from('c3_holiday_pay_policy_exceptions').select('*', { count: 'exact', head: true }).is('last_published_at', null),
-      ]);
-
-      // For tables without last_published_at: compare modification timestamps against last publish
-      const [{ count: icMod }, { count: catMod }, { count: seMod }] = await Promise.all([
-        (supabase as any).from('tb_income_codes').select('*', { count: 'exact', head: true }).gt('updated_at', lastPublishedAt),
-        (supabase as any).from('tb_income_cat').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
-        (supabase as any).from('tb_self_emp_contrib_rate').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
-      ]);
-
-      const periods = (pMod || 0) + (pNew || 0) + (pdMod || 0);
-      const slabs = (sMod || 0) + (sNew || 0);
-      const bonusPolicies = (bpMod || 0) + (bpNew || 0);
-      const bonusExceptions = (beMod || 0) + (beNew || 0);
-      const holidayPolicies = (hpMod || 0) + (hpNew || 0);
-      const holidayExceptions = (heMod || 0) + (heNew || 0);
-      const calculationConfigs = ccMod || 0;
-      const incomeCodes = icMod || 0;
-      const incomeCategories = catMod || 0;
-      const selfEmpRates = seMod || 0;
-      const incomeCodePolicies = icpMod || 0;
-      const incomeCodeExceptions = iceMod || 0;
+      const hasPendingChanges = lastPublishedHash
+        ? currentHash !== lastPublishedHash
+        : Object.values(currentCounts).some(c => c > 0);
 
       return {
-        hasPendingChanges: periods + slabs + bonusPolicies + bonusExceptions + holidayPolicies + holidayExceptions + calculationConfigs + incomeCodes + incomeCategories + selfEmpRates + incomeCodePolicies + incomeCodeExceptions > 0,
+        hasPendingChanges,
         lastPublishedAt,
-        pendingCounts: { periods, slabs, bonusPolicies, bonusExceptions, holidayPolicies, holidayExceptions, calculationConfigs, incomeCodes, incomeCategories, selfEmpRates, incomeCodePolicies, incomeCodeExceptions }
+        pendingCounts: currentCounts,
       };
     },
     refetchInterval: 30000,
   });
 }
+
 
 // Fetch sync history log
 export function useC3SyncLog() {

@@ -108,15 +108,21 @@ export function C3PeriodConfigTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {configs?.map(config => (
+                {(() => {
+                  const activeSorted = (configs || [])
+                    .filter(c => c.is_active)
+                    .slice()
+                    .sort((a, b) => (b.start_date || '').localeCompare(a.start_date || ''));
+                  const currentPeriodId = activeSorted[0]?.id;
+                  return configs?.map(config => (
                   <TableRow key={config.id}>
                     <TableCell className="font-medium">
                       {formatDate(config.start_date)}
                     </TableCell>
                     <TableCell>
-                      {config.end_date ? formatDate(config.end_date) : (
+                      {config.id === currentPeriodId || !config.end_date ? (
                          <Badge variant="outline" className="bg-primary/10 text-primary">Current</Badge>
-                      )}
+                      ) : formatDate(config.end_date)}
                     </TableCell>
                     <TableCell>
                       <Switch
@@ -179,7 +185,8 @@ export function C3PeriodConfigTab() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                ));
+                })()}
                 {(!configs || configs.length === 0) && (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
