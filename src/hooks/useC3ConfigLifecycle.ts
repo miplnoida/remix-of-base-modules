@@ -55,7 +55,8 @@ export function useUpsertC3ConfigWithSplit() {
         p_id: params.id || null,
         p_date_from: params.dateFrom,
         p_date_to: params.dateTo || null,
-        p_values_json: JSON.stringify(params.valuesJson),
+        // jsonb param: pass plain object (not stringified)
+        p_values_json: (params.valuesJson ?? {}) as any,
         p_user_code: params.userCode || null,
         p_force_split: params.forceSplit ?? false,
       });
