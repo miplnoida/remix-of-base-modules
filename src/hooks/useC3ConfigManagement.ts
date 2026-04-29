@@ -376,7 +376,6 @@ export function useDeleteC3ConfigPeriod() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
       queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
-      queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
       queryClient.invalidateQueries({ queryKey: ['c3-unified-audit-logs'] });
       queryClient.invalidateQueries({ queryKey: ['c3-config-period'] });
       toast.success('Configuration period deleted');
