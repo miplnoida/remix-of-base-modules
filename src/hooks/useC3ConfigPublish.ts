@@ -130,7 +130,7 @@ export function useC3SyncStatus() {
         (supabase as any).from('tb_self_emp_contrib_rate').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
       ]);
 
-      const periods = (pMod || 0) + (pNew || 0);
+      const periods = (pMod || 0) + (pNew || 0) + (pdMod || 0);
       const slabs = (sMod || 0) + (sNew || 0);
       const bonusPolicies = (bpMod || 0) + (bpNew || 0);
       const bonusExceptions = (beMod || 0) + (beNew || 0);
