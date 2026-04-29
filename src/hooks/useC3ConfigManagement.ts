@@ -18,6 +18,7 @@ export interface C3ConfigPeriod {
   created_on: string;
   modified_by: string | null;
   modified_on: string;
+  last_published_at: string | null;
 }
 
 export interface C3ConfigDetails {
