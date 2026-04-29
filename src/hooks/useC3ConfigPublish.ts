@@ -42,20 +42,85 @@ export interface SyncPendingCounts {
   incomeCodeExceptions: number;
 }
 
-// Check if any config has been modified since last publish
+// Check if any config has been modified since last publish.
+// Compares actual payload hash against last successful sync to avoid
+// false positives caused by `modified_on` being bumped without value changes.
 export function useC3SyncStatus() {
   return useQuery({
     queryKey: ['c3-sync-status'],
     queryFn: async (): Promise<{ hasPendingChanges: boolean; lastPublishedAt: string | null; pendingCounts: SyncPendingCounts }> => {
       const { data: lastSync } = await supabase
         .from('c3_config_sync_log')
-        .select('published_at')
+        .select('published_at, payload_hash')
         .eq('status', 'success')
         .order('published_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       const lastPublishedAt = lastSync?.published_at || null;
+      const lastPublishedHash = lastSync?.payload_hash || null;
+
+      // Build the current payload and compare hashes — this is the source of truth.
+      let currentHash: string | null = null;
+      let currentCounts: SyncPendingCounts = {
+        periods: 0, slabs: 0, bonusPolicies: 0, bonusExceptions: 0,
+        holidayPolicies: 0, holidayExceptions: 0, calculationConfigs: 0,
+        incomeCodes: 0, incomeCategories: 0, selfEmpRates: 0,
+        incomeCodePolicies: 0, incomeCodeExceptions: 0,
+      };
+      try {
+        const { payloadHash, counts } = await buildSyncPayload();
+        currentHash = payloadHash;
+        currentCounts = {
+          periods: counts.periods,
+          slabs: counts.slabs,
+          bonusPolicies: counts.bonusPolicies,
+          bonusExceptions: counts.bonusExceptions,
+          holidayPolicies: counts.holidayPolicies,
+          holidayExceptions: counts.holidayExceptions,
+          calculationConfigs: counts.calculationConfigs,
+          incomeCodes: counts.incomeCodes,
+          incomeCategories: counts.incomeCategories,
+          selfEmpRates: counts.selfEmpRates,
+          incomeCodePolicies: counts.incomeCodePolicies,
+          incomeCodeExceptions: counts.incomeCodeExceptions,
+        };
+      } catch (e) {
+        // If payload build fails, fall back to "no pending" so UI doesn't lie.
+        return {
+          hasPendingChanges: false,
+          lastPublishedAt,
+          pendingCounts: currentCounts,
+        };
+      }
+
+      const hasPendingChanges = lastPublishedHash
+        ? currentHash !== lastPublishedHash
+        : Object.values(currentCounts).some(c => c > 0);
+
+      return {
+        hasPendingChanges,
+        lastPublishedAt,
+        pendingCounts: currentCounts,
+      };
+    },
+    refetchInterval: 30000,
+  });
+}
+
+// Legacy timestamp-based detector (kept for reference / future use)
+function _legacyTimestampSyncStatus_unused() {
+  return null;
+}
+
+// Old implementation start (dead code, retained as comment for diff):
+function _oldDetector(lastPublishedAt: string) {
+  // intentionally empty — replaced by hash-based check above
+  return lastPublishedAt;
+}
+
+// === Original timestamp-based block (no longer used) ===
+async function _legacyDetectorBody_unused(lastPublishedAt: string | null) {
 
       if (!lastPublishedAt) {
         const [{ count: pCount }, { count: pdCount }, { count: sCount }, { count: bpCount }, { count: beCount }, { count: hpCount }, { count: heCount }, { count: ccCount }, { count: icCount }, { count: catCount }, { count: seCount }, { count: icpCount }, { count: iceCount }] = await Promise.all([
