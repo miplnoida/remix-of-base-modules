@@ -95,10 +95,11 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
     if (!config) return;
 
     try {
-      // Build values JSON from formData (excluding id and config_period_id)
-      const { id, config_period_id, ...detailValues } = formData as any;
-      
-      await upsertWithSplit.mutateAsync({
+      // Strip non-detail keys from formData; the rest are the editable
+      // c3_config_details columns we want to mirror into the new period.
+      const { id: _id, config_period_id: _cpid, ...detailValues } = formData as any;
+
+      const splitResult = await upsertWithSplit.mutateAsync({
         tableName: 'c3_config_periods',
         id: config.id,
         dateFrom: config.start_date,
@@ -108,11 +109,40 @@ export function C3ConfigDetailsDialog({ isOpen, onClose, config }: C3ConfigDetai
         forceSplit: true,
       });
 
-      // After split, update the new record's details
+      const newPeriodId = (splitResult as any)?.new_id as string | undefined;
+
+      // Mirror edited details into the freshly created period so the user's
+      // SS / Levy / Severance / Penalty edits are not lost.
+      if (newPeriodId) {
+        const nowIso = new Date().toISOString();
+        const { error: detailErr } = await supabase
+          .from('c3_config_details')
+          .insert({
+            config_period_id: newPeriodId,
+            ...detailValues,
+            created_by: userCode || null,
+            modified_by: userCode || null,
+            created_on: nowIso,
+            modified_on: nowIso,
+          });
+
+        if (detailErr) throw detailErr;
+
+        await logC3ConfigChange({
+          configType: 'period_config',
+          recordId: newPeriodId,
+          action: 'CREATE',
+          entityName: `Period Config (split from ${config.start_date})`,
+          oldValue: originalFormData,
+          newValue: detailValues,
+          changedBy: userCode,
+        });
+      }
+
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
       queryClient.invalidateQueries({ queryKey: ['c3-config-period'] });
       toast.success('Configuration split successfully. Historical data preserved, new period created.');
-      
+
       setShowSplitConfirm(false);
       setSplitAnalysis(null);
       onClose();
