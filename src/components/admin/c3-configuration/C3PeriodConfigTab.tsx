@@ -148,6 +148,34 @@ export function C3PeriodConfigTab() {
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
+                        {(() => {
+                          const info = deletability?.[config.id];
+                          const canDelete = !!info?.canDelete;
+                          const reason = info?.reason || 'Checking...';
+                          const btn = (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={!canDelete || deletePeriod.isPending}
+                              onClick={() => canDelete && setPeriodToDelete(config)}
+                              title={canDelete ? 'Delete Configuration' : reason}
+                              className={canDelete ? 'text-destructive hover:text-destructive hover:bg-destructive/10' : ''}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          );
+                          if (canDelete) return btn;
+                          return (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span tabIndex={0}>{btn}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>{reason}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })()}
                       </div>
                     </TableCell>
                   </TableRow>
