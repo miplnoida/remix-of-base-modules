@@ -3,7 +3,7 @@
  * Used by all C3 config tabs (Period, Bonus, Holiday, Income Code, Levy)
  */
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { SplitAnalysis } from '@/components/admin/c3-configuration/C3SplitConfirmDialog';
 
