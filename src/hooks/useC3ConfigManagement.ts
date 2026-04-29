@@ -323,3 +323,119 @@ export function useLevySlabs() {
     }
   });
 }
+
+// ---------------------------------------------------------------------------
+// Delete a configuration period (only allowed for never-used, future periods).
+// The DB function delete_c3_config_period enforces all rules authoritatively.
+// ---------------------------------------------------------------------------
+export function useDeleteC3ConfigPeriod() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: ['C3Config', 'c3_config_management', 'delete'],
+    mutationFn: async ({
+      periodId,
+      userCode,
+      periodInfo,
+    }: {
+      periodId: string;
+      userCode?: string;
+      periodInfo?: { start_date: string; end_date: string | null };
+    }) => {
+      const { data, error } = await supabase.rpc('delete_c3_config_period', {
+        p_period_id: periodId,
+        p_user_code: userCode || null,
+      });
+      if (error) throw error;
+      const result = data as unknown as { success?: boolean; error?: string };
+      if (result?.error) throw new Error(result.error);
+
+      // Mirror to the unified C3 audit channel for cross-module visibility.
+      const periodLabel = periodInfo
+        ? `Period Config (${formatAuditDate(periodInfo.start_date)} - ${periodInfo.end_date ? formatAuditDate(periodInfo.end_date) : 'Current'})`
+        : 'Period Configuration';
+      try {
+        await logC3ConfigChange({
+          configType: 'period_config',
+          recordId: periodId,
+          action: 'DELETE',
+          entityName: periodLabel,
+          oldValue: periodInfo,
+          changedBy: userCode,
+        });
+      } catch (_) {
+        // Non-blocking: audit failures must never break the user flow.
+      }
+
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-unified-audit-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-config-period'] });
+      toast.success('Configuration period deleted');
+    },
+    onError: (error: any) => {
+      toast.error(error?.message || 'Failed to delete configuration period');
+    },
+  });
+}
+
+// Compute deletability for the current list of periods in a single batched query.
+// Mirrors the DB rules in c3_config_period_deletability(); the DB function is the
+// authoritative gate at delete-time. This client-side check is purely for UX.
+export function useC3PeriodsDeletability(periods: C3ConfigWithDetails[] | undefined) {
+  return useQuery({
+    queryKey: ['c3-config-periods-deletability', (periods || []).map(p => p.id).join(',')],
+    enabled: !!periods && periods.length > 0,
+    queryFn: async (): Promise<Record<string, { canDelete: boolean; reason: string | null }>> => {
+      const list = periods || [];
+      const result: Record<string, { canDelete: boolean; reason: string | null }> = {};
+      const today = new Date();
+      const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      const activeCount = list.filter(p => p.is_active).length;
+
+      // Single batched submissions count: pull all filing_periods within the union
+      // of [min(start), max(end||9999)] then bucket per period in JS — avoids N+1.
+      const minStart = list.reduce<string | null>((acc, p) => (!acc || p.start_date < acc ? p.start_date : acc), null);
+      const { data: subs } = await supabase
+        .from('c3_submissions')
+        .select('filing_period')
+        .gte('filing_period', minStart ? minStart.slice(0, 7) : '1900-01');
+
+      const subPeriods = (subs || []).map(s => s.filing_period).filter(Boolean) as string[];
+
+      for (const p of list) {
+        // Rule 1: never published
+        if (p.last_published_at) {
+          result[p.id] = { canDelete: false, reason: 'Already published — cannot be deleted' };
+          continue;
+        }
+        // Rule 2: future-only
+        const start = new Date(p.start_date + 'T00:00:00');
+        if (start <= currentMonthStart) {
+          result[p.id] = { canDelete: false, reason: 'Period is current or past — already in use for C3 generation' };
+          continue;
+        }
+        // Rule 3: no submissions in window
+        const end = p.end_date || '9999-12-31';
+        const startKey = p.start_date.slice(0, 7);
+        const endKey = end.slice(0, 7);
+        const hasSub = subPeriods.some(fp => fp >= startKey && fp <= endKey);
+        if (hasSub) {
+          result[p.id] = { canDelete: false, reason: 'Period has C3 submissions and cannot be deleted' };
+          continue;
+        }
+        // Rule 4: keep at least one active period
+        if (p.is_active && activeCount <= 1) {
+          result[p.id] = { canDelete: false, reason: 'At least one active period must remain' };
+          continue;
+        }
+        result[p.id] = { canDelete: true, reason: null };
+      }
+      return result;
+    },
+  });
+}
+
