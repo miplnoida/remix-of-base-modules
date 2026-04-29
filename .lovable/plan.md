@@ -1,69 +1,184 @@
-## Problem
+## Goal
 
-When editing Social Security (or any field) in **C3 Configuration → Configuration Details** for a period that started before the current month (e.g. 31 Dec 2024), clicking **Save Changes** triggers the split flow. Confirming the split toasts:
+Two related fixes on the C3 Period Configuration screen:
 
-> cannot call jsonb_each_text on a non-object
+1. **Delete unused C3 configuration periods** — only when the period has not yet been "used" for C3 generation. Past/used periods must be frozen.
+2. **Publish badge must light up when a brand-new period is added**, not only when an existing period's details are edited.
 
-DB logs confirm the error originates in:
+---
+
+## Part A — Delete C3 Configuration
+
+### Eligibility rule (what counts as "deletable" / "future-only")
+
+A period in `c3_config_periods` is **deletable** when ALL of the following are true:
+
+1. The period has **never been published** to C3-Wizard — `last_published_at IS NULL`.
+2. The period's effective window has **not started being used for C3 generation**. Because employer C3s for month *M* are processed in month *M+1*, a period is considered "in-use" the moment its `start_date <= first_day_of_current_month`. So deletion is allowed only when `start_date > first_day_of_current_month` (i.e. the period starts in a future month).
+3. No row exists in `c3_submissions` whose `filing_period` (YYYY-MM text) falls within `[start_date, end_date]` of the period (defensive check — catches any backfilled or manually loaded usage).
+4. The period is not the **only remaining active period** (we always keep at least one active config so calculations don't break).
+
+If any of (1)–(3) is false → the period is **frozen** and the Delete action is hidden / disabled with a tooltip explaining why.
+
+### UI changes
+
+`src/components/admin/c3-configuration/C3PeriodConfigTab.tsx` (and the legacy `src/pages/admin/C3PeriodConfigPage.tsx` mirror):
+
+- Add a **Delete** icon button (Trash2) in the Actions column next to View/Clone.
+- Show it only when the row's `canDelete` flag is true (computed by the hook below). When not deletable, render the icon disabled with a tooltip:
+  - "Already published — cannot be deleted" (rule 1 fails)
+  - "Period is current or past — already in use for C3 generation" (rule 2 fails)
+  - "Period has C3 submissions and cannot be deleted" (rule 3 fails)
+  - "At least one active period must remain" (rule 4 fails)
+- Clicking Delete opens an `AlertDialog` confirmation: "Delete configuration period {start} – {end}? This will also delete its calculation details. This action cannot be undone." with Cancel / Delete buttons. Delete is destructive variant.
+
+### Hook
+
+`src/hooks/useC3ConfigManagement.ts` — add:
+
+- `useDeleteC3ConfigPeriod()` mutation that calls a new RPC `delete_c3_config_period(p_period_id uuid, p_user_code varchar)`.
+- After success: invalidate `['c3-config-periods']`, `['c3-sync-status']`, `['c3-unified-audit-logs']`, and toast success.
+- On RPC-returned `{ error: '...' }`, throw to surface as an error toast.
+
+### RPC (new migration)
+
+```sql
+create or replace function public.delete_c3_config_period(
+  p_period_id uuid,
+  p_user_code varchar
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_period record;
+  v_current_month_start date := date_trunc('month', current_date)::date;
+  v_submission_count int;
+  v_active_count int;
+  v_old jsonb;
+begin
+  select * into v_period from c3_config_periods where id = p_period_id;
+  if not found then
+    return jsonb_build_object('error', 'Period not found');
+  end if;
+
+  -- Rule 1: never published
+  if v_period.last_published_at is not null then
+    return jsonb_build_object('error', 'Period has been published to C3-Wizard and cannot be deleted');
+  end if;
+
+  -- Rule 2: future-only (start strictly after current month start)
+  if v_period.start_date <= v_current_month_start then
+    return jsonb_build_object('error', 'Period is current or past and is already in use for C3 generation');
+  end if;
+
+  -- Rule 3: no submissions within window
+  select count(*) into v_submission_count
+    from c3_submissions
+   where to_date(filing_period || '-01', 'YYYY-MM-DD') between v_period.start_date
+         and coalesce(v_period.end_date, date '9999-12-31');
+  if v_submission_count > 0 then
+    return jsonb_build_object('error', 'Period has C3 submissions and cannot be deleted');
+  end if;
+
+  -- Rule 4: keep at least one active period
+  select count(*) into v_active_count from c3_config_periods where is_active = true;
+  if v_period.is_active and v_active_count <= 1 then
+    return jsonb_build_object('error', 'At least one active configuration period must remain');
+  end if;
+
+  -- Snapshot for audit
+  v_old := jsonb_build_object(
+    'period', row_to_json(v_period),
+    'details', (select row_to_json(d) from c3_config_details d where d.config_period_id = p_period_id)
+  );
+
+  delete from c3_config_details where config_period_id = p_period_id;
+  delete from c3_config_periods where id = p_period_id;
+
+  insert into system_audit_trail (table_name, record_id, action, old_values, new_values, user_code, performed_at)
+  values ('c3_config_periods', p_period_id::text, 'DELETE', v_old, null, p_user_code, now());
+
+  return jsonb_build_object('success', true);
+end $$;
 ```
-PL/pgSQL function upsert_c3_config_with_split(...) line 74 at FOR over SELECT rows
-```
-which is `FOR k, v IN SELECT * FROM jsonb_each_text(p_values_json) LOOP …`.
 
-### Root cause
+A second helper RPC `c3_config_period_deletability(p_period_id uuid)` returns `{ can_delete bool, reason text }` so the UI can render the disabled tooltip without duplicating the logic in TS. The list query is enriched to call this in a single batched select (or computed client-side mirroring the same rules — chosen client-side for performance, with the RPC as the authoritative gate at delete-time).
 
-`src/hooks/useC3ConfigLifecycle.ts` calls the RPC with:
-```ts
-p_values_json: JSON.stringify(params.valuesJson),
-p_scope_filter: params.scopeFilter ? JSON.stringify(params.scopeFilter) : null,
-```
+The hook computes `canDelete` client-side from the already-fetched fields (`last_published_at`, `start_date`, active count) plus a single `c3_submissions` count query keyed by all period IDs, to avoid N+1.
 
-The RPC parameter is typed `jsonb`. supabase-js already JSON-encodes the request body, so passing a pre-stringified value gets **double-encoded**: Postgres receives a JSON string scalar (e.g. `"{}"`) instead of an object. `jsonb_each_text` only works on JSON objects, hence the error.
+### Audit / sync side-effects
 
-### Secondary issue
+- Deletion logs to `system_audit_trail` and to `c3_unified_audit_log` via `logC3ConfigChange({ action: 'DELETE', configType: 'period_config', ... })` from the hook.
+- Because the period was never published, no Wizard sync rollback is needed.
 
-`C3ConfigDetailsDialog.handleConfirmSplit` passes `valuesJson: {}`. Even after the encoding fix, the newly-created split period row in `c3_config_periods` would have **no detail values**, and the user's edits to SS / Levy / etc. (which live in the child table `c3_config_details`) would be silently lost. The split must also create a `c3_config_details` row for the new period using the edited `formData`.
+---
 
-## Plan
+## Part B — Publish badge: light up for newly-added periods
 
-### 1. Stop double-encoding jsonb RPC parameters
-File: `src/hooks/useC3ConfigLifecycle.ts`
+### Current behaviour
 
-- `useAnalyzeC3ConfigChange`: pass `p_scope_filter: params.scopeFilter ?? null` (object, not string).
-- `useUpsertC3ConfigWithSplit`: pass `p_values_json: params.valuesJson ?? {}` (object).
-- `useCreateC3ConfigPeriod`: pass `p_details_json: params.detailsJson ?? {}` (object).
+`useC3SyncStatus` in `src/hooks/useC3ConfigPublish.ts` already counts:
 
-This resolves the immediate `jsonb_each_text` error for every caller of these hooks (period, bonus, holiday, income code, levy tabs).
+- `pMod` = `c3_config_periods.modified_on > lastPublishedAt`
+- `pNew` = `c3_config_periods.last_published_at IS NULL`
 
-### 2. Carry edited form values into the split-created period
-File: `src/components/admin/c3-period-config/C3ConfigDetailsDialog.tsx` (`handleConfirmSplit`)
+…and adds them as `periods = pMod + pNew`. In principle a brand-new row should bubble up via `pNew`. In practice the badge does not light up for newly-created periods because:
 
-After `upsertWithSplit` returns `{ success, split: true, new_id, truncated_id }`:
+1. `create_c3_config_period` and `clone_c3_config` insert the new row but on some paths set/copy `last_published_at` from the source row, so `pNew` does not catch it.
+2. The "split" path in `C3ConfigDetailsDialog.handleConfirmSplit` writes both the new period and its details, but does not invalidate `['c3-sync-status']`, so the badge waits up to 30 s for the next refetch.
+3. `c3_config_details` changes are not counted at all — editing only the details table (no period row touched) is invisible to the status query.
 
-1. Insert a new row into `c3_config_details` for `config_period_id = new_id`, copying every editable field from `formData` (excluding `id`, `config_period_id`, audit columns), plus `created_by` / `modified_by` = current `userCode`.
-2. Log the change via `logC3ConfigChange` with `action: 'CREATE'`, entity name showing the new period range, and `oldValue: originalFormData`, `newValue: formData` so the audit log shows what changed.
-3. Invalidate `['c3-config-periods']` and `['c3-config-period']` queries (already done).
+### Fixes
 
-### 3. Verify other call sites are not broken by removing the stringify
-The same hook is used by:
-- `C3ConfigCreateDialog` → `useCreateC3ConfigPeriod` (already passes a plain object as `detailsJson`)
-- Bonus / Holiday / Income-code / Levy tabs that call `useUpsertC3ConfigWithSplit`
+1. **DB hygiene** — in a migration, ensure `clone_c3_config` and `create_c3_config_period` always set `last_published_at = NULL` on the inserted row (and never copy it from the source). Add a `BEFORE INSERT` trigger on `c3_config_periods` that forces `last_published_at := NULL` on insert as a safety net.
+2. **Count detail edits as pending** — extend `useC3SyncStatus` to also query:
+  ```ts
+   supabase.from('c3_config_details').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt)
+  ```
+   and add the result into the `periods` bucket (so the existing "X period configuration(s)" line in the publish dialog reflects detail edits too). On first-time (`!lastPublishedAt`) branch, also count `c3_config_details` rows.
+3. **Cache invalidation on every write path** — in `C3ConfigDetailsDialog.tsx`, `useCreateC3ConfigPeriod`, `useCloneC3Config`, `useUpdateC3ConfigDetails`, `useUpsertC3ConfigWithSplit`, and the new `useDeleteC3ConfigPeriod`, add `queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] })` so the badge updates immediately instead of waiting 30 s.
+4. **Verify the "split" path** in `C3ConfigDetailsDialog.handleConfirmSplit` invalidates `c3-sync-status` after both the period insert and the details insert.
 
-All current callers pass plain JS objects, so removing `JSON.stringify` is safe and actually fixes them too — they would hit the same error if the user ever forced a split.
+### Acceptance for Part B
 
-### 4. Manual test matrix
+- Add a new period via "New Period" → badge flips to "Changes Pending Sync" within ~1 s.
+- Clone a period → same.
+- Split a period (edit a value with split confirm) → same.
+- Edit only `c3_config_details` of an existing published period → badge lights up.
+- Click Publish, sync succeeds → badge returns to "Synced {date}".
 
-After deploy, on `/admin/c3-configuration`:
+---
 
-| Scenario | Expected |
-|---|---|
-| Edit SS rate on a period starting before current month → Save → Confirm split | Old period truncated to last day of previous month, new period from 1st of current month carries new SS rate, no toast error |
-| Edit SS rate on a period starting **in** current month → Save | Direct update path (no split dialog), new value persisted |
-| Create new period via "+ New Period" | Still works (uses `create_c3_config_period`) |
-| Bonus / Holiday / Income-code / Levy tabs: edit a row whose `date_from` is before current month → Save → Confirm split | Split succeeds, no `jsonb_each_text` error |
+## Files to edit / create
 
-### Technical summary
+**New migration**
 
-- 1 hook file edited (3 RPC calls): remove `JSON.stringify` for jsonb params.
-- 1 dialog edited: extend `handleConfirmSplit` to mirror the edited details into `c3_config_details` for the new split period and audit-log it.
-- No DB migration required — the RPC itself is correct; the bug is on the client side and in how the split dialog handed off form state.
+- `supabase/migrations/<ts>_c3_config_period_delete_and_sync.sql`
+  - `delete_c3_config_period(uuid, varchar)` RPC
+  - `c3_config_period_deletability(uuid)` RPC (optional helper)
+  - Update `clone_c3_config` and `create_c3_config_period` to force `last_published_at = NULL`
+  - `BEFORE INSERT` trigger on `c3_config_periods` setting `last_published_at = NULL`
+
+**Hooks**
+
+- `src/hooks/useC3ConfigManagement.ts` — add `useDeleteC3ConfigPeriod`; add `usePeriodSubmissionCounts` (batched) and expose `canDelete` per row via a derived selector.
+- `src/hooks/useC3ConfigPublish.ts` — include `c3_config_details` in pending counts; small refactor only.
+
+**Components**
+
+- `src/components/admin/c3-configuration/C3PeriodConfigTab.tsx` — add Delete button, tooltip, confirm dialog.
+- `src/pages/admin/C3PeriodConfigPage.tsx` — mirror the same Delete UX (legacy page still in routes).
+- `src/components/admin/c3-period-config/C3ConfigDetailsDialog.tsx` — invalidate `c3-sync-status` after split/save.
+
+**No edits** to `src/integrations/supabase/types.ts` (auto-generated) or `src/integrations/supabase/client.ts`.
+
+## Out of scope
+
+- No auto-merge of equivalent adjacent periods (previously declined).
+- No changes to the published Wizard payload schema.
+- No bulk delete.  
+  
+  
+Important Note;- Ensure the existing functionality should not be impacted.

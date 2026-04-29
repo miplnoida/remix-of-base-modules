@@ -58,8 +58,9 @@ export function useC3SyncStatus() {
       const lastPublishedAt = lastSync?.published_at || null;
 
       if (!lastPublishedAt) {
-        const [{ count: pCount }, { count: sCount }, { count: bpCount }, { count: beCount }, { count: hpCount }, { count: heCount }, { count: ccCount }, { count: icCount }, { count: catCount }, { count: seCount }, { count: icpCount }, { count: iceCount }] = await Promise.all([
+        const [{ count: pCount }, { count: pdCount }, { count: sCount }, { count: bpCount }, { count: beCount }, { count: hpCount }, { count: heCount }, { count: ccCount }, { count: icCount }, { count: catCount }, { count: seCount }, { count: icpCount }, { count: iceCount }] = await Promise.all([
           supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }),
+          supabase.from('c3_config_details').select('*', { count: 'exact', head: true }),
           supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }),
           supabase.from('c3_bonus_policy_default').select('*', { count: 'exact', head: true }).eq('is_active', true),
           supabase.from('c3_bonus_policy_exceptions').select('*', { count: 'exact', head: true }).eq('is_active', true),
@@ -72,12 +73,13 @@ export function useC3SyncStatus() {
           (supabase as any).from('c3_income_code_policy_default').select('*', { count: 'exact', head: true }).eq('is_active', true),
           (supabase as any).from('c3_income_code_policy_exceptions').select('*', { count: 'exact', head: true }).eq('is_active', true),
         ]);
-        const total = (pCount || 0) + (sCount || 0) + (bpCount || 0) + (beCount || 0) + (hpCount || 0) + (heCount || 0) + (ccCount || 0) + (icCount || 0) + (catCount || 0) + (seCount || 0) + (icpCount || 0) + (iceCount || 0);
+        const periodsTotal = (pCount || 0) + (pdCount || 0);
+        const total = periodsTotal + (sCount || 0) + (bpCount || 0) + (beCount || 0) + (hpCount || 0) + (heCount || 0) + (ccCount || 0) + (icCount || 0) + (catCount || 0) + (seCount || 0) + (icpCount || 0) + (iceCount || 0);
         return {
           hasPendingChanges: total > 0,
           lastPublishedAt: null,
           pendingCounts: {
-            periods: pCount || 0, slabs: sCount || 0,
+            periods: periodsTotal, slabs: sCount || 0,
             bonusPolicies: bpCount || 0, bonusExceptions: beCount || 0,
             holidayPolicies: hpCount || 0, holidayExceptions: heCount || 0,
             calculationConfigs: ccCount || 0, incomeCodes: icCount || 0,
@@ -89,13 +91,14 @@ export function useC3SyncStatus() {
 
       // Check for modifications since last publish across all tables
       const [
-        { count: pMod }, { count: sMod },
+        { count: pMod }, { count: pdMod }, { count: sMod },
         { count: bpMod }, { count: beMod },
         { count: hpMod }, { count: heMod },
         { count: ccMod },
         { count: icpMod }, { count: iceMod },
       ] = await Promise.all([
         supabase.from('c3_config_periods').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
+        supabase.from('c3_config_details').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('tb_levy_slabs').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('c3_bonus_policy_default').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
         supabase.from('c3_bonus_policy_exceptions').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
@@ -127,7 +130,7 @@ export function useC3SyncStatus() {
         (supabase as any).from('tb_self_emp_contrib_rate').select('*', { count: 'exact', head: true }).gt('modified_on', lastPublishedAt),
       ]);
 
-      const periods = (pMod || 0) + (pNew || 0);
+      const periods = (pMod || 0) + (pNew || 0) + (pdMod || 0);
       const slabs = (sMod || 0) + (sNew || 0);
       const bonusPolicies = (bpMod || 0) + (bpNew || 0);
       const bonusExceptions = (beMod || 0) + (beNew || 0);

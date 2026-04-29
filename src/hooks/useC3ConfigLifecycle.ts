@@ -3,7 +3,7 @@
  * Used by all C3 config tabs (Period, Bonus, Holiday, Income Code, Levy)
  */
 
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { SplitAnalysis } from '@/components/admin/c3-configuration/C3SplitConfirmDialog';
 
@@ -47,6 +47,7 @@ export function useAnalyzeC3ConfigChange() {
 }
 
 export function useUpsertC3ConfigWithSplit() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['C3Config', 'c3_config_lifecycle', 'mutation'],
     mutationFn: async (params: UpsertWithSplitParams) => {
@@ -67,10 +68,15 @@ export function useUpsertC3ConfigWithSplit() {
       if (result.error) throw new Error(result.error);
       return result;
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
+    },
   });
 }
 
 export function useCreateC3ConfigPeriod() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationKey: ['C3Config', 'c3_config_lifecycle', 'create'],
     mutationFn: async (params: {
@@ -94,6 +100,10 @@ export function useCreateC3ConfigPeriod() {
       const result = data as unknown as { error?: string; success?: boolean; period_id?: string };
       if (result.error) throw new Error(result.error);
       return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
     },
   });
 }

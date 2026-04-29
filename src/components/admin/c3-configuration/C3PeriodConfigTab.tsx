@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { useC3ConfigPeriods, useToggleC3ConfigActive, C3ConfigWithDetails } from '@/hooks/useC3ConfigManagement';
+import { useC3ConfigPeriods, useToggleC3ConfigActive, useDeleteC3ConfigPeriod, useC3PeriodsDeletability, C3ConfigWithDetails } from '@/hooks/useC3ConfigManagement';
 import { useUserCode } from '@/hooks/useUserCode';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Copy, Settings, Calendar, Plus } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Loader2, Copy, Settings, Calendar, Plus, Trash2 } from 'lucide-react';
 import { formatDisplayDate } from '@/lib/dateFormat';
 import { C3ConfigCloneDialog } from '@/components/admin/c3-period-config/C3ConfigCloneDialog';
 import { C3ConfigDetailsDialog } from '@/components/admin/c3-period-config/C3ConfigDetailsDialog';
@@ -15,12 +17,15 @@ import { C3ConfigCreateDialog } from '@/components/admin/c3-period-config/C3Conf
 export function C3PeriodConfigTab() {
   const { data: configs, isLoading, error } = useC3ConfigPeriods();
   const toggleActive = useToggleC3ConfigActive();
+  const deletePeriod = useDeleteC3ConfigPeriod();
+  const { data: deletability } = useC3PeriodsDeletability(configs);
   const { userCode } = useUserCode();
 
   const [selectedConfig, setSelectedConfig] = useState<C3ConfigWithDetails | null>(null);
   const [showCloneDialog, setShowCloneDialog] = useState(false);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [periodToDelete, setPeriodToDelete] = useState<C3ConfigWithDetails | null>(null);
 
   if (isLoading) {
     return (
@@ -143,6 +148,34 @@ export function C3PeriodConfigTab() {
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
+                        {(() => {
+                          const info = deletability?.[config.id];
+                          const canDelete = !!info?.canDelete;
+                          const reason = info?.reason || 'Checking...';
+                          const btn = (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={!canDelete || deletePeriod.isPending}
+                              onClick={() => canDelete && setPeriodToDelete(config)}
+                              title={canDelete ? 'Delete Configuration' : reason}
+                              className={canDelete ? 'text-destructive hover:text-destructive hover:bg-destructive/10' : ''}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          );
+                          if (canDelete) return btn;
+                          return (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span tabIndex={0}>{btn}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>{reason}</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })()}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -179,6 +212,48 @@ export function C3PeriodConfigTab() {
         onClose={() => setShowDetailsDialog(false)}
         config={selectedConfig}
       />
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!periodToDelete} onOpenChange={(open) => !open && setPeriodToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Configuration Period?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {periodToDelete && (
+                <>
+                  This will permanently delete the configuration for{' '}
+                  <strong>{formatDate(periodToDelete.start_date)}</strong> –{' '}
+                  <strong>{periodToDelete.end_date ? formatDate(periodToDelete.end_date) : 'Open-ended'}</strong>{' '}
+                  along with its calculation details. This action cannot be undone.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletePeriod.isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deletePeriod.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!periodToDelete) return;
+                try {
+                  await deletePeriod.mutateAsync({
+                    periodId: periodToDelete.id,
+                    userCode: userCode || undefined,
+                    periodInfo: { start_date: periodToDelete.start_date, end_date: periodToDelete.end_date },
+                  });
+                  setPeriodToDelete(null);
+                } catch {
+                  // toast handled in hook
+                }
+              }}
+            >
+              {deletePeriod.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
