@@ -416,10 +416,11 @@ export function useC3PeriodsDeletability(periods: C3ConfigWithDetails[] | undefi
           result[p.id] = { canDelete: false, reason: 'Already published — cannot be deleted' };
           continue;
         }
-        // Rule 2: future-only
+        // Rule 2: only strictly past months are frozen (C3 for a period is filed
+        // in the FOLLOWING month, so the current month is still deletable).
         const start = new Date(p.start_date + 'T00:00:00');
-        if (start <= currentMonthStart) {
-          result[p.id] = { canDelete: false, reason: 'Period is current or past — already in use for C3 generation' };
+        if (start < currentMonthStart) {
+          result[p.id] = { canDelete: false, reason: 'Period is in the past — already used in C3 generation and frozen' };
           continue;
         }
         // Rule 3: no submissions in window
