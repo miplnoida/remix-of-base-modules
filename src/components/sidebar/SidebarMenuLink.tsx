@@ -2,6 +2,7 @@
 import { SidebarMenuButton } from "@/components/ui/sidebar";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { isSatelliteUrl, navigateToSatellite } from "@/lib/satelliteSso";
 
 interface SidebarMenuLinkProps {
   item: {
@@ -22,7 +23,13 @@ const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) =>
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
     if (isExternal) {
-      window.location.href = item.url;
+      // For known satellite apps, mint a one-time SSO exchange code so the
+      // user lands logged in. For other external links, redirect plainly.
+      if (isSatelliteUrl(item.url)) {
+        void navigateToSatellite(item.url);
+      } else {
+        window.location.href = item.url;
+      }
     } else {
       navigate(item.url);
     }
