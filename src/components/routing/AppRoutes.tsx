@@ -721,6 +721,15 @@ import BnRulesAdministration from '@/pages/bn/config/RulesAdministration';
 import BnFormulaConfiguration from '@/pages/bn/config/FormulaConfiguration';
 import BnDocumentSetup from '@/pages/bn/config/DocumentSetup';
 import BnScreenMetadataSetup from '@/pages/bn/config/ScreenMetadataSetup';
+// Medical Benefit Setup
+import BnMedicalSetupHome from '@/pages/bn/config/medical/MedicalSetupHome';
+import BnMedicalProceduresCatalog from '@/pages/bn/config/medical/MedicalProceduresCatalog';
+import BnFacilityAvailabilityMatrix from '@/pages/bn/config/medical/FacilityAvailabilityMatrix';
+import BnReferralRulesPage from '@/pages/bn/config/medical/ReferralRulesPage';
+import BnReimbursementLimitsPage from '@/pages/bn/config/medical/ReimbursementLimitsPage';
+import BnExpenseTypeConfiguration from '@/pages/bn/config/medical/ExpenseTypeConfiguration';
+import BnMedicalReviewRulesPage from '@/pages/bn/config/medical/MedicalReviewRulesPage';
+import BnMedicalDocumentsPage from '@/pages/bn/config/medical/MedicalDocumentsPage';
 import BnSimulationDashboard from '@/pages/bn/simulation/SimulationDashboard';
 import BnScenarioBuilder from '@/pages/bn/simulation/ScenarioBuilder';
 import BnRunSimulation from '@/pages/bn/simulation/RunSimulation';
@@ -1629,6 +1638,16 @@ export const AppRoutes = () => {
       <Route path="/bn/config/formulas" element={<ProtectedLayout><BnFormulaConfiguration /></ProtectedLayout>} />
       <Route path="/bn/config/document-setup" element={<ProtectedLayout><BnDocumentSetup /></ProtectedLayout>} />
       <Route path="/bn/config/screen-setup" element={<ProtectedLayout><BnScreenMetadataSetup /></ProtectedLayout>} />
+
+      {/* Medical Benefit Setup */}
+      <Route path="/bn/config/medical" element={<ProtectedLayout><BnMedicalSetupHome /></ProtectedLayout>} />
+      <Route path="/bn/config/medical/procedures" element={<ProtectedLayout><BnMedicalProceduresCatalog /></ProtectedLayout>} />
+      <Route path="/bn/config/medical/facility-availability" element={<ProtectedLayout><BnFacilityAvailabilityMatrix /></ProtectedLayout>} />
+      <Route path="/bn/config/medical/referral-rules" element={<ProtectedLayout><BnReferralRulesPage /></ProtectedLayout>} />
+      <Route path="/bn/config/medical/reimbursement-limits" element={<ProtectedLayout><BnReimbursementLimitsPage /></ProtectedLayout>} />
+      <Route path="/bn/config/medical/expense-types" element={<ProtectedLayout><BnExpenseTypeConfiguration /></ProtectedLayout>} />
+      <Route path="/bn/config/medical/review-rules" element={<ProtectedLayout><BnMedicalReviewRulesPage /></ProtectedLayout>} />
+      <Route path="/bn/config/medical/documents" element={<ProtectedLayout><BnMedicalDocumentsPage /></ProtectedLayout>} />
 
       {/* Benefit Simulation Engine */}
       <Route path="/bn/simulation" element={<ProtectedLayout><BnSimulationDashboard /></ProtectedLayout>} />

@@ -6592,6 +6592,560 @@ export type Database = {
           },
         ]
       }
+      bn_medical_claim_expense: {
+        Row: {
+          approved_amount: number | null
+          claim_id: string
+          claimed_amount: number
+          created_at: string
+          created_by: string | null
+          currency_code: string
+          expense_type_id: string | null
+          id: string
+          jurisdiction_level: string | null
+          modified_by: string | null
+          notes: string | null
+          procedure_id: string | null
+          provider_name: string | null
+          receipt_document_id: string | null
+          service_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_amount?: number | null
+          claim_id: string
+          claimed_amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string
+          expense_type_id?: string | null
+          id?: string
+          jurisdiction_level?: string | null
+          modified_by?: string | null
+          notes?: string | null
+          procedure_id?: string | null
+          provider_name?: string | null
+          receipt_document_id?: string | null
+          service_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_amount?: number | null
+          claim_id?: string
+          claimed_amount?: number
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string
+          expense_type_id?: string | null
+          id?: string
+          jurisdiction_level?: string | null
+          modified_by?: string | null
+          notes?: string | null
+          procedure_id?: string | null
+          provider_name?: string | null
+          receipt_document_id?: string | null
+          service_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_medical_claim_expense_expense_type_id_fkey"
+            columns: ["expense_type_id"]
+            isOneToOne: false
+            referencedRelation: "bn_medical_expense_type"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_medical_claim_expense_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "bn_medical_procedure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_medical_expense_type: {
+        Row: {
+          category: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          default_cap: number | null
+          description: string | null
+          expense_code: string
+          expense_name: string
+          id: string
+          is_active: boolean
+          modified_by: string | null
+          reimbursable: boolean
+          requires_invoice: boolean
+          requires_receipt: boolean
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          default_cap?: number | null
+          description?: string | null
+          expense_code: string
+          expense_name: string
+          id?: string
+          is_active?: boolean
+          modified_by?: string | null
+          reimbursable?: boolean
+          requires_invoice?: boolean
+          requires_receipt?: boolean
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          default_cap?: number | null
+          description?: string | null
+          expense_code?: string
+          expense_name?: string
+          id?: string
+          is_active?: boolean
+          modified_by?: string | null
+          reimbursable?: boolean
+          requires_invoice?: boolean
+          requires_receipt?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bn_medical_facility: {
+        Row: {
+          address: string | null
+          contact_info: Json | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          facility_code: string
+          facility_name: string
+          id: string
+          is_active: boolean
+          is_approved: boolean
+          jurisdiction_level: string
+          modified_by: string | null
+          provider_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_info?: Json | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          facility_code: string
+          facility_name: string
+          id?: string
+          is_active?: boolean
+          is_approved?: boolean
+          jurisdiction_level: string
+          modified_by?: string | null
+          provider_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_info?: Json | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          facility_code?: string
+          facility_name?: string
+          id?: string
+          is_active?: boolean
+          is_approved?: boolean
+          jurisdiction_level?: string
+          modified_by?: string | null
+          provider_type?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bn_medical_facility_procedure: {
+        Row: {
+          availability_status: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          facility_id: string
+          id: string
+          modified_by: string | null
+          notes: string | null
+          procedure_id: string
+          updated_at: string
+        }
+        Insert: {
+          availability_status: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          facility_id: string
+          id?: string
+          modified_by?: string | null
+          notes?: string | null
+          procedure_id: string
+          updated_at?: string
+        }
+        Update: {
+          availability_status?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          facility_id?: string
+          id?: string
+          modified_by?: string | null
+          notes?: string | null
+          procedure_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_medical_facility_procedure_facility_id_fkey"
+            columns: ["facility_id"]
+            isOneToOne: false
+            referencedRelation: "bn_medical_facility"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_medical_facility_procedure_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "bn_medical_procedure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_medical_procedure: {
+        Row: {
+          category: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          modified_by: string | null
+          procedure_code: string
+          procedure_name: string
+          requires_medical_board: boolean
+          requires_pre_authorization: boolean
+          specialty: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          modified_by?: string | null
+          procedure_code: string
+          procedure_name: string
+          requires_medical_board?: boolean
+          requires_pre_authorization?: boolean
+          specialty?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          modified_by?: string | null
+          procedure_code?: string
+          procedure_name?: string
+          requires_medical_board?: boolean
+          requires_pre_authorization?: boolean
+          specialty?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bn_medical_recommendation: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          board_decision: string | null
+          claim_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          modified_by: string | null
+          procedure_id: string | null
+          recommendation_level: string
+          recommendation_reason: string | null
+          recommended_country_code: string | null
+          recommended_facility_id: string | null
+          specialist_name: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          board_decision?: string | null
+          claim_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          modified_by?: string | null
+          procedure_id?: string | null
+          recommendation_level: string
+          recommendation_reason?: string | null
+          recommended_country_code?: string | null
+          recommended_facility_id?: string | null
+          specialist_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          board_decision?: string | null
+          claim_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          modified_by?: string | null
+          procedure_id?: string | null
+          recommendation_level?: string
+          recommendation_reason?: string | null
+          recommended_country_code?: string | null
+          recommended_facility_id?: string | null
+          specialist_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_medical_recommendation_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "bn_medical_procedure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_medical_recommendation_recommended_facility_id_fkey"
+            columns: ["recommended_facility_id"]
+            isOneToOne: false
+            referencedRelation: "bn_medical_facility"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_medical_referral_rule: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          international_action: string
+          is_active: boolean
+          local_available_action: string
+          modified_by: string | null
+          procedure_id: string
+          regional_available_action: string
+          requires_board_approval: boolean
+          requires_pre_authorization: boolean
+          requires_specialist_report: boolean
+          rule_definition: Json | null
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          international_action?: string
+          is_active?: boolean
+          local_available_action?: string
+          modified_by?: string | null
+          procedure_id: string
+          regional_available_action?: string
+          requires_board_approval?: boolean
+          requires_pre_authorization?: boolean
+          requires_specialist_report?: boolean
+          rule_definition?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          international_action?: string
+          is_active?: boolean
+          local_available_action?: string
+          modified_by?: string | null
+          procedure_id?: string
+          regional_available_action?: string
+          requires_board_approval?: boolean
+          requires_pre_authorization?: boolean
+          requires_specialist_report?: boolean
+          rule_definition?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_medical_referral_rule_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "bn_medical_procedure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_medical_reimbursement_calc: {
+        Row: {
+          calculated_at: string
+          calculated_by: string | null
+          calculation_number: number
+          calculation_trace: Json | null
+          cap_applied: string | null
+          claim_id: string
+          id: string
+          total_approved: number
+          total_claimed: number
+          total_payable: number
+        }
+        Insert: {
+          calculated_at?: string
+          calculated_by?: string | null
+          calculation_number?: number
+          calculation_trace?: Json | null
+          cap_applied?: string | null
+          claim_id: string
+          id?: string
+          total_approved?: number
+          total_claimed?: number
+          total_payable?: number
+        }
+        Update: {
+          calculated_at?: string
+          calculated_by?: string | null
+          calculation_number?: number
+          calculation_trace?: Json | null
+          cap_applied?: string | null
+          claim_id?: string
+          id?: string
+          total_approved?: number
+          total_claimed?: number
+          total_payable?: number
+        }
+        Relationships: []
+      }
+      bn_medical_reimbursement_limit: {
+        Row: {
+          cap_amount: number
+          cap_type: string
+          country_code: string
+          created_at: string
+          created_by: string | null
+          currency_code: string
+          effective_from: string
+          effective_to: string | null
+          expense_type_id: string | null
+          id: string
+          is_active: boolean
+          jurisdiction_level: string
+          modified_by: string | null
+          notes: string | null
+          procedure_id: string | null
+          reimbursement_percent: number
+          updated_at: string
+        }
+        Insert: {
+          cap_amount: number
+          cap_type: string
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string
+          effective_from?: string
+          effective_to?: string | null
+          expense_type_id?: string | null
+          id?: string
+          is_active?: boolean
+          jurisdiction_level: string
+          modified_by?: string | null
+          notes?: string | null
+          procedure_id?: string | null
+          reimbursement_percent?: number
+          updated_at?: string
+        }
+        Update: {
+          cap_amount?: number
+          cap_type?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string
+          effective_from?: string
+          effective_to?: string | null
+          expense_type_id?: string | null
+          id?: string
+          is_active?: boolean
+          jurisdiction_level?: string
+          modified_by?: string | null
+          notes?: string | null
+          procedure_id?: string | null
+          reimbursement_percent?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_medical_reimbursement_limit_expense_type_id_fkey"
+            columns: ["expense_type_id"]
+            isOneToOne: false
+            referencedRelation: "bn_medical_expense_type"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_medical_reimbursement_limit_procedure_id_fkey"
+            columns: ["procedure_id"]
+            isOneToOne: false
+            referencedRelation: "bn_medical_procedure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_module_events: {
         Row: {
           consumed: boolean
