@@ -3286,6 +3286,45 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_exchange_codes: {
+        Row: {
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          ip_hash: string
+          issued_for_app: string
+          redirect_path: string | null
+          ua_hash: string
+          user_id: string
+        }
+        Insert: {
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          ip_hash: string
+          issued_for_app: string
+          redirect_path?: string | null
+          ua_hash: string
+          user_id: string
+        }
+        Update: {
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          ip_hash?: string
+          issued_for_app?: string
+          redirect_path?: string | null
+          ua_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bema_activity_log: {
         Row: {
           action: string
@@ -52007,6 +52046,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cleanup_expired_auth_exchange_codes: { Args: never; Returns: number }
       clone_c3_config: {
         Args: {
           p_description?: string

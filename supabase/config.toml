@@ -20,3 +20,15 @@ verify_jwt = false
 
 [functions.planner-approval-sla-cron]
 verify_jwt = true
+
+[functions.auth-issue-exchange-code]
+verify_jwt = true
+
+[functions.auth-redeem-exchange-code]
+verify_jwt = false
+
+[functions.auth-refresh]
+verify_jwt = false
+
+[functions.auth-logout]
+verify_jwt = false
