@@ -5,7 +5,15 @@
 export const COOKIE_DOMAIN = Deno.env.get('SSO_COOKIE_DOMAIN') ?? '.secureserve.biz';
 export const ALLOWED_ORIGINS_RAW =
   Deno.env.get('SSO_ALLOWED_ORIGINS') ??
-  'https://admin.secureserve.biz,https://audit.secureserve.biz';
+  [
+    'https://admin.secureserve.biz',
+    'https://audit.secureserve.biz',
+    // Lovable preview hosts (used before custom domain is live):
+    'https://social-wellspring-app.lovable.app',
+    'https://nexus-guardian-sync.lovable.app',
+    'https://id-preview--455cbbae-c40e-4f3f-af49-d9ed99089948.lovable.app',
+    'https://id-preview--7e98fc6b-f149-4e9f-9fd2-cbef90aba410.lovable.app',
+  ].join(',');
 export const ALLOWED_ORIGINS = ALLOWED_ORIGINS_RAW.split(',').map((s) => s.trim()).filter(Boolean);
 
 export const ACCESS_COOKIE = 'sb-access-token';
