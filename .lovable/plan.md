@@ -1,192 +1,156 @@
-# Plan: Independent Internal Audit Project with Secure Shared SSO
+# Fix: Satellite (Internal Audit) redirects to /login instead of accepting shared session
 
-## Goals
+## Root cause
 
-1. Move the entire Internal Audit module out of **SocialServe** into the standalone **SocialServe-Internal Audit** project.
-2. Both apps share the same Lovable Cloud backend (project ref `xynceskeiiisiefqlgxo`) — no data duplication.
-3. **SocialServe is not modified** in user-visible behavior. Its sidebar still shows the Internal Audit menu, but the menu links jump to the satellite app.
-4. **Single sign-on via secure cookies**: a user logged into SocialServe is automatically authenticated in SocialServe-Internal Audit with no second login, and the session token is **never exposed** in URLs, `localStorage`, browser storage that JS can read on either app's origin, or any client-readable place.
+The central app (`admin.secureserve.biz`) already issues a one-time SSO code and sends the browser to `https://audit.secureserve.biz/auth/exchange?code=...`. That part works.
 
----
+The satellite app `SocialServe-Internal Audit` (project `7e98fc6b-…`) does **not** implement the receiving half:
 
-## Security model (this is the core of the request)
+- It has **no `/auth/exchange` route** (verified — its `App.tsx` only has `/login` and `/audit/*` routes).
+- It has **no code that calls `auth-redeem-exchange-code`**.
+- It uses standard `supabase-js` with `localStorage` persistence. Because `audit.secureserve.biz` and `admin.secureserve.biz` are different origins, `localStorage` is **not shared**, so the satellite's `SupabaseAuthContext` boots with no session → `ProtectedRoute` → `/login`.
 
-### Threat model addressed
-- Token theft via XSS (cannot read cookie because it's `HttpOnly`).
-- Token leakage via URL/referrer/history (no token ever placed in URL).
-- Token interception in transit (`Secure` + HTTPS only).
-- CSRF on the satellite (`SameSite=None` cookies require strict CSRF defenses → we use a short-lived **single-use exchange code** + double-submit CSRF token).
-- Replay (exchange code is one-time-use, ≤ 60 s TTL, bound to user agent + IP hash).
-- Privilege escalation (satellite re-validates roles server-side on every protected call; never trusts client claims).
+There is also a design issue in our existing edge functions: `auth-redeem-exchange-code` puts the access/refresh tokens into HttpOnly cookies. `supabase-js` does not read cookies — it reads `localStorage`. So even if cookies were set, the satellite would still show no session.
 
-### Authentication flow
+## Fix strategy
 
-```text
-[User] -- logged in -->  SocialServe (admin.secureserve.biz)
-   |
-   | clicks "Internal Audit" menu item
-   v
-SocialServe browser:
-   1. Calls edge function `auth-issue-exchange-code`
-      - Requires valid Supabase session JWT in Authorization header
-      - Returns: { code: <opaque 32-byte random>, expires_at }
-      - Stores code server-side in table `auth_exchange_codes`
-        (hashed, single-use, TTL 60s, bound to user_id + UA hash + IP hash)
-   2. Browser redirects to:
-        https://audit.secureserve.biz/auth/exchange?code=<opaque-code>
-      - Code is opaque, single-use, short-lived → safe even if logged
-      - NO JWT, refresh token, or PII in URL
-   v
-Audit satellite app:
-   3. /auth/exchange page calls edge function `auth-redeem-exchange-code`
-      with: { code }, plus a CSRF token (cookie + header double-submit)
-   4. Edge function:
-      - Validates code (single-use, not expired, UA/IP match)
-      - Marks code consumed
-      - Issues a fresh Supabase session for the same user
-        via `supabase.auth.admin.generateLink` or
-        `signInWithIdToken` pattern (server-side only)
-      - Sets the session as a SECURE COOKIE on
-        .secureserve.biz domain:
-           HttpOnly; Secure; SameSite=Lax; Path=/;
-           Max-Age=<idle timeout>; Domain=.secureserve.biz
-      - Returns 200 + sets cookie; body contains no token
-   5. Audit app reads session via `supabase.auth.getSession()`
-      which is rehydrated from the cookie by a small
-      `cookieStorageAdapter` configured on the supabase client.
-   6. /auth/exchange redirects to original target route.
+Implement the standard Supabase cross-app SSO pattern:
+
+1. Central app (this repo) issues a one-time code (already works).
+2. Satellite mounts an `/auth/exchange` page that POSTs the code to `auth-redeem-exchange-code`.
+3. Edge function returns `access_token` + `refresh_token` in JSON over HTTPS (one-time, code already validated, UA/IP bound, single-use, 60s TTL).
+4. Satellite calls `supabase.auth.setSession({ access_token, refresh_token })` which writes them into its own `localStorage`. From then on `supabase-js` handles refresh normally.
+5. Page redirects to the original `redirect_path`.
+
+Tokens in the JSON body are acceptable here because: the code is single-use and short-lived, the response is over TLS, the satellite immediately stores them via `supabase-js`, and the alternative (cookies) is incompatible with `supabase-js`.
+
+## Changes in THIS project (central — `admin.secureserve.biz`)
+
+### 1. `supabase/functions/auth-redeem-exchange-code/index.ts` — return tokens in JSON
+
+Replace the cookie-setting response with a JSON response containing the freshly minted session:
+
+```json
+{
+  "access_token": "...",
+  "refresh_token": "...",
+  "expires_in": 3600,
+  "expires_at": 1735689600,
+  "token_type": "bearer",
+  "redirect_path": "/audit/dashboard",
+  "user": { "id": "...", "email": "..." }
+}
 ```
 
-### Why cookies (not localStorage)
-- `localStorage` is JS-readable → vulnerable to XSS exfiltration.
-- `HttpOnly` cookies cannot be read by any script on either origin.
-- `Secure` flag forbids transmission over HTTP.
-- `SameSite=Lax` is sufficient because both apps share the registrable parent domain `secureserve.biz`; cross-site POSTs from third parties cannot attach the cookie. We add a CSRF double-submit token for defense-in-depth on state-changing endpoints.
+Keep all existing security checks (code hash lookup, single-use atomic update, expiry, UA/IP binding). Remove the `Set-Cookie` headers and the magic-link verify path — instead, generate the session via `admin.auth.admin.generateLink` + `anon.auth.verifyOtp` (already done) and return its tokens directly.
 
-### Cookie storage adapter (replaces `localStorage`)
-A custom `Storage` adapter is plugged into `createClient({ auth: { storage } })` on **both** apps. The adapter:
-- Reads the access token from a non-HttpOnly companion cookie used only by the supabase-js client (`sb-access-token`), kept short-lived.
-- Refresh token lives **only** in the `HttpOnly` cookie set by an edge function `auth-refresh`. supabase-js cannot read or steal it.
-- On token refresh the client calls `auth-refresh` (cookies sent automatically); the edge function rotates tokens and re-sets HttpOnly cookies.
+### 2. `supabase/functions/auth-refresh/index.ts` — no longer needed for this flow
 
-This means:
-- The long-lived **refresh token is never exposed to JS** on either app.
-- The short-lived access token is the only thing JS sees, and it expires in minutes.
-- XSS on either app cannot steal a usable long-term credential.
+Leave it in place but it is unused once the satellite uses `supabase-js`'s built-in refresh. Optional follow-up: delete it later.
 
-### Domain requirement
-For cookie sharing to work, **both apps must live under the same registrable parent domain**, e.g.:
-- SocialServe → `admin.secureserve.biz` (already configured)
-- Internal Audit → `audit.secureserve.biz` (new custom domain on the satellite)
+### 3. `src/lib/satelliteSso.ts` — no changes needed
 
-Cookies set on `.secureserve.biz` are automatically attached to both. If the user keeps the satellite on `*.lovable.app`, **same-domain cookie sharing is impossible** and we fall back to the exchange-code flow on every visit (still secure, just a 200 ms redirect on first load).
+The issue/redirect flow is correct. Keep `SATELLITE_HOSTS = { 'audit.secureserve.biz': 'internal_audit' }`.
 
----
+### 4. `supabase/functions/_shared/sso-cookies.ts` — relax CORS
 
-## Database changes (shared backend, applied once)
+Ensure `SSO_ALLOWED_ORIGINS` includes `https://audit.secureserve.biz` AND the satellite's lovable preview origin `https://nexus-guardian-sync.lovable.app` so the exchange page works before custom domain DNS resolves. Also add `https://*.lovable.app` handling by listing the specific preview host.
 
-1. New table `auth_exchange_codes`:
-   ```text
-   id uuid PK
-   code_hash text  -- SHA-256(code), never store raw
-   user_id uuid    -- FK auth.users
-   ua_hash text    -- SHA-256(user-agent)
-   ip_hash text    -- SHA-256(client IP)
-   issued_for_app text   -- 'internal_audit'
-   expires_at timestamptz   -- now() + 60s
-   consumed_at timestamptz
-   created_at timestamptz
-   ```
-   No RLS policy needed — only edge functions (service role) touch it.
+## Changes in the SATELLITE project (`SocialServe-Internal Audit`, id `7e98fc6b-f149-4e9f-9fd2-cbef90aba410`)
 
-2. Update `app_modules` for the Internal Audit parent row:
-   ```sql
-   UPDATE app_modules
-   SET base_url = 'https://audit.secureserve.biz'
-   WHERE name = 'internal_audit';
-   ```
-   The existing sidebar code already handles `base_url` and routes children through it.
+These cannot be made from this project — they must be applied in the satellite. After the user approves this plan, I will switch projects (or provide the exact patch) and apply:
 
-3. Cron cleanup: scheduled SQL job deletes expired `auth_exchange_codes` rows hourly.
+### A. Add `src/pages/auth/AuthExchange.tsx`
 
----
+```tsx
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
-## Edge functions (deployed to the shared backend)
+const REDEEM_URL =
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth-redeem-exchange-code`;
 
-| Function | Purpose | verify_jwt |
-|---|---|---|
-| `auth-issue-exchange-code` | Authenticated user requests a one-time code | true |
-| `auth-redeem-exchange-code` | Satellite app trades code for cookie session | false |
-| `auth-refresh` | Rotates access/refresh tokens via HttpOnly cookies | false |
-| `auth-logout` | Clears HttpOnly cookies on `.secureserve.biz` | false |
+export default function AuthExchange() {
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const ran = useRef(false);
 
-All functions:
-- Use rate limiting (per-IP, per-user).
-- Log success/failure to `system_audit_trail` with no token material.
-- Return generic errors to the client; detailed errors go to logs only.
+  useEffect(() => {
+    if (ran.current) return; // StrictMode guard — code is single-use
+    ran.current = true;
 
----
+    const code = params.get('code');
+    if (!code) { setError('Missing SSO code'); return; }
 
-## Code migration
+    (async () => {
+      try {
+        const res = await fetch(REDEEM_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ code }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.error ?? `redeem_failed_${res.status}`);
+        }
+        const data = await res.json();
+        const { error: setErr } = await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        if (setErr) throw setErr;
+        navigate(data.redirect_path ?? '/audit/dashboard', { replace: true });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'SSO failed');
+      }
+    })();
+  }, [params, navigate]);
 
-### Satellite project (SocialServe-Internal Audit) — files to add/replace
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-sm">
+        <div className="max-w-md text-center space-y-3">
+          <p className="text-destructive font-medium">Sign-in handoff failed</p>
+          <p className="text-muted-foreground">{error}</p>
+          <a className="underline" href="/login">Continue to login</a>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="min-h-screen flex items-center justify-center text-sm text-muted-foreground">
+      Signing you in…
+    </div>
+  );
+}
+```
 
-1. `src/integrations/supabase/client.ts` — add the **cookie storage adapter**.
-2. `src/contexts/SupabaseAuthContext.tsx` — copied from SocialServe, adapted to use the cookie adapter and the `auth-refresh` edge function.
-3. `src/pages/auth/Exchange.tsx` — handles `/auth/exchange?code=…` redemption.
-4. **All 27 audit pages** from `src/pages/audit/**` → copied 1:1.
-5. **All audit components** from `src/components/audit/**` → copied 1:1.
-6. **All audit hooks** from `src/hooks/audit/**`, `src/hooks/ia*` → copied.
-7. **All audit services**: `src/services/audit*`, `src/services/iaNotificationService.ts`, `src/services/auditPlan*`, `src/services/auditCommunication*`, etc.
-8. **Audit lib utilities** from `src/lib/audit/**`.
-9. **Audit types** from `src/types/audit*.ts`.
-10. **Audit menu items** from `src/components/sidebar/menuItems/auditMenuItems.ts` (so the satellite shows its own audit-only sidebar).
-11. `src/components/routing/AppRoutes.tsx` — wire all audit routes; only show audit + auth routes.
-12. Shared dependencies that audit code transitively uses (date utils, format-config, error handler, global blocking overlay, audit interceptor, Supabase types) — copied as needed.
+### B. Register the route in satellite `src/App.tsx`
 
-### Source project (SocialServe) — minimal changes
+Add **before** the `/login` route, **outside** `ProtectedRoute`:
 
-1. **Sidebar menu items remain visible.** Already supported by `app_modules.base_url`; no code change needed beyond the SQL update above.
-2. Add a tiny helper to the menu link click path: when navigating to a module whose `base_url` is set, first call `auth-issue-exchange-code` and append `?code=…` to the redirect URL. (One small edit in `useDynamicNavigation` / `SidebarMenuLink`.)
-3. **No audit code is deleted from SocialServe in this change.** That keeps the source project a safe fallback. A follow-up cleanup PR can prune the audit files later, once the satellite is verified in production.
+```tsx
+<Route path="/auth/exchange" element={<AuthExchange />} />
+```
 
-### Files NOT migrated
-Anything that belongs to other modules (compliance, payments, c3, benefits, employers, etc.) stays only in SocialServe. The satellite contains audit + the minimum shared infrastructure (auth context, supabase client, UI primitives, error handler, blocking overlay).
+### C. (Optional) On `/login`, if `?sso_code=` present, also redirect to `/auth/exchange?code=…`
 
----
+Defensive: in case any link uses the legacy `?sso_code` query param.
 
-## Custom domain & deployment
+## Acceptance test
 
-1. User publishes the satellite project in Lovable.
-2. User adds custom domain `audit.secureserve.biz` (CNAME to the Lovable-provided host) in the satellite's project settings.
-3. Once live, run the `app_modules.base_url` SQL update.
-4. Both apps now share `.secureserve.biz` cookies → SSO works seamlessly.
+1. From `admin.secureserve.biz` (logged in), click the Internal Audit sidebar link.
+2. Browser navigates to `https://audit.secureserve.biz/auth/exchange?code=…`.
+3. Page shows "Signing you in…", then redirects to `/audit/dashboard` without ever showing `/login`.
+4. Refreshing `/audit/dashboard` keeps the user signed in (session persisted in satellite's localStorage).
+5. Reusing the same `code` URL fails with `code_already_used` (single-use enforced).
 
-If the user does not want a custom domain yet, the system still works via the exchange-code flow on each visit, but cookie persistence across apps requires the shared parent domain.
+## Out of scope
 
----
-
-## What the user will experience
-
-- Logs into SocialServe as today.
-- Clicks **Internal Audit → Risk Register** (or any audit submenu).
-- Browser briefly visits `audit.secureserve.biz/auth/exchange?code=…` (≤ 200 ms) and lands on the audit page, fully authenticated.
-- Closes the audit tab and reopens later: still logged in (cookie-backed session), no re-login required, until idle/absolute timeout expires.
-- Clicks logout in either app: HttpOnly cookies are cleared on `.secureserve.biz` → both apps log out together.
-
----
-
-## Out of scope for this plan
-
-- Removing audit code from SocialServe (deferred to a later cleanup once satellite is verified).
-- Migrating other modules.
-- Changing existing RLS posture (project rule: role-based security only).
-
----
-
-## Approval needed
-
-Please confirm before I proceed:
-1. Custom domain `audit.secureserve.biz` (or another subdomain of `secureserve.biz`) will be used for the satellite. **Required for true cookie SSO.**
-2. OK to add the `auth_exchange_codes` table and the four `auth-*` edge functions to the shared backend.
-3. OK to leave audit code in SocialServe untouched for now (no regression risk) and prune later.
+- No changes to roles/permissions, sidebar, RLS, or any other module.
+- No changes to the central app's login flow.
+- `auth-refresh` edge function and the cookie helpers stay in place but become unused; safe to remove in a later cleanup.
