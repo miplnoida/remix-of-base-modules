@@ -246,7 +246,17 @@ const IA_ITEM_OVERRIDES: Record<string, { title?: string; icon?: LucideIcon; des
 
 function normalizePath(path?: string): string {
   if (!path) return '';
-  return path.trim().replace(/\/+$/, '') || '/';
+  let p = path.trim();
+  // If a full URL was passed (e.g. https://internalaudit.secureserve.biz/audit/dashboard),
+  // extract just the pathname so grouping/active-state logic still matches.
+  if (/^https?:\/\//i.test(p)) {
+    try {
+      p = new URL(p).pathname;
+    } catch {
+      // fall through
+    }
+  }
+  return p.replace(/\/+$/, '') || '/';
 }
 
 function groupInternalAuditNavigation(items: MenuItem[]): MenuItem[] {
