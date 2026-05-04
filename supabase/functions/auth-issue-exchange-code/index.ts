@@ -7,7 +7,6 @@ import {
   corsHeadersFor,
   sha256Hex,
   randomToken,
-  clientIp,
   ALLOWED_ORIGINS,
 } from '../_shared/sso-cookies.ts';
 
@@ -52,7 +51,11 @@ Deno.serve(async (req) => {
     const codeHash = await sha256Hex(code);
     const ua = req.headers.get('user-agent') ?? '';
     const uaHash = await sha256Hex(ua);
-    const ipHash = await sha256Hex(clientIp(req));
+    // IP binding intentionally omitted: in production users sit behind proxies/CDNs
+    // that can change the apparent IP between issue and redeem, which caused
+    // legitimate redeems to fail with binding_mismatch and bounce to login.
+    // Single-use + 60s TTL + UA binding remain in place.
+    const ipHash = await sha256Hex('');
     const expiresAt = new Date(Date.now() + CODE_TTL_SECONDS * 1000).toISOString();
 
     const admin = createClient(
@@ -69,10 +72,11 @@ Deno.serve(async (req) => {
       expires_at: expiresAt,
     });
     if (insErr) {
-      console.error('insert exchange code failed', insErr);
+      console.error('[sso-issue] insert exchange code failed', insErr);
       return json({ error: 'server_error' }, 500, cors);
     }
 
+    console.log('[sso-issue] code issued', { app: issuedForApp, user_id: userId, redirect_path: redirectPath, expires_at: expiresAt });
     return json({ code, expires_at: expiresAt, ttl_seconds: CODE_TTL_SECONDS }, 200, cors);
   } catch (e) {
     console.error('auth-issue-exchange-code fatal', e);

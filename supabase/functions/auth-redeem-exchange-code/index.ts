@@ -12,7 +12,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.74.0';
 import {
   corsHeadersFor,
   sha256Hex,
-  clientIp,
 } from '../_shared/sso-cookies.ts';
 
 Deno.serve(async (req) => {
@@ -23,11 +22,13 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const code = typeof body.code === 'string' ? body.code : '';
-    if (!code || code.length < 32) return json({ error: 'invalid_code' }, 400, cors);
+    if (!code || code.length < 32) {
+      console.warn('[sso-redeem] invalid_code shape');
+      return json({ error: 'invalid_code' }, 400, cors);
+    }
 
     const codeHash = await sha256Hex(code);
     const uaHash = await sha256Hex(req.headers.get('user-agent') ?? '');
-    const ipHash = await sha256Hex(clientIp(req));
 
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -41,15 +42,21 @@ Deno.serve(async (req) => {
       .eq('code_hash', codeHash)
       .maybeSingle();
 
-    if (selErr || !row) return json({ error: 'invalid_code' }, 401, cors);
-    if (row.consumed_at) return json({ error: 'code_already_used' }, 401, cors);
+    if (selErr || !row) {
+      console.warn('[sso-redeem] code not found', { selErr });
+      return json({ error: 'invalid_code' }, 401, cors);
+    }
+    if (row.consumed_at) {
+      console.warn('[sso-redeem] code already used', { id: row.id });
+      return json({ error: 'code_already_used' }, 401, cors);
+    }
     if (new Date(row.expires_at).getTime() < Date.now()) {
+      console.warn('[sso-redeem] code expired', { id: row.id, expires_at: row.expires_at });
       return json({ error: 'code_expired' }, 401, cors);
     }
-    if (row.ua_hash !== uaHash || row.ip_hash !== ipHash) {
-      // Bound to original device. Common cause of spurious failures: the user
-      // is behind a CGNAT and the IP shifted between issue and redeem. We
-      // accept this as a hard fail to prevent code interception.
+    if (row.ua_hash !== uaHash) {
+      // User-agent must match. IP intentionally not bound (CDN/proxy IP shifts).
+      console.warn('[sso-redeem] ua mismatch', { id: row.id });
       return json({ error: 'binding_mismatch' }, 401, cors);
     }
 
@@ -61,6 +68,7 @@ Deno.serve(async (req) => {
       .is('consumed_at', null)
       .select('id');
     if (updErr || !updRows || updRows.length === 0) {
+      console.warn('[sso-redeem] race lost on consume', { id: row.id, updErr });
       return json({ error: 'code_already_used' }, 401, cors);
     }
 
@@ -93,6 +101,8 @@ Deno.serve(async (req) => {
     }
 
     const session = verifyData.session;
+    console.log('[sso-redeem] session minted', { user_id: session.user.id, redirect_path: row.redirect_path });
+
 
     return json(
       {

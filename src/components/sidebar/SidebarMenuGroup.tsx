@@ -37,12 +37,14 @@ export default function SidebarMenuGroup({ item, collapsed, level = 1 }: Sidebar
   const location = useLocation();
   const currentPath = location.pathname;
   
+  const isExternalUrl = (url?: string) =>
+    !!url && (url.startsWith('http://') || url.startsWith('https://'));
+
   const isAnyChildActive = (items?: SubItem[]): boolean => {
     if (!items) return false;
     return items.some(child => {
       // Skip external URLs — they can't match the current local path
-      const isExternal = child.url?.startsWith('http://') || child.url?.startsWith('https://');
-      return (!isExternal && child.url && currentPath === child.url) || 
+      return (!isExternalUrl(child.url) && child.url && currentPath === child.url) ||
         isAnyChildActive(child.subItems);
     });
   };
@@ -51,7 +53,7 @@ export default function SidebarMenuGroup({ item, collapsed, level = 1 }: Sidebar
   const [open, setOpen] = useState(hasActiveChild);
 
   if (item.url && !item.subItems) {
-    const isActive = currentPath === item.url;
+    const isActive = !isExternalUrl(item.url) && currentPath === item.url;
     return (
       <SidebarMenuItem>
         <SidebarMenuLink 
