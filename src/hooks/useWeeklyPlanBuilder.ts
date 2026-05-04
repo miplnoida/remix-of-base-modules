@@ -158,13 +158,16 @@ export function useWeeklyPlanBuilder() {
     return map;
   }, [planItems]);
 
-  // Candidates — Phase 3: V3 zone-aware engine. The server enforces zone
-  // visibility from the inspector record, so the UI cannot bypass it.
+  // Candidates — Phase 3: V3 engine.
+  // NOTE: Zone filter intentionally disabled for now (per request).
+  // We do NOT pass inspectorId/zoneId so the RPC returns candidates across
+  // all zones. Re-enable by passing { inspectorId } when zone scoping is wanted.
   const candidatesQuery = useQuery({
-    queryKey: ['plan-candidates-v3', inspectorId],
+    queryKey: ['plan-candidates-v3', 'no-zone-filter', inspectorId],
     queryFn: () =>
       planCandidateService.getScoredCandidatesV3({
-        inspectorId: inspectorId || undefined,
+        zoneId: null,
+        inspectorId: null,
         limit: 500,
       }),
     enabled: !!inspectorId,
