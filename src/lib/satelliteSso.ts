@@ -73,6 +73,11 @@ export async function navigateToSatellite(url: string): Promise<void> {
     // does a server-side cookie set, then router.replace() to the final route.
     const exchangeUrl = new URL('/auth/exchange', target.origin);
     exchangeUrl.searchParams.set('code', data.code);
+    // Safe fallback: if the server-stored redirect_path is missing, the
+    // satellite can still send the user to the originally-requested page.
+    if (redirectPath && redirectPath !== '/') {
+      exchangeUrl.searchParams.set('redirect_path', redirectPath);
+    }
     window.location.href = exchangeUrl.toString();
   } catch {
     window.location.href = url;
