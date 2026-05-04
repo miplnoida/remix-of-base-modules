@@ -1,60 +1,63 @@
-## Root cause
+## Findings
 
-The satellite app's exchange flow is wired correctly. The SSO is failing at step 1 (in the central app) — `navigateToSatellite()` is **never invoked**, so the browser is sent to the satellite with **no `?code`** parameter and the satellite, with no session in its `localStorage`, redirects to `/login` as expected.
+The current behavior is still falling back to the satellite login because the central app is not actually treating the Internal Audit menu URLs as external satellite URLs:
 
-Why it isn't invoked:
+- The `app_modules` rows for Internal Audit currently have `base_url = null` in both Test and Live backend data.
+- Because `base_url` is null, `useDynamicNavigation()` builds URLs like `/audit/dashboard` instead of `https://internalaudit.secureserve.biz/audit/dashboard`.
+- Those relative URLs never trigger `navigateToSatellite()`, so no one-time SSO code is issued.
+- The SSO exchange-code table also does not exist in the active backend (`auth_exchange_codes` is missing), so even if navigation reached the issue function, exchange-code issuance would fail.
+- The satellite app does have `/auth/exchange`, but it only sets a session if it receives a valid `?code=...`. Directly opening `/audit/...` on the satellite will still go to `/login`, because no code is present.
 
-- The satellite is registered in `app_modules.base_url` as **`https://internalaudit.secureserve.biz`**.
-- Our whitelist in `src/lib/satelliteSso.ts` only contains **`audit.secureserve.biz`**.
-- `isSatelliteUrl()` therefore returns `false`, and `SidebarMenuLink` falls back to `window.location.href = url` — a plain redirect with no exchange code.
+## Plan
 
-Confirmed with edge-function logs: `auth-issue-exchange-code` and `auth-redeem-exchange-code` show **no invocations**, so the satellite's `/auth/exchange` page is never reached. (`internalaudit.secureserve.biz` resolves; `audit.secureserve.biz` does not.)
+1. **Create/repair the SSO exchange-code backend table**
+   - Add a migration for `auth_exchange_codes` in the active backend.
+   - Keep it service-role only so client code cannot read or write exchange codes.
+   - Include indexes for expiry and user lookup.
+   - Keep the cleanup function for expired/consumed codes.
 
-## Fix (central project — this repo)
+2. **Point Internal Audit navigation to the satellite application**
+   - Add a migration that sets `base_url = 'https://internalaudit.secureserve.biz'` on the root `internal_audit` module.
+   - Because `useDynamicNavigation()` already inherits `base_url` from parent modules, all Internal Audit child routes will become full satellite URLs such as:
+     - `https://internalaudit.secureserve.biz/audit/dashboard`
+     - `https://internalaudit.secureserve.biz/audit/audit-plans`
+     - `https://internalaudit.secureserve.biz/audit/audits`
+   - This will cause sidebar clicks to call `navigateToSatellite()` instead of local navigation.
 
-### 1. `src/lib/satelliteSso.ts` — register the real satellite host
+3. **Make SSO navigation preserve the requested page reliably**
+   - Update `src/lib/satelliteSso.ts` to pass the requested path to the satellite exchange page as a `redirect_path` query parameter in addition to the one-time code:
+     - `/auth/exchange?code=...&redirect_path=/audit/audit-plans`
+   - Keep the server-stored redirect path as the source of truth, but include the URL parameter as a safe fallback for compatibility.
+   - Correct the stale comments that still mention `sso_code` even though the implementation uses `code`.
 
-Replace the `SATELLITE_HOSTS` map with the actual hosts:
+4. **Redeploy the SSO backend functions**
+   - Deploy `auth-issue-exchange-code` and `auth-redeem-exchange-code` after the migration/code changes.
 
-```ts
-const SATELLITE_HOSTS: Record<string, string> = {
-  'internalaudit.secureserve.biz': 'internal_audit',
-  // Lovable preview origins of the satellite (so SSO works before/without DNS):
-  'nexus-guardian-sync.lovable.app': 'internal_audit',
-  'id-preview--7e98fc6b-f149-4e9f-9fd2-cbef90aba410.lovable.app': 'internal_audit',
-};
+5. **Apply the required satellite-side compatibility fix**
+   - In the satellite project, update `src/pages/auth/AuthExchange.tsx` to support both:
+     - `?code=...`
+     - legacy `?sso_code=...` if any old link still sends it
+   - When redeem succeeds, navigate to:
+     - `data.redirect_path`, or
+     - the safe `redirect_path` URL parameter fallback, or
+     - `/audit/dashboard`
+   - This ensures the user lands on the actual requested Internal Audit screen after SSO.
+
+6. **Validation after approval**
+   - Confirm that the Internal Audit menu URLs are now full satellite URLs.
+   - Confirm `auth_exchange_codes` exists.
+   - Check function logs / function calls for issue and redeem activity.
+   - Verify the expected flow:
+
+```text
+Central app sidebar click
+  -> auth-issue-exchange-code creates one-time code
+  -> browser opens https://internalaudit.secureserve.biz/auth/exchange?code=...
+  -> satellite redeems code
+  -> satellite stores session
+  -> satellite redirects to requested /audit/... route
 ```
 
-Keep the existing `audit.secureserve.biz` entry too (harmless if DNS is added later).
+## Important note
 
-### 2. `supabase/functions/_shared/sso-cookies.ts` — allow the real origin in CORS
-
-`ALLOWED_ORIGINS` already includes the Lovable preview origin and `audit.secureserve.biz`, but it does NOT include `https://internalaudit.secureserve.biz`. Add it so the satellite's `fetch(REDEEM_URL, …)` from that origin doesn't get blocked by CORS:
-
-```ts
-'https://internalaudit.secureserve.biz',
-```
-
-(Leave the rest of the list intact.)
-
-### 3. Redeploy `auth-redeem-exchange-code` and `auth-issue-exchange-code`
-
-Both import `_shared/sso-cookies.ts`, so they need to be redeployed for the new `ALLOWED_ORIGINS` to take effect. Deployment is automatic on save.
-
-## No changes needed in the satellite project
-
-- `/auth/exchange` route exists.
-- `AuthExchange.tsx` correctly POSTs the code, calls `supabase.auth.setSession`, and navigates.
-- Once the central app actually sends the user to `…/auth/exchange?code=…`, the existing satellite code will complete the handoff.
-
-## How to verify after the change
-
-1. From `admin.secureserve.biz` (logged in), click an Internal Audit child link.
-2. Network tab: `POST /functions/v1/auth-issue-exchange-code` → 200 with `{ code }`.
-3. Browser navigates to `https://internalaudit.secureserve.biz/auth/exchange?code=…`.
-4. Satellite shows "Signing you in…", calls `POST /functions/v1/auth-redeem-exchange-code` → 200, then lands on `/audit/dashboard` without the login screen.
-5. `auth-redeem-exchange-code` edge logs now show invocations (currently empty).
-
-## Out of scope
-
-No changes to roles, RLS, sidebar data, or the satellite's auth code.
+Opening `https://internalaudit.secureserve.biz/audit/...` directly in a new tab without first coming through the central app cannot share localStorage automatically across domains. The supported flow is: user starts in the central app, clicks the Internal Audit menu/link, and the central app sends the user through `/auth/exchange` with a one-time code.
