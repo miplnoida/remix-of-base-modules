@@ -7,7 +7,6 @@ import {
   corsHeadersFor,
   sha256Hex,
   randomToken,
-  clientIp,
   ALLOWED_ORIGINS,
 } from '../_shared/sso-cookies.ts';
 
