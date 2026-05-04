@@ -8,6 +8,7 @@ export const ALLOWED_ORIGINS_RAW =
   [
     'https://admin.secureserve.biz',
     'https://audit.secureserve.biz',
+    'https://internalaudit.secureserve.biz',
     // Lovable preview hosts (used before custom domain is live):
     'https://social-wellspring-app.lovable.app',
     'https://nexus-guardian-sync.lovable.app',

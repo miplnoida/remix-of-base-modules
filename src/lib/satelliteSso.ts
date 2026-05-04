@@ -23,7 +23,11 @@ import { supabase } from '@/integrations/supabase/client';
  */
 const SATELLITE_HOSTS: Record<string, string> = {
   // satellite host -> app identifier (must match ALLOWED_APPS in the edge function)
-  'audit.secureserve.biz': 'internal_audit',
+  'internalaudit.secureserve.biz': 'internal_audit',
+  'audit.secureserve.biz': 'internal_audit', // legacy / future DNS alias
+  // Lovable preview origins of the satellite (used before custom domain DNS):
+  'nexus-guardian-sync.lovable.app': 'internal_audit',
+  'id-preview--7e98fc6b-f149-4e9f-9fd2-cbef90aba410.lovable.app': 'internal_audit',
 };
 
 function getAppIdForUrl(url: string): string | null {
