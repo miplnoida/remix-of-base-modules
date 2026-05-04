@@ -1,92 +1,144 @@
-## Findings
+## Constraint (locked)
 
-I checked the current central app and the Internal Audit satellite project. The backend table now exists and the root `internal_audit` module has `base_url = https://internalaudit.secureserve.biz`, so the earlier database issue is mostly fixed.
+> The main application (`SocialServe`) MUST NOT change. If `app_modules.base_url` for `internal_audit` is set to `NULL` or empty, every existing `/audit/*` route MUST continue to work exactly as it does today — same layout, same sidebar, same header, same components, same auth.
 
-The remaining failure is likely caused by two implementation gaps:
+All work in this plan is **additive on the satellite side** plus **one data-only flag** on the host. Zero edits to host UI, routing, layout, guards, services, or sidebar code.
 
-1. **Central sidebar grouped links can still bypass the SSO helper**
-   - The active sidebar renderer is `src/components/sidebar/SidebarMenuGroup.tsx`.
-   - It uses `SidebarMenuLink` only for top-level leaf items.
-   - Nested items ultimately use plain React Router links unless rendered through `SidebarMenuLink`.
-   - If an Internal Audit nested link is treated as a normal router link, it opens the satellite route without `/auth/exchange?code=...`, so the satellite correctly redirects to its login page.
+## Why no host code changes are needed
 
-2. **Satellite exchange page has not fully applied the compatibility patch**
-   - In `SocialServe-Internal Audit`, `src/pages/auth/AuthExchange.tsx` still reads only `params.get('code')` before redeeming.
-   - It contains a later unused line for `code ?? sso_code`, but that happens after redeem, so legacy `?sso_code=` links still fail.
-   - It also does not explicitly wait for `setSession()` persistence to settle before moving to a protected route.
+The current host already behaves correctly under both conditions:
 
-There is also a possible hard-fail in the redeem function: it binds the exchange code to both browser user-agent and IP. If the request path through hosting/CDN changes the apparent IP between issue and redeem, the redeem function returns `binding_mismatch`, then the satellite goes to login. I did not see redeem logs yet, which suggests the satellite may not be reaching redeem at all, but the function should still be made more observable and less brittle.
+```text
+app_modules.base_url = 'https://internalaudit.secureserve.biz'
+  └─ useDynamicNavigation builds absolute URLs
+     └─ SidebarMenuLink sees http(s):// → navigateToSatellite() (SSO redirect)
+
+app_modules.base_url = NULL or ''
+  └─ useDynamicNavigation builds relative paths '/audit/...'
+     └─ SidebarMenuLink sees relative URL → useNavigate()
+        └─ existing AppRoutes render existing host components inside ProtectedLayout
+```
+
+Verified in code:
+- `src/hooks/useDynamicNavigation.ts:175-186` — `effectiveBaseUrl = module.base_url || parentBaseUrl || null`; only prepends when truthy.
+- `src/components/sidebar/SidebarMenuLink.tsx:21-30` — branches on `startsWith('http')`.
+- `src/components/routing/AppRoutes.tsx` — 35 `/audit/*` routes already mounted under `ProtectedLayout`.
+
+So the rollback story for the host is literally: set `base_url = NULL` and reload. Nothing else.
+
+## What this plan delivers
+
+1. **Satellite becomes the place where new audit work happens**, without touching the host.
+2. **A documented switch** to flip a route between "host renders" and "satellite renders" without code edits.
+3. **A safety net**: if the satellite is down/maintenance, the host keeps working because nothing in the host depends on it.
 
 ## Plan
 
-### 1. Fix central sidebar navigation so every external satellite link goes through SSO
+### A. Host (data-only, no code edits)
 
-Update the active sidebar tree renderer so all leaf links, including nested links, use `SidebarMenuLink` instead of plain React Router links.
+A single migration to make the switch declarative and per-module-root:
 
-This will ensure any URL like:
-
-```text
-https://internalaudit.secureserve.biz/audit/audits
+```sql
+-- Already-present column on app_modules: base_url text null
+-- No schema change. Plan only documents the operational contract:
+--   base_url IS NULL or ''  →  host renders /audit/* (current behaviour)
+--   base_url = 'https://internalaudit.secureserve.biz'
+--                          →  sidebar issues SSO and redirects to satellite
 ```
 
-is handled by:
+That's it on the host. We will:
 
-```text
-navigateToSatellite()
-  -> auth-issue-exchange-code
-  -> https://internalaudit.secureserve.biz/auth/exchange?code=...&redirect_path=/audit/audits
+- **Not** edit `SidebarMenuLink.tsx`.
+- **Not** edit `SidebarMenuGroup.tsx`.
+- **Not** edit `useDynamicNavigation.ts`.
+- **Not** edit `AppRoutes.tsx`.
+- **Not** edit `satelliteSso.ts`.
+- **Not** edit any `/audit/*` page or service.
+
+A short doc `docs/INTERNAL_AUDIT_ROLLBACK.md` will record the one-line SQL to flip back:
+
+```sql
+update public.app_modules set base_url = null where name = 'internal_audit';
 ```
 
-instead of directly opening `/audit/audits` and hitting the satellite login guard.
+and the inverse:
 
-### 2. Correct Internal Audit grouping logic for external URLs
-
-`groupInternalAuditNavigation()` currently normalizes and compares the full URL against internal route paths such as `/audit/dashboard`. Once `base_url` is inherited, those comparisons no longer reliably match.
-
-I will update the normalizer to extract the pathname from full URLs before grouping and active-state checks. This preserves the current menu grouping while allowing the link itself to remain a full external URL.
-
-### 3. Patch the satellite `AuthExchange.tsx`
-
-In the [SocialServe-Internal Audit](/projects/7e98fc6b-f149-4e9f-9fd2-cbef90aba410) project, update `src/pages/auth/AuthExchange.tsx` to:
-
-- Read both `?code=` and legacy `?sso_code=` before calling redeem.
-- Preserve the `redirect_path` fallback.
-- Call `supabase.auth.setSession()` and then verify `supabase.auth.getSession()` before navigating.
-- Navigate with `replace: true` only after a session exists.
-- Keep `/auth/exchange` as a public route.
-
-### 4. Harden SSO backend diagnostics and reduce false login fallbacks
-
-Update `auth-issue-exchange-code` and `auth-redeem-exchange-code` to add non-sensitive structured logs:
-
-- app id
-- redirect path
-- success/failure reason
-- code expiry/failure category
-
-I will also adjust IP binding so it does not fail legitimate users due to CDN/proxy IP changes. User-agent binding and single-use/short TTL protections remain in place.
-
-### 5. Redeploy the SSO backend functions
-
-Redeploy:
-
-- `auth-issue-exchange-code`
-- `auth-redeem-exchange-code`
-
-Then validate their logs show issue/redeem attempts.
-
-### 6. Validate the full flow
-
-After implementation, validate:
-
-```text
-Central sidebar click
-  -> external Internal Audit URL detected
-  -> exchange code issued
-  -> browser lands on /auth/exchange?code=...
-  -> satellite redeems code
-  -> satellite stores session
-  -> satellite opens requested /audit/... route
+```sql
+update public.app_modules
+set base_url = 'https://internalaudit.secureserve.biz'
+where name = 'internal_audit';
 ```
 
-I will also check that direct navigation to `https://internalaudit.secureserve.biz/audit/...` still redirects to login, because direct cross-domain localStorage sharing is not possible. The supported flow remains starting from the central app sidebar/menu link.
+### B. Satellite (this is where the actual work goes)
+
+All future audit features are built in project `7e98fc6b-…` ("SocialServe-Internal Audit"). The host is frozen for audit work.
+
+1. **Mirror the route surface.** Re-create the same `/audit/*` paths in the satellite's React Router so deep links work after SSO. Start with the routes the org wants to migrate first; others stay served by the host until their satellite version is ready.
+2. **Reuse the shared backend.** Both projects already point at the same Supabase project (`xynceskeiiisiefqlgxo`). The satellite imports the auto-generated client from `@/integrations/supabase/client` and queries the same tables. No data duplication, no cross-project API calls.
+3. **Fix the SSO landing once.** Patch `src/pages/auth/AuthExchange.tsx` in the satellite to:
+   - accept both `?code=` and legacy `?sso_code=`,
+   - call `setSession`, then poll `getSession` until persisted,
+   - then `navigate(redirect_path, { replace: true })`.
+4. **Permissions.** Reuse the same `user_roles` / permission helpers via the shared DB. No second permission model.
+5. **Audit trail.** Mutations from the satellite hit the same `system_audit_trail` because they go through the same Supabase project.
+
+### C. Operating model — per-route migration without host edits
+
+Because the host's switch is the single `base_url` column on the **root** `internal_audit` module, today the granularity is "all audit routes go to satellite, or none". To migrate route-by-route without ever touching host code, we use the existing `app_modules` tree:
+
+```text
+app_modules
+└── internal_audit                base_url = NULL  (default: host serves)
+    ├── audit_dashboard           base_url = NULL  → host
+    ├── audit_audits              base_url = 'https://internalaudit.secureserve.biz'  → satellite
+    └── audit_reports             base_url = NULL  → host
+```
+
+`useDynamicNavigation` already inherits `base_url` from parent only when the child has none, so setting `base_url` on a **specific child module** routes only that menu entry (and its sub-tree) to the satellite, while everything else under `internal_audit` keeps rendering in the host. No code change required — this is just how the existing inheritance rule works.
+
+Migration pattern per route:
+
+```text
+1. Build the page in the satellite, mounted at the same path.
+2. Smoke-test by navigating to the satellite URL directly (after SSO).
+3. Set base_url on that child app_modules row → host sidebar starts SSO-routing it.
+4. If anything goes wrong, clear base_url on that row → host serves it again immediately.
+```
+
+### D. Validation
+
+```text
+1. With base_url cleared on internal_audit:
+   - sidebar item "Internal Audit > Dashboard" → href /audit/dashboard
+   - click → useNavigate() → existing host AuditDashboard renders inside ProtectedLayout
+   - regression: identical to today.
+
+2. With base_url set on a single child (e.g. audit_audits):
+   - that one item → absolute https URL → SSO exchange → satellite /audit/audits
+   - all other audit items → still host.
+
+3. Satellite outage simulation (block the host name in DevTools):
+   - host items unaffected.
+   - SSO-routed items show browser-level failure on click; clearing base_url restores them.
+```
+
+### E. Files touched
+
+Host (`455cbbae-…`):
+
+- `docs/INTERNAL_AUDIT_ROLLBACK.md` — one-page operator runbook (the two SQL statements above plus the per-child override pattern).
+- No source changes. No migrations. No edge function changes.
+
+Satellite (`7e98fc6b-…`, separate task once approved):
+
+- `src/pages/auth/AuthExchange.tsx` — accept `code`/`sso_code`, await session persistence, replace-navigate.
+- New pages under `src/pages/audit/*` mirroring host paths, one per route as it is migrated.
+- Router entries for those paths.
+
+### F. Explicitly out of scope
+
+- No remote-module / federation runtime in the host.
+- No new edge function called from the host on every page render.
+- No iframe.
+- No changes to `SidebarMenuLink`, `SidebarMenuGroup`, `useDynamicNavigation`, `AppRoutes`, `ProtectedLayout`, or any audit page in the host.
+- No data migration on `app_modules` schema.
