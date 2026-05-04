@@ -101,6 +101,8 @@ Deno.serve(async (req) => {
     }
 
     const session = verifyData.session;
+    console.log('[sso-redeem] session minted', { user_id: session.user.id, redirect_path: row.redirect_path });
+
 
     return json(
       {
