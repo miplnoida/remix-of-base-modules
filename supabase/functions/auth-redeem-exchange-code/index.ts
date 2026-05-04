@@ -12,7 +12,6 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.74.0';
 import {
   corsHeadersFor,
   sha256Hex,
-  clientIp,
 } from '../_shared/sso-cookies.ts';
 
 Deno.serve(async (req) => {
