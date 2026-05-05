@@ -5,10 +5,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SearchableSelect } from '@/components/ui/searchable-select';
-import { Plus, Building2, Eye, Trash2 } from 'lucide-react';
+import { Plus, Building2, Eye, Trash2, RefreshCw } from 'lucide-react';
 import { useIADepartments, useIADepartmentMutations, useIAProfiles } from '@/hooks/useAuditData';
 import { useTbOffices, useDepartments } from '@/hooks/useAdminData';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { useDepartmentRiskSync } from '@/hooks/useDepartmentRiskSync';
 import { Link } from 'react-router-dom';
 import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, ConfirmDialog, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
@@ -25,7 +26,6 @@ interface DeptForm {
   email: string;
   phone: string;
   location: string;
-  risk_rating: string;
   source_department_id: string | null;
   head_profile_id: string | null;
   custom_name: string;
@@ -34,7 +34,7 @@ interface DeptForm {
 
 const emptyForm: DeptForm = {
   office_code: '', name: '', head: '', email: '', phone: '', location: '',
-  risk_rating: 'Medium', source_department_id: null, head_profile_id: null,
+  source_department_id: null, head_profile_id: null,
   custom_name: '', custom_head: '',
 };
 
@@ -50,7 +50,22 @@ export default function DepartmentMaster() {
   const [editDept, setEditDept] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<DeptForm>({ ...emptyForm });
-  
+  const { recomputeAll } = useDepartmentRiskSync();
+  const [isRecalculating, setIsRecalculating] = useState(false);
+  const [didReconcile, setDidReconcile] = useState(false);
+
+  // One-pass reconciliation when departments first load.
+  useEffect(() => {
+    if (didReconcile || isLoading || departments.length === 0) return;
+    setDidReconcile(true);
+    recomputeAll().catch(() => { /* non-blocking */ });
+  }, [didReconcile, isLoading, departments.length, recomputeAll]);
+
+  const handleRecalculate = async () => {
+    setIsRecalculating(true);
+    try { await recomputeAll(); } finally { setIsRecalculating(false); }
+  };
+
 
   // Dept name select state: 'select' or 'other'
   const [deptSelectMode, setDeptSelectMode] = useState<'select' | 'other'>('select');
@@ -129,7 +144,7 @@ export default function DepartmentMaster() {
     return {
       name, head,
       email: form.email, phone: form.phone, location: form.location,
-      risk_rating: form.risk_rating, office_code: form.office_code,
+      office_code: form.office_code,
       source_department_id: deptSelectMode === 'other' ? null : form.source_department_id,
       head_profile_id: headSelectMode === 'other' ? null : form.head_profile_id,
     };
@@ -160,7 +175,7 @@ export default function DepartmentMaster() {
       email: dept.email || '',
       phone: dept.phone || '',
       location: dept.location || '',
-      risk_rating: dept.risk_rating || 'Medium',
+      
       source_department_id: dept.source_department_id || null,
       head_profile_id: dept.head_profile_id || null,
       custom_name: isOtherDept ? dept.name : '',
@@ -315,17 +330,9 @@ export default function DepartmentMaster() {
         </div>
       </div>
 
-      {/* Risk Rating */}
-      <div>
-        <Label>Risk Rating</Label>
-        <Select value={form.risk_rating} onValueChange={v => setForm(f => ({ ...f, risk_rating: v }))}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="High">High</SelectItem>
-            <SelectItem value="Medium">Medium</SelectItem>
-            <SelectItem value="Low">Low</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Risk Rating is auto-derived from this department's functions on /audit/functions. */}
+      <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        Risk Rating is calculated automatically from the risk ratings of this department's functions and updates whenever those functions change.
       </div>
     </div>
   );
@@ -339,6 +346,10 @@ export default function DepartmentMaster() {
       error={isError ? 'Failed to load departments' : null}
       actions={
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleRecalculate} disabled={isRecalculating}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRecalculating ? 'animate-spin' : ''}`} />
+            Recalculate Risk
+          </Button>
           <ExportDropdown data={filteredDepartments} columns={exportColumns} fileName={DEPARTMENT_SCHEMA.exportFileName} title={DEPARTMENT_SCHEMA.exportTitle} />
           <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Department</Button>
         </div>

@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Plus, Shield, Target, Upload, ChevronDown, ChevronRight, Building2, Printer, AlertTriangle, Info } from 'lucide-react';
 import { useIADepartments, useIADepartmentFunctions, useIADepartmentFunctionMutations } from '@/hooks/useAuditData';
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
+import { useDepartmentRiskSync } from '@/hooks/useDepartmentRiskSync';
 import { useToast } from '@/hooks/use-toast';
 import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
@@ -39,6 +40,7 @@ export default function FunctionMaster() {
   const [expandedDepts, setExpandedDepts] = useState<Record<string, boolean>>({});
 
   const { getRiskRating, calculateFunctionRiskScore, getDeptRiskMethod, calculateDeptRisk } = useRiskRatingCalculator();
+  const { recomputeOne: recomputeDeptRisk, recomputeMany: recomputeDeptRiskMany } = useDepartmentRiskSync();
 
   // Dynamically set allowed department names on the bulk upload field
   const dynamicBulkFields = bulkUploadFields.map(f =>
@@ -46,6 +48,7 @@ export default function FunctionMaster() {
   );
 
   const handleBulkImport = async (data: Record<string, any>[]) => {
+    const affectedDeptIds = new Set<string>();
     for (const row of data) {
       const dept = departments.find(d => d.name === row.department_name);
       if (!dept) continue;
@@ -53,14 +56,16 @@ export default function FunctionMaster() {
       const i = row.impact || 'Medium';
       const score = calculateFunctionRiskScore(l, i);
       const rating = getRiskRating(score);
-      createFn.mutate({
+      await createFn.mutateAsync({
         department_id: dept.id, function_name: row.function_name, description: row.description || '',
         risk_rating: rating.label, likelihood: l, impact: i,
         control_effectiveness: row.control_effectiveness || 'Effective',
         responsible_person: row.responsible_person || '', notes: row.notes || '',
         weight_percentage: Number(row.weight_percentage) || 0,
       });
+      affectedDeptIds.add(dept.id);
     }
+    await recomputeDeptRiskMany(Array.from(affectedDeptIds));
   };
 
   const filteredFunctions = allFunctions.filter((f: any) =>
@@ -124,12 +129,13 @@ export default function FunctionMaster() {
     if (!validateWeight()) return;
     const score = calculateFunctionRiskScore(formData.likelihood, formData.impact);
     const rating = getRiskRating(score);
+    const deptId = formData.departmentId;
     createFn.mutate({
-      department_id: formData.departmentId, function_name: formData.functionName, description: formData.description,
+      department_id: deptId, function_name: formData.functionName, description: formData.description,
       risk_rating: rating.label, likelihood: formData.likelihood, impact: formData.impact,
       control_effectiveness: formData.controlEffectiveness, responsible_person: formData.responsiblePerson, notes: formData.notes,
       weight_percentage: Number(formData.weightPercentage) || 0,
-    });
+    }, { onSuccess: () => { recomputeDeptRisk(deptId); } });
     setIsAddOpen(false); resetForm();
   };
 
@@ -138,12 +144,14 @@ export default function FunctionMaster() {
     if (!validateWeight()) return;
     const score = calculateFunctionRiskScore(formData.likelihood, formData.impact);
     const rating = getRiskRating(score);
+    const newDeptId = formData.departmentId;
+    const oldDeptId = editFunc.department_id;
     updateFn.mutate({
-      id: editFunc.id, department_id: formData.departmentId, function_name: formData.functionName, description: formData.description,
+      id: editFunc.id, department_id: newDeptId, function_name: formData.functionName, description: formData.description,
       risk_rating: rating.label, likelihood: formData.likelihood, impact: formData.impact,
       control_effectiveness: formData.controlEffectiveness, responsible_person: formData.responsiblePerson, notes: formData.notes,
       weight_percentage: Number(formData.weightPercentage) || 0,
-    });
+    }, { onSuccess: () => { recomputeDeptRiskMany([newDeptId, oldDeptId]); } });
     setEditFunc(null); resetForm();
   };
 
