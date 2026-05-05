@@ -341,7 +341,7 @@ export default function RiskAssessment() {
   };
 
   const columns: DataTableColumn<any>[] = [
-    { key: 'department', header: 'Department', render: (r) => { const fn = funcMap[r.function_id]; return fn ? deptMap.get(fn.department_id)?.name || '—' : '—'; } },
+    { key: 'department', header: 'Department', render: (r) => { const fn = funcMap[r.function_id]; return fn ? formatDepartmentLabel(deptMap.get(fn.department_id)) : '—'; } },
     { key: 'function', header: 'Function', render: (r) => funcMap[r.function_id]?.function_name || '—' },
     { key: 'risk_category', header: 'Risk Category', render: (r) => r.risk_category || '—' },
     { key: 'likelihood_score', header: 'Likelihood', render: (r) => r.likelihood_score || '—' },
