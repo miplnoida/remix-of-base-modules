@@ -7,14 +7,15 @@ import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getRiskColor } from '@/lib/audit/riskEngine';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 export default function EntitySummary() {
   const { data: assessments = [], isLoading } = useIARiskAssessments();
 
   const { data: allDepartments = [] } = useQuery({
-    queryKey: ['ia_departments_all'],
+    queryKey: ['v_ia_departments_all_summary'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('ia_departments' as any).select('*').order('name');
+      const { data, error } = await (supabase.from('v_ia_departments' as any) as any).select('*').order('display_label');
       if (error) throw error;
       return data as any[];
     },
