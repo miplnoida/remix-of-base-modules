@@ -129,7 +129,7 @@ export default function DepartmentMaster() {
     return {
       name, head,
       email: form.email, phone: form.phone, location: form.location,
-      risk_rating: form.risk_rating, office_code: form.office_code,
+      office_code: form.office_code,
       source_department_id: deptSelectMode === 'other' ? null : form.source_department_id,
       head_profile_id: headSelectMode === 'other' ? null : form.head_profile_id,
     };
