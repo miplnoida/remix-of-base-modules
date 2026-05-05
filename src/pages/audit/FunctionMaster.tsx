@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Plus, Shield, Target, Upload, ChevronDown, ChevronRight, Building2, Printer, AlertTriangle, Info } from 'lucide-react';
 import { useIADepartments, useIADepartmentFunctions, useIADepartmentFunctionMutations } from '@/hooks/useAuditData';
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
+import { useDepartmentRiskSync } from '@/hooks/useDepartmentRiskSync';
 import { useToast } from '@/hooks/use-toast';
 import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
