@@ -357,7 +357,7 @@ export default function RiskAssessment() {
 
   const filterFields: StandardFilterField[] = [
     { key: 'risk_level', label: 'Risk Level', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_LEVELS.map(t => ({ label: t, value: t }))] },
-    { key: 'department', label: 'Department', type: 'select', options: [{ label: 'All Departments', value: 'all' }, ...(departments as any[]).map((d: any) => ({ label: d.name, value: d.id }))] },
+    { key: 'department', label: 'Department', type: 'select', options: [{ label: 'All Departments', value: 'all' }, ...(departments as any[]).map((d: any) => ({ label: formatDepartmentLabel(d), value: d.id }))] },
   ];
 
   const exportData = filtered.map((r: any) => {
