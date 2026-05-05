@@ -18,6 +18,7 @@ import { MetricCard } from '@/components/shared/MetricCard';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useTeamAvailabilityCheck } from '@/hooks/useAuditWorkflowGates';
 import { ConflictAlertPanel } from '@/components/audit/ConflictAlertPanel';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 
