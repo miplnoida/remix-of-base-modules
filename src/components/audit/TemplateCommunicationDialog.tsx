@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DocumentTemplate } from "@/types/audit";
 import { useIAAnnualPlans, useIADepartments } from "@/hooks/useAuditData";
 import { StandardModal } from "@/components/common/StandardModal";
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface TemplateCommunicationDialogProps {
   template: DocumentTemplate | null;

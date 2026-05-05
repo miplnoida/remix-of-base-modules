@@ -21,6 +21,7 @@ import { isEditablePlanStatus } from '@/hooks/useAuditPlanWorkflowAccess';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { classifyCompositeScore } from '@/lib/audit/riskEngine';
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface AutoPlanSuggestionsProps {
   planId: string;

@@ -11,6 +11,7 @@ import { Progress } from '@/components/ui/progress';
 
 import { calculateRiskLevel as deriveRiskLevel } from '@/lib/audit/riskEngine';
 import { useRiskRealtimeSync } from '@/hooks/useRiskRealtimeSync';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 export default function AuditDashboard() {
   // Subscribe to realtime risk config/register changes for auto-refresh

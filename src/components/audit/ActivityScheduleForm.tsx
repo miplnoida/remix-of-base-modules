@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useIADepartments, useIAActiveAuditors } from '@/hooks/useAuditData';
 import { useIADepartmentAudits } from '@/hooks/useAuditDataExtended';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface ActivityScheduleFormProps {
   onClose: () => void;

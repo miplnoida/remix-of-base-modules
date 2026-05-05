@@ -4,6 +4,7 @@ import { StatusBadge } from '@/components/common';
 import { useIADepartments, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
 import { AlertTriangle, CheckCircle, ShieldAlert, Shield } from 'lucide-react';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface CoverageRiskTabProps {
   planId: string;

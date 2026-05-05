@@ -11,6 +11,7 @@ import { useIADepartments, useIAActiveAuditors, useIADepartmentFunctions } from 
 import { useToast } from '@/hooks/use-toast';
 import { getRiskColor } from '@/lib/audit/riskEngine';
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface AuditPlanFormProps {
   plan?: any;

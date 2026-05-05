@@ -41,6 +41,7 @@ import { AuditReportTemplateSelector, REPORT_TEMPLATES } from './AuditReportTemp
 import type { ReportTemplate } from './AuditReportTemplateSelector';
 import { AuditPortfolioSection } from './sections/AuditPortfolioSection';
 import { AuditExecutiveDashboardSection } from './sections/AuditExecutiveDashboardSection';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface BuilderSection {
   id: string;

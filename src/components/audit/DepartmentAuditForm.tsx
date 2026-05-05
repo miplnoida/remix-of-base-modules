@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Zap } from 'lucide-react';
 import { useIADepartments, useIAActiveAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface DepartmentAuditFormProps {
   annualPlanId?: string;
