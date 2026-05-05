@@ -328,12 +328,20 @@ export default function FunctionMaster() {
         </div>
       }
     >
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Functions</CardTitle><Target className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allFunctions.length}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">High Risk</CardTitle><Shield className="h-4 w-4 text-destructive" /></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{allFunctions.filter((f: any) => f.risk_rating === 'High').length}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Medium Risk</CardTitle><Shield className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allFunctions.filter((f: any) => f.risk_rating === 'Medium').length}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Low Risk</CardTitle><Shield className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allFunctions.filter((f: any) => f.risk_rating === 'Low').length}</div></CardContent></Card>
-      </div>
+      {(() => {
+        const liveLabel = (f: any) => getRiskRating(calculateFunctionRiskScore(f.likelihood || 'Medium', f.impact || 'Medium')).label;
+        const high = allFunctions.filter((f: any) => liveLabel(f) === 'High' || liveLabel(f) === 'Critical').length;
+        const med = allFunctions.filter((f: any) => liveLabel(f) === 'Medium').length;
+        const low = allFunctions.filter((f: any) => liveLabel(f) === 'Low').length;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Functions</CardTitle><Target className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allFunctions.length}</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">High Risk</CardTitle><Shield className="h-4 w-4 text-destructive" /></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{high}</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Medium Risk</CardTitle><Shield className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{med}</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Low Risk</CardTitle><Shield className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{low}</div></CardContent></Card>
+          </div>
+        );
+      })()}
 
       <StandardSearchFilterBar
         searchValue={searchTerm}
