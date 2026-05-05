@@ -363,7 +363,7 @@ export default function RiskAssessment() {
   const exportData = filtered.map((r: any) => {
     const fn = funcMap[r.function_id];
     const dept = fn ? deptMap.get(fn.department_id) : null;
-    return { ...r, department_name: dept?.name || '', function_name: fn?.function_name || '' };
+    return { ...r, department_name: formatDepartmentLabel(dept), function_name: fn?.function_name || '' };
   });
 
   const isReadOnly = modalState.mode === 'view';
