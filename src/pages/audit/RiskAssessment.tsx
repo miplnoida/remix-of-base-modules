@@ -154,7 +154,7 @@ function DepartmentRiskSummary({ assessments, deptMap, allFunctions }: {
       const deptId = fn?.department_id;
       if (!deptId) return;
       const dept = deptMap.get(deptId);
-      if (!summary[deptId]) summary[deptId] = { name: dept?.name || 'Unknown', total: 0, avgScore: 0, critical: 0, high: 0, medium: 0, low: 0 };
+      if (!summary[deptId]) summary[deptId] = { name: formatDepartmentLabel(dept) || 'Unknown', total: 0, avgScore: 0, critical: 0, high: 0, medium: 0, low: 0 };
       const s = summary[deptId];
       s.total++;
       s.avgScore += Number(a.overall_risk_score) || (Number(a.likelihood_score) * Number(a.impact_score));
