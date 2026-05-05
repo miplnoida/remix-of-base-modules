@@ -30344,6 +30344,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ia_activities_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ia_activities_engagement_id_fkey"
             columns: ["engagement_id"]
             isOneToOne: false
@@ -30617,6 +30624,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_annual_plans_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_ia_departments"
             referencedColumns: ["id"]
           },
           {
@@ -31027,6 +31041,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ia_audit_engagements_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ia_audit_engagements_function_id_fkey"
             columns: ["function_id"]
             isOneToOne: false
@@ -31367,6 +31388,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ia_audit_queries_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ia_audit_queries_engagement_id_fkey"
             columns: ["engagement_id"]
             isOneToOne: false
@@ -31502,6 +31530,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ia_audit_reports_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ia_audit_reports_engagement_id_fkey"
             columns: ["engagement_id"]
             isOneToOne: false
@@ -31632,6 +31667,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_audit_universe_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_ia_departments"
             referencedColumns: ["id"]
           },
         ]
@@ -32121,6 +32163,13 @@ export type Database = {
             referencedRelation: "ia_departments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ia_checklist_templates_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_ia_departments"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ia_communication_stages: {
@@ -32601,6 +32650,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ia_department_audits_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ia_department_audits_lead_auditor_id_fkey"
             columns: ["lead_auditor_id"]
             isOneToOne: false
@@ -32679,6 +32735,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_department_functions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_ia_departments"
             referencedColumns: ["id"]
           },
         ]
@@ -33558,6 +33621,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ia_findings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "ia_findings_engagement_id_fkey"
             columns: ["engagement_id"]
             isOneToOne: false
@@ -33669,6 +33739,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_follow_ups_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_ia_departments"
             referencedColumns: ["id"]
           },
           {
@@ -35135,6 +35212,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "ia_departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ia_rcm_processes_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "v_ia_departments"
             referencedColumns: ["id"]
           },
           {
@@ -52105,6 +52189,37 @@ export type Database = {
         }
         Relationships: []
       }
+      v_ia_departments: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          display_label: string | null
+          email: string | null
+          head: string | null
+          head_profile_id: string | null
+          id: string | null
+          is_active: boolean | null
+          location: string | null
+          master_active: boolean | null
+          name: string | null
+          office_code: string | null
+          phone: string | null
+          risk_rating: string | null
+          source_department_id: string | null
+          tb_office_code: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ia_departments_tb_office_code_fkey"
+            columns: ["tb_office_code"]
+            isOneToOne: false
+            referencedRelation: "tb_office"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
     }
     Functions: {
       add_sep_activity: {
@@ -53397,6 +53512,7 @@ export type Database = {
         Args: { p_actor: string; p_keep_id: string; p_root_id: string }
         Returns: undefined
       }
+      fn_ia_department_label: { Args: { p_id: string }; Returns: string }
       generate_application_id: { Args: never; Returns: string }
       generate_depend_id: { Args: { p_ssn: string }; Returns: string }
       generate_er_regno: { Args: never; Returns: string }
