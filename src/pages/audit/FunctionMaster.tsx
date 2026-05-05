@@ -10,6 +10,7 @@ import { Plus, Shield, Target, Upload, ChevronDown, ChevronRight, Building2, Pri
 import { useIADepartments, useIADepartmentFunctions, useIADepartmentFunctionMutations } from '@/hooks/useAuditData';
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 import { useDepartmentRiskSync } from '@/hooks/useDepartmentRiskSync';
+import { useFunctionRiskSync } from '@/hooks/useFunctionRiskSync';
 import { useToast } from '@/hooks/use-toast';
 import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
