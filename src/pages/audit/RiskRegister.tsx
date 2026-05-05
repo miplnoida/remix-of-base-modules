@@ -324,7 +324,7 @@ export default function RiskRegister() {
             <Label>Department *</Label>
             <Select value={form.audit_universe_id} onValueChange={v => setForm(f => ({ ...f, audit_universe_id: v }))}>
               <SelectTrigger><SelectValue placeholder="Select department..." /></SelectTrigger>
-              <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+              <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{formatDepartmentLabel(d)}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-2 md:col-span-2">
