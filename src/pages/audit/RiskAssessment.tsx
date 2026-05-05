@@ -444,10 +444,17 @@ export default function RiskAssessment() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Risk Category <span className="text-destructive">*</span></Label>
-              <Select value={riskCategory} onValueChange={setRiskCategory} disabled={isReadOnly}>
-                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                <SelectContent>{RISK_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-              </Select>
+              <CreatableSearchableSelect
+                options={(riskCategories as any[]).map((c: any) => ({ value: c.name, label: c.name }))}
+                value={riskCategory}
+                onValueChange={setRiskCategory}
+                disabled={isReadOnly}
+                placeholder="Select or type to add a category…"
+                onCreate={async (raw) => {
+                  const row = await createCategory.mutateAsync(raw);
+                  return row?.name;
+                }}
+              />
             </div>
             <div>
               <Label>Risk Owner <span className="text-destructive">*</span></Label>
