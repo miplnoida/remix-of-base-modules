@@ -38,9 +38,9 @@ export default function RiskMatrix() {
   });
 
   const { data: departments = [] } = useQuery({
-    queryKey: ['ia_departments_all_for_matrix'],
+    queryKey: ['v_ia_departments_for_matrix'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('ia_departments' as any).select('*').eq('is_active', true).order('name');
+      const { data, error } = await (supabase.from('v_ia_departments' as any) as any).select('*').eq('is_active', true).order('display_label');
       if (error) throw error;
       return (data ?? []) as any[];
     },
