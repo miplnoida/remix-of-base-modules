@@ -1,65 +1,64 @@
 ## Goal
 
-Make `ia_departments.risk_rating` an auto-derived value computed from the risk ratings of that department's functions (same logic shown on `/audit/functions` top-right "Dept: score — label" badge). Remove the manual Risk Rating control from the Departments CRUD, and keep the column in sync whenever any function under the department changes.
+Make every risk number displayed on `/audit/functions` (per-function Risk Score badge, stored `risk_rating`, the per-department "Dept: score — label" badge in the top-right of each group, and the High/Medium/Low stat cards) recompute using the formula currently selected on `/audit/risk-settings` → **Formula** tab, instead of the value that happened to be in effect when the function was created/edited.
 
-## Current Behavior
+## Current state (verified)
 
-- `/audit/functions` (FunctionMaster.tsx) already calculates department risk via `calculateDeptRisk(functions)` from `useRiskRatingCalculator()` (in `src/hooks/useRiskConfig.ts` → `src/lib/audit/riskEngine.ts`). Methods supported: `maximum`, `average`, `weighted`, configured by `getDeptRiskMethod()`.
-- `/audit/departments` (DepartmentMaster.tsx) lets users pick `Risk Rating` (High/Medium/Low) manually in Add/Edit modal and persists to `ia_departments.risk_rating`.
-- `ia_department_functions` rows hold `likelihood`, `impact`, `weight_percentage`, `risk_rating` per function.
+- `useRiskRatingCalculator()` in `src/hooks/useRiskConfig.ts` already pulls `formula_type` and `dept_risk_method` from `ia_risk_config_master` and wires them into the engine. So `calculateFunctionRiskScore(...)` and `calculateDeptRisk(...)` *are* technically formula-aware at render time.
+- BUT the per-function `ia_department_functions.risk_rating` column is computed and persisted only at create/edit time using the formula in effect *then*. Several UIs (stat cards on FunctionMaster, `highCount` in the dept header subtitle, Departments page, downstream modules) read this stored column, so changing the Formula on `/audit/risk-settings` does **not** update them.
+- The dept badge (`Dept: <score> — <label>`) is already live-derived, but the per-function stored values it displays alongside (column `risk_rating` in the inner table) are stale.
 
-## Approach
+## Proposed fix
 
-Compute department risk on the client using the same engine, write the resulting label back to `ia_departments.risk_rating` whenever functions change, and remove the manual selector. Keep DB column as-is (no schema change) so existing reads and stat cards keep working.
+### 1. Centralize a "recompute on formula change"
 
-### 1. Centralize the recompute
+Add a new helper hook `useFunctionRiskSync()` (in `src/hooks/`) with:
 
-Create a small helper hook `useSyncDepartmentRiskRating` (under `src/hooks/`) that:
-- Accepts `departmentId`.
-- Loads all active `ia_department_functions` for that department.
-- Calls `calculateDeptRisk(functions)` (same engine the Functions page uses → guarantees parity with the badge).
-- Maps `deptRisk.label` to the allowed values stored today: `High` / `Medium` / `Low` (treat `Critical` as `High`, `N/A` → leave as `Medium` default when no functions).
-- Updates `ia_departments.risk_rating` only if it changed (skip no-op writes), stamping `updated_by` with the current `user_code`.
-- Invalidates `['ia_departments']` and related queries.
+- `recomputeFunction(funcId)` — recomputes `risk_rating` (and persists) for a single function using the current engine config.
+- `recomputeAllFunctions()` — pages through `ia_department_functions` (1k chunks per pagination standard), recomputes `risk_rating` for each row whose value would change, batches updates.
+- After running, calls `useDepartmentRiskSync().recomputeAll()` so all dept ratings re-derive too.
+- Invalidates `['ia_department_functions']`, `['ia_departments']`.
 
-### 2. Trigger points (client-side, since RLS/triggers aren't used here)
+### 2. Auto-trigger on Formula save
 
-Wire the recompute into every mutation that can change a function's risk inputs. All of these live in `useAuditData` / `useAuditDataPhase2` / `FunctionMaster.tsx`:
+In `src/pages/audit/RiskSettings.tsx` → `RiskFormulaTab.handleSave` (around line 152):
 
-- Function create
-- Function update (likelihood / impact / weight / risk_rating / department_id change — recompute for both old and new department on move)
-- Function archive / delete
-- Bulk imports of functions (if any)
+- After `update.mutate({...formula_type...})` succeeds, call `useFunctionRiskSync().recomputeAllFunctions()`.
+- Show a toast: "Recalculated N functions and M departments using the new formula."
+- Same hook should also be called from the existing **Risk Bands** save (band thresholds change → labels change).
 
-Implementation: in the function-mutation `onSuccess` handlers, call the new hook's recompute for the affected `department_id`(s).
+### 3. Manual "Recalculate Now" control
 
-### 3. Departments page changes (`src/pages/audit/DepartmentMaster.tsx`)
+Add a small "Recalculate All Risks" button in:
+- `RiskSettings.tsx` Formula tab (admin safety net).
+- `FunctionMaster.tsx` page header (next to the existing Print/Export actions) so an auditor can force a refresh after a config change without navigating to settings.
 
-- Remove the `Risk Rating` `<Select>` block (lines ~318–329) from the Add/Edit modal.
-- Remove `risk_rating` from `DeptForm`, `emptyForm`, `getSubmitData`, `openEdit` defaulting.
-- Stop sending `risk_rating` in `create.mutate` / `update.mutate` payloads (DB column stays; backend simply won't overwrite it from the form).
-- Keep the `risk_rating` column in the table and the High/Medium/Low stat cards — they will now reflect the auto-computed value.
-- Keep the Risk filter on the list (still filters by stored value).
-- On opening the Departments page, run a one-pass reconciliation: for each department lacking a synced value or where functions changed since last write, recompute and persist. (Cheap: one SELECT of functions grouped by dept + targeted UPDATEs only on diffs.)
+### 4. Make all displayed values consistent
 
-### 4. Display badge consistency
+In `src/pages/audit/FunctionMaster.tsx`:
 
-Department list/detail views read `risk_rating` directly from `ia_departments`, so once #1–#3 are in place the badge will match the Functions page. `DepartmentView.tsx` already uses `calculateDeptRisk` for its own header — leave as-is; it stays consistent.
+- Replace the High/Medium/Low stat cards' filter (lines ~333–335) so they count using the **live engine** (`getRiskRating(calculateFunctionRiskScore(f.likelihood, f.impact)).label`) instead of `f.risk_rating`.
+- Replace `highCount` (line 363) with the same live derivation.
+- Inner table column `risk_rating` (currently implicit via `f.risk_rating`) — render with the live engine.
 
-### 5. Edge cases
+This way the UI is correct *immediately* even before the persisted column is rewritten, and the persisted column is brought in sync in the background by step 1.
 
-- Department with zero functions → keep existing stored value untouched (don't overwrite with `N/A`); stat cards keep counting it.
-- Risk engine config changes (bands / method) → not auto-rebroadcast; document that admins can trigger a recompute by editing any function, or we can add a "Recalculate All" admin button on the Departments page (small button in `actions`). Include this button in the implementation.
-- Concurrency: use `if-changed` guard before update to avoid write storms.
+### 5. Guardrails
 
-## Files to Change
+- Skip writes when the new label equals the stored label (no-op suppression, like `useDepartmentRiskSync` already does).
+- Stamp `updated_by = userCode` on every update (project rule).
+- No DB triggers; all logic in app layer (project rule: role-based security only, no RLS / no triggers).
+- No schema changes.
 
-- `src/pages/audit/DepartmentMaster.tsx` — remove manual Risk Rating field; add "Recalculate Risk" action button; trigger reconciliation on mount.
-- `src/hooks/useDepartmentRiskSync.ts` (new) — `recomputeDepartmentRisk(departmentId)` and `recomputeAllDepartments()`.
-- `src/pages/audit/FunctionMaster.tsx` — after function create/update/delete success, call `recomputeDepartmentRisk` for the affected department(s).
-- `src/hooks/useAuditData.ts` (or wherever function mutations live) — same hook integration if mutations are called from elsewhere.
+## Files to change
 
-## Out of Scope
+- `src/hooks/useFunctionRiskSync.ts` *(new)*
+- `src/hooks/useDepartmentRiskSync.ts` — expose its `recomputeAll` for chaining (already does).
+- `src/pages/audit/RiskSettings.tsx` — chain recompute into Formula save and Bands save; add "Recalculate" button.
+- `src/pages/audit/FunctionMaster.tsx` — switch stat cards / `highCount` / inner column to live engine values; add "Recalculate" button.
 
-- No DB schema changes. No migrations. No DB triggers (project rule: role-based security only, logic stays in app layer).
-- `/audit/functions` page logic and the existing badge are unchanged.
+## Out of scope
+
+- DB triggers, migrations, or schema changes.
+- Touching `/audit/risk-settings` Likelihood/Impact tabs (they only edit master labels, not formula).
+- Other modules that read `ia_department_functions.risk_rating` — they will pick up the corrected values automatically once step 1 runs.
