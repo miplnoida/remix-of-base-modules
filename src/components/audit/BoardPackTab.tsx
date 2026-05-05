@@ -26,8 +26,8 @@ import { applyPlanOverrides, createEmptyPlanOverride, hasPlanOverrides } from '@
 import { PlanOverridePanel } from './templates/PlanOverridePanel';
 import { LiveDocumentPreview } from './templates/LiveDocumentPreview';
 import { useDocumentTemplateSections } from '@/hooks/useDocumentTemplateSections';
-import {
 import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
+import {
   DEFAULT_AUDIT_BRANDING,
   renderCoverPage as renderUnifiedCover,
   renderPageHeader,
