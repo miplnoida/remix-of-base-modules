@@ -332,6 +332,9 @@ export default function FunctionMaster() {
       isLoading={deptsLoading || funcsLoading}
       actions={
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRecalcAll} disabled={recalcBusy}>
+            {recalcBusy ? 'Recalculating…' : 'Recalculate Risks'}
+          </Button>
           <Button variant="outline" size="sm" onClick={handlePrintPDF}>
             <Printer className="w-4 h-4 mr-2" />Print PDF
           </Button>
