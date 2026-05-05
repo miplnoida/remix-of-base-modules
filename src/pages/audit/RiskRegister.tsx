@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { AuditEmptyState } from '@/components/audit/workspace/AuditEmptyState';
 import { buildMetadata, exportRiskDetailPDF, exportMitigationPlanPDF, type GroupByOption } from '@/lib/auditReportExports';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 const exportColumns = toExportColumns(RISK_REGISTER_SCHEMA);
 const RISK_LEVELS = ['Critical', 'High', 'Medium', 'Low'];
