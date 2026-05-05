@@ -15,6 +15,7 @@ import { formatDateForDisplay } from '@/lib/format-config';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useManualOverride } from '@/hooks/useAutoPlanEngine';
 import { isEditablePlanStatus, isLockedPlanStatus } from '@/hooks/useAuditPlanWorkflowAccess';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface EngagementBuilderProps {
   planId: string;
