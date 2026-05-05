@@ -19,6 +19,7 @@ import {
   useIARiskClassificationThresholds,
 } from '@/hooks/useAuditConfigData';
 import { useRiskConfigMaster, useRiskConfigMasterMutations } from '@/hooks/useRiskConfig';
+import { useFunctionRiskSync } from '@/hooks/useFunctionRiskSync';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 
