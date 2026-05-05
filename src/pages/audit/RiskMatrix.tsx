@@ -8,6 +8,7 @@ import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateRiskLevel, getRiskColor } from '@/lib/audit/riskEngine';
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 function getLevelClasses(level: string) {
   switch (level) {
