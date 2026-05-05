@@ -317,21 +317,21 @@ function RiskBandsTab() {
         toast({ title: 'Validation Error', description: err, variant: 'destructive' });
         return;
       }
-      thresholds.update.mutate({ id: editBand.id, ...payload });
+      thresholds.update.mutate({ id: editBand.id, ...payload }, { onSuccess: () => { void runRecalc(); } });
     } else {
       const err = validateBands([...bands, payload]);
       if (err) {
         toast({ title: 'Validation Error', description: err, variant: 'destructive' });
         return;
       }
-      thresholds.create.mutate({ ...payload, sort_order: bands.length + 1, is_active: true });
+      thresholds.create.mutate({ ...payload, sort_order: bands.length + 1, is_active: true }, { onSuccess: () => { void runRecalc(); } });
     }
     setEditBand(null);
     setShowAdd(false);
   };
 
   const deleteBand = (id: string) => {
-    thresholds.remove.mutate(id);
+    thresholds.remove.mutate(id, { onSuccess: () => { void runRecalc(); } });
   };
 
   const COLORS = [
