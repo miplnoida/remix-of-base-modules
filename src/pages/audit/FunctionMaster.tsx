@@ -42,6 +42,20 @@ export default function FunctionMaster() {
 
   const { getRiskRating, calculateFunctionRiskScore, getDeptRiskMethod, calculateDeptRisk } = useRiskRatingCalculator();
   const { recomputeOne: recomputeDeptRisk, recomputeMany: recomputeDeptRiskMany } = useDepartmentRiskSync();
+  const { recomputeAllFunctions } = useFunctionRiskSync();
+  const [recalcBusy, setRecalcBusy] = useState(false);
+
+  const handleRecalcAll = async () => {
+    setRecalcBusy(true);
+    try {
+      const { functionsUpdated, departmentsTouched } = await recomputeAllFunctions();
+      toast({ title: 'Recalculation Complete', description: `${functionsUpdated} function(s), ${departmentsTouched} department(s) refreshed.` });
+    } catch (e: any) {
+      toast({ title: 'Recalculation Failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setRecalcBusy(false);
+    }
+  };
 
   // Dynamically set allowed department names on the bulk upload field
   const dynamicBulkFields = bulkUploadFields.map(f =>
