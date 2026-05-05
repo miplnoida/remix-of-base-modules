@@ -48,6 +48,7 @@ export default function FunctionMaster() {
   );
 
   const handleBulkImport = async (data: Record<string, any>[]) => {
+    const affectedDeptIds = new Set<string>();
     for (const row of data) {
       const dept = departments.find(d => d.name === row.department_name);
       if (!dept) continue;
@@ -55,14 +56,16 @@ export default function FunctionMaster() {
       const i = row.impact || 'Medium';
       const score = calculateFunctionRiskScore(l, i);
       const rating = getRiskRating(score);
-      createFn.mutate({
+      await createFn.mutateAsync({
         department_id: dept.id, function_name: row.function_name, description: row.description || '',
         risk_rating: rating.label, likelihood: l, impact: i,
         control_effectiveness: row.control_effectiveness || 'Effective',
         responsible_person: row.responsible_person || '', notes: row.notes || '',
         weight_percentage: Number(row.weight_percentage) || 0,
       });
+      affectedDeptIds.add(dept.id);
     }
+    await recomputeDeptRiskMany(Array.from(affectedDeptIds));
   };
 
   const filteredFunctions = allFunctions.filter((f: any) =>
