@@ -184,7 +184,7 @@ export default function FunctionMaster() {
 
   const columns: DataTableColumn<any>[] = [
     { key: 'function_name', header: 'Function Name' },
-    { key: 'department_id', header: 'Department', render: (row) => departments.find((d: any) => d.id === row.department_id)?.name || '-' },
+    { key: 'department_id', header: 'Department', render: (row) => formatDepartmentLabel(departments.find((d: any) => d.id === row.department_id)) },
     { key: 'description', header: 'Description', className: 'max-w-xs truncate' },
     { key: 'risk_score', header: 'Risk Score', render: (row) => {
       const score = calculateFunctionRiskScore(row.likelihood || 'Medium', row.impact || 'Medium');
