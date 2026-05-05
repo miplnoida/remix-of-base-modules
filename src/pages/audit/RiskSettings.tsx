@@ -134,8 +134,11 @@ function RiskFormulaTab() {
   const { data: config, isLoading } = useRiskConfigMaster();
   const { update } = useRiskConfigMasterMutations();
   const { userCode } = useUserCode();
+  const { toast } = useToast();
+  const { recomputeAllFunctions } = useFunctionRiskSync();
   const [formula, setFormula] = useState('likelihood_x_impact');
   const [formulaDisplay, setFormulaDisplay] = useState('Likelihood × Impact');
+  const [recalcBusy, setRecalcBusy] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -150,6 +153,21 @@ function RiskFormulaTab() {
     { value: 'weighted_average', label: 'Weighted Average', desc: 'Average of both values. Score range: 1–5 (for 5×5 scale).' },
   ];
 
+  const runRecalc = async () => {
+    setRecalcBusy(true);
+    try {
+      const { functionsUpdated, departmentsTouched } = await recomputeAllFunctions();
+      toast({
+        title: 'Recalculation Complete',
+        description: `${functionsUpdated} function(s) and ${departmentsTouched} department(s) updated using the current formula.`,
+      });
+    } catch (e: any) {
+      toast({ title: 'Recalculation Failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setRecalcBusy(false);
+    }
+  };
+
   const handleSave = () => {
     if (!config) return;
     const selected = FORMULAS.find(f => f.value === formula);
@@ -158,6 +176,8 @@ function RiskFormulaTab() {
       formula_type: formula,
       formula_display: selected?.label || formulaDisplay,
       updated_by: userCode || 'SYSTEM',
+    }, {
+      onSuccess: () => { void runRecalc(); },
     });
   };
 
