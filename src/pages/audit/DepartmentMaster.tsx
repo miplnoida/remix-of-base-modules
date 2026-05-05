@@ -160,7 +160,7 @@ export default function DepartmentMaster() {
       email: dept.email || '',
       phone: dept.phone || '',
       location: dept.location || '',
-      risk_rating: dept.risk_rating || 'Medium',
+      
       source_department_id: dept.source_department_id || null,
       head_profile_id: dept.head_profile_id || null,
       custom_name: isOtherDept ? dept.name : '',
