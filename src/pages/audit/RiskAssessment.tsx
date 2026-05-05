@@ -199,6 +199,8 @@ export default function RiskAssessment() {
   const { data: departments = [] } = useIADepartments();
   const { data: auditors = [] } = useIAActiveAuditors();
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const { data: riskCategories = [] } = useIARiskCategories();
+  const createCategory = useCreateIARiskCategory();
 
   // Fetch ALL departments (including inactive) for display resolution
   const { data: allDepartments = [] } = useQuery({
