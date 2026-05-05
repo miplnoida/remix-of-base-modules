@@ -198,10 +198,10 @@ export default function FunctionMaster() {
     { key: 'responsible_person', header: 'Responsible Person' },
   ];
 
-  // Prepare export data with department name resolved
+  // Prepare export data with department label resolved
   const exportData = filteredFunctions.map((f: any) => ({
     ...f,
-    department_name: departments.find((d: any) => d.id === f.department_id)?.name || '',
+    department_name: formatDepartmentLabel(departments.find((d: any) => d.id === f.department_id)),
   }));
 
   // SSB branded PDF export (grouped by department)
