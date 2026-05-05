@@ -93,8 +93,8 @@ export function useCreateIARiskCategory() {
   return useMutation({
     mutationFn: async (rawName: string): Promise<IARiskCategory> => {
       const v = validateCategoryName(rawName);
-      if (v.ok !== true) {
-        throw new Error(v.reason);
+      if (!v.ok) {
+        throw new Error(v.reason || 'Invalid category name.');
       }
       const name = v.value;
       const norm = name.toLowerCase();
