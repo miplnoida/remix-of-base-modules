@@ -346,6 +346,10 @@ export default function DepartmentMaster() {
       error={isError ? 'Failed to load departments' : null}
       actions={
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleRecalculate} disabled={isRecalculating}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRecalculating ? 'animate-spin' : ''}`} />
+            Recalculate Risk
+          </Button>
           <ExportDropdown data={filteredDepartments} columns={exportColumns} fileName={DEPARTMENT_SCHEMA.exportFileName} title={DEPARTMENT_SCHEMA.exportTitle} />
           <Button onClick={() => { resetForm(); setIsAddOpen(true); }}><Plus className="w-4 h-4 mr-2" />Add Department</Button>
         </div>
