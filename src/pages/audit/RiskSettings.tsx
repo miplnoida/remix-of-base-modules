@@ -254,6 +254,23 @@ function RiskBandsTab() {
   const thresholds = useIARiskClassificationThresholds();
   const { userCode } = useUserCode();
   const { toast } = useToast();
+  const { recomputeAllFunctions } = useFunctionRiskSync();
+  const [recalcBusy, setRecalcBusy] = useState(false);
+
+  const runRecalc = async () => {
+    setRecalcBusy(true);
+    try {
+      const { functionsUpdated, departmentsTouched } = await recomputeAllFunctions();
+      toast({
+        title: 'Recalculation Complete',
+        description: `${functionsUpdated} function(s) and ${departmentsTouched} department(s) updated using current bands.`,
+      });
+    } catch (e: any) {
+      toast({ title: 'Recalculation Failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setRecalcBusy(false);
+    }
+  };
   const [editBand, setEditBand] = useState<any>(null);
   const [bandForm, setBandForm] = useState({ label: '', min_score: '', max_score: '', color: '#22c55e' });
   const [showAdd, setShowAdd] = useState(false);
