@@ -368,7 +368,10 @@ export default function FunctionMaster() {
           )}
           {groupedByDept.map(({ dept, functions }) => {
             const isOpen = expandedDepts[dept.id] !== false;
-            const highCount = functions.filter((f: any) => f.risk_rating === 'High').length;
+            const highCount = functions.filter((f: any) => {
+              const lbl = getRiskRating(calculateFunctionRiskScore(f.likelihood || 'Medium', f.impact || 'Medium')).label;
+              return lbl === 'High' || lbl === 'Critical';
+            }).length;
             const deptTotalWeight = functions.reduce((sum: number, f: any) => sum + (Number(f.weight_percentage) || 0), 0);
             const deptRisk = calculateDeptRisk(functions);
             return (
