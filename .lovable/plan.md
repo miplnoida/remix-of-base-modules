@@ -1,144 +1,65 @@
-## Constraint (locked)
+## Goal
 
-> The main application (`SocialServe`) MUST NOT change. If `app_modules.base_url` for `internal_audit` is set to `NULL` or empty, every existing `/audit/*` route MUST continue to work exactly as it does today — same layout, same sidebar, same header, same components, same auth.
+Make `ia_departments.risk_rating` an auto-derived value computed from the risk ratings of that department's functions (same logic shown on `/audit/functions` top-right "Dept: score — label" badge). Remove the manual Risk Rating control from the Departments CRUD, and keep the column in sync whenever any function under the department changes.
 
-All work in this plan is **additive on the satellite side** plus **one data-only flag** on the host. Zero edits to host UI, routing, layout, guards, services, or sidebar code.
+## Current Behavior
 
-## Why no host code changes are needed
+- `/audit/functions` (FunctionMaster.tsx) already calculates department risk via `calculateDeptRisk(functions)` from `useRiskRatingCalculator()` (in `src/hooks/useRiskConfig.ts` → `src/lib/audit/riskEngine.ts`). Methods supported: `maximum`, `average`, `weighted`, configured by `getDeptRiskMethod()`.
+- `/audit/departments` (DepartmentMaster.tsx) lets users pick `Risk Rating` (High/Medium/Low) manually in Add/Edit modal and persists to `ia_departments.risk_rating`.
+- `ia_department_functions` rows hold `likelihood`, `impact`, `weight_percentage`, `risk_rating` per function.
 
-The current host already behaves correctly under both conditions:
+## Approach
 
-```text
-app_modules.base_url = 'https://internalaudit.secureserve.biz'
-  └─ useDynamicNavigation builds absolute URLs
-     └─ SidebarMenuLink sees http(s):// → navigateToSatellite() (SSO redirect)
+Compute department risk on the client using the same engine, write the resulting label back to `ia_departments.risk_rating` whenever functions change, and remove the manual selector. Keep DB column as-is (no schema change) so existing reads and stat cards keep working.
 
-app_modules.base_url = NULL or ''
-  └─ useDynamicNavigation builds relative paths '/audit/...'
-     └─ SidebarMenuLink sees relative URL → useNavigate()
-        └─ existing AppRoutes render existing host components inside ProtectedLayout
-```
+### 1. Centralize the recompute
 
-Verified in code:
-- `src/hooks/useDynamicNavigation.ts:175-186` — `effectiveBaseUrl = module.base_url || parentBaseUrl || null`; only prepends when truthy.
-- `src/components/sidebar/SidebarMenuLink.tsx:21-30` — branches on `startsWith('http')`.
-- `src/components/routing/AppRoutes.tsx` — 35 `/audit/*` routes already mounted under `ProtectedLayout`.
+Create a small helper hook `useSyncDepartmentRiskRating` (under `src/hooks/`) that:
+- Accepts `departmentId`.
+- Loads all active `ia_department_functions` for that department.
+- Calls `calculateDeptRisk(functions)` (same engine the Functions page uses → guarantees parity with the badge).
+- Maps `deptRisk.label` to the allowed values stored today: `High` / `Medium` / `Low` (treat `Critical` as `High`, `N/A` → leave as `Medium` default when no functions).
+- Updates `ia_departments.risk_rating` only if it changed (skip no-op writes), stamping `updated_by` with the current `user_code`.
+- Invalidates `['ia_departments']` and related queries.
 
-So the rollback story for the host is literally: set `base_url = NULL` and reload. Nothing else.
+### 2. Trigger points (client-side, since RLS/triggers aren't used here)
 
-## What this plan delivers
+Wire the recompute into every mutation that can change a function's risk inputs. All of these live in `useAuditData` / `useAuditDataPhase2` / `FunctionMaster.tsx`:
 
-1. **Satellite becomes the place where new audit work happens**, without touching the host.
-2. **A documented switch** to flip a route between "host renders" and "satellite renders" without code edits.
-3. **A safety net**: if the satellite is down/maintenance, the host keeps working because nothing in the host depends on it.
+- Function create
+- Function update (likelihood / impact / weight / risk_rating / department_id change — recompute for both old and new department on move)
+- Function archive / delete
+- Bulk imports of functions (if any)
 
-## Plan
+Implementation: in the function-mutation `onSuccess` handlers, call the new hook's recompute for the affected `department_id`(s).
 
-### A. Host (data-only, no code edits)
+### 3. Departments page changes (`src/pages/audit/DepartmentMaster.tsx`)
 
-A single migration to make the switch declarative and per-module-root:
+- Remove the `Risk Rating` `<Select>` block (lines ~318–329) from the Add/Edit modal.
+- Remove `risk_rating` from `DeptForm`, `emptyForm`, `getSubmitData`, `openEdit` defaulting.
+- Stop sending `risk_rating` in `create.mutate` / `update.mutate` payloads (DB column stays; backend simply won't overwrite it from the form).
+- Keep the `risk_rating` column in the table and the High/Medium/Low stat cards — they will now reflect the auto-computed value.
+- Keep the Risk filter on the list (still filters by stored value).
+- On opening the Departments page, run a one-pass reconciliation: for each department lacking a synced value or where functions changed since last write, recompute and persist. (Cheap: one SELECT of functions grouped by dept + targeted UPDATEs only on diffs.)
 
-```sql
--- Already-present column on app_modules: base_url text null
--- No schema change. Plan only documents the operational contract:
---   base_url IS NULL or ''  →  host renders /audit/* (current behaviour)
---   base_url = 'https://internalaudit.secureserve.biz'
---                          →  sidebar issues SSO and redirects to satellite
-```
+### 4. Display badge consistency
 
-That's it on the host. We will:
+Department list/detail views read `risk_rating` directly from `ia_departments`, so once #1–#3 are in place the badge will match the Functions page. `DepartmentView.tsx` already uses `calculateDeptRisk` for its own header — leave as-is; it stays consistent.
 
-- **Not** edit `SidebarMenuLink.tsx`.
-- **Not** edit `SidebarMenuGroup.tsx`.
-- **Not** edit `useDynamicNavigation.ts`.
-- **Not** edit `AppRoutes.tsx`.
-- **Not** edit `satelliteSso.ts`.
-- **Not** edit any `/audit/*` page or service.
+### 5. Edge cases
 
-A short doc `docs/INTERNAL_AUDIT_ROLLBACK.md` will record the one-line SQL to flip back:
+- Department with zero functions → keep existing stored value untouched (don't overwrite with `N/A`); stat cards keep counting it.
+- Risk engine config changes (bands / method) → not auto-rebroadcast; document that admins can trigger a recompute by editing any function, or we can add a "Recalculate All" admin button on the Departments page (small button in `actions`). Include this button in the implementation.
+- Concurrency: use `if-changed` guard before update to avoid write storms.
 
-```sql
-update public.app_modules set base_url = null where name = 'internal_audit';
-```
+## Files to Change
 
-and the inverse:
+- `src/pages/audit/DepartmentMaster.tsx` — remove manual Risk Rating field; add "Recalculate Risk" action button; trigger reconciliation on mount.
+- `src/hooks/useDepartmentRiskSync.ts` (new) — `recomputeDepartmentRisk(departmentId)` and `recomputeAllDepartments()`.
+- `src/pages/audit/FunctionMaster.tsx` — after function create/update/delete success, call `recomputeDepartmentRisk` for the affected department(s).
+- `src/hooks/useAuditData.ts` (or wherever function mutations live) — same hook integration if mutations are called from elsewhere.
 
-```sql
-update public.app_modules
-set base_url = 'https://internalaudit.secureserve.biz'
-where name = 'internal_audit';
-```
+## Out of Scope
 
-### B. Satellite (this is where the actual work goes)
-
-All future audit features are built in project `7e98fc6b-…` ("SocialServe-Internal Audit"). The host is frozen for audit work.
-
-1. **Mirror the route surface.** Re-create the same `/audit/*` paths in the satellite's React Router so deep links work after SSO. Start with the routes the org wants to migrate first; others stay served by the host until their satellite version is ready.
-2. **Reuse the shared backend.** Both projects already point at the same Supabase project (`xynceskeiiisiefqlgxo`). The satellite imports the auto-generated client from `@/integrations/supabase/client` and queries the same tables. No data duplication, no cross-project API calls.
-3. **Fix the SSO landing once.** Patch `src/pages/auth/AuthExchange.tsx` in the satellite to:
-   - accept both `?code=` and legacy `?sso_code=`,
-   - call `setSession`, then poll `getSession` until persisted,
-   - then `navigate(redirect_path, { replace: true })`.
-4. **Permissions.** Reuse the same `user_roles` / permission helpers via the shared DB. No second permission model.
-5. **Audit trail.** Mutations from the satellite hit the same `system_audit_trail` because they go through the same Supabase project.
-
-### C. Operating model — per-route migration without host edits
-
-Because the host's switch is the single `base_url` column on the **root** `internal_audit` module, today the granularity is "all audit routes go to satellite, or none". To migrate route-by-route without ever touching host code, we use the existing `app_modules` tree:
-
-```text
-app_modules
-└── internal_audit                base_url = NULL  (default: host serves)
-    ├── audit_dashboard           base_url = NULL  → host
-    ├── audit_audits              base_url = 'https://internalaudit.secureserve.biz'  → satellite
-    └── audit_reports             base_url = NULL  → host
-```
-
-`useDynamicNavigation` already inherits `base_url` from parent only when the child has none, so setting `base_url` on a **specific child module** routes only that menu entry (and its sub-tree) to the satellite, while everything else under `internal_audit` keeps rendering in the host. No code change required — this is just how the existing inheritance rule works.
-
-Migration pattern per route:
-
-```text
-1. Build the page in the satellite, mounted at the same path.
-2. Smoke-test by navigating to the satellite URL directly (after SSO).
-3. Set base_url on that child app_modules row → host sidebar starts SSO-routing it.
-4. If anything goes wrong, clear base_url on that row → host serves it again immediately.
-```
-
-### D. Validation
-
-```text
-1. With base_url cleared on internal_audit:
-   - sidebar item "Internal Audit > Dashboard" → href /audit/dashboard
-   - click → useNavigate() → existing host AuditDashboard renders inside ProtectedLayout
-   - regression: identical to today.
-
-2. With base_url set on a single child (e.g. audit_audits):
-   - that one item → absolute https URL → SSO exchange → satellite /audit/audits
-   - all other audit items → still host.
-
-3. Satellite outage simulation (block the host name in DevTools):
-   - host items unaffected.
-   - SSO-routed items show browser-level failure on click; clearing base_url restores them.
-```
-
-### E. Files touched
-
-Host (`455cbbae-…`):
-
-- `docs/INTERNAL_AUDIT_ROLLBACK.md` — one-page operator runbook (the two SQL statements above plus the per-child override pattern).
-- No source changes. No migrations. No edge function changes.
-
-Satellite (`7e98fc6b-…`, separate task once approved):
-
-- `src/pages/auth/AuthExchange.tsx` — accept `code`/`sso_code`, await session persistence, replace-navigate.
-- New pages under `src/pages/audit/*` mirroring host paths, one per route as it is migrated.
-- Router entries for those paths.
-
-### F. Explicitly out of scope
-
-- No remote-module / federation runtime in the host.
-- No new edge function called from the host on every page render.
-- No iframe.
-- No changes to `SidebarMenuLink`, `SidebarMenuGroup`, `useDynamicNavigation`, `AppRoutes`, `ProtectedLayout`, or any audit page in the host.
-- No data migration on `app_modules` schema.
+- No DB schema changes. No migrations. No DB triggers (project rule: role-based security only, logic stays in app layer).
+- `/audit/functions` page logic and the existing badge are unchanged.
