@@ -406,7 +406,7 @@ export default function FunctionMaster() {
                           {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                           <Building2 className="h-5 w-5 text-primary" />
                           <div>
-                            <CardTitle className="text-sm font-semibold">{dept.name}</CardTitle>
+                            <CardTitle className="text-sm font-semibold">{formatDepartmentLabel(dept)}</CardTitle>
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {functions.length} function{functions.length !== 1 ? 's' : ''}
                               {' • '}{deptTotalWeight}% allocated
