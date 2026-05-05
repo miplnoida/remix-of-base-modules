@@ -118,7 +118,7 @@ export default function AuditEngagements() {
     planned: filtered.filter((d: any) => d.status === 'Planned').length,
   };
 
-  const getDeptName = (id: string) => departmentMap[id]?.name || '—';
+  const getDeptName = (id: string) => formatDepartmentLabel(departmentMap[id]);
   const getAuditorName = (id: string) => auditors?.find((a: any) => a.id === id)?.name || '—';
 
   const openAdd = () => {
