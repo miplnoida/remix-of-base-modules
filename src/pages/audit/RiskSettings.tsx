@@ -235,7 +235,10 @@ function RiskFormulaTab() {
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={runRecalc} disabled={recalcBusy}>
+              {recalcBusy ? 'Recalculating…' : 'Recalculate All Risks'}
+            </Button>
             <Button onClick={handleSave} disabled={update.isPending}>
               <Save className="h-4 w-4 mr-2" /> Save Formula
             </Button>
