@@ -359,9 +359,14 @@ function RiskBandsTab() {
             </CardTitle>
             <CardDescription>Define score ranges and their corresponding risk labels</CardDescription>
           </div>
-          <Button size="sm" onClick={() => { setShowAdd(true); setEditBand(null); setBandForm({ label: '', min_score: '', max_score: '', color: '#22c55e' }); }}>
-            <Plus className="h-4 w-4 mr-1" /> Add Band
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={runRecalc} disabled={recalcBusy}>
+              {recalcBusy ? 'Recalculating…' : 'Recalculate All Risks'}
+            </Button>
+            <Button size="sm" onClick={() => { setShowAdd(true); setEditBand(null); setBandForm({ label: '', min_score: '', max_score: '', color: '#22c55e' }); }}>
+              <Plus className="h-4 w-4 mr-1" /> Add Band
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
