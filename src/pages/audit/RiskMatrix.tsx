@@ -182,7 +182,7 @@ export default function RiskMatrix() {
                     <div key={item.id} className="flex flex-col gap-2 rounded-lg border bg-card p-3 md:flex-row md:items-center md:justify-between">
                       <div>
                         <p className="text-sm font-medium">{fn?.function_name || 'Unknown Function'}</p>
-                        <p className="text-xs text-muted-foreground">{dept?.name || 'Unassigned Department'} • {item.risk_category || 'General Risk'}</p>
+                        <p className="text-xs text-muted-foreground">{(dept ? formatDepartmentLabel(dept) : 'Unassigned Department')} • {item.risk_category || 'General Risk'}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">Score {score}</Badge>
