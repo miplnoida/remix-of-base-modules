@@ -146,7 +146,7 @@ export default function RiskMatrix() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-sm font-medium">{fn?.function_name || 'Unknown Function'}</p>
-                        <p className="text-xs text-muted-foreground">{dept?.name || 'Unassigned Department'}</p>
+                        <p className="text-xs text-muted-foreground">{dept ? formatDepartmentLabel(dept) : 'Unassigned Department'}</p>
                       </div>
                       <Badge className={getLevelClasses(level)}>{level}</Badge>
                     </div>
