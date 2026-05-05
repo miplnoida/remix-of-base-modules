@@ -26,7 +26,6 @@ interface DeptForm {
   email: string;
   phone: string;
   location: string;
-  risk_rating: string;
   source_department_id: string | null;
   head_profile_id: string | null;
   custom_name: string;
@@ -35,7 +34,7 @@ interface DeptForm {
 
 const emptyForm: DeptForm = {
   office_code: '', name: '', head: '', email: '', phone: '', location: '',
-  risk_rating: 'Medium', source_department_id: null, head_profile_id: null,
+  source_department_id: null, head_profile_id: null,
   custom_name: '', custom_head: '',
 };
 
