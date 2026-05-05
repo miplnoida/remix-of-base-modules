@@ -129,12 +129,13 @@ export default function FunctionMaster() {
     if (!validateWeight()) return;
     const score = calculateFunctionRiskScore(formData.likelihood, formData.impact);
     const rating = getRiskRating(score);
+    const deptId = formData.departmentId;
     createFn.mutate({
-      department_id: formData.departmentId, function_name: formData.functionName, description: formData.description,
+      department_id: deptId, function_name: formData.functionName, description: formData.description,
       risk_rating: rating.label, likelihood: formData.likelihood, impact: formData.impact,
       control_effectiveness: formData.controlEffectiveness, responsible_person: formData.responsiblePerson, notes: formData.notes,
       weight_percentage: Number(formData.weightPercentage) || 0,
-    });
+    }, { onSuccess: () => { recomputeDeptRisk(deptId); } });
     setIsAddOpen(false); resetForm();
   };
 
@@ -143,12 +144,14 @@ export default function FunctionMaster() {
     if (!validateWeight()) return;
     const score = calculateFunctionRiskScore(formData.likelihood, formData.impact);
     const rating = getRiskRating(score);
+    const newDeptId = formData.departmentId;
+    const oldDeptId = editFunc.department_id;
     updateFn.mutate({
-      id: editFunc.id, department_id: formData.departmentId, function_name: formData.functionName, description: formData.description,
+      id: editFunc.id, department_id: newDeptId, function_name: formData.functionName, description: formData.description,
       risk_rating: rating.label, likelihood: formData.likelihood, impact: formData.impact,
       control_effectiveness: formData.controlEffectiveness, responsible_person: formData.responsiblePerson, notes: formData.notes,
       weight_percentage: Number(formData.weightPercentage) || 0,
-    });
+    }, { onSuccess: () => { recomputeDeptRiskMany([newDeptId, oldDeptId]); } });
     setEditFunc(null); resetForm();
   };
 
