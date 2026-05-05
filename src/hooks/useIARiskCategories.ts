@@ -38,12 +38,18 @@ const QUERY_KEY = ['ia_risk_categories'] as const;
 const NAME_REGEX = /^[A-Za-z0-9 &/_\-]+$/;
 const MAX_LEN = 100;
 
-export function validateCategoryName(raw: string): { ok: true; value: string } | { ok: false; reason: string } {
+export interface CategoryValidationResult {
+  ok: boolean;
+  value: string;
+  reason?: string;
+}
+
+export function validateCategoryName(raw: string): CategoryValidationResult {
   const value = (raw || '').trim().replace(/\s+/g, ' ');
-  if (!value) return { ok: false, reason: 'Category name cannot be empty.' };
-  if (value.length > MAX_LEN) return { ok: false, reason: `Category name must be ${MAX_LEN} characters or less.` };
+  if (!value) return { ok: false, value, reason: 'Category name cannot be empty.' };
+  if (value.length > MAX_LEN) return { ok: false, value, reason: `Category name must be ${MAX_LEN} characters or less.` };
   if (!NAME_REGEX.test(value)) {
-    return { ok: false, reason: 'Only letters, digits, spaces and the symbols & / _ - are allowed.' };
+    return { ok: false, value, reason: 'Only letters, digits, spaces and the symbols & / _ - are allowed.' };
   }
   return { ok: true, value };
 }
