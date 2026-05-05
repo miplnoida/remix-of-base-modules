@@ -491,7 +491,7 @@ export default function FunctionMaster() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div><Label className="text-muted-foreground">Function Name</Label><p className="font-medium">{viewFunc.function_name}</p></div>
-                <div><Label className="text-muted-foreground">Department</Label><p>{departments.find((d: any) => d.id === viewFunc.department_id)?.name || '-'}</p></div>
+                <div><Label className="text-muted-foreground">Department</Label><p>{formatDepartmentLabel(departments.find((d: any) => d.id === viewFunc.department_id))}</p></div>
               </div>
               <div><Label className="text-muted-foreground">Description</Label><p>{viewFunc.description || '-'}</p></div>
               <div className="grid grid-cols-3 gap-4">
