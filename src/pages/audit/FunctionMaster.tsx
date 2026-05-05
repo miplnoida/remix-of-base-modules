@@ -254,7 +254,7 @@ export default function FunctionMaster() {
 
   const formFields = (
     <div className="space-y-4">
-      <div><Label>Department <span className="text-destructive">*</span></Label><Select value={formData.departmentId} onValueChange={v => setFormData(f => ({ ...f, departmentId: v }))}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select></div>
+      <div><Label>Department <span className="text-destructive">*</span></Label><Select value={formData.departmentId} onValueChange={v => setFormData(f => ({ ...f, departmentId: v }))}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{formatDepartmentLabel(d)}</SelectItem>)}</SelectContent></Select></div>
       <div><Label>Function Name <span className="text-destructive">*</span></Label><Input value={formData.functionName} onChange={e => setFormData(f => ({ ...f, functionName: e.target.value }))} placeholder="e.g., Claims Processing" /></div>
       <div><Label>Description</Label><Textarea value={formData.description} onChange={e => setFormData(f => ({ ...f, description: e.target.value }))} placeholder="Describe the function" rows={3} /></div>
       <div className="grid grid-cols-2 gap-4">
