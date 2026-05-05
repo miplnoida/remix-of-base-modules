@@ -315,17 +315,9 @@ export default function DepartmentMaster() {
         </div>
       </div>
 
-      {/* Risk Rating */}
-      <div>
-        <Label>Risk Rating</Label>
-        <Select value={form.risk_rating} onValueChange={v => setForm(f => ({ ...f, risk_rating: v }))}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="High">High</SelectItem>
-            <SelectItem value="Medium">Medium</SelectItem>
-            <SelectItem value="Low">Low</SelectItem>
-          </SelectContent>
-        </Select>
+      {/* Risk Rating is auto-derived from this department's functions on /audit/functions. */}
+      <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+        Risk Rating is calculated automatically from the risk ratings of this department's functions and updates whenever those functions change.
       </div>
     </div>
   );
