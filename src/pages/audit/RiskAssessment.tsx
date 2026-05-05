@@ -19,8 +19,9 @@ import { Badge } from '@/components/ui/badge';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { calculateRiskLevel, getRiskColor, buildLegendEntries } from '@/lib/audit/riskEngine';
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
+import { CreatableSearchableSelect } from '@/components/ui/creatable-searchable-select';
+import { useIARiskCategories, useCreateIARiskCategory } from '@/hooks/useIARiskCategories';
 
-const RISK_CATEGORIES = ['Operational', 'Financial', 'Compliance', 'IT', 'Strategic', 'Reputational'];
 const RISK_LEVELS = ['Critical', 'High', 'Medium', 'Low'];
 const exportColumns = toExportColumns(RISK_ASSESSMENT_SCHEMA);
 
