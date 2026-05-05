@@ -121,7 +121,7 @@ function RiskHeatMapGrid({ assessments, allFunctions, deptMap }: {
                   <div key={item.id} className="flex items-center justify-between p-2 rounded-md border bg-card">
                     <div>
                       <p className="text-sm font-medium">{fn?.function_name || 'Unknown Function'}</p>
-                      <p className="text-xs text-muted-foreground">{dept?.name || '—'} | {item.risk_category || '—'} | Owner: {item.risk_owner || '—'}</p>
+                      <p className="text-xs text-muted-foreground">{formatDepartmentLabel(dept)} | {item.risk_category || '—'} | Owner: {item.risk_owner || '—'}</p>
                     </div>
                     <Badge style={{ backgroundColor: getRiskColor(item.risk_level), color: '#fff' }} className="text-xs">{item.risk_level}</Badge>
                   </div>
