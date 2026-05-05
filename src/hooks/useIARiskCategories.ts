@@ -87,7 +87,7 @@ export function useCreateIARiskCategory() {
   return useMutation({
     mutationFn: async (rawName: string): Promise<IARiskCategory> => {
       const v = validateCategoryName(rawName);
-      if (!v.ok) {
+      if (v.ok !== true) {
         throw new Error(v.reason);
       }
       const name = v.value;
