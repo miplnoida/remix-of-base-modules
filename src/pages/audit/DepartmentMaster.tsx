@@ -196,10 +196,10 @@ export default function DepartmentMaster() {
   ];
 
   const columns: DataTableColumn<any>[] = [
-    { key: 'name', header: 'Department Name' },
+    { key: 'name', header: 'Department Name', render: (row) => `${row.name}${row.office_code ? ` (${row.office_code})` : ''}` },
+    { key: 'office_code', header: 'Office Code', render: (row) => row.office_code || '-' },
     { key: 'head', header: 'Department Head' },
     { key: 'email', header: 'Email' },
-    
     { key: 'risk_rating', header: 'Risk Rating', render: (row) => <StatusBadge status={row.risk_rating || 'Medium'} /> },
   ];
 
