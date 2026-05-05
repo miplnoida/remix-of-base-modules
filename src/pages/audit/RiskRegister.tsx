@@ -245,7 +245,7 @@ export default function RiskRegister() {
     'Risk Register',
     filtered.length,
     [
-      { label: 'Department', value: entityFilter !== 'all' ? departments.find((d: any) => d.id === entityFilter)?.name || entityFilter : 'all' },
+      { label: 'Department', value: entityFilter !== 'all' ? formatDepartmentLabel(departments.find((d: any) => d.id === entityFilter)) : 'all' },
       { label: 'Status', value: statusFilter },
       { label: 'Category', value: categoryFilter },
       { label: 'Owner', value: ownerFilter },
