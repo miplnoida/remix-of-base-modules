@@ -324,7 +324,7 @@ export default function RiskAssessment() {
     const dept = fn ? deptMap.get(fn.department_id) : null;
     const matchSearch = !s ||
       fn?.function_name?.toLowerCase().includes(s) ||
-      dept?.name?.toLowerCase().includes(s) ||
+      formatDepartmentLabel(dept).toLowerCase().includes(s) ||
       r.risk_category?.toLowerCase().includes(s) ||
       r.risk_description?.toLowerCase().includes(s) ||
       r.risk_owner?.toLowerCase().includes(s);
