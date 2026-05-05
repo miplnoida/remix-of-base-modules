@@ -58,15 +58,18 @@ export default function FunctionMaster() {
     }
   };
 
-  // Dynamically set allowed department names on the bulk upload field
+  // Dynamically set allowed department labels (Name (Office Code)) on the bulk upload field.
+  // The combined label disambiguates departments with the same name in different offices.
   const dynamicBulkFields = bulkUploadFields.map(f =>
-    f.key === 'department_name' ? { ...f, allowedValues: departments.map(d => d.name) } : f
+    f.key === 'department_name' ? { ...f, allowedValues: (departments as any[]).map((d: any) => formatDepartmentLabel(d)) } : f
   );
 
   const handleBulkImport = async (data: Record<string, any>[]) => {
     const affectedDeptIds = new Set<string>();
     for (const row of data) {
-      const dept = departments.find(d => d.name === row.department_name);
+      // Match by combined label first, then fall back to plain name (backward compatibility).
+      const dept = (departments as any[]).find((d: any) => formatDepartmentLabel(d) === row.department_name)
+        || (departments as any[]).find((d: any) => d.name === row.department_name);
       if (!dept) continue;
       const l = row.likelihood || 'Medium';
       const i = row.impact || 'Medium';
