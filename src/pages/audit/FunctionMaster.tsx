@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { generateSSBReport } from '@/lib/reportTemplate';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 const bulkUploadFields = toBulkUploadFields(FUNCTION_SCHEMA);
 const exportColumns = toExportColumns(FUNCTION_SCHEMA);
