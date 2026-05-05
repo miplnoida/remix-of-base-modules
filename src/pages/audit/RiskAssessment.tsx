@@ -418,10 +418,10 @@ export default function RiskAssessment() {
               <Select value={selectedDeptId} onValueChange={(v) => { if (v !== selectedDeptId) { setSelectedDeptId(v); setSelectedFunctionId(''); } }} disabled={isReadOnly}>
                 <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                 <SelectContent>
-                  {(departments as any[]).map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                  {(departments as any[]).map((d: any) => <SelectItem key={d.id} value={d.id}>{formatDepartmentLabel(d)}</SelectItem>)}
                   {/* Show deactivated department if currently selected but not in active list */}
                   {selectedDeptId && !(departments as any[]).some((d: any) => d.id === selectedDeptId) && deptMap.has(selectedDeptId) && (
-                    <SelectItem key={selectedDeptId} value={selectedDeptId}>{deptMap.get(selectedDeptId)?.name} (Deactivated)</SelectItem>
+                    <SelectItem key={selectedDeptId} value={selectedDeptId}>{formatDepartmentLabel(deptMap.get(selectedDeptId))} (Deactivated)</SelectItem>
                   )}
                 </SelectContent>
               </Select>
