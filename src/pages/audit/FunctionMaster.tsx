@@ -10,6 +10,7 @@ import { Plus, Shield, Target, Upload, ChevronDown, ChevronRight, Building2, Pri
 import { useIADepartments, useIADepartmentFunctions, useIADepartmentFunctionMutations } from '@/hooks/useAuditData';
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 import { useDepartmentRiskSync } from '@/hooks/useDepartmentRiskSync';
+import { useFunctionRiskSync } from '@/hooks/useFunctionRiskSync';
 import { useToast } from '@/hooks/use-toast';
 import { PageShell, StandardSearchFilterBar, DataTable, EntityModal, StatusBadge, BulkUploadModal, ExportDropdown } from '@/components/common';
 import type { DataTableColumn, StandardFilterField } from '@/components/common';
@@ -41,6 +42,20 @@ export default function FunctionMaster() {
 
   const { getRiskRating, calculateFunctionRiskScore, getDeptRiskMethod, calculateDeptRisk } = useRiskRatingCalculator();
   const { recomputeOne: recomputeDeptRisk, recomputeMany: recomputeDeptRiskMany } = useDepartmentRiskSync();
+  const { recomputeAllFunctions } = useFunctionRiskSync();
+  const [recalcBusy, setRecalcBusy] = useState(false);
+
+  const handleRecalcAll = async () => {
+    setRecalcBusy(true);
+    try {
+      const { functionsUpdated, departmentsTouched } = await recomputeAllFunctions();
+      toast({ title: 'Recalculation Complete', description: `${functionsUpdated} function(s), ${departmentsTouched} department(s) refreshed.` });
+    } catch (e: any) {
+      toast({ title: 'Recalculation Failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setRecalcBusy(false);
+    }
+  };
 
   // Dynamically set allowed department names on the bulk upload field
   const dynamicBulkFields = bulkUploadFields.map(f =>
@@ -317,6 +332,9 @@ export default function FunctionMaster() {
       isLoading={deptsLoading || funcsLoading}
       actions={
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRecalcAll} disabled={recalcBusy}>
+            {recalcBusy ? 'Recalculating…' : 'Recalculate Risks'}
+          </Button>
           <Button variant="outline" size="sm" onClick={handlePrintPDF}>
             <Printer className="w-4 h-4 mr-2" />Print PDF
           </Button>
@@ -328,12 +346,20 @@ export default function FunctionMaster() {
         </div>
       }
     >
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Functions</CardTitle><Target className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allFunctions.length}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">High Risk</CardTitle><Shield className="h-4 w-4 text-destructive" /></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{allFunctions.filter((f: any) => f.risk_rating === 'High').length}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Medium Risk</CardTitle><Shield className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allFunctions.filter((f: any) => f.risk_rating === 'Medium').length}</div></CardContent></Card>
-        <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Low Risk</CardTitle><Shield className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allFunctions.filter((f: any) => f.risk_rating === 'Low').length}</div></CardContent></Card>
-      </div>
+      {(() => {
+        const liveLabel = (f: any) => getRiskRating(calculateFunctionRiskScore(f.likelihood || 'Medium', f.impact || 'Medium')).label;
+        const high = allFunctions.filter((f: any) => liveLabel(f) === 'High' || liveLabel(f) === 'Critical').length;
+        const med = allFunctions.filter((f: any) => liveLabel(f) === 'Medium').length;
+        const low = allFunctions.filter((f: any) => liveLabel(f) === 'Low').length;
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Total Functions</CardTitle><Target className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{allFunctions.length}</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">High Risk</CardTitle><Shield className="h-4 w-4 text-destructive" /></CardHeader><CardContent><div className="text-2xl font-bold text-destructive">{high}</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Medium Risk</CardTitle><Shield className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{med}</div></CardContent></Card>
+            <Card><CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2"><CardTitle className="text-sm font-medium">Low Risk</CardTitle><Shield className="h-4 w-4 text-muted-foreground" /></CardHeader><CardContent><div className="text-2xl font-bold">{low}</div></CardContent></Card>
+          </div>
+        );
+      })()}
 
       <StandardSearchFilterBar
         searchValue={searchTerm}
@@ -360,7 +386,10 @@ export default function FunctionMaster() {
           )}
           {groupedByDept.map(({ dept, functions }) => {
             const isOpen = expandedDepts[dept.id] !== false;
-            const highCount = functions.filter((f: any) => f.risk_rating === 'High').length;
+            const highCount = functions.filter((f: any) => {
+              const lbl = getRiskRating(calculateFunctionRiskScore(f.likelihood || 'Medium', f.impact || 'Medium')).label;
+              return lbl === 'High' || lbl === 'Critical';
+            }).length;
             const deptTotalWeight = functions.reduce((sum: number, f: any) => sum + (Number(f.weight_percentage) || 0), 0);
             const deptRisk = calculateDeptRisk(functions);
             return (

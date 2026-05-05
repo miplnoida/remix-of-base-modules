@@ -19,6 +19,7 @@ import {
   useIARiskClassificationThresholds,
 } from '@/hooks/useAuditConfigData';
 import { useRiskConfigMaster, useRiskConfigMasterMutations } from '@/hooks/useRiskConfig';
+import { useFunctionRiskSync } from '@/hooks/useFunctionRiskSync';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 
@@ -133,8 +134,11 @@ function RiskFormulaTab() {
   const { data: config, isLoading } = useRiskConfigMaster();
   const { update } = useRiskConfigMasterMutations();
   const { userCode } = useUserCode();
+  const { toast } = useToast();
+  const { recomputeAllFunctions } = useFunctionRiskSync();
   const [formula, setFormula] = useState('likelihood_x_impact');
   const [formulaDisplay, setFormulaDisplay] = useState('Likelihood × Impact');
+  const [recalcBusy, setRecalcBusy] = useState(false);
 
   useEffect(() => {
     if (config) {
@@ -149,6 +153,21 @@ function RiskFormulaTab() {
     { value: 'weighted_average', label: 'Weighted Average', desc: 'Average of both values. Score range: 1–5 (for 5×5 scale).' },
   ];
 
+  const runRecalc = async () => {
+    setRecalcBusy(true);
+    try {
+      const { functionsUpdated, departmentsTouched } = await recomputeAllFunctions();
+      toast({
+        title: 'Recalculation Complete',
+        description: `${functionsUpdated} function(s) and ${departmentsTouched} department(s) updated using the current formula.`,
+      });
+    } catch (e: any) {
+      toast({ title: 'Recalculation Failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setRecalcBusy(false);
+    }
+  };
+
   const handleSave = () => {
     if (!config) return;
     const selected = FORMULAS.find(f => f.value === formula);
@@ -157,6 +176,8 @@ function RiskFormulaTab() {
       formula_type: formula,
       formula_display: selected?.label || formulaDisplay,
       updated_by: userCode || 'SYSTEM',
+    }, {
+      onSuccess: () => { void runRecalc(); },
     });
   };
 
@@ -214,7 +235,10 @@ function RiskFormulaTab() {
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={runRecalc} disabled={recalcBusy}>
+              {recalcBusy ? 'Recalculating…' : 'Recalculate All Risks'}
+            </Button>
             <Button onClick={handleSave} disabled={update.isPending}>
               <Save className="h-4 w-4 mr-2" /> Save Formula
             </Button>
@@ -230,6 +254,23 @@ function RiskBandsTab() {
   const thresholds = useIARiskClassificationThresholds();
   const { userCode } = useUserCode();
   const { toast } = useToast();
+  const { recomputeAllFunctions } = useFunctionRiskSync();
+  const [recalcBusy, setRecalcBusy] = useState(false);
+
+  const runRecalc = async () => {
+    setRecalcBusy(true);
+    try {
+      const { functionsUpdated, departmentsTouched } = await recomputeAllFunctions();
+      toast({
+        title: 'Recalculation Complete',
+        description: `${functionsUpdated} function(s) and ${departmentsTouched} department(s) updated using current bands.`,
+      });
+    } catch (e: any) {
+      toast({ title: 'Recalculation Failed', description: e.message, variant: 'destructive' });
+    } finally {
+      setRecalcBusy(false);
+    }
+  };
   const [editBand, setEditBand] = useState<any>(null);
   const [bandForm, setBandForm] = useState({ label: '', min_score: '', max_score: '', color: '#22c55e' });
   const [showAdd, setShowAdd] = useState(false);
@@ -276,21 +317,21 @@ function RiskBandsTab() {
         toast({ title: 'Validation Error', description: err, variant: 'destructive' });
         return;
       }
-      thresholds.update.mutate({ id: editBand.id, ...payload });
+      thresholds.update.mutate({ id: editBand.id, ...payload }, { onSuccess: () => { void runRecalc(); } });
     } else {
       const err = validateBands([...bands, payload]);
       if (err) {
         toast({ title: 'Validation Error', description: err, variant: 'destructive' });
         return;
       }
-      thresholds.create.mutate({ ...payload, sort_order: bands.length + 1, is_active: true });
+      thresholds.create.mutate({ ...payload, sort_order: bands.length + 1, is_active: true }, { onSuccess: () => { void runRecalc(); } });
     }
     setEditBand(null);
     setShowAdd(false);
   };
 
   const deleteBand = (id: string) => {
-    thresholds.remove.mutate(id);
+    thresholds.remove.mutate(id, { onSuccess: () => { void runRecalc(); } });
   };
 
   const COLORS = [
@@ -318,9 +359,14 @@ function RiskBandsTab() {
             </CardTitle>
             <CardDescription>Define score ranges and their corresponding risk labels</CardDescription>
           </div>
-          <Button size="sm" onClick={() => { setShowAdd(true); setEditBand(null); setBandForm({ label: '', min_score: '', max_score: '', color: '#22c55e' }); }}>
-            <Plus className="h-4 w-4 mr-1" /> Add Band
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={runRecalc} disabled={recalcBusy}>
+              {recalcBusy ? 'Recalculating…' : 'Recalculate All Risks'}
+            </Button>
+            <Button size="sm" onClick={() => { setShowAdd(true); setEditBand(null); setBandForm({ label: '', min_score: '', max_score: '', color: '#22c55e' }); }}>
+              <Plus className="h-4 w-4 mr-1" /> Add Band
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
