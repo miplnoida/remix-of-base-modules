@@ -172,7 +172,7 @@ export default function EngagementDetail() {
     const dept = getDeptObj(audit.department_id);
     return {
       engagement_name: audit.engagement_name || '',
-      department_name: dept?.name || '',
+      department_name: formatDepartmentLabel(dept),
       department_head: dept?.head || '',
       department_email: dept?.email || '',
       lead_auditor_name: getAuditorName(audit.lead_auditor_id),
