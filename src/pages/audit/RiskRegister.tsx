@@ -225,7 +225,7 @@ export default function RiskRegister() {
   ];
 
   const filterFields: StandardFilterField[] = [
-    { key: 'entity', label: 'Department', type: 'select', options: [{ label: 'All Departments', value: 'all' }, ...departments.map((d: any) => ({ label: d.name, value: d.id }))] },
+    { key: 'entity', label: 'Department', type: 'select', options: [{ label: 'All Departments', value: 'all' }, ...departments.map((d: any) => ({ label: formatDepartmentLabel(d), value: d.id }))] },
     { key: 'status', label: 'Status', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_STATUSES.map(s => ({ label: s, value: s }))] },
     { key: 'category', label: 'Category', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_CATEGORIES.map(c => ({ label: c, value: c }))] },
     { key: 'owner', label: 'Owner', type: 'select', options: [{ label: 'All Owners', value: 'all' }, ...ownerOptions.map(o => ({ label: o, value: o }))] },
