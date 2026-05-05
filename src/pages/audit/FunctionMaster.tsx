@@ -40,6 +40,7 @@ export default function FunctionMaster() {
   const [expandedDepts, setExpandedDepts] = useState<Record<string, boolean>>({});
 
   const { getRiskRating, calculateFunctionRiskScore, getDeptRiskMethod, calculateDeptRisk } = useRiskRatingCalculator();
+  const { recomputeOne: recomputeDeptRisk, recomputeMany: recomputeDeptRiskMany } = useDepartmentRiskSync();
 
   // Dynamically set allowed department names on the bulk upload field
   const dynamicBulkFields = bulkUploadFields.map(f =>
