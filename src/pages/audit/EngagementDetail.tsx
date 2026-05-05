@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTransitionExecutionStatus, type ExecutionStatus } from '@/hooks/useEngagementExecution';
 import { AuditWorkspaceShell } from '@/components/audit/workspace/AuditWorkspaceShell';
 import { AuditEmptyState } from '@/components/audit/workspace/AuditEmptyState';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 import {
   AuditOverviewTab,
