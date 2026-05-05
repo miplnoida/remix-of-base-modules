@@ -59,7 +59,7 @@ export const TemplateCommunicationDialog = ({
       setSubject(template.name);
       
       const mergeData = {
-        departmentName: dept.name,
+        departmentName: formatDepartmentLabel(dept),
         departmentHead: headData.name,
         auditPeriod: `${plan?.fiscal_year || new Date().getFullYear()}`,
         date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
@@ -100,7 +100,7 @@ export const TemplateCommunicationDialog = ({
               <SelectTrigger><SelectValue placeholder="Select department..." /></SelectTrigger>
               <SelectContent>
                 {departments.map((dept: any) => (
-                  <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                  <SelectItem key={dept.id} value={dept.id}>{formatDepartmentLabel(dept)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

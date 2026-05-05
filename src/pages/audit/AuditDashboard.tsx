@@ -83,7 +83,7 @@ export default function AuditDashboard() {
       const dept = departmentMap.get(fn.department_id);
       const score = Number(assessment.overall_risk_score) || (Number(assessment.impact_score) || 0) * (Number(assessment.likelihood_score) || 0);
       const level = assessment.risk_level || deriveRiskLevel(score);
-      const current = summary.get(fn.department_id) || { name: dept?.name || 'Unknown Department', total: 0, score: 0, critical: 0, high: 0 };
+      const current = summary.get(fn.department_id) || { name: formatDepartmentLabel(dept) || 'Unknown Department', total: 0, score: 0, critical: 0, high: 0 };
       current.total += 1;
       current.score += score;
       if (level === 'Critical') current.critical += 1;
@@ -190,7 +190,7 @@ export default function AuditDashboard() {
                   <div key={item.id} className="flex flex-col gap-2 rounded-lg border bg-card p-3 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-sm font-medium">{fn?.function_name || 'Unknown Function'}</p>
-                      <p className="text-xs text-muted-foreground">{dept?.name || 'Unassigned Department'}</p>
+                      <p className="text-xs text-muted-foreground">{dept ? formatDepartmentLabel(dept) : 'Unassigned Department'}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <StatusBadge status={item.risk_level} />

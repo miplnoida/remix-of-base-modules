@@ -826,7 +826,7 @@ export function BoardPackTab({ planId, plan, engagements }: BoardPackTabProps) {
       const riskA = (assessments || []).find((a: any) => a.function_id === fn.id);
       return {
         functionName: fn.function_name,
-        departmentName: dept?.name || 'Unknown',
+        departmentName: formatDepartmentLabel(dept) || 'Unknown',
         riskLevel: riskA?.risk_rating || fn.risk_rating || 'High',
       };
     });

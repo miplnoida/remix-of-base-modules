@@ -326,7 +326,7 @@ export function DocumentRequestsTab({ engagementId, departmentId, engagementName
               </div>
               {!overrideRecipient && dept && (
                 <p className="text-xs text-muted-foreground">
-                  Auto-populated from department: <span className="font-medium">{dept.name}</span>
+                  Auto-populated from department: <span className="font-medium">{formatDepartmentLabel(dept)}</span>
                 </p>
               )}
               {!dept && departmentId && (

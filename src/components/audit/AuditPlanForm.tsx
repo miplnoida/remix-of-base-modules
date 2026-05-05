@@ -180,7 +180,7 @@ export function AuditPlanForm({ plan, onClose }: AuditPlanFormProps) {
                       onCheckedChange={() => handleDepartmentToggle(dept.id)}
                     />
                     <div className="flex-1">
-                      <h4 className="font-medium">{dept.name}</h4>
+                      <h4 className="font-medium">{formatDepartmentLabel(dept)}</h4>
                       <p className="text-sm text-muted-foreground">Head: {dept.head}</p>
                       <p className="text-sm text-muted-foreground">{dept.location}</p>
                       {dept.risk_rating && (

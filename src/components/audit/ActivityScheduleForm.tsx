@@ -94,7 +94,7 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
               const dept = departments.find((d: any) => d.id === plan.department_id);
               return (
                 <SelectItem key={plan.id} value={plan.id}>
-                  {dept?.name || plan.department_name || 'Unknown'} - {(plan.objective || '').substring(0, 50)}... ({plan.month_year})
+                  {formatDepartmentLabel(dept) || plan.department_name || 'Unknown'} - {(plan.objective || '').substring(0, 50)}... ({plan.month_year})
                 </SelectItem>
               );
             })}
@@ -105,7 +105,7 @@ export function ActivityScheduleForm({ onClose }: ActivityScheduleFormProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="departmentId">Department</Label>
-          <Input id="departmentId" value={departments.find((d: any) => d.id === formData.departmentId)?.name || 'Select audit plan first'} disabled />
+          <Input id="departmentId" value={(formatDepartmentLabel(departments.find((d: any) => d.id === formData.departmentId)) !== '—' ? formatDepartmentLabel(departments.find((d: any) => d.id === formData.departmentId)) : 'Select audit plan first')} disabled />
         </div>
         <div className="space-y-2">
           <Label htmlFor="functionArea">Function Area</Label>

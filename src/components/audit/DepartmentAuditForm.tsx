@@ -151,7 +151,7 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, isAdHoc = f
                 <SelectContent>
                   {departments.map((dept: any) => (
                     <SelectItem key={dept.id} value={dept.id}>
-                      {dept.name}
+                      {formatDepartmentLabel(dept)}
                       {dept.risk_rating && ` (${dept.risk_rating} Risk)`}
                     </SelectItem>
                   ))}
