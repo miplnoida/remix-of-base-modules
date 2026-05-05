@@ -159,7 +159,7 @@ export default function EngagementDetail() {
   const overdueActionsCount = auditActions.filter((a: any) => a.target_date && !['Completed', 'Closed'].includes(a.status || '') && new Date(a.target_date) < new Date()).length;
   const pendingResponsesCount = auditFindings.filter((f: any) => !auditResponses.find((r: any) => r.finding_id === f.id) && f.status !== 'Closed').length;
 
-  const getDeptName = (did: string) => departments?.find((d: any) => d.id === did)?.name || '—';
+  const getDeptName = (did: string) => formatDepartmentLabel(departments?.find((d: any) => d.id === did));
   const getDeptObj = (did: string) => departments?.find((d: any) => d.id === did);
   const getFunctionName = (fid: string) => deptFunctions?.find((f: any) => f.id === fid)?.function_name || '—';
   const getAuditorName = (aid: string) => auditors?.find((a: any) => a.id === aid)?.name || '—';
