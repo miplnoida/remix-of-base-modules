@@ -19,8 +19,9 @@ import { Badge } from '@/components/ui/badge';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { calculateRiskLevel, getRiskColor, buildLegendEntries } from '@/lib/audit/riskEngine';
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
+import { CreatableSearchableSelect } from '@/components/ui/creatable-searchable-select';
+import { useIARiskCategories, useCreateIARiskCategory } from '@/hooks/useIARiskCategories';
 
-const RISK_CATEGORIES = ['Operational', 'Financial', 'Compliance', 'IT', 'Strategic', 'Reputational'];
 const RISK_LEVELS = ['Critical', 'High', 'Medium', 'Low'];
 const exportColumns = toExportColumns(RISK_ASSESSMENT_SCHEMA);
 
@@ -198,6 +199,8 @@ export default function RiskAssessment() {
   const { data: departments = [] } = useIADepartments();
   const { data: auditors = [] } = useIAActiveAuditors();
   const { getCreateFields, getUpdateFields } = useAuditFields();
+  const { data: riskCategories = [] } = useIARiskCategories();
+  const createCategory = useCreateIARiskCategory();
 
   // Fetch ALL departments (including inactive) for display resolution
   const { data: allDepartments = [] } = useQuery({
@@ -441,10 +444,17 @@ export default function RiskAssessment() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Risk Category <span className="text-destructive">*</span></Label>
-              <Select value={riskCategory} onValueChange={setRiskCategory} disabled={isReadOnly}>
-                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                <SelectContent>{RISK_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-              </Select>
+              <CreatableSearchableSelect
+                options={(riskCategories as any[]).map((c: any) => ({ value: c.name, label: c.name }))}
+                value={riskCategory}
+                onValueChange={setRiskCategory}
+                disabled={isReadOnly}
+                placeholder="Select or type to add a category…"
+                onCreate={async (raw) => {
+                  const row = await createCategory.mutateAsync(raw);
+                  return row?.name;
+                }}
+              />
             </div>
             <div>
               <Label>Risk Owner <span className="text-destructive">*</span></Label>
