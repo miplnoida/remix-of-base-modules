@@ -41,6 +41,7 @@ import { AuditReportTemplateSelector, REPORT_TEMPLATES } from './AuditReportTemp
 import type { ReportTemplate } from './AuditReportTemplateSelector';
 import { AuditPortfolioSection } from './sections/AuditPortfolioSection';
 import { AuditExecutiveDashboardSection } from './sections/AuditExecutiveDashboardSection';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface BuilderSection {
   id: string;
@@ -274,7 +275,7 @@ export function AuditReportBuilderStudio() {
       ...prev,
       title: prev.title || `Audit Report — ${selectedEngagement.engagement_name || selectedEngagement.engagement_code}`,
       department_id: selectedEngagement.department_id || prev.department_id,
-      executive_summary: prev.executive_summary || `This report presents the results of the ${selectedEngagement.engagement_name} audit conducted for ${dept?.name || 'the department'}. ${engagementFindings.length} finding(s) were identified.`,
+      executive_summary: prev.executive_summary || `This report presents the results of the ${selectedEngagement.engagement_name} audit conducted for ${formatDepartmentLabel(dept) !== '—' ? formatDepartmentLabel(dept) : 'the department'}. ${engagementFindings.length} finding(s) were identified.`,
       audit_objective: prev.audit_objective || selectedEngagement.objectives || '',
       audit_scope: prev.audit_scope || selectedEngagement.scope || '',
       methodology: prev.methodology || selectedEngagement.methodology || '',
@@ -307,7 +308,7 @@ export function AuditReportBuilderStudio() {
         responses={engagementResponses}
         actions={engagementActions}
         engagement={selectedEngagement}
-        departmentName={departments.find((d: any) => d.id === reportData.department_id)?.name}
+        departmentName={formatDepartmentLabel(departments.find((d: any) => d.id === reportData.department_id))}
         templateConfig={effectiveTemplateConfig}
         dbSectionRefs={dbSectionRefs}
         foundation={foundation}

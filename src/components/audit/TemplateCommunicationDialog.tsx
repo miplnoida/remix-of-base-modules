@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DocumentTemplate } from "@/types/audit";
 import { useIAAnnualPlans, useIADepartments } from "@/hooks/useAuditData";
 import { StandardModal } from "@/components/common/StandardModal";
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface TemplateCommunicationDialogProps {
   template: DocumentTemplate | null;
@@ -58,7 +59,7 @@ export const TemplateCommunicationDialog = ({
       setSubject(template.name);
       
       const mergeData = {
-        departmentName: dept.name,
+        departmentName: formatDepartmentLabel(dept),
         departmentHead: headData.name,
         auditPeriod: `${plan?.fiscal_year || new Date().getFullYear()}`,
         date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
@@ -99,7 +100,7 @@ export const TemplateCommunicationDialog = ({
               <SelectTrigger><SelectValue placeholder="Select department..." /></SelectTrigger>
               <SelectContent>
                 {departments.map((dept: any) => (
-                  <SelectItem key={dept.id} value={dept.id}>{dept.name}</SelectItem>
+                  <SelectItem key={dept.id} value={dept.id}>{formatDepartmentLabel(dept)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

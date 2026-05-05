@@ -18,6 +18,7 @@ import { MetricCard } from '@/components/shared/MetricCard';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { useTeamAvailabilityCheck } from '@/hooks/useAuditWorkflowGates';
 import { ConflictAlertPanel } from '@/components/audit/ConflictAlertPanel';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 
@@ -117,7 +118,7 @@ export default function AuditEngagements() {
     planned: filtered.filter((d: any) => d.status === 'Planned').length,
   };
 
-  const getDeptName = (id: string) => departmentMap[id]?.name || '—';
+  const getDeptName = (id: string) => formatDepartmentLabel(departmentMap[id]);
   const getAuditorName = (id: string) => auditors?.find((a: any) => a.id === id)?.name || '—';
 
   const openAdd = () => {
@@ -337,7 +338,7 @@ export default function AuditEngagements() {
             <div><Label>Department *</Label>
               <Select value={form.department_id} onValueChange={v => setForm(f => ({ ...f, department_id: v, function_id: '' }))}>
                 <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
-                <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+                <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{formatDepartmentLabel(d)}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div><Label>Function *</Label>

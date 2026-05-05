@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Zap } from 'lucide-react';
 import { useIADepartments, useIAActiveAuditors, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useToast } from '@/hooks/use-toast';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface DepartmentAuditFormProps {
   annualPlanId?: string;
@@ -150,7 +151,7 @@ export function DepartmentAuditForm({ annualPlanId, departmentAudit, isAdHoc = f
                 <SelectContent>
                   {departments.map((dept: any) => (
                     <SelectItem key={dept.id} value={dept.id}>
-                      {dept.name}
+                      {formatDepartmentLabel(dept)}
                       {dept.risk_rating && ` (${dept.risk_rating} Risk)`}
                     </SelectItem>
                   ))}

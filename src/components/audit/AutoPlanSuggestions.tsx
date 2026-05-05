@@ -21,6 +21,7 @@ import { isEditablePlanStatus } from '@/hooks/useAuditPlanWorkflowAccess';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { classifyCompositeScore } from '@/lib/audit/riskEngine';
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface AutoPlanSuggestionsProps {
   planId: string;
@@ -116,7 +117,7 @@ export function AutoPlanSuggestions({ planId, planStatus }: AutoPlanSuggestionsP
     manualOverride.mutate({
       override_type: 'manual_add_candidate',
       changes: {
-        entity_name: func ? `${dept?.name || ''} → ${func.function_name}` : dept?.name || 'Manual Entry',
+        entity_name: func ? `${formatDepartmentLabel(dept)} → ${func.function_name}` : (formatDepartmentLabel(dept) !== '—' ? formatDepartmentLabel(dept) : 'Manual Entry'),
         department_id: manualForm.department_id,
         function_id: manualForm.function_id || null,
         objective: manualForm.objective,

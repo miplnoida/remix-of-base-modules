@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { AuditEmptyState } from '@/components/audit/workspace/AuditEmptyState';
 import { buildMetadata, exportRiskDetailPDF, exportMitigationPlanPDF, type GroupByOption } from '@/lib/auditReportExports';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 const exportColumns = toExportColumns(RISK_REGISTER_SCHEMA);
 const RISK_LEVELS = ['Critical', 'High', 'Medium', 'Low'];
@@ -67,10 +68,10 @@ const emptyAction = {
 
 export default function RiskRegister() {
   const { data: departments = [] } = useQuery({
-    queryKey: ['ia_departments_active'],
+    queryKey: ['v_ia_departments_active'],
     queryFn: async () => {
-      const { data } = await supabase.from('ia_departments').select('id, name').eq('is_active', true).order('name');
-      return data || [];
+      const { data } = await (supabase.from('v_ia_departments' as any) as any).select('id, name, office_code, display_label').eq('is_active', true).order('display_label');
+      return (data || []) as any[];
     },
   });
   const [entityFilter, setEntityFilter] = useState('all');
@@ -224,7 +225,7 @@ export default function RiskRegister() {
   ];
 
   const filterFields: StandardFilterField[] = [
-    { key: 'entity', label: 'Department', type: 'select', options: [{ label: 'All Departments', value: 'all' }, ...departments.map((d: any) => ({ label: d.name, value: d.id }))] },
+    { key: 'entity', label: 'Department', type: 'select', options: [{ label: 'All Departments', value: 'all' }, ...departments.map((d: any) => ({ label: formatDepartmentLabel(d), value: d.id }))] },
     { key: 'status', label: 'Status', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_STATUSES.map(s => ({ label: s, value: s }))] },
     { key: 'category', label: 'Category', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_CATEGORIES.map(c => ({ label: c, value: c }))] },
     { key: 'owner', label: 'Owner', type: 'select', options: [{ label: 'All Owners', value: 'all' }, ...ownerOptions.map(o => ({ label: o, value: o }))] },
@@ -244,7 +245,7 @@ export default function RiskRegister() {
     'Risk Register',
     filtered.length,
     [
-      { label: 'Department', value: entityFilter !== 'all' ? departments.find((d: any) => d.id === entityFilter)?.name || entityFilter : 'all' },
+      { label: 'Department', value: entityFilter !== 'all' ? formatDepartmentLabel(departments.find((d: any) => d.id === entityFilter)) : 'all' },
       { label: 'Status', value: statusFilter },
       { label: 'Category', value: categoryFilter },
       { label: 'Owner', value: ownerFilter },
@@ -323,7 +324,7 @@ export default function RiskRegister() {
             <Label>Department *</Label>
             <Select value={form.audit_universe_id} onValueChange={v => setForm(f => ({ ...f, audit_universe_id: v }))}>
               <SelectTrigger><SelectValue placeholder="Select department..." /></SelectTrigger>
-              <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent>
+              <SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{formatDepartmentLabel(d)}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-2 md:col-span-2">

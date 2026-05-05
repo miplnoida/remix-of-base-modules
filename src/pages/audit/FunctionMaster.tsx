@@ -20,6 +20,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { generateSSBReport } from '@/lib/reportTemplate';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 const bulkUploadFields = toBulkUploadFields(FUNCTION_SCHEMA);
 const exportColumns = toExportColumns(FUNCTION_SCHEMA);
@@ -57,15 +58,18 @@ export default function FunctionMaster() {
     }
   };
 
-  // Dynamically set allowed department names on the bulk upload field
+  // Dynamically set allowed department labels (Name (Office Code)) on the bulk upload field.
+  // The combined label disambiguates departments with the same name in different offices.
   const dynamicBulkFields = bulkUploadFields.map(f =>
-    f.key === 'department_name' ? { ...f, allowedValues: departments.map(d => d.name) } : f
+    f.key === 'department_name' ? { ...f, allowedValues: (departments as any[]).map((d: any) => formatDepartmentLabel(d)) } : f
   );
 
   const handleBulkImport = async (data: Record<string, any>[]) => {
     const affectedDeptIds = new Set<string>();
     for (const row of data) {
-      const dept = departments.find(d => d.name === row.department_name);
+      // Match by combined label first, then fall back to plain name (backward compatibility).
+      const dept = (departments as any[]).find((d: any) => formatDepartmentLabel(d) === row.department_name)
+        || (departments as any[]).find((d: any) => d.name === row.department_name);
       if (!dept) continue;
       const l = row.likelihood || 'Medium';
       const i = row.impact || 'Medium';
@@ -183,7 +187,7 @@ export default function FunctionMaster() {
 
   const columns: DataTableColumn<any>[] = [
     { key: 'function_name', header: 'Function Name' },
-    { key: 'department_id', header: 'Department', render: (row) => departments.find((d: any) => d.id === row.department_id)?.name || '-' },
+    { key: 'department_id', header: 'Department', render: (row) => formatDepartmentLabel(departments.find((d: any) => d.id === row.department_id)) },
     { key: 'description', header: 'Description', className: 'max-w-xs truncate' },
     { key: 'risk_score', header: 'Risk Score', render: (row) => {
       const score = calculateFunctionRiskScore(row.likelihood || 'Medium', row.impact || 'Medium');
@@ -197,10 +201,10 @@ export default function FunctionMaster() {
     { key: 'responsible_person', header: 'Responsible Person' },
   ];
 
-  // Prepare export data with department name resolved
+  // Prepare export data with department label resolved
   const exportData = filteredFunctions.map((f: any) => ({
     ...f,
-    department_name: departments.find((d: any) => d.id === f.department_id)?.name || '',
+    department_name: formatDepartmentLabel(departments.find((d: any) => d.id === f.department_id)),
   }));
 
   // SSB branded PDF export (grouped by department)
@@ -253,7 +257,7 @@ export default function FunctionMaster() {
 
   const formFields = (
     <div className="space-y-4">
-      <div><Label>Department <span className="text-destructive">*</span></Label><Select value={formData.departmentId} onValueChange={v => setFormData(f => ({ ...f, departmentId: v }))}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{departments.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select></div>
+      <div><Label>Department <span className="text-destructive">*</span></Label><Select value={formData.departmentId} onValueChange={v => setFormData(f => ({ ...f, departmentId: v }))}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{departments.map((d: any) => <SelectItem key={d.id} value={d.id}>{formatDepartmentLabel(d)}</SelectItem>)}</SelectContent></Select></div>
       <div><Label>Function Name <span className="text-destructive">*</span></Label><Input value={formData.functionName} onChange={e => setFormData(f => ({ ...f, functionName: e.target.value }))} placeholder="e.g., Claims Processing" /></div>
       <div><Label>Description</Label><Textarea value={formData.description} onChange={e => setFormData(f => ({ ...f, description: e.target.value }))} placeholder="Describe the function" rows={3} /></div>
       <div className="grid grid-cols-2 gap-4">
@@ -402,7 +406,7 @@ export default function FunctionMaster() {
                           {isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                           <Building2 className="h-5 w-5 text-primary" />
                           <div>
-                            <CardTitle className="text-sm font-semibold">{dept.name}</CardTitle>
+                            <CardTitle className="text-sm font-semibold">{formatDepartmentLabel(dept)}</CardTitle>
                             <p className="text-xs text-muted-foreground mt-0.5">
                               {functions.length} function{functions.length !== 1 ? 's' : ''}
                               {' • '}{deptTotalWeight}% allocated
@@ -490,7 +494,7 @@ export default function FunctionMaster() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div><Label className="text-muted-foreground">Function Name</Label><p className="font-medium">{viewFunc.function_name}</p></div>
-                <div><Label className="text-muted-foreground">Department</Label><p>{departments.find((d: any) => d.id === viewFunc.department_id)?.name || '-'}</p></div>
+                <div><Label className="text-muted-foreground">Department</Label><p>{formatDepartmentLabel(departments.find((d: any) => d.id === viewFunc.department_id))}</p></div>
               </div>
               <div><Label className="text-muted-foreground">Description</Label><p>{viewFunc.description || '-'}</p></div>
               <div className="grid grid-cols-3 gap-4">

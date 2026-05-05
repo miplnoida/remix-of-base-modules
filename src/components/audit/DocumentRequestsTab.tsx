@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface Props {
   engagementId: string;
@@ -325,7 +326,7 @@ export function DocumentRequestsTab({ engagementId, departmentId, engagementName
               </div>
               {!overrideRecipient && dept && (
                 <p className="text-xs text-muted-foreground">
-                  Auto-populated from department: <span className="font-medium">{dept.name}</span>
+                  Auto-populated from department: <span className="font-medium">{formatDepartmentLabel(dept)}</span>
                 </p>
               )}
               {!dept && departmentId && (

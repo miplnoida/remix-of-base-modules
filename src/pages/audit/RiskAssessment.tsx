@@ -21,6 +21,7 @@ import { calculateRiskLevel, getRiskColor, buildLegendEntries } from '@/lib/audi
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 import { CreatableSearchableSelect } from '@/components/ui/creatable-searchable-select';
 import { useIARiskCategories, useCreateIARiskCategory } from '@/hooks/useIARiskCategories';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 const RISK_LEVELS = ['Critical', 'High', 'Medium', 'Low'];
 const exportColumns = toExportColumns(RISK_ASSESSMENT_SCHEMA);
@@ -120,7 +121,7 @@ function RiskHeatMapGrid({ assessments, allFunctions, deptMap }: {
                   <div key={item.id} className="flex items-center justify-between p-2 rounded-md border bg-card">
                     <div>
                       <p className="text-sm font-medium">{fn?.function_name || 'Unknown Function'}</p>
-                      <p className="text-xs text-muted-foreground">{dept?.name || '—'} | {item.risk_category || '—'} | Owner: {item.risk_owner || '—'}</p>
+                      <p className="text-xs text-muted-foreground">{formatDepartmentLabel(dept)} | {item.risk_category || '—'} | Owner: {item.risk_owner || '—'}</p>
                     </div>
                     <Badge style={{ backgroundColor: getRiskColor(item.risk_level), color: '#fff' }} className="text-xs">{item.risk_level}</Badge>
                   </div>
@@ -153,7 +154,7 @@ function DepartmentRiskSummary({ assessments, deptMap, allFunctions }: {
       const deptId = fn?.department_id;
       if (!deptId) return;
       const dept = deptMap.get(deptId);
-      if (!summary[deptId]) summary[deptId] = { name: dept?.name || 'Unknown', total: 0, avgScore: 0, critical: 0, high: 0, medium: 0, low: 0 };
+      if (!summary[deptId]) summary[deptId] = { name: formatDepartmentLabel(dept) || 'Unknown', total: 0, avgScore: 0, critical: 0, high: 0, medium: 0, low: 0 };
       const s = summary[deptId];
       s.total++;
       s.avgScore += Number(a.overall_risk_score) || (Number(a.likelihood_score) * Number(a.impact_score));
@@ -202,11 +203,11 @@ export default function RiskAssessment() {
   const { data: riskCategories = [] } = useIARiskCategories();
   const createCategory = useCreateIARiskCategory();
 
-  // Fetch ALL departments (including inactive) for display resolution
+  // Fetch ALL departments (incl. inactive) from unified view for display resolution
   const { data: allDepartments = [] } = useQuery({
-    queryKey: ['ia_departments_all'],
+    queryKey: ['v_ia_departments_all'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('ia_departments' as any).select('*').order('name');
+      const { data, error } = await supabase.from('v_ia_departments' as any).select('*').order('display_label');
       if (error) throw error;
       return data as any[];
     },
@@ -323,7 +324,7 @@ export default function RiskAssessment() {
     const dept = fn ? deptMap.get(fn.department_id) : null;
     const matchSearch = !s ||
       fn?.function_name?.toLowerCase().includes(s) ||
-      dept?.name?.toLowerCase().includes(s) ||
+      formatDepartmentLabel(dept).toLowerCase().includes(s) ||
       r.risk_category?.toLowerCase().includes(s) ||
       r.risk_description?.toLowerCase().includes(s) ||
       r.risk_owner?.toLowerCase().includes(s);
@@ -340,7 +341,7 @@ export default function RiskAssessment() {
   };
 
   const columns: DataTableColumn<any>[] = [
-    { key: 'department', header: 'Department', render: (r) => { const fn = funcMap[r.function_id]; return fn ? deptMap.get(fn.department_id)?.name || '—' : '—'; } },
+    { key: 'department', header: 'Department', render: (r) => { const fn = funcMap[r.function_id]; return fn ? formatDepartmentLabel(deptMap.get(fn.department_id)) : '—'; } },
     { key: 'function', header: 'Function', render: (r) => funcMap[r.function_id]?.function_name || '—' },
     { key: 'risk_category', header: 'Risk Category', render: (r) => r.risk_category || '—' },
     { key: 'likelihood_score', header: 'Likelihood', render: (r) => r.likelihood_score || '—' },
@@ -356,13 +357,13 @@ export default function RiskAssessment() {
 
   const filterFields: StandardFilterField[] = [
     { key: 'risk_level', label: 'Risk Level', type: 'select', options: [{ label: 'All', value: 'all' }, ...RISK_LEVELS.map(t => ({ label: t, value: t }))] },
-    { key: 'department', label: 'Department', type: 'select', options: [{ label: 'All Departments', value: 'all' }, ...(departments as any[]).map((d: any) => ({ label: d.name, value: d.id }))] },
+    { key: 'department', label: 'Department', type: 'select', options: [{ label: 'All Departments', value: 'all' }, ...(departments as any[]).map((d: any) => ({ label: formatDepartmentLabel(d), value: d.id }))] },
   ];
 
   const exportData = filtered.map((r: any) => {
     const fn = funcMap[r.function_id];
     const dept = fn ? deptMap.get(fn.department_id) : null;
-    return { ...r, department_name: dept?.name || '', function_name: fn?.function_name || '' };
+    return { ...r, department_name: formatDepartmentLabel(dept), function_name: fn?.function_name || '' };
   });
 
   const isReadOnly = modalState.mode === 'view';
@@ -417,10 +418,10 @@ export default function RiskAssessment() {
               <Select value={selectedDeptId} onValueChange={(v) => { if (v !== selectedDeptId) { setSelectedDeptId(v); setSelectedFunctionId(''); } }} disabled={isReadOnly}>
                 <SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger>
                 <SelectContent>
-                  {(departments as any[]).map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+                  {(departments as any[]).map((d: any) => <SelectItem key={d.id} value={d.id}>{formatDepartmentLabel(d)}</SelectItem>)}
                   {/* Show deactivated department if currently selected but not in active list */}
                   {selectedDeptId && !(departments as any[]).some((d: any) => d.id === selectedDeptId) && deptMap.has(selectedDeptId) && (
-                    <SelectItem key={selectedDeptId} value={selectedDeptId}>{deptMap.get(selectedDeptId)?.name} (Deactivated)</SelectItem>
+                    <SelectItem key={selectedDeptId} value={selectedDeptId}>{formatDepartmentLabel(deptMap.get(selectedDeptId))} (Deactivated)</SelectItem>
                   )}
                 </SelectContent>
               </Select>

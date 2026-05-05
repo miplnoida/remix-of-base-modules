@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTransitionExecutionStatus, type ExecutionStatus } from '@/hooks/useEngagementExecution';
 import { AuditWorkspaceShell } from '@/components/audit/workspace/AuditWorkspaceShell';
 import { AuditEmptyState } from '@/components/audit/workspace/AuditEmptyState';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 import {
   AuditOverviewTab,
@@ -158,7 +159,7 @@ export default function EngagementDetail() {
   const overdueActionsCount = auditActions.filter((a: any) => a.target_date && !['Completed', 'Closed'].includes(a.status || '') && new Date(a.target_date) < new Date()).length;
   const pendingResponsesCount = auditFindings.filter((f: any) => !auditResponses.find((r: any) => r.finding_id === f.id) && f.status !== 'Closed').length;
 
-  const getDeptName = (did: string) => departments?.find((d: any) => d.id === did)?.name || '—';
+  const getDeptName = (did: string) => formatDepartmentLabel(departments?.find((d: any) => d.id === did));
   const getDeptObj = (did: string) => departments?.find((d: any) => d.id === did);
   const getFunctionName = (fid: string) => deptFunctions?.find((f: any) => f.id === fid)?.function_name || '—';
   const getAuditorName = (aid: string) => auditors?.find((a: any) => a.id === aid)?.name || '—';
@@ -171,7 +172,7 @@ export default function EngagementDetail() {
     const dept = getDeptObj(audit.department_id);
     return {
       engagement_name: audit.engagement_name || '',
-      department_name: dept?.name || '',
+      department_name: formatDepartmentLabel(dept),
       department_head: dept?.head || '',
       department_email: dept?.email || '',
       lead_auditor_name: getAuditorName(audit.lead_auditor_id),

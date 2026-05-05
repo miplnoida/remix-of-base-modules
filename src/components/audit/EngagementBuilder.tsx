@@ -15,6 +15,7 @@ import { formatDateForDisplay } from '@/lib/format-config';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useManualOverride } from '@/hooks/useAutoPlanEngine';
 import { isEditablePlanStatus, isLockedPlanStatus } from '@/hooks/useAuditPlanWorkflowAccess';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface EngagementBuilderProps {
   planId: string;
@@ -40,7 +41,7 @@ export function EngagementBuilder({ planId, planStatus, planFiscalYear }: Engage
   const isLocked = isLockedPlanStatus(planStatus);
   const canModify = canEdit;
 
-  const getDeptName = (id: string) => (departments || []).find((d: any) => d.id === id)?.name || '—';
+  const getDeptName = (id: string) => formatDepartmentLabel((departments || []).find((d: any) => d.id === id));
   const getFuncName = (id: string) => (functions || []).find((f: any) => f.id === id)?.function_name || '—';
   const getAuditorName = (id: string) => (auditors || []).find((a: any) => a.id === id)?.name || '—';
 

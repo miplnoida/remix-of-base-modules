@@ -4,6 +4,7 @@ import { StatusBadge } from '@/components/common';
 import { useIADepartments, useIADepartmentFunctions } from '@/hooks/useAuditData';
 import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
 import { AlertTriangle, CheckCircle, ShieldAlert, Shield } from 'lucide-react';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 interface CoverageRiskTabProps {
   planId: string;
@@ -31,7 +32,7 @@ export function CoverageRiskTab({ planId, engagements }: CoverageRiskTabProps) {
     const coveredDeptIds = new Set((engagements || []).map((e: any) => e.department_id).filter(Boolean));
     return (departments || []).map((dept: any) => ({
       id: dept.id,
-      name: dept.name,
+      name: formatDepartmentLabel(dept),
       covered: coveredDeptIds.has(dept.id),
       engCount: (engagements || []).filter((e: any) => e.department_id === dept.id).length,
       riskRating: dept.risk_rating || 'Unrated',
@@ -58,7 +59,7 @@ export function CoverageRiskTab({ planId, engagements }: CoverageRiskTabProps) {
         return {
           id: fn.id,
           functionName: fn.function_name,
-          departmentName: dept?.name || '—',
+          departmentName: formatDepartmentLabel(dept),
           riskLevel: assessment?.risk_level || fn.risk_rating || 'High',
           riskScore: assessment?.risk_score,
         };
@@ -127,7 +128,7 @@ export function CoverageRiskTab({ planId, engagements }: CoverageRiskTabProps) {
               <div key={dept.id} className="flex items-center justify-between p-2 border rounded">
                 <div className="flex items-center gap-2">
                   {dept.covered ? <CheckCircle className="h-4 w-4 text-green-600" /> : <AlertTriangle className="h-4 w-4 text-amber-500" />}
-                  <span className="text-sm">{dept.name}</span>
+                  <span className="text-sm">{formatDepartmentLabel(dept)}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={dept.riskRating} />

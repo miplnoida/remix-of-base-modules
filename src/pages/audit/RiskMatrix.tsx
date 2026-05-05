@@ -8,6 +8,7 @@ import { useIARiskAssessments } from '@/hooks/useAuditDataPhase2';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateRiskLevel, getRiskColor } from '@/lib/audit/riskEngine';
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 function getLevelClasses(level: string) {
   switch (level) {
@@ -37,9 +38,9 @@ export default function RiskMatrix() {
   });
 
   const { data: departments = [] } = useQuery({
-    queryKey: ['ia_departments_all_for_matrix'],
+    queryKey: ['v_ia_departments_for_matrix'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('ia_departments' as any).select('*').eq('is_active', true).order('name');
+      const { data, error } = await (supabase.from('v_ia_departments' as any) as any).select('*').eq('is_active', true).order('display_label');
       if (error) throw error;
       return (data ?? []) as any[];
     },
@@ -145,7 +146,7 @@ export default function RiskMatrix() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-sm font-medium">{fn?.function_name || 'Unknown Function'}</p>
-                        <p className="text-xs text-muted-foreground">{dept?.name || 'Unassigned Department'}</p>
+                        <p className="text-xs text-muted-foreground">{dept ? formatDepartmentLabel(dept) : 'Unassigned Department'}</p>
                       </div>
                       <Badge className={getLevelClasses(level)}>{level}</Badge>
                     </div>
@@ -181,7 +182,7 @@ export default function RiskMatrix() {
                     <div key={item.id} className="flex flex-col gap-2 rounded-lg border bg-card p-3 md:flex-row md:items-center md:justify-between">
                       <div>
                         <p className="text-sm font-medium">{fn?.function_name || 'Unknown Function'}</p>
-                        <p className="text-xs text-muted-foreground">{dept?.name || 'Unassigned Department'} • {item.risk_category || 'General Risk'}</p>
+                        <p className="text-xs text-muted-foreground">{(dept ? formatDepartmentLabel(dept) : 'Unassigned Department')} • {item.risk_category || 'General Risk'}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">Score {score}</Badge>

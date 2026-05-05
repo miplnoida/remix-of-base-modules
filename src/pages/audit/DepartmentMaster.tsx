@@ -126,8 +126,12 @@ export default function DepartmentMaster() {
   };
 
 
-  const filteredDepartments = departments.filter(d => {
-    const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || d.head.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredDepartments = departments.filter((d: any) => {
+    const term = searchTerm.toLowerCase();
+    const matchesSearch =
+      (d.name || '').toLowerCase().includes(term) ||
+      (d.head || '').toLowerCase().includes(term) ||
+      (d.office_code || '').toLowerCase().includes(term);
     const matchesRisk = filters.risk === 'all' || d.risk_rating === filters.risk;
     return matchesSearch && matchesRisk;
   });
@@ -196,10 +200,10 @@ export default function DepartmentMaster() {
   ];
 
   const columns: DataTableColumn<any>[] = [
-    { key: 'name', header: 'Department Name' },
+    { key: 'name', header: 'Department Name', render: (row) => `${row.name}${row.office_code ? ` (${row.office_code})` : ''}` },
+    { key: 'office_code', header: 'Office Code', render: (row) => row.office_code || '-' },
     { key: 'head', header: 'Department Head' },
     { key: 'email', header: 'Email' },
-    
     { key: 'risk_rating', header: 'Risk Rating', render: (row) => <StatusBadge status={row.risk_rating || 'Medium'} /> },
   ];
 

@@ -28,17 +28,20 @@ export function useIAProfiles() {
 }
 
 // ============= DEPARTMENTS =============
+// Always read from the unified view v_ia_departments which joins ia_departments
+// to the master tb_office_departments and exposes a precomputed display_label
+// in the standard "Department Name (OFFICE_CODE)" format.
 export function useIADepartments() {
   return useQuery({
     queryKey: ['ia_departments'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('ia_departments')
+        .from('v_ia_departments' as any)
         .select('*')
         .eq('is_active', true)
-        .order('name');
+        .order('display_label');
       if (error) throw error;
-      return data;
+      return (data || []) as any[];
     },
   });
 }
