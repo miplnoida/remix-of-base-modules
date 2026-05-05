@@ -202,11 +202,11 @@ export default function RiskAssessment() {
   const { data: riskCategories = [] } = useIARiskCategories();
   const createCategory = useCreateIARiskCategory();
 
-  // Fetch ALL departments (including inactive) for display resolution
+  // Fetch ALL departments (incl. inactive) from unified view for display resolution
   const { data: allDepartments = [] } = useQuery({
-    queryKey: ['ia_departments_all'],
+    queryKey: ['v_ia_departments_all'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('ia_departments' as any).select('*').order('name');
+      const { data, error } = await supabase.from('v_ia_departments' as any).select('*').order('display_label');
       if (error) throw error;
       return data as any[];
     },
