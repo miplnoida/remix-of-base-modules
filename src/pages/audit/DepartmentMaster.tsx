@@ -126,8 +126,12 @@ export default function DepartmentMaster() {
   };
 
 
-  const filteredDepartments = departments.filter(d => {
-    const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || d.head.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredDepartments = departments.filter((d: any) => {
+    const term = searchTerm.toLowerCase();
+    const matchesSearch =
+      (d.name || '').toLowerCase().includes(term) ||
+      (d.head || '').toLowerCase().includes(term) ||
+      (d.office_code || '').toLowerCase().includes(term);
     const matchesRisk = filters.risk === 'all' || d.risk_rating === filters.risk;
     return matchesSearch && matchesRisk;
   });
