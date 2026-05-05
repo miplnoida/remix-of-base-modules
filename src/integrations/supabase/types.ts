@@ -35541,6 +35541,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ia_risk_categories: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          name_norm: string | null
+          sort_order: number
+          source_screen: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          name_norm?: string | null
+          sort_order?: number
+          source_screen?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          name_norm?: string | null
+          sort_order?: number
+          source_screen?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ia_risk_classification_thresholds: {
         Row: {
           color: string | null
