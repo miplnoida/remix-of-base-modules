@@ -69,8 +69,8 @@ export default function RiskRegister() {
   const { data: departments = [] } = useQuery({
     queryKey: ['v_ia_departments_active'],
     queryFn: async () => {
-      const { data } = await supabase.from('v_ia_departments' as any).select('id, name, office_code, display_label').eq('is_active', true).order('display_label');
-      return data || [];
+      const { data } = await (supabase.from('v_ia_departments' as any) as any).select('id, name, office_code, display_label').eq('is_active', true).order('display_label');
+      return (data || []) as any[];
     },
   });
   const [entityFilter, setEntityFilter] = useState('all');
