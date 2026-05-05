@@ -21,6 +21,7 @@ import { calculateRiskLevel, getRiskColor, buildLegendEntries } from '@/lib/audi
 import { useRiskRatingCalculator } from '@/hooks/useRiskConfig';
 import { CreatableSearchableSelect } from '@/components/ui/creatable-searchable-select';
 import { useIARiskCategories, useCreateIARiskCategory } from '@/hooks/useIARiskCategories';
+import { formatDepartmentLabel } from '@/lib/audit/departmentLabel';
 
 const RISK_LEVELS = ['Critical', 'High', 'Medium', 'Low'];
 const exportColumns = toExportColumns(RISK_ASSESSMENT_SCHEMA);
