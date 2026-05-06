@@ -175,6 +175,7 @@ export function C3SyncHistoryTab() {
                   <TableHead className="text-center">Income Codes</TableHead>
                   <TableHead className="text-center">SE Rates</TableHead>
                   <TableHead className="text-center">IC Pol.</TableHead>
+                  <TableHead className="text-center">Filing</TableHead>
                   <TableHead>Error</TableHead>
                   <TableHead className="text-center">Changes</TableHead>
                 </TableRow>
