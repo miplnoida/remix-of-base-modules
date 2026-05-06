@@ -48,6 +48,7 @@ serve(async (req) => {
       self_emp_contrib_rates: payload.self_emp_contrib_rates?.length ?? 0,
       income_code_policies: payload.income_code_policies?.length ?? 0,
       income_code_exceptions: payload.income_code_exceptions?.length ?? 0,
+      filing_config_periods: payload.filing_config_periods?.length ?? 0,
     });
 
     // Forward the payload to C3-Wizard sync endpoint
