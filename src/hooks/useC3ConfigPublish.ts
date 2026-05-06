@@ -381,6 +381,7 @@ export function usePublishToC3Wizard() {
           supabase.from('c3_bonus_policy_exceptions').update({ last_published_at: now }).eq('is_active', true),
           supabase.from('c3_holiday_pay_policy_default').update({ last_published_at: now }).eq('is_active', true),
           supabase.from('c3_holiday_pay_policy_exceptions').update({ last_published_at: now }).eq('is_active', true),
+          (supabase as any).from('c3_filing_config_periods').update({ last_published_at: now }).eq('is_active', true),
           // Note: c3_calculation_config, tb_income_codes, tb_income_cat, tb_self_emp_contrib_rate
           // don't have last_published_at columns — they are always fully synced on each publish
         ]);
