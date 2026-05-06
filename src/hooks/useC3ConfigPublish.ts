@@ -331,6 +331,7 @@ export function usePublishToC3Wizard() {
           self_emp_rates_count: counts.selfEmpRates,
           income_code_policies_count: counts.incomeCodePolicies,
           income_code_exceptions_count: counts.incomeCodeExceptions,
+          filing_config_periods_count: counts.filingConfigPeriods,
           published_by: userCode || null,
         })
         .select('id')
