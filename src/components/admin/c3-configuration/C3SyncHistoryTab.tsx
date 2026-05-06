@@ -175,6 +175,7 @@ export function C3SyncHistoryTab() {
                   <TableHead className="text-center">Income Codes</TableHead>
                   <TableHead className="text-center">SE Rates</TableHead>
                   <TableHead className="text-center">IC Pol.</TableHead>
+                  <TableHead className="text-center">Filing</TableHead>
                   <TableHead>Error</TableHead>
                   <TableHead className="text-center">Changes</TableHead>
                 </TableRow>
@@ -197,6 +198,7 @@ export function C3SyncHistoryTab() {
                     <TableCell className="text-center">{(log as any).income_codes_count || 0}</TableCell>
                     <TableCell className="text-center">{(log as any).se_contrib_rates_count || 0}</TableCell>
                     <TableCell className="text-center">{(log as any).income_code_policies_count || 0}</TableCell>
+                    <TableCell className="text-center">{(log as any).filing_config_periods_count || 0}</TableCell>
                     <TableCell className="text-sm text-destructive max-w-[200px] truncate">
                       {log.error_message || '—'}
                     </TableCell>
@@ -210,7 +212,7 @@ export function C3SyncHistoryTab() {
                 ))}
                 {logs.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={16} className="text-center py-8 text-muted-foreground">
                       No publish history found
                     </TableCell>
                   </TableRow>
@@ -279,6 +281,7 @@ export function C3SyncHistoryTab() {
                       { label: 'Self-Emp Rates', count: (selectedLog as any).se_contrib_rates_count || 0 },
                       { label: 'IC Policy Defaults', count: (selectedLog as any).income_code_policies_count || 0 },
                       { label: 'IC Policy Exceptions', count: (selectedLog as any).income_code_exceptions_count || 0 },
+                      { label: 'Filing & Penalties Periods', count: (selectedLog as any).filing_config_periods_count || 0 },
                     ].map(item => (
                       <div key={item.label} className="flex items-center justify-between bg-background rounded-md px-3 py-2 border">
                         <span className="text-xs text-muted-foreground">{item.label}</span>

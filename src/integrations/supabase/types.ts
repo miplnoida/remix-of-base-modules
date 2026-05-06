@@ -8845,6 +8845,7 @@ export type Database = {
           config_periods_count: number
           created_at: string
           error_message: string | null
+          filing_config_periods_count: number | null
           holiday_exceptions_count: number
           holiday_policies_count: number
           id: string
@@ -8870,6 +8871,7 @@ export type Database = {
           config_periods_count?: number
           created_at?: string
           error_message?: string | null
+          filing_config_periods_count?: number | null
           holiday_exceptions_count?: number
           holiday_policies_count?: number
           id?: string
@@ -8895,6 +8897,7 @@ export type Database = {
           config_periods_count?: number
           created_at?: string
           error_message?: string | null
+          filing_config_periods_count?: number | null
           holiday_exceptions_count?: number
           holiday_policies_count?: number
           id?: string
@@ -9026,6 +9029,7 @@ export type Database = {
           filing_window_value: number
           id: string
           is_active: boolean
+          last_published_at: string | null
           penalty_initial_threshold: number
           penalty_subsequent_threshold: number
           updated_at: string
@@ -9041,6 +9045,7 @@ export type Database = {
           filing_window_value?: number
           id?: string
           is_active?: boolean
+          last_published_at?: string | null
           penalty_initial_threshold?: number
           penalty_subsequent_threshold?: number
           updated_at?: string
@@ -9056,6 +9061,7 @@ export type Database = {
           filing_window_value?: number
           id?: string
           is_active?: boolean
+          last_published_at?: string | null
           penalty_initial_threshold?: number
           penalty_subsequent_threshold?: number
           updated_at?: string

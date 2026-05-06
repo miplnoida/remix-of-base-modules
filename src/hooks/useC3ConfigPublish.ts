@@ -40,6 +40,7 @@ export interface SyncPendingCounts {
   selfEmpRates: number;
   incomeCodePolicies: number;
   incomeCodeExceptions: number;
+  filingConfigPeriods: number;
 }
 
 // Check if any config has been modified since last publish.
@@ -66,7 +67,7 @@ export function useC3SyncStatus() {
         periods: 0, slabs: 0, bonusPolicies: 0, bonusExceptions: 0,
         holidayPolicies: 0, holidayExceptions: 0, calculationConfigs: 0,
         incomeCodes: 0, incomeCategories: 0, selfEmpRates: 0,
-        incomeCodePolicies: 0, incomeCodeExceptions: 0,
+        incomeCodePolicies: 0, incomeCodeExceptions: 0, filingConfigPeriods: 0,
       };
       try {
         const { payloadHash, counts } = await buildSyncPayload();
@@ -84,6 +85,7 @@ export function useC3SyncStatus() {
           selfEmpRates: counts.selfEmpRates,
           incomeCodePolicies: counts.incomeCodePolicies,
           incomeCodeExceptions: counts.incomeCodeExceptions,
+          filingConfigPeriods: counts.filingConfigPeriods,
         };
       } catch (e) {
         // If payload build fails, fall back to "no pending" so UI doesn't lie.
@@ -250,9 +252,17 @@ async function buildSyncPayload() {
     .order('date_from', { ascending: false });
   if (iceErr) throw iceErr;
 
+  // 13. Filing & Penalties Configuration Periods (week_start_day, filing window, penalty thresholds)
+  const { data: filingConfigPeriods, error: fcErr } = await (supabase as any)
+    .from('c3_filing_config_periods')
+    .select('*')
+    .eq('is_active', true)
+    .order('date_from', { ascending: false });
+  if (fcErr) throw fcErr;
+
   const syncTimestamp = new Date().toISOString();
   const payload = {
-    sync_version: '4.0',
+    sync_version: '4.1',
     sync_timestamp: syncTimestamp,
     config_periods: configPeriods,
     levy_slabs: levySlabs,
@@ -266,6 +276,7 @@ async function buildSyncPayload() {
     self_emp_contrib_rates: selfEmpRates || [],
     income_code_policies: incomeCodePolicies || [],
     income_code_exceptions: incomeCodeExceptions || [],
+    filing_config_periods: filingConfigPeriods || [],
   };
 
   const payloadHash = btoa(JSON.stringify(payload)).slice(0, 64);
@@ -286,6 +297,7 @@ async function buildSyncPayload() {
       selfEmpRates: (selfEmpRates || []).length,
       incomeCodePolicies: (incomeCodePolicies || []).length,
       incomeCodeExceptions: (incomeCodeExceptions || []).length,
+      filingConfigPeriods: (filingConfigPeriods || []).length,
     }
   };
 }
@@ -319,6 +331,7 @@ export function usePublishToC3Wizard() {
           self_emp_rates_count: counts.selfEmpRates,
           income_code_policies_count: counts.incomeCodePolicies,
           income_code_exceptions_count: counts.incomeCodeExceptions,
+          filing_config_periods_count: counts.filingConfigPeriods,
           published_by: userCode || null,
         })
         .select('id')
@@ -368,6 +381,7 @@ export function usePublishToC3Wizard() {
           supabase.from('c3_bonus_policy_exceptions').update({ last_published_at: now }).eq('is_active', true),
           supabase.from('c3_holiday_pay_policy_default').update({ last_published_at: now }).eq('is_active', true),
           supabase.from('c3_holiday_pay_policy_exceptions').update({ last_published_at: now }).eq('is_active', true),
+          (supabase as any).from('c3_filing_config_periods').update({ last_published_at: now }).eq('is_active', true),
           // Note: c3_calculation_config, tb_income_codes, tb_income_cat, tb_self_emp_contrib_rate
           // don't have last_published_at columns — they are always fully synced on each publish
         ]);
@@ -389,7 +403,7 @@ export function usePublishToC3Wizard() {
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
       const c = result.counts;
       toast.success(
-        `Published to C3-Wizard (v4.0): ${c.periods} periods, ${c.slabs} levy slabs, ${c.bonusPolicies} bonus policies, ${c.bonusExceptions} bonus exceptions, ${c.holidayPolicies} holiday policies, ${c.holidayExceptions} holiday exceptions, ${c.calculationConfigs} calc configs, ${c.incomeCodes} income codes, ${c.incomeCategories} income categories, ${c.selfEmpRates} self-emp rates, ${c.incomeCodePolicies} IC policies, ${c.incomeCodeExceptions} IC exceptions`
+        `Published to C3-Wizard (v4.1): ${c.periods} periods, ${c.slabs} levy slabs, ${c.bonusPolicies} bonus policies, ${c.bonusExceptions} bonus exceptions, ${c.holidayPolicies} holiday policies, ${c.holidayExceptions} holiday exceptions, ${c.calculationConfigs} calc configs, ${c.incomeCodes} income codes, ${c.incomeCategories} income categories, ${c.selfEmpRates} self-emp rates, ${c.incomeCodePolicies} IC policies, ${c.incomeCodeExceptions} IC exceptions, ${c.filingConfigPeriods} filing periods`
       );
     },
     onError: (error: any) => {
