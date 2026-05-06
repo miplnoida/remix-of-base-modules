@@ -67,7 +67,7 @@ export function useC3SyncStatus() {
         periods: 0, slabs: 0, bonusPolicies: 0, bonusExceptions: 0,
         holidayPolicies: 0, holidayExceptions: 0, calculationConfigs: 0,
         incomeCodes: 0, incomeCategories: 0, selfEmpRates: 0,
-        incomeCodePolicies: 0, incomeCodeExceptions: 0,
+        incomeCodePolicies: 0, incomeCodeExceptions: 0, filingConfigPeriods: 0,
       };
       try {
         const { payloadHash, counts } = await buildSyncPayload();
@@ -85,6 +85,7 @@ export function useC3SyncStatus() {
           selfEmpRates: counts.selfEmpRates,
           incomeCodePolicies: counts.incomeCodePolicies,
           incomeCodeExceptions: counts.incomeCodeExceptions,
+          filingConfigPeriods: counts.filingConfigPeriods,
         };
       } catch (e) {
         // If payload build fails, fall back to "no pending" so UI doesn't lie.
