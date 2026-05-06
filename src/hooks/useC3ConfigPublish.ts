@@ -40,6 +40,7 @@ export interface SyncPendingCounts {
   selfEmpRates: number;
   incomeCodePolicies: number;
   incomeCodeExceptions: number;
+  filingConfigPeriods: number;
 }
 
 // Check if any config has been modified since last publish.
