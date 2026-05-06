@@ -281,6 +281,7 @@ export function C3SyncHistoryTab() {
                       { label: 'Self-Emp Rates', count: (selectedLog as any).se_contrib_rates_count || 0 },
                       { label: 'IC Policy Defaults', count: (selectedLog as any).income_code_policies_count || 0 },
                       { label: 'IC Policy Exceptions', count: (selectedLog as any).income_code_exceptions_count || 0 },
+                      { label: 'Filing & Penalties Periods', count: (selectedLog as any).filing_config_periods_count || 0 },
                     ].map(item => (
                       <div key={item.label} className="flex items-center justify-between bg-background rounded-md px-3 py-2 border">
                         <span className="text-xs text-muted-foreground">{item.label}</span>
