@@ -252,9 +252,17 @@ async function buildSyncPayload() {
     .order('date_from', { ascending: false });
   if (iceErr) throw iceErr;
 
+  // 13. Filing & Penalties Configuration Periods (week_start_day, filing window, penalty thresholds)
+  const { data: filingConfigPeriods, error: fcErr } = await (supabase as any)
+    .from('c3_filing_config_periods')
+    .select('*')
+    .eq('is_active', true)
+    .order('date_from', { ascending: false });
+  if (fcErr) throw fcErr;
+
   const syncTimestamp = new Date().toISOString();
   const payload = {
-    sync_version: '4.0',
+    sync_version: '4.1',
     sync_timestamp: syncTimestamp,
     config_periods: configPeriods,
     levy_slabs: levySlabs,
@@ -268,6 +276,7 @@ async function buildSyncPayload() {
     self_emp_contrib_rates: selfEmpRates || [],
     income_code_policies: incomeCodePolicies || [],
     income_code_exceptions: incomeCodeExceptions || [],
+    filing_config_periods: filingConfigPeriods || [],
   };
 
   const payloadHash = btoa(JSON.stringify(payload)).slice(0, 64);
@@ -288,6 +297,7 @@ async function buildSyncPayload() {
       selfEmpRates: (selfEmpRates || []).length,
       incomeCodePolicies: (incomeCodePolicies || []).length,
       incomeCodeExceptions: (incomeCodeExceptions || []).length,
+      filingConfigPeriods: (filingConfigPeriods || []).length,
     }
   };
 }
