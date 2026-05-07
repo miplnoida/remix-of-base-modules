@@ -260,23 +260,47 @@ async function buildSyncPayload() {
     .order('date_from', { ascending: false });
   if (fcErr) throw fcErr;
 
+  // C3-Wizard schema constraint: audit user fields are varchar(5).
+  // Truncate created_by / modified_by / updated_by on every outgoing row
+  // so the Wizard's upsert never fails with "value too long for type character varying(5)".
+  // (Mirror copy only — local DB values are not modified.)
+  const AUDIT_FIELDS = ['created_by', 'modified_by', 'updated_by'] as const;
+  const truncateAuditFields = <T,>(row: T): T => {
+    if (!row || typeof row !== 'object') return row;
+    const clone: any = { ...row };
+    for (const f of AUDIT_FIELDS) {
+      if (typeof clone[f] === 'string' && clone[f].length > 5) {
+        clone[f] = clone[f].slice(0, 5);
+      }
+    }
+    if (clone.details && typeof clone.details === 'object' && !Array.isArray(clone.details)) {
+      clone.details = truncateAuditFields(clone.details);
+    }
+    if (Array.isArray(clone.details)) {
+      clone.details = clone.details.map((d: any) => truncateAuditFields(d));
+    }
+    return clone;
+  };
+  const sanitize = <T,>(rows: T[] | null | undefined): T[] =>
+    (rows || []).map((r) => truncateAuditFields(r));
+
   const syncTimestamp = new Date().toISOString();
   const payload = {
     sync_version: '4.1',
     sync_timestamp: syncTimestamp,
-    config_periods: configPeriods,
-    levy_slabs: levySlabs,
-    bonus_policies: bonusPolicies || [],
-    bonus_exceptions: bonusExceptions || [],
-    holiday_policies: holidayPolicies || [],
-    holiday_exceptions: holidayExceptions || [],
-    calculation_configs: calculationConfigs || [],
-    income_codes: incomeCodes || [],
-    income_categories: incomeCategories || [],
-    self_emp_contrib_rates: selfEmpRates || [],
-    income_code_policies: incomeCodePolicies || [],
-    income_code_exceptions: incomeCodeExceptions || [],
-    filing_config_periods: filingConfigPeriods || [],
+    config_periods: sanitize(configPeriods),
+    levy_slabs: sanitize(levySlabs),
+    bonus_policies: sanitize(bonusPolicies),
+    bonus_exceptions: sanitize(bonusExceptions),
+    holiday_policies: sanitize(holidayPolicies),
+    holiday_exceptions: sanitize(holidayExceptions),
+    calculation_configs: sanitize(calculationConfigs),
+    income_codes: sanitize(incomeCodes),
+    income_categories: sanitize(incomeCategories),
+    self_emp_contrib_rates: sanitize(selfEmpRates),
+    income_code_policies: sanitize(incomeCodePolicies),
+    income_code_exceptions: sanitize(incomeCodeExceptions),
+    filing_config_periods: sanitize(filingConfigPeriods),
   };
 
   const payloadHash = btoa(JSON.stringify(payload)).slice(0, 64);
