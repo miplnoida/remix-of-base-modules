@@ -1,87 +1,86 @@
-## What's happening on the "Filing & Penalties" tab
+# Plan: Full Module & Screen Inventory (with Master vs Other classification)
 
-The screen edits a dedicated table — `**c3_filing_config_periods**` — through `useFilingConfigPeriods` and the RPCs `analyze_filing_config_change` / `upsert_filing_config_period`. Every row stores 5 parameters with an effective date range:
+## Goal
+Produce a single, easy-to-share document that lists **every module** in the platform, **every screen** within each module, and **classifies each screen** by type (Master, Transactional, Reporting, Configuration, Workflow/Approval, Admin/Security, Dashboard, Utility).
 
-- `week_start_day`
-- `filing_window_unit` (1 = Months, 2 = Days)
-- `filing_window_value`
-- `penalty_initial_threshold`
-- `penalty_subsequent_threshold`
+## Initial Headcount (from sidebar definitions)
+Quick scan of `src/components/sidebar/menuItems/*.ts` shows ~30 menu files and roughly **620+ navigable screens** across all modules. Exact per-module counts will be confirmed in the doc.
 
-Saving a row works correctly **inside this system**, and the audit trail is recorded. The "Changes Pending Sync" badge lights up because `useC3SyncStatus` hashes the publish payload and detects a difference.
+| Module file | Routes (approx) |
+|---|---|
+| Internal Audit | 19 |
+| BeMA Compliance (legacy) | 13 |
+| Benefits (legacy) | 9 |
+| BN — Benefits Management (current) | 30 |
+| C3 Contributions | 44 |
+| Cashier / Payments | 32 |
+| Compliance & Enforcement | 100 |
+| Correspondence | 6 |
+| Dashboard | 1 |
+| Document Management | 3 |
+| Employer Registration | 5 |
+| Employers Management | 2 + 45 (employersMenuItems) |
+| Finance | 37 |
+| Insured Persons | 26 |
+| Legal (Final / Management / Original) | 4 + 19 + 11 |
+| Master Data | 34 |
+| Medical | 4 |
+| New Benefit (nbenefit / newBenefit) | 62 + 17 |
+| Notifications | 8 |
+| Registration | 4 |
+| Reports | 8 |
+| Self-Employed | 3 |
+| SSB Legal | 7 |
+| System Administration | 49 |
+| Users | 17 |
 
-## Why the changes are NOT reaching C3-Wizard
+These are raw route counts; the doc will deduplicate, mark legacy menus as deprecated, and report a clean active total.
 
-Two independent issues:
+## Deliverable
+**`/mnt/documents/SecureServe_Module_Screen_Inventory_v1.docx`** — Word document, delivered as a downloadable artifact.
 
-### 1. Filing & Penalties is not in the sync payload (root cause)
+It will contain:
 
-`useC3ConfigPublish.ts` → `buildSyncPayload()` (Sync Protocol v4.0) reads 12 tables:
-periods, levy slabs, bonus policy + exceptions, holiday policy + exceptions, calculation config, income codes, income categories, self-emp rates, IC policies, IC exceptions.
-`**c3_filing_config_periods` is missing.** So even a successful publish never carries Filing & Penalties data to the Wizard. The Wizard keeps using whatever filing window / penalty thresholds it has (likely the legacy values from `c3_calculation_config` rows in the `filing` category).
+1. **Cover page** (Misha Infotech branding).
+2. **Executive summary** — total active modules, total screens, breakdown by classification (counts + % chart).
+3. **Classification legend** — what each type means:
+   - **Master** — reference/lookup data maintenance (e.g., Offices, Departments, Banks, Lookups).
+   - **Transactional** — day-to-day data entry/processing (e.g., Invoices, C3 Filings, Claims).
+   - **Workflow / Approval** — maker-checker, approval queues, escalations.
+   - **Configuration** — module settings, rules, templates, number formats.
+   - **Reporting** — reports, exports, analytics screens.
+   - **Dashboard** — KPI/overview screens.
+   - **Admin / Security** — roles, permissions, audit trail, IP access, system logs.
+   - **Utility / Tool** — diagnostics, demos, help, document proxy, etc.
+4. **Per-module chapter** (one per module). Each chapter contains a single table:
 
-### 2. Recent publishes are failing
+   | # | Screen Title | Route | Type | Notes |
+   |---|---|---|---|---|
+   | 1 | Office Master | /master-data/offices | Master | Source for tb_offices |
+   | 2 | Invoice Entry | /cashier/invoice/new | Transactional | Atomic locks |
+   | … | … | … | … | … |
 
-The last two `c3_config_sync_log` rows are `status = failed` (29-Apr). The current pending badge is therefore the cumulative drift of every change made on this tab plus any other change since 20-Mar (last `success`). Need to inspect the failure message and, if it is a Wizard-side schema mismatch, deliver the spec doc below before bumping protocol to v4.1.
+   Each chapter ends with a small summary line: *"Total screens: N — Master: x, Transactional: y, Workflow: z, Config: c, Reports: r, Admin: a, Dashboard: d, Utility: u."*
+5. **Cross-module summary table** — every module on one row with the same counts, plus grand totals.
+6. **Appendix A — Legacy / Deprecated menus** (e.g., BeMA Compliance, legacy Benefits, legacy Legal) with note that they're superseded.
+7. **Appendix B — Method** — sources used (sidebar files, `src/pages`, `src/config/routes.ts`), classification rules, and how a future regeneration can be automated.
 
-## Plan
+## How It Will Be Generated
+1. Parse all `src/components/sidebar/menuItems/*.ts` to extract `{ title, url, description }` for every leaf entry, including nested `subItems` and `items`.
+2. Cross-reference with `src/config/routes.ts` and `src/pages/*` to catch screens not in the sidebar.
+3. Tag each screen with a Type using:
+   - URL pattern (e.g., `/master-data/*` → Master, `/reports/*` → Reporting, `/admin/*` → Admin, `/*/config*` or `/*/settings*` → Configuration, `/*/dashboard` → Dashboard).
+   - Title keywords (Master, Configuration, Settings, Templates, Rules, Approval, Queue, Report, Export, Dashboard, Audit, Roles, Permissions).
+   - Manual override list for known special cases.
+4. Generate the `.docx` with `docx-js` (US Letter, Arial, proper Heading styles, auto TOC, branded cover, light-shaded tables with DXA widths).
+5. QA: convert to PDF, render each page to image, inspect for layout/overflow, fix, re-export.
+6. Save to `/mnt/documents/` and emit `<lov-artifact>`.
 
-### A. Backend — add Filing & Penalties to the sync payload (Protocol v4.1)
+## Out of Scope
+- Per-screen field lists, workflow diagrams, or screenshots (this is an inventory, not a user manual — those can be a follow-up doc).
+- Database table mapping per screen.
 
-1. **Migration** — add columns to `c3_config_sync_log`:
-  - `filing_config_periods_count INTEGER DEFAULT 0`
-  - add `last_published_at TIMESTAMPTZ` to `c3_filing_config_periods` (so it participates in the same "mark synced" pattern as the other tables).
-2. `**useC3ConfigPublish.ts**`
-  - In `buildSyncPayload()` add step 13: `select * from c3_filing_config_periods where is_active = true order by date_from desc`.
-  - Add `filing_config_periods` array to the payload, bump `sync_version` to `'4.1'`.
-  - Include count in the returned `counts` object and in `SyncPendingCounts`.
-  - In `usePublishToC3Wizard`, write the new count to the log row and add the table to the post-success `last_published_at` update batch.
-  - Update the success toast and the `c3-sync-status` hash so this tab stops showing a phantom "pending" once Wizard accepts the new payload.
-3. **Edge function** `supabase/functions/c3-config-sync-publish/index.ts`
-  - Add `filing_config_periods` to the payload-summary log block. (No other change — it's a pass-through.)
-4. **UI**
-  - `C3SyncHistoryTab.tsx` — show the new count column.
-  - `useC3ConfigPublish` — surface "filing periods" in the pending-changes summary.
+## Open Question (non-blocking — I'll assume "Yes" unless you say otherwise)
+Include legacy/deprecated menus (BeMA, legacy Benefits, legacy Legal) in the main count, or only list them in Appendix A? **Default:** list them only in Appendix A so the main totals reflect the *current* active platform.
 
-### B. Documentation for the C3-Wizard team
-
-Create `**docs/C3_WIZARD_FILING_AND_CALCULATION_ALIGNMENT.md**` — a single, business-friendly + technical spec the Wizard team can implement against. Sections:
-
-1. **Purpose & scope** — both portals must produce identical C3 figures for ER and SE filers.
-2. **Sync Protocol v4.1 changelog** — new `filing_config_periods` array, JSON schema, sample payload, mapping to Wizard tables, idempotency rule (date-range uniqueness, soft-deactivation on overlap split).
-3. **Calculation logic — single source of truth** — for each module:
-  - **Period framing** — `week_start_day`, period length, cut-off rule (uses Filing & Penalties row whose `[date_from, date_to]` covers the contribution period).
-  - **Filing window** — `filing_window_unit` × `filing_window_value`; due date = period end + window; "late" = filing date > due date.
-  - **Penalty model** — initial-phase (`penalty_initial_threshold` periods) vs subsequent-phase (`penalty_subsequent_threshold`), interaction with `c3_calculation_config.penalty` rows, capping rules.
-  - **Levy slabs** (`tb_levy_slabs` + details) — bracket selection by wage and effective date.
-  - **Social Security** — age limits, employee/employer split, wage cap, NWD director rule.
-  - **Bonus policy** — default vs exceptions, year-of-payment vs year-of-accrual.
-  - **Holiday pay** — default vs exceptions, included/excluded codes.
-  - **Income codes & categories** — meaning of each `tb_income_codes.code`, `tb_income_cat` wage bands for self-employed.
-  - **Self-employed contribution rates** — `tb_self_emp_contrib_rate.effstart` lookup.
-  - **Voluntary contributor** — eligibility + grace period from `c3_calculation_config.voluntary_contributor`.
-4. **Worked examples** — one ER monthly filing and one SE quarterly filing, both crossing a config-split date, showing every sub-total and reconciling to a target XCD figure.
-5. **Acceptance tests** — list of input/expected-output rows the Wizard must pass before declaring parity (reuses the cases already in `docs/C3_WIZARD_CALCULATION_TEST_CASES.md` plus new ones for filing-window / penalty edges).
-6. **Operational notes** — `x-sync-api-key` header, base URL resolution from `c3_site_settings`, retry on 5xx, payload-hash idempotency, rejection codes the Wizard should return.
-
-The doc is plain-English on each rule first, with the exact column names / formulas in a fenced block underneath, so non-technical and engineering readers can both use it.
-
-### C. Verification
-
-1. After deploy, click **Publish to C3-Wizard**; confirm `c3_config_sync_log` row is `status = success`, `filing_config_periods_count = 1`, and the badge clears.
-2. Investigate the two `failed` rows from 29-Apr (read `error_message`) and include the resolution in the doc's "Operational notes".
-3. Pick one filing period and one penalty change and walk it through both Admin and Wizard to prove identical outputs.
-
-## Files affected
-
-```text
-supabase/migrations/<new>__filing_config_in_sync_v4_1.sql   (new)
-src/hooks/useC3ConfigPublish.ts                              (edit)
-supabase/functions/c3-config-sync-publish/index.ts           (edit, log only)
-src/components/admin/c3-configuration/C3SyncHistoryTab.tsx   (edit)
-docs/C3_WIZARD_FILING_AND_CALCULATION_ALIGNMENT.md           (new)
-```
-
-No business-logic change on the Admin side — calculation engines stay as-is. The work is to (a) actually ship Filing & Penalties data over the wire and (b) hand the Wizard team a definitive spec so their engine matches.  
-  
-important note:- make sure unrelated features cannot be impacted.
+Approve to generate.
