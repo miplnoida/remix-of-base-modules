@@ -1,5 +1,32 @@
 # C3 Wizard — Sync Endpoint Update Required
 
+> ## ✅ RESOLVED in C3-Wizard v4.1 (2026-05-08)
+>
+> The C3-Wizard team has shipped full v4.1 parity. No further Wizard-side schema
+> changes are required for the current sync protocol.
+>
+> **Confirmed final schema on the Wizard side:**
+>
+> - `wiz_c3_config_periods` — `id UUID PK`, `description TEXT`, `start_date`/`end_date DATE`,
+>   `created_by`/`modified_by VARCHAR(50)` (widened from 5), `created_on`/`modified_on`/`synced_at TIMESTAMPTZ`.
+> - `wiz_c3_config_details` — `id`/`config_period_id`/`levy_slab_id UUID`, numeric rates/wages/thresholds,
+>   `min/max_age_ss`/`min/max_age_levy INTEGER`, `created_by`/`modified_by VARCHAR(50)` (widened from 5),
+>   `created_on`/`modified_on`/`synced_at TIMESTAMPTZ`.
+> - `wiz_levy_slabs`, `wiz_levy_slab_details` — audit columns widened to `VARCHAR(50)`.
+> - **NEW** `wiz_c3_filing_config_periods` — `id UUID PK`, `date_from DATE NOT NULL`, `date_to DATE NULL`,
+>   `week_start_day`/`filing_window_unit SMALLINT`, `filing_window_value`/`penalty_initial_threshold`/
+>   `penalty_subsequent_threshold INTEGER`, `is_active BOOLEAN`, `created_by`/`updated_by VARCHAR(50)`,
+>   `created_at`/`updated_at`/`last_published_at`/`synced_at TIMESTAMPTZ`, `sync_version TEXT`.
+>
+> **SSB Admin-side cleanup applied at the same time:**
+> - Diagnostic `[period-diag]` logging removed from `c3-config-sync-publish` edge function.
+> - Audit-field defensive truncation in `useC3ConfigPublish.ts` relaxed from 5 → 50 chars
+>   so full `user_code` values (e.g. `SAdmin`, `SYSTEM`) reach the Wizard intact.
+>
+> The original request below is retained for historical context.
+
+---
+
 **Date:** 2026-03-15  
 **From:** SSB Admin Team  
 **To:** C3 Wizard Development Team  
