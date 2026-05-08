@@ -33,6 +33,33 @@ serve(async (req) => {
 
     const payload = await req.json();
 
+    // Diagnostic: log every string field >5 chars on Period rows so we can pinpoint
+    // which column is hitting the Wizard's varchar(5) constraint.
+    const diagOver5 = (rows: any[], label: string) => {
+      (rows || []).forEach((row, idx) => {
+        const over: Record<string, number> = {};
+        for (const [k, v] of Object.entries(row || {})) {
+          if (typeof v === 'string' && v.length > 5) over[k] = v.length;
+        }
+        if (Object.keys(over).length) {
+          console.log(`[period-diag] ${label}[${idx}] over-5 fields:`, JSON.stringify(over));
+        }
+        // Also inspect nested details (single object) for config_periods
+        const details = (row as any)?.details;
+        if (details && typeof details === 'object' && !Array.isArray(details)) {
+          const dover: Record<string, number> = {};
+          for (const [k, v] of Object.entries(details)) {
+            if (typeof v === 'string' && v.length > 5) dover[k] = v.length;
+          }
+          if (Object.keys(dover).length) {
+            console.log(`[period-diag] ${label}[${idx}].details over-5 fields:`, JSON.stringify(dover));
+          }
+        }
+      });
+    };
+    diagOver5(payload.config_periods, 'config_periods');
+    diagOver5(payload.filing_config_periods, 'filing_config_periods');
+
     // Log payload summary for debugging
     console.log('Sync Publish - Payload summary:', {
       sync_version: payload.sync_version,
