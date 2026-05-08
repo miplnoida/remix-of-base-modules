@@ -1,86 +1,64 @@
-# Plan: Full Module & Screen Inventory (with Master vs Other classification)
+## Problem
 
-## Goal
-Produce a single, easy-to-share document that lists **every module** in the platform, **every screen** within each module, and **classifies each screen** by type (Master, Transactional, Reporting, Configuration, Workflow/Approval, Admin/Security, Dashboard, Utility).
+When publishing C3 Configuration to C3-Wizard, the Wizard rejects the request with:
 
-## Initial Headcount (from sidebar definitions)
-Quick scan of `src/components/sidebar/menuItems/*.ts` shows ~30 menu files and roughly **620+ navigable screens** across all modules. Exact per-module counts will be confirmed in the doc.
+```
+[wizard_error] Period upsert failed: value too long for type character varying(5)
+```
 
-| Module file | Routes (approx) |
-|---|---|
-| Internal Audit | 19 |
-| BeMA Compliance (legacy) | 13 |
-| Benefits (legacy) | 9 |
-| BN — Benefits Management (current) | 30 |
-| C3 Contributions | 44 |
-| Cashier / Payments | 32 |
-| Compliance & Enforcement | 100 |
-| Correspondence | 6 |
-| Dashboard | 1 |
-| Document Management | 3 |
-| Employer Registration | 5 |
-| Employers Management | 2 + 45 (employersMenuItems) |
-| Finance | 37 |
-| Insured Persons | 26 |
-| Legal (Final / Management / Original) | 4 + 19 + 11 |
-| Master Data | 34 |
-| Medical | 4 |
-| New Benefit (nbenefit / newBenefit) | 62 + 17 |
-| Notifications | 8 |
-| Registration | 4 |
-| Reports | 8 |
-| Self-Employed | 3 |
-| SSB Legal | 7 |
-| System Administration | 49 |
-| Users | 17 |
+This is a **schema mismatch on the C3-Wizard side**: one of the columns the Wizard upserts into its `config_periods` (or related "Period") table is declared as `VARCHAR(5)`, and our payload contains a value longer than 5 characters for that column.
 
-These are raw route counts; the doc will deduplicate, mark legacy menus as deprecated, and report a clean active total.
+## What we know
 
-## Deliverable
-**`/mnt/documents/SecureServe_Module_Screen_Inventory_v1.docx`** — Word document, delivered as a downloadable artifact.
+From the source DB:
+- `c3_config_periods.modified_by = "SAdmin"` (6 chars). Our edge-function client truncates `created_by` / `modified_by` / `updated_by` to 5 chars before sending, so this should arrive as `"SAdmi"` (length 5) — within the limit.
+- `c3_config_periods.description = "Default configuration effective from January 2025"` (50+ chars). Locally `description` is `text`. **If Wizard declared `description` as `VARCHAR(5)`, this would be the culprit.**
+- `c3_filing_config_periods.created_by = "SYSTEM"` (6 chars). This is *not* in the truncation list (`AUDIT_FIELDS` only covers `created_by/modified_by/updated_by` — `SYSTEM` is 6 chars and gets truncated to `SYSTE`, fine).
+- The nested `details` object also has its audit fields truncated.
 
-It will contain:
+So the most likely offenders are **non-audit string fields** on `config_periods` that the Wizard happens to model as `VARCHAR(5)` — most likely `description`, but it could also be a new field we are unaware of.
 
-1. **Cover page** (Misha Infotech branding).
-2. **Executive summary** — total active modules, total screens, breakdown by classification (counts + % chart).
-3. **Classification legend** — what each type means:
-   - **Master** — reference/lookup data maintenance (e.g., Offices, Departments, Banks, Lookups).
-   - **Transactional** — day-to-day data entry/processing (e.g., Invoices, C3 Filings, Claims).
-   - **Workflow / Approval** — maker-checker, approval queues, escalations.
-   - **Configuration** — module settings, rules, templates, number formats.
-   - **Reporting** — reports, exports, analytics screens.
-   - **Dashboard** — KPI/overview screens.
-   - **Admin / Security** — roles, permissions, audit trail, IP access, system logs.
-   - **Utility / Tool** — diagnostics, demos, help, document proxy, etc.
-4. **Per-module chapter** (one per module). Each chapter contains a single table:
+## Plan
 
-   | # | Screen Title | Route | Type | Notes |
-   |---|---|---|---|---|
-   | 1 | Office Master | /master-data/offices | Master | Source for tb_offices |
-   | 2 | Invoice Entry | /cashier/invoice/new | Transactional | Atomic locks |
-   | … | … | … | … | … |
+### 1. Add diagnostic logging in the edge function (one publish round-trip)
 
-   Each chapter ends with a small summary line: *"Total screens: N — Master: x, Transactional: y, Workflow: z, Config: c, Reports: r, Admin: a, Dashboard: d, Utility: u."*
-5. **Cross-module summary table** — every module on one row with the same counts, plus grand totals.
-6. **Appendix A — Legacy / Deprecated menus** (e.g., BeMA Compliance, legacy Benefits, legacy Legal) with note that they're superseded.
-7. **Appendix B — Method** — sources used (sidebar files, `src/pages`, `src/config/routes.ts`), classification rules, and how a future regeneration can be automated.
+Update `supabase/functions/c3-config-sync-publish/index.ts` so that, before forwarding, it logs:
 
-## How It Will Be Generated
-1. Parse all `src/components/sidebar/menuItems/*.ts` to extract `{ title, url, description }` for every leaf entry, including nested `subItems` and `items`.
-2. Cross-reference with `src/config/routes.ts` and `src/pages/*` to catch screens not in the sidebar.
-3. Tag each screen with a Type using:
-   - URL pattern (e.g., `/master-data/*` → Master, `/reports/*` → Reporting, `/admin/*` → Admin, `/*/config*` or `/*/settings*` → Configuration, `/*/dashboard` → Dashboard).
-   - Title keywords (Master, Configuration, Settings, Templates, Rules, Approval, Queue, Report, Export, Dashboard, Audit, Roles, Permissions).
-   - Manual override list for known special cases.
-4. Generate the `.docx` with `docx-js` (US Letter, Arial, proper Heading styles, auto TOC, branded cover, light-shaded tables with DXA widths).
-5. QA: convert to PDF, render each page to image, inspect for layout/overflow, fix, re-export.
-6. Save to `/mnt/documents/` and emit `<lov-artifact>`.
+- For every row in `payload.config_periods` and `payload.filing_config_periods`, the **field name → string length** map for any string field whose value length is `> 5`.
 
-## Out of Scope
-- Per-screen field lists, workflow diagrams, or screenshots (this is an inventory, not a user manual — those can be a follow-up doc).
-- Database table mapping per screen.
+Example log line:
+```
+[period-diag] config_periods[0] over-5 fields: { description: 50, modified_by: 5 }
+```
 
-## Open Question (non-blocking — I'll assume "Yes" unless you say otherwise)
-Include legacy/deprecated menus (BeMA, legacy Benefits, legacy Legal) in the main count, or only list them in Appendix A? **Default:** list them only in Appendix A so the main totals reflect the *current* active platform.
+This lets us confirm exactly which column triggers `varchar(5)` on the Wizard side without guessing. Logging only — no behaviour change.
 
-Approve to generate.
+### 2. Apply the targeted fix
+
+Once the diagnostic identifies the offending column(s), update `buildSyncPayload()` in `src/hooks/useC3ConfigPublish.ts`:
+
+- Add the column(s) to a new `WIZARD_VARCHAR5_FIELDS` list and truncate to 5 chars on the outgoing mirror copy (same pattern as the existing `AUDIT_FIELDS` truncation — local DB values stay untouched).
+- If the offender is `description` (likely), truncating to 5 chars would destroy meaning. In that case the correct fix is to **omit** the field from the outgoing payload for the affected table instead of truncating, and document this in `docs/C3_WIZARD_SYNC_ENDPOINT_UPDATE_REQUIRED.md` so the Wizard team can widen the column.
+
+### 3. Re-publish and confirm
+
+- Trigger "Publish to C3-Wizard" from the admin UI.
+- Verify the edge-function logs show `Sync Publish - Success` and the toast reports success counts.
+- Confirm `c3_config_sync_log.status = 'success'` for the latest entry.
+
+### 4. Memory & docs
+
+- Add a short note to `docs/C3_WIZARD_SYNC_ENDPOINT_UPDATE_REQUIRED.md` describing which Wizard column is `VARCHAR(5)` and what we mirror-truncate / omit.
+- No DB migration on our side — the Wizard schema is not under our control and our local schemas are already wider.
+
+## Out of scope
+
+- Changing Wizard-side schema (cannot do from this project).
+- Adding new payload tables.
+- Any UI changes beyond the existing publish button.
+
+## Files touched
+
+- `supabase/functions/c3-config-sync-publish/index.ts` — diagnostic logging (step 1), can be removed or kept after fix.
+- `src/hooks/useC3ConfigPublish.ts` — mirror-truncate / omit the offending field in `buildSyncPayload()` (step 2).
+- `docs/C3_WIZARD_SYNC_ENDPOINT_UPDATE_REQUIRED.md` — note the constraint (step 4).
