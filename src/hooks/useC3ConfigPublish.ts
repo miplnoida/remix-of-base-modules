@@ -454,8 +454,9 @@ export function usePublishToC3Wizard() {
       );
     },
     onError: (error: any) => {
+      console.error('[C3 Publish] failure:', error);
       queryClient.invalidateQueries({ queryKey: ['c3-sync-log'] });
-      toast.error('Failed to publish to C3-Wizard: ' + (error.message || 'Unknown error'));
+      toast.error('Failed to publish to C3-Wizard: ' + (error?.message || 'Unknown error'));
     }
   });
 }
