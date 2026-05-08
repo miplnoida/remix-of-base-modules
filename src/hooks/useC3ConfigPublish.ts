@@ -334,7 +334,30 @@ export function usePublishToC3Wizard() {
   return useMutation({
     mutationKey: ['C3Config', 'c3_config_publish', 'create'],
     mutationFn: async () => {
-      const { payload, payloadHash, counts } = await buildSyncPayload();
+      // Build payload — wrap so we can distinguish payload-build failures
+      // (local DB / RLS / missing column) from Wizard-side failures.
+      let payload: any, payloadHash: string, counts: any;
+      try {
+        const built = await buildSyncPayload();
+        payload = built.payload;
+        payloadHash = built.payloadHash;
+        counts = built.counts;
+      } catch (buildErr: any) {
+        console.error('[C3 Publish] payload build failed:', buildErr);
+        // Record the failed attempt so the History tab still shows it.
+        try {
+          await supabase.from('c3_config_sync_log').insert({
+            status: 'failed',
+            payload: {} as any,
+            payload_hash: 'payload_build_failed',
+            error_message: `[payload_build] ${buildErr?.message || String(buildErr)}`,
+            published_by: userCode || null,
+          });
+        } catch (logInsertErr) {
+          console.error('[C3 Publish] could not record payload_build failure:', logInsertErr);
+        }
+        throw new Error(`[payload_build] ${buildErr?.message || 'Failed to build sync payload'}`);
+      }
 
       const { data: logEntry, error: logErr } = await supabase
         .from('c3_config_sync_log')
@@ -431,8 +454,9 @@ export function usePublishToC3Wizard() {
       );
     },
     onError: (error: any) => {
+      console.error('[C3 Publish] failure:', error);
       queryClient.invalidateQueries({ queryKey: ['c3-sync-log'] });
-      toast.error('Failed to publish to C3-Wizard: ' + (error.message || 'Unknown error'));
+      toast.error('Failed to publish to C3-Wizard: ' + (error?.message || 'Unknown error'));
     }
   });
 }
