@@ -1,64 +1,43 @@
-## Problem
+## Context
 
-When publishing C3 Configuration to C3-Wizard, the Wizard rejects the request with:
+C3-Wizard team confirmed v4.1 schema parity:
+- All audit columns (`created_by`, `modified_by`, `updated_by`) widened from `VARCHAR(5)` → `VARCHAR(50)` on `wiz_c3_config_periods`, `wiz_c3_config_details`, `wiz_levy_slabs`, `wiz_levy_slab_details`.
+- New table `wiz_c3_filing_config_periods` accepts our `filing_config_periods[]` payload with proper `UUID`/`DATE`/`TIMESTAMPTZ`/`VARCHAR(50)` types.
+- Last publish succeeded end-to-end.
 
-```
-[wizard_error] Period upsert failed: value too long for type character varying(5)
-```
-
-This is a **schema mismatch on the C3-Wizard side**: one of the columns the Wizard upserts into its `config_periods` (or related "Period") table is declared as `VARCHAR(5)`, and our payload contains a value longer than 5 characters for that column.
-
-## What we know
-
-From the source DB:
-- `c3_config_periods.modified_by = "SAdmin"` (6 chars). Our edge-function client truncates `created_by` / `modified_by` / `updated_by` to 5 chars before sending, so this should arrive as `"SAdmi"` (length 5) — within the limit.
-- `c3_config_periods.description = "Default configuration effective from January 2025"` (50+ chars). Locally `description` is `text`. **If Wizard declared `description` as `VARCHAR(5)`, this would be the culprit.**
-- `c3_filing_config_periods.created_by = "SYSTEM"` (6 chars). This is *not* in the truncation list (`AUDIT_FIELDS` only covers `created_by/modified_by/updated_by` — `SYSTEM` is 6 chars and gets truncated to `SYSTE`, fine).
-- The nested `details` object also has its audit fields truncated.
-
-So the most likely offenders are **non-audit string fields** on `config_periods` that the Wizard happens to model as `VARCHAR(5)` — most likely `description`, but it could also be a new field we are unaware of.
+Our side currently has two leftover items from the debugging session:
+1. **Diagnostic logging** in `supabase/functions/c3-config-sync-publish/index.ts` (`diagOver5` helper logging every Period field >5 chars) — was added only to identify the offending column. No longer needed.
+2. **Audit-field truncation to 5 chars** in `src/hooks/useC3ConfigPublish.ts` (`AUDIT_FIELDS` mirror-truncate) — was a defensive workaround. With Wizard now at `VARCHAR(50)`, this destroys real `user_code` values (e.g., `SAdmin` → `SAdmi`, `SYSTEM` → `SYSTE`) and breaks audit-trail accuracy on the Wizard side.
 
 ## Plan
 
-### 1. Add diagnostic logging in the edge function (one publish round-trip)
+### 1. Remove diagnostic logging
+File: `supabase/functions/c3-config-sync-publish/index.ts`
+- Delete the `diagOver5` helper and the two `[period-diag]` log loops over `payload.config_periods` and `payload.filing_config_periods`.
+- Keep the existing success/error logs untouched.
 
-Update `supabase/functions/c3-config-sync-publish/index.ts` so that, before forwarding, it logs:
+### 2. Relax audit-field truncation from 5 → 50 chars
+File: `src/hooks/useC3ConfigPublish.ts`
+- In `buildSyncPayload()`, change the `AUDIT_FIELDS` truncation from `slice(0, 5)` to `slice(0, 50)` so full `user_code` values (`SAdmin`, `SYSTEM`, etc.) are preserved end-to-end.
+- This matches our master `user_code VARCHAR(50)` standard and the Wizard's new column width.
 
-- For every row in `payload.config_periods` and `payload.filing_config_periods`, the **field name → string length** map for any string field whose value length is `> 5`.
+### 3. Update Wizard requirements doc
+File: `docs/C3_WIZARD_SYNC_ENDPOINT_UPDATE_REQUIRED.md`
+- Mark the `VARCHAR(5)` issue as **Resolved in Wizard v4.1**.
+- Record the confirmed schema (audit columns at `VARCHAR(50)`, `wiz_c3_filing_config_periods` shape) for future reference.
+- Note that no further Wizard-side schema changes are required for the current sync protocol.
 
-Example log line:
-```
-[period-diag] config_periods[0] over-5 fields: { description: 50, modified_by: 5 }
-```
-
-This lets us confirm exactly which column triggers `varchar(5)` on the Wizard side without guessing. Logging only — no behaviour change.
-
-### 2. Apply the targeted fix
-
-Once the diagnostic identifies the offending column(s), update `buildSyncPayload()` in `src/hooks/useC3ConfigPublish.ts`:
-
-- Add the column(s) to a new `WIZARD_VARCHAR5_FIELDS` list and truncate to 5 chars on the outgoing mirror copy (same pattern as the existing `AUDIT_FIELDS` truncation — local DB values stay untouched).
-- If the offender is `description` (likely), truncating to 5 chars would destroy meaning. In that case the correct fix is to **omit** the field from the outgoing payload for the affected table instead of truncating, and document this in `docs/C3_WIZARD_SYNC_ENDPOINT_UPDATE_REQUIRED.md` so the Wizard team can widen the column.
-
-### 3. Re-publish and confirm
-
-- Trigger "Publish to C3-Wizard" from the admin UI.
-- Verify the edge-function logs show `Sync Publish - Success` and the toast reports success counts.
-- Confirm `c3_config_sync_log.status = 'success'` for the latest entry.
-
-### 4. Memory & docs
-
-- Add a short note to `docs/C3_WIZARD_SYNC_ENDPOINT_UPDATE_REQUIRED.md` describing which Wizard column is `VARCHAR(5)` and what we mirror-truncate / omit.
-- No DB migration on our side — the Wizard schema is not under our control and our local schemas are already wider.
+### 4. Verify
+- Trigger **Publish to C3-Wizard** once.
+- Confirm `c3_config_sync_log.status = 'success'` and the toast shows full counts including `filing_config_periods`.
+- Spot-check Wizard-side audit columns now show `SAdmin`/`SYSTEM` (not `SAdmi`/`SYSTE`) on the latest sync.
 
 ## Out of scope
-
-- Changing Wizard-side schema (cannot do from this project).
-- Adding new payload tables.
-- Any UI changes beyond the existing publish button.
+- Field-level change tracking on the 6 new tables — that's tracked separately in `docs/C3_WIZARD_FIELD_LEVEL_CHANGE_TRACKING.md` and is a Wizard-side task.
+- Any DB migration on our side (none required).
+- UI changes.
 
 ## Files touched
-
-- `supabase/functions/c3-config-sync-publish/index.ts` — diagnostic logging (step 1), can be removed or kept after fix.
-- `src/hooks/useC3ConfigPublish.ts` — mirror-truncate / omit the offending field in `buildSyncPayload()` (step 2).
-- `docs/C3_WIZARD_SYNC_ENDPOINT_UPDATE_REQUIRED.md` — note the constraint (step 4).
+- `supabase/functions/c3-config-sync-publish/index.ts` — remove diagnostic logging.
+- `src/hooks/useC3ConfigPublish.ts` — change audit truncation 5 → 50.
+- `docs/C3_WIZARD_SYNC_ENDPOINT_UPDATE_REQUIRED.md` — mark resolved, record final schema.
