@@ -97,14 +97,10 @@ async function getWizConfig(): Promise<WizConfig> {
       cache = { value, expiresAt: Date.now() + CACHE_TTL_MS };
       return value;
     } catch (err) {
-      // Hard failure → return fallback so the app keeps working
-      console.warn("[wizApiConfig] Falling back to defaults:", err);
-      return {
-        environment: "Dev",
-        baseUrl: FALLBACK_BASE_URL,
-        adminApiKey: FALLBACK_ADMIN_KEY,
-        syncApiKey: FALLBACK_SYNC_KEY,
-      };
+      // Do NOT fall back to a hardcoded admin key — bubble up so caller surfaces a clear error.
+      console.error("[wizApiConfig] Failed to load C3-Wizard config:", err);
+      inflight = null;
+      throw err;
     } finally {
       inflight = null;
     }
