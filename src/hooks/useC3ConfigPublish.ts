@@ -260,17 +260,17 @@ async function buildSyncPayload() {
     .order('date_from', { ascending: false });
   if (fcErr) throw fcErr;
 
-  // C3-Wizard schema constraint: audit user fields are varchar(5).
-  // Truncate created_by / modified_by / updated_by on every outgoing row
-  // so the Wizard's upsert never fails with "value too long for type character varying(5)".
-  // (Mirror copy only — local DB values are not modified.)
+  // C3-Wizard v4.1+ widened audit user fields to varchar(50) to match our user_code standard.
+  // Truncate defensively to 50 chars on every outgoing row so a stray over-long value
+  // can never break the upsert. (Mirror copy only — local DB values are not modified.)
   const AUDIT_FIELDS = ['created_by', 'modified_by', 'updated_by'] as const;
+  const AUDIT_MAX_LEN = 50;
   const truncateAuditFields = <T,>(row: T): T => {
     if (!row || typeof row !== 'object') return row;
     const clone: any = { ...row };
     for (const f of AUDIT_FIELDS) {
-      if (typeof clone[f] === 'string' && clone[f].length > 5) {
-        clone[f] = clone[f].slice(0, 5);
+      if (typeof clone[f] === 'string' && clone[f].length > AUDIT_MAX_LEN) {
+        clone[f] = clone[f].slice(0, AUDIT_MAX_LEN);
       }
     }
     if (clone.details && typeof clone.details === 'object' && !Array.isArray(clone.details)) {
