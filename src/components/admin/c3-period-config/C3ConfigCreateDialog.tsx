@@ -94,6 +94,7 @@ export function C3ConfigCreateDialog({ isOpen, onClose }: C3ConfigCreateDialogPr
       });
 
       queryClient.invalidateQueries({ queryKey: ['c3-config-periods'] });
+      queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
       toast.success('Configuration period created successfully');
       onClose();
 
