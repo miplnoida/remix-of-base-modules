@@ -70,10 +70,18 @@ async function loadConfig(): Promise<WizConfig> {
     return null;
   };
 
+  const adminKey = pick("OUTBOUND_ADMIN_API_KEY");
+  if (!adminKey) {
+    throw new Error(
+      "OUTBOUND_ADMIN_API_KEY is not configured in c3_site_settings. " +
+      "Please configure it in Settings → C3-Wizard Configuration."
+    );
+  }
+
   return {
     environment,
     baseUrl: (pick("C3_WIZARD_BASE_URL") || FALLBACK_BASE_URL).replace(/\/+$/, ""),
-    adminApiKey: pick("OUTBOUND_ADMIN_API_KEY") || FALLBACK_ADMIN_KEY,
+    adminApiKey: adminKey,
     syncApiKey: pick("OUTBOUND_SYNC_API_KEY") || FALLBACK_SYNC_KEY,
   };
 }
