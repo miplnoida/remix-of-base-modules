@@ -1,24 +1,42 @@
 ## Issue
-After creating a new Period Configuration via `C3ConfigCreateDialog`, the header still shows the green "Synced" badge instead of the red "Changes Pending Sync" badge until a manual refresh.
-
-## Root Cause
-`src/components/admin/c3-period-config/C3ConfigCreateDialog.tsx` (line 96) only invalidates `['c3-config-periods']` after a successful create. It does **not** invalidate `['c3-sync-status']`, which is what `C3PublishButton` reads to compute the pending-changes badge.
-
-Every other mutation in the C3 config area (update, lifecycle, details dialog, etc.) correctly invalidates `['c3-sync-status']` — only the create dialog is missing it.
-
-## Fix
-Add a single line in `C3ConfigCreateDialog.tsx` right after the existing `c3-config-periods` invalidation:
-
-```ts
-queryClient.invalidateQueries({ queryKey: ['c3-sync-status'] });
+Publishing to C3-Wizard (v4.1) fails with:
 ```
+[wizard_error] Filing config upsert failed: permission denied for table wiz_c3_filing_config_periods
+```
+This error originates on the **C3-Wizard side** — the SSB Admin edge function (`c3-config-sync-publish`) successfully built and sent the payload (1 filing config period included), and the Wizard endpoint returned HTTP 500 with the Postgres permission error.
 
-That forces `useC3SyncStatus` to rebuild the payload, recompute the hash, compare against the last published hash, and flip the badge to "Changes Pending Sync".
+## Root Cause (C3-Wizard side)
+The newly created `wiz_c3_filing_config_periods` table (added in v4.1 per spec §2.2) was not granted to the role that the Wizard's API uses to perform inserts/updates. All other `wiz_c3_*` tables already have the correct grants — only this new table is missing them.
+
+## Action
+This is **not** fixable from SSB Admin. We need to send a request to the C3-Wizard team to grant the missing table privileges.
+
+Create a new request document:
+`docs/C3_WIZARD_REQUEST_FILING_CONFIG_PERMISSION_FIX.md`
+
+Contents:
+- Summary of the failing publish call (timestamp, payload counts from the edge log)
+- Exact error message
+- Root cause (missing GRANT on `wiz_c3_filing_config_periods` for the Wizard API role / RLS policy)
+- Required fix on Wizard DB — provide ready-to-run SQL the Wizard team can apply, e.g.:
+  ```sql
+  GRANT SELECT, INSERT, UPDATE, DELETE
+    ON TABLE public.wiz_c3_filing_config_periods
+    TO <wizard_api_role>;
+  -- If RLS is enabled, add INSERT/UPDATE policies matching the
+  -- pattern used by wiz_c3_config_periods.
+  ```
+- Verification steps (re-run Publish from SSB Admin → expect HTTP 200 with `filing_config_periods: 1`)
+- Reference back to the v4.1 schema confirmation message already received
+- Mark severity: Blocker (Publish flow fully broken)
+
+No code or DB changes on the SSB Admin side are required.
 
 ## Files
-- `src/components/admin/c3-period-config/C3ConfigCreateDialog.tsx` — add the invalidation.
+- New: `docs/C3_WIZARD_REQUEST_FILING_CONFIG_PERMISSION_FIX.md`
 
 ## Verification
-1. Open `/admin/c3-configuration`, confirm badge shows "Synced".
-2. Click "+ New Period", save a new period.
-3. Badge should immediately switch to "Changes Pending Sync" without a page refresh.
+After Wizard team applies the grant:
+1. Click **Publish to C3-Wizard** on `/admin/c3-configuration`.
+2. Expect success toast and `filing_config_periods: 1` in the response summary.
+3. Badge flips to **Synced {date}**.
