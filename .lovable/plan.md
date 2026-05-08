@@ -1,34 +1,36 @@
 ## Findings
 
-- The previously leaked key `uiop906754drd35fvg` is no longer present anywhere in the repo.
-- The current security result still contains a stale old finding named `wiz_hardcoded_api_key`, pointing to files that no longer contain that key.
-- Live backend health is OK.
-- Fresh Live diagnostics show the likely publish blocker is now database security linting: **45 `Security Definer View` ERRORs** plus many warnings.
-- Live database logs also show a recurring background job error: `relation "pgmq.q_auth_emails" does not exist`. This may not be the publish blocker, but it should be repaired because it is continuously failing in Live.
+- The hosted backend is healthy.
+- Test database has the previous view-security migrations applied, but Live does **not**.
+- Live still has **45 `Security Definer View` errors** because those migrations have not reached Live.
+- Live also still has a scheduled email queue job referencing missing queue table `pgmq.q_auth_emails`, but recent logs show no fresh failures in the last 6 hours.
+- The security scan also reports `RLS Disabled in Public` and `Sensitive Columns Exposed` as errors. This conflicts with the project rule: **do not implement RLS; role-based security only**.
 
-## Plan
+## Root cause
 
-1. **Clear the stale hardcoded-key finding**
-   - Mark the old `wiz_hardcoded_api_key` finding as fixed, because repo search confirms zero remaining matches for the leaked literal.
+Publish is still failing because Live is being checked while it still contains blocking database security errors. The previous fix was applied in Test, but it has not been applied to Live because publish is failing before Live is fully updated.
 
-2. **Fix Live publish security errors**
-   - Add a database migration that changes the affected public views to use `security_invoker = true`.
-   - Target the 45 public views currently reported as `Security Definer View` issues, including the dashboard and compliance views returned by the Live inspection.
-   - Keep this as a schema/security-hardening migration only; no business data changes.
+## Plan to fix
 
-3. **Repair the failing Live email queue job**
-   - Inspect the scheduled job that references `pgmq.q_auth_emails`.
-   - Either recreate the missing queue dependency or disable/replace the orphaned job if the queue is no longer used.
-   - Avoid touching unrelated notification logic.
+1. **Apply the view security fix directly to Live**
+   - Run the same `ALTER VIEW ... SET (security_invoker = true)` statements for the 45 Live views.
+   - This does not change business data.
+   - This clears the current `Security Definer View` blocker in Live.
 
-4. **Re-run verification**
-   - Re-run the security scan/linter.
-   - Confirm the hardcoded key finding is fixed.
-   - Confirm `Security Definer View` ERRORs are cleared or reduced to non-blocking warnings.
-   - Ask you to retry Live publish.
+2. **Handle RLS-related publish blockers without adding RLS**
+   - Because the project explicitly forbids RLS, mark the RLS-disabled findings as an accepted architecture decision rather than implementing RLS.
+   - Update the security memory to document that this app intentionally uses role-based security instead of RLS.
 
-## Technical notes
+3. **Repair the orphaned queue dependency**
+   - Inspect whether `pgmq.q_auth_emails` should exist.
+   - If the email processor still expects it, recreate the missing queue safely.
+   - If it is obsolete, update the scheduled job to stop referencing it.
 
-- No frontend UI changes are required.
-- No RLS implementation will be added.
-- The fix is focused on publish blockers, not the full backlog of all 1,600+ linter warnings.
+4. **Verify Live again**
+   - Re-run the Live database linter/security scan.
+   - Confirm no remaining blocking publish errors.
+   - Ask you to retry Publish once Live is clean.
+
+## Technical note
+
+The critical next step is a **Live database remediation**, not a frontend code change. The previous migration files exist locally/Test-side, but Live still shows the old view configuration.
