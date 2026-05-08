@@ -14,7 +14,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const FALLBACK_BASE_URL = "https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1";
-const FALLBACK_ADMIN_KEY = "uiop906754drd35fvg";
 const FALLBACK_SYNC_KEY = "";
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
