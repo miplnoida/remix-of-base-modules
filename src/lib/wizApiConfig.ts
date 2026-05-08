@@ -14,7 +14,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
 const FALLBACK_BASE_URL = "https://nfvtlyvxfxzbhoqzprkr.supabase.co/functions/v1";
-const FALLBACK_ADMIN_KEY = "uiop906754drd35fvg";
 const FALLBACK_SYNC_KEY = "";
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -71,10 +70,18 @@ async function loadConfig(): Promise<WizConfig> {
     return null;
   };
 
+  const adminKey = pick("OUTBOUND_ADMIN_API_KEY");
+  if (!adminKey) {
+    throw new Error(
+      "OUTBOUND_ADMIN_API_KEY is not configured in c3_site_settings. " +
+      "Please configure it in Settings → C3-Wizard Configuration."
+    );
+  }
+
   return {
     environment,
     baseUrl: (pick("C3_WIZARD_BASE_URL") || FALLBACK_BASE_URL).replace(/\/+$/, ""),
-    adminApiKey: pick("OUTBOUND_ADMIN_API_KEY") || FALLBACK_ADMIN_KEY,
+    adminApiKey: adminKey,
     syncApiKey: pick("OUTBOUND_SYNC_API_KEY") || FALLBACK_SYNC_KEY,
   };
 }
@@ -90,14 +97,10 @@ async function getWizConfig(): Promise<WizConfig> {
       cache = { value, expiresAt: Date.now() + CACHE_TTL_MS };
       return value;
     } catch (err) {
-      // Hard failure → return fallback so the app keeps working
-      console.warn("[wizApiConfig] Falling back to defaults:", err);
-      return {
-        environment: "Dev",
-        baseUrl: FALLBACK_BASE_URL,
-        adminApiKey: FALLBACK_ADMIN_KEY,
-        syncApiKey: FALLBACK_SYNC_KEY,
-      };
+      // Do NOT fall back to a hardcoded admin key — bubble up so caller surfaces a clear error.
+      console.error("[wizApiConfig] Failed to load C3-Wizard config:", err);
+      inflight = null;
+      throw err;
     } finally {
       inflight = null;
     }
