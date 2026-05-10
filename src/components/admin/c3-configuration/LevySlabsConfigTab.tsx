@@ -11,6 +11,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
  import { LevySlabDialog } from '@/components/admin/levy-slabs/LevySlabDialog';
  import { LevySlabCloneDialog } from '@/components/admin/levy-slabs/LevySlabCloneDialog';
  import { LevySlabDetailsDialog } from '@/components/admin/levy-slabs/LevySlabDetailsDialog';
+ import { C3RowSyncStatus, useLastSuccessfulC3PublishAt } from '@/components/admin/c3-configuration/C3RowSyncStatus';
  import { toast } from 'sonner';
  import {
    AlertDialog,
