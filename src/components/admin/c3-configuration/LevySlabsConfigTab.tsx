@@ -28,6 +28,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
    const { data: slabs, isLoading } = useLevySlabs();
    const deleteMutation = useDeleteLevySlab();
   const { profile } = useSupabaseAuth();
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
  
    const [isCreateOpen, setIsCreateOpen] = useState(false);
    const [editingSlab, setEditingSlab] = useState<LevySlab | null>(null);
