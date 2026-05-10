@@ -82,6 +82,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
                    <TableHead>End Date</TableHead>
                    <TableHead>Status</TableHead>
                    <TableHead>Created</TableHead>
+                   <TableHead className="w-[60px] text-center">Sync</TableHead>
                    <TableHead className="text-right">Actions</TableHead>
                  </TableRow>
                </TableHeader>
@@ -103,6 +104,14 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
                        {slab.created_on
                          ? format(new Date(slab.created_on), 'dd MMM yyyy')
                          : '-'}
+                     </TableCell>
+                     <TableCell className="text-center">
+                       <C3RowSyncStatus
+                         lastPublishedAt={(slab as any).last_published_at}
+                         modifiedOn={(slab as any).modified_on}
+                         createdOn={slab.created_on}
+                         globalLastPublishedAt={globalLastPublishedAt}
+                       />
                      </TableCell>
                      <TableCell className="text-right">
                        <div className="flex justify-end gap-2">
