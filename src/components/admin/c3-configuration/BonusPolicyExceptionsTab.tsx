@@ -58,6 +58,7 @@ function computeDatesFromIdentity(form: ExceptionForm): { date_from: string; dat
 
 export function BonusPolicyExceptionsTab() {
   const { data: exceptions, isLoading } = useBonusPolicyExceptions();
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
   const createMutation = useCreateBonusPolicyException();
   const updateMutation = useUpdateBonusPolicyException();
   const deleteMutation = useDeleteBonusPolicyException();
