@@ -44,6 +44,7 @@ const EMPTY_POLICY: Omit<BonusPolicyDefault, 'id' | 'created_on' | 'modified_on'
 
 export function BonusPolicyDefaultTab() {
   const { data: policies, isLoading } = useBonusPolicyDefaults();
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
   const createMutation = useCreateBonusPolicyDefault();
   const updateMutation = useUpdateBonusPolicyDefault();
   const deleteMutation = useDeleteBonusPolicyDefault();
