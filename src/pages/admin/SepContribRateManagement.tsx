@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useActionPermissions } from "@/hooks/useActionPermission";
 import { format } from "date-fns";
+import { C3RowSyncStatus, useLastSuccessfulC3PublishAt } from "@/components/admin/c3-configuration/C3RowSyncStatus";
 
 interface ContribRate {
   effstart: string;
