@@ -101,6 +101,7 @@ export function C3PeriodConfigTab() {
                   <TableHead className="w-[150px]">Start Date</TableHead>
                   <TableHead className="w-[150px]">End Date</TableHead>
                   <TableHead className="w-[100px]">Status</TableHead>
+                  <TableHead className="w-[60px] text-center">Sync</TableHead>
                   <TableHead>SS Rate (Emp)</TableHead>
                   <TableHead>SS Rate (Empr)</TableHead>
                   <TableHead>EIB Rate</TableHead>
