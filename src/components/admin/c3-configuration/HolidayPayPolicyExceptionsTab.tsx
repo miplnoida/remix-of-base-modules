@@ -14,6 +14,7 @@ import { useHolidayPayPolicyExceptions, useCreateHolidayPayPolicyException, useU
 import { useUserCode } from '@/hooks/useUserCode';
 import type { HolidayPayPolicyException, BonusDistribution, ExceptionType, CalculationMethod, HolidayPolicyType } from '@/types/holidayPayPolicy';
 import { MONTH_NAMES, DEFAULT_DISTRIBUTION } from '@/types/holidayPayPolicy';
+import { C3RowSyncStatus, useLastSuccessfulC3PublishAt } from '@/components/admin/c3-configuration/C3RowSyncStatus';
 
 type ExceptionForm = Omit<HolidayPayPolicyException, 'id' | 'created_on' | 'modified_on'>;
 
@@ -63,6 +64,7 @@ export function HolidayPayPolicyExceptionsTab() {
   const updateMutation = useUpdateHolidayPayPolicyException();
   const deleteMutation = useDeleteHolidayPayPolicyException();
   const { userCode } = useUserCode();
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -196,6 +198,7 @@ export function HolidayPayPolicyExceptionsTab() {
                   <TableHead>Year(s)</TableHead>
                   <TableHead>Override</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead className="w-[60px] text-center">Sync</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -217,6 +220,14 @@ export function HolidayPayPolicyExceptionsTab() {
                     <TableCell>{exc.year_from}{exc.year_to ? ` – ${exc.year_to}` : ''}</TableCell>
                     <TableCell>{exc.override_default ? <Check className="h-4 w-4 text-orange-600" /> : <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell className="text-muted-foreground max-w-[200px] truncate">{exc.description || '—'}</TableCell>
+                    <TableCell className="text-center">
+                      <C3RowSyncStatus
+                        lastPublishedAt={(exc as any).last_published_at}
+                        modifiedOn={(exc as any).modified_on}
+                        createdOn={(exc as any).created_on}
+                        globalLastPublishedAt={globalLastPublishedAt}
+                      />
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="outline" size="sm" onClick={() => openEdit(exc)}><Edit className="h-4 w-4" /></Button>

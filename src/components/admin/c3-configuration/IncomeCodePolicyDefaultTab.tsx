@@ -19,6 +19,7 @@ import MonthYearPicker from '@/components/c3/MonthYearPicker';
 import { formatDisplayDate, parseDateSafe, formatDateForStorage } from '@/lib/dateFormat';
 import type { IncomeCodePolicyDefault, BonusDistribution, DateEntryMode } from '@/types/incomeCodePolicy';
 import { DEFAULT_DISTRIBUTION, DATE_ENTRY_MODE_LABELS } from '@/types/incomeCodePolicy';
+import { C3RowSyncStatus, useLastSuccessfulC3PublishAt } from '@/components/admin/c3-configuration/C3RowSyncStatus';
 import { toast } from 'sonner';
 
 const EMPTY_POLICY: Omit<IncomeCodePolicyDefault, 'id' | 'created_on' | 'modified_on'> = {
@@ -67,6 +68,7 @@ export function IncomeCodePolicyDefaultTab() {
   const upsertWithSplit = useUpsertC3ConfigWithSplit();
   const { userCode } = useUserCode();
   const queryClient = useQueryClient();
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -243,6 +245,7 @@ export function IncomeCodePolicyDefaultTab() {
                     <TableHead>Date Mode</TableHead>
                     <TableHead>Policy Type</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="w-[60px] text-center">Sync</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
