@@ -47,6 +47,7 @@ interface SepContribRateManagementProps {
 const SepContribRateManagement: React.FC<SepContribRateManagementProps> = ({ embedMode = false }) => {
   const queryClient = useQueryClient();
   const { can } = useActionPermissions(MODULE_NAME);
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
   const [searchQuery, setSearchQuery] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
