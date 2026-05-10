@@ -243,13 +243,14 @@ export function C3FilingConfigTab() {
                   <TableHead>Window</TableHead>
                   <TableHead>Initial Threshold</TableHead>
                   <TableHead>Subsequent Threshold</TableHead>
+                  <TableHead className="w-[60px] text-center">Sync</TableHead>
                   <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(!periods || periods.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       No filing configuration periods found. Click "Add Period" to create one.
                     </TableCell>
                   </TableRow>
@@ -266,6 +267,14 @@ export function C3FilingConfigTab() {
                       <TableCell>{p.filing_window_value} {unitLabel(p.filing_window_unit)}</TableCell>
                       <TableCell>{p.penalty_initial_threshold} {unitLabel(p.filing_window_unit)}</TableCell>
                       <TableCell>{p.penalty_subsequent_threshold} {unitLabel(p.filing_window_unit)}</TableCell>
+                      <TableCell className="text-center">
+                        <C3RowSyncStatus
+                          lastPublishedAt={(p as any).last_published_at}
+                          modifiedOn={(p as any).updated_at}
+                          createdOn={(p as any).created_at}
+                          globalLastPublishedAt={globalLastPublishedAt}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Button size="sm" variant="ghost" onClick={() => openEdit(p)} disabled={!p.is_active || formMode !== 'hidden'}>
