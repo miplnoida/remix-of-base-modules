@@ -219,6 +219,7 @@ export function BonusPolicyDefaultTab() {
                   <TableHead>Levy</TableHead>
                   <TableHead>Severance</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="w-[60px] text-center">Sync</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -237,6 +238,14 @@ export function BonusPolicyDefaultTab() {
                         ? <span className="text-emerald-600 font-semibold text-sm">● Active</span>
                         : <span className="text-muted-foreground text-sm">○ Inactive</span>
                       }
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <C3RowSyncStatus
+                        lastPublishedAt={(p as any).last_published_at}
+                        modifiedOn={(p as any).modified_on}
+                        createdOn={(p as any).created_on}
+                        globalLastPublishedAt={globalLastPublishedAt}
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
