@@ -13,8 +13,10 @@ import { formatDisplayDate } from '@/lib/dateFormat';
 import { C3ConfigCloneDialog } from '@/components/admin/c3-period-config/C3ConfigCloneDialog';
 import { C3ConfigDetailsDialog } from '@/components/admin/c3-period-config/C3ConfigDetailsDialog';
 import { C3ConfigCreateDialog } from '@/components/admin/c3-period-config/C3ConfigCreateDialog';
+import { C3RowSyncStatus, useLastSuccessfulC3PublishAt } from '@/components/admin/c3-configuration/C3RowSyncStatus';
 
 export function C3PeriodConfigTab() {
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
   const { data: configs, isLoading, error } = useC3ConfigPeriods();
   const toggleActive = useToggleC3ConfigActive();
   const deletePeriod = useDeleteC3ConfigPeriod();
