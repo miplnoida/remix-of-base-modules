@@ -134,6 +134,14 @@ export function C3PeriodConfigTab() {
                         disabled={toggleActive.isPending}
                       />
                     </TableCell>
+                    <TableCell className="text-center">
+                      <C3RowSyncStatus
+                        lastPublishedAt={(config as any).last_published_at}
+                        modifiedOn={(config as any).modified_on}
+                        createdOn={(config as any).created_on}
+                        globalLastPublishedAt={globalLastPublishedAt}
+                      />
+                    </TableCell>
                     <TableCell>{config.details ? formatRate(config.details.employee_ss_rate) : '-'}</TableCell>
                     <TableCell>{config.details ? formatRate(config.details.employer_ss_rate) : '-'}</TableCell>
                     <TableCell>{config.details ? formatRate(config.details.employer_eib_rate) : '-'}</TableCell>
