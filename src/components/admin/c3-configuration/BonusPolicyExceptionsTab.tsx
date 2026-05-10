@@ -12,6 +12,7 @@ import { Loader2, Plus, Edit, Trash2, Info, Save, X, Check, AlertTriangle } from
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useBonusPolicyExceptions, useCreateBonusPolicyException, useUpdateBonusPolicyException, useDeleteBonusPolicyException, checkDateOverlap } from '@/hooks/useBonusPolicy';
 import { useUserCode } from '@/hooks/useUserCode';
+import { C3RowSyncStatus, useLastSuccessfulC3PublishAt } from '@/components/admin/c3-configuration/C3RowSyncStatus';
 import type { BonusPolicyException, BonusDistribution, ExceptionType, CalculationMethod } from '@/types/bonusPolicy';
 import { MONTH_NAMES, DEFAULT_DISTRIBUTION } from '@/types/bonusPolicy';
 
@@ -57,6 +58,7 @@ function computeDatesFromIdentity(form: ExceptionForm): { date_from: string; dat
 
 export function BonusPolicyExceptionsTab() {
   const { data: exceptions, isLoading } = useBonusPolicyExceptions();
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
   const createMutation = useCreateBonusPolicyException();
   const updateMutation = useUpdateBonusPolicyException();
   const deleteMutation = useDeleteBonusPolicyException();
@@ -189,6 +191,7 @@ export function BonusPolicyExceptionsTab() {
                   <TableHead>Year(s)</TableHead>
                   <TableHead>Override</TableHead>
                   <TableHead>Description</TableHead>
+                  <TableHead className="w-[60px] text-center">Sync</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -206,6 +209,14 @@ export function BonusPolicyExceptionsTab() {
                       {exc.override_default ? <Check className="h-4 w-4 text-amber-600" /> : <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-muted-foreground max-w-[200px] truncate">{exc.description || '—'}</TableCell>
+                    <TableCell className="text-center">
+                      <C3RowSyncStatus
+                        lastPublishedAt={(exc as any).last_published_at}
+                        modifiedOn={(exc as any).modified_on}
+                        createdOn={(exc as any).created_on}
+                        globalLastPublishedAt={globalLastPublishedAt}
+                      />
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <Button variant="outline" size="sm" onClick={() => openEdit(exc)}><Edit className="h-4 w-4" /></Button>

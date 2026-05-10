@@ -11,6 +11,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
  import { LevySlabDialog } from '@/components/admin/levy-slabs/LevySlabDialog';
  import { LevySlabCloneDialog } from '@/components/admin/levy-slabs/LevySlabCloneDialog';
  import { LevySlabDetailsDialog } from '@/components/admin/levy-slabs/LevySlabDetailsDialog';
+ import { C3RowSyncStatus, useLastSuccessfulC3PublishAt } from '@/components/admin/c3-configuration/C3RowSyncStatus';
  import { toast } from 'sonner';
  import {
    AlertDialog,
@@ -27,6 +28,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
    const { data: slabs, isLoading } = useLevySlabs();
    const deleteMutation = useDeleteLevySlab();
   const { profile } = useSupabaseAuth();
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
  
    const [isCreateOpen, setIsCreateOpen] = useState(false);
    const [editingSlab, setEditingSlab] = useState<LevySlab | null>(null);
@@ -80,6 +82,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
                    <TableHead>End Date</TableHead>
                    <TableHead>Status</TableHead>
                    <TableHead>Created</TableHead>
+                   <TableHead className="w-[60px] text-center">Sync</TableHead>
                    <TableHead className="text-right">Actions</TableHead>
                  </TableRow>
                </TableHeader>
@@ -101,6 +104,14 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
                        {slab.created_on
                          ? format(new Date(slab.created_on), 'dd MMM yyyy')
                          : '-'}
+                     </TableCell>
+                     <TableCell className="text-center">
+                       <C3RowSyncStatus
+                         lastPublishedAt={(slab as any).last_published_at}
+                         modifiedOn={(slab as any).modified_on}
+                         createdOn={slab.created_on}
+                         globalLastPublishedAt={globalLastPublishedAt}
+                       />
                      </TableCell>
                      <TableCell className="text-right">
                        <div className="flex justify-end gap-2">

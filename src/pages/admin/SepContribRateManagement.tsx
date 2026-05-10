@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { PermissionWrapper } from "@/components/ui/permission-wrapper";
 import { useActionPermissions } from "@/hooks/useActionPermission";
 import { format } from "date-fns";
+import { C3RowSyncStatus, useLastSuccessfulC3PublishAt } from "@/components/admin/c3-configuration/C3RowSyncStatus";
 
 interface ContribRate {
   effstart: string;
@@ -28,6 +29,7 @@ interface ContribRate {
   wage_cat: number;
   sep_ss_percent: number;
   sep_penalty_percent: number | null;
+  modified_on?: string | null;
 }
 
 interface IncomeCategory {
@@ -45,6 +47,7 @@ interface SepContribRateManagementProps {
 const SepContribRateManagement: React.FC<SepContribRateManagementProps> = ({ embedMode = false }) => {
   const queryClient = useQueryClient();
   const { can } = useActionPermissions(MODULE_NAME);
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
   const [searchQuery, setSearchQuery] = useState("");
   const [showDialog, setShowDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
@@ -218,6 +221,7 @@ const SepContribRateManagement: React.FC<SepContribRateManagementProps> = ({ emb
                       <TableHead>Wage Category</TableHead>
                       <TableHead>SS %</TableHead>
                       <TableHead>Penalty %</TableHead>
+                      <TableHead className="w-[60px] text-center">Sync</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -229,6 +233,12 @@ const SepContribRateManagement: React.FC<SepContribRateManagementProps> = ({ emb
                         <TableCell>{getWageLabel(row.wage_cat)}</TableCell>
                         <TableCell>{Number(row.sep_ss_percent).toFixed(2)}%</TableCell>
                         <TableCell>{row.sep_penalty_percent != null ? `${Number(row.sep_penalty_percent).toFixed(2)}%` : "-"}</TableCell>
+                        <TableCell className="text-center">
+                          <C3RowSyncStatus
+                            modifiedOn={row.modified_on}
+                            globalLastPublishedAt={globalLastPublishedAt}
+                          />
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
                             <Button variant="ghost" size="icon" onClick={() => { setViewing(row); setShowViewDialog(true); }} title="View"><Eye className="h-4 w-4" /></Button>
@@ -239,7 +249,7 @@ const SepContribRateManagement: React.FC<SepContribRateManagementProps> = ({ emb
                       </TableRow>
                     ))}
                     {filtered.length === 0 && (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No rates found</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No rates found</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>

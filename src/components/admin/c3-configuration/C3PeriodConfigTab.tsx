@@ -13,8 +13,10 @@ import { formatDisplayDate } from '@/lib/dateFormat';
 import { C3ConfigCloneDialog } from '@/components/admin/c3-period-config/C3ConfigCloneDialog';
 import { C3ConfigDetailsDialog } from '@/components/admin/c3-period-config/C3ConfigDetailsDialog';
 import { C3ConfigCreateDialog } from '@/components/admin/c3-period-config/C3ConfigCreateDialog';
+import { C3RowSyncStatus, useLastSuccessfulC3PublishAt } from '@/components/admin/c3-configuration/C3RowSyncStatus';
 
 export function C3PeriodConfigTab() {
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
   const { data: configs, isLoading, error } = useC3ConfigPeriods();
   const toggleActive = useToggleC3ConfigActive();
   const deletePeriod = useDeleteC3ConfigPeriod();
@@ -99,6 +101,7 @@ export function C3PeriodConfigTab() {
                   <TableHead className="w-[150px]">Start Date</TableHead>
                   <TableHead className="w-[150px]">End Date</TableHead>
                   <TableHead className="w-[100px]">Status</TableHead>
+                  <TableHead className="w-[60px] text-center">Sync</TableHead>
                   <TableHead>SS Rate (Emp)</TableHead>
                   <TableHead>SS Rate (Empr)</TableHead>
                   <TableHead>EIB Rate</TableHead>
@@ -129,6 +132,14 @@ export function C3PeriodConfigTab() {
                         checked={config.is_active}
                         onCheckedChange={(checked) => handleToggleActive(config, checked)}
                         disabled={toggleActive.isPending}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <C3RowSyncStatus
+                        lastPublishedAt={(config as any).last_published_at}
+                        modifiedOn={(config as any).modified_on}
+                        createdOn={(config as any).created_on}
+                        globalLastPublishedAt={globalLastPublishedAt}
                       />
                     </TableCell>
                     <TableCell>{config.details ? formatRate(config.details.employee_ss_rate) : '-'}</TableCell>
@@ -189,7 +200,7 @@ export function C3PeriodConfigTab() {
                 })()}
                 {(!configs || configs.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       No configuration periods found
                     </TableCell>
                   </TableRow>
