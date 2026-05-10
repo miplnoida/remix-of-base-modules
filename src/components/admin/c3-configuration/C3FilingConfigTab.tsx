@@ -17,6 +17,7 @@ import { useFilingConfigPeriods, useUpsertFilingConfigPeriod, useDeactivateFilin
 import { FilingConfigPeriod, FilingConfigPeriodFormData, FilingConfigAnalysis } from '@/types/filingConfigPeriod';
 import { useDateFormat } from '@/hooks/useDateFormat';
 import { useUserCode } from '@/hooks/useUserCode';
+import { C3RowSyncStatus, useLastSuccessfulC3PublishAt } from '@/components/admin/c3-configuration/C3RowSyncStatus';
 import { toast } from 'sonner';
 
 const WEEKDAY_OPTIONS = [
