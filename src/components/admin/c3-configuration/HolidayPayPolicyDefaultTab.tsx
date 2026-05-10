@@ -47,6 +47,7 @@ const EMPTY_POLICY: Omit<HolidayPayPolicyDefault, 'id' | 'created_on' | 'modifie
 
 export function HolidayPayPolicyDefaultTab() {
   const { data: policies, isLoading } = useHolidayPayPolicyDefaults();
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
   const createMutation = useCreateHolidayPayPolicyDefault();
   const updateMutation = useUpdateHolidayPayPolicyDefault();
   const deleteMutation = useDeleteHolidayPayPolicyDefault();
