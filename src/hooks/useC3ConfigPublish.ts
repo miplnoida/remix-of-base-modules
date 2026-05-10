@@ -303,7 +303,42 @@ async function buildSyncPayload() {
     filing_config_periods: sanitize(filingConfigPeriods),
   };
 
-  const payloadHash = btoa(JSON.stringify(payload)).slice(0, 64);
+  // Content-only hash. Excludes sync_version (constant) and sync_timestamp
+  // (volatile — changes every refetch). Stable JSON ensures column-order
+  // differences from PostgREST don't produce false positives.
+  // Also strips per-row volatile audit timestamps that get bumped without
+  // the user changing meaningful values.
+  const VOLATILE_ROW_FIELDS = new Set([
+    'modified_on', 'modified_at', 'updated_at', 'updated_on',
+    'created_at', 'created_on', 'last_published_at',
+    'modified_by', 'updated_by', 'created_by',
+  ]);
+  const stripVolatile = (value: any): any => {
+    if (value === null || typeof value !== 'object') return value;
+    if (Array.isArray(value)) return value.map(stripVolatile);
+    const out: any = {};
+    for (const k of Object.keys(value)) {
+      if (VOLATILE_ROW_FIELDS.has(k)) continue;
+      out[k] = stripVolatile(value[k]);
+    }
+    return out;
+  };
+  const hashableContent = stripVolatile({
+    config_periods: payload.config_periods,
+    levy_slabs: payload.levy_slabs,
+    bonus_policies: payload.bonus_policies,
+    bonus_exceptions: payload.bonus_exceptions,
+    holiday_policies: payload.holiday_policies,
+    holiday_exceptions: payload.holiday_exceptions,
+    calculation_configs: payload.calculation_configs,
+    income_codes: payload.income_codes,
+    income_categories: payload.income_categories,
+    self_emp_contrib_rates: payload.self_emp_contrib_rates,
+    income_code_policies: payload.income_code_policies,
+    income_code_exceptions: payload.income_code_exceptions,
+    filing_config_periods: payload.filing_config_periods,
+  });
+  const payloadHash = await sha256Hex(stableStringify(hashableContent));
 
   return {
     payload,
