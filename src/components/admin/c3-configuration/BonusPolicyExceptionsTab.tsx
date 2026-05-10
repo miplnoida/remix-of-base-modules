@@ -12,6 +12,7 @@ import { Loader2, Plus, Edit, Trash2, Info, Save, X, Check, AlertTriangle } from
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useBonusPolicyExceptions, useCreateBonusPolicyException, useUpdateBonusPolicyException, useDeleteBonusPolicyException, checkDateOverlap } from '@/hooks/useBonusPolicy';
 import { useUserCode } from '@/hooks/useUserCode';
+import { C3RowSyncStatus, useLastSuccessfulC3PublishAt } from '@/components/admin/c3-configuration/C3RowSyncStatus';
 import type { BonusPolicyException, BonusDistribution, ExceptionType, CalculationMethod } from '@/types/bonusPolicy';
 import { MONTH_NAMES, DEFAULT_DISTRIBUTION } from '@/types/bonusPolicy';
 
