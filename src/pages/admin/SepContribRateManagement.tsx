@@ -29,6 +29,7 @@ interface ContribRate {
   wage_cat: number;
   sep_ss_percent: number;
   sep_penalty_percent: number | null;
+  modified_on?: string | null;
 }
 
 interface IncomeCategory {
