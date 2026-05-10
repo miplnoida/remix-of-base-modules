@@ -67,6 +67,7 @@ function getPeriodStatus(p: FilingConfigPeriod): { label: string; variant: 'defa
 
 export function C3FilingConfigTab() {
   const { data: periods, isLoading, error } = useFilingConfigPeriods();
+  const { data: globalLastPublishedAt } = useLastSuccessfulC3PublishAt();
   const upsertMutation = useUpsertFilingConfigPeriod();
   const deactivateMutation = useDeactivateFilingConfigPeriod();
   const analyzeMutation = useAnalyzeFilingConfigChange();
