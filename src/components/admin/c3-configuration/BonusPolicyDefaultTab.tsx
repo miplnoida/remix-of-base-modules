@@ -12,6 +12,7 @@ import { Loader2, Info, Save, Check, Plus, Edit, Trash2, X, AlertTriangle } from
 import { useBonusPolicyDefaults, useCreateBonusPolicyDefault, useUpdateBonusPolicyDefault, useDeleteBonusPolicyDefault, checkDateOverlap } from '@/hooks/useBonusPolicy';
 import { useAnalyzeC3ConfigChange, useUpsertC3ConfigWithSplit } from '@/hooks/useC3ConfigLifecycle';
 import { C3SplitConfirmDialog, SplitAnalysis } from '@/components/admin/c3-configuration/C3SplitConfirmDialog';
+import { C3RowSyncStatus, useLastSuccessfulC3PublishAt } from '@/components/admin/c3-configuration/C3RowSyncStatus';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useQueryClient } from '@tanstack/react-query';
 import MonthYearPicker from '@/components/c3/MonthYearPicker';
