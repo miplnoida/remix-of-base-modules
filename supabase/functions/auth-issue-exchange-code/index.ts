@@ -11,7 +11,7 @@ import {
 } from '../_shared/sso-cookies.ts';
 
 const CODE_TTL_SECONDS = 60;
-const ALLOWED_APPS = new Set(['internal_audit']);
+const ALLOWED_APPS = new Set(['internal_audit', 'compliance']);
 
 Deno.serve(async (req) => {
   const cors = corsHeadersFor(req);
