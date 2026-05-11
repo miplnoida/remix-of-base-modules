@@ -1,158 +1,215 @@
-## Goal
+# Compliance & Enforcement — Satellite Application Plan
 
-Spin up a **separate satellite Lovable application** that hosts the entire **Compliance & Enforcement** module, while:
-
-- Sharing the **same Lovable Cloud database** as SocialServe (no schema changes, no data copy).
-- Sharing the **same logged-in user session** (single sign-on through the existing exchange-code flow already used for Internal Audit).
-- Making **zero changes to the main SocialServe app** beyond one optional sidebar entry that opens the satellite via SSO.
-
-The pattern mirrors what is already in production for `nexus-guardian-sync` (Internal Audit). No business logic is rewritten — code is copied verbatim.
+Spin up the existing satellite project **Integrated Compliance Hub** (`8471f73c-7659-4260-8d4d-c70dfbebe261`, served at `https://compliance.secureserve.biz`) so it hosts ONLY the Compliance & Enforcement module of SocialServe, sharing SocialServe's Lovable Cloud database and login session. **Zero changes to SocialServe business logic.** Mirrors the Internal Audit satellite pattern.
 
 ---
 
-## Part A — What we will do in SocialServe (main app)
+## Part A — SocialServe (main app) registration changes
 
-The user explicitly said nothing should change. The only safe, optional touch (only if you want the sidebar tile to open the satellite) is:
+Only registration entries — no business logic touched.
 
-1. Update the existing `app_modules` row whose `name = 'compliance'` (or the parent module key already used by `complianceMenuItems`) and set its `base_url` to the satellite's URL, e.g. `https://compliance.secureserve.biz`.
-2. Add the satellite host to `SATELLITE_HOSTS` in `src/lib/satelliteSso.ts` so the sidebar issues an SSO exchange code instead of a plain redirect:
+1. **`src/lib/satelliteSso.ts`** — add to `SATELLITE_HOSTS`:
    ```ts
    'compliance.secureserve.biz': 'compliance',
-   '<lovable-preview-host>.lovable.app': 'compliance',
+   // (optional, for early Lovable preview testing)
+   // '<satellite-preview-id>.lovable.app': 'compliance',
    ```
-3. In the `auth-issue-exchange-code` edge function add `'compliance'` to its `ALLOWED_APPS` list.
+2. **Edge function `auth-issue-exchange-code`** — add `'compliance'` to `ALLOWED_APPS`.
+3. **`app_modules` row for Compliance** — set `base_url = 'https://compliance.secureserve.biz'` so the SocialServe sidebar tile launches the satellite via SSO.
 
-If you prefer truly zero changes today, skip steps 1–3 — the satellite is fully usable by typing its URL; it will just prompt for login the first time on its own domain.
-
-No source files, components, routes, RPCs, RLS, tables, or business rules in SocialServe are modified.
-
----
-
-## Part B — Create the satellite project
-
-1. In Lovable, create a new project named e.g. **SocialServe — Compliance**.
-2. Enable **Lovable Cloud** on the new project, then **disable its auto-provisioned Supabase** and point it at the **SocialServe Supabase** by setting:
-   ```
-   VITE_SUPABASE_URL=https://xynceskeiiisiefqlgxo.supabase.co
-   VITE_SUPABASE_PUBLISHABLE_KEY=<same anon key as main app>
-   VITE_SUPABASE_PROJECT_ID=xynceskeiiisiefqlgxo
-   ```
-   This is exactly how the Internal Audit satellite is wired (see `docs/SHARED_AUTH_SETUP.md`).
-3. Configure the satellite's published URL / custom domain (e.g. `compliance.secureserve.biz`) so it sits on the same parent domain as `admin.secureserve.biz`. Same parent domain = the SSO exchange-code cookies set by `auth-redeem-exchange-code` are visible to both apps.
+No tables, RLS, RPCs, routes, services, or UI logic are modified.
 
 ---
 
-## Part C — What gets copied from SocialServe into the satellite
+## Part B — Satellite project (Integrated Compliance Hub) wiring
 
-Scope (verified against the current repo):
-
-| Area | Path | Files |
-|---|---|---|
-| Pages | `src/pages/compliance/**` | 117 |
-| Components | `src/components/compliance/**` | 139 |
-| Services | `src/services/compliance/**` | 6 |
-| Lib | `src/lib/compliance/**` | 5 |
-| Types | `src/types/violation*.ts`, `src/types/complianceSettings.ts`, `src/types/legal*.ts`, `src/types/paymentArrangement.ts`, `src/types/centralPaymentArrangement.ts`, `src/types/feeWaiver.ts`, `src/types/feeConfiguration.ts`, `src/types/contributionComponents.ts`, `src/types/inspectionTypes.ts`, `src/types/fieldStageMapping.ts`, `src/types/commTriggerRule.ts`, `src/types/riskPolicy.ts` | as-is |
-| Sidebar entry | `src/components/sidebar/menuItems/complianceMenuItems.ts` | 1 |
-| Compliance route table | `src/pages/compliance/Routes.tsx` | 1 |
-| Cross-cutting infra also required | `src/contexts/SupabaseAuthContext.tsx`, `src/components/auth/ProtectedRoute.tsx`, `src/components/auth/LoginScreen.tsx`, `src/contexts/PIIMaskingContext.tsx`, `src/contexts/GlobalBlockingContext.tsx`, `src/contexts/SystemSettingsContext.tsx`, `src/contexts/ThemeContext.tsx`, `src/components/sidebar/**` (+ `useDynamicNavigation`), shared UI in `src/components/common/**` and `src/components/ui/**`, `src/lib/utils.ts`, `src/lib/format-config.ts`, `src/lib/statusColors.ts`, `src/lib/exportUtils.ts`, `src/lib/htmlToPdf.ts`, `src/hooks/useAuditTrail.ts`, `src/hooks/useUserCode.ts`, `src/hooks/useDynamicNavigation.ts`, `src/integrations/supabase/types.ts`, `tailwind.config.ts`, `src/index.css`, `components.json`, `.env` template, `src/lib/satelliteSso.ts` (renamed/inverted to point back to main if needed). | as-is |
-| Edge functions | Any `supabase/functions/*` that compliance pages invoke (e.g. `document-proxy`, compliance reporting fns). They live on the shared backend and are **already deployed** — do **not** redeploy from the satellite. | none copied |
-| RLS / migrations | None. Per project rule, RLS is off; auth is role-based and lives in shared tables (`user_roles`, `role_permissions`, `app_modules`). | none |
-
-The `auth-exchange` page (`/auth/exchange`) used by SSO must also be copied — same code as Internal Audit's satellite.
+1. Open project `8471f73c-7659-4260-8d4d-c70dfbebe261`.
+2. Enable Lovable Cloud, then overwrite `.env` to point at SocialServe's backend:
+   - `VITE_SUPABASE_URL=https://xynceskeiiisiefqlgxo.supabase.co`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5bmNlc2tlaWlpc2llZnFsZ3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTQxMDAsImV4cCI6MjA4ODczMDEwMH0.kVVysArl8ujrAHpHLtNx7xifYyq02ulIE5c4WKKSXCI`
+   - `VITE_SUPABASE_PROJECT_ID=xynceskeiiisiefqlgxo`
+3. Custom domain `compliance.secureserve.biz` (same parent as `admin.secureserve.biz`) — required so SSO HttpOnly cookies on `.secureserve.biz` are shared.
 
 ---
 
-## Part D — Wiring inside the satellite
+## Part C — Files copied from SocialServe (exact paths, preserve structure)
 
-1. `src/App.tsx` becomes minimal: providers (`SupabaseAuthContext`, `ThemeContext`, `SystemSettingsContext`, `PIIMaskingContext`, `GlobalBlockingContext`, `QueryClientProvider`, `Toaster`) → `BrowserRouter` → routes.
-2. Routes:
-   - `/auth/exchange` → SSO redeem page.
-   - `/login` → `LoginScreen` (fallback when no SSO code).
-   - `/*` → `ProtectedRoute` + the **copied `ComplianceRoutes`** mounted at `/compliance/*`, with a default redirect from `/` to `/compliance/workbench` (or whatever the current default is).
-3. Sidebar shows only `complianceMenuItems` (drop the other `menuItems/*` files). Header/topbar reuses the shared components.
-4. Permissions: continue to call the same `has_permission` / `can_access_module` RPCs and the `manage_compliance` permission plus the new capability bundles in `src/lib/compliance/capabilities.ts`. No code change required — they hit the shared DB.
-5. Audit trail (`useAuditTrail` / `useUserCode`) keeps writing the same `user_code` to the same tables, so SocialServe sees compliance activity transparently.
+Compliance module:
+- `src/pages/compliance/**`
+- `src/components/compliance/**`
+- `src/services/compliance/**`
+- `src/lib/compliance/**`
+- `src/hooks/compliance/**`
+- `src/components/sidebar/menuItems/complianceMenuItems.ts`
+
+Compliance-related types:
+- `src/types/complianceSettings.ts`
+- `src/types/violation.ts`, `violationActions.ts`, `violationNotes.ts`
+- `src/types/legal.ts`, `legalEscalation.ts`, `legalFinal.ts`, `legalReferralTypes.ts`
+- `src/types/inspectionTypes.ts`, `feeWaiver.ts`
+- `src/types/paymentArrangement.ts`, `centralPaymentArrangement.ts`
+- `src/types/commTriggerRule.ts`, `notification.ts`, `notifications.ts`
+- `src/types/auth.ts`, `systemAdmin.ts`, `workflow.ts`
+- `src/types/employerObservation.ts`, `employerHistory.ts`, `employerRegistration.ts`
+- `src/types/meetings.ts`, `scheduler.ts`
+
+Shared infrastructure (must come along):
+- `src/contexts/SupabaseAuthContext.tsx`, `PIIMaskingContext.tsx`, `GlobalBlockingContext.tsx`, `SystemSettingsContext.tsx`, `ThemeContext.tsx`
+- `src/components/auth/**` (ProtectedRoute, LoginScreen, `/auth/exchange` page)
+- `src/components/common/**`
+- `src/components/ui/**` (only custom variants beyond shadcn defaults)
+- `src/hooks/useAuditTrail.ts`, `useUserCode.ts`, `useBlockingMutation.ts`, `useDynamicNavigation.ts`, `useEmployerComplianceSummary.ts`
+- `src/lib/satelliteSso.ts`, `utils.ts`, `format-config.ts`, `statusColors.ts`, `exportUtils.ts`, `htmlToPdf.ts`, `dateFormat.ts`, `runtimeEnvironment.ts`, `globalErrorHandler.ts`, `chartColors.ts`, `fieldValidationRegistry.ts`
+- `src/services/piiMaskingService.ts`, `systemLoggerService.ts`, `correlationIdService.ts`, `entityResolver.ts`, `resolveReportingManager.ts`
+- `tailwind.config.ts`, `index.css`, `components.json`, `postcss.config.js`
+
+**Do NOT copy** `src/integrations/supabase/client.ts` or `types.ts` — they auto-regenerate against the shared backend after `.env` is set.
+
+Edge functions and DB migrations: **none copied** — they live on the shared backend and are invoked over the network.
 
 ---
 
-## Part E — Prompt to run inside the satellite project
-
-Paste this verbatim into the new Lovable project's chat after Part B is done:
+## Part D — Satellite App.tsx structure
 
 ```
-Create this project as the "Compliance & Enforcement" satellite of the SocialServe app.
+ThemeProvider
+  → QueryClientProvider
+    → SupabaseAuthProvider
+      → SystemSettingsProvider
+        → PIIMaskingProvider
+          → GlobalBlockingProvider
+            → BrowserRouter
+                ├── /auth/exchange   → ExchangeCodePage
+                ├── /login           → LoginScreen
+                ├── /                → <Navigate to="/compliance/workbench" />
+                └── /compliance/*    → <ProtectedRoute> + Compliance routes
+            + <Toaster />
+```
 
-Backend:
-- Use the same Lovable Cloud / Supabase project as SocialServe.
+Sidebar renders ONLY `complianceMenuItems`. Audit trail and permissions reuse shared `has_role` RPC and `useAuditFields()`.
+
+---
+
+## Part E — Prompt to paste into "Integrated Compliance Hub"
+
+Open project `8471f73c-7659-4260-8d4d-c70dfbebe261` and paste this as the first message:
+
+---
+```
+Build this project as a satellite of the SocialServe app (project id 455cbbae-c40e-4f3f-af49-d9ed99089948, mention it as @SocialServe). It must host ONLY the Compliance & Enforcement module and share the SAME Lovable Cloud backend and the SAME logged-in session as SocialServe via SSO exchange-code cookies on the parent domain `secureserve.biz`. Do NOT create new tables, new RLS, new edge functions, new auth providers, or any mock data — reuse everything from the shared backend.
+
+STEP 1 — Backend wiring. Overwrite `.env` with:
   VITE_SUPABASE_URL=https://xynceskeiiisiefqlgxo.supabase.co
-  VITE_SUPABASE_PUBLISHABLE_KEY=<paste anon key from main .env>
-- Do NOT create new tables, migrations, RLS, or edge functions.
-- Do NOT enable RLS — this project follows the "No RLS" architectural rule.
+  VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh5bmNlc2tlaWlpc2llZnFsZ3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNTQxMDAsImV4cCI6MjA4ODczMDEwMH0.kVVysArl8ujrAHpHLtNx7xifYyq02ulIE5c4WKKSXCI
+  VITE_SUPABASE_PROJECT_ID=xynceskeiiisiefqlgxo
+Then let `src/integrations/supabase/client.ts` and `types.ts` regenerate against this project. Never edit those two files manually.
 
-Auth & SSO:
-- Implement shared auth exactly like docs/SHARED_AUTH_SETUP.md from the main project.
-- Add a public route /auth/exchange that calls the existing edge function
-  `auth-redeem-exchange-code` with the `code` query param, then redirects to
-  `redirect_path` (default /compliance/workbench).
-- Use the existing SupabaseAuthContext, ProtectedRoute, and LoginScreen from
-  the main project (copied as-is).
+STEP 2 — Use the cross_project tools to copy these paths VERBATIM from @SocialServe (project 455cbbae-c40e-4f3f-af49-d9ed99089948), preserving directory structure and `@/...` import aliases:
 
-Code to copy from project @SocialServe (project id 455cbbae-c40e-4f3f-af49-d9ed99089948),
-preserving the exact same paths so imports keep working:
-- src/pages/compliance/**            (all 117 files incl. Routes.tsx)
-- src/components/compliance/**       (all 139 files)
-- src/services/compliance/**
-- src/lib/compliance/**
-- src/components/sidebar/**          (then strip menuItems to compliance only)
-- src/components/sidebar/menuItems/complianceMenuItems.ts
-- src/components/common/**, src/components/ui/**, src/components/auth/**
-- src/contexts/SupabaseAuthContext.tsx, PIIMaskingContext.tsx,
-  GlobalBlockingContext.tsx, SystemSettingsContext.tsx, ThemeContext.tsx
-- src/hooks/useAuditTrail.ts, useUserCode.ts, useDynamicNavigation.ts,
-  and every other hook imported by the pages above (resolve transitively).
-- src/lib/utils.ts, format-config.ts, statusColors.ts, exportUtils.ts,
-  htmlToPdf.ts, runtimeEnvironment.ts, globalErrorHandler.ts.
-- src/types/violation*.ts, complianceSettings.ts, legal*.ts,
-  paymentArrangement.ts, centralPaymentArrangement.ts, feeWaiver.ts,
-  feeConfiguration.ts, contributionComponents.ts, inspectionTypes.ts,
-  fieldStageMapping.ts, commTriggerRule.ts, riskPolicy.ts,
-  and every other type imported transitively.
-- tailwind.config.ts, src/index.css, components.json so the design tokens
-  match exactly.
+Compliance module (entire trees):
+  src/pages/compliance/**
+  src/components/compliance/**
+  src/services/compliance/**
+  src/lib/compliance/**
+  src/hooks/compliance/**
+  src/components/sidebar/menuItems/complianceMenuItems.ts
 
-Routing:
-- Mount `ComplianceRoutes` (from src/pages/compliance/Routes.tsx) at
-  `/compliance/*`.
-- Redirect `/` to `/compliance/workbench`.
-- All other routes 404.
+Compliance-related types (each file):
+  src/types/complianceSettings.ts
+  src/types/violation.ts
+  src/types/violationActions.ts
+  src/types/violationNotes.ts
+  src/types/legal.ts
+  src/types/legalEscalation.ts
+  src/types/legalFinal.ts
+  src/types/legalReferralTypes.ts
+  src/types/inspectionTypes.ts
+  src/types/feeWaiver.ts
+  src/types/paymentArrangement.ts
+  src/types/centralPaymentArrangement.ts
+  src/types/commTriggerRule.ts
+  src/types/notification.ts
+  src/types/notifications.ts
+  src/types/auth.ts
+  src/types/systemAdmin.ts
+  src/types/workflow.ts
+  src/types/employerObservation.ts
+  src/types/employerHistory.ts
+  src/types/employerRegistration.ts
+  src/types/meetings.ts
+  src/types/scheduler.ts
 
-Sidebar:
-- Show only complianceMenuItems. No employer/BN/admin/master-data items.
+Shared infrastructure (verbatim):
+  src/contexts/SupabaseAuthContext.tsx
+  src/contexts/PIIMaskingContext.tsx
+  src/contexts/GlobalBlockingContext.tsx
+  src/contexts/SystemSettingsContext.tsx
+  src/contexts/ThemeContext.tsx
+  src/components/auth/**
+  src/components/common/**
+  src/hooks/useAuditTrail.ts
+  src/hooks/useUserCode.ts
+  src/hooks/useBlockingMutation.ts
+  src/hooks/useDynamicNavigation.ts
+  src/hooks/useEmployerComplianceSummary.ts
+  src/lib/satelliteSso.ts
+  src/lib/utils.ts
+  src/lib/format-config.ts
+  src/lib/statusColors.ts
+  src/lib/exportUtils.ts
+  src/lib/htmlToPdf.ts
+  src/lib/dateFormat.ts
+  src/lib/runtimeEnvironment.ts
+  src/lib/globalErrorHandler.ts
+  src/lib/chartColors.ts
+  src/lib/fieldValidationRegistry.ts
+  src/services/piiMaskingService.ts
+  src/services/systemLoggerService.ts
+  src/services/correlationIdService.ts
+  src/services/entityResolver.ts
+  src/services/resolveReportingManager.ts
+  tailwind.config.ts
+  index.css
+  components.json
+  postcss.config.js
 
-Verification:
-1. Login on the satellite as an existing compliance user → lands on Workbench.
-2. Open a violation → data identical to main app.
-3. Edit/save a record → reflected in the main app.
-4. Confirm no migrations were created and no tables touched.
+Do NOT copy `src/integrations/supabase/client.ts` or `src/integrations/supabase/types.ts`.
+
+STEP 3 — Create `src/App.tsx`:
+  Providers (outer → inner): ThemeProvider, QueryClientProvider, SupabaseAuthProvider, SystemSettingsProvider, PIIMaskingProvider, GlobalBlockingProvider, BrowserRouter, Toaster.
+  Routes:
+    /auth/exchange → ExchangeCodePage (calls `auth-redeem-exchange-code` edge function with `?code=...`, then router.replace() to `redirect_path` or `/compliance/workbench`)
+    /login → LoginScreen
+    /  → <Navigate to="/compliance/workbench" replace />
+    /compliance/* → wrap in <ProtectedRoute> and mount the compliance routes copied from SocialServe's Routes.tsx
+
+STEP 4 — Sidebar: render ONLY `complianceMenuItems`. No other modules.
+
+STEP 5 — Custom domain: `compliance.secureserve.biz`.
+
+Constraints (strict):
+- Do NOT modify any tables, RLS policies, RPCs, or edge functions on the shared backend.
+- Do NOT add signup or password-reset UI; login goes through the shared backend's existing flow.
+- Do NOT add mock/seed data; the database is the source of truth.
+- All audit trail writes must use `useAuditFields()` and the shared `user_code` (VARCHAR(50)).
+- Permissions: keep using `has_role` RPC and `manage_compliance` capability checks exactly as in SocialServe.
+- Follow the existing memory/index Core rules (route gating with `isAuthReady && isAuthenticated`, pagination, blocking mutations, etc.).
+
+After scaffolding is complete, confirm the satellite preview opens at `/compliance/workbench` after login, and that the SSO exchange page redeems a one-time `sso_code` correctly when invoked from SocialServe.
 ```
-
 ---
 
-## Verification checklist (after both apps are deployed)
+## Part F — Verification checklist
 
-1. From SocialServe sidebar, click the Compliance tile → should land on the satellite already authenticated (no second login).
-2. Records created/edited in the satellite show up in SocialServe immediately.
-3. `useAuditTrail` writes the same `user_code` in both apps.
-4. Disabling a user / changing role in SocialServe instantly affects the satellite (shared `user_roles`).
-5. No new tables, no migrations, no RLS, no edge function changes in the shared backend.
-
----
+1. Log in directly on `compliance.secureserve.biz` → lands on `/compliance/workbench`.
+2. From SocialServe sidebar (`admin.secureserve.biz`) click the Compliance tile → SSO exchange → satellite opens already authenticated; no second login.
+3. Create / edit a violation in satellite → visible in SocialServe (shared DB).
+4. Audit trail rows show the same `user_code` regardless of which app wrote them.
+5. Disable a user in SocialServe → satellite session blocked on next protected request.
 
 ## Technical notes
 
-- **Why import paths are preserved:** the compliance code uses absolute aliases (`@/...`). Keeping the same folder structure in the satellite means zero find/replace and no import drift.
-- **Edge functions:** they live on the shared Supabase project and are already deployed. The satellite invokes them via `supabase.functions.invoke(...)` exactly like the main app.
-- **`src/integrations/supabase/types.ts`:** auto-generated from the same DB; will regenerate identically inside the satellite.
-- **PWA / OAuth:** if the satellite ever adds a service worker, deny `/~oauth` and `/auth/exchange` from the cache (per `cloud-oauth-providers` rule).
-- **No RLS:** consistent with `docs/ARCHITECTURE-NO-RLS-RULE.md`. Authorization is enforced via `has_permission` / `can_access_module` RPCs the satellite already calls.
+- SSO uses HttpOnly cookies scoped to `.secureserve.biz`. Both subdomains MUST be served over HTTPS on the same parent domain.
+- `src/integrations/supabase/client.ts` and `types.ts` are auto-managed by Lovable Cloud — never hand-edit in either project.
+- Edge functions live on the shared Supabase project; the satellite invokes them with its own (shared) anon key.
+- During preview-only testing (before DNS), temporarily add the satellite's `*.lovable.app` host to `SATELLITE_HOSTS` and `app_modules.base_url` in SocialServe.
