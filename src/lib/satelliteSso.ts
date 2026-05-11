@@ -28,6 +28,9 @@ const SATELLITE_HOSTS: Record<string, string> = {
   // Lovable preview origins of the satellite (used before custom domain DNS):
   'nexus-guardian-sync.lovable.app': 'internal_audit',
   'id-preview--7e98fc6b-f149-4e9f-9fd2-cbef90aba410.lovable.app': 'internal_audit',
+  // Compliance & Enforcement satellite (Integrated Compliance Hub)
+  'compliance.secureserve.biz': 'compliance',
+  'id-preview--8471f73c-7659-4260-8d4d-c70dfbebe261.lovable.app': 'compliance',
 };
 
 function getAppIdForUrl(url: string): string | null {
