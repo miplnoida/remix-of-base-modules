@@ -14,6 +14,9 @@ export const ALLOWED_ORIGINS_RAW =
     'https://nexus-guardian-sync.lovable.app',
     'https://id-preview--455cbbae-c40e-4f3f-af49-d9ed99089948.lovable.app',
     'https://id-preview--7e98fc6b-f149-4e9f-9fd2-cbef90aba410.lovable.app',
+    // Compliance & Enforcement satellite (Integrated Compliance Hub):
+    'https://compliance.secureserve.biz',
+    'https://id-preview--8471f73c-7659-4260-8d4d-c70dfbebe261.lovable.app',
   ].join(',');
 export const ALLOWED_ORIGINS = ALLOWED_ORIGINS_RAW.split(',').map((s) => s.trim()).filter(Boolean);
 
