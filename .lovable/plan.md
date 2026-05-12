@@ -1,79 +1,30 @@
-## Plan: Make the satellite match SocialServe Compliance & Enforcement
+## Problem
 
-### Scope
-- Target app: `Integrated Compliance Hub` satellite.
-- Source app: current SocialServe Compliance & Enforcement module.
-- Copy/update frontend code only.
-- Do not create, alter, seed, or migrate any database objects.
-- Preserve the shared backend connection and existing authentication/SSO behavior.
+On Admin → C3 Configuration → Bonus, the section header "BONUS DISTRIBUTION BY PAYROLL CYCLE" overlaps with its helper sentence ("Select which payroll week/payment the bonus should be included in for each frequency...").
 
-### What I found
-- The satellite already has a Compliance shell, but its `src/pages/compliance/Routes.tsx` is older and incomplete.
-- SocialServe has many Compliance areas missing or outdated in the satellite, including canonical Workbench routes, Operations, Geography, Staff, Tools, expanded Admin routes, Enhanced planning routes, Employer 360, report template/admin pages, and legacy redirects.
-- The satellite menu is also older and does not fully match SocialServe’s `complianceMenuItems`.
+Root cause: the helper `<p>` directly below `<SectionLabel>` uses the negative margin class `-mt-4`, which pulls the paragraph upward and on top of the uppercase label. The same pattern is used elsewhere in the same file and in the Exceptions tab.
 
-### Implementation steps
+## Fix (UI only — no logic changes)
 
-1. **Copy the complete Compliance module UI from SocialServe to the satellite**
-   - Replace/sync these directories in the satellite from SocialServe:
-     - `src/pages/compliance/**`
-     - `src/components/compliance/**`
-     - `src/hooks/compliance/**`
-     - `src/services/compliance/**`
-     - `src/lib/compliance/**`
-   - This includes all submodules, screens, widgets, dialogs, dashboards, workbench components, and helper code.
+Remove the `-mt-4` negative margin and replace with normal spacing (`mt-1`) so the helper line sits cleanly under the section label.
 
-2. **Copy Compliance menu/navigation exactly**
-   - Replace satellite `src/components/sidebar/menuItems/complianceMenuItems.ts` with the SocialServe version.
-   - Keep satellite sidebar rendering only the Compliance & Enforcement menu, not the full SocialServe menu.
+### Files to edit
 
-3. **Sync Compliance route map exactly**
-   - Replace satellite `src/pages/compliance/Routes.tsx` with the SocialServe version.
-   - Ensure these canonical route groups exist in the satellite:
-     - `/compliance/workbench/*`
-     - `/compliance/violations/*`
-     - `/compliance/cases/*`
-     - `/compliance/field/*`
-     - `/compliance/enforcement/*`
-     - `/compliance/reports/*`
-     - `/compliance/admin/*`
-   - Preserve legacy redirects so older links still land on the new canonical paths.
+1. `src/components/admin/c3-configuration/BonusPolicyDefaultTab.tsx`
+   - Line 348: helper under "Bonus Distribution by Payroll Cycle" — change `-mt-4` → `mt-1`, then add `mb-3` for breathing room above the cycle blocks.
+   - Line 372: helper under "Contribution Base Calculation" — same change for consistency (it has the same overlap risk).
 
-4. **Copy all dependencies referenced by the Compliance module**
-   - Copy any missing shared components, hooks, services, types, contexts, config, and utilities referenced by the copied files.
-   - Important examples likely needed:
-     - `src/pages/audit/DocumentTemplateSettings.tsx` and dependencies used by Compliance admin template routes
-     - relevant audit document/template components and services
-     - `src/config/legalConfig.ts`
-     - `src/config/routes.ts` if imported
-     - compliance-related `src/types/*.ts`
-     - shared UI components that differ between projects
-   - Do this by running an import sweep after copying and resolving missing `@/...` imports until the satellite compiles.
+2. `src/components/admin/c3-configuration/BonusPolicyExceptionsTab.tsx`
+   - Line 379 area (helper under "Bonus Distribution by Payroll Cycle") and any sibling `-mt-4` helper paragraphs — apply the same `-mt-4` → `mt-1` fix.
 
-5. **Preserve satellite-only app shell and SSO**
-   - Keep `/auth/exchange` outside protected routes.
-   - Keep `/login` available.
-   - Keep `/compliance/*` wrapped in the satellite `ProtectedLayout`.
-   - Change the satellite root redirect to the canonical `/compliance/workbench` or `/compliance/workbench/manager` path used by the copied routes.
-   - Do not add non-Compliance SocialServe modules to the satellite navigation.
+No changes to:
+- `SectionLabel` component itself (used elsewhere correctly)
+- Form logic, validation, mutations, schema, RLS, or DB
+- Any other tab or screen
 
-6. **Do not touch database/backend schema**
-   - No migrations.
-   - No RLS changes.
-   - No table/function/trigger changes.
-   - No auth provider/config changes unless a copied frontend file exposes an already-existing route dependency.
+## Verification
 
-7. **Validation after implementation**
-   - Run the satellite app checks for missing imports and TypeScript errors.
-   - Verify the satellite menu matches SocialServe’s Compliance menu.
-   - Verify key routes render:
-     - `/compliance/workbench/manager`
-     - `/compliance/workbench/inspector`
-     - `/compliance/violations`
-     - `/compliance/field/plan-builder`
-     - `/compliance/enforcement/legal-queue`
-     - `/compliance/admin/settings/rule-engine`
-   - Verify `/auth/exchange?code=...` still redeems before protected routing.
-
-### Important note
-This implementation must be applied inside the `Integrated Compliance Hub` project because the current editable workspace is SocialServe. The copy source is SocialServe; the destination must be the satellite project.
+- Reload Admin → C3 Configuration → Bonus default policy form.
+- Confirm "BONUS DISTRIBUTION BY PAYROLL CYCLE" sits on its own line with the helper text rendered cleanly below it (no overlap).
+- Confirm "CONTRIBUTION BASE CALCULATION" section also renders cleanly.
+- Repeat for the Exceptions tab.
