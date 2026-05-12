@@ -377,7 +377,7 @@ export function BonusPolicyExceptionsTab() {
                 {form.calculation_method === 'merge' && (
                   <div className={form.include_in_levy === false ? 'opacity-50 pointer-events-none' : ''}>
                     <SectionLabel>Bonus Distribution by Payroll Cycle</SectionLabel>
-                    <p className="text-xs text-muted-foreground -mt-4">Select which payroll week/payment the bonus should be included in for each frequency (single selection).</p>
+                    <p className="text-xs text-muted-foreground mt-1 mb-3">Select which payroll week/payment the bonus should be included in for each frequency (single selection).</p>
                     <div className="space-y-4">
                       <CycleBlock title="Weekly" cycle="weekly" dist={dist} setDist={setDist} items={[{ key: 'w1', label: 'Include in 1st week' }, { key: 'w2', label: 'Include in 2nd week' }, { key: 'w3', label: 'Include in 3rd week' }, { key: 'w4', label: 'Include in 4th / last week' }, { key: 'divide', label: 'Divide equally across all weeks', isDivide: true }]} />
                       <CycleBlock title="Bi-weekly" cycle="biweekly" dist={dist} setDist={setDist} items={[{ key: 'b1', label: 'Include in 1st payment' }, { key: 'b2', label: 'Include in last payment' }, { key: 'divide', label: 'Divide equally across both payments', isDivide: true }]} />
@@ -401,7 +401,7 @@ export function BonusPolicyExceptionsTab() {
 
                 {/* Contribution Base */}
                 <SectionLabel>Contribution Base Calculation</SectionLabel>
-                <p className="text-xs text-muted-foreground -mt-4">Selected contributions will include bonus amount in their base calculation.</p>
+                <p className="text-xs text-muted-foreground mt-1 mb-3">Selected contributions will include bonus amount in their base calculation.</p>
                 <div className="border rounded-lg divide-y">
                   <ContribRow label="Employee Contribution" checked={!!form.contrib_employee} onChange={v => setField('contrib_employee', v)} />
                   <ContribRow label="Employer Contribution" checked={!!form.contrib_employer} onChange={v => setField('contrib_employer', v)} />
