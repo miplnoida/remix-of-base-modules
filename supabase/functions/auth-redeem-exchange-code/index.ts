@@ -12,11 +12,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.74.0';
 import {
   corsHeadersFor,
   sha256Hex,
+  ALLOWED_ORIGINS,
 } from '../_shared/sso-cookies.ts';
 
 Deno.serve(async (req) => {
   const cors = corsHeadersFor(req);
+  const origin = req.headers.get('origin') ?? '';
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
+  console.log('[sso-redeem] request', { origin, allowed: ALLOWED_ORIGINS.includes(origin) });
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405, cors);
 
   try {
