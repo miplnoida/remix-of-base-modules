@@ -26,9 +26,15 @@ export const CSRF_COOKIE = 'sb-csrf';
 
 export function corsHeadersFor(req: Request): Record<string, string> {
   const origin = req.headers.get('origin') ?? '';
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0] ?? '';
+  const isAllowed = ALLOWED_ORIGINS.includes(origin);
+  if (!isAllowed && origin) {
+    // Log loudly so misconfigured satellites are obvious in edge logs instead
+    // of silently getting the first allow-listed origin echoed back.
+    console.warn('[sso-cors] origin not allowed', { origin, allowed: ALLOWED_ORIGINS });
+  }
   return {
-    'Access-Control-Allow-Origin': allowed,
+    // Echo only when allowed; empty otherwise so the browser fails CORS clearly.
+    'Access-Control-Allow-Origin': isAllowed ? origin : '',
     'Access-Control-Allow-Headers':
       'authorization, x-client-info, apikey, content-type, x-csrf-token',
     'Access-Control-Allow-Credentials': 'true',
