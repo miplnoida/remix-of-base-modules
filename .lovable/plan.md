@@ -1,30 +1,118 @@
-## Problem
+## Target
 
-On Admin → C3 Configuration → Bonus, the section header "BONUS DISTRIBUTION BY PAYROLL CYCLE" overlaps with its helper sentence ("Select which payroll week/payment the bonus should be included in for each frequency...").
+Synchronize only **Integrated Compliance Hub** (`8471f73c-7659-4260-8d4d-c70dfbebe261`) so its **Compliance & Enforcement** module screens, components, menu items, and routes match **SocialServe** (`455cbbae-c40e-4f3f-af49-d9ed99089948`).
 
-Root cause: the helper `<p>` directly below `<SectionLabel>` uses the negative margin class `-mt-4`, which pulls the paragraph upward and on top of the uppercase label. The same pattern is used elsewhere in the same file and in the Exceptions tab.
+No changes will be made to SocialServe and no database/backend changes will be made.
 
-## Fix (UI only — no logic changes)
+## Key finding
 
-Remove the `-mt-4` negative margin and replace with normal spacing (`mt-1`) so the helper line sits cleanly under the section label.
+The satellite already has many Compliance files copied, but it is still not matching because the satellite uses `src/pages/compliance/Routes.tsx`, while the main SocialServe module exposes newer Compliance screens through the main app router. Several SocialServe Compliance screens exist but are not routed in the satellite, including enhanced planner/revision flows, case detail, audit visit/report print, and approval inbox screens.
 
-### Files to edit
+## Implementation plan for the satellite project only
 
-1. `src/components/admin/c3-configuration/BonusPolicyDefaultTab.tsx`
-   - Line 348: helper under "Bonus Distribution by Payroll Cycle" — change `-mt-4` → `mt-1`, then add `mb-3` for breathing room above the cycle blocks.
-   - Line 372: helper under "Contribution Base Calculation" — same change for consistency (it has the same overlap risk).
+1. **Update satellite Compliance route map**
+   - Replace the satellite `src/pages/compliance/Routes.tsx` route definitions with the SocialServe Compliance route surface, adapted for the satellite nested `/compliance/*` route.
+   - Add missing canonical routes:
+     - `/compliance/workbench`
+     - `/compliance/cases/:id`
+     - `/compliance/field/plan-builder-v2`
+     - `/compliance/field/plan-builder-v3`
+     - `/compliance/field/approval-inbox`
+     - `/approval/inbox` equivalent inside the satellite where applicable
+     - `/approval/decide` if the standalone approval decision page is required by copied links
+     - `/compliance/field/revisions-pending`
+     - `/compliance/field/revision-review/:revisionId`
+     - `/compliance/field/execution-dashboard/:planId/visit/:planItemId`
+     - `/compliance/field/audit-visit/:planItemId`
+     - `/compliance/field/audit-report/:reportId/print/:variant`
+     - `/compliance/enforcement/legal-referral`
+     - `/compliance/reports`
+   - Keep legacy redirects from SocialServe so old Compliance links continue landing on the same canonical screens.
 
-2. `src/components/admin/c3-configuration/BonusPolicyExceptionsTab.tsx`
-   - Line 379 area (helper under "Bonus Distribution by Payroll Cycle") and any sibling `-mt-4` helper paragraphs — apply the same `-mt-4` → `mt-1` fix.
+2. **Mirror all Compliance screen files used by those routes**
+   - Copy/update from SocialServe into the satellite for every routed screen under:
+     - `src/pages/compliance/**`
+   - Specifically ensure these currently under-routed screens are present and identical:
+     - `workbench/WorkbenchLanding.tsx`
+     - `cases/CaseDetailView.tsx`
+     - `audit-planning/WeeklyPlanBuilderV2.tsx`
+     - `audit-planning/WeeklyPlanBuilderV3.tsx`
+     - `audit-planning/PlannerApprovalInbox.tsx`
+     - `audit-planning/PlannerApprovalDecidePage.tsx`
+     - `audit-planning/RevisionsPending.tsx`
+     - `audit-planning/PlanRevisionReview.tsx`
+     - `audit-planning/AuditVisitWorkspace.tsx`
+     - `audit-planning/AuditReportPrintPage.tsx`
+     - `reports/ComplianceReports.tsx`
 
-No changes to:
-- `SectionLabel` component itself (used elsewhere correctly)
-- Form logic, validation, mutations, schema, RLS, or DB
-- Any other tab or screen
+3. **Mirror supporting Compliance components**
+   - Copy/update all SocialServe Compliance UI components used by the screens:
+     - `src/components/compliance/**`
+   - Include the enhanced weekly planner component subtree:
+     - `src/components/compliance/weekly-plan/**`
+     - `src/components/compliance/weekly-plan/v3/**`
+   - Preserve the satellite app shell and sidebar layout; only the Compliance menu should render.
 
-## Verification
+4. **Mirror supporting hooks, services, libs, config, and types required by Compliance**
+   - Copy/update only dependencies required by copied Compliance screens:
+     - `src/hooks/useComplianceRole.ts`
+     - `src/hooks/useComplianceWorkbench.ts`
+     - `src/hooks/useHasCapability.ts`
+     - `src/hooks/useWeeklyPlanBuilder.ts`
+     - `src/hooks/compliance/**`
+     - `src/services/compliance/**`
+     - `src/services/plannerApprovalService.ts`
+     - `src/services/plannerCandidateActionsService.ts`
+     - `src/services/plannerApprovalService.ts`
+     - `src/services/caseViolationService.ts`
+     - `src/services/complianceDataService.ts`
+     - `src/lib/compliance/**`
+     - `src/lib/smartDraftEngine.ts`
+     - related `src/types/**` files, especially `weeklyPlan`, `violation`, `legal`, `inspection`, and Compliance settings types.
+   - Do not copy unrelated BN, C3, Payments, or other non-Compliance modules unless a Compliance screen imports a shared utility from them and the import cannot be safely removed.
 
-- Reload Admin → C3 Configuration → Bonus default policy form.
-- Confirm "BONUS DISTRIBUTION BY PAYROLL CYCLE" sits on its own line with the helper text rendered cleanly below it (no overlap).
-- Confirm "CONTRIBUTION BASE CALCULATION" section also renders cleanly.
-- Repeat for the Exceptions tab.
+5. **Align sidebar menu with SocialServe Compliance routes**
+   - Update `src/components/sidebar/menuItems/complianceMenuItems.ts` in the satellite to match the active SocialServe Compliance menu.
+   - Ensure every visible menu URL has a working route.
+   - Add or correct menu entries for any SocialServe Compliance screens that should be reachable, such as enhanced planner, approvals, revisions, reports, legal referral, and case detail entry points where appropriate.
+   - Keep `DynamicSidebarContent` satellite-specific so it renders only `complianceMenuItems`.
+
+6. **Keep satellite shell and authentication intact**
+   - Do not replace the satellite `src/App.tsx` shell unless a route must be added outside `/compliance/*` for approval decision or auth exchange.
+   - Preserve:
+     - `/auth/exchange`
+     - `/login`
+     - `/` redirect to `/compliance/workbench/manager`
+     - `/compliance/*` protected layout
+   - Do not modify backend auth settings or environment/database configuration.
+
+7. **Run import and route verification**
+   - Sweep copied files for unresolved `@/...` imports.
+   - Copy only missing shared files needed for Compliance screens.
+   - Verify these satellite routes render without missing-component errors:
+     - `/compliance/workbench`
+     - `/compliance/workbench/manager`
+     - `/compliance/workbench/monitoring`
+     - `/compliance/violations`
+     - `/compliance/cases`
+     - `/compliance/cases/:id`
+     - `/compliance/field/plan-builder`
+     - `/compliance/field/plan-builder-v2`
+     - `/compliance/field/plan-builder-v3`
+     - `/compliance/field/approval-inbox`
+     - `/compliance/field/revisions-pending`
+     - `/compliance/field/audit-management`
+     - `/compliance/enforcement/legal-queue`
+     - `/compliance/enforcement/legal-referral`
+     - `/compliance/reports`
+     - `/compliance/admin/settings/rule-engine`
+     - `/compliance/admin/report-templates`
+
+## Guardrails
+
+- No database migrations.
+- No backend changes.
+- No SocialServe file edits.
+- No changes to `src/integrations/supabase/client.ts` or generated backend type files.
+- No mock data added.
+- Satellite keeps only Compliance & Enforcement navigation.
