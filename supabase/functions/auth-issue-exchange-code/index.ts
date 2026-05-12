@@ -15,7 +15,9 @@ const ALLOWED_APPS = new Set(['internal_audit', 'compliance']);
 
 Deno.serve(async (req) => {
   const cors = corsHeadersFor(req);
+  const origin = req.headers.get('origin') ?? '';
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
+  console.log('[sso-issue] request', { origin, allowed: ALLOWED_ORIGINS.includes(origin) });
 
   try {
     const auth = req.headers.get('Authorization');
