@@ -210,3 +210,11 @@ const auditMenuItemsRaw = [
     ]
   }
 ];
+
+
+/**
+ * When VITE_USE_AUDIT_HUB_REMOTE=true the Internal Audit menu URLs are
+ * rewritten from /audit/... to /audit-hub/... so clicks land on the embedded
+ * SatelliteFrame route instead of the local pages.
+ */
+export const auditMenuItems = applyAuditRemoteRouting(auditMenuItemsRaw);

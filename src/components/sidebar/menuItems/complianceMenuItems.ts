@@ -591,3 +591,11 @@ const complianceMenuItemsRaw = [
     ],
   },
 ];
+
+
+/**
+ * When VITE_USE_COMPLIANCE_HUB_REMOTE=true the Compliance menu URLs are
+ * rewritten from /compliance/... to /compliance-hub/... so clicks land on
+ * the embedded SatelliteFrame route instead of the local pages.
+ */
+export const complianceMenuItems = applyComplianceRemoteRouting(complianceMenuItemsRaw);
