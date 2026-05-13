@@ -112,7 +112,6 @@ export default function AllWeeklyReports() {
         updated_by: userCode || userId || '',
       });
       // Log review action
-      const { supabase } = await import('@/integrations/supabase/client');
       await supabase.from('ce_weekly_plan_reviews').insert({
         plan_id: reviewPlan.id,
         action: 'OUTCOME_REJECTED',
