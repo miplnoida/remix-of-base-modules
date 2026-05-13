@@ -5,10 +5,10 @@ Satellites are external Lovable projects that render inside SocialServe's
 
 ## Steps
 
-1. Add env vars:
-   - `VITE_<APP>_HUB_URL`            — satellite preview / production URL
-   - `VITE_<APP>_HUB_ORIGIN`         — comma-separated allow-list of origins
-   - `VITE_USE_<APP>_HUB_REMOTE=true` — feature flag to swap menu URLs
+1. Add an entry to `SATELLITE_CONFIG` in `src/config/satellites.ts`:
+   - `enabled: true` to swap menu URLs to the iframe route.
+   - `url.preview` / `url.production` — satellite URLs.
+   - `allowedOrigins` — both preview and published origins of the satellite.
 
 2. Add a route in `src/components/routing/AppRoutes.tsx`:
 

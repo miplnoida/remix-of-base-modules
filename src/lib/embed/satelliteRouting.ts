@@ -21,29 +21,25 @@ export const AUDIT_LOCAL_PREFIX = '/audit';
 
 export type SatelliteApp = 'compliance' | 'audit';
 
+import { SATELLITE_CONFIG, pickSatelliteUrl } from '@/config/satellites';
+
 export const isComplianceRemoteEnabled = (): boolean =>
-  String(import.meta.env.VITE_USE_COMPLIANCE_HUB_REMOTE ?? '').toLowerCase() === 'true';
+  SATELLITE_CONFIG.compliance.enabled;
 
 export const isAuditRemoteEnabled = (): boolean =>
-  String(import.meta.env.VITE_USE_AUDIT_HUB_REMOTE ?? '').toLowerCase() === 'true';
+  SATELLITE_CONFIG.audit.enabled;
 
 export const getComplianceHubUrl = (): string =>
-  String(import.meta.env.VITE_COMPLIANCE_HUB_URL ?? '');
+  pickSatelliteUrl(SATELLITE_CONFIG.compliance);
 
 export const getAuditHubUrl = (): string =>
-  String(import.meta.env.VITE_AUDIT_HUB_URL ?? '');
-
-const allowedOrigins = (csv: string | undefined): string[] =>
-  String(csv ?? '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean);
+  pickSatelliteUrl(SATELLITE_CONFIG.audit);
 
 export const getComplianceHubAllowedOrigins = (): string[] =>
-  allowedOrigins(import.meta.env.VITE_COMPLIANCE_HUB_ORIGIN as string | undefined);
+  [...SATELLITE_CONFIG.compliance.allowedOrigins];
 
 export const getAuditHubAllowedOrigins = (): string[] =>
-  allowedOrigins(import.meta.env.VITE_AUDIT_HUB_ORIGIN as string | undefined);
+  [...SATELLITE_CONFIG.audit.allowedOrigins];
 
 const swapPrefix = (url: string, from: string, to: string): string => {
   if (typeof url !== 'string' || !url.startsWith(from)) return url;
