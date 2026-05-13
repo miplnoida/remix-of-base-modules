@@ -84,7 +84,7 @@ export default function DocumentCenter() {
       type: formData.get('type'),
       confidential: formData.get('confidential') === 'on',
       file_path: '/placeholder/path', // In production, upload to storage
-      uploaded_by: (await import('@/integrations/supabase/client')).supabase.auth.getUser().then(u => u.data.user?.id),
+      uploaded_by: supabase.auth.getUser().then(u => u.data.user?.id),
       size: '1.2 MB',
       checksum: crypto.randomUUID(),
     });
