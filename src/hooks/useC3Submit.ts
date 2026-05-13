@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserCode } from './useUserCode';
+import { resolveReportingManagerForTask } from '@/services/resolveReportingManager';
 
 const formatDbError = (err: unknown): string => {
   if (!err) return 'Unknown error';
@@ -225,7 +226,6 @@ const triggerC3Workflow = async (
         taskAssignment.assigned_to = userIds[0];
       }
     } else if (approverType === 'reporting_manager') {
-      const { resolveReportingManagerForTask } = await import('@/services/resolveReportingManager');
       if (userId) {
         const resolved = await resolveReportingManagerForTask(userId, instance.id, firstStep.id, firstStep.step_name);
         if (resolved) { taskAssignment.assigned_to = resolved.managerId; }

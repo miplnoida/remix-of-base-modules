@@ -11,6 +11,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { resolveReportingManagerForTask } from '@/services/resolveReportingManager';
 
 const ER_MODULE_ID = '683ed102-9a5a-41d7-91d3-1e00c2e15a15';
 
@@ -155,7 +156,6 @@ export async function triggerEmployerRegistrationWorkflow(
       const userIds = (firstStep as any).approver_user_ids as string[];
       if (userIds.length === 1) taskAssignment.assigned_to = userIds[0];
     } else if (approverType === 'reporting_manager') {
-      const { resolveReportingManagerForTask } = await import('@/services/resolveReportingManager');
       if (userId) {
         const resolved = await resolveReportingManagerForTask(userId, instance.id, firstStep.id, firstStep.step_name);
         if (resolved) taskAssignment.assigned_to = resolved.managerId;

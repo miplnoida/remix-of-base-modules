@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { logApplicationError } from '@/lib/globalErrorHandler';
+import { resolveReportingManagerForTask } from '@/services/resolveReportingManager';
 
 export interface WorkflowDefinition {
   id: string;
@@ -1007,7 +1008,6 @@ export function useProcessWorkflowTask() {
             } else if (approverType === 'reporting_manager') {
               const { data: inst } = await supabase.from('workflow_instances').select('started_by').eq('id', task.instance_id).single();
               if (inst?.started_by) {
-                const { resolveReportingManagerForTask } = await import('@/services/resolveReportingManager');
                 const resolved = await resolveReportingManagerForTask(inst.started_by, task.instance_id, nextStep.id, nextStep.step_name);
                 if (resolved) { taskAssignment.assigned_to = resolved.managerId; }
               }
@@ -1221,7 +1221,6 @@ export function useStartWorkflow() {
       } else if (approverType === 'reporting_manager') {
         const currentUserId = user.user?.id;
         if (currentUserId && instance) {
-          const { resolveReportingManagerForTask } = await import('@/services/resolveReportingManager');
           const resolved = await resolveReportingManagerForTask(currentUserId, instance.id, firstStep.id, firstStep.step_name);
           if (resolved) { taskAssignment.assigned_to = resolved.managerId; }
         }

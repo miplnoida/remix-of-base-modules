@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { logApplicationError } from '@/lib/globalErrorHandler';
+import { resolveReportingManagerForTask } from '@/services/resolveReportingManager';
 
 // Workflow configuration for each application type
 export interface WorkflowConfig {
@@ -176,7 +177,6 @@ async function bindWorkflowToApplication(
         taskAssignment.assigned_to = userIds[0];
       }
     } else if (approverType === 'reporting_manager') {
-      const { resolveReportingManagerForTask } = await import('@/services/resolveReportingManager');
       if (userId) {
         const resolved = await resolveReportingManagerForTask(userId, instance.id, firstStep.id, firstStep.step_name);
         if (resolved) { taskAssignment.assigned_to = resolved.managerId; }
