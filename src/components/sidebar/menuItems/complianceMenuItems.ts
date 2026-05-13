@@ -39,8 +39,9 @@ import {
   Mail,
   Layers,
 } from "lucide-react";
+import { applyComplianceRemoteRouting } from "@/lib/embed/satelliteRouting";
 
-export const complianceMenuItems = [
+const complianceMenuItemsRaw = [
   {
     title: "Compliance & Enforcement",
     icon: Shield,

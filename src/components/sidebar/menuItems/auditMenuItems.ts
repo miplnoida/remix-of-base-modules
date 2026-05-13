@@ -19,8 +19,9 @@ import {
   Mail,
   Building2,
 } from "lucide-react";
+import { applyAuditRemoteRouting } from "@/lib/embed/satelliteRouting";
 
-export const auditMenuItems = [
+const auditMenuItemsRaw = [
   {
     title: "Internal Audit",
     icon: Shield,
