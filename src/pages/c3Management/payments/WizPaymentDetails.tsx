@@ -81,11 +81,9 @@ export default function WizPaymentDetails() {
 
   useEffect(() => {
     if (selectedType === 'SelfEmployee') {
-      import('@/services/wizSelfEmployedService').then(mod => {
-        mod.getSelfEmployedList({ page_offset: 0, page_limit: 1000 }).then(res => {
-          if (res.data?.records) setSelfEmployedList(res.data.records);
-        }).catch(() => {});
-      });
+      getSelfEmployedList({ page_offset: 0, page_limit: 1000 }).then(res => {
+        if (res.data?.records) setSelfEmployedList(res.data.records);
+      }).catch(() => {});
     }
   }, [selectedType]);
 
