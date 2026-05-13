@@ -197,7 +197,11 @@ function buildMenuTree(modules: ModuleRow[]): MenuItem[] {
   }
 
   rootModules.sort(sortModules);
-  return rootModules.map(m => buildMenuItem(m, null));
+  const built = rootModules.map(m => buildMenuItem(m, null));
+  // Rewrite local prefixes to satellite-host prefixes when remote is enabled
+  // so DB-driven menu clicks land on the in-app SatelliteFrame route
+  // (which preserves host sidebar + header) instead of the local pages.
+  return applyAuditRemoteRouting(applyComplianceRemoteRouting(built));
 }
 
 // ── Internal Audit: workflow-based group definitions ──
