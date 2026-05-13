@@ -1,93 +1,61 @@
-## Goal
 
-Eliminate the unreliable `import.meta.env.VITE_*` reads for the satellite embed bridge by hard-coding the URLs/origins/flags in versioned config modules. This works immediately in Lovable preview, published `.lovable.app`, and the custom `*.secureserve.biz` domains — no Build Secrets needed.
+## Root cause
 
-## Known URLs
+The DB-driven sidebar (`useDynamicNavigation`) prepends each module's `base_url` to its route. The two root modules are currently configured as:
 
-| Project | Preview URL | Production URL |
-|---|---|---|
-| SocialServe (host) | `https://id-preview--455cbbae-c40e-4f3f-af49-d9ed99089948.lovable.app` | `https://admin.secureserve.biz` (also `https://social-wellspring-app.lovable.app`) |
-| Integrated Compliance Hub | `https://id-preview--8471f73c-7659-4260-8d4d-c70dfbebe261.lovable.app` | `https://compliance.secureserve.biz` |
-| SocialServe-Internal Audit | `https://id-preview--7e98fc6b-f149-4e9f-9fd2-cbef90aba410.lovable.app` | `https://internalaudit.secureserve.biz` |
+| display_name | base_url | example child route | resulting menu URL |
+|---|---|---|---|
+| Internal Audit | `https://internalaudit.secureserve.biz` | `/audit/dashboard` | `https://internalaudit.secureserve.biz/audit/dashboard` |
+| Compliance & Enforcement | `https://compliance.secureserve.biz` | `/compliance/workbench` | `https://compliance.secureserve.biz/compliance/workbench` |
 
-## 1. Host (SocialServe) — this project
+Because the menu URLs are absolute external URLs, clicking them does a **top-level browser navigation** away from SocialServe to the satellite domain. That's why:
 
-**New file:** `src/config/satellites.ts`
+1. **Compliance** appears full-screen with no host sidebar/header — the user is now on `compliance.secureserve.biz` (the satellite's own standalone shell), not inside SocialServe.
+2. **Internal Audit** shows only a "Loading…" message — same thing, but the satellite at `internalaudit.secureserve.biz` is still showing its own loading state (the embed/satellite shell isn't fully wired or auth isn't shared).
 
-```ts
-export const SATELLITE_CONFIG = {
-  compliance: {
-    enabled: true,
-    // Pick prod URL when host is on a non-preview origin, else preview URL.
-    url: {
-      preview: "https://id-preview--8471f73c-7659-4260-8d4d-c70dfbebe261.lovable.app",
-      production: "https://compliance.secureserve.biz",
-    },
-    allowedOrigins: [
-      "https://id-preview--8471f73c-7659-4260-8d4d-c70dfbebe261.lovable.app",
-      "https://compliance.secureserve.biz",
-    ],
-  },
-  audit: {
-    enabled: true,
-    url: {
-      preview: "https://id-preview--7e98fc6b-f149-4e9f-9fd2-cbef90aba410.lovable.app",
-      production: "https://internalaudit.secureserve.biz",
-    },
-    allowedOrigins: [
-      "https://id-preview--7e98fc6b-f149-4e9f-9fd2-cbef90aba410.lovable.app",
-      "https://internalaudit.secureserve.biz",
-    ],
-  },
-} as const;
+The `SatelliteFrame` route (`/compliance-hub/*`, `/audit-hub/*`) we added is correct and is wrapped in `ProtectedLayout` (sidebar + header), but **no menu link ever points to it** because the static `complianceMenuItems` / `auditMenuItems` files we updated aren't imported by anything — the real sidebar is built from DB rows.
 
-export const pickSatelliteUrl = (
-  cfg: { url: { preview: string; production: string } },
-): string => {
-  const host = typeof window !== "undefined" ? window.location.hostname : "";
-  const isPreview = host.includes("id-preview--") || host.endsWith("lovable.app");
-  return isPreview ? cfg.url.preview : cfg.url.production;
-};
+## Fix
+
+Two coordinated changes — one DB, one code — so DB-driven menu clicks land on the in-app `SatelliteFrame` host route instead of leaving the app.
+
+### 1. DB migration — clear `base_url` on the two satellite root modules
+
+```sql
+update public.app_modules
+   set base_url = null
+ where id in (
+   '014f0c8f-7388-4bf9-9de0-28d122b6d3bf', -- Internal Audit
+   'ca000000-0000-0000-0000-000000000001'  -- Compliance & Enforcement
+ );
 ```
 
-**Edit:** `src/lib/embed/satelliteRouting.ts` — replace the `import.meta.env.*` reads in `getComplianceHubUrl`, `getAuditHubUrl`, `getComplianceHubAllowedOrigins`, `getAuditHubAllowedOrigins`, `isComplianceRemoteEnabled`, `isAuditRemoteEnabled` with values from `SATELLITE_CONFIG` + `pickSatelliteUrl`. Remote-enabled flags become `SATELLITE_CONFIG.compliance.enabled` / `.audit.enabled`.
+This stops `useDynamicNavigation` from producing absolute external URLs. After this, child menu URLs become plain local paths like `/audit/dashboard` and `/compliance/workbench`.
 
-No other host changes needed — `SatelliteFrame`, menu rewrites, and `AppRoutes` keep working through the same getters.
+### 2. Code — rewrite local prefixes to satellite-host prefixes when remote enabled
 
-## 2. Satellite (Integrated Compliance Hub)
+Edit `src/hooks/useDynamicNavigation.ts` `buildMenuItem()` so that, after computing `menuItem.url`, it rewrites:
 
-**New file:** `src/config/host.ts`
+- `/compliance` → `/compliance-hub` when `isComplianceRemoteEnabled()` is true
+- `/audit` → `/audit-hub`        when `isAuditRemoteEnabled()`     is true
 
-```ts
-export const ALLOWED_HOST_ORIGINS = [
-  "https://id-preview--455cbbae-c40e-4f3f-af49-d9ed99089948.lovable.app",
-  "https://social-wellspring-app.lovable.app",
-  "https://admin.secureserve.biz",
-];
-```
+Use the same `swapPrefix` helper logic from `src/lib/embed/satelliteRouting.ts` (export it, or import the existing `applyComplianceRemoteRouting` / `applyAuditRemoteRouting` and apply them to the final `rootModules.map(buildMenuItem…)` output — simplest).
 
-**Edit:** `src/lib/embed/hostBridge.ts` — replace `getAllowedHostOrigins()` body to `return ALLOWED_HOST_ORIGINS;` (drop the `VITE_HOST_ORIGIN` parsing). Remove the env-var doc reference in `docs/EMBED_MODE.md`.
+After this:
+- Click "Compliance Dashboard" → URL `/compliance-hub/dashboard` → `<ProtectedLayout><SatelliteFrame app="compliance" …/></ProtectedLayout>` renders → host sidebar + header stay visible, satellite content loads in iframe.
+- Click "Audit Dashboard" → URL `/audit-hub/dashboard` → same for audit.
 
-## 3. Satellite (SocialServe-Internal Audit)
+To toggle either satellite off later, set `SATELLITE_CONFIG.compliance.enabled` / `.audit.enabled` to `false` in `src/config/satellites.ts` — the rewrite is skipped and clicks go to the existing local pages.
 
-Same change as #2: create `src/config/host.ts` with the identical three host origins, and point `hostBridge.ts` at it.
+### 3. Sanity check after the fix
 
-## 4. Documentation
+- Reload the host preview, click any Compliance and any Audit menu item.
+- Confirm host sidebar + header remain visible and the iframe area shows the satellite content (or its standalone shell if the satellite isn't yet running the embed shell — that's the satellite team's follow-up).
+- The "Loading…" state should now come from inside the iframe, not from a hard browser redirect.
 
-Update `docs/SATELLITE_EMBED_INSTRUCTIONS.md` and `docs/SATELLITE_HOST_INTEGRATION.md` to:
-- Remove the "set `VITE_*` env vars" sections.
-- Replace with "edit `src/config/satellites.ts` (host) / `src/config/host.ts` (satellite) and add the new origin to the relevant array, then republish."
+## Out of scope (do not touch)
 
-## What I will NOT touch
-
-- `src/integrations/supabase/client.ts`, `src/integrations/supabase/types.ts`, `.env`, `supabase/config.toml` — untouched.
-- No DB / edge-function / auth changes.
-- Satellite repos: I cannot edit them directly from this project; I will produce the exact two-file paste-in for each (file path + full contents) at the end so you can drop them into each satellite in one shot.
-
-## Deliverable for satellites
-
-After approval, I will print a ready-to-paste prompt containing:
-1. The full `src/config/host.ts` file contents.
-2. The exact `hostBridge.ts` patch (search/replace block) that swaps the env read for the import.
-
-You then paste that prompt once into each satellite project. No env vars, no Build Secrets, no workspace coordination required.
+- `src/integrations/supabase/client.ts`, `types.ts`, `.env`, `supabase/config.toml`.
+- The unused static menu files (`complianceMenuItems.ts`, `auditMenuItems.ts`) — left alone; they remain dormant.
+- Any auth / RLS / edge-function changes.
+- Satellite repos — the host fix is independent of any satellite-side update.
