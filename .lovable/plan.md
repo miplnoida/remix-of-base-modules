@@ -1,35 +1,39 @@
-## Findings
+## Plan to fix and publish
 
-- The site is already published and public, and the Live backend is healthy.
-- The screenshot error is a generic publish failure, not an app/browser network failure.
-- The previous package-lock mismatch hypothesis no longer holds: `package.json` and `package-lock.json` now match.
-- Live is behind Test by many migrations. The next publish likely tries to apply those pending backend changes to Live.
-- At least one pending migration is not publish-safe/idempotent:
-  - `20260505102047_...sql` runs `ALTER PUBLICATION supabase_realtime ADD TABLE public.ia_risk_categories` without checking if the table is already in the realtime publication. If Live has partial migration state from a failed publish, this can fail the next publish.
-- Another pending migration creates multiple `bn_medical_*` tables using plain `CREATE TABLE`, not `CREATE TABLE IF NOT EXISTS`; that can also fail if Live contains any of those objects from a partial publish.
+### What I found
+- The published site is already public, and the Live backend is responding normally.
+- Live is behind Test by many backend migrations; publishing likely fails while applying pending backend changes.
+- The highest-risk pending migrations are not retry-safe if a previous publish partially applied them:
+  - Medical benefit setup creates tables/indexes/triggers with plain `CREATE ...` statements.
+  - Internal Audit risk categories adds a realtime publication entry without checking if it already exists.
+- The affected Internal Audit and Compliance menu routes use embedded satellite modules. The current host keeps the sidebar/header around the iframe, but the embedded module readiness can leave a “Loading...” state if the satellite does not send the expected handshake.
 
-## Plan
+### Changes I will make
+1. **Make pending backend migrations publish-safe**
+   - Update the medical benefit setup migration to use guarded table/index creation.
+   - Make trigger creation idempotent by dropping/recreating triggers or checking existence before creation.
+   - Wrap the realtime publication add for `ia_risk_categories` so repeated/partial publishes do not fail.
+   - Keep the project rule unchanged: do not add RLS.
 
-1. **Make pending migrations idempotent where they can fail on retry**
-   - Update the pending `ia_risk_categories` migration to add realtime only when the publication entry does not already exist.
-   - Update the pending medical-benefit setup migration to use `CREATE TABLE IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, and safe trigger creation where needed.
-   - Preserve the existing project constraint: no new RLS policies.
+2. **Patch related retry hazards in pending migrations**
+   - Review pending migrations since the last Live migration and fix only statements that can block a second publish after partial execution.
+   - Preserve existing behavior and data model.
 
-2. **Check other pending migrations for retry hazards**
-   - Review the migrations after the last successful Live version for duplicate-prone statements such as plain `CREATE TABLE`, `CREATE INDEX`, `CREATE TRIGGER`, or non-guarded realtime publication changes.
-   - Patch only statements that can block a repeated publish after a partial Live migration.
+3. **Improve embedded Internal Audit / Compliance loading behavior**
+   - Keep `/audit-hub/*` and `/compliance-hub/*` inside the protected app layout so the left navigation and header remain visible.
+   - Replace the indefinite “Loading...” behavior with a clearer timeout/retry fallback for the embedded module.
+   - Ensure the iframe container does not break out into a full-screen layout outside the host shell.
 
-3. **Validate publish readiness without changing product behavior**
-   - Re-run read-only checks comparing Live/Test migration state and local migration files.
-   - Run targeted validation suitable for publish failure diagnosis.
-   - Do not make UI/business-logic changes.
+4. **Validate readiness**
+   - Run targeted checks for migration safety patterns.
+   - Verify Test/Live migration state after changes.
+   - Confirm no backend errors are showing in recent logs.
 
-4. **Republish**
-   - After the migration files are publish-safe, use the Publish dialog’s **Update** button again.
-   - If publishing still fails, the next suspect is deployment volume from the large number of backend functions; then we should isolate whether a backend function deploy is failing.
+5. **Publish to Live**
+   - After fixes are implemented, use the Publish/Update flow to push the app live.
+   - If the publish tool still reports a generic failure, the next isolated cause will be deployment volume from the large number of backend functions, and I’ll narrow it to the failing deploy step.
 
-## Files expected to change
-
-- `supabase/migrations/20260505102047_9cf8b5d5-40a4-4750-abab-134a04be740b.sql`
-- `supabase/migrations/20260501074942_c2ca9684-b238-4a23-88d0-2010b56b93d0.sql`
-- Possibly other pending migration files only if they contain the same retry-unsafe patterns.
+### Expected outcome
+- Publish should be able to retry safely even if Live has partial backend changes from earlier attempts.
+- Internal Audit should no longer remain stuck on an indefinite loading screen.
+- Compliance & Enforcement should remain within the normal application shell with left navigation and header visible.
