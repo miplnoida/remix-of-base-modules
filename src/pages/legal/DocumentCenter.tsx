@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { FileText, Grid3x3, List, Upload, Filter, Search, Save, Download, Share2, FileSignature, Tag, Archive, Eye, Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
