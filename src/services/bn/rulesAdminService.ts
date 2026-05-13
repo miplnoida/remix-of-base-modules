@@ -38,6 +38,7 @@
  *   - Version retirement is soft (status change, not deletion)
  */
 import { supabase } from '@/integrations/supabase/client';
+import { runCalculationEngine } from './calculationEngine';
 
 const db = supabase as any;
 
@@ -539,7 +540,6 @@ export async function simulateVersionRules(
   }
 ) {
   // Delegate to the existing calculation engine in simulation mode
-  const { runCalculationEngine } = await import('./calculationEngine');
   return runCalculationEngine({
     claimId: `sim-${Date.now()}`,
     ssn: simulationInput.ssn,

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { exportToPDF } from '@/utils/exportUtils';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -197,7 +198,6 @@ export const DataTable: React.FC<DataTableProps> = ({
     }
     if (format === 'pdf') {
       try {
-        const { exportToPDF } = await import('@/utils/exportUtils');
         const cols = displayColumns.filter(c => c.key !== 'actions');
         const exportCols = cols.map(c => ({ header: c.label, key: c.key }));
         const exportData = filteredData.map(row => {

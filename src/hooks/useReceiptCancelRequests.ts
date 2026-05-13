@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
+import { resolveReportingManagerForTask } from '@/services/resolveReportingManager';
 
 const CANCEL_WORKFLOW_ID = '65f82f25-e422-438e-8c12-005a23d81d62';
 const CANCEL_STEP_ID = 'a072b471-3d03-4bab-86fa-bd45480a78d1';
@@ -148,7 +149,6 @@ export function useCreateReceiptCancelRequest() {
         .single();
 
       if (stepConfig?.approver_type === 'reporting_manager' && user.id) {
-        const { resolveReportingManagerForTask } = await import('@/services/resolveReportingManager');
         const resolved = await resolveReportingManagerForTask(
           user.id, instance.id, CANCEL_STEP_ID, CANCEL_STEP_NAME
         );

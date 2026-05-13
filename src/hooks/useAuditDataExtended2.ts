@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { notifyFindingCreated } from '@/services/auditNotificationService';
 
 // ============= FINDINGS =============
 export function useIAFindings(activityId?: string) {
@@ -36,7 +37,6 @@ export function useIAFindingMutations() {
       });
       // Also send notification if department_id is set
       if (finding.department_id) {
-        const { notifyFindingCreated } = await import('@/services/auditNotificationService');
         await notifyFindingCreated(finding.title, finding.department_id);
       }
     } catch (err) {

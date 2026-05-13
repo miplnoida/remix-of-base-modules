@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Save, X, Briefcase, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDisplayDate } from '@/lib/dateFormat';
-import { SelfEmployActivity } from '@/services/selfEmployedService';
+import { SelfEmployActivity, SelfEmployedService } from '@/services/selfEmployedService';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
 import { useSEPLookups } from '@/hooks/useSEPLookups';
 import { toast } from 'sonner';
@@ -213,7 +213,7 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
         if (hasRemainingData) {
           try {
             // Use the actual seq from newly loaded activities
-            const newActivities = await import('@/services/selfEmployedService').then(m => m.SelfEmployedService.getActivities(ssn));
+            const newActivities = await SelfEmployedService.getActivities(ssn);
             const latestAct = newActivities.find(a => a.self_ref_no === sref);
             if (latestAct) {
               await updateActivity(sref, latestAct.activity_seq_no, remaining as any);

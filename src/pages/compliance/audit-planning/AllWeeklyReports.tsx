@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -111,7 +112,6 @@ export default function AllWeeklyReports() {
         updated_by: userCode || userId || '',
       });
       // Log review action
-      const { supabase } = await import('@/integrations/supabase/client');
       await supabase.from('ce_weekly_plan_reviews').insert({
         plan_id: reviewPlan.id,
         action: 'OUTCOME_REJECTED',

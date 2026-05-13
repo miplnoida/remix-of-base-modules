@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { toast } from 'sonner';
+import { resolveReportingManagerForTask } from '@/services/resolveReportingManager';
 
 const WORKFLOW_ID = '8983e6e8-6df7-4a04-9d19-0a7e563bde2a';
 const FIRST_STEP_ID = 'c6d8db29-3671-4857-b5bb-d99b48b7dbb6';
@@ -143,7 +144,6 @@ export function useCreateCardMachineChangeRequest() {
         .single();
 
       if (stepConfig?.approver_type === 'reporting_manager' && user.id) {
-        const { resolveReportingManagerForTask } = await import('@/services/resolveReportingManager');
         const resolved = await resolveReportingManagerForTask(
           user.id, instance.id, FIRST_STEP_ID, FIRST_STEP_NAME
         );

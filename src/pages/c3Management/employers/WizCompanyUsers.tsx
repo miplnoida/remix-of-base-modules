@@ -15,7 +15,8 @@ import { Users, Edit, RefreshCw, Lock, Eye, EyeOff, Save, X, User, Upload } from
 import { toast } from 'sonner';
 import {
   getCompanyUsers, getCompaniesDropdown, getUserDetails, updateUser,
-  toggleUserStatus, changePassword, resetPassword, WizUser, WizCompanyDropdown
+  toggleUserStatus, changePassword, resetPassword, uploadUserProfileImage,
+  WizUser, WizCompanyDropdown
 } from '@/services/wizAdminApiService';
 import { format, parseISO } from 'date-fns';
 
@@ -235,7 +236,6 @@ const WizCompanyUsers: React.FC = () => {
                     reader.onload = async () => {
                       const base64 = reader.result as string;
                       try {
-                        const { uploadUserProfileImage } = await import('@/services/wizAdminApiService');
                         const res = await uploadUserProfileImage(editUser.user_id, base64, file.name);
                         setProfileImage(res.data?.profileImage || base64);
                         toast.success('Profile image uploaded');
