@@ -47,7 +47,7 @@ export default defineConfig(({ mode }) => ({
           'charts-vendor': ['recharts'],
           'date-vendor': ['date-fns'],
           'pdf-vendor': ['jspdf', 'jspdf-autotable', 'html2canvas'],
-          'excel-vendor': ['exceljs', 'xlsx', 'file-saver'],
+          'excel-vendor': ['exceljs', 'file-saver'],
           'icons-vendor': ['lucide-react'],
         },
       },
