@@ -20,6 +20,7 @@ import {
   type TransactionReceipt,
 } from '@/services/wizPaymentService';
 import { getCompaniesDropdown, getCompanyUsers, type WizCompanyDropdown, type WizUser } from '@/services/wizAdminApiService';
+import { getSelfEmployedList } from '@/services/wizSelfEmployedService';
 
 // ─── Currency Formatter ───────────────────────────────
 function fmtCurrency(val: number | null | undefined): string {
