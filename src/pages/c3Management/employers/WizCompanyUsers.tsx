@@ -15,7 +15,8 @@ import { Users, Edit, RefreshCw, Lock, Eye, EyeOff, Save, X, User, Upload } from
 import { toast } from 'sonner';
 import {
   getCompanyUsers, getCompaniesDropdown, getUserDetails, updateUser,
-  toggleUserStatus, changePassword, resetPassword, WizUser, WizCompanyDropdown
+  toggleUserStatus, changePassword, resetPassword, uploadUserProfileImage,
+  WizUser, WizCompanyDropdown
 } from '@/services/wizAdminApiService';
 import { format, parseISO } from 'date-fns';
 
