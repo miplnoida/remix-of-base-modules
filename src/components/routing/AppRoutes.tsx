@@ -17,6 +17,9 @@ import React, { Suspense, lazy } from 'react';
 // DB Diagram
 const DbDiagramPage = lazy(() => import('@/pages/db-diagram/DbDiagramPage'));
 
+// Embedded satellite micro-frontends (iframe + postMessage bridge)
+const SatelliteFrame = lazy(() => import('@/components/integrations/SatelliteFrame'));
+
 // Page imports
 import Index from '@/pages/dashboard/Index';
 import NotFound from '@/pages/NotFound';
@@ -915,6 +918,28 @@ export const AppRoutes = () => {
       
       {/* Dashboard */}
       <Route path="/" element={<ProtectedLayout><Index /></ProtectedLayout>} />
+
+      {/* Embedded satellite micro-frontends (iframe + postMessage bridge) */}
+      <Route
+        path="/compliance-hub/*"
+        element={
+          <ProtectedLayout>
+            <Suspense fallback={<div>Loading...</div>}>
+              <SatelliteFrame app="compliance" basePath="compliance-hub" title="Compliance & Enforcement" />
+            </Suspense>
+          </ProtectedLayout>
+        }
+      />
+      <Route
+        path="/audit-hub/*"
+        element={
+          <ProtectedLayout>
+            <Suspense fallback={<div>Loading...</div>}>
+              <SatelliteFrame app="audit" basePath="audit-hub" title="Internal Audit" />
+            </Suspense>
+          </ProtectedLayout>
+        }
+      />
       
       {/* Employers Management Routes */}
       <Route path="/employers-management/dashboard" element={<ProtectedLayout><EmployersDashboard /></ProtectedLayout>} />
