@@ -19,8 +19,9 @@ import {
   Mail,
   Building2,
 } from "lucide-react";
+import { applyAuditRemoteRouting } from "@/lib/embed/satelliteRouting";
 
-export const auditMenuItems = [
+const auditMenuItemsRaw = [
   {
     title: "Internal Audit",
     icon: Shield,
@@ -209,3 +210,11 @@ export const auditMenuItems = [
     ]
   }
 ];
+
+
+/**
+ * When VITE_USE_AUDIT_HUB_REMOTE=true the Internal Audit menu URLs are
+ * rewritten from /audit/... to /audit-hub/... so clicks land on the embedded
+ * SatelliteFrame route instead of the local pages.
+ */
+export const auditMenuItems = applyAuditRemoteRouting(auditMenuItemsRaw);

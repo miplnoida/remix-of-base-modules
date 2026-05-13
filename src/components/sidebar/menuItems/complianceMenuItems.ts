@@ -39,8 +39,9 @@ import {
   Mail,
   Layers,
 } from "lucide-react";
+import { applyComplianceRemoteRouting } from "@/lib/embed/satelliteRouting";
 
-export const complianceMenuItems = [
+const complianceMenuItemsRaw = [
   {
     title: "Compliance & Enforcement",
     icon: Shield,
@@ -590,3 +591,11 @@ export const complianceMenuItems = [
     ],
   },
 ];
+
+
+/**
+ * When VITE_USE_COMPLIANCE_HUB_REMOTE=true the Compliance menu URLs are
+ * rewritten from /compliance/... to /compliance-hub/... so clicks land on
+ * the embedded SatelliteFrame route instead of the local pages.
+ */
+export const complianceMenuItems = applyComplianceRemoteRouting(complianceMenuItemsRaw);
