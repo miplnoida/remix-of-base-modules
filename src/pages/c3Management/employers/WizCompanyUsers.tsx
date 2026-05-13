@@ -236,7 +236,6 @@ const WizCompanyUsers: React.FC = () => {
                     reader.onload = async () => {
                       const base64 = reader.result as string;
                       try {
-                        const { uploadUserProfileImage } = await import('@/services/wizAdminApiService');
                         const res = await uploadUserProfileImage(editUser.user_id, base64, file.name);
                         setProfileImage(res.data?.profileImage || base64);
                         toast.success('Profile image uploaded');
