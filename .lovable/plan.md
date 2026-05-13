@@ -1,185 +1,93 @@
 ## Goal
 
-Make SocialServe (host) embed two satellites — **Integrated Compliance Hub** and **SocialServe-Internal Audit** — inside its existing AppLayout. Header, sidebar, theme, and session stay owned by the host. Each satellite renders only its page content via iframe + postMessage bridge.
+Eliminate the unreliable `import.meta.env.VITE_*` reads for the satellite embed bridge by hard-coding the URLs/origins/flags in versioned config modules. This works immediately in Lovable preview, published `.lovable.app`, and the custom `*.secureserve.biz` domains — no Build Secrets needed.
 
-Same pattern applied twice. One reusable host component, one reusable embed kit per satellite.
+## Known URLs
 
----
-
-## Architecture
-
-```text
-SocialServe (host)
-┌──────────────────────────────────────────────┐
-│ AppLayout (Header + Sidebar)                 │
-│  └ <main>                                    │
-│      ├ /compliance-hub/*  → <SatelliteFrame  │
-│      │                       app="compliance"│
-│      │                       src=HUB_URL/>   │
-│      └ /audit-hub/*       → <SatelliteFrame  │
-│                              app="audit"     │
-│                              src=AUDIT_URL/> │
-└──────────────────────────────────────────────┘
-         │ iframe + postMessage (per app)
-         ▼                          ▼
-  Compliance Hub (embed=1)    Internal Audit (embed=1)
-  no Sidebar/Header           no Sidebar/Header
-  MemoryRouter                MemoryRouter
-  hostBridge listener         hostBridge listener
-```
-
----
-
-## 1. Host changes (SocialServe) — minimal, reusable
-
-**One reusable component:** `src/components/integrations/SatelliteFrame.tsx`
-- Props: `app: 'compliance' | 'audit'`, `srcEnvVar`, `basePath`, `title`.
-- Resolves URL from `import.meta.env[srcEnvVar]`.
-- Renders full-height iframe inside an `<ErrorBoundary>` with a "Module unavailable" fallback panel.
-- 15s readiness timeout → shows controlled fallback.
-- Hook `useSatelliteBridge(iframeRef, app)`:
-  - Posts `INIT { accessToken, refreshToken, user, roles, permissions, theme, language, tenant }` on `READY`.
-  - Re-posts `TOKEN_REFRESH` on `supabase.auth.onAuthStateChange`.
-  - Re-posts `THEME_CHANGE`, `LANG_CHANGE` on context changes.
-  - Listens for `NAVIGATE` from satellite → `history.replaceState` to `/{basePath}${path}`.
-  - Listens for `LOGOUT`, `SESSION_EXPIRED` → host's existing logout flow.
-  - Listens for `NOTIFY` → forwards to host `sonner` toaster.
-  - Listens for `LOADING`, `BREADCRUMB`, `ERROR` → optional UI sync.
-  - Origin-locked allow-list per `VITE_*_HUB_ORIGIN`.
-
-**Two new routes** in `src/components/routing/AppRoutes.tsx`:
-```
-<Route path="/compliance-hub/*" element={
-  <ProtectedLayout>
-    <SatelliteFrame app="compliance" srcEnvVar="VITE_COMPLIANCE_HUB_URL" basePath="compliance-hub" title="Compliance & Enforcement" />
-  </ProtectedLayout>
-} />
-<Route path="/audit-hub/*" element={
-  <ProtectedLayout>
-    <SatelliteFrame app="audit" srcEnvVar="VITE_AUDIT_HUB_URL" basePath="audit-hub" title="Internal Audit" />
-  </ProtectedLayout>
-} />
-```
-
-**Menu updates:**
-- `src/components/sidebar/menuItems/complianceMenuItems.ts` — point Compliance entries at `/compliance-hub/...` (behind `VITE_USE_COMPLIANCE_HUB_REMOTE` flag; local `/compliance/*` retained as fallback).
-- `src/components/sidebar/menuItems/auditMenuItems.ts` — point Audit entries at `/audit-hub/...` (behind `VITE_USE_AUDIT_HUB_REMOTE` flag; local `/audit/*` retained as fallback).
-
-**No DB, no auth, no edge function changes.** No edits to `src/integrations/supabase/*`, generated types, `supabase/config.toml`.
-
----
-
-## 2. Satellite changes (same pattern in BOTH satellites)
-
-Apply identically to **Integrated Compliance Hub** and **SocialServe-Internal Audit**.
-
-### 2a. Dual-mode shell
-
-`src/App.tsx` reads `?embed=1` (or `window.self !== window.top`) into an `EmbedModeProvider`:
-
-- **Standalone mode** (unchanged): full sidebar, header, login, IP gate. Used by satellite dev teams.
-- **Embedded mode**: stripped shell:
-  - No `AppSidebar`, no `Header`, no `IPAccessGate`, no `LoginScreen`.
-  - `BrowserRouter` swapped for `MemoryRouter` (or `HashRouter`) so iframe URL doesn't fight the host URL bar.
-  - Default redirects: Compliance → `/compliance/workbench/manager`; Audit → `/audit/dashboard`.
-  - Body classes neutralized (transparent background) so host container is the visible frame.
-
-### 2b. Reusable embed kit
-
-New module `src/lib/embed/hostBridge.ts` (identical contract in both repos):
-- `useHostBridge()` — singleton listener for `INIT`, `TOKEN_REFRESH`, `THEME_CHANGE`, `LANG_CHANGE`, `NAVIGATE`, `LOGOUT_REQUEST`.
-- On `INIT`: calls `supabase.auth.setSession({ access_token, refresh_token })` once, signals ready. In-memory only — no localStorage write.
-- `postToHost(type, payload)` for `READY`, `NAVIGATE`, `NOTIFY`, `LOGOUT`, `SESSION_EXPIRED`, `ERROR`, `BREADCRUMB`, `LOADING`.
-- Origin-locked to `VITE_HOST_ORIGIN` allow-list.
-- `<RouterReporter />` posts `NAVIGATE { path }` on every location change.
-- `<EmbedErrorBoundary />` posts `ERROR` and renders local fallback.
-
-`SupabaseAuthContext` adapter: when `embedMode === true`, skip own login UI; wait for `INIT` instead of running fresh `getSession()`.
-
-### 2c. Single Supabase client guarantee
-
-Each satellite already has one client in `src/integrations/supabase/client.ts`. Bridge uses that singleton — no second client constructed. Auth state mutations all go through it.
-
-### 2d. Theme
-
-`ThemeProvider` in embedded mode subscribes to `THEME_CHANGE` from host instead of localStorage. Add `:root[data-embed="1"] body { background: transparent; }`.
-
----
-
-## 3. postMessage protocol (shared contract, identical for both satellites)
-
-Documented in all three repos as `docs/SATELLITE_EMBED_PROTOCOL.md`:
-
-| Direction | Type | Payload |
+| Project | Preview URL | Production URL |
 |---|---|---|
-| host→sat | `INIT` | `{ accessToken, refreshToken, user, roles, permissions, theme, language, tenant }` |
-| host→sat | `TOKEN_REFRESH` | `{ accessToken, refreshToken }` |
-| host→sat | `THEME_CHANGE` | `{ theme }` |
-| host→sat | `LANG_CHANGE` | `{ language }` |
-| host→sat | `NAVIGATE` | `{ path }` |
-| host→sat | `LOGOUT_REQUEST` | `{}` |
-| sat→host | `READY` | `{ app, version }` |
-| sat→host | `NAVIGATE` | `{ path }` |
-| sat→host | `NOTIFY` | `{ level, title, message }` |
-| sat→host | `BREADCRUMB` | `{ items }` |
-| sat→host | `LOADING` | `{ active }` |
-| sat→host | `LOGOUT` | `{ reason }` |
-| sat→host | `SESSION_EXPIRED` | `{}` |
-| sat→host | `ERROR` | `{ message, stack? }` |
+| SocialServe (host) | `https://id-preview--455cbbae-c40e-4f3f-af49-d9ed99089948.lovable.app` | `https://admin.secureserve.biz` (also `https://social-wellspring-app.lovable.app`) |
+| Integrated Compliance Hub | `https://id-preview--8471f73c-7659-4260-8d4d-c70dfbebe261.lovable.app` | `https://compliance.secureserve.biz` |
+| SocialServe-Internal Audit | `https://id-preview--7e98fc6b-f149-4e9f-9fd2-cbef90aba410.lovable.app` | `https://internalaudit.secureserve.biz` |
 
-Envelope: `{ source: 'satellite', app: 'compliance' | 'audit', v: 1, type, payload }`. Origin verification mandatory both sides.
+## 1. Host (SocialServe) — this project
 
----
+**New file:** `src/config/satellites.ts`
 
-## 4. Configuration
+```ts
+export const SATELLITE_CONFIG = {
+  compliance: {
+    enabled: true,
+    // Pick prod URL when host is on a non-preview origin, else preview URL.
+    url: {
+      preview: "https://id-preview--8471f73c-7659-4260-8d4d-c70dfbebe261.lovable.app",
+      production: "https://compliance.secureserve.biz",
+    },
+    allowedOrigins: [
+      "https://id-preview--8471f73c-7659-4260-8d4d-c70dfbebe261.lovable.app",
+      "https://compliance.secureserve.biz",
+    ],
+  },
+  audit: {
+    enabled: true,
+    url: {
+      preview: "https://id-preview--7e98fc6b-f149-4e9f-9fd2-cbef90aba410.lovable.app",
+      production: "https://internalaudit.secureserve.biz",
+    },
+    allowedOrigins: [
+      "https://id-preview--7e98fc6b-f149-4e9f-9fd2-cbef90aba410.lovable.app",
+      "https://internalaudit.secureserve.biz",
+    ],
+  },
+} as const;
 
-Host (SocialServe):
-- `VITE_COMPLIANCE_HUB_URL`, `VITE_COMPLIANCE_HUB_ORIGIN`
-- `VITE_AUDIT_HUB_URL`, `VITE_AUDIT_HUB_ORIGIN`
-- Feature flags: `VITE_USE_COMPLIANCE_HUB_REMOTE`, `VITE_USE_AUDIT_HUB_REMOTE`
+export const pickSatelliteUrl = (
+  cfg: { url: { preview: string; production: string } },
+): string => {
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  const isPreview = host.includes("id-preview--") || host.endsWith("lovable.app");
+  return isPreview ? cfg.url.preview : cfg.url.production;
+};
+```
 
-Each satellite:
-- `VITE_HOST_ORIGIN` (CSV allow-list)
+**Edit:** `src/lib/embed/satelliteRouting.ts` — replace the `import.meta.env.*` reads in `getComplianceHubUrl`, `getAuditHubUrl`, `getComplianceHubAllowedOrigins`, `getAuditHubAllowedOrigins`, `isComplianceRemoteEnabled`, `isAuditRemoteEnabled` with values from `SATELLITE_CONFIG` + `pickSatelliteUrl`. Remote-enabled flags become `SATELLITE_CONFIG.compliance.enabled` / `.audit.enabled`.
 
-All env-driven; no rebuild to switch dev/staging/prod URLs.
+No other host changes needed — `SatelliteFrame`, menu rewrites, and `AppRoutes` keep working through the same getters.
 
----
+## 2. Satellite (Integrated Compliance Hub)
 
-## 5. Test scenarios (run for each satellite)
+**New file:** `src/config/host.ts`
 
-1. Host login → click satellite menu → no second login; satellite content renders inside `<main>`; host header/sidebar visible.
-2. Theme toggle on host → satellite restyles via `THEME_CHANGE`.
-3. Browser refresh on `/compliance-hub/cases/123` and `/audit-hub/audit-plans` → host re-renders frame, posts `INIT` + `NAVIGATE`, satellite mounts that route.
-4. Browser back/forward across deep links works.
-5. Host logout → both satellites end session.
-6. Satellite session expiry → `SESSION_EXPIRED` → host logout flow.
-7. Kill satellite URL → host shows controlled "unavailable" panel; rest of host works.
-8. Switch host → another module → iframe unmounts cleanly; no memory leak.
-9. Standalone satellite URL still loads with full sidebar/header/login for dev teams.
-10. Role-based menu filtering on host respected; satellite respects permissions sent in `INIT`.
+```ts
+export const ALLOWED_HOST_ORIGINS = [
+  "https://id-preview--455cbbae-c40e-4f3f-af49-d9ed99089948.lovable.app",
+  "https://social-wellspring-app.lovable.app",
+  "https://admin.secureserve.biz",
+];
+```
 
----
+**Edit:** `src/lib/embed/hostBridge.ts` — replace `getAllowedHostOrigins()` body to `return ALLOWED_HOST_ORIGINS;` (drop the `VITE_HOST_ORIGIN` parsing). Remove the env-var doc reference in `docs/EMBED_MODE.md`.
 
-## 6. Documentation deliverables
+## 3. Satellite (SocialServe-Internal Audit)
 
-- `docs/SATELLITE_EMBED_PROTOCOL.md` (host + both satellites) — message contract.
-- `docs/SATELLITE_HOST_INTEGRATION.md` (host) — adding a new satellite using `<SatelliteFrame />`.
-- `docs/EMBED_MODE.md` (each satellite) — embed vs standalone behavior, dev/test instructions.
-- Memory updates: extend `mem://architecture/multi-project-interoperability` with iframe + postMessage embed pattern and the reusable `<SatelliteFrame />` host component.
+Same change as #2: create `src/config/host.ts` with the identical three host origins, and point `hostBridge.ts` at it.
 
----
+## 4. Documentation
 
-## Guardrails
+Update `docs/SATELLITE_EMBED_INSTRUCTIONS.md` and `docs/SATELLITE_HOST_INTEGRATION.md` to:
+- Remove the "set `VITE_*` env vars" sections.
+- Replace with "edit `src/config/satellites.ts` (host) / `src/config/host.ts` (satellite) and add the new origin to the relevant array, then republish."
 
-- No database changes. No edge function changes. No edits to any `src/integrations/supabase/client.ts` or generated types in any of the three projects.
-- Standalone mode of each satellite preserved bit-for-bit; embedded mode is purely additive.
-- Host changes limited to: one reusable component, two new routes, two menu URL swaps behind feature flags, env vars. No layout, auth, or provider edits.
-- Iframe is host↔satellite boundary only; not used inside any satellite.
+## What I will NOT touch
 
----
+- `src/integrations/supabase/client.ts`, `src/integrations/supabase/types.ts`, `.env`, `supabase/config.toml` — untouched.
+- No DB / edge-function / auth changes.
+- Satellite repos: I cannot edit them directly from this project; I will produce the exact two-file paste-in for each (file path + full contents) at the end so you can drop them into each satellite in one shot.
 
-## Out of scope (future)
+## Deliverable for satellites
 
-- Vite Module Federation (invasive build config in three apps).
-- Adding a third satellite — same `<SatelliteFrame />` pattern; documented in host integration guide.
-- Replacing iframe with Web Components / Shadow DOM.
+After approval, I will print a ready-to-paste prompt containing:
+1. The full `src/config/host.ts` file contents.
+2. The exact `hostBridge.ts` patch (search/replace block) that swaps the env read for the import.
+
+You then paste that prompt once into each satellite project. No env vars, no Build Secrets, no workspace coordination required.
