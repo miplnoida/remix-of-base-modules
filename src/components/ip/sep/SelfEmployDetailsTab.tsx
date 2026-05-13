@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Save, X, Briefcase, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { formatDisplayDate } from '@/lib/dateFormat';
-import { SelfEmployActivity } from '@/services/selfEmployedService';
+import { SelfEmployActivity, SelfEmployedService } from '@/services/selfEmployedService';
 import { useSelfEmployed } from '@/hooks/useSelfEmployed';
 import { useSEPLookups } from '@/hooks/useSEPLookups';
 import { toast } from 'sonner';
