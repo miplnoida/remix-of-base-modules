@@ -1,61 +1,111 @@
 
-## Root cause
+## Diagnosis so far
 
-The DB-driven sidebar (`useDynamicNavigation`) prepends each module's `base_url` to its route. The two root modules are currently configured as:
+What is **already known to work**:
 
-| display_name | base_url | example child route | resulting menu URL |
-|---|---|---|---|
-| Internal Audit | `https://internalaudit.secureserve.biz` | `/audit/dashboard` | `https://internalaudit.secureserve.biz/audit/dashboard` |
-| Compliance & Enforcement | `https://compliance.secureserve.biz` | `/compliance/workbench` | `https://compliance.secureserve.biz/compliance/workbench` |
+- Local production build succeeds (`vite build` → `✓ built in 51.87s`, no errors).
+- Live URL `https://admin.secureserve.biz` responds **HTTP 200** and `social-wellspring-app.lovable.app` 302‑redirects to it — the previously‑published version is live and reachable.
+- Publish visibility is `public` and project is marked `is_published: true`.
+- Lovable Cloud **production** backend reports healthy.
+- `.env` is **not** in `.gitignore`, so Supabase keys are not the cause (the canned "missing VITE_SUPABASE_*" pattern doesn't apply here).
 
-Because the menu URLs are absolute external URLs, clicking them does a **top-level browser navigation** away from SocialServe to the satellite domain. That's why:
+So the *previous* publish is fine; the **current** Update click is what's failing. The user reports only "Publish failed" with no extra detail.
 
-1. **Compliance** appears full-screen with no host sidebar/header — the user is now on `compliance.secureserve.biz` (the satellite's own standalone shell), not inside SocialServe.
-2. **Internal Audit** shows only a "Loading…" message — same thing, but the satellite at `internalaudit.secureserve.biz` is still showing its own loading state (the embed/satellite shell isn't fully wired or auth isn't shared).
+## Most likely root causes (ranked)
 
-The `SatelliteFrame` route (`/compliance-hub/*`, `/audit-hub/*`) we added is correct and is wrapped in `ProtectedLayout` (sidebar + header), but **no menu link ever points to it** because the static `complianceMenuItems` / `auditMenuItems` files we updated aren't imported by anything — the real sidebar is built from DB rows.
+### A. Oversized main JS chunk → publish/upload timeout
 
-## Fix
+`vite build` produced:
 
-Two coordinated changes — one DB, one code — so DB-driven menu clicks land on the in-app `SatelliteFrame` host route instead of leaving the app.
-
-### 1. DB migration — clear `base_url` on the two satellite root modules
-
-```sql
-update public.app_modules
-   set base_url = null
- where id in (
-   '014f0c8f-7388-4bf9-9de0-28d122b6d3bf', -- Internal Audit
-   'ca000000-0000-0000-0000-000000000001'  -- Compliance & Enforcement
- );
+```text
+dist/assets/index-w8OKfKA0.js   14,440.04 kB │ gzip: 3,158.58 kB
 ```
 
-This stops `useDynamicNavigation` from producing absolute external URLs. After this, child menu URLs become plain local paths like `/audit/dashboard` and `/compliance/workbench`.
+A **14 MB** single JS bundle is far above the comfortable upload window for Lovable's publish step and is exactly what causes "Publish failed" with no actionable error in the dialog. Vite itself flagged this:
 
-### 2. Code — rewrite local prefixes to satellite-host prefixes when remote enabled
+```
+(!) Some chunks are larger than 500 kB after minification.
+```
 
-Edit `src/hooks/useDynamicNavigation.ts` `buildMenuItem()` so that, after computing `menuItem.url`, it rewrites:
+The bundle is bloated because several services that *should* be lazy are imported both statically and dynamically (build log lists them):
 
-- `/compliance` → `/compliance-hub` when `isComplianceRemoteEnabled()` is true
-- `/audit` → `/audit-hub`        when `isAuditRemoteEnabled()`     is true
+- `src/services/wizAdminApiService.ts`
+- `src/services/auditNotificationService.ts`
+- `src/services/resolveReportingManager.ts`
+- `src/utils/exportUtils.ts`
+- `src/services/selfEmployedService.ts`
+- `src/services/wizSelfEmployedService.ts`
+- `src/services/bn/calculationEngine.ts`
 
-Use the same `swapPrefix` helper logic from `src/lib/embed/satelliteRouting.ts` (export it, or import the existing `applyComplianceRemoteRouting` / `applyAuditRemoteRouting` and apply them to the final `rootModules.map(buildMenuItem…)` output — simplest).
+When a module is statically imported anywhere, its dynamic `import()` is collapsed back into the main bundle — defeating code‑splitting.
 
-After this:
-- Click "Compliance Dashboard" → URL `/compliance-hub/dashboard` → `<ProtectedLayout><SatelliteFrame app="compliance" …/></ProtectedLayout>` renders → host sidebar + header stay visible, satellite content loads in iframe.
-- Click "Audit Dashboard" → URL `/audit-hub/dashboard` → same for audit.
+### B. Edge‑function fan‑out timeout
 
-To toggle either satellite off later, set `SATELLITE_CONFIG.compliance.enabled` / `.audit.enabled` to `false` in `src/config/satellites.ts` — the rewrite is skipped and clicks go to the existing local pages.
+`supabase/functions/` contains **92** functions. Publish redeploys all of them; transient failures on any single function deploy are reported back as a generic "Publish failed".
 
-### 3. Sanity check after the fix
+### C. (Less likely) Pending migration on Live
 
-- Reload the host preview, click any Compliance and any Audit menu item.
-- Confirm host sidebar + header remain visible and the iframe area shows the satellite content (or its standalone shell if the satellite isn't yet running the embed shell — that's the satellite team's follow-up).
-- The "Loading…" state should now come from inside the iframe, not from a hard browser redirect.
+Most recent migration is dated 2026‑05‑11 (today is 2026‑05‑13), small (184 B). Worth a glance but unlikely to be the blocker since production cloud is healthy.
 
-## Out of scope (do not touch)
+## Plan
 
-- `src/integrations/supabase/client.ts`, `types.ts`, `.env`, `supabase/config.toml`.
-- The unused static menu files (`complianceMenuItems.ts`, `auditMenuItems.ts`) — left alone; they remain dormant.
-- Any auth / RLS / edge-function changes.
-- Satellite repos — the host fix is independent of any satellite-side update.
+### Step 1 — Capture the exact publish error (cheap, decisive)
+
+Re‑run Update once with the browser DevTools **Network** tab open and grab:
+
+- The failing request URL (typically `…/publish` or `…/deploy`).
+- Its HTTP status + response body.
+- Any error toast text inside the publish dialog.
+
+This is a 30‑second step that turns a guess into a fix. If the network response says e.g. *"asset too large"*, *"function X failed to deploy"*, *"migration failed"*, the rest of this plan narrows accordingly.
+
+### Step 2 — Reduce main bundle size (fixes A)
+
+Edit the seven files listed above so that each "service" module has **one** import style across the codebase — preferably static (since they're already pulled into the main bundle). Concretely, for each file replace its dynamic `await import('…/X')` call sites with a top‑of‑file `import` of the same symbols. This removes the warnings, lets Rollup keep the dynamic chunks split, and shrinks `index-*.js`.
+
+Add a Vite manualChunks split for the heaviest vendor groups in `vite.config.ts` (only if Step 1 confirms size is the cause):
+
+```ts
+build: {
+  rollupOptions: {
+    output: {
+      manualChunks: {
+        react: ['react', 'react-dom', 'react-router-dom'],
+        supabase: ['@supabase/supabase-js'],
+        charts: ['recharts'],
+        pdf: ['jspdf', 'html2canvas'],
+        radix: [/* @radix-ui/* packages actually used */],
+      },
+    },
+  },
+  chunkSizeWarningLimit: 1500,
+},
+```
+
+Target: main `index-*.js` < 2 MB gzipped, < 6 MB raw — well within the publish upload window.
+
+### Step 3 — De‑risk the edge‑function deploy (fixes B, only if Step 1 points there)
+
+If the failing request is on an edge function deploy:
+
+- Identify the failing function name from the response.
+- Open `supabase/functions/<name>/index.ts`, fix any TypeScript / Deno import error, and re‑publish.
+- No bulk changes — touch only the offending function.
+
+### Step 4 — Re‑publish and verify
+
+After Step 2 (and optionally Step 3):
+
+1. `vite build` locally to confirm `index-*.js` shrank and no new warnings.
+2. Click **Update** in the publish dialog.
+3. Hit `https://admin.secureserve.biz/?_=$(date +%s)` and confirm a new `x-deployment-id` header.
+
+### Out of scope
+
+- `src/integrations/supabase/client.ts`, `types.ts`, `.env`, `supabase/config.toml` — never edit.
+- Any auth/RLS/migration changes.
+- Refactoring beyond converting the 7 listed files' import styles (no logic changes, no UI changes).
+
+## What I need from you to start
+
+The single most useful thing right now is the **exact text or a screenshot of the publish error** (Step 1). Once I have that, I'll either go straight to Step 2 (bundle slim‑down) or Step 3 (function fix) — not both blindly.
