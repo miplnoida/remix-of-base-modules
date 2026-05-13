@@ -213,7 +213,7 @@ export const SelfEmployDetailsTab: React.FC<SelfEmployDetailsTabProps> = ({
         if (hasRemainingData) {
           try {
             // Use the actual seq from newly loaded activities
-            const newActivities = await import('@/services/selfEmployedService').then(m => m.SelfEmployedService.getActivities(ssn));
+            const newActivities = await SelfEmployedService.getActivities(ssn);
             const latestAct = newActivities.find(a => a.self_ref_no === sref);
             if (latestAct) {
               await updateActivity(sref, latestAct.activity_seq_no, remaining as any);
