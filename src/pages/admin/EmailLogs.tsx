@@ -386,9 +386,11 @@ export default function EmailLogs() {
 
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Message Body</p>
-                <div
-                  className="p-3 border rounded-md bg-muted/30 text-sm overflow-auto max-h-48"
-                  dangerouslySetInnerHTML={{ __html: selectedLog.body || "(no body)" }}
+                <iframe
+                  title="Email Body Preview"
+                  sandbox=""
+                  srcDoc={selectedLog.body || "(no body)"}
+                  className="w-full h-48 border rounded-md bg-muted/30"
                 />
               </div>
             </div>

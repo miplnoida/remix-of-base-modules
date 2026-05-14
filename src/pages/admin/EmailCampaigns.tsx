@@ -471,9 +471,11 @@ export default function EmailCampaigns() {
 
               <div>
                 <p className="text-sm text-muted-foreground mb-2">HTML Preview</p>
-                <div
-                  className="p-4 border rounded-md bg-background overflow-auto max-h-64 text-sm"
-                  dangerouslySetInnerHTML={{ __html: previewCampaign.html_body }}
+                <iframe
+                  title="Email HTML Preview"
+                  sandbox=""
+                  srcDoc={previewCampaign.html_body || ""}
+                  className="w-full h-64 border rounded-md bg-background"
                 />
               </div>
             </div>
