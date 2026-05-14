@@ -1,35 +1,47 @@
-## Diagnosis
+## What I found
 
-The backend is reachable, but the publish failure is still consistent with migration-history reconciliation, not frontend code.
+The remaining publish blocker is no longer a simple Live-only mismatch.
 
-Current state:
-- Live backend has **349** applied migration versions.
-- Test backend has **500** applied migration versions.
-- Local `supabase/migrations` now has **849** files.
-- The prior fix created **349 Live no-op placeholders**, but it also left hundreds of Test/local migration files active in `supabase/migrations`.
-- During publish to Live, those extra active local files can be treated as pending migrations and replayed on Live. Many contain non-idempotent schema/function changes, so publish can still fail.
+- Live backend is healthy.
+- Dependency metadata is consistent.
+- No `deno.lock` blocker exists.
+- Function folders/config look structurally valid; no broken relative imports found.
+- Active local migrations currently match Live exactly: `349 / 349`.
+- But active local migrations do not match Test at all: Test has `500` applied versions and the active folder has `0` overlap with them.
 
-## Fix plan
+That means the repository is now aligned to Live but disconnected from Test. Since publish uses the Test state to promote changes to Live, this can still fail before or during backend reconciliation.
 
-1. **Make Live ledger the active publish baseline**
-   - Keep only the migration files whose timestamps already exist in the Live backend ledger.
-   - Keep the 349 `*_live_history_reconciliation.sql` files as the active baseline because they safely satisfy Live history validation.
+## Exact fix plan
 
-2. **Archive all local-only/Test-only migrations out of the active folder**
-   - Move every migration file not present in Live’s `schema_migrations` ledger from `supabase/migrations/` into `supabase/archived_migrations/test_only_not_live_20260514/`.
-   - Do not delete them; preserve them for audit/recovery.
-   - This includes the March/April/May Test-only migration files that are currently likely being treated as pending on Live.
+1. **Create a unified no-op migration baseline**
+   - Build the union of both migration ledgers:
+     - Live: `349` versions
+     - Test: `500` versions
+   - Keep every version represented in `supabase/migrations/`.
+   - Replace active migration SQL with safe no-op reconciliation files for both ledgers.
+   - Archive all historical real SQL files outside the active migration folder.
 
-3. **Validate the active migration folder**
-   - Confirm local active migration count equals Live ledger count.
-   - Confirm `remote_not_local = 0` against Live.
-   - Confirm `local_not_live = 0` against Live.
-   - Confirm no duplicate migration timestamp prefixes.
-   - Confirm there is no `deno.lock` under `supabase/` or `supabase/functions/`.
+2. **Why this is different from previous attempts**
+   - Previous Test-aligned attempts left real, non-idempotent migration SQL active, so Live could try to replay conflicting schema changes.
+   - Previous Live-only cleanup fixed Live history but broke Test history.
+   - The new approach makes both histories present and safe, so publish can mark missing versions without replaying risky schema SQL.
 
-4. **Ask you to retry Publish → Update**
-   - If this still fails after the active folder is Live-only, the next blocker is no longer migration history; I’ll then isolate backend function deployment by deploying/checking functions in smaller groups.
+3. **Validate both environments**
+   - Confirm local active versions cover all Test versions: `test_remote_not_local = 0`.
+   - Confirm local active versions cover all Live versions: `live_remote_not_local = 0`.
+   - Confirm no duplicate migration timestamps.
+   - Confirm all active migrations are no-op reconciliation files.
+   - Confirm no `deno.lock` under `supabase/` or `supabase/functions/`.
 
-## Technical detail
+4. **Check remaining publish blockers after migration reconciliation**
+   - Re-check function deployment structure.
+   - Re-check package lock consistency.
+   - Review security findings marked as `error`, because the publish dialog may block on these even if migrations are fixed.
 
-This is a repository migration-file cleanup only. It does not modify database schema, app logic, user data, or authentication.
+5. **Retry Publish → Update**
+   - After validation, retry publish.
+   - If it still fails, the remaining cause is likely a platform-side publish/security gate rather than project migration SQL; at that point the exact publish dialog error text will be needed to isolate the final blocker.
+
+## Scope
+
+This plan does not change app logic, user data, authentication, or database schema. It only makes the repository migration history safe for the publish pipeline.
