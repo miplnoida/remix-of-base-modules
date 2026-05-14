@@ -1,66 +1,91 @@
+## Goal
 
-## What's actually going on
+Generate a single, idempotent SQL script that brings the **Live** database (project `pruvbfejdpodpalqafcu`) up to match the **Test** database (`xynceskeiiisiefqlgxo`) **schema only** — no row data is touched. You then run that script in Cloud View → Run SQL (Live selected). This bypasses the broken Publish path entirely.
 
-Previous attempts assumed migration ledger drift and fixed it by replacing every active migration in `supabase/migrations/` with a no-op (`select 1 where false;`). The publish still fails. So the no-op approach is not the fix — and it has now overwritten the real migration history in the active folder. We need to revert that and address the real problem.
+## Why this works
 
-### The real divergence
+App code is the same against both backends, so once Live's schema equals Test's schema, the app will run identically on Live with its own production data. Migration ledgers stay as-is (we are not trying to fix them — they are unrelated to the schema being correct).
 
-- **Live ledger:** 349 migrations, last version `20260427075142` (April 27).
-- **Test ledger:** 500 migrations, last version `20260513163056` (May 13).
-- **Zero overlap between the two ledgers.** Test was Remixed at some point (its earliest version is `20260310181315`, which is *after* most of Live's history). So Test and Live recorded entirely different migration timestamps even though they were both built from the same SQL.
-- Publish promotes Test → Live. With no shared ledger versions, Lovable's publish pipeline cannot compute a clean diff. That is the underlying blocker, not the local file count.
+## What I already confirmed
 
-### Why the current state is bad
+Object counts in `public` show Test is ahead of Live:
 
-- `supabase/migrations/` now contains **849 no-op files**. The original SQL is only inside `supabase/archived_migrations/`.
-- If publish ever does succeed in this state, Lovable would record 500 no-op migrations against Live's ledger but the actual schema work would already be there from the original 349 — fine for Live, but the project's migration history becomes meaningless for any future schema change.
-- "Publishing failed" shows with **no failing network request in DevTools**, which means the publish check is failing on a pre-flight client/server check (most likely "ledgers cannot be reconciled" or an edge-function deploy failure), not on a SQL replay.
+```text
+                Live   Test   Δ
+tables           891    904   +13
+views             45     46   +1
+columns        12995  13214  +219
+routines         368    375   +7
+indexes         1602   1639   +37
+enums             64     64    0
+policies          23     23    0
+triggers (info_schema, public)  0  0
+```
+
+So the script needs to add missing tables/columns/views/functions/indexes and reconcile altered columns. No tables will be dropped from Live.
 
 ## Plan
 
-### 1. Stop guessing, capture the real failure signal
+### Step 1 — Full schema introspection of both DBs
 
-We have never seen the actual platform error. Before any more file shuffling:
+Read from `information_schema` and `pg_catalog` for both environments (Test and Live), capturing:
 
-- User clicks Publish → Update one more time with **DevTools → Network and Console both open and "Preserve log" enabled**. Even if no request fails, the platform UI usually emits an error payload to the console or to a background `/publish` / `/deployments` call. We need either the response body of that call or the console error.
-- In parallel, I will pull recent edge-function deploy logs from Cloud to confirm whether one of the 92 functions is silently failing on deploy. (This is read-only.)
+- enum types and their values
+- tables and columns (name, data type, nullable, default, identity, generated)
+- primary keys, unique constraints, foreign keys, check constraints
+- indexes (definition via `pg_indexes.indexdef`)
+- views and materialized views (definition)
+- functions and procedures (signature + `pg_get_functiondef`)
+- triggers on `public` tables (`pg_trigger`)
+- RLS state and policies (`pg_policies`)
+- sequences owned by `public`
+- storage buckets (so any Test-only buckets get created in Live)
 
-If Step 1 surfaces a specific failure (function name, ledger error, schema diff), we go straight to that fix and skip the rest.
+All read-only via `supabase--read_query`. No writes.
 
-### 2. Revert the no-op damage in `supabase/migrations/`
+### Step 2 — Compute the diff (Test − Live)
 
-Regardless of what Step 1 returns, the active folder must hold real migration files again, not 849 no-op placeholders.
+For each object class, produce idempotent SQL:
 
-- Restore the **349** real Live migration SQL files from `supabase/archived_migrations/pre_unified_active_baseline_20260514/` back into `supabase/migrations/`, using their **current Live ledger versions** as filenames.
-- Delete the 849 `_unified_publish_reconciliation.sql` files.
-- Do not bring the 500 Test-only files back yet. Test already has them recorded in its ledger; pushing them locally would not change Test, and they don't exist on Live.
+- **Enums:** `CREATE TYPE … IF NOT EXISTS` pattern via `DO $$ BEGIN … EXCEPTION WHEN duplicate_object THEN NULL; END $$;`. For existing enums missing values: `ALTER TYPE … ADD VALUE IF NOT EXISTS …`.
+- **Tables:** `CREATE TABLE IF NOT EXISTS …` for missing tables. For existing tables missing columns: `ALTER TABLE … ADD COLUMN IF NOT EXISTS …`. For columns whose type/default/nullability differ, emit `ALTER COLUMN` only when the change is non-destructive (widening type, dropping NOT NULL, adding default). Destructive changes (narrowing type, adding NOT NULL on a nullable column with no default) are emitted as **commented-out** statements with a `-- REVIEW:` marker so you decide.
+- **Constraints (PK/UNIQUE/FK/CHECK):** drop-by-name then re-add only if definition differs, wrapped in `DO $$ … EXCEPTION WHEN duplicate_object …`. Missing constraints added.
+- **Indexes:** `CREATE INDEX IF NOT EXISTS` using Test's `indexdef`.
+- **Views / matviews:** `CREATE OR REPLACE VIEW …`. For matviews, `DROP MATERIALIZED VIEW IF EXISTS … CASCADE; CREATE MATERIALIZED VIEW …` (data is regenerated on next refresh, no production rows lost since matviews are derived).
+- **Functions / procedures:** `CREATE OR REPLACE FUNCTION …` from Test's `pg_get_functiondef`. Drop+recreate only when signature changed.
+- **Triggers:** `DROP TRIGGER IF EXISTS … ON …; CREATE TRIGGER …`.
+- **Policies:** `DROP POLICY IF EXISTS … ON …; CREATE POLICY …` and align RLS enabled/disabled state per table.
+- **Sequences:** create missing sequences, but **never** reset `setval` on Live (we leave Live's counters where they are).
+- **Storage buckets:** `INSERT INTO storage.buckets … ON CONFLICT DO NOTHING`.
 
-This restores a sane, real-history baseline that exactly matches Live and does not pretend Test's divergent history exists locally.
+Output is one `.sql` file delivered to `/mnt/documents/live_schema_sync.sql`, ordered: enums → tables → columns → constraints → indexes → sequences → views → functions → triggers → policies → buckets. Every statement is idempotent so re-runs are safe.
 
-### 3. Reconcile the Test/Live divergence the right way
+### Step 3 — Inverse report (Live-only objects)
 
-There are only two real options:
+A second file `/mnt/documents/live_only_objects.txt` lists anything that exists in Live but not Test (tables, columns, functions, indexes). The sync script does **not** drop these — you decide whether to remove or keep them. This protects against accidental data loss if Live had hotfixes Test never received.
 
-- **Option A — Reset Test to match Live (preferred if no Test-only data matters).** Use Lovable Cloud's reset/restore for the Test backend so its `schema_migrations` is reseeded from Live's 349 versions. After that, local files, Test, and Live all agree, and publish has a clean diff to compute.
-- **Option B — Backfill Live's ledger to match Test (preferred if Test schema actually drifted from Live).** Insert the 151 Test-only versions into Live's `schema_migrations` as already-applied rows (no SQL replay), but only after diffing the actual schemas to confirm Live already has every object Test introduced. If Live is missing any object, generate a single forward migration that adds it idempotently before the backfill.
+### Step 4 — Delivery, no execution
 
-Step 1's signal plus a quick `pg_dump --schema-only` diff between Test and Live tells us which option is correct. We do not pick blindly.
+I will not run the sync script against Live from here. You take the `.sql` file and run it in **Cloud View → Run SQL (Live selected)**. If anything errors mid-run, the file is structured so you can re-run it safely (idempotent) after fixing the specific block.
 
-### 4. Re-deploy edge functions cleanly
+### Step 5 — After Live is synced
 
-Once migrations are reverted to real history, redeploy all functions to Test and watch for any single function that fails. A failed function deploy is a known cause of generic "Publishing failed" with no network error in DevTools.
-
-### 5. Retry Publish → Update
-
-Only after Steps 1–4 produce a green state (real migrations restored, ledgers reconciled by Option A or B, all functions deployed). If it still fails, the remaining cause is a Lovable platform-side reconciliation bug and the right next step is to escalate with the captured error payload from Step 1 — not more file edits.
-
-## What I need from you to start
-
-1. Click Publish → Update one more time with DevTools Network + Console open, then paste the exact error text from the dialog and any console error or request response body you see (even if status is 200).
-2. Confirm whether Test-only data (anything created in Test since around March 10) is important to preserve, so I know whether Option A (reset Test) is acceptable.
+- Re-pull object counts from both DBs and confirm `tables/columns/views/functions/indexes` now match.
+- Optional: deploy edge functions to Live via the dashboard (or they will deploy on the next successful publish).
+- Try Publish → Update again. Even if publish still fails on the ledger reconciliation issue, the app will already work correctly on Live because the schema is in sync.
 
 ## Out of scope
 
-- App code, UI, auth, RLS, business logic.
-- Creating any more no-op migration files.
-- Renaming local migration files to match drifted timestamps — that approach has been tried and did not fix the publish.
+- Migration ledger reconciliation (`supabase_migrations.schema_migrations`). Not touched.
+- Edge function code. Same in both projects since code is shared.
+- Any row data movement. Live keeps Live data; Test keeps Test data.
+- RLS policy semantics review — policies are mirrored from Test as-is.
+
+## What I need from you to start
+
+Confirm:
+1. **Direction is Test → Live** (Test is the source of truth). If Live actually has hotfixes that should win, say so and I will invert specific objects.
+2. You're OK with **non-destructive ALTERs auto-applied** and **destructive ALTERs left commented out** for your review.
+3. You will execute the generated `.sql` yourself in Cloud View → Run SQL on Live (I will not run it for you).
+
+On confirmation, I run the introspection and produce both files.
