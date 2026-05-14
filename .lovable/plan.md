@@ -1,48 +1,39 @@
-## Finding
+## Findings
 
-The hosted backend itself is healthy, but Live still has the same migration ledger gap:
+The backend itself is healthy, and the Live migration ledger was backfilled: Live now has **1,042** migration ledger rows and max version **20260513163056**.
 
-```text
-Local migration files: 725
-Test ledger rows:      500
-Live ledger rows:      349
-Live last version:     20260427075142
-Placeholder rows:      0
-```
+However, Publish is still failing at the database stage because the ledger repair only tells Publish to skip old migration files. It does **not** fix invalid leftover Live database objects/jobs that still differ from Test or can fail during publish validation.
 
-This means the previous `live_ledger_backfill.sql` did not actually update the Live migration ledger, even if a SQL script was executed. The most likely causes are: it was run against Test instead of Live, only the schema sync script was run, or the ledger script failed/was not fully executed.
+Current concrete signals:
+- Live has a broken scheduled email job referencing `pgmq.q_auth_emails` / `pgmq.q_transactional_emails`, but those queue tables are missing on Live.
+- Live logs show repeated backend errors from that job.
+- The Test environment has those queues and the same job works there.
+- Live has many placeholder ledger rows, so future schema checks may still depend on direct Live repair instead of replaying old migrations.
 
-## Plan
+## Fix plan
 
-1. **Regenerate a corrected Live-only ledger backfill file**
-   - Compare all `supabase/migrations/*.sql` local versions against Live's current `supabase_migrations.schema_migrations` entries.
-   - Generate a new versioned artifact, for example:
-     - `/mnt/documents/live_ledger_backfill_v2.sql`
-   - Include only the currently missing local migration versions.
-   - Keep it idempotent with `ON CONFLICT DO NOTHING` so it is safe to rerun.
+1. **Create a Live-only database repair script**
+   - Recreate the missing email queues on Live using existing `pgmq.create(...)` calls.
+   - Keep it idempotent so it can be safely re-run.
+   - Do not change business data.
 
-2. **Add built-in verification queries inside the same file**
-   - Before/after counts for Live ledger rows.
-   - Missing migration count after the insert.
-   - A clear success condition: Live ledger should contain all local migration versions needed by Publish.
+2. **Repair the scheduled email queue job on Live**
+   - Replace the cron command so it points to the current Live backend URL/key context and only runs when the queues exist.
+   - Add existence guards around queue reads to prevent `relation does not exist` errors from breaking the database logs again.
 
-3. **Avoid touching application code or schema**
-   - No frontend changes.
-   - No table/function/view changes.
-   - No data changes to business tables.
-   - Only `supabase_migrations.schema_migrations` ledger rows are inserted.
+3. **Add verification queries to the same script**
+   - Confirm `pgmq.q_auth_emails` and `pgmq.q_transactional_emails` exist.
+   - Confirm the `process-email-queue` job is active and no longer references missing objects unsafely.
+   - Confirm migration ledger max version remains `20260513163056`.
 
-4. **User execution step required**
-   - Because this is a Live production ledger repair, I cannot safely apply it through the normal Test migration flow.
-   - You will run the generated SQL in **Cloud View → Run SQL → Live selected**.
+4. **Validate after the user runs it in Live**
+   - Query Live to confirm queue tables and cron job are fixed.
+   - Re-check recent Live database logs for publish-blocking errors.
+   - Ask the user to run Publish → Update once more.
 
-5. **Validate after execution**
-   - I will re-query Live and confirm:
-     - ledger count increased,
-     - placeholder rows exist,
-     - missing local versions are zero or explain any remaining mismatch.
-   - Then you can retry **Publish → Update**.
+## Technical notes
 
-## Technical detail
-
-The publish pipeline is still trying to replay old migrations on Live because Live has not recorded them as applied. Since the schema was already synced manually, replaying old migration SQL causes duplicate-object failures such as existing tables, columns, indexes, or types. The correct repair is to record those migration versions as already applied, not to keep altering schema sync SQL.
+- This must be applied directly to **Live** because normal migrations apply to Test first and Live only during Publish, but Publish is the failing path.
+- The repair is non-destructive: no drops, truncates, or business-table changes.
+- No RLS changes will be added, consistent with this project’s architecture rule.
+- If Publish still fails after this repair, the next step is to capture the exact new Live database log entry immediately after the failed publish and repair that specific object in the same Live-only manner.
