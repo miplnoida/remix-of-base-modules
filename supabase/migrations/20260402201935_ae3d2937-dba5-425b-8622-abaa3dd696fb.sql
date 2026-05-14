@@ -1,0 +1,1 @@
+ALTER TABLE profiles ADD COLUMN reporting_to_user_id uuid REFERENCES profiles(id);

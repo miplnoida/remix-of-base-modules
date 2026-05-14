@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.create_payment_with_receipt(text, text, text, date, text, jsonb, numeric, integer, text);

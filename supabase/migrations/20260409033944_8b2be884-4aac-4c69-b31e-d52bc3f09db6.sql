@@ -1,0 +1,1 @@
+UPDATE public.app_modules SET display_name = 'Entity Risk Summary' WHERE name = 'audit_entity_summary';

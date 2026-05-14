@@ -1,0 +1,1 @@
+ALTER TABLE public.ce_follow_up_actions ALTER COLUMN assigned_to_user_id TYPE VARCHAR(100) USING assigned_to_user_id::VARCHAR;
