@@ -1,49 +1,35 @@
 ## Diagnosis
 
-Do I know what the issue is? **Yes.** The hosted backend is healthy, but the project’s migration history is still inconsistent with the local migration folder:
+The backend is reachable, but the publish failure is still consistent with migration-history reconciliation, not frontend code.
 
-- Test and Live backend migration ledgers both show **349 applied migrations**.
-- Local repo has **725 migration files**.
-- At least **317 applied backend migration versions are not present as exact local filenames**.
-- Most mismatches are timestamp drift of 1–3 seconds, e.g. backend `20260112195500` vs local `20260112195501`.
-- There are also backend-applied migration versions that do not have an obvious exact local counterpart in the current ordered set.
-
-This is a publish blocker because the publish pipeline validates migration history before applying the Live update. Previous attempts only touched later migrations, but the mismatch starts from January 2026.
+Current state:
+- Live backend has **349** applied migration versions.
+- Test backend has **500** applied migration versions.
+- Local `supabase/migrations` now has **849** files.
+- The prior fix created **349 Live no-op placeholders**, but it also left hundreds of Test/local migration files active in `supabase/migrations`.
+- During publish to Live, those extra active local files can be treated as pending migrations and replayed on Live. Many contain non-idempotent schema/function changes, so publish can still fail.
 
 ## Fix plan
 
-1. **Create a complete backend-to-local reconciliation map**
-   - Use the backend migration ledger as the source of truth.
-   - Match each applied backend version to the correct local migration file by timestamp proximity and ordering.
-   - Do this across the full 349 applied migrations, not only recent March/April files.
+1. **Make Live ledger the active publish baseline**
+   - Keep only the migration files whose timestamps already exist in the Live backend ledger.
+   - Keep the 349 `*_live_history_reconciliation.sql` files as the active baseline because they safely satisfy Live history validation.
 
-2. **Rename matched migration files to exact backend ledger versions**
-   - Rename local migration filenames where the content corresponds to an applied backend migration but the timestamp differs.
-   - Preserve SQL contents exactly.
-   - Avoid schema/data changes; this is repository history reconciliation only.
+2. **Archive all local-only/Test-only migrations out of the active folder**
+   - Move every migration file not present in Live’s `schema_migrations` ledger from `supabase/migrations/` into `supabase/archived_migrations/test_only_not_live_20260514/`.
+   - Do not delete them; preserve them for audit/recovery.
+   - This includes the March/April/May Test-only migration files that are currently likely being treated as pending on Live.
 
-3. **Handle unmatched historical versions safely**
-   - For backend-applied versions with no safe local match, create placeholder/no-op migration files with the exact backend version so the publish validator can resolve the ledger.
-   - Do not delete local-only migration files unless a concrete duplicate/conflict is found.
+3. **Validate the active migration folder**
+   - Confirm local active migration count equals Live ledger count.
+   - Confirm `remote_not_local = 0` against Live.
+   - Confirm `local_not_live = 0` against Live.
+   - Confirm no duplicate migration timestamp prefixes.
+   - Confirm there is no `deno.lock` under `supabase/` or `supabase/functions/`.
 
-4. **Check edge-function deploy blockers**
-   - Verify whether a Deno lockfile exists under the backend functions area.
-   - If present and incompatible, remove/rename it because incompatible Deno lockfiles can fail backend function deployment during publish.
+4. **Ask you to retry Publish → Update**
+   - If this still fails after the active folder is Live-only, the next blocker is no longer migration history; I’ll then isolate backend function deployment by deploying/checking functions in smaller groups.
 
-5. **Validate before asking you to retry publish**
-   - Re-run the full local-vs-backend migration comparison.
-   - Confirm `remote_not_local = 0` for the backend ledger.
-   - Confirm no duplicate local migration timestamps exist.
-   - Re-check backend logs for obvious remaining publish-time errors.
+## Technical detail
 
-## Expected result
-
-After the ledger reconciliation, publish should no longer fail at migration-history validation. If it still fails after this, the next likely blocker is a specific backend function deployment failure, which I will isolate by deploying functions in smaller groups.
-
-<presentation-actions>
-  <presentation-open-history>View History</presentation-open-history>
-</presentation-actions>
-
-<presentation-actions>
-<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
-</presentation-actions>
+This is a repository migration-file cleanup only. It does not modify database schema, app logic, user data, or authentication.
