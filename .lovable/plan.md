@@ -1,39 +1,29 @@
-## Findings
+## Publish failure repair plan
 
-The backend itself is healthy, and the Live migration ledger was backfilled: Live now has **1,042** migration ledger rows and max version **20260513163056**.
+### What I found
+- The hosted Live backend is healthy.
+- Recent backend logs do not show the earlier `pgmq.q_auth_emails` error anymore.
+- The real current mismatch is the migration ledger:
+  - Test has **500** migration records.
+  - Live has **1,042** migration records.
+  - Live has **693 placeholder records**, including old local migrations from Jan/Feb/early Mar that are not present in Test.
+- Publish likely still fails because the deployment pipeline validates Test → Live migration history, and Live now contains many extra migration versions that Test does not contain.
 
-However, Publish is still failing at the database stage because the ledger repair only tells Publish to skip old migration files. It does **not** fix invalid leftover Live database objects/jobs that still differ from Test or can fail during publish validation.
+### Fix
+1. Generate a Live-only cleanup SQL script that removes only the placeholder rows from `supabase_migrations.schema_migrations` where that version does **not** exist in Test.
+2. Keep all real Live migration records and the valid placeholders needed for Test parity.
+3. Include verification queries in the script:
+   - Live total migration count before/after
+   - Extra Live placeholder count before/after
+   - Max Live version remains `20260513163056`
+   - Email queue tables and cron job remain intact
+4. Have you run the script in **Cloud View → Run SQL → Live selected**.
+5. Re-query Live after execution and confirm:
+   - Live and Test migration histories match.
+   - The previous email queue repair is still present.
+6. Then retry **Publish → Update**.
 
-Current concrete signals:
-- Live has a broken scheduled email job referencing `pgmq.q_auth_emails` / `pgmq.q_transactional_emails`, but those queue tables are missing on Live.
-- Live logs show repeated backend errors from that job.
-- The Test environment has those queues and the same job works there.
-- Live has many placeholder ledger rows, so future schema checks may still depend on direct Live repair instead of replaying old migrations.
-
-## Fix plan
-
-1. **Create a Live-only database repair script**
-   - Recreate the missing email queues on Live using existing `pgmq.create(...)` calls.
-   - Keep it idempotent so it can be safely re-run.
-   - Do not change business data.
-
-2. **Repair the scheduled email queue job on Live**
-   - Replace the cron command so it points to the current Live backend URL/key context and only runs when the queues exist.
-   - Add existence guards around queue reads to prevent `relation does not exist` errors from breaking the database logs again.
-
-3. **Add verification queries to the same script**
-   - Confirm `pgmq.q_auth_emails` and `pgmq.q_transactional_emails` exist.
-   - Confirm the `process-email-queue` job is active and no longer references missing objects unsafely.
-   - Confirm migration ledger max version remains `20260513163056`.
-
-4. **Validate after the user runs it in Live**
-   - Query Live to confirm queue tables and cron job are fixed.
-   - Re-check recent Live database logs for publish-blocking errors.
-   - Ask the user to run Publish → Update once more.
-
-## Technical notes
-
-- This must be applied directly to **Live** because normal migrations apply to Test first and Live only during Publish, but Publish is the failing path.
-- The repair is non-destructive: no drops, truncates, or business-table changes.
-- No RLS changes will be added, consistent with this project’s architecture rule.
-- If Publish still fails after this repair, the next step is to capture the exact new Live database log entry immediately after the failed publish and repair that specific object in the same Live-only manner.
+### Technical details
+- This will only modify Lovable Cloud migration bookkeeping rows, not business tables or user data.
+- The cleanup must target only rows named `placeholder_synced_via_schema_script` and only versions not present in Test, so it does not delete real applied migration records.
+- No app code changes are needed unless a new publish error appears after the ledger alignment is fixed.
