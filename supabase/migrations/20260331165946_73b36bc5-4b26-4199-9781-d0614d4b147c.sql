@@ -1,0 +1,1 @@
+UPDATE public.ia_risk_config_master SET dept_risk_method = 'weighted', updated_at = now() WHERE is_active = true;

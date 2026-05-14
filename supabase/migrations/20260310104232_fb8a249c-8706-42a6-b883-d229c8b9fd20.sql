@@ -1,0 +1,1 @@
+ALTER TABLE ia_risk_assessments ADD COLUMN function_id uuid REFERENCES ia_department_functions(id);

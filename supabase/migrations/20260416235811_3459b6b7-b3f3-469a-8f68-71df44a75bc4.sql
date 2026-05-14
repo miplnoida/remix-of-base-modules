@@ -1,0 +1,7 @@
+ALTER TABLE public.ce_inspections
+  ADD COLUMN IF NOT EXISTS check_in_gps_lat NUMERIC(10,7),
+  ADD COLUMN IF NOT EXISTS check_in_gps_lng NUMERIC(10,7),
+  ADD COLUMN IF NOT EXISTS check_out_gps_lat NUMERIC(10,7),
+  ADD COLUMN IF NOT EXISTS check_out_gps_lng NUMERIC(10,7),
+  ADD COLUMN IF NOT EXISTS visit_date DATE,
+  ADD COLUMN IF NOT EXISTS notes TEXT;
