@@ -1,57 +1,48 @@
-## Why Publish still fails
+## Finding
 
-The schema sync you ran fixed Live's **schema**, but Publish doesn't look at the schema — it looks at the **migration ledger** (`supabase_migrations.schema_migrations`). The numbers tell the story:
+The hosted backend itself is healthy, but Live still has the same migration ledger gap:
 
 ```text
-Local migration files .................. 725
-Test ledger (recorded migrations) ...... 500   (last: 20260513163056)
-Live ledger (recorded migrations) ...... 349   (last: 20260427075142)
+Local migration files: 725
+Test ledger rows:      500
+Live ledger rows:      349
+Live last version:     20260427075142
+Placeholder rows:      0
 ```
 
-So Publish sees ~150+ migrations on Live that "haven't been applied yet" and tries to run them. Most of them contain non-idempotent SQL (`CREATE TABLE …`, `CREATE TYPE …`, `ALTER TABLE … ADD COLUMN …` without `IF NOT EXISTS`, `CREATE INDEX …`, etc.). Because the schema sync script already created those objects, the very first such statement throws `relation already exists` / `column already exists` / `type already exists`, Publish aborts → "publishing failed".
+This means the previous `live_ledger_backfill.sql` did not actually update the Live migration ledger, even if a SQL script was executed. The most likely causes are: it was run against Test instead of Live, only the schema sync script was run, or the ledger script failed/was not fully executed.
 
-Fixing the script further won't help — the root cause is the ledger gap, not the schema.
+## Plan
 
-## Fix: backfill Live's ledger
+1. **Regenerate a corrected Live-only ledger backfill file**
+   - Compare all `supabase/migrations/*.sql` local versions against Live's current `supabase_migrations.schema_migrations` entries.
+   - Generate a new versioned artifact, for example:
+     - `/mnt/documents/live_ledger_backfill_v2.sql`
+   - Include only the currently missing local migration versions.
+   - Keep it idempotent with `ON CONFLICT DO NOTHING` so it is safe to rerun.
 
-Insert a placeholder row into Live's `supabase_migrations.schema_migrations` for every migration file that exists locally but isn't recorded on Live. Publish then skips them (it only runs versions it doesn't see in the ledger). The schema is already in sync, so skipping them is exactly what we want.
+2. **Add built-in verification queries inside the same file**
+   - Before/after counts for Live ledger rows.
+   - Missing migration count after the insert.
+   - A clear success condition: Live ledger should contain all local migration versions needed by Publish.
 
-This is the same trick the existing `*_remote_applied.sql` files in your migrations folder use — we just need to do it in bulk on Live.
+3. **Avoid touching application code or schema**
+   - No frontend changes.
+   - No table/function/view changes.
+   - No data changes to business tables.
+   - Only `supabase_migrations.schema_migrations` ledger rows are inserted.
 
-## What I will produce
+4. **User execution step required**
+   - Because this is a Live production ledger repair, I cannot safely apply it through the normal Test migration flow.
+   - You will run the generated SQL in **Cloud View → Run SQL → Live selected**.
 
-1. **Read both ledgers** (Test for reference, Live for the gap) via `supabase--read_query`.
-2. **List all 725 local migration filenames** under `supabase/migrations/`.
-3. **Compute the set difference**: versions present locally but missing from Live's ledger (~376 rows).
-4. **Generate** `/mnt/documents/live_ledger_backfill.sql` containing one idempotent statement:
+5. **Validate after execution**
+   - I will re-query Live and confirm:
+     - ledger count increased,
+     - placeholder rows exist,
+     - missing local versions are zero or explain any remaining mismatch.
+   - Then you can retry **Publish → Update**.
 
-   ```sql
-   INSERT INTO supabase_migrations.schema_migrations (version, name, statements)
-   VALUES
-     ('20260427090705', 'placeholder_synced_via_schema_script', ARRAY[]::text[]),
-     ('20260427091241', 'placeholder_synced_via_schema_script', ARRAY[]::text[]),
-     ...
-   ON CONFLICT (version) DO NOTHING;
-   ```
+## Technical detail
 
-   - `statements = ARRAY[]::text[]` so nothing re-runs if Supabase ever replays from the ledger.
-   - `ON CONFLICT DO NOTHING` makes it safe to re-run.
-   - No schema is touched, no data is touched.
-
-5. **Deliver the file as a downloadable artifact**. You run it once in **Cloud View → Run SQL (Live selected)**.
-
-## After running the backfill
-
-1. Re-check: `SELECT count(*) FROM supabase_migrations.schema_migrations` on Live should equal the local file count (725).
-2. Click **Publish → Update**. Publish will now find no pending migrations on the database side and proceed straight to edge-function deploy and frontend release.
-3. If a small number of *new* migrations created after the gap fail (because schema sync covered them but they still try to add e.g. a constraint), I can add the same `IF NOT EXISTS` / `DO … EXCEPTION` wrapping you already have in `live_schema_sync.sql` — but typically there's nothing left to fail because the gap is closed.
-
-## Out of scope
-
-- No changes to project code or migration files in the repo.
-- No data writes, no schema changes on Live beyond inserting ledger rows.
-- Test ledger is left alone.
-
-## Confirm to proceed
-
-Say **go** and I'll generate `/mnt/documents/live_ledger_backfill.sql` and hand it to you for one-shot execution on Live.
+The publish pipeline is still trying to replay old migrations on Live because Live has not recorded them as applied. Since the schema was already synced manually, replaying old migration SQL causes duplicate-object failures such as existing tables, columns, indexes, or types. The correct repair is to record those migration versions as already applied, not to keep altering schema sync SQL.
