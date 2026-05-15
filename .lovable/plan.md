@@ -1,56 +1,51 @@
-## Current findings
+## What I confirmed now
 
-The database repair loop has gone as far as it can from code/tools:
+The repeated fixes have already cleared the normal publish blockers:
 
-- Test and Live migration ledgers now both show **501 rows**, latest `20260514150558`, with **0 synthetic/placeholder rows**.
-- Local `supabase/migrations` also has **501 files**, matching the repaired ledgers.
-- Recent Live database and function logs show **no migration/function errors**.
-- Publish visibility is already **public**.
-- Backend functions were redeployed successfully.
-- The Vite/Supabase env packaging pattern is not currently the blocker: `.env` is not ignored by `.gitignore`, and the client reads `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` as expected.
+- **Migration ledgers match**: Test and Live both have `501` migration rows, first `20260310181315`, latest `20260514150558`, and `0` placeholder/synthetic rows.
+- **Local migrations match**: `supabase/migrations` has exactly `501` valid migration files, no duplicate versions, no invalid names.
+- **Backend logs are clean**: no recent Live database errors and no recent failing backend-function requests.
+- **Publish visibility is not the issue**: the published site is public.
+- **Dependency security gate is clean**: no high/critical dependency vulnerabilities after removing `expr-eval`.
+- **Environment packaging is not the known `.env` issue**: `.env` exists, is tracked, and is not ignored; Vite reads the expected `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 
-The remaining concrete red flag is that **Test and Live are attached to different backend project identities**:
+The remaining hard evidence is:
 
 ```text
-Test backend: xynceskeiiisiefqlgxo
-Live backend: pruvbfejdpodpalqafcu
-Project config/source points to Test: xynceskeiiisiefqlgxo
+Test backend project: xynceskeiiisiefqlgxo
+Live backend project: pruvbfejdpodpalqafcu
+Source config/.env: xynceskeiiisiefqlgxo
 ```
 
-That is a deployment-environment mapping problem. More SQL migration edits are unlikely to fix it and may make things worse.
+That means the project source and Test backend point to one backend, while the Live publish target points to another. After the ledger/schema/security/package cleanup, this is the only concrete blocker left. More SQL scripts or migration rewrites are unlikely to fix it and risk damaging production bookkeeping again.
 
-## Fix plan
+## Complete fix plan
 
-1. **Stop all further migration-ledger scripts**
-   - Do not create or run more ledger backfills, placeholders, or reconciliation migrations.
-   - Do not modify Live business tables or production data.
+1. **Freeze database repair attempts**
+   - Do not run more migration backfills, placeholder inserts, ledger deletes, or schema sync scripts.
+   - Do not create a new Live environment from inside the app flow.
+   - Do not touch Live business tables or production data.
 
-2. **Remove publish safety noise from the repo**
-   - Remove the unused vulnerable dependency `expr-eval` from `package.json` and lockfiles if source imports confirm it is not used.
-   - Keep package-manager state clean so publish is not blocked by dependency/security checks.
+2. **Clean only package-manager ambiguity if approved**
+   - The repo currently has both npm and Bun lockfiles (`package-lock.json`, `bun.lock`, `bun.lockb`) and no `packageManager` field.
+   - This is not proven as the blocker, but it can add publish ambiguity.
+   - Safe source-only cleanup option: add a package-manager declaration for Bun and remove the stale binary Bun lockfile if the publish pipeline does not require it.
+   - Do not change dependencies or application logic.
 
-3. **Clear actionable publish security gate items only if safe**
-   - Mark already-fixed `audit-signatures` finding as fixed has been done.
-   - Review the remaining `ia-evidence` public bucket warning.
-   - If code currently depends on public URLs, do not blindly make it private; instead either add authenticated read policy or leave it as a documented warning, depending on actual usage.
+3. **Prepare an escalation package for Lovable Cloud support**
+   - Include exact evidence:
+     - Lovable project ID: `455cbbae-c40e-4f3f-af49-d9ed99089948`
+     - Test backend project: `xynceskeiiisiefqlgxo`
+     - Live backend project: `pruvbfejdpodpalqafcu`
+     - Source `.env` / `supabase/config.toml` target: `xynceskeiiisiefqlgxo`
+     - Both ledgers now match: `501` rows, latest `20260514150558`, no placeholders.
+     - Publish still fails with only generic `Publishing failed` after backend/source cleanup.
+   - Request a platform-side repair: relink Live publishing to the current Test backend target, or repair the Live backend mapping while preserving existing Live data.
 
-4. **Verify final local/source state**
-   - Confirm:
-     - local migration versions = Test ledger versions = Live ledger versions
-     - no placeholders/synthetic migration rows
-     - dependency lockfiles are consistent
-     - edge functions deploy successfully
-     - no recent backend errors
+4. **Retry publish once only after platform repair**
+   - Once Lovable Cloud confirms the Live/Test mapping is repaired, run one `Publish → Update`.
+   - If it fails after mapping repair, then capture the precise failure timestamp and re-check logs for that single attempt.
 
-5. **Resolve the actual environment mapping blocker**
-   - Because Test and Live are backed by different backend projects, the fix likely requires Lovable Cloud environment relink/reset at the platform level.
-   - Safe path: keep the existing Live database/data intact, and ask Lovable support / Cloud team to relink Live publishing to the current Test backend project or repair the Live backend mapping.
-   - Do **not** create a brand-new Live environment unless the user accepts a full production migration plan for database data, auth users, files, secrets, and domain cutover.
+## Why this is the safest complete fix
 
-6. **Retry Publish once after source cleanup**
-   - After removing dependency/security noise, retry **Publish → Update** once.
-   - If it still fails with only the generic message, treat it as a platform-level environment mapping issue and escalate with the exact evidence above.
-
-## Why this plan is safer
-
-It avoids touching production business data and stops repeating failed database-ledger repairs. The remaining issue is now either a publish safety gate or the Test/Live backend identity mismatch, not an application schema migration problem.
+The current issue is no longer database schema drift. The remaining mismatch is at the Lovable Cloud publish-environment mapping layer. Code-level SQL changes cannot relink two backend projects and may risk Live production data or migration history.
