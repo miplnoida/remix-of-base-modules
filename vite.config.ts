@@ -19,36 +19,27 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    chunkSizeWarningLimit: 1500,
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'supabase-vendor': ['@supabase/supabase-js'],
-          'tanstack-vendor': ['@tanstack/react-query'],
-          'radix-vendor': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-select',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-tooltip',
-            '@radix-ui/react-accordion',
-            '@radix-ui/react-alert-dialog',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-label',
-            '@radix-ui/react-radio-group',
-            '@radix-ui/react-scroll-area',
-            '@radix-ui/react-separator',
-            '@radix-ui/react-slot',
-            '@radix-ui/react-switch',
-            '@radix-ui/react-toast',
-          ],
-          'charts-vendor': ['recharts'],
-          'date-vendor': ['date-fns'],
-          'pdf-vendor': ['jspdf', 'jspdf-autotable', 'html2canvas'],
-          'excel-vendor': ['exceljs', 'file-saver'],
-          'icons-vendor': ['lucide-react'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('react-router')) return 'react-vendor';
+          if (id.match(/node_modules\/(react|react-dom|scheduler)\//)) return 'react-vendor';
+          if (id.includes('@supabase')) return 'supabase-vendor';
+          if (id.includes('@tanstack')) return 'tanstack-vendor';
+          if (id.includes('@radix-ui')) return 'radix-vendor';
+          if (id.includes('lucide-react')) return 'icons-vendor';
+          if (id.includes('recharts') || id.includes('/d3-') || id.includes('victory-vendor')) return 'charts-vendor';
+          if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('pdfjs') || id.includes('dompurify')) return 'pdf-vendor';
+          if (id.includes('exceljs') || id.includes('xlsx') || id.includes('file-saver')) return 'excel-vendor';
+          if (id.includes('date-fns') || id.includes('dayjs') || id.includes('moment')) return 'date-vendor';
+          if (id.includes('@monaco-editor') || id.includes('monaco-editor')) return 'monaco-vendor';
+          if (id.includes('@hello-pangea/dnd') || id.includes('react-beautiful-dnd')) return 'dnd-vendor';
+          if (id.includes('framer-motion') || id.includes('motion')) return 'motion-vendor';
+          if (id.includes('lodash')) return 'lodash-vendor';
+          if (id.includes('zod') || id.includes('react-hook-form') || id.includes('@hookform')) return 'form-vendor';
+          return 'vendor';
         },
       },
     },
