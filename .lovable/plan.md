@@ -1,81 +1,45 @@
-## What I found
+## Current diagnosis
 
-Publish is most likely still failing because the **Live migration ledger is not actually aligned with Test**.
+The earlier database issue has been repaired:
 
-Current read-only checks show:
+- Test migration ledger: 501 rows, latest `20260514150558`
+- Live migration ledger: 501 rows, latest `20260514150558`
+- Placeholder migration rows: 0 in both environments
+- `audit-signatures` storage policies match in both environments
+- Recent backend error logs show no database migration failures
+- Live backend is responding normally
 
-- **Live backend is healthy**.
-- **Test ledger:** 501 migrations, latest `20260514150558`.
-- **Live ledger:** 849 migrations, latest `20260513163056`.
-- Live still has **500 synthetic/placeholder-style migration rows** with statement text like:
-  `Live schema already existed before publish recovery; this row repairs migration bookkeeping only.`
-- Live also has **349 Live-only historical ledger rows** that do not exist in Test.
-- The only intended pending Test migration is still the `audit-signatures` storage policy change; it does **not** touch business/application table data.
+So the remaining Publish failure is no longer caused by migration ledger drift or the `audit-signatures` policy migration.
 
-So the previous repair did not make Live match Test closely enough for the publish pipeline. The issue is migration bookkeeping drift, not Live table data corruption.
+## Fix plan
 
-## Safe fix plan
+1. **Capture the exact publish failure**
+   - Ask for the current Publish dialog error text or screenshot, including the approximate failure time.
+   - This is required because the database checks now show clean state, so the blocker is likely in another publish stage.
 
-### 1. Do not create a new Live environment
+2. **Classify the failing publish stage**
+   - Determine whether the failure is in:
+     - frontend build/deploy
+     - backend function deployment
+     - secrets/config sync
+     - domain/update routing
+     - publish service state
 
-A new Live environment is higher risk because it requires moving production database rows, auth users, storage files, secrets, and domain settings manually.
+3. **Run targeted checks only for that stage**
+   - If frontend/build: inspect package/config and run the smallest relevant local verification.
+   - If backend functions: inspect function logs and function config.
+   - If secrets/config: verify required function secrets and environment config.
+   - If domain/publish service: verify publish settings and project URLs.
 
-### 2. Generate a new guarded Live-only repair script
+4. **Apply the smallest safe fix**
+   - Do not run more migration-ledger repair scripts now; they are already aligned.
+   - Avoid any changes to Live application data or business tables.
+   - Only change code/config if the captured error points to it.
 
-Create a script that touches **only**:
+5. **Retry Publish once after the targeted fix**
+   - Use **Publish → Update** once after the specific blocker is fixed.
+   - If it still fails with the same error, escalate using the exact error and timestamp because the backend database state is already clean.
 
-```text
-supabase_migrations.schema_migrations
-storage.objects policies for audit-signatures
-```
+## Why this is the safe path
 
-It will not touch any `public.*` business tables or application data.
-
-### 3. Apply the final pending storage policy manually in Live
-
-The script will safely apply the same policy change as migration `20260514150558`:
-
-- remove old public read policy for `audit-signatures`
-- create authenticated read/insert/update policies
-
-This is a storage access-rule change only.
-
-### 4. Normalize Live migration ledger to match Test exactly
-
-The script will then make Live’s migration ledger match Test’s 501 versions exactly:
-
-- remove Live-only migration ledger rows not present in Test
-- replace synthetic placeholder rows with the real Test migration metadata
-- insert/confirm ledger row `20260514150558`
-
-This changes deployment bookkeeping only; it does not drop tables, delete business rows, or copy Test data into Live.
-
-### 5. Add strict safety guards
-
-The script should abort unless all expected preconditions match:
-
-- Live ledger has 849 rows before repair
-- Test target list has 501 rows
-- Live has the `audit-signatures` bucket
-- Live currently lacks `20260514150558`
-- only migration-ledger rows are affected
-
-It should also verify after repair:
-
-- Live ledger has exactly 501 rows
-- Live latest version is `20260514150558`
-- Live storage policies match Test for `audit-signatures`
-
-### 6. Retry Publish once
-
-After the script succeeds, retry:
-
-```text
-Publish → Update
-```
-
-At that point publish should not need to run database migrations, because Live’s ledger and final policy state will already match Test.
-
-## If publish still fails after this
-
-Then the blocker is likely outside the database migration path, such as frontend build/deploy, function deployment, secrets sync, or domain update. In that case, we need the exact publish dialog error text/screenshot and failure time to target that subsystem.
+Creating a new Live environment is not the right next step because it risks production data, users, storage files, secrets, and domain configuration. The current Live database is now aligned with Test, so the next fix must target the actual non-database publish error rather than continuing ledger repairs.
