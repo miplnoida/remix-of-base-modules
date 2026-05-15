@@ -1,65 +1,77 @@
-## What I actually verified now
+## Diagnosis
 
-- **Backends are healthy**: Live (`pruvbfejdpodpalqafcu`) responds normally; Test (`xynceskeiiisiefqlgxo`) project exists and is reachable via project_info.
-- **Migrations are aligned**: 501 local files = 501 in Test = 501 in Live, latest `20260514150558` everywhere. No drift.
-- **Live DB logs are clean**: only normal app-level errors (rate-limit dupes, missing view), nothing that would block a publish.
-- **The "Test vs Live different project ref" theory was wrong**: Lovable Cloud always uses two separate Supabase projects for Test and Live. That is by design, not a bug, and not the publish blocker.
+The backend side is not showing a publish blocker:
 
-## Real likely cause
+- Live backend is healthy.
+- Recent Live database error logs are clean.
+- Recent Live backend-function request logs are clean.
+- Only one package lockfile remains: `bun.lock`.
+- Migrations and backend functions are not unusually large for this project.
 
-Local production build succeeds but the output is dangerously heavy:
+The remaining concrete blocker is the frontend bundle/build step:
 
-```
-dist/assets/index-*.js          11,054 kB   (gzip 2,270 kB)
-dist/assets/excel-vendor-*.js      941 kB
-dist/assets/icons-vendor-*.js      780 kB
-dist/assets/pdf-vendor-*.js        623 kB
-dist/assets/charts-vendor-*.js     441 kB
-build time: ~1m 3s with --max-old-space-size=4096
-```
+- `src/components/routing/AppRoutes.tsx` has 2,056 lines.
+- It eagerly imports 725 page modules and 733 total imports.
+- Only 18 lazy-loading references exist.
+- Previous `manualChunks` changes only split `node_modules`; they cannot split local page code while the router imports every page upfront.
+- This keeps the main app graph extremely large and matches the generic `Publishing failed` behavior: build/artifact step dies before deploy logs are produced.
 
-A single 11 MB main chunk + 1m+ build at the 4 GB heap cap is right at the edge of the publish pipeline's CPU/memory/time budget. Generic "Publishing failed" with no log entry on Live is the typical signature of the build step itself being killed (OOM/timeout) before deploy starts. This is the only remaining concrete blocker after migrations, ledgers, lockfiles, and archived migrations were already cleaned up.
+## Fix Plan
 
-## Fix plan (source-only, no DB or platform changes)
+1. **Refactor route page imports to lazy imports**
+   - Convert `@/pages/...` imports in `src/components/routing/AppRoutes.tsx` from eager static imports to `React.lazy()` declarations.
+   - Preserve default imports as lazy default imports.
+   - Preserve named page exports using the safe lazy mapping pattern:
+     ```ts
+     const WeeklyPlanReview = lazy(() =>
+       import('@/pages/compliance/audit-planning/WeeklyPlanReview').then((m) => ({ default: m.WeeklyPlanReview }))
+     );
+     ```
 
-1. **Raise publish build headroom**
-   - In `package.json`, raise `build` and `build:dev` to `--max-old-space-size=8192` so the publish builder is not killed at the 4 GB cap.
+2. **Keep route infrastructure eager**
+   - Keep small/core route infrastructure eager, including:
+     - `Routes`, `Route`, `Navigate`
+     - `LoginScreen`
+     - `ProtectedLayout`
+     - `ProtectedRoute`
+     - auth/layout wrappers and context hooks
+   - This avoids changing auth behavior while still removing hundreds of heavy page modules from the initial build graph.
 
-2. **Split the 11 MB main chunk**
-   - In `vite.config.ts`, add `build.rollupOptions.output.manualChunks` to push heavy libs out of the main bundle:
-     - `xlsx` / `exceljs` → `excel-vendor`
-     - `jspdf`, `pdfjs-dist`, `html2canvas` → `pdf-vendor` (already partially split)
-     - `recharts`, `d3-*` → `charts-vendor`
-     - `lucide-react` → `icons-vendor`
-     - `@radix-ui/*` → `radix-vendor`
-     - `@tanstack/*` → `tanstack-vendor`
-     - `react`, `react-dom`, `react-router-dom` → `react-vendor`
-   - Set `build.chunkSizeWarningLimit: 2000` to silence the noisy warning.
+3. **Add a single reusable lazy route wrapper**
+   - Add a small local helper in `AppRoutes.tsx` for consistent Suspense wrapping, for example:
+     ```tsx
+     const routeFallback = <div className="min-h-screen bg-background" />;
+     const lazyRoute = (node: React.ReactNode) => (
+       <Suspense fallback={routeFallback}>{node}</Suspense>
+     );
+     const protectedLazyRoute = (node: React.ReactNode) => (
+       <ProtectedLayout>{lazyRoute(node)}</ProtectedLayout>
+     );
+     ```
+   - Replace existing repeated `<ProtectedLayout><Page /></ProtectedLayout>` route elements with `protectedLazyRoute(<Page />)` only for lazy pages.
+   - Keep existing custom wrappers where needed, but place lazy pages inside `Suspense`.
 
-3. **Lazy-load the heaviest pages**
-   - Convert these route components to `React.lazy()` + `Suspense` in the router:
-     - Audit module pages (`AuditPlanDetail`, `AuditReportBuilder`, `DocumentTemplateSettings`, `LegalHearingCalendar`)
-     - DB diagram page
-     - Excel/PDF export-heavy pages
-   - Goal: get the main `index-*.js` chunk well under 4 MB.
+4. **Apply in controlled batches**
+   - First convert all obvious `@/pages/...` default imports.
+   - Then handle named page imports.
+   - Then update route elements so no lazy component renders outside `Suspense`.
+   - Avoid changing route paths, permissions, layouts, or business logic.
 
-4. **Verify**
-   - Run `bunx vite build` locally and confirm:
-     - main `index-*.js` < 4 MB raw
-     - total build time < 60 s
-     - no chunk > 1.5 MB except known vendor chunks
-   - Then run **Publish → Update** once.
+5. **Verification after implementation**
+   - Confirm there are no remaining eager `@/pages/...` imports except intentionally kept public/auth pages.
+   - Confirm every lazy page is rendered inside `Suspense`.
+   - Use the automatic harness/build feedback to catch syntax or JSX issues.
+   - Then ask you to publish again.
 
-5. **Only if step 4 still fails**
-   - Capture the exact failure timestamp and check Lovable Cloud edge-function deploy logs for the 92 functions; identify any function that fails to deploy (most common: a function importing a missing local file or a syntax error introduced in the most recent batch).
+## What will not be changed
 
-## What I will NOT touch
+- No database migrations.
+- No Live data changes.
+- No backend function logic changes.
+- No changes to generated Lovable Cloud client/type files.
+- No route URL changes.
+- No UI/business behavior changes beyond loading pages lazily.
 
-- No more migration backfills, ledger inserts, or `supabase_migrations.schema_migrations` edits.
-- No changes to Live data, storage, secrets, auth, or custom domain.
-- No changes to `src/integrations/supabase/client.ts`, `.env`, or `supabase/config.toml` project_id.
-- No edge-function logic changes in this pass — only the Vite build and router lazy-loading.
+## Expected result
 
-## Why this is the right next step
-
-Migrations and backend mapping are already verified clean. The only remaining unverified area that can produce a generic "Publishing failed" with no Live DB error is the Vite build / artifact step, and the local build numbers (11 MB single chunk, 1m+ at 4 GB cap) match exactly that failure profile. Fixing it is a pure source change with zero risk to Live data.
+The main bundle should drop substantially because the router will no longer include every page in the initial application chunk. This directly targets the remaining publish failure cause instead of repeating lockfile or migration cleanup.
