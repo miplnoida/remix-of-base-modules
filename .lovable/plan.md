@@ -1,45 +1,50 @@
-## Current diagnosis
+## Diagnosis
 
-The earlier database issue has been repaired:
+I checked the current state fresh:
 
-- Test migration ledger: 501 rows, latest `20260514150558`
-- Live migration ledger: 501 rows, latest `20260514150558`
-- Placeholder migration rows: 0 in both environments
-- `audit-signatures` storage policies match in both environments
-- Recent backend error logs show no database migration failures
-- Live backend is responding normally
+- The hosted Live backend is healthy.
+- Test and Live migration ledgers are aligned: both have 501 rows, from `20260310181315` to `20260514150558`.
+- The app is a classic Vite React project.
+- The Supabase client depends on `import.meta.env.VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
+- `.env` exists locally, but `.gitignore` currently ignores `*.local` only, not `.env`.
+- Publish settings are already public and the site is already published.
 
-So the remaining Publish failure is no longer caused by migration ledger drift or the `audit-signatures` policy migration.
+So the previous ledger repair path is likely complete. The remaining generic “Publishing failed” is most likely a publish/build packaging issue around managed environment files or stale publish state, not Live database data.
 
-## Fix plan
+## Plan
 
-1. **Capture the exact publish failure**
-   - Ask for the current Publish dialog error text or screenshot, including the approximate failure time.
-   - This is required because the database checks now show clean state, so the blocker is likely in another publish stage.
+1. **Preserve Live data**
+   - Do not create a new Live environment.
+   - Do not run destructive database changes.
+   - Do not modify production table data.
 
-2. **Classify the failing publish stage**
-   - Determine whether the failure is in:
-     - frontend build/deploy
-     - backend function deployment
-     - secrets/config sync
-     - domain/update routing
-     - publish service state
+2. **Normalize publish/build config**
+   - Keep the classic Vite setup intact.
+   - Ensure the managed `.env` file is not excluded from publish packaging.
+   - Remove only publish-blocking ignore rules if found; do not expose or print secret values.
 
-3. **Run targeted checks only for that stage**
-   - If frontend/build: inspect package/config and run the smallest relevant local verification.
-   - If backend functions: inspect function logs and function config.
-   - If secrets/config: verify required function secrets and environment config.
-   - If domain/publish service: verify publish settings and project URLs.
+3. **Clean migration package surface**
+   - Leave active migrations as-is because Test and Live are aligned.
+   - Keep archived migration files outside the active `supabase/migrations` folder so they are not re-applied during publish.
+   - Avoid more ledger repair migrations unless a new explicit migration error appears.
 
-4. **Apply the smallest safe fix**
-   - Do not run more migration-ledger repair scripts now; they are already aligned.
-   - Avoid any changes to Live application data or business tables.
-   - Only change code/config if the captured error points to it.
+4. **Verify locally without changing Live**
+   - Run targeted non-destructive checks for the Vite/Supabase env setup.
+   - Confirm active migration filenames and config remain valid.
 
-5. **Retry Publish once after the targeted fix**
-   - Use **Publish → Update** once after the specific blocker is fixed.
-   - If it still fails with the same error, escalate using the exact error and timestamp because the backend database state is already clean.
+5. **Retry Publish once**
+   - After the config cleanup, use **Publish → Update** once.
+   - If it still fails with only the generic message, capture the exact timestamp and escalate as a publish-service issue because backend health, migration ledgers, and publish visibility are clean.
 
-## Why this is the safe path
+## Technical details
 
-Creating a new Live environment is not the right next step because it risks production data, users, storage files, secrets, and domain configuration. The current Live database is now aligned with Test, so the next fix must target the actual non-database publish error rather than continuing ledger repairs.
+Primary likely fix area:
+
+```text
+Classic Vite app
+  -> uses import.meta.env.VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY
+  -> publish build needs managed env available
+  -> generic publish failure can happen when env packaging/state is stale
+```
+
+I will make only the smallest config/file-surface correction needed, with no Live data impact.
