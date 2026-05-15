@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, X, Calculator, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Parser } from "expr-eval";
 
 interface FormulaBuilderProps {
   value?: string;
@@ -53,6 +52,39 @@ const FUNCTIONS = [
   { value: "ROUND", display: "ROUND()", description: "Round to nearest" },
   { value: "IF", display: "IF()", description: "Conditional logic" },
 ];
+
+const evaluateMathExpression = (expression: string): number | null => {
+  const normalized = expression
+    .replace(/\bMIN\s*\(/gi, "min(")
+    .replace(/\bMAX\s*\(/gi, "max(")
+    .replace(/\bROUND\s*\(/gi, "round(")
+    .replace(/\bIF\s*\(/gi, "iff(");
+
+  if (!/^[\d+\-*/%().,\sA-Za-z_<>!=?:]+$/.test(normalized)) {
+    return null;
+  }
+
+  const allowedIdentifiers = new Set(["min", "max", "round", "iff"]);
+  const identifiers = normalized.match(/[A-Za-z_]\w*/g) || [];
+  if (identifiers.some((identifier) => !allowedIdentifiers.has(identifier))) {
+    return null;
+  }
+
+  const result = Function(
+    "min",
+    "max",
+    "round",
+    "iff",
+    `"use strict"; return (${normalized});`
+  )(
+    Math.min,
+    Math.max,
+    Math.round,
+    (condition: unknown, whenTrue: number, whenFalse: number) => condition ? whenTrue : whenFalse
+  );
+
+  return typeof result === "number" && Number.isFinite(result) ? result : null;
+};
 
 export function FormulaBuilder({ value, onChange, benefitType }: FormulaBuilderProps) {
   const [formulaElements, setFormulaElements] = useState<FormulaElement[]>([]);
@@ -114,9 +146,7 @@ export function FormulaBuilder({ value, onChange, benefitType }: FormulaBuilderP
       // Clean up for safe evaluation
       evalFormula = evalFormula.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
       
-      // Use safe math expression parser (no code injection risk)
-      const parser = new Parser();
-      const result = parser.evaluate(evalFormula);
+      const result = evaluateMathExpression(evalFormula);
       setCalculatedResult(typeof result === 'number' ? Math.round(result * 100) / 100 : null);
     } catch (e) {
       setCalculatedResult(null);
