@@ -1,2 +1,0 @@
-ALTER TABLE public.ip_master
-ADD COLUMN IF NOT EXISTS temp_ssn VARCHAR(6);
