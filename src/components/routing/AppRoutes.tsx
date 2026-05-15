@@ -1,18 +1,19 @@
-
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { LoginScreen } from '@/components/auth/LoginScreen';
-const InspectorLogin = lazy(() => import('@/pages/inspector/InspectorLogin').then((m) => ({ default: m.InspectorLogin })));
 import { InspectorLayout } from '@/components/inspector/InspectorLayout';
+import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { useLegalAuth } from '@/contexts/LegalAuthContext';
+import React, { Suspense, lazy } from 'react';
+import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
+
+const InspectorLogin = lazy(() => import('@/pages/inspector/InspectorLogin').then((m) => ({ default: m.InspectorLogin })));
 const InspectorDashboard = lazy(() => import('@/pages/inspector/InspectorDashboard').then((m) => ({ default: m.InspectorDashboard })));
 const InspectorWeeklyPlan = lazy(() => import('@/pages/inspector/InspectorWeeklyPlan').then((m) => ({ default: m.InspectorWeeklyPlan })));
 const InspectorActivities = lazy(() => import('@/pages/inspector/InspectorActivities').then((m) => ({ default: m.InspectorActivities })));
 const InspectorViolations = lazy(() => import('@/pages/inspector/InspectorViolations').then((m) => ({ default: m.InspectorViolations })));
 const InspectorReports = lazy(() => import('@/pages/inspector/InspectorReports').then((m) => ({ default: m.InspectorReports })));
 const RecordViolationForm = lazy(() => import('@/pages/inspector/RecordViolationForm').then((m) => ({ default: m.RecordViolationForm })));
-import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { useLegalAuth } from '@/contexts/LegalAuthContext';
-import React, { Suspense, lazy } from 'react';
 
 // DB Diagram
 const DbDiagramPage = lazy(() => import('@/pages/db-diagram/DbDiagramPage'));
@@ -266,7 +267,6 @@ const EntitySummary = lazy(() => import('@/pages/audit/EntitySummary'));
 const RiskMatrix = lazy(() => import('@/pages/audit/RiskMatrix'));
 const AuditEngagements = lazy(() => import('@/pages/audit/AuditEngagements'));
 const EngagementDetail = lazy(() => import('@/pages/audit/EngagementDetail'));
-import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
 const PlanApproval = lazy(() => import('@/pages/audit/PlanApproval'));
 const AuditConfig = lazy(() => import('@/pages/audit/AuditConfig'));
 const RiskSettings = lazy(() => import('@/pages/audit/RiskSettings'));
