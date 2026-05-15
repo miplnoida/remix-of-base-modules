@@ -1,89 +1,81 @@
-## Diagnosis
+## What I found
 
-- The Live backend is healthy and responding normally.
-- The previous placeholder migration-ledger rows are no longer present in Live.
-- Live is behind Test by one migration: `20260514150558_9babccfe-0509-42a6-9d4d-9da6daa44cc8.sql`.
-- That pending migration only changes access policies for the `audit-signatures` storage bucket.
-- It does **not** copy Test data to Live and does **not** modify business/application table rows.
+Publish is most likely still failing because the **Live migration ledger is not actually aligned with Test**.
 
-## Answer to your question
+Current read-only checks show:
 
-Creating a brand-new Live environment is **not the safest recovery path** if the goal is to preserve existing Live database table data. A new Live backend would start as a separate environment and would require manually migrating all production data, files, secrets, auth users, and domain configuration. That creates a much higher data-loss and downtime risk than fixing the current publish gap.
+- **Live backend is healthy**.
+- **Test ledger:** 501 migrations, latest `20260514150558`.
+- **Live ledger:** 849 migrations, latest `20260513163056`.
+- Live still has **500 synthetic/placeholder-style migration rows** with statement text like:
+  `Live schema already existed before publish recovery; this row repairs migration bookkeeping only.`
+- Live also has **349 Live-only historical ledger rows** that do not exist in Test.
+- The only intended pending Test migration is still the `audit-signatures` storage policy change; it does **not** touch business/application table data.
 
-The safer option is to keep the existing Live environment and publish only after verifying the one remaining pending migration.
+So the previous repair did not make Live match Test closely enough for the publish pipeline. The issue is migration bookkeeping drift, not Live table data corruption.
 
-## Recommended safe publish plan
+## Safe fix plan
 
-### 1. Do not retry publish repeatedly
+### 1. Do not create a new Live environment
 
-Stop repeated publish attempts until the exact failure reason is captured or the final verification below is complete.
+A new Live environment is higher risk because it requires moving production database rows, auth users, storage files, secrets, and domain settings manually.
 
-### 2. Confirm the current Live state
+### 2. Generate a new guarded Live-only repair script
 
-Before the next publish attempt, verify:
-
-- Live migration ledger has no placeholder rows.
-- Live max migration is `20260513163056`.
-- Test max migration is `20260514150558`.
-- Live has not yet applied `20260514150558`.
-- Live still has the old `audit_sig_public_read` policy and does not yet have the new authenticated-only policy.
-
-I already checked these points and they match the expected state.
-
-### 3. Treat the next publish as low data-risk
-
-The next publish should only apply this pending backend change:
+Create a script that touches **only**:
 
 ```text
-Bucket: audit-signatures
-Change: replace public read policy with authenticated read/insert/update policies
-Business table data: untouched
-Live database rows: not copied from Test and not overwritten
+supabase_migrations.schema_migrations
+storage.objects policies for audit-signatures
 ```
 
-### 4. Publish once
+It will not touch any `public.*` business tables or application data.
 
-Use:
+### 3. Apply the final pending storage policy manually in Live
+
+The script will safely apply the same policy change as migration `20260514150558`:
+
+- remove old public read policy for `audit-signatures`
+- create authenticated read/insert/update policies
+
+This is a storage access-rule change only.
+
+### 4. Normalize Live migration ledger to match Test exactly
+
+The script will then make Live’s migration ledger match Test’s 501 versions exactly:
+
+- remove Live-only migration ledger rows not present in Test
+- replace synthetic placeholder rows with the real Test migration metadata
+- insert/confirm ledger row `20260514150558`
+
+This changes deployment bookkeeping only; it does not drop tables, delete business rows, or copy Test data into Live.
+
+### 5. Add strict safety guards
+
+The script should abort unless all expected preconditions match:
+
+- Live ledger has 849 rows before repair
+- Test target list has 501 rows
+- Live has the `audit-signatures` bucket
+- Live currently lacks `20260514150558`
+- only migration-ledger rows are affected
+
+It should also verify after repair:
+
+- Live ledger has exactly 501 rows
+- Live latest version is `20260514150558`
+- Live storage policies match Test for `audit-signatures`
+
+### 6. Retry Publish once
+
+After the script succeeds, retry:
 
 ```text
 Publish → Update
 ```
 
-Do this one time after the checks above. Do not run any manual SQL against business tables.
+At that point publish should not need to run database migrations, because Live’s ledger and final policy state will already match Test.
 
-### 5. If it fails again, capture the exact publish error
+## If publish still fails after this
 
-If publishing still fails, the next step should be based on the exact publish dialog error, not another ledger-repair guess.
-
-Immediately after the failed publish, capture:
-
-- Full publish error text/screenshot.
-- Time of failure.
-- Whether the frontend build failed, migration failed, function deployment failed, or domain update failed.
-
-Then I can inspect the relevant logs and produce the next targeted fix.
-
-## Fallback plan if you still want a new environment
-
-Use this only if Lovable support confirms the current Live environment cannot be recovered.
-
-### New environment migration checklist
-
-1. Export Live database schema and data.
-2. Export Live storage files.
-3. Record Live secrets and environment-specific settings.
-4. Record authentication/domain/email settings.
-5. Create the new environment.
-6. Apply schema first.
-7. Import data table-by-table with validation counts.
-8. Import storage files.
-9. Configure secrets and auth settings.
-10. Smoke test login, protected pages, document downloads, payments, workflows, and public API endpoints.
-11. Switch domain only after validation.
-12. Keep the old Live environment read-only as rollback until sign-off.
-
-This fallback is more complex and riskier than publishing the existing Live environment because it requires a controlled production data migration.
-
-## Decision
-
-Recommended path: **keep the current Live environment and publish once after verification**. A brand-new Live environment should be the last resort, not the primary fix.
+Then the blocker is likely outside the database migration path, such as frontend build/deploy, function deployment, secrets sync, or domain update. In that case, we need the exact publish dialog error text/screenshot and failure time to target that subsystem.
