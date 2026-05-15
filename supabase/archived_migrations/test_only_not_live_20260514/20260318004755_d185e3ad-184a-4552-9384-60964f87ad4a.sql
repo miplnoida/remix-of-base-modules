@@ -1,1 +1,0 @@
-SELECT setval('cn_payment_payment_sequence_no_seq', (SELECT COALESCE(MAX(payment_sequence_no), 0) FROM public.cn_payment));

@@ -1,1 +1,0 @@
-ALTER TABLE ce_weekly_plan_items ALTER COLUMN source_id TYPE text;

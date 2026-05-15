@@ -1,1 +1,0 @@
-ALTER TABLE designations RENAME TO tb_designations;
