@@ -1,1 +1,0 @@
-ALTER TABLE public.ia_department_functions ADD COLUMN IF NOT EXISTS weight_percentage NUMERIC(5,2) DEFAULT 0;

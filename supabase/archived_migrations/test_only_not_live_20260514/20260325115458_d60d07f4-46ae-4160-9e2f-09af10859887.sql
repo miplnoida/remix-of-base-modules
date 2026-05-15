@@ -1,1 +1,0 @@
-DROP FUNCTION IF EXISTS public.get_c3_records_filtered(text, text, text, text, text, integer, integer, text, text, bigint, integer, integer, boolean);

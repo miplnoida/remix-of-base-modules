@@ -1,1 +1,0 @@
-ALTER TABLE public.ia_auditors ADD COLUMN IF NOT EXISTS profile_id UUID;

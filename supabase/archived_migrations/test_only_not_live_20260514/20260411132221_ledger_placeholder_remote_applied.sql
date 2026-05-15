@@ -1,2 +1,0 @@
--- Remote ledger placeholder for an already-applied Test migration with no local file. No schema changes.
--- This file exists only to keep local migration history aligned with the Test backend ledger.

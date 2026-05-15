@@ -1,1 +1,0 @@
-ALTER TABLE public.cn_receipt ALTER COLUMN receipt_id TYPE VARCHAR(50);

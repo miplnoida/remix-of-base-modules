@@ -1,1 +1,0 @@
-ALTER TABLE c3_config_details ADD COLUMN nwd_employee_levy_rate numeric DEFAULT 0.08;

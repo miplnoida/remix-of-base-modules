@@ -1,1 +1,0 @@
-ALTER VIEW public.v_ia_departments SET (security_invoker = true);
