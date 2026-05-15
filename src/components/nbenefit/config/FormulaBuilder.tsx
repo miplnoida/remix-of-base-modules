@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, X, Calculator, AlertCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Parser } from "expr-eval";
 
 interface FormulaBuilderProps {
   value?: string;
@@ -53,6 +52,119 @@ const FUNCTIONS = [
   { value: "ROUND", display: "ROUND()", description: "Round to nearest" },
   { value: "IF", display: "IF()", description: "Conditional logic" },
 ];
+
+const evaluateMathExpression = (expression: string): number | null => {
+  const normalized = expression
+    .replace(/\bMIN\s*\(/gi, "min(")
+    .replace(/\bMAX\s*\(/gi, "max(")
+    .replace(/\bROUND\s*\(/gi, "round(")
+    .replace(/\bIF\s*\(/gi, "iff(");
+
+  if (!/^[\d+\-*/%().,\sA-Za-z_<>!=]+$/.test(normalized)) return null;
+
+  let index = 0;
+  const peek = () => normalized[index] || "";
+  const consumeSpaces = () => {
+    while (/\s/.test(peek())) index += 1;
+  };
+  const match = (token: string) => {
+    consumeSpaces();
+    if (normalized.slice(index, index + token.length) === token) {
+      index += token.length;
+      return true;
+    }
+    return false;
+  };
+  const parseIdentifier = () => {
+    consumeSpaces();
+    const matchResult = normalized.slice(index).match(/^[A-Za-z_]\w*/);
+    if (!matchResult) return "";
+    index += matchResult[0].length;
+    return matchResult[0];
+  };
+
+  const parseExpression = (): number => parseComparison();
+  const parseComparison = (): number => {
+    let left = parseAdditive();
+    consumeSpaces();
+    const operators = [">=", "<=", "==", "!=", ">", "<"];
+    const operator = operators.find((candidate) => normalized.slice(index, index + candidate.length) === candidate);
+    if (!operator) return left;
+    index += operator.length;
+    const right = parseAdditive();
+    left = operator === ">=" ? Number(left >= right)
+      : operator === "<=" ? Number(left <= right)
+      : operator === "==" ? Number(left === right)
+      : operator === "!=" ? Number(left !== right)
+      : operator === ">" ? Number(left > right)
+      : Number(left < right);
+    return left;
+  };
+  const parseAdditive = (): number => {
+    let value = parseMultiplicative();
+    while (true) {
+      if (match("+")) value += parseMultiplicative();
+      else if (match("-")) value -= parseMultiplicative();
+      else return value;
+    }
+  };
+  const parseMultiplicative = (): number => {
+    let value = parseUnary();
+    while (true) {
+      if (match("*")) value *= parseUnary();
+      else if (match("/")) value /= parseUnary();
+      else if (match("%")) value %= parseUnary();
+      else return value;
+    }
+  };
+  const parseUnary = (): number => {
+    if (match("+")) return parseUnary();
+    if (match("-")) return -parseUnary();
+    return parsePrimary();
+  };
+  const parseArguments = (): number[] => {
+    if (!match("(")) throw new Error("Expected function arguments");
+    const args: number[] = [];
+    if (!match(")")) {
+      do {
+        args.push(parseExpression());
+      } while (match(","));
+      if (!match(")")) throw new Error("Expected closing parenthesis");
+    }
+    return args;
+  };
+  const parsePrimary = (): number => {
+    consumeSpaces();
+    if (match("(")) {
+      const value = parseExpression();
+      if (!match(")")) throw new Error("Expected closing parenthesis");
+      return value;
+    }
+
+    const identifier = parseIdentifier();
+    if (identifier) {
+      const args = parseArguments();
+      if (identifier === "min") return Math.min(...args);
+      if (identifier === "max") return Math.max(...args);
+      if (identifier === "round") return Math.round(args[0] ?? 0);
+      if (identifier === "iff") return args[0] ? args[1] ?? 0 : args[2] ?? 0;
+      throw new Error("Unsupported function");
+    }
+
+    const numberMatch = normalized.slice(index).match(/^\d+(?:\.\d+)?/);
+    if (!numberMatch) throw new Error("Expected number");
+    index += numberMatch[0].length;
+    return Number(numberMatch[0]);
+  };
+
+  try {
+    const result = parseExpression();
+    consumeSpaces();
+    return index === normalized.length && Number.isFinite(result) ? result : null;
+  } catch {
+    return null;
+  }
+};
 
 export function FormulaBuilder({ value, onChange, benefitType }: FormulaBuilderProps) {
   const [formulaElements, setFormulaElements] = useState<FormulaElement[]>([]);
@@ -114,9 +226,7 @@ export function FormulaBuilder({ value, onChange, benefitType }: FormulaBuilderP
       // Clean up for safe evaluation
       evalFormula = evalFormula.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-');
       
-      // Use safe math expression parser (no code injection risk)
-      const parser = new Parser();
-      const result = parser.evaluate(evalFormula);
+      const result = evaluateMathExpression(evalFormula);
       setCalculatedResult(typeof result === 'number' ? Math.round(result * 100) / 100 : null);
     } catch (e) {
       setCalculatedResult(null);
