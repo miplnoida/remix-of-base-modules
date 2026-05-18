@@ -23,16 +23,34 @@ export type SatelliteApp = 'compliance' | 'audit';
 
 import { SATELLITE_CONFIG, pickSatelliteUrl } from '@/config/satellites';
 
-// A satellite is only considered "enabled" when both the flag is on AND a
-// non-blank base URL is configured for the current environment. This prevents
-// sidebar links from being rewritten to /…-hub/* (and the host route from
-// embedding an empty iframe) when the base_url has been cleared.
+// Runtime flags driven by app_modules.base_url (see useDynamicNavigation).
+// Default OFF: until the DB confirms a non-blank base_url for the module,
+// the host serves local routes (per docs/INTERNAL_AUDIT_ROLLBACK.md contract).
+const remoteEnabledFromDb: { compliance: boolean; audit: boolean } = {
+  compliance: false,
+  audit: false,
+};
+
+export const setSatelliteRemoteEnabled = (
+  flags: { compliance?: boolean; audit?: boolean },
+): void => {
+  if (typeof flags.compliance === 'boolean') remoteEnabledFromDb.compliance = flags.compliance;
+  if (typeof flags.audit === 'boolean') remoteEnabledFromDb.audit = flags.audit;
+};
+
+// A satellite is only considered "enabled" when the static config flag is on,
+// the DB has a non-blank base_url for the module, AND a non-blank URL is
+// configured for the current environment. This prevents sidebar links from
+// being rewritten to /…-hub/* (and the host route from embedding an empty
+// iframe) when the base_url has been cleared.
 export const isComplianceRemoteEnabled = (): boolean =>
   SATELLITE_CONFIG.compliance.enabled &&
+  remoteEnabledFromDb.compliance &&
   !!pickSatelliteUrl(SATELLITE_CONFIG.compliance).trim();
 
 export const isAuditRemoteEnabled = (): boolean =>
   SATELLITE_CONFIG.audit.enabled &&
+  remoteEnabledFromDb.audit &&
   !!pickSatelliteUrl(SATELLITE_CONFIG.audit).trim();
 
 export const getComplianceHubUrl = (): string =>
