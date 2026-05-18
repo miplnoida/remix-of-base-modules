@@ -894,6 +894,7 @@ const VCPaymentUpdate = lazy(() => import('@/pages/cashier/VCPaymentUpdate'));
 
 export const AppRoutes = () => {
   return (
+    <Suspense fallback={<div className="flex items-center justify-center p-6 text-sm text-muted-foreground">Loading…</div>}>
     <Routes>
       <Route path="/login" element={<LoginScreen />} />
       <Route path="/acknowledge-audit/:token" element={<AuditReportAcknowledgePage />} />
@@ -2041,6 +2042,7 @@ export const AppRoutes = () => {
 
       <Route path="*" element={<NotFound />} />
       </Routes>
+    </Suspense>
   );
 };
 

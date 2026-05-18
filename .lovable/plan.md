@@ -1,25 +1,21 @@
 ## Plan
 
-1. **Move the lazy-loading boundary inside the content area**
-   - Remove the top-level `<Suspense fallback={routeFallback}>` that currently wraps the entire `<Routes>` tree.
-   - This top-level fallback can replace the whole app shell with `<div className="min-h-screen bg-background" />` whenever a clicked route is still lazy-loading, which looks like the sidebar/header/content all reload.
+1. **Restore safe route loading boundaries**
+   - Keep the application shell mounted for protected pages.
+   - Add a local `<Suspense>` boundary around public lazy pages that are currently outside the protected layout, such as login/setup/password/inspector/public routes.
+   - Keep protected content loading inside `ProtectedLayout`, so header/sidebar do not blank out during menu navigation.
 
-2. **Keep Sidebar/Header mounted while only routed content suspends**
-   - Update `ProtectedLayout` so its `<Outlet />` is wrapped in a local `<Suspense>` inside `AppLayout`.
-   - Use a content-only loading fallback, not `min-h-screen`, so only the main content section shows loading while Sidebar/Header remain visible and mounted.
-   - Preserve backward compatibility for any existing `<ProtectedLayout>{children}</ProtectedLayout>` usage.
+2. **Fix left-menu navigation to avoid browser reloads**
+   - Replace the sidebar’s anchor-based internal navigation with React Router navigation semantics.
+   - Use a router link for internal URLs and keep normal external redirect behavior only for true external/satellite links.
+   - This prevents full document navigation when users click left-side menu items.
 
-3. **Remove or avoid full-screen route fallbacks inside protected routes**
-   - Replace protected-route nested fallbacks like `Loading...` or `min-h-screen` where they affect normal menu navigation, especially audit/db routes.
-   - Keep public/inspector-specific behavior unchanged unless it is outside the protected layout.
+3. **Remove full-screen loaders from protected content routes**
+   - Replace remaining protected-route nested fallbacks using `min-h-screen` with content-only fallbacks where needed, especially DB diagram/audit routes.
+   - This ensures only the content panel shows loading, not the full page shell.
 
-4. **Fix sidebar submenu identity instability**
-   - Change submenu keys from `subItem.title` to a stable unique key using `id || url || title`.
-   - This addresses the duplicate key warning (`Compliance (STK)`) and prevents React from dropping/recreating sidebar items unexpectedly during route changes.
-
-## Expected result
-
-- Clicking left menu items no longer blanks/rebuilds the whole application shell.
-- Sidebar, expanded menu state, collapse state, and header stay mounted.
-- Only the content panel changes or shows a content-level loader while the next page loads.
-- Existing public routes, login routes, inspector routes, and satellite fallback behavior remain unchanged.
+4. **Validate the behavior**
+   - Check the preview after the change.
+   - Confirm public pages still load.
+   - Confirm protected navigation keeps sidebar/header mounted and only swaps content.
+   - Review console/network signals for page-load errors.
