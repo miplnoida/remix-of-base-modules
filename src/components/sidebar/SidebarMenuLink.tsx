@@ -20,20 +20,38 @@ const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) =>
 
   const isExternal = item.url.startsWith('http://') || item.url.startsWith('https://');
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleExternalClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (isExternal) {
-      // For known satellite apps, mint a one-time SSO exchange code so the
-      // user lands logged in. For other external links, redirect plainly.
-      if (isSatelliteUrl(item.url)) {
-        void navigateToSatellite(item.url);
-      } else {
-        window.location.href = item.url;
-      }
+    if (isSatelliteUrl(item.url)) {
+      void navigateToSatellite(item.url);
     } else {
-      navigate(item.url);
+      window.location.href = item.url;
     }
   };
+
+  const handleInternalClick = (e: React.MouseEvent) => {
+    // Allow modifier-click / middle-click to use browser defaults (new tab, etc.)
+    if (e.defaultPrevented) return;
+    if (e.button !== 0) return;
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    navigate(item.url);
+  };
+
+  const linkClass = `flex items-center gap-4 min-w-0 ${collapsed ? 'justify-center px-1' : 'px-1 py-3'}`;
+
+  const inner = (
+    <>
+      <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${
+        isActive ? "text-accent" : "text-white/60 group-hover:text-white"
+      }`} />
+      {!collapsed && (
+        <span className="truncate text-sm font-medium tracking-wide">
+          {item.title}
+        </span>
+      )}
+    </>
+  );
 
   const content = (
     <SidebarMenuButton
@@ -44,20 +62,15 @@ const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) =>
           : "text-white/80 hover:bg-sidebar-accent/60 hover:text-white"
       }`}
     >
-      <a 
-        href={item.url} 
-        onClick={handleClick}
-        className={`flex items-center gap-4 min-w-0 ${collapsed ? 'justify-center px-1' : 'px-1 py-3'}`}
-      >
-        <item.icon className={`h-5 w-5 flex-shrink-0 transition-colors ${
-          isActive ? "text-accent" : "text-white/60 group-hover:text-white"
-        }`} />
-        {!collapsed && (
-          <span className="truncate text-sm font-medium tracking-wide">
-            {item.title}
-          </span>
-        )}
-      </a>
+      {isExternal ? (
+        <a href={item.url} onClick={handleExternalClick} className={linkClass}>
+          {inner}
+        </a>
+      ) : (
+        <a href={item.url} onClick={handleInternalClick} className={linkClass}>
+          {inner}
+        </a>
+      )}
     </SidebarMenuButton>
   );
 
