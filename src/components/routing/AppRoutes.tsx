@@ -892,12 +892,9 @@ const TransferPayments = lazy(() => import('@/pages/cashier/TransferPayments'));
 const PaymentHistoryReport = lazy(() => import('@/pages/cashier/PaymentHistoryReport'));
 const VCPaymentUpdate = lazy(() => import('@/pages/cashier/VCPaymentUpdate'));
 
-const routeFallback = <div className="min-h-screen bg-background" />;
-
 export const AppRoutes = () => {
   return (
-    <Suspense fallback={routeFallback}>
-      <Routes>
+    <Routes>
       <Route path="/login" element={<LoginScreen />} />
       <Route path="/acknowledge-audit/:token" element={<AuditReportAcknowledgePage />} />
       <Route path="/setup" element={<BootstrapAdmin />} />
@@ -2044,7 +2041,6 @@ export const AppRoutes = () => {
 
       <Route path="*" element={<NotFound />} />
       </Routes>
-    </Suspense>
   );
 };
 
