@@ -1,77 +1,54 @@
-## Diagnosis
+## Findings
 
-The backend side is not showing a publish blocker:
+The app itself is rendering correctly in the Lovable sandbox: `/login` displays the login screen with no React runtime error.
 
-- Live backend is healthy.
-- Recent Live database error logs are clean.
-- Recent Live backend-function request logs are clean.
-- Only one package lockfile remains: `bun.lock`.
-- Migrations and backend functions are not unusually large for this project.
+The blank page seen in the uploaded screenshot is not a React crash. The only visible network error is this request:
 
-The remaining concrete blocker is the frontend bundle/build step:
+```text
+/site.webmanifest -> redirected to /auth-bridge -> blocked by CORS
+```
 
-- `src/components/routing/AppRoutes.tsx` has 2,056 lines.
-- It eagerly imports 725 page modules and 733 total imports.
-- Only 18 lazy-loading references exist.
-- Previous `manualChunks` changes only split `node_modules`; they cannot split local page code while the router imports every page upfront.
-- This keeps the main app graph extremely large and matches the generic `Publishing failed` behavior: build/artifact step dies before deploy logs are produced.
+That happens when viewing a protected preview URL that requires Lovable preview authentication. The manifest request is being redirected to Lovable’s auth bridge instead of returning the manifest JSON. Browser devtools shows it as a red failed request, but it does not stop the app from rendering.
 
-## Fix Plan
+I also checked the published/custom domain response. The custom domain loads HTML and assets successfully, but the currently published build is still the older large bundle:
 
-1. **Refactor route page imports to lazy imports**
-   - Convert `@/pages/...` imports in `src/components/routing/AppRoutes.tsx` from eager static imports to `React.lazy()` declarations.
-   - Preserve default imports as lazy default imports.
-   - Preserve named page exports using the safe lazy mapping pattern:
-     ```ts
-     const WeeklyPlanReview = lazy(() =>
-       import('@/pages/compliance/audit-planning/WeeklyPlanReview').then((m) => ({ default: m.WeeklyPlanReview }))
-     );
-     ```
+```text
+/assets/index-In9sryZg.js = 14.3 MB
+```
 
-2. **Keep route infrastructure eager**
-   - Keep small/core route infrastructure eager, including:
-     - `Routes`, `Route`, `Navigate`
-     - `LoginScreen`
-     - `ProtectedLayout`
-     - `ProtectedRoute`
-     - auth/layout wrappers and context hooks
-   - This avoids changing auth behavior while still removing hundreds of heavy page modules from the initial build graph.
+That means the optimized lazy-loaded build has not yet gone live on the published/custom-domain deployment. This matches the earlier publish failures: the preview/build can work, while the live deployment remains stale.
 
-3. **Add a single reusable lazy route wrapper**
-   - Add a small local helper in `AppRoutes.tsx` for consistent Suspense wrapping, for example:
-     ```tsx
-     const routeFallback = <div className="min-h-screen bg-background" />;
-     const lazyRoute = (node: React.ReactNode) => (
-       <Suspense fallback={routeFallback}>{node}</Suspense>
-     );
-     const protectedLazyRoute = (node: React.ReactNode) => (
-       <ProtectedLayout>{lazyRoute(node)}</ProtectedLayout>
-     );
-     ```
-   - Replace existing repeated `<ProtectedLayout><Page /></ProtectedLayout>` route elements with `protectedLazyRoute(<Page />)` only for lazy pages.
-   - Keep existing custom wrappers where needed, but place lazy pages inside `Suspense`.
+## Fix plan
 
-4. **Apply in controlled batches**
-   - First convert all obvious `@/pages/...` default imports.
-   - Then handle named page imports.
-   - Then update route elements so no lazy component renders outside `Suspense`.
-   - Avoid changing route paths, permissions, layouts, or business logic.
+1. **Remove the PWA manifest from `index.html`**
+   - Remove only `<link rel="manifest" href="/site.webmanifest" />`.
+   - Keep favicons, theme color, title, and meta tags.
+   - This stops the misleading preview auth-bridge/CORS manifest failure and removes a blank-check red herring.
 
-5. **Verification after implementation**
-   - Confirm there are no remaining eager `@/pages/...` imports except intentionally kept public/auth pages.
-   - Confirm every lazy page is rendered inside `Suspense`.
-   - Use the automatic harness/build feedback to catch syntax or JSX issues.
-   - Then ask you to publish again.
+2. **Keep the previous lazy-route optimization intact**
+   - Do not revert `AppRoutes.tsx`.
+   - The sandbox already shows that the app can render after the lazy-loading refactor.
 
-## What will not be changed
+3. **Verify the dev preview after the manifest removal**
+   - Open `/login` again.
+   - Confirm there are no blocking JavaScript errors.
+   - Confirm the login screen renders.
 
-- No database migrations.
-- No Live data changes.
-- No backend function logic changes.
-- No changes to generated Lovable Cloud client/type files.
-- No route URL changes.
-- No UI/business behavior changes beyond loading pages lazily.
+4. **Republish after the change**
+   - The published/custom domain currently serves an old 14.3 MB main bundle.
+   - After successful publishing, the live HTML should point to the new optimized chunks, with the main JS bundle much smaller than 14 MB.
 
-## Expected result
+5. **If publish still fails after this cleanup**
+   - Treat it as a Lovable publishing pipeline issue rather than a frontend runtime blank page.
+   - The next escalation would be checking publish/deployment logs from Lovable support because the app preview renders and the production assets are reachable, but the publish action is not replacing the stale deployment.
 
-The main bundle should drop substantially because the router will no longer include every page in the initial application chunk. This directly targets the remaining publish failure cause instead of repeating lockfile or migration cleanup.
+## Files to change
+
+- `index.html` only
+
+## What will not change
+
+- No database changes
+- No authentication logic changes
+- No route or UI behavior changes
+- No generated Lovable Cloud client/type files
