@@ -20,6 +20,7 @@ const DbDiagramPage = lazy(() => import('@/pages/db-diagram/DbDiagramPage'));
 
 // Embedded satellite micro-frontends (iframe + postMessage bridge)
 const SatelliteFrame = lazy(() => import('@/components/integrations/SatelliteFrame'));
+import { isAuditRemoteEnabled, isComplianceRemoteEnabled } from '@/lib/embed/satelliteRouting';
 
 // Page imports
 const Index = lazy(() => import('@/pages/dashboard/Index'));
