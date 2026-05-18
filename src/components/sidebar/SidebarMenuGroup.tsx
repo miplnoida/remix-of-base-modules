@@ -122,7 +122,7 @@ export default function SidebarMenuGroup({ item, collapsed, level = 1 }: Sidebar
       <CollapsibleContent className="space-y-1 ml-4">
         {item.subItems?.map((subItem) => (
           <SidebarMenuGroup
-            key={subItem.title}
+            key={subItem.id || subItem.url || subItem.title}
             item={subItem}
             collapsed={collapsed}
             level={level + 1}
