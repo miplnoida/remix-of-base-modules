@@ -16,7 +16,7 @@ import {
   Clock, Target, FileBarChart,
   type LucideIcon
 } from 'lucide-react';
-import { applyAuditRemoteRouting, applyComplianceRemoteRouting } from '@/lib/embed/satelliteRouting';
+import { applyAuditRemoteRouting, applyComplianceRemoteRouting, setSatelliteRemoteEnabled } from '@/lib/embed/satelliteRouting';
 
 export interface MenuItem {
   id: string;
