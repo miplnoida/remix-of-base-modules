@@ -1,41 +1,75 @@
+# Fix: Sidebar and Header remount on every navigation
 
 ## Problem
 
-All `app_modules.base_url` values for `internal_audit` (and `compliance`) are NULL/blank in the database, but the Internal Audit sidebar still routes to `/audit-hub/*` (an embedded satellite iframe). The user is currently sitting at `/audit-hub/risk-assessment`, confirming the rewrite is still happening.
+Currently every protected route in `src/components/routing/AppRoutes.tsx` is wired like:
 
-Per `docs/INTERNAL_AUDIT_ROLLBACK.md`, the only switch that should decide host vs satellite is the `app_modules.base_url` column. Today, however, `isAuditRemoteEnabled()` / `isComplianceRemoteEnabled()` only consult the hard-coded `SATELLITE_CONFIG` in `src/config/satellites.ts` (both `enabled: true` with hard-coded URLs), so satellite mode is always on regardless of the DB. `useDynamicNavigation` then calls `applyAuditRemoteRouting` / `applyComplianceRemoteRouting`, which rewrites every `/audit/*` and `/compliance/*` menu URL to the `/audit-hub/*` / `/compliance-hub/*` host route — overriding the DB contract.
+```tsx
+<Route path="/c3-management/dashboard" element={<ProtectedLayout><C3Dashboard /></ProtectedLayout>} />
+<Route path="/c3-management/manage"    element={<ProtectedLayout><C3Management /></ProtectedLayout>} />
+...
+```
+
+There are ~765 routes each wrapping their own `<ProtectedLayout>` (which renders `ProtectedRoute` → `AppLayout` → `SidebarProvider` + `AppSidebar` + `Header` + page).
+
+Because each route's `element` is a **new React element tree**, React Router treats the layout as a different component instance on every navigation. Result: on every menu click, `SidebarProvider`, `AppSidebar`, `Header`, `TooltipProvider`, and `DeveloperInfoFAB` all unmount and remount. The user perceives this as the "whole page" reloading (sidebar collapses/flashes, header re-renders, scroll resets, sidebar state and queries re-fetched), even though it is a SPA navigation.
+
+The standard React Router v6 fix is a single **parent layout route** that renders `ProtectedLayout` once with an `<Outlet />`, and children that render only the page.
 
 ## Fix
 
-Make remote-enabled state DB-driven, defaulting to **off** (host serves locally) when no module row has a non-blank `base_url`. Keep the existing hard-coded URLs as the satellite target, but only use them when the DB says so.
+### 1. `src/components/layout/ProtectedLayout.tsx`
+Add support for using as a layout route via `<Outlet />` while keeping the existing `children` prop for backward compatibility (so we don't have to touch unrelated callers).
 
-### Changes (frontend only)
+```tsx
+import { Outlet } from 'react-router-dom';
+...
+export const ProtectedLayout = ({ children }: { children?: ReactNode }) => (
+  <ProtectedRoute>
+    <AppLayout>
+      {children ?? <Outlet />}
+    </AppLayout>
+  </ProtectedRoute>
+);
+```
 
-1. **`src/lib/embed/satelliteRouting.ts`** — add a small runtime registry:
-   - `setSatelliteRemoteEnabled({ compliance?: boolean; audit?: boolean })`
-   - Internal module-level state initialized to `false` for both.
-   - Update `isComplianceRemoteEnabled()` / `isAuditRemoteEnabled()` to require:
-     `SATELLITE_CONFIG.<x>.enabled` **AND** the cached DB flag is true **AND** `pickSatelliteUrl(...).trim()` is non-blank.
-   - Behavior: until the DB flag is set, both helpers return `false` → menu uses local `/audit/*` / `/compliance/*` URLs and `/audit-hub/*` routes redirect to local (already wired in `AppRoutes.tsx`).
+### 2. `src/components/routing/AppRoutes.tsx`
+Group all `<Route path="..." element={<ProtectedLayout><X/></ProtectedLayout>} />` entries under a single parent layout route:
 
-2. **`src/hooks/useDynamicNavigation.ts`** — after the `app_modules` query resolves, derive remote flags from the DB rows and push them into the registry:
-   - `audit = !!(modules.find(m => m.name === 'internal_audit')?.base_url || '').trim()`
-   - `compliance = !!(modules.find(m => m.name === 'compliance')?.base_url || '').trim()`
-   - Call `setSatelliteRemoteEnabled({ audit, compliance })` once per query result, then build the tree (so the same render uses the correct flags).
-   - Inheritance still respected: if a child like `audit_audits` has its own non-blank `base_url`, the existing per-row prepend in `buildMenuItem` continues to point that one link at the satellite while the rest stay local. The bulk prefix rewrite only fires when the top-level module itself is configured for satellite.
+```tsx
+<Route element={<ProtectedLayout />}>
+  <Route path="/" element={<Index />} />
+  <Route path="/c3-management/dashboard" element={<C3Dashboard />} />
+  <Route path="/c3-management/manage"    element={<C3Management />} />
+  ...
+  {/* all other protected routes */}
+</Route>
+```
 
-3. **No changes** to `SATELLITE_CONFIG`, `AppRoutes.tsx`, `auditMenuItems.ts`, `complianceMenuItems.ts`, `SidebarMenuLink`, or `satelliteSso.ts`. This honors the runbook's "do not edit" list and preserves the rollback contract.
+This way `ProtectedLayout` (and therefore `SidebarProvider`, `AppSidebar`, `Header`) mounts **once** and only the `<Outlet />` content swaps on navigation. Only the content area re-renders — sidebar + header stay mounted, preserving state, scroll, open submenus, and the sidebar collapsed/expanded cookie state.
 
-### Verification
+### Special cases inside that file
 
-1. With all `internal_audit` and `compliance` rows having blank `base_url` (current production state):
-   - Sidebar Internal Audit links render as `/audit/...` (not `/audit-hub/...`).
-   - Navigating directly to `/audit-hub/risk-assessment` redirects to `/audit/risk-assessment` (existing fallback).
-   - Network tab shows no requests to `internalaudit.secureserve.biz` or the audit preview lovable.app domain.
-2. Setting `app_modules.base_url = 'https://internalaudit.secureserve.biz'` on the `internal_audit` row and refreshing restores satellite embedding for `/audit-hub/*` and rewrites the sidebar — confirming the runbook contract still works in both directions.
+- `/compliance-hub/*` and `/audit-hub/*` use a conditional `isXRemoteEnabled() ? <ProtectedLayout>...</ProtectedLayout> : <Navigate .../>`. Convert these to live under the same parent layout route, and use a small inline component that returns `<SatelliteFrame/>` or `<Navigate/>`. The `<Navigate/>` branch must stay inside the layout group so the redirect itself doesn't try to render outside the layout (Navigate renders no DOM, so this is safe).
+- `/inspector/*` already uses its own `InspectorLayout` layout-route pattern — leave untouched.
+- Public routes (`/login`, `/setup`, `/forgot-password`, `/reset-password`, `/change-password`, `/mfa-verify`, `/inspector/login`, `/public/api-docs`, `/acknowledge-audit/:token`, `/demo-login`) stay outside the parent layout route.
+- The `NotFound` catch-all (`path="*"`) should also remain outside the layout (404 page typically has its own chrome) — verify by reading the bottom of the file and keep current behavior.
 
-### Out of scope
+### 3. No other files change
+- `AppLayout.tsx`, `AppSidebar`, `Header`, `SidebarMenuLink`, satellite routing helpers, auth context, and all page components stay untouched.
+- No DB, RLS, business-logic, or styling changes.
 
-- No DB migrations. The runbook explicitly manages `base_url` as an operator action.
-- No changes to satellite SSO, auth, or compliance/audit business logic.
-- No edits to files listed under "Things that intentionally do not change in the host" in `docs/INTERNAL_AUDIT_ROLLBACK.md`.
+## Verification
+
+1. Navigate between several sidebar items (e.g. `/c3-management/dashboard` → `/employers-management/manage` → `/c3-management/manage`). Sidebar should NOT flash/collapse/re-animate; only the main content area swaps.
+2. Open a sidebar submenu, then navigate to a sibling — the submenu stays open.
+3. Toggle sidebar collapse, navigate — collapsed state persists without re-reading the cookie.
+4. `/audit-hub/*` and `/compliance-hub/*` still redirect to local `/audit` / `/compliance` when `base_url` is blank (existing behavior preserved).
+5. `/login` and other public routes still render without sidebar/header.
+6. Browser back/forward still works; React Query caches no longer get torn down on every route change.
+
+## Risk / scope
+
+- Single mechanical refactor of one file (~765 route lines re-grouped under one parent `<Route>`).
+- Backward-compatible `ProtectedLayout` change (still accepts `children`) means nothing else in the codebase breaks.
+- No behavioral change for unauthenticated users — `ProtectedRoute` still guards the whole group.
