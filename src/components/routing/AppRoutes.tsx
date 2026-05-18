@@ -918,10 +918,12 @@ export const AppRoutes = () => {
         <Route path="reports" element={<Suspense fallback={<div>Loading...</div>}><InspectorReports /></Suspense>} />
       </Route>
       <Route path="/demo-login" element={<DummyLoginPage />} />
-      <Route path="/components-demo" element={<ProtectedLayout><FoundationComponentsDemo /></ProtectedLayout>} />
+      {/* Protected routes — single parent layout keeps Sidebar/Header mounted across navigations */}
+      <Route element={<ProtectedLayout />}>
+      <Route path="/components-demo" element={<FoundationComponentsDemo />} />
       
       {/* Dashboard */}
-      <Route path="/" element={<ProtectedLayout><Index /></ProtectedLayout>} />
+      <Route path="/" element={<Index />} />
 
       {/* Embedded satellite micro-frontends (iframe + postMessage bridge).
           When a satellite has no base URL configured, fall back to the local
@@ -930,11 +932,9 @@ export const AppRoutes = () => {
         path="/compliance-hub/*"
         element={
           isComplianceRemoteEnabled() ? (
-            <ProtectedLayout>
               <Suspense fallback={<div>Loading...</div>}>
                 <SatelliteFrame app="compliance" basePath="compliance-hub" title="Compliance & Enforcement" />
               </Suspense>
-            </ProtectedLayout>
           ) : (
             <Navigate to="/compliance" replace />
           )
@@ -944,11 +944,9 @@ export const AppRoutes = () => {
         path="/audit-hub/*"
         element={
           isAuditRemoteEnabled() ? (
-            <ProtectedLayout>
               <Suspense fallback={<div>Loading...</div>}>
                 <SatelliteFrame app="audit" basePath="audit-hub" title="Internal Audit" />
               </Suspense>
-            </ProtectedLayout>
           ) : (
             <Navigate to="/audit" replace />
           )
@@ -956,203 +954,203 @@ export const AppRoutes = () => {
       />
       
       {/* Employers Management Routes */}
-      <Route path="/employers-management/dashboard" element={<ProtectedLayout><EmployersDashboard /></ProtectedLayout>} />
-      <Route path="/employers-management/manage" element={<ProtectedLayout><ManageEmployers /></ProtectedLayout>} />
-      <Route path="/employers-management/add" element={<ProtectedLayout><AddEmployer /></ProtectedLayout>} />
-      <Route path="/employers-management/view/:regNo" element={<ProtectedLayout><ViewEmployer /></ProtectedLayout>} />
-      <Route path="/employers-management/edit/:regNo" element={<ProtectedLayout><EditEmployer /></ProtectedLayout>} />
-      <Route path="/employers-management/reports" element={<ProtectedLayout><EmployersReports /></ProtectedLayout>} />
-      <Route path="/employers-management/pending-verification" element={<ProtectedLayout><PendingVerificationPage /></ProtectedLayout>} />
+      <Route path="/employers-management/dashboard" element={<EmployersDashboard />} />
+      <Route path="/employers-management/manage" element={<ManageEmployers />} />
+      <Route path="/employers-management/add" element={<AddEmployer />} />
+      <Route path="/employers-management/view/:regNo" element={<ViewEmployer />} />
+      <Route path="/employers-management/edit/:regNo" element={<EditEmployer />} />
+      <Route path="/employers-management/reports" element={<EmployersReports />} />
+      <Route path="/employers-management/pending-verification" element={<PendingVerificationPage />} />
 
       {/* C3 Management Routes */}
-      <Route path="/c3-management/dashboard" element={<ProtectedLayout><C3Dashboard /></ProtectedLayout>} />
-      <Route path="/c3-management/manage" element={<ProtectedLayout><C3Management /></ProtectedLayout>} />
-      <Route path="/c3-management/add" element={<ProtectedLayout><C3InputForm /></ProtectedLayout>} />
+      <Route path="/c3-management/dashboard" element={<C3Dashboard />} />
+      <Route path="/c3-management/manage" element={<C3Management />} />
+      <Route path="/c3-management/add" element={<C3InputForm />} />
       
 
-      <Route path="/c3-management/input-form" element={<ProtectedLayout><C3InputForm /></ProtectedLayout>} />
-      <Route path="/c3-management/reports" element={<ProtectedLayout><C3Reports /></ProtectedLayout>} />
-      <Route path="/c3-management/verification" element={<ProtectedLayout><C3Verification /></ProtectedLayout>} />
-      <Route path="/c3-management/configure-electronic-c3" element={<ProtectedLayout><ElectronicC3Config /></ProtectedLayout>} />
-      <Route path="/c3-management/view/:id" element={<ProtectedLayout><ViewC3Record /></ProtectedLayout>} />
-      <Route path="/c3-management/edit/:id" element={<ProtectedLayout><EditC3Record /></ProtectedLayout>} />
-      <Route path="/c3-management/simulation" element={<ProtectedLayout><C3Simulation /></ProtectedLayout>} />
+      <Route path="/c3-management/input-form" element={<C3InputForm />} />
+      <Route path="/c3-management/reports" element={<C3Reports />} />
+      <Route path="/c3-management/verification" element={<C3Verification />} />
+      <Route path="/c3-management/configure-electronic-c3" element={<ElectronicC3Config />} />
+      <Route path="/c3-management/view/:id" element={<ViewC3Record />} />
+      <Route path="/c3-management/edit/:id" element={<EditC3Record />} />
+      <Route path="/c3-management/simulation" element={<C3Simulation />} />
       
       {/* C3 Wizard Admin - Employer Management Routes */}
-      <Route path="/c3-management/employer-details" element={<ProtectedLayout><WizEmployerList /></ProtectedLayout>} />
-      <Route path="/c3-management/employer-details/:companyId" element={<ProtectedLayout><WizEmployerDetailsEdit /></ProtectedLayout>} />
-      <Route path="/c3-management/employer-users/:companyId" element={<ProtectedLayout><WizCompanyUsers /></ProtectedLayout>} />
-      <Route path="/c3-management/employer-employees/:companyId" element={<ProtectedLayout><WizEmployeeList /></ProtectedLayout>} />
+      <Route path="/c3-management/employer-details" element={<WizEmployerList />} />
+      <Route path="/c3-management/employer-details/:companyId" element={<WizEmployerDetailsEdit />} />
+      <Route path="/c3-management/employer-users/:companyId" element={<WizCompanyUsers />} />
+      <Route path="/c3-management/employer-employees/:companyId" element={<WizEmployeeList />} />
       
       {/* C3 Wizard Admin - Self-Employed Management Routes */}
-      <Route path="/c3-management/self-employed-details" element={<ProtectedLayout><WizSelfEmployedList /></ProtectedLayout>} />
-      <Route path="/c3-management/self-employed-details/:selfEmployedId" element={<ProtectedLayout><WizSelfEmployedDetailsEdit /></ProtectedLayout>} />
-      <Route path="/c3-management/self-employed-user/:userId" element={<ProtectedLayout><WizSelfEmployedUserEdit /></ProtectedLayout>} />
+      <Route path="/c3-management/self-employed-details" element={<WizSelfEmployedList />} />
+      <Route path="/c3-management/self-employed-details/:selfEmployedId" element={<WizSelfEmployedDetailsEdit />} />
+      <Route path="/c3-management/self-employed-user/:userId" element={<WizSelfEmployedUserEdit />} />
 
       {/* C3 Wizard Admin - Manage Users Module */}
-      <Route path="/c3-management/users/employers" element={<ProtectedLayout><WizEmployerUsers /></ProtectedLayout>} />
-      <Route path="/c3-management/users/self-employed" element={<ProtectedLayout><WizSelfEmployedUsers /></ProtectedLayout>} />
-      <Route path="/c3-management/users/role-permission" element={<ProtectedLayout><WizRolePermission /></ProtectedLayout>} />
-      <Route path="/c3-management/users/role-master" element={<ProtectedLayout><WizRoleMaster /></ProtectedLayout>} />
+      <Route path="/c3-management/users/employers" element={<WizEmployerUsers />} />
+      <Route path="/c3-management/users/self-employed" element={<WizSelfEmployedUsers />} />
+      <Route path="/c3-management/users/role-permission" element={<WizRolePermission />} />
+      <Route path="/c3-management/users/role-master" element={<WizRoleMaster />} />
 
       {/* C3 Details - Contribution Screens */}
-      <Route path="/c3-management/c3-contribution" element={<ProtectedLayout><C3ContributionList /></ProtectedLayout>} />
-      <Route path="/c3-management/nw-director" element={<ProtectedLayout><NwDirectorList /></ProtectedLayout>} />
-      <Route path="/c3-management/self-employed-c3" element={<ProtectedLayout><SelfEmployedContributionList /></ProtectedLayout>} />
-      <Route path="/c3-management/offline-payment/:entityType/:headerId" element={<ProtectedLayout><OfflinePaymentPage /></ProtectedLayout>} />
+      <Route path="/c3-management/c3-contribution" element={<C3ContributionList />} />
+      <Route path="/c3-management/nw-director" element={<NwDirectorList />} />
+      <Route path="/c3-management/self-employed-c3" element={<SelfEmployedContributionList />} />
+      <Route path="/c3-management/offline-payment/:entityType/:headerId" element={<OfflinePaymentPage />} />
 
       {/* C3 Wizard Admin - Payment Details Route */}
-      <Route path="/c3-management/payment-details" element={<ProtectedLayout><WizPaymentDetails /></ProtectedLayout>} />
-      <Route path="/c3-management/payments" element={<ProtectedLayout><WizPaymentDetails /></ProtectedLayout>} />
+      <Route path="/c3-management/payment-details" element={<WizPaymentDetails />} />
+      <Route path="/c3-management/payments" element={<WizPaymentDetails />} />
       
       {/* C3 Settings Routes */}
-      <Route path="/c3-management/settings/levy/schemes" element={<ProtectedLayout><LevySchemesList /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/levy/schemes/:schemeId" element={<ProtectedLayout><LevySchemeDetail /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/levy/simulator" element={<ProtectedLayout><LevySimulator /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/ss/schemes" element={<ProtectedLayout><SSSchemesList /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/ss/schemes/:schemeId" element={<ProtectedLayout><SSSchemeDetail /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/ss/simulator" element={<ProtectedLayout><SSSimulator /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/severance/schemes" element={<ProtectedLayout><SeveranceSchemesList /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/severance/schemes/:schemeId" element={<ProtectedLayout><SeveranceSchemeDetail /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/severance/simulator" element={<ProtectedLayout><SeveranceSimulator /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/injury/schemes" element={<ProtectedLayout><InjurySchemesList /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/injury/schemes/:schemeId" element={<ProtectedLayout><InjurySchemeDetail /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/injury/simulator" element={<ProtectedLayout><InjurySimulator /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/c3file/formats" element={<ProtectedLayout><C3FormatsList /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/c3file/formats/:formatId" element={<ProtectedLayout><C3FormatDetail /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/levy/schemes" element={<LevySchemesList />} />
+      <Route path="/c3-management/settings/levy/schemes/:schemeId" element={<LevySchemeDetail />} />
+      <Route path="/c3-management/settings/levy/simulator" element={<LevySimulator />} />
+      <Route path="/c3-management/settings/ss/schemes" element={<SSSchemesList />} />
+      <Route path="/c3-management/settings/ss/schemes/:schemeId" element={<SSSchemeDetail />} />
+      <Route path="/c3-management/settings/ss/simulator" element={<SSSimulator />} />
+      <Route path="/c3-management/settings/severance/schemes" element={<SeveranceSchemesList />} />
+      <Route path="/c3-management/settings/severance/schemes/:schemeId" element={<SeveranceSchemeDetail />} />
+      <Route path="/c3-management/settings/severance/simulator" element={<SeveranceSimulator />} />
+      <Route path="/c3-management/settings/injury/schemes" element={<InjurySchemesList />} />
+      <Route path="/c3-management/settings/injury/schemes/:schemeId" element={<InjurySchemeDetail />} />
+      <Route path="/c3-management/settings/injury/simulator" element={<InjurySimulator />} />
+      <Route path="/c3-management/settings/c3file/formats" element={<C3FormatsList />} />
+      <Route path="/c3-management/settings/c3file/formats/:formatId" element={<C3FormatDetail />} />
       <Route path="/c3-management/settings/cybersource" element={<Navigate to="/c3-management/settings-configuration" replace />} />
-      <Route path="/c3-management/settings-configuration" element={<ProtectedLayout><SettingsConfiguration /></ProtectedLayout>} />
-      <Route path="/c3-management/email-templates" element={<ProtectedLayout><EmailTemplates /></ProtectedLayout>} />
-      <Route path="/c3-management/reconciliation" element={<ProtectedLayout><ReconciliationPage /></ProtectedLayout>} />
+      <Route path="/c3-management/settings-configuration" element={<SettingsConfiguration />} />
+      <Route path="/c3-management/email-templates" element={<EmailTemplates />} />
+      <Route path="/c3-management/reconciliation" element={<ReconciliationPage />} />
 
       {/* C3 Wizard Admin - Reports Routes */}
-      <Route path="/c3-management/reports/employer-history" element={<ProtectedLayout><WizEmployerHistory /></ProtectedLayout>} />
-      <Route path="/c3-management/reports/self-employed-history" element={<ProtectedLayout><WizSelfEmployedHistory /></ProtectedLayout>} />
-      <Route path="/c3-management/reports/payments-history" element={<ProtectedLayout><WizPaymentsHistory /></ProtectedLayout>} />
-      <Route path="/c3-management/reports/reconciliation-history" element={<ProtectedLayout><WizReconciliationHistory /></ProtectedLayout>} />
-      <Route path="/c3-management/reports/users-history" element={<ProtectedLayout><WizUsersHistory /></ProtectedLayout>} />
+      <Route path="/c3-management/reports/employer-history" element={<WizEmployerHistory />} />
+      <Route path="/c3-management/reports/self-employed-history" element={<WizSelfEmployedHistory />} />
+      <Route path="/c3-management/reports/payments-history" element={<WizPaymentsHistory />} />
+      <Route path="/c3-management/reports/reconciliation-history" element={<WizReconciliationHistory />} />
+      <Route path="/c3-management/reports/users-history" element={<WizUsersHistory />} />
 
-      <Route path="/self-employed/manage" element={<ProtectedLayout><ManageSelfEmployed /></ProtectedLayout>} />
-      <Route path="/self-employed/add" element={<ProtectedLayout><AddSelfEmployed /></ProtectedLayout>} />
-      <Route path="/self-employed/reports" element={<ProtectedLayout><SelfEmployedReports /></ProtectedLayout>} />
+      <Route path="/self-employed/manage" element={<ManageSelfEmployed />} />
+      <Route path="/self-employed/add" element={<AddSelfEmployed />} />
+      <Route path="/self-employed/reports" element={<SelfEmployedReports />} />
 
       {/* ═══════════════════════════════════════════════════════════════
           COMPLIANCE MODULE — Canonical Routes (new structure)
           ═══════════════════════════════════════════════════════════════ */}
 
       {/* ── Workbench ── */}
-      <Route path="/compliance/workbench" element={<ProtectedLayout><WorkbenchLanding /></ProtectedLayout>} />
-      <Route path="/compliance/workbench/manager" element={<ProtectedLayout><ComplianceManagerDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/workbench/inspector" element={<ProtectedLayout><ComplianceInspectorDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/workbench/legal" element={<ProtectedLayout><ComplianceLegalDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/workbench/analytics" element={<ProtectedLayout><ComplianceAnalytics /></ProtectedLayout>} />
-      <Route path="/compliance/workbench/monitoring" element={<ProtectedLayout><ComplianceMonitoring /></ProtectedLayout>} />
-      <Route path="/compliance/workbench/queues" element={<ProtectedLayout><AssignmentQueues /></ProtectedLayout>} />
-      <Route path="/compliance/workbench/review-queue" element={<ProtectedLayout><ReviewQueue /></ProtectedLayout>} />
-      <Route path="/compliance/workbench/reassignment" element={<ProtectedLayout><Reassignment /></ProtectedLayout>} />
+      <Route path="/compliance/workbench" element={<WorkbenchLanding />} />
+      <Route path="/compliance/workbench/manager" element={<ComplianceManagerDashboard />} />
+      <Route path="/compliance/workbench/inspector" element={<ComplianceInspectorDashboard />} />
+      <Route path="/compliance/workbench/legal" element={<ComplianceLegalDashboard />} />
+      <Route path="/compliance/workbench/analytics" element={<ComplianceAnalytics />} />
+      <Route path="/compliance/workbench/monitoring" element={<ComplianceMonitoring />} />
+      <Route path="/compliance/workbench/queues" element={<AssignmentQueues />} />
+      <Route path="/compliance/workbench/review-queue" element={<ReviewQueue />} />
+      <Route path="/compliance/workbench/reassignment" element={<Reassignment />} />
 
       {/* ── Violations ── */}
-      <Route path="/compliance/violations" element={<ProtectedLayout><ViolationsManagement /></ProtectedLayout>} />
-      <Route path="/compliance/violations/manual-entry" element={<ProtectedLayout><ManualViolationEntry /></ProtectedLayout>} />
-      <Route path="/compliance/violations/:id" element={<ProtectedLayout><ViolationDetails /></ProtectedLayout>} />
+      <Route path="/compliance/violations" element={<ViolationsManagement />} />
+      <Route path="/compliance/violations/manual-entry" element={<ManualViolationEntry />} />
+      <Route path="/compliance/violations/:id" element={<ViolationDetails />} />
 
       {/* ── Cases ── */}
-      <Route path="/compliance/cases" element={<ProtectedLayout><ComplianceCaseManagement /></ProtectedLayout>} />
-      <Route path="/compliance/cases/queue" element={<ProtectedLayout><ComplianceCaseQueue /></ProtectedLayout>} />
-      <Route path="/compliance/cases/penalties" element={<ProtectedLayout><PenaltyManagement /></ProtectedLayout>} />
-      <Route path="/compliance/cases/:id" element={<ProtectedLayout><ComplianceCaseDetailView /></ProtectedLayout>} />
+      <Route path="/compliance/cases" element={<ComplianceCaseManagement />} />
+      <Route path="/compliance/cases/queue" element={<ComplianceCaseQueue />} />
+      <Route path="/compliance/cases/penalties" element={<PenaltyManagement />} />
+      <Route path="/compliance/cases/:id" element={<ComplianceCaseDetailView />} />
 
       {/* ── Field — planning, execution, inspections, employer views ── */}
-      <Route path="/compliance/field/plan-builder" element={<ProtectedLayout><WeeklyPlanBuilder /></ProtectedLayout>} />
-      <Route path="/compliance/field/plan-builder-v2" element={<ProtectedLayout><WeeklyPlanBuilderV2 /></ProtectedLayout>} />
-      <Route path="/compliance/field/plan-builder-v3" element={<ProtectedLayout><WeeklyPlanBuilderV3 /></ProtectedLayout>} />
-      <Route path="/compliance/field/approval-inbox" element={<ProtectedLayout><PlannerApprovalInbox /></ProtectedLayout>} />
-      <Route path="/approval/inbox" element={<ProtectedLayout><PlannerApprovalInbox /></ProtectedLayout>} />
+      <Route path="/compliance/field/plan-builder" element={<WeeklyPlanBuilder />} />
+      <Route path="/compliance/field/plan-builder-v2" element={<WeeklyPlanBuilderV2 />} />
+      <Route path="/compliance/field/plan-builder-v3" element={<WeeklyPlanBuilderV3 />} />
+      <Route path="/compliance/field/approval-inbox" element={<PlannerApprovalInbox />} />
+      <Route path="/approval/inbox" element={<PlannerApprovalInbox />} />
       <Route path="/approval/decide" element={<PlannerApprovalDecidePage />} />
-      <Route path="/compliance/field/revisions-pending" element={<ProtectedLayout><RevisionsPending /></ProtectedLayout>} />
-      <Route path="/compliance/field/revision-review/:revisionId" element={<ProtectedLayout><PlanRevisionReview /></ProtectedLayout>} />
-      <Route path="/compliance/field/my-plans" element={<ProtectedLayout><MyPlans /></ProtectedLayout>} />
-      <Route path="/compliance/field/pending-review" element={<ProtectedLayout><CompliancePendingReview /></ProtectedLayout>} />
-      <Route path="/compliance/field/pending-review/:planId" element={<ProtectedLayout><WeeklyPlanReview /></ProtectedLayout>} />
-      <Route path="/compliance/field/execution" element={<ProtectedLayout><FieldExecution /></ProtectedLayout>} />
+      <Route path="/compliance/field/revisions-pending" element={<RevisionsPending />} />
+      <Route path="/compliance/field/revision-review/:revisionId" element={<PlanRevisionReview />} />
+      <Route path="/compliance/field/my-plans" element={<MyPlans />} />
+      <Route path="/compliance/field/pending-review" element={<CompliancePendingReview />} />
+      <Route path="/compliance/field/pending-review/:planId" element={<WeeklyPlanReview />} />
+      <Route path="/compliance/field/execution" element={<FieldExecution />} />
       {/* Retired (hard cutover): /compliance/field/operations, /compliance/field/inspections — see .lovable/plan.md */}
-      <Route path="/compliance/field/findings" element={<ProtectedLayout><EmployerFindings /></ProtectedLayout>} />
-      <Route path="/compliance/field/employer-statements" element={<ProtectedLayout><EmployerStatements /></ProtectedLayout>} />
-      <Route path="/compliance/field/employer-statement/:employerId" element={<ProtectedLayout><EmployerStatementDetail /></ProtectedLayout>} />
-      <Route path="/compliance/field/visit/:employerId" element={<ProtectedLayout><EmployerVisitWorkspace /></ProtectedLayout>} />
-      <Route path="/compliance/field/employer-360" element={<ProtectedLayout><Employer360Search /></ProtectedLayout>} />
-      <Route path="/compliance/field/employer-360/:employerId" element={<ProtectedLayout><Employer360 /></ProtectedLayout>} />
-      <Route path="/compliance/field/employer-risk/:employerId" element={<ProtectedLayout><EmployerRiskProfile /></ProtectedLayout>} />
-      <Route path="/compliance/employers/management" element={<ProtectedLayout><EmployerComplianceManagement /></ProtectedLayout>} />
-      <Route path="/compliance/employers/hierarchy" element={<ProtectedLayout><EmployerHierarchy /></ProtectedLayout>} />
-      <Route path="/compliance/employers/financial-statement/:employerId" element={<ProtectedLayout><EmployerFinancialStatement /></ProtectedLayout>} />
-      <Route path="/compliance/field/audit-management" element={<ProtectedLayout><AuditManagement /></ProtectedLayout>} />
-      <Route path="/compliance/field/weekly-report" element={<ProtectedLayout><WeeklyReportSubmission /></ProtectedLayout>} />
+      <Route path="/compliance/field/findings" element={<EmployerFindings />} />
+      <Route path="/compliance/field/employer-statements" element={<EmployerStatements />} />
+      <Route path="/compliance/field/employer-statement/:employerId" element={<EmployerStatementDetail />} />
+      <Route path="/compliance/field/visit/:employerId" element={<EmployerVisitWorkspace />} />
+      <Route path="/compliance/field/employer-360" element={<Employer360Search />} />
+      <Route path="/compliance/field/employer-360/:employerId" element={<Employer360 />} />
+      <Route path="/compliance/field/employer-risk/:employerId" element={<EmployerRiskProfile />} />
+      <Route path="/compliance/employers/management" element={<EmployerComplianceManagement />} />
+      <Route path="/compliance/employers/hierarchy" element={<EmployerHierarchy />} />
+      <Route path="/compliance/employers/financial-statement/:employerId" element={<EmployerFinancialStatement />} />
+      <Route path="/compliance/field/audit-management" element={<AuditManagement />} />
+      <Route path="/compliance/field/weekly-report" element={<WeeklyReportSubmission />} />
       {/* Retired (hard cutover): /compliance/field/weekly-reports — use /compliance/field/all-reports */}
-      <Route path="/compliance/field/all-reports" element={<ProtectedLayout><AllWeeklyReports /></ProtectedLayout>} />
-      <Route path="/compliance/field/execution-dashboard/:planId" element={<ProtectedLayout><PlanExecutionDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/field/execution-dashboard/:planId/visit/:planItemId" element={<ProtectedLayout><AuditVisitWorkspace /></ProtectedLayout>} />
-      <Route path="/compliance/field/audit-visit/:planItemId" element={<ProtectedLayout><AuditVisitWorkspace /></ProtectedLayout>} />
-      <Route path="/compliance/field/audit-report/:inspectionId" element={<ProtectedLayout><EmployerAuditReportViewer /></ProtectedLayout>} />
+      <Route path="/compliance/field/all-reports" element={<AllWeeklyReports />} />
+      <Route path="/compliance/field/execution-dashboard/:planId" element={<PlanExecutionDashboard />} />
+      <Route path="/compliance/field/execution-dashboard/:planId/visit/:planItemId" element={<AuditVisitWorkspace />} />
+      <Route path="/compliance/field/audit-visit/:planItemId" element={<AuditVisitWorkspace />} />
+      <Route path="/compliance/field/audit-report/:inspectionId" element={<EmployerAuditReportViewer />} />
       <Route path="/compliance/field/audit-report/:reportId/print/:variant" element={<ProtectedRoute><AuditReportPrintPage /></ProtectedRoute>} />
-      <Route path="/compliance/field/weekly-report-review" element={<ProtectedLayout><WeeklyReportReview /></ProtectedLayout>} />
+      <Route path="/compliance/field/weekly-report-review" element={<WeeklyReportReview />} />
       {/* Retired (hard cutover): /compliance/field/my-upcoming */}
-      <Route path="/compliance/field/sampling" element={<ProtectedLayout><SamplingDashboard /></ProtectedLayout>} />
+      <Route path="/compliance/field/sampling" element={<SamplingDashboard />} />
       {/* Retired (hard cutover): /compliance/field/sampling/candidates — folded into Sampling Dashboard */}
 
       {/* ── Enforcement — legal, notices, arrangements, waivers ── */}
-      <Route path="/compliance/enforcement/recommendation-queue" element={<ProtectedLayout><LegalRecommendationQueue /></ProtectedLayout>} />
-      <Route path="/compliance/enforcement/legal-referral" element={<ProtectedLayout><LegalReferralWizard /></ProtectedLayout>} />
-      <Route path="/compliance/enforcement/legal-queue" element={<ProtectedLayout><ComplianceLegalQueue /></ProtectedLayout>} />
-      <Route path="/compliance/enforcement/proceedings" element={<ProtectedLayout><ComplianceLegalProceedings /></ProtectedLayout>} />
-      <Route path="/compliance/enforcement/notices" element={<ProtectedLayout><NoticesManagement /></ProtectedLayout>} />
-      <Route path="/compliance/enforcement/arrangements" element={<ProtectedLayout><PaymentArrangements /></ProtectedLayout>} />
-      <Route path="/compliance/enforcement/breaches" element={<ProtectedLayout><ComplianceBreachMonitoring /></ProtectedLayout>} />
-      <Route path="/compliance/enforcement/waivers" element={<ProtectedLayout><ComplianceWaivers /></ProtectedLayout>} />
+      <Route path="/compliance/enforcement/recommendation-queue" element={<LegalRecommendationQueue />} />
+      <Route path="/compliance/enforcement/legal-referral" element={<LegalReferralWizard />} />
+      <Route path="/compliance/enforcement/legal-queue" element={<ComplianceLegalQueue />} />
+      <Route path="/compliance/enforcement/proceedings" element={<ComplianceLegalProceedings />} />
+      <Route path="/compliance/enforcement/notices" element={<NoticesManagement />} />
+      <Route path="/compliance/enforcement/arrangements" element={<PaymentArrangements />} />
+      <Route path="/compliance/enforcement/breaches" element={<ComplianceBreachMonitoring />} />
+      <Route path="/compliance/enforcement/waivers" element={<ComplianceWaivers />} />
 
       {/* ── Reports (unchanged paths) ── */}
-      <Route path="/compliance/reports" element={<ProtectedLayout><ComplianceReports /></ProtectedLayout>} />
-      <Route path="/compliance/reports/violations-analytics" element={<ProtectedLayout><CaseAnalytics /></ProtectedLayout>} />
-      <Route path="/compliance/reports/inspector-performance" element={<ProtectedLayout><InspectorPerformance /></ProtectedLayout>} />
-      <Route path="/compliance/reports/c3-compliance" element={<ProtectedLayout><C3Compliance /></ProtectedLayout>} />
-      <Route path="/compliance/reports/arrears" element={<ProtectedLayout><ArrearsReports /></ProtectedLayout>} />
-      <Route path="/compliance/reports/audit" element={<ProtectedLayout><ComplianceAuditReports /></ProtectedLayout>} />
-      <Route path="/compliance/reports/arrangements" element={<ProtectedLayout><ArrangementReports /></ProtectedLayout>} />
-      <Route path="/compliance/reports/legal" element={<ProtectedLayout><LegalEscalationReports /></ProtectedLayout>} />
-      <Route path="/compliance/reports/trends" element={<ProtectedLayout><TrendReports /></ProtectedLayout>} />
+      <Route path="/compliance/reports" element={<ComplianceReports />} />
+      <Route path="/compliance/reports/violations-analytics" element={<CaseAnalytics />} />
+      <Route path="/compliance/reports/inspector-performance" element={<InspectorPerformance />} />
+      <Route path="/compliance/reports/c3-compliance" element={<C3Compliance />} />
+      <Route path="/compliance/reports/arrears" element={<ArrearsReports />} />
+      <Route path="/compliance/reports/audit" element={<ComplianceAuditReports />} />
+      <Route path="/compliance/reports/arrangements" element={<ArrangementReports />} />
+      <Route path="/compliance/reports/legal" element={<LegalEscalationReports />} />
+      <Route path="/compliance/reports/trends" element={<TrendReports />} />
 
       {/* ── Admin — settings, geography, staff, automation, tools ── */}
-      <Route path="/compliance/admin/settings/rule-engine" element={<ProtectedLayout><ComplianceRuleEngine /></ProtectedLayout>} />
-      <Route path="/compliance/admin/settings/violation-types" element={<ProtectedLayout><ComplianceViolationTypes /></ProtectedLayout>} />
-      <Route path="/compliance/admin/settings/assignment-routing" element={<ProtectedLayout><AssignmentRoutingRules /></ProtectedLayout>} />
-      <Route path="/compliance/admin/settings/number-templates" element={<ProtectedLayout><ComplianceNumberTemplates /></ProtectedLayout>} />
-      <Route path="/compliance/admin/settings/risk-policy" element={<ProtectedLayout><RiskRulePolicy /></ProtectedLayout>} />
-      <Route path="/compliance/admin/settings/templates" element={<ProtectedLayout><ComplianceTemplates /></ProtectedLayout>} />
-      <Route path="/compliance/admin/communication-templates" element={<ProtectedLayout><AuditCommunicationTemplatesPage /></ProtectedLayout>} />
-      <Route path="/compliance/admin/communication-templates/new" element={<ProtectedLayout><AuditCommunicationTemplateEditorPage /></ProtectedLayout>} />
-      <Route path="/compliance/admin/communication-templates/:id" element={<ProtectedLayout><AuditCommunicationTemplateEditorPage /></ProtectedLayout>} />
-      <Route path="/compliance/admin/report-templates" element={<ProtectedLayout><Suspense fallback={<div />}><ComplianceReportTemplates defaultTab="templates" /></Suspense></ProtectedLayout>} />
-      <Route path="/compliance/admin/document-foundation" element={<ProtectedLayout><Suspense fallback={<div />}><ComplianceReportTemplates defaultTab="foundation" foundationFocused pageTitle="Shared Sections & Foundation" pageDescription="Reusable section library, common clauses/disclaimers, branding and merge fields shared across all employer-audit report templates." /></Suspense></ProtectedLayout>} />
-      <Route path="/compliance/admin/online-response" element={<ProtectedLayout><OnlineResponseConfigPage /></ProtectedLayout>} />
-      <Route path="/compliance/admin/settings/sampling" element={<ProtectedLayout><RiskSamplingSettings /></ProtectedLayout>} />
-      <Route path="/compliance/admin/settings/c3-ledger-sync" element={<ProtectedLayout><C3LedgerSync /></ProtectedLayout>} />
-      <Route path="/compliance/admin/settings/payment-ledger-sync" element={<ProtectedLayout><PaymentLedgerSync /></ProtectedLayout>} />
-      <Route path="/compliance/admin/settings/ledger-admin" element={<ProtectedLayout><LedgerAdministration /></ProtectedLayout>} />
-      <Route path="/compliance/admin/settings/ledger-operations" element={<ProtectedLayout><LedgerOperationsDashboard /></ProtectedLayout>} />
-      <Route path="/compliance/admin/settings/ledger-posting" element={<ProtectedLayout><LedgerPostingAdmin /></ProtectedLayout>} />
-      <Route path="/compliance/admin/settings/ledger-help" element={<ProtectedLayout><LedgerHelpCenter /></ProtectedLayout>} />
-      <Route path="/compliance/admin/geography/zones" element={<ProtectedLayout><ZoneManagement /></ProtectedLayout>} />
-      <Route path="/compliance/admin/geography/office-zone-mapping" element={<ProtectedLayout><OfficeZoneMapping /></ProtectedLayout>} />
-      <Route path="/compliance/admin/geography/village-zone-mapping" element={<ProtectedLayout><VillageZoneMapping /></ProtectedLayout>} />
-      <Route path="/compliance/admin/staff/officers" element={<ProtectedLayout><OfficerManagement /></ProtectedLayout>} />
-      <Route path="/compliance/admin/staff/queue-members" element={<ProtectedLayout><QueueMembers /></ProtectedLayout>} />
-      <Route path="/compliance/admin/staff/supervisors" element={<ProtectedLayout><SupervisorHierarchy /></ProtectedLayout>} />
-      <Route path="/compliance/admin/staff/link-legacy" element={<ProtectedLayout><LegacyInspectorLinking /></ProtectedLayout>} />
-      <Route path="/compliance/admin/automation/jobs" element={<ProtectedLayout><ComplianceJobConfiguration /></ProtectedLayout>} />
-      <Route path="/compliance/admin/automation/history" element={<ProtectedLayout><ComplianceJobHistory /></ProtectedLayout>} />
-      <Route path="/compliance/admin/automation/employer-jobs" element={<ProtectedLayout><EmployerComplianceJobs /></ProtectedLayout>} />
-      <Route path="/compliance/admin/tools/rule-simulator" element={<ProtectedLayout><ComplianceRuleSimulator /></ProtectedLayout>} />
-      <Route path="/compliance/admin/tools/risk-simulator" element={<ProtectedLayout><ComplianceRiskSimulator /></ProtectedLayout>} />
+      <Route path="/compliance/admin/settings/rule-engine" element={<ComplianceRuleEngine />} />
+      <Route path="/compliance/admin/settings/violation-types" element={<ComplianceViolationTypes />} />
+      <Route path="/compliance/admin/settings/assignment-routing" element={<AssignmentRoutingRules />} />
+      <Route path="/compliance/admin/settings/number-templates" element={<ComplianceNumberTemplates />} />
+      <Route path="/compliance/admin/settings/risk-policy" element={<RiskRulePolicy />} />
+      <Route path="/compliance/admin/settings/templates" element={<ComplianceTemplates />} />
+      <Route path="/compliance/admin/communication-templates" element={<AuditCommunicationTemplatesPage />} />
+      <Route path="/compliance/admin/communication-templates/new" element={<AuditCommunicationTemplateEditorPage />} />
+      <Route path="/compliance/admin/communication-templates/:id" element={<AuditCommunicationTemplateEditorPage />} />
+      <Route path="/compliance/admin/report-templates" element={<Suspense fallback={<div />}><ComplianceReportTemplates defaultTab="templates" /></Suspense>} />
+      <Route path="/compliance/admin/document-foundation" element={<Suspense fallback={<div />}><ComplianceReportTemplates defaultTab="foundation" foundationFocused pageTitle="Shared Sections & Foundation" pageDescription="Reusable section library, common clauses/disclaimers, branding and merge fields shared across all employer-audit report templates." /></Suspense>} />
+      <Route path="/compliance/admin/online-response" element={<OnlineResponseConfigPage />} />
+      <Route path="/compliance/admin/settings/sampling" element={<RiskSamplingSettings />} />
+      <Route path="/compliance/admin/settings/c3-ledger-sync" element={<C3LedgerSync />} />
+      <Route path="/compliance/admin/settings/payment-ledger-sync" element={<PaymentLedgerSync />} />
+      <Route path="/compliance/admin/settings/ledger-admin" element={<LedgerAdministration />} />
+      <Route path="/compliance/admin/settings/ledger-operations" element={<LedgerOperationsDashboard />} />
+      <Route path="/compliance/admin/settings/ledger-posting" element={<LedgerPostingAdmin />} />
+      <Route path="/compliance/admin/settings/ledger-help" element={<LedgerHelpCenter />} />
+      <Route path="/compliance/admin/geography/zones" element={<ZoneManagement />} />
+      <Route path="/compliance/admin/geography/office-zone-mapping" element={<OfficeZoneMapping />} />
+      <Route path="/compliance/admin/geography/village-zone-mapping" element={<VillageZoneMapping />} />
+      <Route path="/compliance/admin/staff/officers" element={<OfficerManagement />} />
+      <Route path="/compliance/admin/staff/queue-members" element={<QueueMembers />} />
+      <Route path="/compliance/admin/staff/supervisors" element={<SupervisorHierarchy />} />
+      <Route path="/compliance/admin/staff/link-legacy" element={<LegacyInspectorLinking />} />
+      <Route path="/compliance/admin/automation/jobs" element={<ComplianceJobConfiguration />} />
+      <Route path="/compliance/admin/automation/history" element={<ComplianceJobHistory />} />
+      <Route path="/compliance/admin/automation/employer-jobs" element={<EmployerComplianceJobs />} />
+      <Route path="/compliance/admin/tools/rule-simulator" element={<ComplianceRuleSimulator />} />
+      <Route path="/compliance/admin/tools/risk-simulator" element={<ComplianceRiskSimulator />} />
 
       {/* ═══════════════════════════════════════════════════════════════
           COMPLIANCE — Legacy Redirects (old path → new canonical path)
@@ -1212,8 +1210,8 @@ export const AppRoutes = () => {
       <Route path="/compliance/penalties" element={<Navigate to="/compliance/cases/penalties" replace />} />
 
       {/* Admin redirects */}
-      <Route path="/compliance/settings" element={<ProtectedLayout><ComplianceSettings /></ProtectedLayout>} />
-      <Route path="/compliance/settings/completion-gate" element={<ProtectedLayout><CompletionGateSettings /></ProtectedLayout>} />
+      <Route path="/compliance/settings" element={<ComplianceSettings />} />
+      <Route path="/compliance/settings/completion-gate" element={<CompletionGateSettings />} />
       <Route path="/compliance/settings/rule-engine" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
       <Route path="/compliance/settings/violation-types" element={<Navigate to="/compliance/admin/settings/violation-types" replace />} />
       <Route path="/compliance/settings/assignment-routing" element={<Navigate to="/compliance/admin/settings/assignment-routing" replace />} />
@@ -1242,299 +1240,299 @@ export const AppRoutes = () => {
       <Route path="/compliance/risk-profiles" element={<Navigate to="/audit/risk-register" replace />} />
 
       {/* Audit Module Routes — Simplified Department Function Audit */}
-      <Route path="/audit/dashboard" element={<ProtectedLayout><AuditDashboard /></ProtectedLayout>} />
-      <Route path="/audit/departments" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_DEPARTMENT_MASTER"><DepartmentMaster /></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/dashboard" element={<AuditDashboard />} />
+      <Route path="/audit/departments" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_DEPARTMENT_MASTER"><DepartmentMaster /></AuditFeatureGate>} />
       <Route path="/audit/universe" element={<Navigate to="/audit/departments" replace />} />
-      <Route path="/audit/risk-register" element={<ProtectedLayout><Suspense fallback={<div />}><RiskRegister /></Suspense></ProtectedLayout>} />
-      <Route path="/audit/functions" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_FUNCTION_MASTER"><FunctionMaster /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/department-view/:id" element={<ProtectedLayout><DepartmentView /></ProtectedLayout>} />
-      <Route path="/audit/risk-assessment" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_ASSESSMENT"><RiskAssessment /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/entity-summary" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_ASSESSMENT"><EntitySummary /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/risk-matrix" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_MATRIX"><RiskMatrix /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/audit-plans" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_PLANS"><AuditPlansNew /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/audit-plans/:id" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><AuditPlanDetail /></Suspense></ProtectedLayout>} />
-      <Route path="/audit/audits" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_ENGAGEMENTS"><AuditEngagements /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/audits/:id" element={<ProtectedLayout><EngagementDetail /></ProtectedLayout>} />
-      <Route path="/audit/audit-reports" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_REPORTS"><AuditReports /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/report-builder" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><AuditReportBuilder /></Suspense></ProtectedLayout>} />
-      <Route path="/audit/plan-approval" element={<ProtectedLayout><PlanApproval /></ProtectedLayout>} />
-      <Route path="/audit/config" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_SYSTEM_CONFIG"><AuditConfig /></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/risk-settings" element={<ProtectedLayout><Suspense fallback={<div />}><RiskSettings /></Suspense></ProtectedLayout>} />
-      <Route path="/audit/document-templates" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_SYSTEM_CONFIG"><Suspense fallback={<div />}><DocumentTemplateSettings /></Suspense></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/queries" element={<ProtectedLayout><Suspense fallback={<div />}><AuditQueries /></Suspense></ProtectedLayout>} />
-      <Route path="/audit/auditors" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_AUDITOR_PROFILES"><Suspense fallback={<div />}><AuditorProfiles /></Suspense></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/auditor-profiles" element={<ProtectedLayout><Navigate to="/audit/auditors" replace /></ProtectedLayout>} />
-      <Route path="/audit/workload" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_WORKLOAD_CAPACITY"><Suspense fallback={<div />}><WorkloadCapacity /></Suspense></AuditFeatureGate></ProtectedLayout>} />
-      <Route path="/audit/time-tracking" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_TIME_TRACKING"><Suspense fallback={<div />}><TimeTracking /></Suspense></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/risk-register" element={<Suspense fallback={<div />}><RiskRegister /></Suspense>} />
+      <Route path="/audit/functions" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_FUNCTION_MASTER"><FunctionMaster /></AuditFeatureGate>} />
+      <Route path="/audit/department-view/:id" element={<DepartmentView />} />
+      <Route path="/audit/risk-assessment" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_ASSESSMENT"><RiskAssessment /></AuditFeatureGate>} />
+      <Route path="/audit/entity-summary" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_ASSESSMENT"><EntitySummary /></AuditFeatureGate>} />
+      <Route path="/audit/risk-matrix" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_RISK_MATRIX"><RiskMatrix /></AuditFeatureGate>} />
+      <Route path="/audit/audit-plans" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_PLANS"><AuditPlansNew /></AuditFeatureGate>} />
+      <Route path="/audit/audit-plans/:id" element={<Suspense fallback={<div>Loading...</div>}><AuditPlanDetail /></Suspense>} />
+      <Route path="/audit/audits" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_ENGAGEMENTS"><AuditEngagements /></AuditFeatureGate>} />
+      <Route path="/audit/audits/:id" element={<EngagementDetail />} />
+      <Route path="/audit/audit-reports" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_REPORTS"><AuditReports /></AuditFeatureGate>} />
+      <Route path="/audit/report-builder" element={<Suspense fallback={<div>Loading...</div>}><AuditReportBuilder /></Suspense>} />
+      <Route path="/audit/plan-approval" element={<PlanApproval />} />
+      <Route path="/audit/config" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_SYSTEM_CONFIG"><AuditConfig /></AuditFeatureGate>} />
+      <Route path="/audit/risk-settings" element={<Suspense fallback={<div />}><RiskSettings /></Suspense>} />
+      <Route path="/audit/document-templates" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_SYSTEM_CONFIG"><Suspense fallback={<div />}><DocumentTemplateSettings /></Suspense></AuditFeatureGate>} />
+      <Route path="/audit/queries" element={<Suspense fallback={<div />}><AuditQueries /></Suspense>} />
+      <Route path="/audit/auditors" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_AUDITOR_PROFILES"><Suspense fallback={<div />}><AuditorProfiles /></Suspense></AuditFeatureGate>} />
+      <Route path="/audit/auditor-profiles" element={<Navigate to="/audit/auditors" replace />} />
+      <Route path="/audit/workload" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_WORKLOAD_CAPACITY"><Suspense fallback={<div />}><WorkloadCapacity /></Suspense></AuditFeatureGate>} />
+      <Route path="/audit/time-tracking" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_TIME_TRACKING"><Suspense fallback={<div />}><TimeTracking /></Suspense></AuditFeatureGate>} />
       
-      <Route path="/audit/leave" element={<ProtectedLayout><AuditFeatureGate featureFlag="FEATURE_AUDIT_LEAVE_MANAGEMENT"><Suspense fallback={<div />}><AuditorLeaveManagement /></Suspense></AuditFeatureGate></ProtectedLayout>} />
+      <Route path="/audit/leave" element={<AuditFeatureGate featureFlag="FEATURE_AUDIT_LEAVE_MANAGEMENT"><Suspense fallback={<div />}><AuditorLeaveManagement /></Suspense></AuditFeatureGate>} />
 
       {/* Legacy redirects */}
-      <Route path="/audit/engagements" element={<ProtectedLayout><Navigate to="/audit/audits" replace /></ProtectedLayout>} />
-      <Route path="/audit/engagements/:id" element={<ProtectedLayout><Navigate to="/audit/audits" replace /></ProtectedLayout>} />
-      <Route path="/audit/plans" element={<ProtectedLayout><Navigate to="/audit/audit-plans" replace /></ProtectedLayout>} />
-      <Route path="/audit/reports" element={<ProtectedLayout><Navigate to="/audit/audit-reports" replace /></ProtectedLayout>} />
+      <Route path="/audit/engagements" element={<Navigate to="/audit/audits" replace />} />
+      <Route path="/audit/engagements/:id" element={<Navigate to="/audit/audits" replace />} />
+      <Route path="/audit/plans" element={<Navigate to="/audit/audit-plans" replace />} />
+      <Route path="/audit/reports" element={<Navigate to="/audit/audit-reports" replace />} />
 
       {/* Registration Rules & Process Routes */}
-      <Route path="/registration/insured-person-guide" element={<ProtectedLayout><InsuredPersonGuide /></ProtectedLayout>} />
-      <Route path="/registration/employer-rules" element={<ProtectedLayout><EmployerRules /></ProtectedLayout>} />
-      <Route path="/registration/approval-workflow" element={<ProtectedLayout><ApprovalWorkflow /></ProtectedLayout>} />
-      <Route path="/registration/documentation" element={<ProtectedLayout><DocumentationRequirements /></ProtectedLayout>} />
+      <Route path="/registration/insured-person-guide" element={<InsuredPersonGuide />} />
+      <Route path="/registration/employer-rules" element={<EmployerRules />} />
+      <Route path="/registration/approval-workflow" element={<ApprovalWorkflow />} />
+      <Route path="/registration/documentation" element={<DocumentationRequirements />} />
 
       {/* User Profile & Permissions Routes */}
-      <Route path="/profile" element={<ProtectedLayout><MyProfile /></ProtectedLayout>} />
-      <Route path="/profile/change-password" element={<ProtectedLayout><ProfileChangePassword /></ProtectedLayout>} />
-      <Route path="/profile/notifications" element={<ProtectedLayout><NotificationPreferences /></ProtectedLayout>} />
-      <Route path="/profile/sessions" element={<ProtectedLayout><ActiveSessions /></ProtectedLayout>} />
-      <Route path="/profile/roles" element={<ProtectedLayout><ManageRoles /></ProtectedLayout>} />
-      <Route path="/admin/security" element={<ProtectedLayout><SecuritySettings /></ProtectedLayout>} />
-      <Route path="/admin/settings" element={<ProtectedLayout><SystemSettings /></ProtectedLayout>} />
+      <Route path="/profile" element={<MyProfile />} />
+      <Route path="/profile/change-password" element={<ProfileChangePassword />} />
+      <Route path="/profile/notifications" element={<NotificationPreferences />} />
+      <Route path="/profile/sessions" element={<ActiveSessions />} />
+      <Route path="/profile/roles" element={<ManageRoles />} />
+      <Route path="/admin/security" element={<SecuritySettings />} />
+      <Route path="/admin/settings" element={<SystemSettings />} />
 
       {/* Legacy Routes - keeping existing functionality */}
-      <Route path="/employer/register" element={<ProtectedLayout><EmployerRegistration /></ProtectedLayout>} />
-      <Route path="/employer/approval" element={<ProtectedLayout><EmployerApproval /></ProtectedLayout>} />
-      <Route path="/employer/directory" element={<ProtectedLayout><EmployerDirectory /></ProtectedLayout>} />
-      <Route path="/employer/contribution-entry" element={<ProtectedLayout><ContributionEntry /></ProtectedLayout>} />
-      <Route path="/employer/compliance" element={<ProtectedLayout><ComplianceMonitoring /></ProtectedLayout>} />
-      <Route path="/employer/contributions" element={<ProtectedLayout><ContributionTracking /></ProtectedLayout>} />
+      <Route path="/employer/register" element={<EmployerRegistration />} />
+      <Route path="/employer/approval" element={<EmployerApproval />} />
+      <Route path="/employer/directory" element={<EmployerDirectory />} />
+      <Route path="/employer/contribution-entry" element={<ContributionEntry />} />
+      <Route path="/employer/compliance" element={<ComplianceMonitoring />} />
+      <Route path="/employer/contributions" element={<ContributionTracking />} />
 
       {/* Insured Persons Routes - Consolidated */}
-      <Route path="/person/listing" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
-      <Route path="/person/register" element={<ProtectedLayout><PersonRegistration /></ProtectedLayout>} />
-      <Route path="/person/register-tabs" element={<ProtectedLayout><RegisterPersonTabs /></ProtectedLayout>} />
-      <Route path="/person/management" element={<ProtectedLayout><IPManagement /></ProtectedLayout>} />
-      <Route path="/person/ip-management" element={<ProtectedLayout><PersonIPManagement /></ProtectedLayout>} />
-      <Route path="/person/view/:ssn" element={<ProtectedLayout><ViewInsuredPerson /></ProtectedLayout>} />
-      <Route path="/person/edit/:ssn" element={<ProtectedLayout><EditInsuredPerson /></ProtectedLayout>} />
+      <Route path="/person/listing" element={<IPManagement />} />
+      <Route path="/person/register" element={<PersonRegistration />} />
+      <Route path="/person/register-tabs" element={<RegisterPersonTabs />} />
+      <Route path="/person/management" element={<IPManagement />} />
+      <Route path="/person/ip-management" element={<PersonIPManagement />} />
+      <Route path="/person/view/:ssn" element={<ViewInsuredPerson />} />
+      <Route path="/person/edit/:ssn" element={<EditInsuredPerson />} />
 
       {/* Quick Actions Routes */}
-      <Route path="/person/wages-history" element={<ProtectedLayout><WagesHistory /></ProtectedLayout>} />
-      <Route path="/person/claim-history" element={<ProtectedLayout><ClaimHistory /></ProtectedLayout>} />
-      <Route path="/person/benefit-eligibility" element={<ProtectedLayout><BenefitEligibility /></ProtectedLayout>} />
-      <Route path="/person/pending-reviews" element={<ProtectedLayout><PendingReviews /></ProtectedLayout>} />
+      <Route path="/person/wages-history" element={<WagesHistory />} />
+      <Route path="/person/claim-history" element={<ClaimHistory />} />
+      <Route path="/person/benefit-eligibility" element={<BenefitEligibility />} />
+      <Route path="/person/pending-reviews" element={<PendingReviews />} />
       
       {/* Service Request Routes */}
-      <Route path="/person/service-requests" element={<ProtectedLayout><ServiceRequestList /></ProtectedLayout>} />
-      <Route path="/person/service-requests/new" element={<ProtectedLayout><ServiceRequestNew /></ProtectedLayout>} />
-      <Route path="/person/service-requests/:id" element={<ProtectedLayout><ServiceRequestDetail /></ProtectedLayout>} />
-      <Route path="/person/service-requests/pending-verification" element={<ProtectedLayout><PendingVerification /></ProtectedLayout>} />
-      <Route path="/person/profile/:id" element={<ProtectedLayout><InsuredPersonProfile /></ProtectedLayout>} />
+      <Route path="/person/service-requests" element={<ServiceRequestList />} />
+      <Route path="/person/service-requests/new" element={<ServiceRequestNew />} />
+      <Route path="/person/service-requests/:id" element={<ServiceRequestDetail />} />
+      <Route path="/person/service-requests/pending-verification" element={<PendingVerification />} />
+      <Route path="/person/profile/:id" element={<InsuredPersonProfile />} />
 
       {/* Insured Persons Reports - CRD Department */}
-      <Route path="/person/reports/ip-entry-verification" element={<ProtectedLayout><IPEntryVerificationReport /></ProtectedLayout>} />
-      <Route path="/person/reports/age-62-without-claim" element={<ProtectedLayout><Age62WithoutClaimReport /></ProtectedLayout>} />
-      <Route path="/person/reports/online-renewal-update" element={<ProtectedLayout><OnlineRenewalUpdateReport /></ProtectedLayout>} />
-      <Route path="/person/reports/registration-payments" element={<ProtectedLayout><RegistrationPaymentsReport /></ProtectedLayout>} />
-      <Route path="/person/reports/contribution-statement-payment" element={<ProtectedLayout><ContributionStatementPaymentReport /></ProtectedLayout>} />
-      <Route path="/person/reports/pension-letters-payment" element={<ProtectedLayout><PensionLettersPaymentReport /></ProtectedLayout>} />
-      <Route path="/person/reports/non-national-workers-ssn" element={<ProtectedLayout><NonNationalWorkersSSNReport /></ProtectedLayout>} />
-      <Route path="/person/reports/new-registrants-by-officer" element={<ProtectedLayout><NewRegistrantsByOfficerReport /></ProtectedLayout>} />
-      <Route path="/person/reports/employer-registration-by-officer" element={<ProtectedLayout><EmployerRegistrationByOfficerReport /></ProtectedLayout>} />
-      <Route path="/person/reports/life-certificates" element={<ProtectedLayout><LifeCertificatesReport /></ProtectedLayout>} />
-      <Route path="/person/reports/self-employed-by-officer" element={<ProtectedLayout><SelfEmployedByOfficerReport /></ProtectedLayout>} />
-      <Route path="/person/reports/claims-entered-by-officer" element={<ProtectedLayout><ClaimsEnteredByOfficerReport /></ProtectedLayout>} />
-      <Route path="/person/reports/self-employed-without-license" element={<ProtectedLayout><SelfEmployedWithoutLicenseReport /></ProtectedLayout>} />
-      <Route path="/person/reports/claims-to-benefits" element={<ProtectedLayout><ClaimsToBenefitsReport /></ProtectedLayout>} />
-      <Route path="/person/reports/crm-activity" element={<ProtectedLayout><CRMActivityReport /></ProtectedLayout>} />
-      <Route path="/person/reports/refunds-to-cru" element={<ProtectedLayout><RefundsToCRUReport /></ProtectedLayout>} />
-      <Route path="/person/reports/audit-sample-ip" element={<ProtectedLayout><AuditSampleIPReport /></ProtectedLayout>} />
+      <Route path="/person/reports/ip-entry-verification" element={<IPEntryVerificationReport />} />
+      <Route path="/person/reports/age-62-without-claim" element={<Age62WithoutClaimReport />} />
+      <Route path="/person/reports/online-renewal-update" element={<OnlineRenewalUpdateReport />} />
+      <Route path="/person/reports/registration-payments" element={<RegistrationPaymentsReport />} />
+      <Route path="/person/reports/contribution-statement-payment" element={<ContributionStatementPaymentReport />} />
+      <Route path="/person/reports/pension-letters-payment" element={<PensionLettersPaymentReport />} />
+      <Route path="/person/reports/non-national-workers-ssn" element={<NonNationalWorkersSSNReport />} />
+      <Route path="/person/reports/new-registrants-by-officer" element={<NewRegistrantsByOfficerReport />} />
+      <Route path="/person/reports/employer-registration-by-officer" element={<EmployerRegistrationByOfficerReport />} />
+      <Route path="/person/reports/life-certificates" element={<LifeCertificatesReport />} />
+      <Route path="/person/reports/self-employed-by-officer" element={<SelfEmployedByOfficerReport />} />
+      <Route path="/person/reports/claims-entered-by-officer" element={<ClaimsEnteredByOfficerReport />} />
+      <Route path="/person/reports/self-employed-without-license" element={<SelfEmployedWithoutLicenseReport />} />
+      <Route path="/person/reports/claims-to-benefits" element={<ClaimsToBenefitsReport />} />
+      <Route path="/person/reports/crm-activity" element={<CRMActivityReport />} />
+      <Route path="/person/reports/refunds-to-cru" element={<RefundsToCRUReport />} />
+      <Route path="/person/reports/audit-sample-ip" element={<AuditSampleIPReport />} />
       
       {/* C3 Management Reports - Moved from Insured Persons */}
-      <Route path="/c3/reports/c3-entry-verification" element={<ProtectedLayout><C3EntryVerificationReport /></ProtectedLayout>} />
-      <Route path="/c3/reports/pending-c3" element={<ProtectedLayout><PendingC3Report /></ProtectedLayout>} />
-      <Route path="/c3/reports/missing-ssn" element={<ProtectedLayout><MissingSSNReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/c3-entry-verification" element={<C3EntryVerificationReport />} />
+      <Route path="/c3/reports/pending-c3" element={<PendingC3Report />} />
+      <Route path="/c3/reports/missing-ssn" element={<MissingSSNReport />} />
       
       {/* C3 Levy Settings Routes */}
-      <Route path="/c3-management/settings/levy/schemes" element={<ProtectedLayout><LevySchemesList /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/levy/schemes/:schemeId" element={<ProtectedLayout><LevySchemeDetail /></ProtectedLayout>} />
-      <Route path="/c3-management/settings/levy/simulator" element={<ProtectedLayout><LevySimulator /></ProtectedLayout>} />
-      <Route path="/c3/reports/c3-line-item-changes" element={<ProtectedLayout><C3LineItemChangesReport /></ProtectedLayout>} />
-      <Route path="/c3/reports/electronic-c3-uploads" element={<ProtectedLayout><ElectronicC3UploadsReport /></ProtectedLayout>} />
-      <Route path="/c3/reports/c3-without-payment" element={<ProtectedLayout><C3WithoutPaymentReport /></ProtectedLayout>} />
-      <Route path="/c3/reports/employer-notifications" element={<ProtectedLayout><EmployerNotificationsReport /></ProtectedLayout>} />
-      <Route path="/c3/reports/high-wage-multi-employer" element={<ProtectedLayout><HighWageMultiEmployerReport /></ProtectedLayout>} />
-      <Route path="/c3/reports/scanning-activity" element={<ProtectedLayout><ScanningActivityReport /></ProtectedLayout>} />
-      <Route path="/c3/reports/outstanding-discrepancies" element={<ProtectedLayout><OutstandingDiscrepanciesReport /></ProtectedLayout>} />
-      <Route path="/c3/reports/long-term-claims" element={<ProtectedLayout><LongTermClaimsReport /></ProtectedLayout>} />
-      <Route path="/c3/reports/audit-sample" element={<ProtectedLayout><AuditSampleReport /></ProtectedLayout>} />
+      <Route path="/c3-management/settings/levy/schemes" element={<LevySchemesList />} />
+      <Route path="/c3-management/settings/levy/schemes/:schemeId" element={<LevySchemeDetail />} />
+      <Route path="/c3-management/settings/levy/simulator" element={<LevySimulator />} />
+      <Route path="/c3/reports/c3-line-item-changes" element={<C3LineItemChangesReport />} />
+      <Route path="/c3/reports/electronic-c3-uploads" element={<ElectronicC3UploadsReport />} />
+      <Route path="/c3/reports/c3-without-payment" element={<C3WithoutPaymentReport />} />
+      <Route path="/c3/reports/employer-notifications" element={<EmployerNotificationsReport />} />
+      <Route path="/c3/reports/high-wage-multi-employer" element={<HighWageMultiEmployerReport />} />
+      <Route path="/c3/reports/scanning-activity" element={<ScanningActivityReport />} />
+      <Route path="/c3/reports/outstanding-discrepancies" element={<OutstandingDiscrepanciesReport />} />
+      <Route path="/c3/reports/long-term-claims" element={<LongTermClaimsReport />} />
+      <Route path="/c3/reports/audit-sample" element={<AuditSampleReport />} />
 
       {/* Finance Settings Routes */}
-      <Route path="/finance/settings/fee-configuration" element={<ProtectedLayout><FeeConfigurationList /></ProtectedLayout>} />
-      <Route path="/finance/settings/fee-configuration/new" element={<ProtectedLayout><FeeConfigurationDetail /></ProtectedLayout>} />
-      <Route path="/finance/settings/fee-configuration/:feeId" element={<ProtectedLayout><FeeConfigurationDetail /></ProtectedLayout>} />
-      <Route path="/finance/settings/fee-configuration/:feeId/edit" element={<ProtectedLayout><FeeConfigurationDetail /></ProtectedLayout>} />
-      <Route path="/finance/settings/service-types" element={<ProtectedLayout><ServiceTypeManagement /></ProtectedLayout>} />
-      <Route path="/finance/settings/verification" element={<ProtectedLayout><VerificationSettings /></ProtectedLayout>} />
-      <Route path="/finance/settings/multi-currency" element={<ProtectedLayout><MultiCurrencySettings /></ProtectedLayout>} />
+      <Route path="/finance/settings/fee-configuration" element={<FeeConfigurationList />} />
+      <Route path="/finance/settings/fee-configuration/new" element={<FeeConfigurationDetail />} />
+      <Route path="/finance/settings/fee-configuration/:feeId" element={<FeeConfigurationDetail />} />
+      <Route path="/finance/settings/fee-configuration/:feeId/edit" element={<FeeConfigurationDetail />} />
+      <Route path="/finance/settings/service-types" element={<ServiceTypeManagement />} />
+      <Route path="/finance/settings/verification" element={<VerificationSettings />} />
+      <Route path="/finance/settings/multi-currency" element={<MultiCurrencySettings />} />
 
       {/* Benefits Routes */}
-      <Route path="/benefits/all" element={<ProtectedLayout><AllBenefitsTabs /></ProtectedLayout>} />
-      <Route path="/benefits/online-applications" element={<ProtectedLayout><OnlineBenefitApplications /></ProtectedLayout>} />
-      <Route path="/benefits/maternity" element={<ProtectedLayout><MaternityBenefits /></ProtectedLayout>} />
-      <Route path="/benefits/unemployment" element={<ProtectedLayout><UnemploymentBenefits /></ProtectedLayout>} />
-      <Route path="/benefits/work-injury" element={<ProtectedLayout><WorkInjuryBenefits /></ProtectedLayout>} />
-      <Route path="/benefits/death" element={<ProtectedLayout><DeathBenefits /></ProtectedLayout>} />
-      <Route path="/benefits/educational" element={<ProtectedLayout><EducationalBenefits /></ProtectedLayout>} />
+      <Route path="/benefits/all" element={<AllBenefitsTabs />} />
+      <Route path="/benefits/online-applications" element={<OnlineBenefitApplications />} />
+      <Route path="/benefits/maternity" element={<MaternityBenefits />} />
+      <Route path="/benefits/unemployment" element={<UnemploymentBenefits />} />
+      <Route path="/benefits/work-injury" element={<WorkInjuryBenefits />} />
+      <Route path="/benefits/death" element={<DeathBenefits />} />
+      <Route path="/benefits/educational" element={<EducationalBenefits />} />
 
       {/* Customer Relationship (CRD) Module Routes */}
-      <Route path="/crd/cards" element={<ProtectedLayout><CardManagement /></ProtectedLayout>} />
-      <Route path="/crd/reports/printed-spoiled-cards" element={<ProtectedLayout><CRDPrintedSpoiledCardsReport /></ProtectedLayout>} />
+      <Route path="/crd/cards" element={<CardManagement />} />
+      <Route path="/crd/reports/printed-spoiled-cards" element={<CRDPrintedSpoiledCardsReport />} />
 
       {/* System Administration Routes - Using DB-backed Enterprise Admin components */}
-      <Route path="/admin/master-data/income-categories" element={<ProtectedLayout><IncomeCategoryManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/income-categories" element={<IncomeCategoryManagement />} />
       <Route path="/admin/master-data/sep-contrib-rates" element={<Navigate to="/admin/c3-configuration" replace />} />
-      <Route path="/admin/master-data/income-codes" element={<ProtectedLayout><IncomeCodeManagement /></ProtectedLayout>} />
+      <Route path="/admin/master-data/income-codes" element={<IncomeCodeManagement />} />
       {/* Master Data CRUD Routes */}
-      <Route path="/admin/master-data/activity-types" element={<ProtectedLayout><ActivityManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/designations" element={<ProtectedLayout><DesignationMasterManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/bank-codes" element={<ProtectedLayout><BankCodeManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/batch-status" element={<ProtectedLayout><BatchStatusManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/pay-periods" element={<ProtectedLayout><PayPeriodManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/c3-status" element={<ProtectedLayout><C3StatusManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/countries" element={<ProtectedLayout><CountryManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/dependent-relations" element={<ProtectedLayout><DependentRelationManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/districts" element={<ProtectedLayout><DistrictManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/eye-colors" element={<ProtectedLayout><EyeColorManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/industries" element={<ProtectedLayout><IndustryManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/inspectors" element={<ProtectedLayout><InspectorMDManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/invoice-status" element={<ProtectedLayout><InvoiceStatusMDManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/invoice-types" element={<ProtectedLayout><InvoiceTypesMDManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/legal-status" element={<ProtectedLayout><LegalStatusManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/marital-status" element={<ProtectedLayout><MaritalStatusManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/merchants" element={<ProtectedLayout><MerchantManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/methods-of-payment" element={<ProtectedLayout><MethodOfPaymentManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/occupations" element={<ProtectedLayout><OccupationManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/payer-types" element={<ProtectedLayout><PayerTypeManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/payment-sources" element={<ProtectedLayout><PaymentSourcesManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/payment-types" element={<ProtectedLayout><PaymentTypeMDManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/penalty-rates" element={<ProtectedLayout><PenaltyMDManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/postal-districts" element={<ProtectedLayout><PostalDistrictManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/receipt-status" element={<ProtectedLayout><ReceiptStatusManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/relations" element={<ProtectedLayout><RelationManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/sectors" element={<ProtectedLayout><SectorManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/ssc-rates" element={<ProtectedLayout><SscRatesManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/vc-contrib-rates" element={<ProtectedLayout><VcContribRateManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/vc-eligibility-config" element={<ProtectedLayout><VcEligibilityConfigManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/verification-types" element={<ProtectedLayout><VerifyManagement /></ProtectedLayout>} />
-      <Route path="/admin/master-data/villages" element={<ProtectedLayout><VillagesManagement /></ProtectedLayout>} />
-      <Route path="/admin" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
-      <Route path="/admin/users" element={<ProtectedLayout><UserList /></ProtectedLayout>} />
-      <Route path="/admin/users/create" element={<ProtectedLayout><UserCreate /></ProtectedLayout>} />
-      <Route path="/admin/users/:userId" element={<ProtectedLayout><UserView /></ProtectedLayout>} />
-      <Route path="/admin/users/:userId/edit" element={<ProtectedLayout><UserEdit /></ProtectedLayout>} />
-      <Route path="/admin/users/:userId/roles" element={<ProtectedLayout><UserRoles /></ProtectedLayout>} />
-      <Route path="/admin/seed-test-users" element={<ProtectedLayout><SeedTestUsers /></ProtectedLayout>} />
-      <Route path="/admin/web-users" element={<ProtectedLayout><WebUsers /></ProtectedLayout>} />
+      <Route path="/admin/master-data/activity-types" element={<ActivityManagement />} />
+      <Route path="/admin/master-data/designations" element={<DesignationMasterManagement />} />
+      <Route path="/admin/master-data/bank-codes" element={<BankCodeManagement />} />
+      <Route path="/admin/master-data/batch-status" element={<BatchStatusManagement />} />
+      <Route path="/admin/master-data/pay-periods" element={<PayPeriodManagement />} />
+      <Route path="/admin/master-data/c3-status" element={<C3StatusManagement />} />
+      <Route path="/admin/master-data/countries" element={<CountryManagement />} />
+      <Route path="/admin/master-data/dependent-relations" element={<DependentRelationManagement />} />
+      <Route path="/admin/master-data/districts" element={<DistrictManagement />} />
+      <Route path="/admin/master-data/eye-colors" element={<EyeColorManagement />} />
+      <Route path="/admin/master-data/industries" element={<IndustryManagement />} />
+      <Route path="/admin/master-data/inspectors" element={<InspectorMDManagement />} />
+      <Route path="/admin/master-data/invoice-status" element={<InvoiceStatusMDManagement />} />
+      <Route path="/admin/master-data/invoice-types" element={<InvoiceTypesMDManagement />} />
+      <Route path="/admin/master-data/legal-status" element={<LegalStatusManagement />} />
+      <Route path="/admin/master-data/marital-status" element={<MaritalStatusManagement />} />
+      <Route path="/admin/master-data/merchants" element={<MerchantManagement />} />
+      <Route path="/admin/master-data/methods-of-payment" element={<MethodOfPaymentManagement />} />
+      <Route path="/admin/master-data/occupations" element={<OccupationManagement />} />
+      <Route path="/admin/master-data/payer-types" element={<PayerTypeManagement />} />
+      <Route path="/admin/master-data/payment-sources" element={<PaymentSourcesManagement />} />
+      <Route path="/admin/master-data/payment-types" element={<PaymentTypeMDManagement />} />
+      <Route path="/admin/master-data/penalty-rates" element={<PenaltyMDManagement />} />
+      <Route path="/admin/master-data/postal-districts" element={<PostalDistrictManagement />} />
+      <Route path="/admin/master-data/receipt-status" element={<ReceiptStatusManagement />} />
+      <Route path="/admin/master-data/relations" element={<RelationManagement />} />
+      <Route path="/admin/master-data/sectors" element={<SectorManagement />} />
+      <Route path="/admin/master-data/ssc-rates" element={<SscRatesManagement />} />
+      <Route path="/admin/master-data/vc-contrib-rates" element={<VcContribRateManagement />} />
+      <Route path="/admin/master-data/vc-eligibility-config" element={<VcEligibilityConfigManagement />} />
+      <Route path="/admin/master-data/verification-types" element={<VerifyManagement />} />
+      <Route path="/admin/master-data/villages" element={<VillagesManagement />} />
+      <Route path="/admin" element={<UserList />} />
+      <Route path="/admin/users" element={<UserList />} />
+      <Route path="/admin/users/create" element={<UserCreate />} />
+      <Route path="/admin/users/:userId" element={<UserView />} />
+      <Route path="/admin/users/:userId/edit" element={<UserEdit />} />
+      <Route path="/admin/users/:userId/roles" element={<UserRoles />} />
+      <Route path="/admin/seed-test-users" element={<SeedTestUsers />} />
+      <Route path="/admin/web-users" element={<WebUsers />} />
       <Route path="/admin/audit-log" element={<Navigate to="/system-logs/audit" replace />} />
       <Route path="/admin/audit-logs" element={<Navigate to="/system-logs/audit" replace />} />
-      <Route path="/admin/scheduler" element={<ProtectedLayout><CentralScheduler /></ProtectedLayout>} />
-      <Route path="/admin/backup" element={<ProtectedLayout><BackupRecovery /></ProtectedLayout>} />
-      <Route path="/admin/logs" element={<ProtectedLayout><SystemLogs /></ProtectedLayout>} />
-      <Route path="/admin/employees" element={<ProtectedLayout><EmployeeList /></ProtectedLayout>} />
-      <Route path="/admin/org-units" element={<ProtectedLayout><OrgUnitList /></ProtectedLayout>} />
-      <Route path="/admin/positions" element={<ProtectedLayout><PositionList /></ProtectedLayout>} />
-      <Route path="/admin/roles" element={<ProtectedLayout><AdminRoleList /></ProtectedLayout>} />
-      <Route path="/admin/roles-permissions" element={<ProtectedLayout><RolePermissionManagement /></ProtectedLayout>} />
-      <Route path="/admin/delegations" element={<ProtectedLayout><DelegationList /></ProtectedLayout>} />
-      <Route path="/admin/approval-matrix/payment" element={<ProtectedLayout><ApprovalMatrixPayment /></ProtectedLayout>} />
-      <Route path="/admin/approval-matrix/fee-waiver" element={<ProtectedLayout><ApprovalMatrixFeeWaiver /></ProtectedLayout>} />
-      <Route path="/admin/approval-matrix/journal" element={<ProtectedLayout><ApprovalMatrixJournal /></ProtectedLayout>} />
-      <Route path="/admin/approval-matrix/refund" element={<ProtectedLayout><ApprovalMatrixRefund /></ProtectedLayout>} />
-      <Route path="/admin/approval-matrix/write-off" element={<ProtectedLayout><ApprovalMatrixWriteOff /></ProtectedLayout>} />
-      <Route path="/admin/workflow-schemes" element={<ProtectedLayout><WorkflowSchemeList /></ProtectedLayout>} />
-      <Route path="/admin/workflow-management" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
-      <Route path="/admin/workflow-management/workflows" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
-      <Route path="/admin/workflow-management/runs" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
-      <Route path="/admin/workflow-management/data" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
-      <Route path="/admin/workflow-management/templates" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
-      <Route path="/admin/workflow-management/settings" element={<ProtectedLayout><WorkflowManagement /></ProtectedLayout>} />
-      <Route path="/admin/notifications" element={<ProtectedLayout><NotificationManagement /></ProtectedLayout>} />
-      <Route path="/admin/notifications/log" element={<ProtectedLayout><AdminNotificationLogs /></ProtectedLayout>} />
-      <Route path="/admin/notifications/logs" element={<ProtectedLayout><AdminNotificationLogs /></ProtectedLayout>} />
-      <Route path="/admin/notifications/templates" element={<ProtectedLayout><AdminNotificationTemplates /></ProtectedLayout>} />
-      <Route path="/admin/notifications/notification-templates" element={<ProtectedLayout><NotificationTemplateManager /></ProtectedLayout>} />
-      <Route path="/admin/notifications/channels" element={<ProtectedLayout><NotificationChannelSettings /></ProtectedLayout>} />
-      <Route path="/admin/notifications/providers" element={<ProtectedLayout><ProviderSettings /></ProtectedLayout>} />
-      <Route path="/admin/email-campaigns" element={<ProtectedLayout><EmailCampaigns /></ProtectedLayout>} />
-      <Route path="/admin/email-logs" element={<ProtectedLayout><EmailLogs /></ProtectedLayout>} />
-      <Route path="/admin/offices" element={<ProtectedLayout><OfficeManagement /></ProtectedLayout>} />
-      <Route path="/admin/office-ip-management" element={<ProtectedLayout><OfficeIPManagement /></ProtectedLayout>} />
-      <Route path="/admin/departments" element={<ProtectedLayout><DepartmentManagement /></ProtectedLayout>} />
-      <Route path="/admin/modules" element={<ProtectedLayout><ModuleManagement /></ProtectedLayout>} />
-      <Route path="/admin/security/password-policy" element={<ProtectedLayout><PasswordPolicySettings /></ProtectedLayout>} />
-      <Route path="/admin/security/mfa" element={<ProtectedLayout><MFASettings /></ProtectedLayout>} />
-      <Route path="/admin/security/policy" element={<ProtectedLayout><SecurityPolicySettingsPage /></ProtectedLayout>} />
-      <Route path="/admin/security/ip-access" element={<ProtectedLayout><IPAccessRulesManagement /></ProtectedLayout>} />
-      <Route path="/admin/designations" element={<ProtectedLayout><DesignationManagement /></ProtectedLayout>} />
-      <Route path="/admin/designation-hierarchy" element={<ProtectedLayout><DesignationHierarchy /></ProtectedLayout>} />
-      <Route path="/admin/role-hierarchy" element={<ProtectedLayout><RoleHierarchy /></ProtectedLayout>} />
-      <Route path="/admin/user-notification-preferences" element={<ProtectedLayout><UserNotificationPreferences /></ProtectedLayout>} />
-      <Route path="/admin/data-migration" element={<ProtectedLayout><DataMigration /></ProtectedLayout>} />
-      <Route path="/admin/release-management" element={<ProtectedLayout><ReleaseManagement /></ProtectedLayout>} />
-      <Route path="/admin/users/update-password" element={<ProtectedLayout><UpdateUserPassword /></ProtectedLayout>} />
-      <Route path="/admin/module-button-bindings" element={<ProtectedLayout><ModuleButtonBindings /></ProtectedLayout>} />
-      <Route path="/admin/api-keys" element={<ProtectedLayout><ApiKeysManagement /></ProtectedLayout>} />
+      <Route path="/admin/scheduler" element={<CentralScheduler />} />
+      <Route path="/admin/backup" element={<BackupRecovery />} />
+      <Route path="/admin/logs" element={<SystemLogs />} />
+      <Route path="/admin/employees" element={<EmployeeList />} />
+      <Route path="/admin/org-units" element={<OrgUnitList />} />
+      <Route path="/admin/positions" element={<PositionList />} />
+      <Route path="/admin/roles" element={<AdminRoleList />} />
+      <Route path="/admin/roles-permissions" element={<RolePermissionManagement />} />
+      <Route path="/admin/delegations" element={<DelegationList />} />
+      <Route path="/admin/approval-matrix/payment" element={<ApprovalMatrixPayment />} />
+      <Route path="/admin/approval-matrix/fee-waiver" element={<ApprovalMatrixFeeWaiver />} />
+      <Route path="/admin/approval-matrix/journal" element={<ApprovalMatrixJournal />} />
+      <Route path="/admin/approval-matrix/refund" element={<ApprovalMatrixRefund />} />
+      <Route path="/admin/approval-matrix/write-off" element={<ApprovalMatrixWriteOff />} />
+      <Route path="/admin/workflow-schemes" element={<WorkflowSchemeList />} />
+      <Route path="/admin/workflow-management" element={<WorkflowManagement />} />
+      <Route path="/admin/workflow-management/workflows" element={<WorkflowManagement />} />
+      <Route path="/admin/workflow-management/runs" element={<WorkflowManagement />} />
+      <Route path="/admin/workflow-management/data" element={<WorkflowManagement />} />
+      <Route path="/admin/workflow-management/templates" element={<WorkflowManagement />} />
+      <Route path="/admin/workflow-management/settings" element={<WorkflowManagement />} />
+      <Route path="/admin/notifications" element={<NotificationManagement />} />
+      <Route path="/admin/notifications/log" element={<AdminNotificationLogs />} />
+      <Route path="/admin/notifications/logs" element={<AdminNotificationLogs />} />
+      <Route path="/admin/notifications/templates" element={<AdminNotificationTemplates />} />
+      <Route path="/admin/notifications/notification-templates" element={<NotificationTemplateManager />} />
+      <Route path="/admin/notifications/channels" element={<NotificationChannelSettings />} />
+      <Route path="/admin/notifications/providers" element={<ProviderSettings />} />
+      <Route path="/admin/email-campaigns" element={<EmailCampaigns />} />
+      <Route path="/admin/email-logs" element={<EmailLogs />} />
+      <Route path="/admin/offices" element={<OfficeManagement />} />
+      <Route path="/admin/office-ip-management" element={<OfficeIPManagement />} />
+      <Route path="/admin/departments" element={<DepartmentManagement />} />
+      <Route path="/admin/modules" element={<ModuleManagement />} />
+      <Route path="/admin/security/password-policy" element={<PasswordPolicySettings />} />
+      <Route path="/admin/security/mfa" element={<MFASettings />} />
+      <Route path="/admin/security/policy" element={<SecurityPolicySettingsPage />} />
+      <Route path="/admin/security/ip-access" element={<IPAccessRulesManagement />} />
+      <Route path="/admin/designations" element={<DesignationManagement />} />
+      <Route path="/admin/designation-hierarchy" element={<DesignationHierarchy />} />
+      <Route path="/admin/role-hierarchy" element={<RoleHierarchy />} />
+      <Route path="/admin/user-notification-preferences" element={<UserNotificationPreferences />} />
+      <Route path="/admin/data-migration" element={<DataMigration />} />
+      <Route path="/admin/release-management" element={<ReleaseManagement />} />
+      <Route path="/admin/users/update-password" element={<UpdateUserPassword />} />
+      <Route path="/admin/module-button-bindings" element={<ModuleButtonBindings />} />
+      <Route path="/admin/api-keys" element={<ApiKeysManagement />} />
       {/* SSC Compliance API Test Console */}
-      <Route path="/admin/api-test-console" element={<ProtectedLayout><ApiTestDashboard /></ProtectedLayout>} />
-      <Route path="/admin/api-test-console/keys" element={<ProtectedLayout><ApiKeysConsole /></ProtectedLayout>} />
-      <Route path="/admin/api-test-console/environments" element={<ProtectedLayout><EnvironmentsConsole /></ProtectedLayout>} />
-      <Route path="/admin/api-test-console/auth-lab" element={<ProtectedLayout><AuthTestLab /></ProtectedLayout>} />
-      <Route path="/admin/api-test-console/endpoints" element={<ProtectedLayout><EndpointExplorer /></ProtectedLayout>} />
-      <Route path="/admin/api-test-console/runner" element={<ProtectedLayout><ComplianceRunner /></ProtectedLayout>} />
-      <Route path="/admin/api-test-console/saved-cases" element={<ProtectedLayout><SavedCasesConsole /></ProtectedLayout>} />
-      <Route path="/admin/api-test-console/suites" element={<ProtectedLayout><SuitesConsole /></ProtectedLayout>} />
-      <Route path="/admin/api-test-console/logs" element={<ProtectedLayout><ExecutionLogs /></ProtectedLayout>} />
-      <Route path="/admin/public-api" element={<ProtectedLayout><PublicApiManagement /></ProtectedLayout>} />
-      <Route path="/admin/external-apis" element={<ProtectedLayout><ExternalApiManagement /></ProtectedLayout>} />
-      <Route path="/external/api-docs" element={<ProtectedLayout><ExternalApiDocs /></ProtectedLayout>} />
-      <Route path="/admin/c3-calculation-config" element={<ProtectedLayout><C3CalculationConfigPage /></ProtectedLayout>} />
-      <Route path="/admin/c3-period-config" element={<ProtectedLayout><C3PeriodConfigPage /></ProtectedLayout>} />
-      <Route path="/admin/c3-configuration" element={<ProtectedLayout><C3ConfigurationPage /></ProtectedLayout>} />
-      <Route path="/admin/global-settings" element={<ProtectedLayout><GlobalSettings /></ProtectedLayout>} />
-      <Route path="/admin/document-configuration" element={<ProtectedLayout><DocumentConfigurationPage /></ProtectedLayout>} />
-      <Route path="/admin/ip-card-configuration" element={<ProtectedLayout><IPCardConfiguration /></ProtectedLayout>} />
-      <Route path="/admin/knowledge-base" element={<ProtectedLayout><KnowledgeBaseAdmin /></ProtectedLayout>} />
+      <Route path="/admin/api-test-console" element={<ApiTestDashboard />} />
+      <Route path="/admin/api-test-console/keys" element={<ApiKeysConsole />} />
+      <Route path="/admin/api-test-console/environments" element={<EnvironmentsConsole />} />
+      <Route path="/admin/api-test-console/auth-lab" element={<AuthTestLab />} />
+      <Route path="/admin/api-test-console/endpoints" element={<EndpointExplorer />} />
+      <Route path="/admin/api-test-console/runner" element={<ComplianceRunner />} />
+      <Route path="/admin/api-test-console/saved-cases" element={<SavedCasesConsole />} />
+      <Route path="/admin/api-test-console/suites" element={<SuitesConsole />} />
+      <Route path="/admin/api-test-console/logs" element={<ExecutionLogs />} />
+      <Route path="/admin/public-api" element={<PublicApiManagement />} />
+      <Route path="/admin/external-apis" element={<ExternalApiManagement />} />
+      <Route path="/external/api-docs" element={<ExternalApiDocs />} />
+      <Route path="/admin/c3-calculation-config" element={<C3CalculationConfigPage />} />
+      <Route path="/admin/c3-period-config" element={<C3PeriodConfigPage />} />
+      <Route path="/admin/c3-configuration" element={<C3ConfigurationPage />} />
+      <Route path="/admin/global-settings" element={<GlobalSettings />} />
+      <Route path="/admin/document-configuration" element={<DocumentConfigurationPage />} />
+      <Route path="/admin/ip-card-configuration" element={<IPCardConfiguration />} />
+      <Route path="/admin/knowledge-base" element={<KnowledgeBaseAdmin />} />
       
       {/* Workflow Engine Routes */}
-      <Route path="/admin/workflows" element={<ProtectedLayout><WorkflowList /></ProtectedLayout>} />
-      <Route path="/admin/workflows/new" element={<ProtectedLayout><WorkflowForm /></ProtectedLayout>} />
-      <Route path="/admin/workflows/:id" element={<ProtectedLayout><WorkflowForm /></ProtectedLayout>} />
-      <Route path="/admin/workflow-triggers" element={<ProtectedLayout><WorkflowTriggers /></ProtectedLayout>} />
-      <Route path="/admin/workflow-logs" element={<ProtectedLayout><WorkflowLogs /></ProtectedLayout>} />
-      <Route path="/admin/workflow-analytics" element={<ProtectedLayout><WorkflowAnalytics /></ProtectedLayout>} />
-      <Route path="/admin/workflow-security" element={<ProtectedLayout><WorkflowSecuritySettings /></ProtectedLayout>} />
-      <Route path="/admin/workflow-secured-approvals" element={<ProtectedLayout><SecuredWorkflowApprovals /></ProtectedLayout>} />
-      <Route path="/admin/workflow-role-assignment" element={<ProtectedLayout><WorkflowRoleAssignment /></ProtectedLayout>} />
-      <Route path="/workflow/my-tasks" element={<ProtectedLayout><MyWorkflowTasks /></ProtectedLayout>} />
+      <Route path="/admin/workflows" element={<WorkflowList />} />
+      <Route path="/admin/workflows/new" element={<WorkflowForm />} />
+      <Route path="/admin/workflows/:id" element={<WorkflowForm />} />
+      <Route path="/admin/workflow-triggers" element={<WorkflowTriggers />} />
+      <Route path="/admin/workflow-logs" element={<WorkflowLogs />} />
+      <Route path="/admin/workflow-analytics" element={<WorkflowAnalytics />} />
+      <Route path="/admin/workflow-security" element={<WorkflowSecuritySettings />} />
+      <Route path="/admin/workflow-secured-approvals" element={<SecuredWorkflowApprovals />} />
+      <Route path="/admin/workflow-role-assignment" element={<WorkflowRoleAssignment />} />
+      <Route path="/workflow/my-tasks" element={<MyWorkflowTasks />} />
       
-      <Route path="/finance/settings/benefit-finance-mapping" element={<ProtectedLayout><BenefitFinanceMapping /></ProtectedLayout>} />
-      <Route path="/nbenefit/config/life-certificate-config" element={<ProtectedLayout><LifeCertificateConfig /></ProtectedLayout>} />
+      <Route path="/finance/settings/benefit-finance-mapping" element={<BenefitFinanceMapping />} />
+      <Route path="/nbenefit/config/life-certificate-config" element={<LifeCertificateConfig />} />
 
       {/* Correspondence / Communication Hub Routes */}
-      <Route path="/correspondence/dashboard" element={<ProtectedLayout><CorrespondenceDashboard /></ProtectedLayout>} />
-      <Route path="/correspondence/incoming" element={<ProtectedLayout><IncomingCommunications /></ProtectedLayout>} />
-      <Route path="/correspondence/outgoing" element={<ProtectedLayout><OutgoingCommunications /></ProtectedLayout>} />
-      <Route path="/correspondence/search" element={<ProtectedLayout><SearchHistory /></ProtectedLayout>} />
-      <Route path="/correspondence/archive" element={<ProtectedLayout><Archive /></ProtectedLayout>} />
+      <Route path="/correspondence/dashboard" element={<CorrespondenceDashboard />} />
+      <Route path="/correspondence/incoming" element={<IncomingCommunications />} />
+      <Route path="/correspondence/outgoing" element={<OutgoingCommunications />} />
+      <Route path="/correspondence/search" element={<SearchHistory />} />
+      <Route path="/correspondence/archive" element={<Archive />} />
 
       {/* Module Templates Routes */}
-      <Route path="/compliance/templates" element={<ProtectedLayout><ModuleTemplates module="Compliance" /></ProtectedLayout>} />
-      <Route path="/benefits/templates" element={<ProtectedLayout><ModuleTemplates module="Benefits" /></ProtectedLayout>} />
-      <Route path="/finance/templates" element={<ProtectedLayout><ModuleTemplates module="Finance" /></ProtectedLayout>} />
-      <Route path="/legal/templates" element={<ProtectedLayout><ModuleTemplates module="Legal" /></ProtectedLayout>} />
-      <Route path="/audit/templates" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><IATemplatesManagement /></Suspense></ProtectedLayout>} />
-      <Route path="/employers/templates" element={<ProtectedLayout><ModuleTemplates module="Employers" /></ProtectedLayout>} />
-      <Route path="/insured-persons/templates" element={<ProtectedLayout><ModuleTemplates module="InsuredPersons" /></ProtectedLayout>} />
+      <Route path="/compliance/templates" element={<ModuleTemplates module="Compliance" />} />
+      <Route path="/benefits/templates" element={<ModuleTemplates module="Benefits" />} />
+      <Route path="/finance/templates" element={<ModuleTemplates module="Finance" />} />
+      <Route path="/legal/templates" element={<ModuleTemplates module="Legal" />} />
+      <Route path="/audit/templates" element={<Suspense fallback={<div>Loading...</div>}><IATemplatesManagement /></Suspense>} />
+      <Route path="/employers/templates" element={<ModuleTemplates module="Employers" />} />
+      <Route path="/insured-persons/templates" element={<ModuleTemplates module="InsuredPersons" />} />
 
       {/* Reports Routes */}
-      <Route path="/reports/claims" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
-      <Route path="/reports/cashier" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
-      <Route path="/reports/employer" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
-      <Route path="/reports/employer-statement" element={<ProtectedLayout><EmployerStatement /></ProtectedLayout>} />
-      <Route path="/reports/persons" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
-      <Route path="/reports/statistics" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
-      <Route path="/reports/financial" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
-      <Route path="/reports/custom" element={<ProtectedLayout><ReportsHub /></ProtectedLayout>} />
+      <Route path="/reports/claims" element={<ReportsHub />} />
+      <Route path="/reports/cashier" element={<ReportsHub />} />
+      <Route path="/reports/employer" element={<ReportsHub />} />
+      <Route path="/reports/employer-statement" element={<EmployerStatement />} />
+      <Route path="/reports/persons" element={<ReportsHub />} />
+      <Route path="/reports/statistics" element={<ReportsHub />} />
+      <Route path="/reports/financial" element={<ReportsHub />} />
+      <Route path="/reports/custom" element={<ReportsHub />} />
 
       {/* BeMA Legacy Redirects - all redirect to Compliance module */}
       <Route path="/bema/workplan" element={<Navigate to="/compliance/field/my-plans" replace />} />
@@ -1547,298 +1545,290 @@ export const AppRoutes = () => {
       <Route path="/bema/admin/logs" element={<Navigate to="/compliance/admin/automation/history" replace />} />
 
       {/* Legal Module Routes - New */}
-      <Route path="/legal/dashboard" element={<ProtectedLayout><LegalDashboard /></ProtectedLayout>} />
-      <Route path="/legal/workbench" element={<ProtectedLayout><LegalWorkbench /></ProtectedLayout>} />
-      <Route path="/legal/cases" element={<ProtectedLayout><CaseTracking /></ProtectedLayout>} />
-      <Route path="/legal/cases/intake" element={<ProtectedLayout><CaseIntake /></ProtectedLayout>} />
-      <Route path="/legal/cases/delinquent" element={<ProtectedLayout><DelinquentCases /></ProtectedLayout>} />
-      <Route path="/legal/hearings" element={<ProtectedLayout><Suspense fallback={<div>Loading...</div>}><LegalHearingCalendar /></Suspense></ProtectedLayout>} />
-      <Route path="/legal/court-orders" element={<ProtectedLayout><CourtOrdersManagement /></ProtectedLayout>} />
-      <Route path="/legal/enforcement" element={<ProtectedLayout><EnforcementActions /></ProtectedLayout>} />
-      <Route path="/legal/payment-plans" element={<ProtectedLayout><LegalPaymentPlans /></ProtectedLayout>} />
-      <Route path="/legal/reports/cases-by-stage" element={<ProtectedLayout><CasesByStageReport /></ProtectedLayout>} />
-      <Route path="/legal/reports/recovery" element={<ProtectedLayout><RecoveryAnalysis /></ProtectedLayout>} />
-      <Route path="/legal/reports/aging" element={<ProtectedLayout><AgingReceivables /></ProtectedLayout>} />
-      <Route path="/legal/reports/costs-fees" element={<ProtectedLayout><CourtCostsFees /></ProtectedLayout>} />
-      <Route path="/legal/reports/performance" element={<ProtectedLayout><PerformanceMetrics /></ProtectedLayout>} />
-      <Route path="/legal/reports/pending-hearings" element={<ProtectedLayout><PendingHearings /></ProtectedLayout>} />
-      <Route path="/legal/settings/courts" element={<ProtectedLayout><CourtsJudges /></ProtectedLayout>} />
-      <Route path="/legal/settings/hearing-types" element={<ProtectedLayout><HearingTypes /></ProtectedLayout>} />
-      <Route path="/legal/settings/statuses" element={<ProtectedLayout><CaseStatuses /></ProtectedLayout>} />
-      <Route path="/legal/settings/workflow" element={<ProtectedLayout><CaseWorkflow /></ProtectedLayout>} />
-      <Route path="/legal/settings/roles" element={<ProtectedLayout><LegalRoles /></ProtectedLayout>} />
-      <Route path="/legal/settings/fee-mappings" element={<ProtectedLayout><FeeMappings /></ProtectedLayout>} />
-      <Route path="/legal/settings/territory" element={<ProtectedLayout><TerritorySettings /></ProtectedLayout>} />
+      <Route path="/legal/dashboard" element={<LegalDashboard />} />
+      <Route path="/legal/workbench" element={<LegalWorkbench />} />
+      <Route path="/legal/cases" element={<CaseTracking />} />
+      <Route path="/legal/cases/intake" element={<CaseIntake />} />
+      <Route path="/legal/cases/delinquent" element={<DelinquentCases />} />
+      <Route path="/legal/hearings" element={<Suspense fallback={<div>Loading...</div>}><LegalHearingCalendar /></Suspense>} />
+      <Route path="/legal/court-orders" element={<CourtOrdersManagement />} />
+      <Route path="/legal/enforcement" element={<EnforcementActions />} />
+      <Route path="/legal/payment-plans" element={<LegalPaymentPlans />} />
+      <Route path="/legal/reports/cases-by-stage" element={<CasesByStageReport />} />
+      <Route path="/legal/reports/recovery" element={<RecoveryAnalysis />} />
+      <Route path="/legal/reports/aging" element={<AgingReceivables />} />
+      <Route path="/legal/reports/costs-fees" element={<CourtCostsFees />} />
+      <Route path="/legal/reports/performance" element={<PerformanceMetrics />} />
+      <Route path="/legal/reports/pending-hearings" element={<PendingHearings />} />
+      <Route path="/legal/settings/courts" element={<CourtsJudges />} />
+      <Route path="/legal/settings/hearing-types" element={<HearingTypes />} />
+      <Route path="/legal/settings/statuses" element={<CaseStatuses />} />
+      <Route path="/legal/settings/workflow" element={<CaseWorkflow />} />
+      <Route path="/legal/settings/roles" element={<LegalRoles />} />
+      <Route path="/legal/settings/fee-mappings" element={<FeeMappings />} />
+      <Route path="/legal/settings/territory" element={<TerritorySettings />} />
       
       {/* Legal Module Routes - Old */}
-      <Route path="/legal" element={<ProtectedLayout><NewLegalModule /></ProtectedLayout>} />
-      <Route path="/legal/case-intake" element={<ProtectedLayout><CaseIntake /></ProtectedLayout>} />
-      <Route path="/legal/cases/intake" element={<ProtectedLayout><CaseIntake /></ProtectedLayout>} />
-      <Route path="/legal/cases/intake/:id" element={<ProtectedLayout><IntakeDetail /></ProtectedLayout>} />
-      <Route path="/legal/case-tracking" element={<ProtectedLayout><CaseTracking /></ProtectedLayout>} />
-      <Route path="/legal/case-detail/:id" element={<ProtectedLayout><CaseDetailView /></ProtectedLayout>} />
-      <Route path="/legal/case-edit/:id" element={<ProtectedLayout><CaseEditView /></ProtectedLayout>} />
-      <Route path="/legal/notices" element={<ProtectedLayout><NoticeGeneration /></ProtectedLayout>} />
-      <Route path="/legal/appeals" element={<ProtectedLayout><AppealSubmission /></ProtectedLayout>} />
-      <Route path="/legal/evidence" element={<ProtectedLayout><LegalEvidenceManagement /></ProtectedLayout>} />
-      <Route path="/legal/admin" element={<ProtectedLayout><LegalAdminConfig /></ProtectedLayout>} />
+      <Route path="/legal" element={<NewLegalModule />} />
+      <Route path="/legal/case-intake" element={<CaseIntake />} />
+      <Route path="/legal/cases/intake" element={<CaseIntake />} />
+      <Route path="/legal/cases/intake/:id" element={<IntakeDetail />} />
+      <Route path="/legal/case-tracking" element={<CaseTracking />} />
+      <Route path="/legal/case-detail/:id" element={<CaseDetailView />} />
+      <Route path="/legal/case-edit/:id" element={<CaseEditView />} />
+      <Route path="/legal/notices" element={<NoticeGeneration />} />
+      <Route path="/legal/appeals" element={<AppealSubmission />} />
+      <Route path="/legal/evidence" element={<LegalEvidenceManagement />} />
+      <Route path="/legal/admin" element={<LegalAdminConfig />} />
 
       {/* LegalFinal Module Routes */}
-      <Route path="/legal-final" element={<ProtectedLayout><LegalFinalDashboard /></ProtectedLayout>} />
-      <Route path="/legal-final/new-case" element={<ProtectedLayout><NewCaseForm /></ProtectedLayout>} />
-      <Route path="/legal-final/cases" element={<ProtectedLayout><LegalCaseManagement /></ProtectedLayout>} />
-      <Route path="/legal-final/cases/:caseId/edit" element={<ProtectedLayout><CaseStatusUpdateForm /></ProtectedLayout>} />
-      <Route path="/legal-final/cases/:caseId/documents" element={<ProtectedLayout><DocumentUploadForm /></ProtectedLayout>} />
-      <Route path="/legal-final/cases/:caseId/hearing" element={<ProtectedLayout><HearingJudgmentForm /></ProtectedLayout>} />
-      <Route path="/legal-final/cases/:caseId/enforcement" element={<ProtectedLayout><EnforcementForm /></ProtectedLayout>} />
-      <Route path="/legal-final/hearings" element={<ProtectedLayout><HearingSchedule /></ProtectedLayout>} />
-      <Route path="/legal-final/enforcement" element={<ProtectedLayout><EnforcementManagement /></ProtectedLayout>} />
-      <Route path="/legal-final/reports" element={<ProtectedLayout><LegalFinalReports /></ProtectedLayout>} />
+      <Route path="/legal-final" element={<LegalFinalDashboard />} />
+      <Route path="/legal-final/new-case" element={<NewCaseForm />} />
+      <Route path="/legal-final/cases" element={<LegalCaseManagement />} />
+      <Route path="/legal-final/cases/:caseId/edit" element={<CaseStatusUpdateForm />} />
+      <Route path="/legal-final/cases/:caseId/documents" element={<DocumentUploadForm />} />
+      <Route path="/legal-final/cases/:caseId/hearing" element={<HearingJudgmentForm />} />
+      <Route path="/legal-final/cases/:caseId/enforcement" element={<EnforcementForm />} />
+      <Route path="/legal-final/hearings" element={<HearingSchedule />} />
+      <Route path="/legal-final/enforcement" element={<EnforcementManagement />} />
+      <Route path="/legal-final/reports" element={<LegalFinalReports />} />
 
       {/* Notification Routes */}
-      <Route path="/notifications/dashboard" element={<ProtectedLayout><NotificationDashboard /></ProtectedLayout>} />
-      <Route path="/notifications/templates" element={<ProtectedLayout><TemplateManagement /></ProtectedLayout>} />
-      <Route path="/notifications/actions" element={<ProtectedLayout><ActionMapping /></ProtectedLayout>} />
-      <Route path="/notifications/delivery" element={<ProtectedLayout><DeliveryManagement /></ProtectedLayout>} />
-      <Route path="/notifications/preferences" element={<ProtectedLayout><UserPreferences /></ProtectedLayout>} />
-      <Route path="/notifications/center" element={<ProtectedLayout><NotificationCenter /></ProtectedLayout>} />
-      <Route path="/notifications/reports" element={<ProtectedLayout><ReportsAnalytics /></ProtectedLayout>} />
-          <Route path="/notifications/admin" element={<ProtectedLayout><Administration /></ProtectedLayout>} />
+      <Route path="/notifications/dashboard" element={<NotificationDashboard />} />
+      <Route path="/notifications/templates" element={<TemplateManagement />} />
+      <Route path="/notifications/actions" element={<ActionMapping />} />
+      <Route path="/notifications/delivery" element={<DeliveryManagement />} />
+      <Route path="/notifications/preferences" element={<UserPreferences />} />
+      <Route path="/notifications/center" element={<NotificationCenter />} />
+      <Route path="/notifications/reports" element={<ReportsAnalytics />} />
+          <Route path="/notifications/admin" element={<Administration />} />
 
           {/* NewBenefit Routes */}
-          <Route path="/newbenefit/dashboard" element={<ProtectedLayout><ContributorDashboard /></ProtectedLayout>} />
-          <Route path="/newbenefit/apply" element={<ProtectedLayout><ApplyForBenefits /></ProtectedLayout>} />
-          <Route path="/newbenefit/apply/:benefitType" element={<ProtectedLayout><BenefitApplicationForm /></ProtectedLayout>} />
-          <Route path="/newbenefit/new-referral" element={<ProtectedLayout><NewReferralForm /></ProtectedLayout>} />
-          <Route path="/newbenefit/new-verification" element={<ProtectedLayout><NewVerificationRequest /></ProtectedLayout>} />
-          <Route path="/newbenefit/verification/:verificationId" element={<ProtectedLayout><EmploymentVerificationDetail /></ProtectedLayout>} />
-          <Route path="/newbenefit/my-claims" element={<ProtectedLayout><MyClaims /></ProtectedLayout>} />
-          <Route path="/newbenefit/reports" element={<ProtectedLayout><ContributorReports /></ProtectedLayout>} />
-          <Route path="/newbenefit/inbox" element={<ProtectedLayout><ContributorInbox /></ProtectedLayout>} />
-          <Route path="/newbenefit/worklists" element={<ProtectedLayout><WorklistsHome /></ProtectedLayout>} />
-          <Route path="/newbenefit/claim-360/:claimId" element={<ProtectedLayout><Claim360View /></ProtectedLayout>} />
-          <Route path="/newbenefit/intake" element={<ProtectedLayout><IntakeConsole /></ProtectedLayout>} />
-          <Route path="/newbenefit/medical-board" element={<ProtectedLayout><MedicalBoardHub /></ProtectedLayout>} />
-          <Route path="/newbenefit/employer-hub" element={<ProtectedLayout><EmployerHub /></ProtectedLayout>} />
-          <Route path="/newbenefit/pension-admin" element={<ProtectedLayout><PensionAdministration /></ProtectedLayout>} />
-          <Route path="/newbenefit/payments" element={<ProtectedLayout><PaymentsModule /></ProtectedLayout>} />
-          <Route path="/newbenefit/communications" element={<ProtectedLayout><LettersCommunications /></ProtectedLayout>} />
-          <Route path="/newbenefit/admin" element={<ProtectedLayout><AdminConfig /></ProtectedLayout>} />
-          <Route path="/newbenefit/auditor" element={<ProtectedLayout><AuditorView /></ProtectedLayout>} />
+          <Route path="/newbenefit/dashboard" element={<ContributorDashboard />} />
+          <Route path="/newbenefit/apply" element={<ApplyForBenefits />} />
+          <Route path="/newbenefit/apply/:benefitType" element={<BenefitApplicationForm />} />
+          <Route path="/newbenefit/new-referral" element={<NewReferralForm />} />
+          <Route path="/newbenefit/new-verification" element={<NewVerificationRequest />} />
+          <Route path="/newbenefit/verification/:verificationId" element={<EmploymentVerificationDetail />} />
+          <Route path="/newbenefit/my-claims" element={<MyClaims />} />
+          <Route path="/newbenefit/reports" element={<ContributorReports />} />
+          <Route path="/newbenefit/inbox" element={<ContributorInbox />} />
+          <Route path="/newbenefit/worklists" element={<WorklistsHome />} />
+          <Route path="/newbenefit/claim-360/:claimId" element={<Claim360View />} />
+          <Route path="/newbenefit/intake" element={<IntakeConsole />} />
+          <Route path="/newbenefit/medical-board" element={<MedicalBoardHub />} />
+          <Route path="/newbenefit/employer-hub" element={<EmployerHub />} />
+          <Route path="/newbenefit/pension-admin" element={<PensionAdministration />} />
+          <Route path="/newbenefit/payments" element={<PaymentsModule />} />
+          <Route path="/newbenefit/communications" element={<LettersCommunications />} />
+          <Route path="/newbenefit/admin" element={<AdminConfig />} />
+          <Route path="/newbenefit/auditor" element={<AuditorView />} />
 
       {/* Benefit Management Module (bn_) */}
-      <Route path="/bn/dashboard" element={<ProtectedLayout><BenefitsDashboard /></ProtectedLayout>} />
-      <Route path="/bn/person-360" element={<ProtectedLayout><BnPerson360 /></ProtectedLayout>} />
-      <Route path="/bn/config/products" element={<ProtectedLayout><BnProductCatalog /></ProtectedLayout>} />
-      <Route path="/bn/config/products/:id" element={<ProtectedLayout><BnProductEditor /></ProtectedLayout>} />
-      <Route path="/bn/claims" element={<ProtectedLayout><BnClaimWorklist /></ProtectedLayout>} />
-      <Route path="/bn/claims/:id" element={<ProtectedLayout><BnClaimWorkbench /></ProtectedLayout>} />
-      <Route path="/bn/claims/:id/legacy" element={<ProtectedLayout><BnClaim360 /></ProtectedLayout>} />
-      <Route path="/bn/claims/:id/determination" element={<ProtectedLayout><BnBenefitDetermination /></ProtectedLayout>} />
-      <Route path="/bn/claims/:id/eligibility" element={<ProtectedLayout><BnEligibilityReview /></ProtectedLayout>} />
-      <Route path="/bn/claims/:id/calculation" element={<ProtectedLayout><BnCalculationWorkspace /></ProtectedLayout>} />
-      <Route path="/bn/claims/:id/recommendation" element={<ProtectedLayout><BnDeterminationRecommendation /></ProtectedLayout>} />
-      <Route path="/bn/engine" element={<ProtectedLayout><BnCalculationEngine /></ProtectedLayout>} />
-      <Route path="/bn/intake/register" element={<ProtectedLayout><BnClaimRegistration /></ProtectedLayout>} />
-      <Route path="/bn/queue" element={<ProtectedLayout><BnClaimQueue /></ProtectedLayout>} />
-      <Route path="/bn/approval" element={<ProtectedLayout><BnApprovalConsole /></ProtectedLayout>} />
-      <Route path="/bn/approval/queue" element={<ProtectedLayout><BnApprovalQueue /></ProtectedLayout>} />
-      <Route path="/bn/approval/workspace/:claimId" element={<ProtectedLayout><BnAdjudicationWorkspace /></ProtectedLayout>} />
-      <Route path="/bn/entitlements" element={<ProtectedLayout><BnEntitlementManagement /></ProtectedLayout>} />
-      <Route path="/bn/payables" element={<ProtectedLayout><BnPayablesQueue /></ProtectedLayout>} />
-      <Route path="/bn/schedules" element={<ProtectedLayout><BnPaymentSchedule /></ProtectedLayout>} />
-      <Route path="/bn/batches" element={<ProtectedLayout><BnBatchOperations /></ProtectedLayout>} />
-      <Route path="/bn/issue" element={<ProtectedLayout><BnPaymentIssue /></ProtectedLayout>} />
-      <Route path="/bn/post-issue" element={<ProtectedLayout><BnPostIssueReview /></ProtectedLayout>} />
-      <Route path="/bn/history" element={<ProtectedLayout><BnHistoricalInquiry /></ProtectedLayout>} />
-      <Route path="/bn/exceptions" element={<ProtectedLayout><BnPaymentExceptions /></ProtectedLayout>} />
-      <Route path="/bn/post-issue-enhanced" element={<ProtectedLayout><BnPostIssueEnhanced /></ProtectedLayout>} />
-      <Route path="/bn/worklist" element={<ProtectedLayout><BnClaimWorklistEnhanced /></ProtectedLayout>} />
-      <Route path="/bn/payment-history" element={<ProtectedLayout><BnPaymentHistoryInquiry /></ProtectedLayout>} />
-      <Route path="/bn/audit-history" element={<ProtectedLayout><BnAuditDecisionHistory /></ProtectedLayout>} />
-      <Route path="/bn/life-certificates" element={<ProtectedLayout><BnLifeCertificateManagement /></ProtectedLayout>} />
-      <Route path="/bn/medical-reviews" element={<ProtectedLayout><BnMedicalReviewScheduler /></ProtectedLayout>} />
-      <Route path="/bn/overpayments" element={<ProtectedLayout><BnOverpaymentRecovery /></ProtectedLayout>} />
-      <Route path="/bn/award-suspension" element={<ProtectedLayout><BnAwardSuspensionConsole /></ProtectedLayout>} />
-      <Route path="/bn/survivors" element={<ProtectedLayout><BnSurvivorsBenefitProcessing /></ProtectedLayout>} />
-      <Route path="/bn/config/reason-codes" element={<ProtectedLayout><BnReasonCodes /></ProtectedLayout>} />
-      <Route path="/bn/config/transitions" element={<ProtectedLayout><BnTransitionMatrix /></ProtectedLayout>} />
-      <Route path="/bn/config/workbaskets" element={<ProtectedLayout><BnWorkbasketConfig /></ProtectedLayout>} />
-      <Route path="/bn/config/escalation" element={<ProtectedLayout><BnEscalationConfig /></ProtectedLayout>} />
-      <Route path="/bn/config/service-doc-types" element={<ProtectedLayout><BnServiceDocTypes /></ProtectedLayout>} />
-      <Route path="/bn/config/country" element={<ProtectedLayout><BnCountryPackPage /></ProtectedLayout>} />
-      <Route path="/bn/config/country/id-rules" element={<ProtectedLayout><BnCountryIdRules /></ProtectedLayout>} />
-      <Route path="/bn/config/country/address-model" element={<ProtectedLayout><BnCountryAddressModel /></ProtectedLayout>} />
-      <Route path="/bn/config/country/participant-types" element={<ProtectedLayout><BnCountryParticipantTypes /></ProtectedLayout>} />
-      <Route path="/bn/config/country/payment-config" element={<ProtectedLayout><BnCountryPaymentConfig /></ProtectedLayout>} />
-      <Route path="/bn/config/country/legal-refs" element={<ProtectedLayout><BnCountryLegalRefs /></ProtectedLayout>} />
-      <Route path="/bn/config/rules" element={<ProtectedLayout><BnRuleConfiguration /></ProtectedLayout>} />
-      <Route path="/bn/config/rules-admin" element={<ProtectedLayout><BnRulesAdministration /></ProtectedLayout>} />
-      <Route path="/bn/config/formulas" element={<ProtectedLayout><BnFormulaConfiguration /></ProtectedLayout>} />
-      <Route path="/bn/config/document-setup" element={<ProtectedLayout><BnDocumentSetup /></ProtectedLayout>} />
-      <Route path="/bn/config/screen-setup" element={<ProtectedLayout><BnScreenMetadataSetup /></ProtectedLayout>} />
+      <Route path="/bn/dashboard" element={<BenefitsDashboard />} />
+      <Route path="/bn/person-360" element={<BnPerson360 />} />
+      <Route path="/bn/config/products" element={<BnProductCatalog />} />
+      <Route path="/bn/config/products/:id" element={<BnProductEditor />} />
+      <Route path="/bn/claims" element={<BnClaimWorklist />} />
+      <Route path="/bn/claims/:id" element={<BnClaimWorkbench />} />
+      <Route path="/bn/claims/:id/legacy" element={<BnClaim360 />} />
+      <Route path="/bn/claims/:id/determination" element={<BnBenefitDetermination />} />
+      <Route path="/bn/claims/:id/eligibility" element={<BnEligibilityReview />} />
+      <Route path="/bn/claims/:id/calculation" element={<BnCalculationWorkspace />} />
+      <Route path="/bn/claims/:id/recommendation" element={<BnDeterminationRecommendation />} />
+      <Route path="/bn/engine" element={<BnCalculationEngine />} />
+      <Route path="/bn/intake/register" element={<BnClaimRegistration />} />
+      <Route path="/bn/queue" element={<BnClaimQueue />} />
+      <Route path="/bn/approval" element={<BnApprovalConsole />} />
+      <Route path="/bn/approval/queue" element={<BnApprovalQueue />} />
+      <Route path="/bn/approval/workspace/:claimId" element={<BnAdjudicationWorkspace />} />
+      <Route path="/bn/entitlements" element={<BnEntitlementManagement />} />
+      <Route path="/bn/payables" element={<BnPayablesQueue />} />
+      <Route path="/bn/schedules" element={<BnPaymentSchedule />} />
+      <Route path="/bn/batches" element={<BnBatchOperations />} />
+      <Route path="/bn/issue" element={<BnPaymentIssue />} />
+      <Route path="/bn/post-issue" element={<BnPostIssueReview />} />
+      <Route path="/bn/history" element={<BnHistoricalInquiry />} />
+      <Route path="/bn/exceptions" element={<BnPaymentExceptions />} />
+      <Route path="/bn/post-issue-enhanced" element={<BnPostIssueEnhanced />} />
+      <Route path="/bn/worklist" element={<BnClaimWorklistEnhanced />} />
+      <Route path="/bn/payment-history" element={<BnPaymentHistoryInquiry />} />
+      <Route path="/bn/audit-history" element={<BnAuditDecisionHistory />} />
+      <Route path="/bn/life-certificates" element={<BnLifeCertificateManagement />} />
+      <Route path="/bn/medical-reviews" element={<BnMedicalReviewScheduler />} />
+      <Route path="/bn/overpayments" element={<BnOverpaymentRecovery />} />
+      <Route path="/bn/award-suspension" element={<BnAwardSuspensionConsole />} />
+      <Route path="/bn/survivors" element={<BnSurvivorsBenefitProcessing />} />
+      <Route path="/bn/config/reason-codes" element={<BnReasonCodes />} />
+      <Route path="/bn/config/transitions" element={<BnTransitionMatrix />} />
+      <Route path="/bn/config/workbaskets" element={<BnWorkbasketConfig />} />
+      <Route path="/bn/config/escalation" element={<BnEscalationConfig />} />
+      <Route path="/bn/config/service-doc-types" element={<BnServiceDocTypes />} />
+      <Route path="/bn/config/country" element={<BnCountryPackPage />} />
+      <Route path="/bn/config/country/id-rules" element={<BnCountryIdRules />} />
+      <Route path="/bn/config/country/address-model" element={<BnCountryAddressModel />} />
+      <Route path="/bn/config/country/participant-types" element={<BnCountryParticipantTypes />} />
+      <Route path="/bn/config/country/payment-config" element={<BnCountryPaymentConfig />} />
+      <Route path="/bn/config/country/legal-refs" element={<BnCountryLegalRefs />} />
+      <Route path="/bn/config/rules" element={<BnRuleConfiguration />} />
+      <Route path="/bn/config/rules-admin" element={<BnRulesAdministration />} />
+      <Route path="/bn/config/formulas" element={<BnFormulaConfiguration />} />
+      <Route path="/bn/config/document-setup" element={<BnDocumentSetup />} />
+      <Route path="/bn/config/screen-setup" element={<BnScreenMetadataSetup />} />
 
       {/* Medical Benefit Setup */}
-      <Route path="/bn/config/medical" element={<ProtectedLayout><BnMedicalSetupHome /></ProtectedLayout>} />
-      <Route path="/bn/config/medical/procedures" element={<ProtectedLayout><BnMedicalProceduresCatalog /></ProtectedLayout>} />
-      <Route path="/bn/config/medical/facility-availability" element={<ProtectedLayout><BnFacilityAvailabilityMatrix /></ProtectedLayout>} />
-      <Route path="/bn/config/medical/referral-rules" element={<ProtectedLayout><BnReferralRulesPage /></ProtectedLayout>} />
-      <Route path="/bn/config/medical/reimbursement-limits" element={<ProtectedLayout><BnReimbursementLimitsPage /></ProtectedLayout>} />
-      <Route path="/bn/config/medical/expense-types" element={<ProtectedLayout><BnExpenseTypeConfiguration /></ProtectedLayout>} />
-      <Route path="/bn/config/medical/review-rules" element={<ProtectedLayout><BnMedicalReviewRulesPage /></ProtectedLayout>} />
-      <Route path="/bn/config/medical/documents" element={<ProtectedLayout><BnMedicalDocumentsPage /></ProtectedLayout>} />
+      <Route path="/bn/config/medical" element={<BnMedicalSetupHome />} />
+      <Route path="/bn/config/medical/procedures" element={<BnMedicalProceduresCatalog />} />
+      <Route path="/bn/config/medical/facility-availability" element={<BnFacilityAvailabilityMatrix />} />
+      <Route path="/bn/config/medical/referral-rules" element={<BnReferralRulesPage />} />
+      <Route path="/bn/config/medical/reimbursement-limits" element={<BnReimbursementLimitsPage />} />
+      <Route path="/bn/config/medical/expense-types" element={<BnExpenseTypeConfiguration />} />
+      <Route path="/bn/config/medical/review-rules" element={<BnMedicalReviewRulesPage />} />
+      <Route path="/bn/config/medical/documents" element={<BnMedicalDocumentsPage />} />
 
       {/* Benefit Simulation Engine */}
-      <Route path="/bn/simulation" element={<ProtectedLayout><BnSimulationDashboard /></ProtectedLayout>} />
-      <Route path="/bn/simulation/new" element={<ProtectedLayout><BnScenarioBuilder /></ProtectedLayout>} />
-      <Route path="/bn/simulation/edit/:id" element={<ProtectedLayout><BnScenarioBuilder /></ProtectedLayout>} />
-      <Route path="/bn/simulation/:id" element={<ProtectedLayout><BnRunSimulation /></ProtectedLayout>} />
-      <Route path="/bn/simulation/:id/run/:runId" element={<ProtectedLayout><BnSimulationResult /></ProtectedLayout>} />
+      <Route path="/bn/simulation" element={<BnSimulationDashboard />} />
+      <Route path="/bn/simulation/new" element={<BnScenarioBuilder />} />
+      <Route path="/bn/simulation/edit/:id" element={<BnScenarioBuilder />} />
+      <Route path="/bn/simulation/:id" element={<BnRunSimulation />} />
+      <Route path="/bn/simulation/:id/run/:runId" element={<BnSimulationResult />} />
 
 
       {/* Benefit Application Form */}
       <Route path="/nbenefit/application/:benefitType" element={<BenefitApplicationFormPage />} />
       
       {/* Claim Approval */}
-      <Route path="/nbenefit/claim-approval" element={<ProtectedLayout><ClaimApprovalEnhanced /></ProtectedLayout>} />
+      <Route path="/nbenefit/claim-approval" element={<ClaimApprovalEnhanced />} />
       
       {/* Benefit Rules Configuration */}
-      <Route path="/nbenefit/config/rules" element={<ProtectedLayout><BenefitRulesList /></ProtectedLayout>} />
-      <Route path="/nbenefit/config/rules/:id" element={<ProtectedLayout><BenefitRuleEditor /></ProtectedLayout>} />
-      <Route path="/nbenefit/config/rules/:id/edit" element={<ProtectedLayout><BenefitRuleEditor /></ProtectedLayout>} />
+      <Route path="/nbenefit/config/rules" element={<BenefitRulesList />} />
+      <Route path="/nbenefit/config/rules/:id" element={<BenefitRuleEditor />} />
+      <Route path="/nbenefit/config/rules/:id/edit" element={<BenefitRuleEditor />} />
       
       {/* Short-Term Benefits */}
-      <Route path="/nbenefit/short-term/sickness/*" element={<ProtectedLayout><SicknessBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/short-term/employment-injury/*" element={<ProtectedLayout><EmploymentInjuryBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/short-term/maternity/*" element={<ProtectedLayout><MaternityBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/short-term/funeral-grant/*" element={<ProtectedLayout><FuneralGrantBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/short-term/sickness/*" element={<SicknessBenefit />} />
+      <Route path="/nbenefit/short-term/employment-injury/*" element={<EmploymentInjuryBenefit />} />
+      <Route path="/nbenefit/short-term/maternity/*" element={<MaternityBenefit />} />
+      <Route path="/nbenefit/short-term/funeral-grant/*" element={<FuneralGrantBenefit />} />
       
       {/* Long-Term Benefits */}
-      <Route path="/nbenefit/long-term/age-benefit/*" element={<ProtectedLayout><AgeBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/long-term/invalidity/*" element={<ProtectedLayout><InvalidityBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/long-term/assistance/*" element={<ProtectedLayout><AssistanceBenefit /></ProtectedLayout>} />
-      <Route path="/nbenefit/long-term/survivors/*" element={<ProtectedLayout><SurvivorsBenefit /></ProtectedLayout>} />
+      <Route path="/nbenefit/long-term/age-benefit/*" element={<AgeBenefit />} />
+      <Route path="/nbenefit/long-term/invalidity/*" element={<InvalidityBenefit />} />
+      <Route path="/nbenefit/long-term/assistance/*" element={<AssistanceBenefit />} />
+      <Route path="/nbenefit/long-term/survivors/*" element={<SurvivorsBenefit />} />
       
       {/* Non-Contributory Pensions */}
-      <Route path="/nbenefit/non-contributory/assistance-pension/*" element={<ProtectedLayout><AssistancePension /></ProtectedLayout>} />
-      <Route path="/nbenefit/non-contributory/invalidity-assistance/*" element={<ProtectedLayout><InvalidityAssistance /></ProtectedLayout>} />
+      <Route path="/nbenefit/non-contributory/assistance-pension/*" element={<AssistancePension />} />
+      <Route path="/nbenefit/non-contributory/invalidity-assistance/*" element={<InvalidityAssistance />} />
       
       {/* Shared Config & Tools */}
-      <Route path="/nbenefit/shared/common-eligibility-rules" element={<ProtectedLayout><CommonEligibilityRules /></ProtectedLayout>} />
-      <Route path="/nbenefit/shared/calculation-engines" element={<ProtectedLayout><CalculationEngines /></ProtectedLayout>} />
-      <Route path="/nbenefit/config/medical-rules" element={<ProtectedLayout><MedicalRulesConfig /></ProtectedLayout>} />
-      <Route path="/nbenefit/long-term/registry" element={<ProtectedLayout><BeneficiaryRegistry /></ProtectedLayout>} />
-      <Route path="/nbenefit/long-term/beneficiary/:id" element={<ProtectedLayout><BeneficiaryDetail /></ProtectedLayout>} />
-      <Route path="/nbenefit/long-term/life-certificates" element={<ProtectedLayout><LifeCertificateManagement /></ProtectedLayout>} />
-      <Route path="/nbenefit/shared/document-templates" element={<ProtectedLayout><DocumentTemplates /></ProtectedLayout>} />
-      <Route path="/nbenefit/shared/workflows" element={<ProtectedLayout><BenefitWorkflows /></ProtectedLayout>} />
-      <Route path="/nbenefit/shared/registry-search" element={<ProtectedLayout><RegistrySearch /></ProtectedLayout>} />
+      <Route path="/nbenefit/shared/common-eligibility-rules" element={<CommonEligibilityRules />} />
+      <Route path="/nbenefit/shared/calculation-engines" element={<CalculationEngines />} />
+      <Route path="/nbenefit/config/medical-rules" element={<MedicalRulesConfig />} />
+      <Route path="/nbenefit/long-term/registry" element={<BeneficiaryRegistry />} />
+      <Route path="/nbenefit/long-term/beneficiary/:id" element={<BeneficiaryDetail />} />
+      <Route path="/nbenefit/long-term/life-certificates" element={<LifeCertificateManagement />} />
+      <Route path="/nbenefit/shared/document-templates" element={<DocumentTemplates />} />
+      <Route path="/nbenefit/shared/workflows" element={<BenefitWorkflows />} />
+      <Route path="/nbenefit/shared/registry-search" element={<RegistrySearch />} />
 
       {/* Contribution Payments Module */}
-      <Route path="/cashier/payment-data-entry" element={<ProtectedLayout><PaymentDataEntry /></ProtectedLayout>} />
-      <Route path="/cashier/payment-historical-entry" element={<ProtectedLayout><PaymentHistoricalEntry /></ProtectedLayout>} />
-      <Route path="/cashier/payment-history-mgmt" element={<ProtectedLayout><PaymentHistoryManagement /></ProtectedLayout>} />
-      <Route path="/cashier/transfer-payments" element={<ProtectedLayout><TransferPayments /></ProtectedLayout>} />
-      <Route path="/cashier/payment-history-report" element={<ProtectedLayout><PaymentHistoryReport /></ProtectedLayout>} />
-      <Route path="/cashier/vc-payment-update" element={<ProtectedLayout><VCPaymentUpdate /></ProtectedLayout>} />
+      <Route path="/cashier/payment-data-entry" element={<PaymentDataEntry />} />
+      <Route path="/cashier/payment-historical-entry" element={<PaymentHistoricalEntry />} />
+      <Route path="/cashier/payment-history-mgmt" element={<PaymentHistoryManagement />} />
+      <Route path="/cashier/transfer-payments" element={<TransferPayments />} />
+      <Route path="/cashier/payment-history-report" element={<PaymentHistoryReport />} />
+      <Route path="/cashier/vc-payment-update" element={<VCPaymentUpdate />} />
 
       {/* Cashier & Payments Routes */}
       {/* Traditional Payment Processing */}
-      <Route path="/cashier/misc-payments" element={<ProtectedLayout><MiscellaneousPayments /></ProtectedLayout>} />
-      <Route path="/cashier/c3-payments" element={<ProtectedLayout><C3Payments /></ProtectedLayout>} />
+      <Route path="/cashier/misc-payments" element={<MiscellaneousPayments />} />
+      <Route path="/cashier/c3-payments" element={<C3Payments />} />
       
       {/* Accounts Payable & Benefit Payments */}
-      <Route path="/finance/accounts-payable/pending" element={<ProtectedLayout><APPendingPayables /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/create-batch" element={<ProtectedLayout><APCreateBatch /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/batches" element={<ProtectedLayout><APBatchList /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/batch/:batchId" element={<ProtectedLayout><APBatchDetail /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/exceptions/:batchId" element={<ProtectedLayout><APVerificationExceptions /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/accounts-verification" element={<ProtectedLayout><APAccountsVerification /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/benefits-verification" element={<ProtectedLayout><APBenefitsVerification /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/check-printing" element={<ProtectedLayout><APCheckPrinting /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/dd-generation" element={<ProtectedLayout><APDirectDepositGeneration /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/posting-history" element={<ProtectedLayout><APPostingHistory /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/corrections" element={<ProtectedLayout><APCorrections /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/reports" element={<ProtectedLayout><APReports /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/pay-runs" element={<ProtectedLayout><PayRunList /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/pay-runs/create" element={<ProtectedLayout><CreatePayRun /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/generate-payments" element={<ProtectedLayout><GeneratePayments /></ProtectedLayout>} />
-      <Route path="/finance/accounts-payable/payment-inquiry" element={<ProtectedLayout><PaymentInquiry /></ProtectedLayout>} />
+      <Route path="/finance/accounts-payable/pending" element={<APPendingPayables />} />
+      <Route path="/finance/accounts-payable/create-batch" element={<APCreateBatch />} />
+      <Route path="/finance/accounts-payable/batches" element={<APBatchList />} />
+      <Route path="/finance/accounts-payable/batch/:batchId" element={<APBatchDetail />} />
+      <Route path="/finance/accounts-payable/exceptions/:batchId" element={<APVerificationExceptions />} />
+      <Route path="/finance/accounts-payable/accounts-verification" element={<APAccountsVerification />} />
+      <Route path="/finance/accounts-payable/benefits-verification" element={<APBenefitsVerification />} />
+      <Route path="/finance/accounts-payable/check-printing" element={<APCheckPrinting />} />
+      <Route path="/finance/accounts-payable/dd-generation" element={<APDirectDepositGeneration />} />
+      <Route path="/finance/accounts-payable/posting-history" element={<APPostingHistory />} />
+      <Route path="/finance/accounts-payable/corrections" element={<APCorrections />} />
+      <Route path="/finance/accounts-payable/reports" element={<APReports />} />
+      <Route path="/finance/accounts-payable/pay-runs" element={<PayRunList />} />
+      <Route path="/finance/accounts-payable/pay-runs/create" element={<CreatePayRun />} />
+      <Route path="/finance/accounts-payable/generate-payments" element={<GeneratePayments />} />
+      <Route path="/finance/accounts-payable/payment-inquiry" element={<PaymentInquiry />} />
       
       {/* Central Payment Arrangements */}
-      <Route path="/finance/arrangements" element={<ProtectedLayout><PaymentArrangementsPage /></ProtectedLayout>} />
-      <Route path="/finance/arrangements/:id" element={<ProtectedLayout><ArrangementDetail /></ProtectedLayout>} />
+      <Route path="/finance/arrangements" element={<PaymentArrangementsPage />} />
+      <Route path="/finance/arrangements/:id" element={<ArrangementDetail />} />
       
-      <Route path="/cashier/eft-entry" element={<ProtectedLayout><EFTEntry /></ProtectedLayout>} />
-      <Route path="/cashier/cash-details" element={<ProtectedLayout><CashDetails /></ProtectedLayout>} />
-      <Route path="/cashier/funds-transfer" element={<ProtectedLayout><FundsTransfer /></ProtectedLayout>} />
-      <Route path="/cashier/check-management" element={<ProtectedLayout><CheckManagement /></ProtectedLayout>} />
-      <Route path="/cashier/receipt" element={<ProtectedLayout><Receipt /></ProtectedLayout>} />
+      <Route path="/cashier/eft-entry" element={<EFTEntry />} />
+      <Route path="/cashier/cash-details" element={<CashDetails />} />
+      <Route path="/cashier/funds-transfer" element={<FundsTransfer />} />
+      <Route path="/cashier/check-management" element={<CheckManagement />} />
+      <Route path="/cashier/receipt" element={<Receipt />} />
       
       {/* Invoice-Based Payment Processing */}
-      <Route path="/cashier/create-invoice" element={<ProtectedLayout><CreateInvoice /></ProtectedLayout>} />
-      <Route path="/cashier/search-pay-invoices" element={<ProtectedLayout><SearchPayInvoices /></ProtectedLayout>} />
-      <Route path="/cashier/daily-invoice-report" element={<ProtectedLayout><DailyInvoiceReport /></ProtectedLayout>} />
+      <Route path="/cashier/create-invoice" element={<CreateInvoice />} />
+      <Route path="/cashier/search-pay-invoices" element={<SearchPayInvoices />} />
+      <Route path="/cashier/daily-invoice-report" element={<DailyInvoiceReport />} />
       
       {/* Day-End and Management */}
-      <Route path="/cashier/batch-closing" element={<ProtectedLayout><BatchClosing /></ProtectedLayout>} />
-      <Route path="/cashier/card-machine-change-requests" element={<ProtectedLayout><CardMachineChangeRequests /></ProtectedLayout>} />
-      <Route path="/cashier/batch-management" element={<ProtectedLayout><CashierBatchManagement /></ProtectedLayout>} />
-      <Route path="/cashier/payment-module-config" element={<ProtectedLayout><PaymentModuleConfig /></ProtectedLayout>} />
-      <Route path="/cashier/card-machines" element={<ProtectedLayout><PaymentModuleConfig /></ProtectedLayout>} />
-      <Route path="/cashier/head-cashier-office-assignment" element={<ProtectedLayout><HeadCashierOfficeAssignment /></ProtectedLayout>} />
-      <Route path="/cashier/head-cashier-assignment" element={<ProtectedLayout><HeadCashierAssignment /></ProtectedLayout>} />
-      <Route path="/cashier/gl-posting" element={<ProtectedLayout><GLPostingSummary /></ProtectedLayout>} />
-      <Route path="/cashier/analytics" element={<ProtectedLayout><PaymentAnalytics /></ProtectedLayout>} />
-      <Route path="/cashier/reports" element={<ProtectedLayout><CashierReports /></ProtectedLayout>} />
+      <Route path="/cashier/batch-closing" element={<BatchClosing />} />
+      <Route path="/cashier/card-machine-change-requests" element={<CardMachineChangeRequests />} />
+      <Route path="/cashier/batch-management" element={<CashierBatchManagement />} />
+      <Route path="/cashier/payment-module-config" element={<PaymentModuleConfig />} />
+      <Route path="/cashier/card-machines" element={<PaymentModuleConfig />} />
+      <Route path="/cashier/head-cashier-office-assignment" element={<HeadCashierOfficeAssignment />} />
+      <Route path="/cashier/head-cashier-assignment" element={<HeadCashierAssignment />} />
+      <Route path="/cashier/gl-posting" element={<GLPostingSummary />} />
+      <Route path="/cashier/analytics" element={<PaymentAnalytics />} />
+      <Route path="/cashier/reports" element={<CashierReports />} />
       
       {/* Sage Integration Routes */}
-      <Route path="/cashier/chart-accounts-mapping" element={<ProtectedLayout><ChartAccountsMapping /></ProtectedLayout>} />
-      <Route path="/cashier/payment-types-mapping" element={<ProtectedLayout><PaymentTypesMapping /></ProtectedLayout>} />
-      <Route path="/cashier/sage-sync" element={<ProtectedLayout><SageSynchronization /></ProtectedLayout>} />
+      <Route path="/cashier/chart-accounts-mapping" element={<ChartAccountsMapping />} />
+      <Route path="/cashier/payment-types-mapping" element={<PaymentTypesMapping />} />
+      <Route path="/cashier/sage-sync" element={<SageSynchronization />} />
       
       {/* Bank Account Mapping Routes */}
-      <Route path="/cashier/current-accounts" element={<ProtectedLayout><CurrentAccountsSetup /></ProtectedLayout>} />
-      <Route path="/cashier/reconciliation-accounts" element={<ProtectedLayout><BankReconciliationAccounts /></ProtectedLayout>} />
+      <Route path="/cashier/current-accounts" element={<CurrentAccountsSetup />} />
+      <Route path="/cashier/reconciliation-accounts" element={<BankReconciliationAccounts />} />
       
       {/* Collections Routes */}
-      <Route path="/cashier/contribution-receipts" element={<ProtectedLayout><ContributionReceipts /></ProtectedLayout>} />
-      <Route path="/cashier/rent-receipts" element={<ProtectedLayout><RentReceipts /></ProtectedLayout>} />
-      <Route path="/cashier/loan-receipts" element={<ProtectedLayout><LoanReceipts /></ProtectedLayout>} />
-      <Route path="/cashier/service-receipts" element={<ProtectedLayout><ServiceReceipts /></ProtectedLayout>} />
+      <Route path="/cashier/contribution-receipts" element={<ContributionReceipts />} />
+      <Route path="/cashier/rent-receipts" element={<RentReceipts />} />
+      <Route path="/cashier/loan-receipts" element={<LoanReceipts />} />
+      <Route path="/cashier/service-receipts" element={<ServiceReceipts />} />
 
       {/* Legal Module Routes - SSB Legal */}
       <Route path="/legal/auth" element={<Suspense fallback={<div>Loading...</div>}><LegalAuth /></Suspense>} />
-      <Route path="/legal/dashboard" element={<ProtectedLayout><SSBLegalDashboard /></ProtectedLayout>} />
-      <Route path="/legal/cases" element={<ProtectedLayout><SSBCaseListPage /></ProtectedLayout>} />
-      <Route path="/legal/cases/new" element={<ProtectedLayout><SSBCaseIntake /></ProtectedLayout>} />
-      <Route path="/legal/cases/:id" element={<ProtectedLayout><SSBCaseViewPage /></ProtectedLayout>} />
-      <Route path="/legal/cases/:id/edit" element={<ProtectedLayout><SSBCaseIntake /></ProtectedLayout>} />
+      <Route path="/legal/dashboard" element={<SSBLegalDashboard />} />
+      <Route path="/legal/cases" element={<SSBCaseListPage />} />
+      <Route path="/legal/cases/new" element={<SSBCaseIntake />} />
+      <Route path="/legal/cases/:id" element={<SSBCaseViewPage />} />
+      <Route path="/legal/cases/:id/edit" element={<SSBCaseIntake />} />
       <Route path="/legal/hearings" element={
-        <ProtectedLayout>
           <Suspense fallback={<div>Loading...</div>}>
             <LegalHearingCalendar />
           </Suspense>
-        </ProtectedLayout>
       } />
       <Route path="/legal/orders" element={
-        <ProtectedLayout>
           <Suspense fallback={<div>Loading...</div>}>
             <LegalOrderRegistry />
           </Suspense>
-        </ProtectedLayout>
       } />
       <Route path="/legal/documents" element={
-        <ProtectedLayout>
           <Suspense fallback={<div>Loading...</div>}>
             <LegalDocumentCenter />
           </Suspense>
-        </ProtectedLayout>
       } />
       <Route path="/legal/reports" element={
-        <ProtectedLayout>
           <SSBLegalReports />
-        </ProtectedLayout>
       } />
 
       {/* BeMA Legacy Redirects */}
@@ -1852,197 +1842,199 @@ export const AppRoutes = () => {
       <Route path="/bema/zones" element={<Navigate to="/compliance/admin/geography/zones" replace />} />
 
       {/* Finance Module */}
-      <Route path="/finance/dashboard" element={<ProtectedLayout><FinanceDashboard /></ProtectedLayout>} />
-      <Route path="/finance/batch-management" element={<ProtectedLayout><BatchManagement /></ProtectedLayout>} />
-      <Route path="/finance/payment-entry" element={<ProtectedLayout><PaymentEntry /></ProtectedLayout>} />
-      <Route path="/finance/receipt-search" element={<ProtectedLayout><ReceiptSearch /></ProtectedLayout>} />
-      <Route path="/finance/invoices" element={<ProtectedLayout><InvoiceManagement /></ProtectedLayout>} />
-      <Route path="/finance/gl-export" element={<ProtectedLayout><GLExport /></ProtectedLayout>} />
-      <Route path="/finance/daily-reports" element={<ProtectedLayout><DailyReports /></ProtectedLayout>} />
-      <Route path="/finance/reversals" element={<ProtectedLayout><ReversalsAndPenalties /></ProtectedLayout>} />
-      <Route path="/finance/admin-config" element={<ProtectedLayout><AdminConfiguration /></ProtectedLayout>} />
-      <Route path="/finance/user-management" element={<ProtectedLayout><FinanceUserManagement /></ProtectedLayout>} />
+      <Route path="/finance/dashboard" element={<FinanceDashboard />} />
+      <Route path="/finance/batch-management" element={<BatchManagement />} />
+      <Route path="/finance/payment-entry" element={<PaymentEntry />} />
+      <Route path="/finance/receipt-search" element={<ReceiptSearch />} />
+      <Route path="/finance/invoices" element={<InvoiceManagement />} />
+      <Route path="/finance/gl-export" element={<GLExport />} />
+      <Route path="/finance/daily-reports" element={<DailyReports />} />
+      <Route path="/finance/reversals" element={<ReversalsAndPenalties />} />
+      <Route path="/finance/admin-config" element={<AdminConfiguration />} />
+      <Route path="/finance/user-management" element={<FinanceUserManagement />} />
 
       {/* Test Routes */}
-      <Route path="/test/data-entry" element={<ProtectedLayout><TestDataEntry /></ProtectedLayout>} />
+      <Route path="/test/data-entry" element={<TestDataEntry />} />
 
       {/* Foundation Components Demo */}
       <Route path="/components-demo" element={<FoundationComponentsDemo />} />
 
       {/* Report Routes - Insured Persons */}
-      <Route path="/person/reports/summary" element={<ProtectedLayout><InsuredPersonsSummaryReport /></ProtectedLayout>} />
-      <Route path="/person/reports/coverage-by-age" element={<ProtectedLayout><CoverageByAgeReport /></ProtectedLayout>} />
-      <Route path="/person/reports/contribution-history" element={<ProtectedLayout><ContributionHistoryReport /></ProtectedLayout>} />
+      <Route path="/person/reports/summary" element={<InsuredPersonsSummaryReport />} />
+      <Route path="/person/reports/coverage-by-age" element={<CoverageByAgeReport />} />
+      <Route path="/person/reports/contribution-history" element={<ContributionHistoryReport />} />
       
       {/* Report Routes - Employers */}
-      <Route path="/employers/reports/registered-summary" element={<ProtectedLayout><RegisteredSummaryReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/active-inactive" element={<ProtectedLayout><ActiveInactiveReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/contribution-compliance" element={<ProtectedLayout><ContributionComplianceReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/non-paying-3-months" element={<ProtectedLayout><NonPaying3MonthsReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/non-paying-6-months" element={<ProtectedLayout><NonPaying6MonthsReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/non-paying-9-months" element={<ProtectedLayout><NonPaying9MonthsReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/top-missing-c3" element={<ProtectedLayout><TopMissingC3Report /></ProtectedLayout>} />
-      <Route path="/employers/reports/missing-c3-per-zone" element={<ProtectedLayout><MissingC3PerZoneReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/c3-without-payment" element={<ProtectedLayout><C3WithoutPaymentReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/no-payment-per-zone" element={<ProtectedLayout><NoPaymentPerZoneReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/employee-turnover" element={<ProtectedLayout><EmployeeTurnoverReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/by-employee-count" element={<ProtectedLayout><ByEmployeeCountReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/by-monthly-contributions" element={<ProtectedLayout><ByMonthlyContributionsReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/by-arrears" element={<ProtectedLayout><ByArrearsReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/by-waivers" element={<ProtectedLayout><ByWaiversReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/waivers-per-zone" element={<ProtectedLayout><WaiversPerZoneReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/employees-per-zone" element={<ProtectedLayout><EmployeesPerZoneReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/contributions-per-zone" element={<ProtectedLayout><ContributionsPerZoneReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/queries-per-zone" element={<ProtectedLayout><QueriesPerZoneReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/most-queries" element={<ProtectedLayout><MostQueriesReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/by-litigation-count" element={<ProtectedLayout><ByLitigationCountReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/arrears-per-zone" element={<ProtectedLayout><ArrearsPerZoneReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/arrears-over-50k" element={<ProtectedLayout><ArrearsOver50kReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/arrears-over-100k" element={<ProtectedLayout><ArrearsOver100kReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/arrears-over-200k" element={<ProtectedLayout><ArrearsOver200kReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/arrears-over-300k" element={<ProtectedLayout><ArrearsOver300kReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/arrears-over-400k" element={<ProtectedLayout><ArrearsOver400kReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/arrears-50k-by-zone" element={<ProtectedLayout><Arrears50kByZoneReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/top-compliant" element={<ProtectedLayout><TopCompliantReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/arrears-30-days" element={<ProtectedLayout><Arrears30DaysReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/arrears-60-days" element={<ProtectedLayout><Arrears60DaysReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/arrears-90-days" element={<ProtectedLayout><Arrears90DaysReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/arrears-over-90-days" element={<ProtectedLayout><ArrearsOver90DaysReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/under-litigation" element={<ProtectedLayout><UnderLitigationReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/with-payment-plans" element={<ProtectedLayout><WithPaymentPlansReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/defaulted-plans" element={<ProtectedLayout><DefaultedPlansReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/ceased-employers" element={<ProtectedLayout><CeasedEmployersReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/out-of-federation" element={<ProtectedLayout><OutOfFederationReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/deceased-employers" element={<ProtectedLayout><DeceasedEmployersReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/overseas-submissions" element={<ProtectedLayout><OverseasSubmissionsReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/nil-returns-3-months" element={<ProtectedLayout><NILReturns3MonthsReport /></ProtectedLayout>} />
-      <Route path="/employers/reports/nil-returns-over-3-months" element={<ProtectedLayout><NILReturnsOver3MonthsReport /></ProtectedLayout>} />
+      <Route path="/employers/reports/registered-summary" element={<RegisteredSummaryReport />} />
+      <Route path="/employers/reports/active-inactive" element={<ActiveInactiveReport />} />
+      <Route path="/employers/reports/contribution-compliance" element={<ContributionComplianceReport />} />
+      <Route path="/employers/reports/non-paying-3-months" element={<NonPaying3MonthsReport />} />
+      <Route path="/employers/reports/non-paying-6-months" element={<NonPaying6MonthsReport />} />
+      <Route path="/employers/reports/non-paying-9-months" element={<NonPaying9MonthsReport />} />
+      <Route path="/employers/reports/top-missing-c3" element={<TopMissingC3Report />} />
+      <Route path="/employers/reports/missing-c3-per-zone" element={<MissingC3PerZoneReport />} />
+      <Route path="/employers/reports/c3-without-payment" element={<C3WithoutPaymentReport />} />
+      <Route path="/employers/reports/no-payment-per-zone" element={<NoPaymentPerZoneReport />} />
+      <Route path="/employers/reports/employee-turnover" element={<EmployeeTurnoverReport />} />
+      <Route path="/employers/reports/by-employee-count" element={<ByEmployeeCountReport />} />
+      <Route path="/employers/reports/by-monthly-contributions" element={<ByMonthlyContributionsReport />} />
+      <Route path="/employers/reports/by-arrears" element={<ByArrearsReport />} />
+      <Route path="/employers/reports/by-waivers" element={<ByWaiversReport />} />
+      <Route path="/employers/reports/waivers-per-zone" element={<WaiversPerZoneReport />} />
+      <Route path="/employers/reports/employees-per-zone" element={<EmployeesPerZoneReport />} />
+      <Route path="/employers/reports/contributions-per-zone" element={<ContributionsPerZoneReport />} />
+      <Route path="/employers/reports/queries-per-zone" element={<QueriesPerZoneReport />} />
+      <Route path="/employers/reports/most-queries" element={<MostQueriesReport />} />
+      <Route path="/employers/reports/by-litigation-count" element={<ByLitigationCountReport />} />
+      <Route path="/employers/reports/arrears-per-zone" element={<ArrearsPerZoneReport />} />
+      <Route path="/employers/reports/arrears-over-50k" element={<ArrearsOver50kReport />} />
+      <Route path="/employers/reports/arrears-over-100k" element={<ArrearsOver100kReport />} />
+      <Route path="/employers/reports/arrears-over-200k" element={<ArrearsOver200kReport />} />
+      <Route path="/employers/reports/arrears-over-300k" element={<ArrearsOver300kReport />} />
+      <Route path="/employers/reports/arrears-over-400k" element={<ArrearsOver400kReport />} />
+      <Route path="/employers/reports/arrears-50k-by-zone" element={<Arrears50kByZoneReport />} />
+      <Route path="/employers/reports/top-compliant" element={<TopCompliantReport />} />
+      <Route path="/employers/reports/arrears-30-days" element={<Arrears30DaysReport />} />
+      <Route path="/employers/reports/arrears-60-days" element={<Arrears60DaysReport />} />
+      <Route path="/employers/reports/arrears-90-days" element={<Arrears90DaysReport />} />
+      <Route path="/employers/reports/arrears-over-90-days" element={<ArrearsOver90DaysReport />} />
+      <Route path="/employers/reports/under-litigation" element={<UnderLitigationReport />} />
+      <Route path="/employers/reports/with-payment-plans" element={<WithPaymentPlansReport />} />
+      <Route path="/employers/reports/defaulted-plans" element={<DefaultedPlansReport />} />
+      <Route path="/employers/reports/ceased-employers" element={<CeasedEmployersReport />} />
+      <Route path="/employers/reports/out-of-federation" element={<OutOfFederationReport />} />
+      <Route path="/employers/reports/deceased-employers" element={<DeceasedEmployersReport />} />
+      <Route path="/employers/reports/overseas-submissions" element={<OverseasSubmissionsReport />} />
+      <Route path="/employers/reports/nil-returns-3-months" element={<NILReturns3MonthsReport />} />
+      <Route path="/employers/reports/nil-returns-over-3-months" element={<NILReturnsOver3MonthsReport />} />
 
       {/* C3 Reports */}
-      <Route path="/c3/reports/monthly-collections" element={<ProtectedLayout><MonthlyCollectionsReport /></ProtectedLayout>} />
-      <Route path="/c3/reports/arrears" element={<ProtectedLayout><ArrearsReport /></ProtectedLayout>} />
-      <Route path="/c3/reports/top-contributors" element={<ProtectedLayout><TopContributorsReport /></ProtectedLayout>} />
+      <Route path="/c3/reports/monthly-collections" element={<MonthlyCollectionsReport />} />
+      <Route path="/c3/reports/arrears" element={<ArrearsReport />} />
+      <Route path="/c3/reports/top-contributors" element={<TopContributorsReport />} />
 
       {/* Finance Reports */}
-      <Route path="/finance/reports/contributions-vs-benefits" element={<ProtectedLayout><ContributionsVsBenefitsReport /></ProtectedLayout>} />
-      <Route path="/finance/reports/cash-flow" element={<ProtectedLayout><CashFlowReport /></ProtectedLayout>} />
-      <Route path="/finance/reports/investment-portfolio" element={<ProtectedLayout><InvestmentPortfolioReport /></ProtectedLayout>} />
+      <Route path="/finance/reports/contributions-vs-benefits" element={<ContributionsVsBenefitsReport />} />
+      <Route path="/finance/reports/cash-flow" element={<CashFlowReport />} />
+      <Route path="/finance/reports/investment-portfolio" element={<InvestmentPortfolioReport />} />
       
       {/* Report Routes - Benefits */}
-      <Route path="/benefits/reports/payments-by-type" element={<ProtectedLayout><PaymentsByTypeReport /></ProtectedLayout>} />
-      <Route path="/benefits/reports/claims-volume" element={<ProtectedLayout><ClaimsVolumeReport /></ProtectedLayout>} />
-      <Route path="/benefits/reports/overpayments" element={<ProtectedLayout><OverpaymentsReport /></ProtectedLayout>} />
+      <Route path="/benefits/reports/payments-by-type" element={<PaymentsByTypeReport />} />
+      <Route path="/benefits/reports/claims-volume" element={<ClaimsVolumeReport />} />
+      <Route path="/benefits/reports/overpayments" element={<OverpaymentsReport />} />
       
       {/* Report Routes - Compliance */}
-      <Route path="/compliance/reports/employer-status" element={<ProtectedLayout><EmployerStatusReport /></ProtectedLayout>} />
+      <Route path="/compliance/reports/employer-status" element={<EmployerStatusReport />} />
       
       {/* Report Routes - Audit */}
-      <Route path="/audit/reports/engagement-summary" element={<ProtectedLayout><EngagementSummaryReport /></ProtectedLayout>} />
-      <Route path="/audit/reports/communication-compliance" element={<ProtectedLayout><CommunicationComplianceReport /></ProtectedLayout>} />
-      <Route path="/audit/reports/plan-slippage" element={<ProtectedLayout><PlanSlippageReport /></ProtectedLayout>} />
-      <Route path="/audit/reports/overdue-actions" element={<ProtectedLayout><OverdueActionsReport /></ProtectedLayout>} />
-      <Route path="/audit/reports/carry-forward-aging" element={<ProtectedLayout><CarryForwardAgingReport /></ProtectedLayout>} />
+      <Route path="/audit/reports/engagement-summary" element={<EngagementSummaryReport />} />
+      <Route path="/audit/reports/communication-compliance" element={<CommunicationComplianceReport />} />
+      <Route path="/audit/reports/plan-slippage" element={<PlanSlippageReport />} />
+      <Route path="/audit/reports/overdue-actions" element={<OverdueActionsReport />} />
+      <Route path="/audit/reports/carry-forward-aging" element={<CarryForwardAgingReport />} />
       
       {/* Report Routes - Admin */}
-      <Route path="/admin/reports/account-roles" element={<ProtectedLayout><AccountRolesReport /></ProtectedLayout>} />
-      <Route path="/admin/reports/permission-changes" element={<ProtectedLayout><PermissionChangesReport /></ProtectedLayout>} />
-      <Route path="/admin/reports/configuration-audit" element={<ProtectedLayout><ConfigurationAuditReport /></ProtectedLayout>} />
+      <Route path="/admin/reports/account-roles" element={<AccountRolesReport />} />
+      <Route path="/admin/reports/permission-changes" element={<PermissionChangesReport />} />
+      <Route path="/admin/reports/configuration-audit" element={<ConfigurationAuditReport />} />
       
       {/* Fee Configuration */}
-      <Route path="/admin/fee-configuration" element={<ProtectedLayout><FeeConfiguration /></ProtectedLayout>} />
+      <Route path="/admin/fee-configuration" element={<FeeConfiguration />} />
 
       {/* Enterprise Admin Routes - consolidated above in System Administration Routes */}
       
       {/* Profile Routes */}
-      <Route path="/profile/change-password" element={<ProtectedLayout><ProfileChangePassword /></ProtectedLayout>} />
-      <Route path="/profile/notifications" element={<ProtectedLayout><NotificationPreferences /></ProtectedLayout>} />
-      <Route path="/profile/sessions" element={<ProtectedLayout><ActiveSessions /></ProtectedLayout>} />
+      <Route path="/profile/change-password" element={<ProfileChangePassword />} />
+      <Route path="/profile/notifications" element={<NotificationPreferences />} />
+      <Route path="/profile/sessions" element={<ActiveSessions />} />
       
       {/* Notification Center */}
-      <Route path="/notifications/center" element={<ProtectedLayout><NotificationCenter /></ProtectedLayout>} />
+      <Route path="/notifications/center" element={<NotificationCenter />} />
 
       {/* Medical Module */}
-      <Route path="/medical/applications" element={<ProtectedLayout><DoctorApplicationsList /></ProtectedLayout>} />
-      <Route path="/medical/applications/new" element={<ProtectedLayout><NewManualApplication /></ProtectedLayout>} />
-      <Route path="/medical/applications/:id" element={<ProtectedLayout><DoctorApplicationDetail /></ProtectedLayout>} />
-      <Route path="/medical/registry" element={<ProtectedLayout><DoctorRegistry /></ProtectedLayout>} />
-      <Route path="/medical/claims" element={<ProtectedLayout><ClaimsByDoctors /></ProtectedLayout>} />
+      <Route path="/medical/applications" element={<DoctorApplicationsList />} />
+      <Route path="/medical/applications/new" element={<NewManualApplication />} />
+      <Route path="/medical/applications/:id" element={<DoctorApplicationDetail />} />
+      <Route path="/medical/registry" element={<DoctorRegistry />} />
+      <Route path="/medical/claims" element={<ClaimsByDoctors />} />
 
       {/* Sample Application Module */}
-      <Route path="/sample-applications" element={<ProtectedLayout><SampleApplicationList /></ProtectedLayout>} />
-      <Route path="/sample-applications/new" element={<ProtectedLayout><SampleApplicationForm /></ProtectedLayout>} />
-      <Route path="/sample-applications/:id" element={<ProtectedLayout><SampleApplicationView /></ProtectedLayout>} />
-      <Route path="/sample-applications/:id/edit" element={<ProtectedLayout><SampleApplicationForm /></ProtectedLayout>} />
+      <Route path="/sample-applications" element={<SampleApplicationList />} />
+      <Route path="/sample-applications/new" element={<SampleApplicationForm />} />
+      <Route path="/sample-applications/:id" element={<SampleApplicationView />} />
+      <Route path="/sample-applications/:id/edit" element={<SampleApplicationForm />} />
 
       {/* Applications for Review */}
-      <Route path="/workflow/applications-review" element={<ProtectedLayout><ApplicationsReview /></ProtectedLayout>} />
+      <Route path="/workflow/applications-review" element={<ApplicationsReview />} />
 
       {/* Meetings Module */}
-      <Route path="/meetings/manage" element={<ProtectedLayout><ManageMeetingsPage /></ProtectedLayout>} />
-      <Route path="/meetings/start/:meetingId" element={<ProtectedLayout><StartMeetingPage /></ProtectedLayout>} />
+      <Route path="/meetings/manage" element={<ManageMeetingsPage />} />
+      <Route path="/meetings/start/:meetingId" element={<StartMeetingPage />} />
 
 
       {/* Workflow Instances */}
-      <Route path="/admin/workflow-instances" element={<ProtectedLayout><WorkflowInstanceList /></ProtectedLayout>} />
-      <Route path="/admin/workflow-instances/:id" element={<ProtectedLayout><WorkflowInstanceDetail /></ProtectedLayout>} />
+      <Route path="/admin/workflow-instances" element={<WorkflowInstanceList />} />
+      <Route path="/admin/workflow-instances/:id" element={<WorkflowInstanceDetail />} />
 
       {/* System Monitoring & Logs */}
-      <Route path="/system-logs/technical" element={<ProtectedLayout><TechnicalLogs /></ProtectedLayout>} />
-      <Route path="/system-logs/errors" element={<ProtectedLayout><ErrorLogs /></ProtectedLayout>} />
-      <Route path="/system-logs/business" element={<ProtectedLayout><BusinessEvents /></ProtectedLayout>} />
-      <Route path="/system-logs/audit" element={<ProtectedLayout><AuditTrail /></ProtectedLayout>} />
-      <Route path="/system-logs/security" element={<ProtectedLayout><SecurityLogs /></ProtectedLayout>} />
-      <Route path="/system-logs/integration" element={<ProtectedLayout><IntegrationLogs /></ProtectedLayout>} />
-      <Route path="/system-logs/performance" element={<ProtectedLayout><PerformanceMonitor /></ProtectedLayout>} />
-      <Route path="/system-logs/workflows" element={<ProtectedLayout><SystemWorkflowLogs /></ProtectedLayout>} />
-      <Route path="/system-logs/login-security" element={<ProtectedLayout><LoginSecurityLogs /></ProtectedLayout>} />
+      <Route path="/system-logs/technical" element={<TechnicalLogs />} />
+      <Route path="/system-logs/errors" element={<ErrorLogs />} />
+      <Route path="/system-logs/business" element={<BusinessEvents />} />
+      <Route path="/system-logs/audit" element={<AuditTrail />} />
+      <Route path="/system-logs/security" element={<SecurityLogs />} />
+      <Route path="/system-logs/integration" element={<IntegrationLogs />} />
+      <Route path="/system-logs/performance" element={<PerformanceMonitor />} />
+      <Route path="/system-logs/workflows" element={<SystemWorkflowLogs />} />
+      <Route path="/system-logs/login-security" element={<LoginSecurityLogs />} />
 
       {/* Data Access Control */}
-      <Route path="/admin/data-access/scope-rules" element={<ProtectedLayout><DataScopeRules /></ProtectedLayout>} />
-      <Route path="/admin/data-access/field-security" element={<ProtectedLayout><FieldSecurity /></ProtectedLayout>} />
-      <Route path="/admin/data-access/role-policies" element={<ProtectedLayout><RoleDataPolicies /></ProtectedLayout>} />
-      <Route path="/admin/data-access/user-overrides" element={<ProtectedLayout><UserDataOverrides /></ProtectedLayout>} />
-      <Route path="/admin/data-access/test-console" element={<ProtectedLayout><PolicyTestConsole /></ProtectedLayout>} />
+      <Route path="/admin/data-access/scope-rules" element={<DataScopeRules />} />
+      <Route path="/admin/data-access/field-security" element={<FieldSecurity />} />
+      <Route path="/admin/data-access/role-policies" element={<RoleDataPolicies />} />
+      <Route path="/admin/data-access/user-overrides" element={<UserDataOverrides />} />
+      <Route path="/admin/data-access/test-console" element={<PolicyTestConsole />} />
 
       {/* System Cleanup & Refactoring */}
-      <Route path="/admin/system-cleanup" element={<ProtectedLayout><SystemCleanupDashboard /></ProtectedLayout>} />
-      <Route path="/admin/system-cleanup/modules-inventory" element={<ProtectedLayout><ActiveModulesInventory /></ProtectedLayout>} />
-      <Route path="/admin/system-cleanup/dependency-scan" element={<ProtectedLayout><DependencyScan /></ProtectedLayout>} />
-      <Route path="/admin/system-cleanup/cleanup-review" element={<ProtectedLayout><CleanupReview /></ProtectedLayout>} />
-      <Route path="/admin/system-cleanup/rollback" element={<ProtectedLayout><RollbackScreen /></ProtectedLayout>} />
+      <Route path="/admin/system-cleanup" element={<SystemCleanupDashboard />} />
+      <Route path="/admin/system-cleanup/modules-inventory" element={<ActiveModulesInventory />} />
+      <Route path="/admin/system-cleanup/dependency-scan" element={<DependencyScan />} />
+      <Route path="/admin/system-cleanup/cleanup-review" element={<CleanupReview />} />
+      <Route path="/admin/system-cleanup/rollback" element={<RollbackScreen />} />
 
       {/* Online Applications Module */}
-      <Route path="/admin/api-configuration" element={<ProtectedLayout><ApiConfiguration /></ProtectedLayout>} />
-      <Route path="/online-applications/insured-person" element={<ProtectedLayout><InsuredPersonApplications /></ProtectedLayout>} />
-      <Route path="/online-applications/insured-person/:referenceNumber" element={<ProtectedLayout><ApplicationDetailPage /></ProtectedLayout>} />
-      <Route path="/online-applications/employer" element={<ProtectedLayout><EmployerApplications /></ProtectedLayout>} />
-      <Route path="/online-applications/employer/:applicationId" element={<ProtectedLayout><EmployerApplicationDetailPage /></ProtectedLayout>} />
-      <Route path="/online-applications/doctor" element={<ProtectedLayout><DoctorApplications /></ProtectedLayout>} />
-      <Route path="/online-applications/doctor/:applicationId" element={<ProtectedLayout><DoctorApplicationDetailPage /></ProtectedLayout>} />
+      <Route path="/admin/api-configuration" element={<ApiConfiguration />} />
+      <Route path="/online-applications/insured-person" element={<InsuredPersonApplications />} />
+      <Route path="/online-applications/insured-person/:referenceNumber" element={<ApplicationDetailPage />} />
+      <Route path="/online-applications/employer" element={<EmployerApplications />} />
+      <Route path="/online-applications/employer/:applicationId" element={<EmployerApplicationDetailPage />} />
+      <Route path="/online-applications/doctor" element={<DoctorApplications />} />
+      <Route path="/online-applications/doctor/:applicationId" element={<DoctorApplicationDetailPage />} />
 
       {/* QA Framework */}
-      <Route path="/admin/qa" element={<ProtectedLayout><QADashboard /></ProtectedLayout>} />
-      <Route path="/admin/qa/knowledge" element={<ProtectedLayout><KnowledgeRepository /></ProtectedLayout>} />
-      <Route path="/admin/qa/change-requests" element={<ProtectedLayout><QAChangeRequests /></ProtectedLayout>} />
+      <Route path="/admin/qa" element={<QADashboard />} />
+      <Route path="/admin/qa/knowledge" element={<KnowledgeRepository />} />
+      <Route path="/admin/qa/change-requests" element={<QAChangeRequests />} />
       {/* IP Registration Module - Primary route */}
-      <Route path="/ip-registration" element={<ProtectedLayout><IPRegistrationList /></ProtectedLayout>} />
-      <Route path="/ip-registration/new" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
-      <Route path="/ip-registration/edit/:uniqueUuid" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
-      <Route path="/ip-registration/view/:uniqueUuid" element={<ProtectedLayout><IPRegistrationForm /></ProtectedLayout>} />
-      <Route path="/ip-registration/external" element={<ProtectedLayout><ExternalApplicationsScreen /></ProtectedLayout>} />
+      <Route path="/ip-registration" element={<IPRegistrationList />} />
+      <Route path="/ip-registration/new" element={<IPRegistrationForm />} />
+      <Route path="/ip-registration/edit/:uniqueUuid" element={<IPRegistrationForm />} />
+      <Route path="/ip-registration/view/:uniqueUuid" element={<IPRegistrationForm />} />
+      <Route path="/ip-registration/external" element={<ExternalApplicationsScreen />} />
 
       {/* Employer Registration Module */}
-      <Route path="/employer-registration" element={<ProtectedLayout><EmployerRegistrationList /></ProtectedLayout>} />
-      <Route path="/employer-registration/new" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
-      <Route path="/employer-registration/edit/:regno" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
-      <Route path="/employer-registration/view/:regno" element={<ProtectedLayout><EmployerRegistrationForm /></ProtectedLayout>} />
+      <Route path="/employer-registration" element={<EmployerRegistrationList />} />
+      <Route path="/employer-registration/new" element={<EmployerRegistrationForm />} />
+      <Route path="/employer-registration/edit/:regno" element={<EmployerRegistrationForm />} />
+      <Route path="/employer-registration/view/:regno" element={<EmployerRegistrationForm />} />
 
 
 
 
       {/* DB Diagram */}
-      <Route path="/db-diagram" element={<ProtectedLayout><Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}><DbDiagramPage /></Suspense></ProtectedLayout>} />
-      <Route path="/db-diagram/:moduleCode" element={<ProtectedLayout><Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}><DbDiagramPage /></Suspense></ProtectedLayout>} />
+      <Route path="/db-diagram" element={<Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}><DbDiagramPage /></Suspense>} />
+      <Route path="/db-diagram/:moduleCode" element={<Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}><DbDiagramPage /></Suspense>} />
+
+      </Route>
 
       {/* Maintenance / Lockdown */}
       <Route path="/maintenance" element={<Maintenance />} />
