@@ -373,7 +373,19 @@ export function useDynamicNavigation() {
         request_payload: { user_id: user.id, module_count: ((data as ModuleRow[]) || []).length },
       }, user.id).catch(() => {});
 
-      return groupInternalAuditNavigation(buildMenuTree((data as ModuleRow[]) || []));
+      const modulesData = (data as ModuleRow[]) || [];
+
+      // Drive satellite remote-enabled flags from app_modules.base_url so the
+      // sidebar/menu rewrites only happen when an operator has configured a
+      // non-blank base_url (see docs/INTERNAL_AUDIT_ROLLBACK.md).
+      const auditRow = modulesData.find(m => m.name === 'internal_audit');
+      const complianceRow = modulesData.find(m => m.name === 'compliance');
+      setSatelliteRemoteEnabled({
+        audit: !!(auditRow?.base_url || '').trim(),
+        compliance: !!(complianceRow?.base_url || '').trim(),
+      });
+
+      return groupInternalAuditNavigation(buildMenuTree(modulesData));
     },
     enabled: isAuthReady && isAuthenticated && !!user?.id,
     staleTime: 5 * 60 * 1000,
