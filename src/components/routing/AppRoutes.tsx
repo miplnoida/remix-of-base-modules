@@ -922,25 +922,35 @@ export const AppRoutes = () => {
       {/* Dashboard */}
       <Route path="/" element={<ProtectedLayout><Index /></ProtectedLayout>} />
 
-      {/* Embedded satellite micro-frontends (iframe + postMessage bridge) */}
+      {/* Embedded satellite micro-frontends (iframe + postMessage bridge).
+          When a satellite has no base URL configured, fall back to the local
+          /compliance/* or /audit/* routes instead of mounting an empty iframe. */}
       <Route
         path="/compliance-hub/*"
         element={
-          <ProtectedLayout>
-            <Suspense fallback={<div>Loading...</div>}>
-              <SatelliteFrame app="compliance" basePath="compliance-hub" title="Compliance & Enforcement" />
-            </Suspense>
-          </ProtectedLayout>
+          isComplianceRemoteEnabled() ? (
+            <ProtectedLayout>
+              <Suspense fallback={<div>Loading...</div>}>
+                <SatelliteFrame app="compliance" basePath="compliance-hub" title="Compliance & Enforcement" />
+              </Suspense>
+            </ProtectedLayout>
+          ) : (
+            <Navigate to="/compliance" replace />
+          )
         }
       />
       <Route
         path="/audit-hub/*"
         element={
-          <ProtectedLayout>
-            <Suspense fallback={<div>Loading...</div>}>
-              <SatelliteFrame app="audit" basePath="audit-hub" title="Internal Audit" />
-            </Suspense>
-          </ProtectedLayout>
+          isAuditRemoteEnabled() ? (
+            <ProtectedLayout>
+              <Suspense fallback={<div>Loading...</div>}>
+                <SatelliteFrame app="audit" basePath="audit-hub" title="Internal Audit" />
+              </Suspense>
+            </ProtectedLayout>
+          ) : (
+            <Navigate to="/audit" replace />
+          )
         }
       />
       
