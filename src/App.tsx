@@ -1,5 +1,7 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, MutationCache, QueryCache } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -16,12 +18,26 @@ import { SystemSettingsProvider } from '@/contexts/SystemSettingsContext';
 import { SecurityPolicyProvider } from '@/contexts/SecurityPolicyContext';
 import { PIIMaskingProvider } from '@/contexts/PIIMaskingContext';
 import { PIIUnlockDialog } from '@/components/security/PIIUnlockDialog';
-import { AppRoutes } from '@/components/routing/AppRoutes';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { setupGlobalErrorHandlers, logApplicationError } from '@/lib/globalErrorHandler';
 import { IPAccessGate } from '@/components/security/IPAccessGate';
 import { logAuditEntry, parseMutationKey, extractEntityId, clearAuditUserCache, inferEntityTypeFromVariables, resolveRouteContext, classifyActionFromVariables } from '@/services/globalAuditInterceptor';
 import { supabase } from '@/integrations/supabase/client';
+
+// Lazy-load the large route table so the app shell can paint immediately
+// in Preview instead of waiting for the full module graph to parse.
+const AppRoutes = lazy(() =>
+  import('@/components/routing/AppRoutes').then((m) => ({ default: m.AppRoutes }))
+);
+
+const RoutesFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="text-center space-y-4">
+      <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+      <p className="text-muted-foreground text-sm">Loading…</p>
+    </div>
+  </div>
+);
 import './App.css';
 
 // Setup global window error handlers
