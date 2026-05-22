@@ -161,7 +161,9 @@ function App() {
                             <PIIMaskingProvider>
                               <SystemLoggingProvider>
                                 <div className="min-h-screen bg-background">
-                                  <AppRoutes />
+                                  <Suspense fallback={<RoutesFallback />}>
+                                    <AppRoutes />
+                                  </Suspense>
                                   <Toaster />
                                   <SonnerToaster />
                                   <PIIUnlockDialog />
