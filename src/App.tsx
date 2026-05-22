@@ -24,10 +24,10 @@ import { IPAccessGate } from '@/components/security/IPAccessGate';
 import { logAuditEntry, parseMutationKey, extractEntityId, clearAuditUserCache, inferEntityTypeFromVariables, resolveRouteContext, classifyActionFromVariables } from '@/services/globalAuditInterceptor';
 import { supabase } from '@/integrations/supabase/client';
 
-// Lazy-load the large route table so the app shell can paint immediately
-// in Preview instead of waiting for the full module graph to parse.
-const AppRoutes = lazy(() =>
-  import('@/components/routing/AppRoutes').then((m) => ({ default: m.AppRoutes }))
+// Lightweight router shell: renders public/auth routes immediately and
+// only lazy-loads the large protected route graph for non-public paths.
+const PublicRoutes = lazy(() =>
+  import('@/components/routing/PublicRoutes').then((m) => ({ default: m.PublicRoutes }))
 );
 
 const RoutesFallback = () => (
@@ -162,7 +162,7 @@ function App() {
                               <SystemLoggingProvider>
                                 <div className="min-h-screen bg-background">
                                   <Suspense fallback={<RoutesFallback />}>
-                                    <AppRoutes />
+                                    <PublicRoutes />
                                   </Suspense>
                                   <Toaster />
                                   <SonnerToaster />

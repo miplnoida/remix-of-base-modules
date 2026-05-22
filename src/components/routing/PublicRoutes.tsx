@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 const ForgotPassword = lazy(() => import('@/pages/auth/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
 const ResetPassword = lazy(() => import('@/pages/auth/ResetPassword').then(m => ({ default: m.ResetPassword })));
 const MFAVerify = lazy(() => import('@/pages/auth/MFAVerify').then(m => ({ default: m.MFAVerify })));
-const ChangePasswordPage = lazy(() => import('@/pages/auth/ChangePasswordPage'));
+const ChangePasswordPage = lazy(() => import('@/pages/auth/ChangePassword').then(m => ({ default: m.ChangePassword })));
 const BootstrapAdmin = lazy(() => import('@/pages/setup/BootstrapAdmin'));
 const Maintenance = lazy(() => import('@/pages/Maintenance'));
 const Unauthorized = lazy(() => import('@/pages/Unauthorized'));

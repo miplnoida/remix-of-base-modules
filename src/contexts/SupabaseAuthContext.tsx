@@ -543,8 +543,23 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     // INITIAL load — Phase 1: session restore → isAuthReady=true immediately
     // Phase 2: profile/roles load in background (non-blocking)
     const initializeAuth = async () => {
+      // Hard timeout — never let session restore hang the app shell.
+      // If Supabase is slow/unreachable in Preview, fail open to unauthenticated
+      // so the login page can render.
+      const SESSION_RESTORE_TIMEOUT_MS = 4_000;
+
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        const sessionResult = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: Session | null } }>((resolve) =>
+            setTimeout(() => {
+              console.warn('[Auth] getSession() timed out — proceeding as unauthenticated');
+              resolve({ data: { session: null } });
+            }, SESSION_RESTORE_TIMEOUT_MS)
+          ),
+        ]);
+
+        const currentSession = sessionResult?.data?.session ?? null;
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
@@ -555,16 +570,12 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           scheduleTokenRefresh(currentSession);
         }
 
-        // Mark auth as ready NOW — session state is known
-        // This unblocks ProtectedRoute immediately
         initDone = true;
         setIsAuthReady(true);
         setIsLoading(false);
 
-        // Load user data in background (non-blocking)
         if (currentSession?.user) {
           loadUserDataInBackground(currentSession.user.id);
-          // Also load session policy in background
           void loadSessionPolicy().catch(() => {});
         } else {
           setProfileStatus('loaded');
