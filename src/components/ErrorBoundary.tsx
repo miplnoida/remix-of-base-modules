@@ -27,7 +27,28 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({ errorInfo });
-    
+
+    // Auto-recover from stale lazy-chunk errors after a deploy by reloading once.
+    const msg = String(error?.message || '');
+    const isChunkError =
+      /Loading chunk [\d]+ failed/i.test(msg) ||
+      /Loading CSS chunk/i.test(msg) ||
+      /dynamically imported module/i.test(msg) ||
+      /Failed to fetch dynamically imported module/i.test(msg) ||
+      error?.name === 'ChunkLoadError';
+    if (isChunkError) {
+      const KEY = '__chunk_reload_attempted__';
+      try {
+        if (!sessionStorage.getItem(KEY)) {
+          sessionStorage.setItem(KEY, '1');
+          window.location.reload();
+          return;
+        }
+      } catch {
+        // ignore storage failures and fall through to error UI
+      }
+    }
+
     // Log to system_error_logs using global error handler
     this.logError(error, errorInfo);
   }
