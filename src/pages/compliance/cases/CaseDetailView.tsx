@@ -26,6 +26,7 @@ import { fetchCaseById } from '@/services/complianceDataService';
 import { caseViolationService } from '@/services/caseViolationService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
@@ -322,7 +323,26 @@ export default function CaseDetailView() {
           <TabsTrigger value="history">
             <History className="h-4 w-4 mr-2" />History ({caseHistory.length})
           </TabsTrigger>
+          <TabsTrigger value="timeline">
+            <History className="h-4 w-4 mr-2" />Timeline
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="timeline" className="space-y-4">
+          <ComplianceTimeline
+            mode="aggregate"
+            title="Case Timeline (all related events)"
+            aggregate={{
+              caseId: id!,
+              violationIds: linkedViolations.map((v: any) => v.id).filter(Boolean),
+              noticeIds: caseNotices.map((n: any) => n.id).filter(Boolean),
+              arrangementIds: caseArrangements.map((a: any) => a.id).filter(Boolean),
+            }}
+          />
+        </TabsContent>
+
+
+
 
         <TabsContent value="violations" className="space-y-4">
           <Card>
