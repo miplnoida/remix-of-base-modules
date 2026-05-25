@@ -259,7 +259,7 @@ function Inner() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditor({ open: false, rule: null })}>Cancel</Button>
-            <PermissionButton moduleName={PERMISSION} actionName="manage" action={editor.rule?.id ? 'edit' : 'create'}
+            <PermissionButton moduleName={PERMISSION} actionName="manage"
               onClick={() => editor.rule && saveMut.mutate(editor.rule)} disabled={saveMut.isPending}>
               Save
             </PermissionButton>
