@@ -185,7 +185,7 @@ const ComplianceRoutes = () => {
       <Route path="/reports/automation-jobs" element={<PlaceholderPage title="Automation Job Reports" area="Reports" />} />
 
       {/* Administration */}
-      <Route path="/admin/setup-wizard" element={<PlaceholderPage title="Setup Wizard" area="Administration" />} />
+      <Route path="/admin/setup-wizard" element={<SetupWizard />} />
       <Route path="/admin/feature-toggles" element={<PlaceholderPage title="Feature Toggles" area="Administration" />} />
       <Route path="/admin/calculation-rules" element={<PlaceholderPage title="Calculation Rules" area="Administration" />} />
       <Route path="/admin/escalation-rules" element={<PlaceholderPage title="Escalation Rules" area="Administration" />} />
