@@ -1,0 +1,93 @@
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { PermissionWrapper } from '@/components/ui/permission-wrapper';
+import { listHighRiskEmployers } from '@/services/riskProfileService';
+import { isComplianceFeatureEnabled } from '@/lib/compliance/featureToggles';
+import { ShieldAlert, ShieldOff } from 'lucide-react';
+
+const PERMISSION = 'manage_compliance';
+
+export default function HighRiskEmployersPage() {
+  if (!isComplianceFeatureEnabled('risk.highRiskEmployers')) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card><CardContent className="py-12 text-center text-muted-foreground">
+          <ShieldOff className="mx-auto h-8 w-8 mb-2" /> High Risk Employers view is disabled.
+        </CardContent></Card>
+      </div>
+    );
+  }
+  return <PermissionWrapper moduleName={PERMISSION}><Inner /></PermissionWrapper>;
+}
+
+function Inner() {
+  const navigate = useNavigate();
+  const { data = [], isLoading } = useQuery({
+    queryKey: ['high-risk-employers'],
+    queryFn: () => listHighRiskEmployers(300),
+  });
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <ShieldAlert className="h-6 w-6 text-destructive" /> High Risk Employers
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Employers in the High or Critical risk band — sorted by score.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{data.length} employer(s)</CardTitle>
+          <CardDescription>From ce_risk_profiles</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-12 text-muted-foreground">Loading…</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Employer</TableHead>
+                  <TableHead>Score</TableHead>
+                  <TableHead>Band</TableHead>
+                  <TableHead>Override</TableHead>
+                  <TableHead>Last Calculated</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell>
+                      <div>{r.employer_name || r.employer_id}</div>
+                      <div className="text-xs text-muted-foreground font-mono">{r.employer_id}</div>
+                    </TableCell>
+                    <TableCell className="font-semibold">{Number(r.total_score).toFixed(2)}</TableCell>
+                    <TableCell><Badge variant="destructive">{r.risk_band}</Badge></TableCell>
+                    <TableCell>{r.override_band ? <Badge variant="outline">{r.override_band}</Badge> : '—'}</TableCell>
+                    <TableCell className="text-xs">{r.last_calculated_at?.slice(0, 10) || '—'}</TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="ghost" onClick={() => navigate(`/compliance/risk/score-details?employer=${r.employer_id}`)}>
+                        Score Detail
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {data.length === 0 && (
+                  <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No high-risk employers</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
