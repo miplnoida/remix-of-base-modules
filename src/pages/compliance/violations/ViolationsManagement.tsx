@@ -3,16 +3,8 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -21,17 +13,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Eye, Plus, Search, Filter, Loader2, Merge, Split, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, Plus, Filter, Loader2, Merge, Split, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchViolationsPaginated, fetchViolationSummaryCounts } from '@/services/complianceDataService';
 import { BulkViolationActions } from '@/components/compliance/BulkViolationActions';
 import { ViolationMergeDialog } from '@/components/compliance/ViolationMergeDialog';
 import { ViolationSplitDialog } from '@/components/compliance/ViolationSplitDialog';
+import { PermissionWrapper } from '@/components/ui/permission-wrapper';
+import { PermissionButton } from '@/components/ui/permission-button';
+import { ViolationFiltersBar, emptyViolationFilterState } from '@/components/compliance/ViolationFiltersBar';
 
-const VIOLATION_STATUSES = ['OPEN', 'UNDER_REVIEW', 'IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'CLOSED', 'CANCELLED'];
-const VIOLATION_PRIORITIES = ['Critical', 'High', 'Medium', 'Low'];
 const PAGE_SIZE = 50;
+const MODULE = 'manage_compliance';
 
 const STATUS_COLORS: Record<string, string> = {
   OPEN: 'bg-primary/10 text-primary',
@@ -52,57 +46,50 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 });
 
-export default function ViolationsManagement() {
+function ViolationsManagementInner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebounce(searchTerm, 400);
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const currentMonth = new Date().toISOString().slice(0, 7);
-  const [monthFilter, setMonthFilter] = useState<string>(currentMonth);
+  const [filters, setFilters] = useState({ ...emptyViolationFilterState, month: currentMonth });
+  const debouncedSearch = useDebounce(filters.search, 400);
   const [page, setPage] = useState(1);
-  const prevDebouncedRef = useState(debouncedSearch);
-  // Reset page when debounced search changes (not on every keystroke)
-  if (prevDebouncedRef[0] !== debouncedSearch) {
-    prevDebouncedRef[0] = debouncedSearch;
-    if (page !== 1) setPage(1);
-  }
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [splitTarget, setSplitTarget] = useState<any>(null);
 
   const filterParams = useMemo(() => ({
-    status: statusFilter,
-    priority: priorityFilter,
+    status: filters.status,
+    priority: filters.priority,
+    fund: filters.fund,
+    violationTypeId: filters.violationTypeId,
+    severity: filters.severity,
+    source: filters.source,
+    assignedOfficer: filters.assignedOfficer,
     search: debouncedSearch || undefined,
-    month: monthFilter || undefined,
-  }), [statusFilter, priorityFilter, debouncedSearch, monthFilter]);
+    month: filters.month || undefined,
+  }), [filters.status, filters.priority, filters.fund, filters.violationTypeId, filters.severity, filters.source, filters.assignedOfficer, filters.month, debouncedSearch]);
 
-  // Reset to page 1 when filters change
   const filterKey = JSON.stringify(filterParams);
 
-  // Paginated data query
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['ce_violations_page', filterKey, page],
     queryFn: () => fetchViolationsPaginated({ ...filterParams, page, pageSize: PAGE_SIZE }),
-    placeholderData: (prev) => prev, // keep previous data while loading next page
+    placeholderData: (prev) => prev,
   });
 
-  // Summary counts — separate lightweight query, cached independently
   const { data: counts } = useQuery({
     queryKey: ['ce_violations_counts', filterKey],
     queryFn: () => fetchViolationSummaryCounts(filterParams),
-    staleTime: 30_000, // reuse for 30s
+    staleTime: 30_000,
   });
 
   const violations = pageData?.rows ?? [];
   const totalCount = pageData?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
-  const handleFilterChange = useCallback((setter: (v: string) => void) => (value: string) => {
-    setter(value);
+  const handleFiltersChange = useCallback((next: typeof filters) => {
+    setFilters(next);
     setPage(1);
     setSelectedIds([]);
   }, []);
@@ -171,52 +158,7 @@ export default function ViolationsManagement() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by violation #, employer code, name, or summary..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={handleFilterChange(setStatusFilter)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Statuses</SelectItem>
-                {VIOLATION_STATUSES.map(s => (
-                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={priorityFilter} onValueChange={handleFilterChange(setPriorityFilter)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Priorities</SelectItem>
-                {VIOLATION_PRIORITIES.map(p => (
-                  <SelectItem key={p} value={p}>{p}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div>
-              <Input
-                type="month"
-                value={monthFilter}
-                onChange={(e) => { setMonthFilter(e.target.value); setPage(1); }}
-                className="w-full"
-              />
-              {monthFilter && (
-                <Button variant="link" size="sm" className="px-0 h-6 text-xs" onClick={() => { setMonthFilter(''); setPage(1); }}>
-                  Show all months
-                </Button>
-              )}
-            </div>
-          </div>
+          <ViolationFiltersBar value={filters} onChange={handleFiltersChange} showSource />
         </CardContent>
       </Card>
 
@@ -415,5 +357,13 @@ export default function ViolationsManagement() {
         />
       )}
     </div>
+  );
+}
+
+export default function ViolationsManagement() {
+  return (
+    <PermissionWrapper moduleName={MODULE}>
+      <ViolationsManagementInner />
+    </PermissionWrapper>
   );
 }

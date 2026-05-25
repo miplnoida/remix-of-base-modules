@@ -260,6 +260,14 @@ export interface ViolationFilters {
   month?: string;
   page?: number;
   pageSize?: number;
+  // Extended filters (Violations completion)
+  fund?: string;            // ce_violations.fund_type
+  violationTypeId?: string; // ce_violations.violation_type_id
+  severity?: string;        // ce_violations.severity
+  source?: string;          // ce_violations.source_type
+  assignedOfficer?: string; // ce_violations.assigned_to_user_id ('UNASSIGNED' = NULL)
+  verification?: string;    // ce_violations.verification_decision ('PENDING' = NULL)
+  employerId?: string;      // exact employer match
 }
 
 export interface ViolationPage {
@@ -271,9 +279,11 @@ export interface ViolationPage {
 
 function buildViolationFilterConditions(filters: ViolationFilters) {
   const searchValue = filters.search?.trim();
-  const hasActiveFilter = (filters.status && filters.status !== 'ALL') ||
-    (filters.priority && filters.priority !== 'ALL') ||
-    searchValue;
+  const isSet = (v?: string) => v && v !== 'ALL';
+  const hasActiveFilter = isSet(filters.status) || isSet(filters.priority) ||
+    isSet(filters.fund) || isSet(filters.violationTypeId) || isSet(filters.severity) ||
+    isSet(filters.source) || isSet(filters.assignedOfficer) || isSet(filters.verification) ||
+    filters.employerId || searchValue;
   const targetMonth = filters.month || (!hasActiveFilter
     ? new Date().toISOString().slice(0, 7)
     : undefined);
@@ -306,12 +316,21 @@ function applyViolationFilters(
   targetMonth: string | undefined,
   employerIds: string[],
 ) {
-  if (filters.status && filters.status !== "ALL") {
-    query = query.eq("status", filters.status);
+  if (filters.status && filters.status !== "ALL") query = query.eq("status", filters.status);
+  if (filters.priority && filters.priority !== "ALL") query = query.eq("priority", filters.priority);
+  if (filters.fund && filters.fund !== "ALL") query = query.eq("fund_type", filters.fund);
+  if (filters.violationTypeId && filters.violationTypeId !== "ALL") query = query.eq("violation_type_id", filters.violationTypeId);
+  if (filters.severity && filters.severity !== "ALL") query = query.eq("severity", filters.severity);
+  if (filters.source && filters.source !== "ALL") query = query.eq("source_type", filters.source);
+  if (filters.assignedOfficer && filters.assignedOfficer !== "ALL") {
+    if (filters.assignedOfficer === 'UNASSIGNED') query = query.is("assigned_to_user_id", null);
+    else query = query.eq("assigned_to_user_id", filters.assignedOfficer);
   }
-  if (filters.priority && filters.priority !== "ALL") {
-    query = query.eq("priority", filters.priority);
+  if (filters.verification && filters.verification !== "ALL") {
+    if (filters.verification === 'PENDING') query = query.is("verification_decision", null);
+    else query = query.eq("verification_decision", filters.verification);
   }
+  if (filters.employerId) query = query.eq("employer_id", filters.employerId);
   if (searchValue) {
     const escaped = searchValue.replace(/,/g, ' ');
     const orParts = [
@@ -320,9 +339,7 @@ function applyViolationFilters(
       `employer_name.ilike.%${escaped}%`,
       `summary.ilike.%${escaped}%`,
     ];
-    if (employerIds.length > 0) {
-      orParts.push(`employer_id.in.(${employerIds.join(',')})`);
-    }
+    if (employerIds.length > 0) orParts.push(`employer_id.in.(${employerIds.join(',')})`);
     query = query.or(orParts.join(','));
   }
   if (targetMonth) {
@@ -348,7 +365,7 @@ export async function fetchViolationsPaginated(filters: ViolationFilters = {}): 
 
   let dataQuery = supabase
     .from("ce_violations")
-    .select("id, violation_number, employer_id, employer_name, status, priority, period_from, total_amount, assigned_to_name, discovered_date, created_at, ce_violation_types(code, name, category), ce_zones(zone_code), ce_assignment_queues(queue_code)")
+    .select("id, violation_number, employer_id, employer_name, status, priority, severity, fund_type, source_type, source_rule_id, verification_decision, assigned_to_user_id, period_from, total_amount, assigned_to_name, discovered_date, created_at, ce_violation_types(code, name, category), ce_zones(zone_code), ce_assignment_queues(queue_code)")
     .eq("is_deleted", false)
     .order("created_at", { ascending: false })
     .range((page - 1) * pageSize, page * pageSize - 1);
