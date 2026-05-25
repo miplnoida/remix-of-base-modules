@@ -254,6 +254,13 @@ export default function CaseDetailView() {
                 Create Payment Arrangement
               </Button>
             )}
+            {!['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) &&
+              (Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0) - Number((c as any).amount_waived ?? 0)) > 0 && (
+              <Button variant="outline" size="sm" onClick={() => setWaiverDialogOpen(true)}>
+                <BadgePercent className="h-4 w-4 mr-1" />
+                Request Waiver
+              </Button>
+            )}
             <CaseRequestActions
               caseId={c.id}
               caseStatus={c.status}
