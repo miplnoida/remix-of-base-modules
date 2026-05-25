@@ -72,7 +72,7 @@ const CaseRequestsQueue = ({ title, description, icon, type, featureKey }: Props
     return (
       <PermissionWrapper moduleName={MODULE}>
         <div className="container mx-auto p-6">
-          <PageHeader title={title} description={description} icon={icon} />
+          <PageHeader title={title} subtitle={description} />
           <Card><CardContent className="py-12 text-center text-muted-foreground">This feature is disabled in configuration.</CardContent></Card>
         </div>
       </PermissionWrapper>
@@ -82,7 +82,7 @@ const CaseRequestsQueue = ({ title, description, icon, type, featureKey }: Props
   return (
     <PermissionWrapper moduleName={MODULE}>
       <div className="container mx-auto p-6 space-y-6">
-        <PageHeader title={title} description={description} icon={icon} />
+        <PageHeader title={title} subtitle={description} />
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as CaseRequestStatus)}>
           <TabsList>

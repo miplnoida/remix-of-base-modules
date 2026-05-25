@@ -45,7 +45,7 @@ const CaseIntake = () => {
   return (
     <PermissionWrapper moduleName={MODULE}>
       <div className="container mx-auto p-6 space-y-6">
-        <PageHeader title="Case Intake" description="New cases awaiting officer assignment" icon={Inbox} />
+        <PageHeader title="Case Intake" subtitle="New cases awaiting officer assignment" />
 
         <Card>
           <CardContent className="pt-4">

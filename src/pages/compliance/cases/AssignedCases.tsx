@@ -44,7 +44,7 @@ const AssignedCases = () => {
   return (
     <PermissionWrapper moduleName={MODULE}>
       <div className="container mx-auto p-6 space-y-6">
-        <PageHeader title="Assigned Cases" description="Cases currently assigned to officers" icon={ClipboardList} />
+        <PageHeader title="Assigned Cases" subtitle="Cases currently assigned to officers" />
 
         <Card>
           <CardContent className="pt-4 flex gap-3 items-center flex-wrap">
