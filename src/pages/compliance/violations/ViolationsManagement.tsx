@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useDebounce } from '@/hooks/useDebounce';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { ComplianceHelpButton } from '@/components/help/ComplianceHelpButton';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
