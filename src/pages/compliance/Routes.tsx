@@ -98,6 +98,7 @@ import AuditCommunicationTemplatesPage from './admin/AuditCommunicationTemplates
 import AuditCommunicationTemplateEditorPage from './admin/AuditCommunicationTemplateEditorPage';
 import OnlineResponseConfigPage from './admin/OnlineResponseConfigPage';
 import RiskOperations from './admin/RiskOperations';
+import SetupWizard from './admin/SetupWizard';
 // Reuses the audit module's Document & Output Settings page (Foundation, Section
 // Library, Report Templates) under Compliance Admin routes so officers don't
 // have to leave the Compliance module to manage report-level templates.
