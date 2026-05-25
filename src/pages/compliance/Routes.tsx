@@ -247,6 +247,7 @@ const ComplianceRoutes = () => {
       {/* ═══════════════════════════════════════════════════════
           1. WORKBENCH — dashboards, monitoring, queues
           ═══════════════════════════════════════════════════════ */}
+      <Route path="/workbench/overview" element={<ComplianceCommandCenter />} />
       <Route path="/workbench/manager" element={<ManagerDashboard />} />
       <Route path="/workbench/inspector" element={<InspectorDashboard />} />
       <Route path="/workbench/legal" element={<LegalDashboard />} />
