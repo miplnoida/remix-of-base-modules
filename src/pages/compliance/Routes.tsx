@@ -183,7 +183,7 @@ const ComplianceRoutes = () => {
       <Route path="/risk/watchlist" element={<PlaceholderPage title="Watchlist" area="Risk And Employer Profile" />} />
 
       {/* Reports */}
-      <Route path="/reports/automation-jobs" element={<PlaceholderPage title="Automation Job Reports" area="Reports" />} />
+      <Route path="/reports/automation-jobs" element={<AutomationJobReports />} />
 
       {/* Administration */}
       <Route path="/admin/setup-wizard" element={<SetupWizard />} />
