@@ -28,6 +28,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
 import { FinancialSummaryCard } from '@/components/compliance/FinancialSummaryCard';
+import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
 
 // ============================================
 // ACTION BUTTON CONFIGURATION PER STATUS
