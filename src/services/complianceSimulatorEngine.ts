@@ -124,6 +124,10 @@ export interface DetectionResult {
   autoCreate: boolean;
   initialStatus: 'OPEN' | 'UNDER_REVIEW';
   priority: string | null;
+  /** Number of existing open/under-review violations of the same type for the employer+period. */
+  duplicateCount: number;
+  /** True when an existing violation would suppress creation. */
+  duplicateSuppressed: boolean;
 }
 
 export interface CalculationResult {
@@ -156,6 +160,12 @@ export interface SimulationOutput {
   calculationResults: CalculationResult[];
   escalationResults: EscalationResult[];
   recommendations: string[];
+  /** Fact keys that were not populated from real data (empty / zero / null defaults). */
+  missingData: string[];
+  /** Soft warnings the user should know about (incomplete data, disabled rules, etc.). */
+  warnings: string[];
+  /** Hard errors during evaluation (e.g. unknown evaluator). */
+  errors: string[];
   summary: {
     matchedDetections: number;
     totalDetections: number;
@@ -164,7 +174,15 @@ export interface SimulationOutput {
     wouldCreateViolation: boolean;
     initialStatus: string | null;
     financialImpact: number;
+    duplicatesSuppressed: number;
   };
+}
+
+export interface SimulationOptions {
+  /** Restrict to a single rule (by rule_code). If omitted, all enabled rules run. */
+  ruleCodeFilter?: string | null;
+  /** Map of existing open/under-review violations per violation_type_id for this employer+period. */
+  existingViolationsByVtId?: Record<string, number>;
 }
 
 // ── Helpers ──
