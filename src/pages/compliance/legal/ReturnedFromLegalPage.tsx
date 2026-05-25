@@ -93,6 +93,7 @@ function Inner() {
                       {r.resolution_status !== 'RESOLVED' && (
                         <PermissionButton
                           moduleName={PERMISSION}
+                          actionName="manage"
                          
                           variant="outline"
                           onClick={() => setResolving({ open: true, item: r, notes: '' })}

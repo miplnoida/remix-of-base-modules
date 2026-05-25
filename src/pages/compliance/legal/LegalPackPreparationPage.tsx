@@ -192,6 +192,7 @@ function Inner() {
               </div>
               <PermissionButton
                 moduleName={PERMISSION}
+                actionName="manage"
                
                 onClick={() => submitMut.mutate()}
                 disabled={!validation.complete || submitMut.isPending}
