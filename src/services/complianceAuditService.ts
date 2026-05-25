@@ -165,7 +165,7 @@ export async function listAggregateAudit(input: AggregateAuditInput, limit = 300
     { entity_type: 'waiver', ids: input.waiverIds ?? [] },
     { entity_type: 'legal_escalation', ids: input.escalationIds ?? [] },
     { entity_type: 'inspection', ids: input.inspectionIds ?? [] },
-  ].filter((f) => f.ids.length > 0);
+  ].filter((f) => f.ids.length > 0) as Array<{ entity_type: ComplianceAuditEntityType; ids: string[] }>;
 
   if (filters.length === 0) return [];
 
