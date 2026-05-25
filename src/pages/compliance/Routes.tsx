@@ -210,9 +210,9 @@ const ComplianceRoutes = () => {
       <Route path="/inspections/convert-finding" element={<ConvertFindingToViolationPage />} />
 
       {/* Legal Escalations */}
-      <Route path="/legal/pack-preparation" element={<PlaceholderPage title="Legal Pack Preparation" area="Legal Escalations" />} />
-      <Route path="/legal/approved-escalations" element={<PlaceholderPage title="Approved Escalations" area="Legal Escalations" />} />
-      <Route path="/legal/returned-from-legal" element={<PlaceholderPage title="Returned From Legal" area="Legal Escalations" />} />
+      <Route path="/legal/pack-preparation" element={<LegalPackPreparationPage />} />
+      <Route path="/legal/approved-escalations" element={<ApprovedEscalationsPage />} />
+      <Route path="/legal/returned-from-legal" element={<ReturnedFromLegalPage />} />
 
       {/* Risk & Employer Profile */}
       <Route path="/risk/score-details" element={<PlaceholderPage title="Risk Score Details" area="Risk And Employer Profile" />} />
@@ -234,7 +234,7 @@ const ComplianceRoutes = () => {
       <Route path="/admin/payment-arrangement-rules" element={<PlaceholderPage title="Payment Arrangement Rules" area="Administration" />} />
       <Route path="/admin/waiver-rules" element={<WaiverRulesPage />} />
       <Route path="/waivers/requests" element={<WaiverRequestsQueue />} />
-      <Route path="/admin/legal-handoff-rules" element={<PlaceholderPage title="Legal Handoff Rules" area="Administration" />} />
+      <Route path="/admin/legal-handoff-rules" element={<LegalHandoffRulesPage />} />
       <Route path="/admin/help" element={<PlaceholderPage title="Help And Instructions" area="Administration" />} />
 
       {/* ═══════════════════════════════════════════════════════
