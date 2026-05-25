@@ -270,10 +270,10 @@ function Inner() {
           <div className="space-y-3">
             <div>
               <Label>Override Band (leave blank to clear)</Label>
-              <Select value={override.band} onValueChange={(v) => setOverride((s) => ({ ...s, band: v }))}>
+              <Select value={override.band || '__clear__'} onValueChange={(v) => setOverride((s) => ({ ...s, band: v === '__clear__' ? '' : v }))}>
                 <SelectTrigger><SelectValue placeholder="Clear override" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">— Clear —</SelectItem>
+                  <SelectItem value="__clear__">— Clear —</SelectItem>
                   {BANDS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
                 </SelectContent>
               </Select>
