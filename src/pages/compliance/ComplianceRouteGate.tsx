@@ -125,7 +125,7 @@ const ROUTE_MODULE_MAP: Array<[string, string]> = [
   ['/admin/risk-operations', MODULE_NAMES.CE_RISK_SCORING_CONFIG],
   ['/admin/help', MODULE_NAMES.CE_ADMIN_HELP],
   ['/admin', MODULE_NAMES.CE_SETTINGS],
-].sort((a, b) => b[0].length - a[0].length); // longest prefix wins
+].sort((a, b) => b[0].length - a[0].length) as Array<[string, string]>; // longest prefix wins
 
 function resolveModuleForPath(pathname: string): string | null {
   // pathname comes in absolute (e.g. /compliance/admin/help) — strip the /compliance prefix
