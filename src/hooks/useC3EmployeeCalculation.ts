@@ -554,10 +554,75 @@ function calculateEmployeeLevy(
                baseAmt: Number(d.base_amt),
                taxRate: Number(d.tax_rate)
              }));
-             setSlabDetails(mappedSlabs);
-           }
-         }
-       } catch (err) {
+              setSlabDetails(mappedSlabs);
+            }
+          }
+
+          // Fetch active bonus policy for this period (exception first, then default)
+          let resolvedPolicy: BonusPolicyData | null = null;
+          const { data: excData } = await supabase
+            .from('c3_bonus_policy_exceptions')
+            .select('*')
+            .eq('is_active', true)
+            .eq('override_default', true)
+            .lte('date_from', periodDate)
+            .or(`date_to.gte.${periodDate},date_to.is.null`)
+            .order('date_from', { ascending: false })
+            .limit(1);
+
+          if (excData && excData.length > 0) {
+            const exc = excData[0];
+            const matchesMonth = exc.exception_month === (periodMonth + 1);
+            const matchesYear = exc.year_from <= periodYear &&
+              (exc.year_to === null || exc.year_to >= periodYear);
+            if (matchesMonth && matchesYear) {
+              resolvedPolicy = {
+                id: exc.id,
+                includeInLevy: exc.include_in_levy ?? false,
+                calculationMethod: (exc.calculation_method ?? 'merge') as 'merge' | 'separate',
+                calcFlatEnabled: exc.calc_flat_enabled ?? false,
+                calcFlatPercentage: exc.calc_flat_percentage,
+                calcSlabEnabled: exc.calc_slab_enabled ?? false,
+                distribution: exc.distribution,
+                minBonusAmount: exc.min_bonus_amount,
+                maxBonusAmount: exc.max_bonus_amount,
+                contribEmployee: exc.contrib_employee ?? false,
+                contribEmployer: exc.contrib_employer ?? false,
+                contribEIR: exc.contrib_eir ?? false,
+                contribSeverance: exc.contrib_severance ?? false,
+              };
+            }
+          }
+
+          if (!resolvedPolicy) {
+            const { data: defData } = await supabase
+              .from('c3_bonus_policy_default')
+              .select('*')
+              .eq('is_active', true)
+              .lte('date_from', periodDate)
+              .or(`date_to.gte.${periodDate},date_to.is.null`)
+              .order('date_from', { ascending: false })
+              .limit(1);
+            if (defData && defData.length > 0) {
+              const def = defData[0];
+              resolvedPolicy = {
+                id: def.id,
+                includeInLevy: def.include_in_levy,
+                calculationMethod: (def.calculation_method ?? 'merge') as 'merge' | 'separate',
+                calcFlatEnabled: def.calc_flat_enabled,
+                calcFlatPercentage: def.calc_flat_percentage,
+                calcSlabEnabled: def.calc_slab_enabled,
+                distribution: def.distribution,
+                minBonusAmount: def.min_bonus_amount,
+                maxBonusAmount: def.max_bonus_amount,
+                contribEmployee: def.contrib_employee,
+                contribEmployer: def.contrib_employer,
+                contribEIR: def.contrib_eir,
+                contribSeverance: def.contrib_severance ?? false,
+              };
+            }
+          }
+          setBonusPolicy(resolvedPolicy);
          const errorMessage = err instanceof Error ? err.message : 'Failed to load C3 configuration';
          setError(errorMessage);
          console.error('Error loading C3 config:', err);
