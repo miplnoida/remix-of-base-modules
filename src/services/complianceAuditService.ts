@@ -87,19 +87,20 @@ export async function logAudit(input: LogAuditInput): Promise<string | null> {
     const performed_by = await resolveUserCode(input.performedBy);
     const { data, error } = await supabase
       .from('ce_audit_log')
-      .insert({
+      .insert([{
         entity_type: input.entityType,
         entity_id: input.entityId,
         action: input.action,
         description: input.description ?? null,
         reason: input.reason ?? null,
-        old_values: input.oldValues ?? null,
-        new_values: input.newValues ?? null,
+        old_values: (input.oldValues ?? null) as never,
+        new_values: (input.newValues ?? null) as never,
         workflow_task_id: input.workflowTaskId ?? null,
         performed_by,
-      })
+      }])
       .select('id')
       .single();
+
     if (error) {
       console.warn('[complianceAuditService] insert failed', error.message);
       return null;
