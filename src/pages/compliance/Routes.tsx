@@ -56,6 +56,12 @@ import ApprovedEscalationsPage from './legal/ApprovedEscalationsPage';
 import ReturnedFromLegalPage from './legal/ReturnedFromLegalPage';
 import LegalHandoffRulesPage from './admin/LegalHandoffRulesPage';
 
+// Risk & Employer Profile
+import RiskScoreDetailsPage from './risk/RiskScoreDetailsPage';
+import RepeatDefaultersPage from './risk/RepeatDefaultersPage';
+import HighRiskEmployersPage from './risk/HighRiskEmployersPage';
+import WatchlistPage from './risk/WatchlistPage';
+
 // Notices & Communications
 import NoticeRegister from './notices/NoticeRegister';
 import GenerateNoticePage from './notices/GenerateNoticePage';
@@ -215,10 +221,10 @@ const ComplianceRoutes = () => {
       <Route path="/legal/returned-from-legal" element={<ReturnedFromLegalPage />} />
 
       {/* Risk & Employer Profile */}
-      <Route path="/risk/score-details" element={<PlaceholderPage title="Risk Score Details" area="Risk And Employer Profile" />} />
-      <Route path="/risk/repeat-defaulters" element={<PlaceholderPage title="Repeat Defaulters" area="Risk And Employer Profile" />} />
-      <Route path="/risk/high-risk" element={<PlaceholderPage title="High Risk Employers" area="Risk And Employer Profile" />} />
-      <Route path="/risk/watchlist" element={<PlaceholderPage title="Watchlist" area="Risk And Employer Profile" />} />
+      <Route path="/risk/score-details" element={<RiskScoreDetailsPage />} />
+      <Route path="/risk/repeat-defaulters" element={<RepeatDefaultersPage />} />
+      <Route path="/risk/high-risk" element={<HighRiskEmployersPage />} />
+      <Route path="/risk/watchlist" element={<WatchlistPage />} />
 
       {/* Reports */}
       <Route path="/reports/automation-jobs" element={<AutomationJobReports />} />
