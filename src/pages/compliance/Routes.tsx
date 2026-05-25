@@ -6,6 +6,7 @@ import InspectorDashboard from './dashboards/InspectorDashboard';
 import LegalDashboard from './dashboards/LegalDashboard';
 import ComplianceMonitoring from './dashboards/ComplianceMonitoring';
 import ComplianceAnalytics from './dashboards/ComplianceAnalytics';
+import ComplianceCommandCenter from './dashboards/ComplianceCommandCenter';
 
 // Violations
 import ViolationsManagement from './violations/ViolationsManagement';
