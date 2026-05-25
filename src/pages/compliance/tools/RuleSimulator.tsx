@@ -92,21 +92,75 @@ export default function RuleSimulator() {
       rules.detectionRules,
       rules.calculationRules,
       rules.escalationRules,
-      rules.violationTypes
+      rules.violationTypes,
+      {
+        ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
+        existingViolationsByVtId: context?.existingViolationsByVtId ?? {},
+      }
     );
 
     setOutput(result);
-    toast.success(`Simulation complete: ${result.summary.matchedDetections} detection(s) matched`);
-  }, [facts, rules, overriddenFields]);
+    const dup = result.summary.duplicatesSuppressed;
+    toast.success(
+      `Simulation complete: ${result.summary.matchedDetections} detection(s) matched` +
+        (dup > 0 ? ` — ${dup} suppressed as duplicate` : '')
+    );
+  }, [facts, rules, overriddenFields, ruleCodeFilter, context]);
 
   const handleReset = useCallback(() => {
     setFacts(createDefaultFactContext());
     setOutput(null);
     setOverriddenFields(new Set());
+    setRuleCodeFilter('__all__');
+    setPeriodOverride('');
     if (context?.facts) {
       setFacts(prev => ({ ...prev, ...context.facts, overriddenFields: [] }));
     }
   }, [context]);
+
+  const handleSaveRun = useCallback(() => {
+    if (!output) {
+      toast.error('Run a simulation first');
+      return;
+    }
+    saveRun.mutate(
+      {
+        ruleCode: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
+        ruleType: 'all',
+        employerRegno: selectedRegNo,
+        period: periodOverride || facts.filingPeriod || null,
+        facts,
+        output,
+      },
+      {
+        onSuccess: () => toast.success('Simulation run saved'),
+        onError: (e: any) => toast.error(`Failed to save: ${e?.message ?? 'unknown error'}`),
+      }
+    );
+  }, [output, saveRun, ruleCodeFilter, selectedRegNo, periodOverride, facts]);
+
+  const handleExport = useCallback(() => {
+    if (!output) {
+      toast.error('Run a simulation first');
+      return;
+    }
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      employer: { regno: selectedRegNo, name: selectedName, status: selectedStatus },
+      ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
+      periodOverride: periodOverride || null,
+      facts,
+      output,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `simulation-${selectedRegNo ?? 'manual'}-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Simulation exported');
+  }, [output, selectedRegNo, selectedName, selectedStatus, ruleCodeFilter, periodOverride, facts]);
 
   return (
     <div className="space-y-4">
