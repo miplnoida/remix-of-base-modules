@@ -112,7 +112,9 @@ function ViolationsManagementInner() {
           { label: 'Compliance', href: '/compliance' },
           { label: 'Violations Management' }
         ]}
+        actions={<ComplianceHelpButton screenKey="violations" />}
       />
+
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-4">
