@@ -17738,6 +17738,131 @@ export type Database = {
           },
         ]
       }
+      ce_legal_handoff_rules: {
+        Row: {
+          applicable_funds: string[]
+          applicable_violation_type_ids: string[]
+          code: string
+          created_at: string
+          created_by: string | null
+          days_after_final_notice: number
+          description: string | null
+          employer_response_window_days: number
+          enabled: boolean
+          id: string
+          integration_mode: string
+          min_outstanding_amount: number
+          min_severity: string | null
+          name: string
+          notes: string | null
+          require_arrangement_breach: boolean
+          require_repeat_default: boolean
+          required_evidence: string[]
+          required_notice_count: number
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          applicable_funds?: string[]
+          applicable_violation_type_ids?: string[]
+          code: string
+          created_at?: string
+          created_by?: string | null
+          days_after_final_notice?: number
+          description?: string | null
+          employer_response_window_days?: number
+          enabled?: boolean
+          id?: string
+          integration_mode?: string
+          min_outstanding_amount?: number
+          min_severity?: string | null
+          name: string
+          notes?: string | null
+          require_arrangement_breach?: boolean
+          require_repeat_default?: boolean
+          required_evidence?: string[]
+          required_notice_count?: number
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          applicable_funds?: string[]
+          applicable_violation_type_ids?: string[]
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          days_after_final_notice?: number
+          description?: string | null
+          employer_response_window_days?: number
+          enabled?: boolean
+          id?: string
+          integration_mode?: string
+          min_outstanding_amount?: number
+          min_severity?: string | null
+          name?: string
+          notes?: string | null
+          require_arrangement_breach?: boolean
+          require_repeat_default?: boolean
+          required_evidence?: string[]
+          required_notice_count?: number
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      ce_legal_pack_items: {
+        Row: {
+          created_at: string
+          id: string
+          is_required: boolean
+          is_satisfied: boolean
+          item_key: string
+          item_label: string
+          notes: string | null
+          referral_id: string
+          satisfied_at: string | null
+          satisfied_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          is_satisfied?: boolean
+          item_key: string
+          item_label: string
+          notes?: string | null
+          referral_id: string
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          is_satisfied?: boolean
+          item_key?: string
+          item_label?: string
+          notes?: string | null
+          referral_id?: string
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_legal_pack_items_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "ce_legal_referrals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_legal_proceedings: {
         Row: {
           arrears: number | null
@@ -18044,6 +18169,59 @@ export type Database = {
             columns: ["recommendation_id"]
             isOneToOne: false
             referencedRelation: "ce_legal_recommendations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_legal_returns: {
+        Row: {
+          created_at: string
+          id: string
+          reason: string
+          referral_id: string
+          required_action: string | null
+          resolution_notes: string | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          returned_at: string
+          returned_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reason: string
+          referral_id: string
+          required_action?: string | null
+          resolution_notes?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          returned_at?: string
+          returned_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reason?: string
+          referral_id?: string
+          required_action?: string | null
+          resolution_notes?: string | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          returned_at?: string
+          returned_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_legal_returns_referral_id_fkey"
+            columns: ["referral_id"]
+            isOneToOne: false
+            referencedRelation: "ce_legal_referrals"
             referencedColumns: ["id"]
           },
         ]
