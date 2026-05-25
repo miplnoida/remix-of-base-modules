@@ -21257,6 +21257,7 @@ export type Database = {
           discovered_by: string | null
           discovered_date: string
           due_date: string | null
+          duplicate_of_id: string | null
           employer_id: string | null
           employer_name: string | null
           escalated_at: string | null
@@ -21294,6 +21295,10 @@ export type Database = {
           total_amount: number | null
           updated_at: string | null
           updated_by: string | null
+          verification_decision: string | null
+          verification_notes: string | null
+          verification_reviewed_at: string | null
+          verification_reviewed_by: string | null
           violation_number: string
           violation_type_id: string | null
           zone_id: string | null
@@ -21318,6 +21323,7 @@ export type Database = {
           discovered_by?: string | null
           discovered_date?: string
           due_date?: string | null
+          duplicate_of_id?: string | null
           employer_id?: string | null
           employer_name?: string | null
           escalated_at?: string | null
@@ -21355,6 +21361,10 @@ export type Database = {
           total_amount?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          verification_decision?: string | null
+          verification_notes?: string | null
+          verification_reviewed_at?: string | null
+          verification_reviewed_by?: string | null
           violation_number: string
           violation_type_id?: string | null
           zone_id?: string | null
@@ -21379,6 +21389,7 @@ export type Database = {
           discovered_by?: string | null
           discovered_date?: string
           due_date?: string | null
+          duplicate_of_id?: string | null
           employer_id?: string | null
           employer_name?: string | null
           escalated_at?: string | null
@@ -21416,6 +21427,10 @@ export type Database = {
           total_amount?: number | null
           updated_at?: string | null
           updated_by?: string | null
+          verification_decision?: string | null
+          verification_notes?: string | null
+          verification_reviewed_at?: string | null
+          verification_reviewed_by?: string | null
           violation_number?: string
           violation_type_id?: string | null
           zone_id?: string | null
@@ -21447,6 +21462,13 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violations_duplicate_of_id_fkey"
+            columns: ["duplicate_of_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
             referencedColumns: ["id"]
           },
           {
