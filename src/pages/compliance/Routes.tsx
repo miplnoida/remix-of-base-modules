@@ -146,9 +146,10 @@ const ComplianceRoutes = () => {
 
       {/* Violations */}
       <Route path="/violations/verification-queue" element={<VerificationQueue />} />
-      <Route path="/violations/rule-detected" element={<PlaceholderPage title="Rule Detected Violations" area="Violations" />} />
+      <Route path="/violations/rule-detected" element={<RuleDetectedViolations />} />
       <Route path="/violations/duplicate-review" element={<DuplicateReview />} />
-      <Route path="/violations/history" element={<PlaceholderPage title="Violation History" area="Violations" />} />
+      <Route path="/violations/history" element={<ViolationHistory />} />
+
 
       {/* Cases */}
       <Route path="/cases/intake" element={<PlaceholderPage title="Case Intake" area="Compliance Cases" />} />
