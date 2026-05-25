@@ -21,6 +21,11 @@ import ViolationHistory from './violations/ViolationHistory';
 import CaseManagement from './cases/CaseManagement';
 import CaseQueue from './cases/CaseQueue';
 import PenaltyManagement from './cases/PenaltyManagement';
+import CaseIntake from './cases/CaseIntake';
+import AssignedCases from './cases/AssignedCases';
+import CaseClosurePage from './cases/CaseClosurePage';
+import ReopenRequestsPage from './cases/ReopenRequestsPage';
+import CaseMergeReviewPage from './cases/CaseMergeReviewPage';
 
 // Inspections
 import InspectionManagement from './inspections/InspectionManagement';
@@ -153,11 +158,11 @@ const ComplianceRoutes = () => {
 
 
       {/* Cases */}
-      <Route path="/cases/intake" element={<PlaceholderPage title="Case Intake" area="Compliance Cases" />} />
-      <Route path="/cases/assigned" element={<PlaceholderPage title="Assigned Cases" area="Compliance Cases" />} />
-      <Route path="/cases/merge-review" element={<PlaceholderPage title="Case Merge Review" area="Compliance Cases" />} />
-      <Route path="/cases/reopen-requests" element={<PlaceholderPage title="Reopen Requests" area="Compliance Cases" />} />
-      <Route path="/cases/closure" element={<PlaceholderPage title="Case Closure" area="Compliance Cases" />} />
+      <Route path="/cases/intake" element={<CaseIntake />} />
+      <Route path="/cases/assigned" element={<AssignedCases />} />
+      <Route path="/cases/merge-review" element={<CaseMergeReviewPage />} />
+      <Route path="/cases/reopen-requests" element={<ReopenRequestsPage />} />
+      <Route path="/cases/closure" element={<CaseClosurePage />} />
 
       {/* Notices & Communications */}
       <Route path="/notices/generate" element={<PlaceholderPage title="Generate Notice" area="Notices And Communications" />} />
