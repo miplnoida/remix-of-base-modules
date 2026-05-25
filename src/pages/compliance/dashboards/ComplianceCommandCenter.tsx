@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { ComplianceHelpButton } from '@/components/help/ComplianceHelpButton';
 import {
   AlertTriangle, Briefcase, ShieldAlert, Bell, HandshakeIcon, Scale,
   Users, Activity, Zap, DollarSign, ArrowRight, Loader2, CheckCircle2,
