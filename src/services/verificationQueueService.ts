@@ -256,6 +256,26 @@ export async function confirmViolation(violationId: string, performedBy: string,
     .eq('id', violationId);
   if (error) throw error;
   await writeHistory(violationId, 'Verification Confirmed', 'UNDER_REVIEW', 'OPEN', performedBy, notes);
+
+  // Auto-resolve grouping (attach/create/send-to-intake) per case family config
+  try {
+    const { decideGrouping, applyGroupingDecision } = await import('./caseFamiliesService');
+    const decision = await decideGrouping(violationId);
+    await applyGroupingDecision({
+      violationId,
+      decision: decision.decision,
+      caseFamilyId: decision.caseFamilyId,
+      targetCaseId: decision.targetCaseId,
+      candidateCaseIds: decision.candidateCaseIds,
+      matched: decision.matched,
+      reason: decision.reason,
+      decidedBy: performedBy,
+    });
+  } catch (err) {
+    // Non-blocking: confirmation succeeds even if grouping fails (logged for ops)
+    // eslint-disable-next-line no-console
+    console.error('[grouping] failed for violation', violationId, err);
+  }
 }
 
 export async function rejectViolation(violationId: string, performedBy: string, notes: string) {
