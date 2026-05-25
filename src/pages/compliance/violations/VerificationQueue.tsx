@@ -70,7 +70,7 @@ function VerificationQueueInner() {
     <div className="p-6 space-y-4">
       <PageHeader
         title="Verification Queue"
-        description="Review detected possible violations before they become confirmed."
+        subtitle="Review detected possible violations before they become confirmed."
       />
 
       {settingsQ.data && !settingsQ.data.enabled && (
