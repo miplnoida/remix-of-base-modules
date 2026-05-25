@@ -56,7 +56,23 @@ export interface C3ConfigData {
    baseAmt: number;
    taxRate: number;
  }
- 
+
+ export interface BonusPolicyData {
+   id: string;
+   includeInLevy: boolean;
+   calculationMethod: 'merge' | 'separate';
+   calcFlatEnabled: boolean;
+   calcFlatPercentage: number | null;
+   calcSlabEnabled: boolean;
+   distribution: any;
+   minBonusAmount: number | null;
+   maxBonusAmount: number | null;
+   contribEmployee: boolean;
+   contribEmployer: boolean;
+   contribEIR: boolean;
+   contribSeverance: boolean;
+ }
+
  export interface EmployeeCalculationInputs {
    weeklyWages: number[];
    payPeriod: string;
