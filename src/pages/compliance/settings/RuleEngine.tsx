@@ -1312,6 +1312,23 @@ const RuleEngine = () => {
       />
 
       {/* Help system */}
+      <RuleHistoryDialog
+        open={!!historyTarget}
+        onOpenChange={(v) => { if (!v) setHistoryTarget(null); }}
+        ruleTable={historyTarget?.table ?? null}
+        ruleId={historyTarget?.id ?? null}
+        ruleLabel={historyTarget?.label}
+      />
+      <RuleActivationImpactDialog
+        open={!!impactState}
+        onOpenChange={(v) => { if (!v) setImpactState(null); }}
+        info={impactState?.info ?? null}
+        validationErrors={impactState?.errors ?? []}
+        onConfirm={async () => {
+          try { await impactState?.commit(); }
+          catch (err: any) { toast.error('Activation failed', { description: err.message }); }
+        }}
+      />
       <HelpSidebar />
       <ConnectedHelpSearch />
     </div>
