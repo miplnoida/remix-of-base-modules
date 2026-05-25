@@ -189,11 +189,13 @@ const ComplianceRoutes = () => {
       <Route path="/notices/communication-history" element={<CommunicationHistoryPage />} />
 
       {/* Payment Arrangements */}
-      <Route path="/arrangements/new" element={<PlaceholderPage title="New Arrangement" area="Payment Arrangements" />} />
-      <Route path="/arrangements/pending-approval" element={<PlaceholderPage title="Pending Approval" area="Payment Arrangements" />} />
-      <Route path="/arrangements/active" element={<PlaceholderPage title="Active Arrangements" area="Payment Arrangements" />} />
-      <Route path="/arrangements/installments-due" element={<PlaceholderPage title="Installments Due" area="Payment Arrangements" />} />
-      <Route path="/arrangements/payment-allocation" element={<PlaceholderPage title="Payment Allocation" area="Payment Arrangements" />} />
+      <Route path="/arrangements/all" element={<AllArrangementsPage />} />
+      <Route path="/arrangements/new" element={<NewArrangementPage />} />
+      <Route path="/arrangements/pending-approval" element={<ArrangementPendingApprovalPage />} />
+      <Route path="/arrangements/active" element={<ActiveArrangementsPage />} />
+      <Route path="/arrangements/installments-due" element={<InstallmentsDuePage />} />
+      <Route path="/arrangements/breaches" element={<BreachesPage />} />
+      <Route path="/arrangements/payment-allocation" element={<PaymentAllocationPage />} />
 
       {/* Inspections */}
       <Route path="/inspections/evidence" element={<PlaceholderPage title="Evidence" area="Inspections" />} />
