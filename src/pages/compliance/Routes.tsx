@@ -7,6 +7,7 @@ import LegalDashboard from './dashboards/LegalDashboard';
 import ComplianceMonitoring from './dashboards/ComplianceMonitoring';
 import ComplianceAnalytics from './dashboards/ComplianceAnalytics';
 import ComplianceCommandCenter from './dashboards/ComplianceCommandCenter';
+import ComplianceHelpAdmin from './admin/ComplianceHelpAdmin';
 
 // Violations
 import ViolationsManagement from './violations/ViolationsManagement';
@@ -242,7 +243,7 @@ const ComplianceRoutes = () => {
       <Route path="/admin/waiver-rules" element={<WaiverRulesPage />} />
       <Route path="/waivers/requests" element={<WaiverRequestsQueue />} />
       <Route path="/admin/legal-handoff-rules" element={<LegalHandoffRulesPage />} />
-      <Route path="/admin/help" element={<PlaceholderPage title="Help And Instructions" area="Administration" />} />
+      <Route path="/admin/help" element={<ComplianceHelpAdmin />} />
 
       {/* ═══════════════════════════════════════════════════════
           1. WORKBENCH — dashboards, monitoring, queues

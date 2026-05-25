@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { ComplianceHelpButton } from '@/components/help/ComplianceHelpButton';
 import {
   AlertTriangle, Briefcase, ShieldAlert, Bell, HandshakeIcon, Scale,
   Users, Activity, Zap, DollarSign, ArrowRight, Loader2, CheckCircle2,
@@ -248,6 +249,7 @@ export default function ComplianceCommandCenter() {
         title="Compliance Command Center"
         subtitle="Real-time view of enforcement health, workload, and recovery"
         breadcrumbs={[{ label: 'Compliance', href: '/compliance/dashboard' }, { label: 'Command Center' }]}
+        actions={<ComplianceHelpButton screenKey="dashboard" />}
       />
 
       {/* Primary widgets */}
