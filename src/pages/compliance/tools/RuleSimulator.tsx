@@ -188,7 +188,42 @@ export default function RuleSimulator() {
             Test configured detection, calculation, and escalation rules safely
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={ruleCodeFilter} onValueChange={setRuleCodeFilter}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="All rules" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All enabled rules</SelectItem>
+              {rules?.detectionRules.map(r => (
+                <SelectItem key={`d-${r.id}`} value={r.rule_code}>
+                  {r.rule_code} — {r.name}
+                </SelectItem>
+              ))}
+              {rules?.calculationRules.map(r => (
+                <SelectItem key={`c-${r.id}`} value={r.rule_code}>
+                  {r.rule_code} — {r.name}
+                </SelectItem>
+              ))}
+              {rules?.escalationRules.map(r => (
+                <SelectItem key={`e-${r.id}`} value={r.rule_code}>
+                  {r.rule_code} — {r.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-1">
+            <Label htmlFor="period-override" className="text-xs text-muted-foreground">
+              Period
+            </Label>
+            <Input
+              id="period-override"
+              type="month"
+              value={periodOverride}
+              onChange={e => setPeriodOverride(e.target.value)}
+              className="h-8 w-[150px] text-xs"
+            />
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -203,6 +238,26 @@ export default function RuleSimulator() {
           </Button>
           <Button size="sm" onClick={handleRun} disabled={rulesLoading} className="gap-1.5 text-xs">
             <Play className="h-3.5 w-3.5" /> Run Simulation
+          </Button>
+          {canSave && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveRun}
+              disabled={!output || saveRun.isPending}
+              className="gap-1.5 text-xs"
+            >
+              <Save className="h-3.5 w-3.5" /> Save Run
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={!output}
+            className="gap-1.5 text-xs"
+          >
+            <Download className="h-3.5 w-3.5" /> Export
           </Button>
         </div>
       </div>
