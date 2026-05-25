@@ -13337,16 +13337,26 @@ export type Database = {
       }
       ce_case_families: {
         Row: {
+          allowed_violation_type_ids: string[]
           auto_create_case: boolean
           code: string
           created_at: string
           created_by: string | null
+          default_notice_sequence_id: string | null
+          default_officer_queue_id: string | null
+          default_severity: string
+          default_workflow_id: string | null
           description: string | null
           escalation_threshold_amount: number | null
           escalation_threshold_days: number | null
+          grouping_rule: Json
           id: string
           is_active: boolean
+          legal_eligible: boolean
+          manual_intake_on_no_match: boolean
+          merge_allowed: boolean
           name: string
+          reopen_allowed: boolean
           reopen_window_days: number | null
           severity_weights: Json | null
           sort_order: number | null
@@ -13355,16 +13365,26 @@ export type Database = {
           violation_categories: string[]
         }
         Insert: {
+          allowed_violation_type_ids?: string[]
           auto_create_case?: boolean
           code: string
           created_at?: string
           created_by?: string | null
+          default_notice_sequence_id?: string | null
+          default_officer_queue_id?: string | null
+          default_severity?: string
+          default_workflow_id?: string | null
           description?: string | null
           escalation_threshold_amount?: number | null
           escalation_threshold_days?: number | null
+          grouping_rule?: Json
           id?: string
           is_active?: boolean
+          legal_eligible?: boolean
+          manual_intake_on_no_match?: boolean
+          merge_allowed?: boolean
           name: string
+          reopen_allowed?: boolean
           reopen_window_days?: number | null
           severity_weights?: Json | null
           sort_order?: number | null
@@ -13373,16 +13393,26 @@ export type Database = {
           violation_categories?: string[]
         }
         Update: {
+          allowed_violation_type_ids?: string[]
           auto_create_case?: boolean
           code?: string
           created_at?: string
           created_by?: string | null
+          default_notice_sequence_id?: string | null
+          default_officer_queue_id?: string | null
+          default_severity?: string
+          default_workflow_id?: string | null
           description?: string | null
           escalation_threshold_amount?: number | null
           escalation_threshold_days?: number | null
+          grouping_rule?: Json
           id?: string
           is_active?: boolean
+          legal_eligible?: boolean
+          manual_intake_on_no_match?: boolean
+          merge_allowed?: boolean
           name?: string
+          reopen_allowed?: boolean
           reopen_window_days?: number | null
           severity_weights?: Json | null
           sort_order?: number | null
@@ -21094,6 +21124,80 @@ export type Database = {
             columns: ["snapshot_id"]
             isOneToOne: false
             referencedRelation: "ce_employer_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_violation_grouping_decisions: {
+        Row: {
+          candidate_case_ids: string[] | null
+          case_family_id: string | null
+          decided_at: string
+          decided_by: string
+          decision: string
+          id: string
+          is_override: boolean
+          matched_criteria: Json | null
+          override_of: string | null
+          reason: string | null
+          target_case_id: string | null
+          violation_id: string
+        }
+        Insert: {
+          candidate_case_ids?: string[] | null
+          case_family_id?: string | null
+          decided_at?: string
+          decided_by: string
+          decision: string
+          id?: string
+          is_override?: boolean
+          matched_criteria?: Json | null
+          override_of?: string | null
+          reason?: string | null
+          target_case_id?: string | null
+          violation_id: string
+        }
+        Update: {
+          candidate_case_ids?: string[] | null
+          case_family_id?: string | null
+          decided_at?: string
+          decided_by?: string
+          decision?: string
+          id?: string
+          is_override?: boolean
+          matched_criteria?: Json | null
+          override_of?: string | null
+          reason?: string | null
+          target_case_id?: string | null
+          violation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_violation_grouping_decisions_case_family_id_fkey"
+            columns: ["case_family_id"]
+            isOneToOne: false
+            referencedRelation: "ce_case_families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violation_grouping_decisions_override_of_fkey"
+            columns: ["override_of"]
+            isOneToOne: false
+            referencedRelation: "ce_violation_grouping_decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violation_grouping_decisions_target_case_id_fkey"
+            columns: ["target_case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violation_grouping_decisions_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
             referencedColumns: ["id"]
           },
         ]
@@ -53537,6 +53641,10 @@ export type Database = {
           p_reason_text: string
         }
         Returns: string
+      }
+      fn_ce_decide_violation_grouping: {
+        Args: { p_violation_id: string }
+        Returns: Json
       }
       fn_ce_generate_legal_recommendations: {
         Args: { p_created_by?: string }
