@@ -249,6 +249,7 @@ export default function ComplianceCommandCenter() {
         title="Compliance Command Center"
         subtitle="Real-time view of enforcement health, workload, and recovery"
         breadcrumbs={[{ label: 'Compliance', href: '/compliance/dashboard' }, { label: 'Command Center' }]}
+        actions={<ComplianceHelpButton screenKey="dashboard" />}
       />
 
       {/* Primary widgets */}
