@@ -89,17 +89,21 @@ function parseContent(content: string): Partial<HelpForm> {
 
 export default function ComplianceHelpAdmin() {
   const qc = useQueryClient();
-  const { hasPermission, userCode } = useSupabaseAuth() as any;
+  const auth = useSupabaseAuth() as any;
+  const userCode: string | null = auth?.profile?.user_code ?? null;
   const [canEdit, setCanEdit] = useState<boolean>(false);
-  // Resolve permission lazily so UI still renders for view-only users.
-  useState(() => {
+  useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
-        const ok = await hasPermission?.('compliance', 'manage');
-        setCanEdit(!!ok);
-      } catch { setCanEdit(false); }
+        const ok = await auth?.hasPermission?.('compliance', 'manage');
+        if (!cancelled) setCanEdit(!!ok);
+      } catch {
+        if (!cancelled) setCanEdit(false);
+      }
     })();
-  });
+    return () => { cancelled = true; };
+  }, [auth]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
