@@ -328,7 +328,8 @@ function calculateEmployeeLevy(
  function performCalculation(
    inputs: EmployeeCalculationInputs,
    config: C3ConfigData,
-   slabDetails: LevySlabDetail[]
+   slabDetails: LevySlabDetail[],
+   bonusPolicy: BonusPolicyData | null
  ): EmployeeCalculationResult {
    const { weeklyWages, dateOfBirth, payPeriod } = inputs;
   
@@ -344,28 +345,31 @@ function calculateEmployeeLevy(
   // Calculate Total Wages = Week1-5 + Holiday + Bonus
   const totalWages = round2(week1 + week2 + week3 + week4 + week5 + holiday + bonus);
    
-  // Calculate Taxable Wages = Week1-5 + Holiday (NO bonus)
+  // Taxable Wages = Week1-5 + Holiday (excludes bonus by definition)
   const taxableWages = round2(week1 + week2 + week3 + week4 + week5 + holiday);
    
   // Check age eligibility
   const employeeAge = calculateAge(dateOfBirth);
   const isAgeExemptSS = employeeAge < config.minAgeSS || employeeAge > config.maxAgeSS;
   const isAgeExemptLevy = employeeAge < config.minAgeLevy || employeeAge > config.maxAgeLevy;
+
+  // Bonus eligibility per active policy (min/max gating)
+  const bonusEligible = isBonusEligible(bonus, bonusPolicy);
    
   // ========================================
   // Employee Contributions
   // ========================================
-  
-  // Employee SS = 5% of Taxable Wages (from config)
-  // CAPPED by employeeSSMaxWage from configuration
+
+  // Employee SS — base = taxable wages (+ bonus if policy.contribEmployee)
   let employeeSS = 0;
   if (!isAgeExemptSS) {
-    const cappedTaxableForEmployeeSS = Math.min(taxableWages, config.employeeSSMaxWage);
+    let employeeSSBase = taxableWages;
+    if (bonusEligible && bonusPolicy?.contribEmployee) employeeSSBase += bonus;
+    const cappedTaxableForEmployeeSS = Math.min(employeeSSBase, config.employeeSSMaxWage);
     employeeSS = round2(config.employeeSSRate * cappedTaxableForEmployeeSS);
    }
    
-  // Employee Levy = Slab-based calculation for each week + bonus levy
-  // Uses monthly switching logic when enabled and threshold exceeded
+  // Employee Levy — honors bonus policy (merge / separate / none)
   let employeeLevy = 0;
   let usedMonthlyLevyLogic = false;
   if (!isAgeExemptLevy) {
@@ -374,36 +378,40 @@ function calculateEmployeeLevy(
       payPeriod,
       slabDetails,
       config.levyMonthlyThreshold,
-      config.levyUseMonthlyWhenExceeded
+      config.levyUseMonthlyWhenExceeded,
+      bonusPolicy
     );
     employeeLevy = levyResult.totalLevy;
     usedMonthlyLevyLogic = levyResult.usedMonthlyLogic;
   }
    
   // ========================================
-  // Employer Contributions (all based on Taxable Wages)
+  // Employer Contributions
   // ========================================
    
-  // Employer SS = 5% of Taxable Wages (from config)
    let employerSS = 0;
-  // Employer EIB = 1% of Taxable Wages (from config)
    let employerEIB = 0;
    
    if (!isAgeExemptSS) {
-    // CAPPED by employerSSMaxWage from configuration
-    const cappedTaxableForEmployerSS = Math.min(taxableWages, config.employerSSMaxWage);
-    employerSS = round2(config.employerSSRate * cappedTaxableForEmployerSS);
-    employerEIB = round2(config.employerEIBRate * cappedTaxableForEmployerSS);
+    let employerSSBase = taxableWages;
+    if (bonusEligible && bonusPolicy?.contribEmployer) employerSSBase += bonus;
+    let employerEIBBase = taxableWages;
+    if (bonusEligible && bonusPolicy?.contribEIR) employerEIBBase += bonus;
+    employerSS = round2(config.employerSSRate * Math.min(employerSSBase, config.employerSSMaxWage));
+    employerEIB = round2(config.employerEIBRate * Math.min(employerEIBBase, config.employerSSMaxWage));
    }
    
-  // Total Employer SS = Employer SS + EIB (5% + 1% = 6%)
    const employerSSTotal = round2(employerSS + employerEIB);
    
-  // Employer Levy = 3% of Taxable Wages (from config)
-  const employerLevy = round2(config.employerLevyRate * taxableWages);
+  // Employer Levy base = taxable wages (+ bonus if includeInLevy)
+  let employerLevyBase = taxableWages;
+  if (bonusEligible && bonusPolicy?.includeInLevy) employerLevyBase += bonus;
+  const employerLevy = round2(config.employerLevyRate * employerLevyBase);
    
-  // Employer Severance = 1% of Taxable Wages (from config)
-  const employerSeverance = round2(config.employerSeveranceRate * taxableWages);
+  // Employer Severance base = taxable wages (+ bonus if contribSeverance)
+  let severanceBase = taxableWages;
+  if (bonusEligible && bonusPolicy?.contribSeverance) severanceBase += bonus;
+  const employerSeverance = round2(config.employerSeveranceRate * severanceBase);
    
   // ========================================
   // Output Totals (for display and compatibility)
