@@ -1,0 +1,119 @@
+/**
+ * Case Requests Service — closure / reopen / merge workflow
+ */
+import { supabase } from '@/integrations/supabase/client';
+
+export type CaseRequestType = 'CLOSURE' | 'REOPEN' | 'MERGE';
+export type CaseRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+
+export interface CaseRequestRow {
+  id: string;
+  case_id: string;
+  request_type: CaseRequestType;
+  target_case_id: string | null;
+  reason: string;
+  status: CaseRequestStatus;
+  requested_by: string;
+  requested_at: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_notes: string | null;
+  metadata: Record<string, unknown> | null;
+  case_number?: string;
+  employer_name?: string;
+  target_case_number?: string;
+}
+
+const TABLE = 'ce_case_requests' as never;
+
+export async function listCaseRequests(
+  type: CaseRequestType,
+  status: CaseRequestStatus = 'PENDING'
+): Promise<CaseRequestRow[]> {
+  const { data, error } = await (supabase.from(TABLE) as any)
+    .select('*, ce_cases!ce_case_requests_case_id_fkey(case_number, employer_name)')
+    .eq('request_type', type)
+    .eq('status', status)
+    .order('requested_at', { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return (data || []).map((r: any) => ({
+    ...r,
+    case_number: r.ce_cases?.case_number,
+    employer_name: r.ce_cases?.employer_name,
+  }));
+}
+
+export async function createCaseRequest(input: {
+  caseId: string;
+  type: CaseRequestType;
+  reason: string;
+  targetCaseId?: string;
+  requestedBy: string;
+}): Promise<void> {
+  const { error } = await (supabase.from(TABLE) as any).insert({
+    case_id: input.caseId,
+    request_type: input.type,
+    target_case_id: input.targetCaseId ?? null,
+    reason: input.reason,
+    requested_by: input.requestedBy,
+  });
+  if (error) throw error;
+}
+
+export async function reviewCaseRequest(input: {
+  id: string;
+  approve: boolean;
+  reviewedBy: string;
+  notes: string;
+}): Promise<void> {
+  const { data: req, error: fetchErr } = await (supabase.from(TABLE) as any)
+    .select('*').eq('id', input.id).maybeSingle();
+  if (fetchErr) throw fetchErr;
+  if (!req) throw new Error('Request not found');
+
+  const { error } = await (supabase.from(TABLE) as any)
+    .update({
+      status: input.approve ? 'APPROVED' : 'REJECTED',
+      reviewed_by: input.reviewedBy,
+      reviewed_at: new Date().toISOString(),
+      review_notes: input.notes,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.id);
+  if (error) throw error;
+
+  if (!input.approve) return;
+
+  // Apply side-effect on approval
+  if (req.request_type === 'CLOSURE') {
+    await supabase.from('ce_cases').update({
+      status: 'CLOSED',
+      closed_date: new Date().toISOString().slice(0, 10),
+      closure_reason: req.reason,
+      updated_by: input.reviewedBy,
+      updated_at: new Date().toISOString(),
+    }).eq('id', req.case_id);
+  } else if (req.request_type === 'REOPEN') {
+    const { data: existing } = await supabase.from('ce_cases')
+      .select('reopened_count').eq('id', req.case_id).maybeSingle();
+    await supabase.from('ce_cases').update({
+      status: 'OPEN',
+      closed_date: null,
+      closure_reason: null,
+      reopened_count: ((existing as any)?.reopened_count || 0) + 1,
+      updated_by: input.reviewedBy,
+      updated_at: new Date().toISOString(),
+    }).eq('id', req.case_id);
+  } else if (req.request_type === 'MERGE' && req.target_case_id) {
+    await supabase.from('ce_cases').update({
+      status: 'CLOSED',
+      is_merged: true,
+      merged_into_case_id: req.target_case_id,
+      closed_date: new Date().toISOString().slice(0, 10),
+      closure_reason: `Merged: ${req.reason}`,
+      updated_by: input.reviewedBy,
+      updated_at: new Date().toISOString(),
+    }).eq('id', req.case_id);
+  }
+}
