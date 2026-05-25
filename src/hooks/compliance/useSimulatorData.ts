@@ -69,9 +69,9 @@ function daysBetween(from: Date, to: Date): number {
 
 // ── Load employer compliance context ──
 
-export function useEmployerComplianceContext(regno: string | null) {
+export function useEmployerComplianceContext(regno: string | null, periodOverride?: string | null) {
   return useQuery({
-    queryKey: ['simulator-employer-context', regno],
+    queryKey: ['simulator-employer-context', regno, periodOverride ?? null],
     queryFn: async (): Promise<{
       facts: Partial<SimulationFactContext>;
       filingHistory: any[];
@@ -92,6 +92,7 @@ export function useEmployerComplianceContext(regno: string | null) {
         hasActiveArrangement: boolean;
         currentNoticeStage: string | null;
       };
+      existingViolationsByVtId: Record<string, number>;
     }> => {
       if (!regno) throw new Error('No employer selected');
 
@@ -133,8 +134,13 @@ export function useEmployerComplianceContext(regno: string | null) {
       const levyMonthlyThreshold = config?.levy_monthly_threshold || 6500;
       const gracePeriodDays = 5; // from ce_compliance_policies
 
-      // ── Expected period analysis ──
-      const { periodStr, periodDate } = getExpectedPeriod();
+      // ── Expected period analysis (with override support) ──
+      let { periodStr, periodDate } = getExpectedPeriod();
+      if (periodOverride && /^\d{4}-\d{2}$/.test(periodOverride)) {
+        const [y, m] = periodOverride.split('-').map(Number);
+        periodDate = new Date(y, m - 1, 1);
+        periodStr = `${periodOverride}-01`;
+      }
       const now = new Date();
 
       // Check if C3 was filed for the expected period
@@ -305,6 +311,14 @@ export function useEmployerComplianceContext(regno: string | null) {
         legalResponseReceived: false,
       };
 
+      // Existing open/under-review violations grouped by violation_type_id for duplicate-suppression
+      const existingViolationsByVtId: Record<string, number> = {};
+      for (const v of violations) {
+        if (v.violation_type_id && (v.status === 'OPEN' || v.status === 'UNDER_REVIEW')) {
+          existingViolationsByVtId[v.violation_type_id] = (existingViolationsByVtId[v.violation_type_id] ?? 0) + 1;
+        }
+      }
+
       return {
         facts,
         filingHistory: c3s,
@@ -312,6 +326,7 @@ export function useEmployerComplianceContext(regno: string | null) {
         violations,
         arrangements,
         riskProfile: risk,
+        existingViolationsByVtId,
         snapshot: {
           filedCount,
           notFiledCount,

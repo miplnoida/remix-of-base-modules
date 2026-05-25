@@ -20552,6 +20552,51 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_rule_simulation_runs: {
+        Row: {
+          employer_regno: string | null
+          executed_at: string
+          executed_by: string | null
+          id: string
+          notes: string | null
+          period: string | null
+          result: Json
+          rule_code: string | null
+          rule_id: string | null
+          rule_type: string | null
+          simulation_context: Json
+          status: string
+        }
+        Insert: {
+          employer_regno?: string | null
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          notes?: string | null
+          period?: string | null
+          result?: Json
+          rule_code?: string | null
+          rule_id?: string | null
+          rule_type?: string | null
+          simulation_context?: Json
+          status?: string
+        }
+        Update: {
+          employer_regno?: string | null
+          executed_at?: string
+          executed_by?: string | null
+          id?: string
+          notes?: string | null
+          period?: string | null
+          result?: Json
+          rule_code?: string | null
+          rule_id?: string | null
+          rule_type?: string | null
+          simulation_context?: Json
+          status?: string
+        }
+        Relationships: []
+      }
       ce_rule_variable_mappings: {
         Row: {
           applies_to_rule_type: string
