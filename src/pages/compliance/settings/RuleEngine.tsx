@@ -1165,7 +1165,11 @@ const RuleEngine = () => {
                     {rule.condition_expression && <p className="text-xs font-mono text-primary/80">{rule.condition_expression}</p>}
                   </div>
                   <div className="flex items-center gap-3 ml-4">
-                    <Switch checked={rule.is_enabled ?? false} onCheckedChange={(checked) => toggleDetection.mutate({ id: rule.id, is_enabled: checked })} />
+                    <Switch checked={rule.is_enabled ?? false} onCheckedChange={(checked) => {
+                      if (checked) requestActivation('ce_detection_rules', rule, 'Detection');
+                      else toggleDetection.mutate({ id: rule.id, is_enabled: false });
+                    }} />
+                    <Button variant="ghost" size="icon" title="History" onClick={() => setHistoryTarget({ table: 'ce_detection_rules', id: rule.id, label: `${rule.rule_code} — ${rule.name}` })}><History className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => { setEditingDetection(rule); setDetectionDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
                   </div>
                 </div>
