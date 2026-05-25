@@ -46,57 +46,50 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD', minimumFractionDigits: 2 });
 
-export default function ViolationsManagement() {
+function ViolationsManagementInner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearch = useDebounce(searchTerm, 400);
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const currentMonth = new Date().toISOString().slice(0, 7);
-  const [monthFilter, setMonthFilter] = useState<string>(currentMonth);
+  const [filters, setFilters] = useState({ ...emptyViolationFilterState, month: currentMonth });
+  const debouncedSearch = useDebounce(filters.search, 400);
   const [page, setPage] = useState(1);
-  const prevDebouncedRef = useState(debouncedSearch);
-  // Reset page when debounced search changes (not on every keystroke)
-  if (prevDebouncedRef[0] !== debouncedSearch) {
-    prevDebouncedRef[0] = debouncedSearch;
-    if (page !== 1) setPage(1);
-  }
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [splitTarget, setSplitTarget] = useState<any>(null);
 
   const filterParams = useMemo(() => ({
-    status: statusFilter,
-    priority: priorityFilter,
+    status: filters.status,
+    priority: filters.priority,
+    fund: filters.fund,
+    violationTypeId: filters.violationTypeId,
+    severity: filters.severity,
+    source: filters.source,
+    assignedOfficer: filters.assignedOfficer,
     search: debouncedSearch || undefined,
-    month: monthFilter || undefined,
-  }), [statusFilter, priorityFilter, debouncedSearch, monthFilter]);
+    month: filters.month || undefined,
+  }), [filters.status, filters.priority, filters.fund, filters.violationTypeId, filters.severity, filters.source, filters.assignedOfficer, filters.month, debouncedSearch]);
 
-  // Reset to page 1 when filters change
   const filterKey = JSON.stringify(filterParams);
 
-  // Paginated data query
   const { data: pageData, isLoading } = useQuery({
     queryKey: ['ce_violations_page', filterKey, page],
     queryFn: () => fetchViolationsPaginated({ ...filterParams, page, pageSize: PAGE_SIZE }),
-    placeholderData: (prev) => prev, // keep previous data while loading next page
+    placeholderData: (prev) => prev,
   });
 
-  // Summary counts — separate lightweight query, cached independently
   const { data: counts } = useQuery({
     queryKey: ['ce_violations_counts', filterKey],
     queryFn: () => fetchViolationSummaryCounts(filterParams),
-    staleTime: 30_000, // reuse for 30s
+    staleTime: 30_000,
   });
 
   const violations = pageData?.rows ?? [];
   const totalCount = pageData?.totalCount ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
-  const handleFilterChange = useCallback((setter: (v: string) => void) => (value: string) => {
-    setter(value);
+  const handleFiltersChange = useCallback((next: typeof filters) => {
+    setFilters(next);
     setPage(1);
     setSelectedIds([]);
   }, []);
