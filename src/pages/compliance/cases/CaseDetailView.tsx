@@ -26,6 +26,7 @@ import { fetchCaseById } from '@/services/complianceDataService';
 import { caseViolationService } from '@/services/caseViolationService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
