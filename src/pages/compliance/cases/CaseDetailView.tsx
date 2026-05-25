@@ -339,6 +339,9 @@ export default function CaseDetailView() {
               arrangementIds: caseArrangements.map((a: any) => a.id).filter(Boolean),
             }}
           />
+        </TabsContent>
+
+
 
 
         <TabsContent value="violations" className="space-y-4">
