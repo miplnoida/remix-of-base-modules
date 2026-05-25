@@ -242,6 +242,10 @@ function CaseFamiliesInner() {
           workflows={workflowsQ.data ?? []}
         />
       )}
+    </div>
+  );
+}
+
 
 function Editor({
   state,
