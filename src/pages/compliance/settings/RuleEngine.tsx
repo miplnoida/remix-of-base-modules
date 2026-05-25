@@ -25,6 +25,18 @@ import { HelpProvider } from '@/components/help/HelpProvider';
 import { HelpToolbar } from '@/components/help/HelpToolbar';
 import { HelpSidebar } from '@/components/help/HelpSidebar';
 import { ConnectedHelpSearch } from '@/components/help/ConnectedHelpSearch';
+import { useHasPermission } from '@/hooks/useNavigationMenu';
+import { logAudit } from '@/services/systemLoggerService';
+import {
+  validateDetectionRule,
+  validateCalculationRule,
+  validateEscalationRule,
+  formatIssues,
+} from '@/lib/compliance/ruleValidation';
+import { buildRuleExport, downloadRuleExport } from '@/lib/compliance/ruleExport';
+import RuleHistoryDialog, { RuleHistoryTable } from '@/components/compliance/detection/RuleHistoryDialog';
+import RuleActivationImpactDialog, { RuleImpactInfo } from '@/components/compliance/detection/RuleActivationImpactDialog';
+import { History, Download, ShieldCheck } from 'lucide-react';
 
 // ── Types ──
 
@@ -817,6 +829,10 @@ const RuleEngine = () => {
   const [activeTab, setActiveTab] = useState('detection');
   const queryClient = useQueryClient();
   const { userCode } = useUserCode();
+  const canManage =
+    useHasPermission('ce_admin_settings', 'edit') ||
+    useHasPermission('ce_admin_settings', 'manage') ||
+    useHasPermission('manage_compliance', 'edit');
 
   const screenKeyMap: Record<string, string> = {
     detection: 'rule-engine-detection',
@@ -832,6 +848,8 @@ const RuleEngine = () => {
   const [editingCalc, setEditingCalc] = useState<CalculationRule | null>(null);
   const [escDialogOpen, setEscDialogOpen] = useState(false);
   const [editingEsc, setEditingEsc] = useState<EscalationRule | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<{ table: RuleHistoryTable; id: string; label: string } | null>(null);
+  const [impactState, setImpactState] = useState<{ info: RuleImpactInfo; errors: string[]; commit: () => Promise<void> } | null>(null);
 
   // ── Queries ──
 

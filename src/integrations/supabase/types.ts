@@ -20459,6 +20459,99 @@ export type Database = {
           },
         ]
       }
+      ce_rule_change_requests: {
+        Row: {
+          applied_at: string | null
+          current_snapshot: Json | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          id: string
+          proposed_payload: Json
+          requested_action: string
+          requested_at: string
+          requested_by: string | null
+          rule_code: string | null
+          rule_id: string
+          rule_table: string
+          status: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          applied_at?: string | null
+          current_snapshot?: Json | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          proposed_payload: Json
+          requested_action: string
+          requested_at?: string
+          requested_by?: string | null
+          rule_code?: string | null
+          rule_id: string
+          rule_table: string
+          status?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          applied_at?: string | null
+          current_snapshot?: Json | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          proposed_payload?: Json
+          requested_action?: string
+          requested_at?: string
+          requested_by?: string | null
+          rule_code?: string | null
+          rule_id?: string
+          rule_table?: string
+          status?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: []
+      }
+      ce_rule_history: {
+        Row: {
+          action: string
+          after_value: Json | null
+          before_value: Json | null
+          changed_at: string
+          changed_by: string | null
+          id: string
+          notes: string | null
+          rule_code: string | null
+          rule_id: string
+          rule_table: string
+        }
+        Insert: {
+          action: string
+          after_value?: Json | null
+          before_value?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          notes?: string | null
+          rule_code?: string | null
+          rule_id: string
+          rule_table: string
+        }
+        Update: {
+          action?: string
+          after_value?: Json | null
+          before_value?: Json | null
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          notes?: string | null
+          rule_code?: string | null
+          rule_id?: string
+          rule_table?: string
+        }
+        Relationships: []
+      }
       ce_rule_variable_mappings: {
         Row: {
           applies_to_rule_type: string
