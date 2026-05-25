@@ -15,6 +15,8 @@ import {
 import { CasePaymentArrangementDialog } from '@/components/compliance/CasePaymentArrangementDialog';
 import { CaseRequestActions } from '@/components/compliance/CaseRequestActions';
 import { WorkflowStatusBadge } from '@/components/compliance/WorkflowStatusBadge';
+import RequestWaiverDialog from '@/components/compliance/RequestWaiverDialog';
+import { BadgePercent } from 'lucide-react';
 import { fetchPaymentArrangements } from '@/services/complianceDataService';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -65,6 +67,7 @@ export default function CaseDetailView() {
   const [cascadeReason, setCascadeReason] = useState('');
   const [cascading, setCascading] = useState(false);
   const [arrangementDialogOpen, setArrangementDialogOpen] = useState(false);
+  const [waiverDialogOpen, setWaiverDialogOpen] = useState(false);
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
@@ -249,6 +252,13 @@ export default function CaseDetailView() {
               <Button size="sm" onClick={() => setArrangementDialogOpen(true)}>
                 <HandshakeIcon className="h-4 w-4 mr-1" />
                 Create Payment Arrangement
+              </Button>
+            )}
+            {!['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) &&
+              (Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0) - Number((c as any).amount_waived ?? 0)) > 0 && (
+              <Button variant="outline" size="sm" onClick={() => setWaiverDialogOpen(true)}>
+                <BadgePercent className="h-4 w-4 mr-1" />
+                Request Waiver
               </Button>
             )}
             <CaseRequestActions
@@ -541,6 +551,22 @@ export default function CaseDetailView() {
         employerName={c.employer_name || 'Unknown Employer'}
         totalAmount={Number(c.total_amount) || 0}
         amountCollected={Number(c.amount_collected) || 0}
+      />
+
+      <RequestWaiverDialog
+        open={waiverDialogOpen}
+        onClose={() => setWaiverDialogOpen(false)}
+        context={{
+          employer_id: c.employer_id,
+          case_id: c.id,
+          fund: (c as any).fund_type ?? null,
+          source: 'CASE',
+          defaultAmount: Math.max(
+            0,
+            Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0) - Number((c as any).amount_waived ?? 0),
+          ),
+        }}
+        onCreated={() => queryClient.invalidateQueries({ queryKey: ['ce_case_detail', id] })}
       />
     </div>
   );

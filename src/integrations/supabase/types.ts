@@ -14226,6 +14226,7 @@ export type Database = {
       ce_cases: {
         Row: {
           amount_collected: number | null
+          amount_waived: number
           assigned_officer_id: string | null
           assigned_officer_name: string | null
           case_family: string | null
@@ -14270,6 +14271,7 @@ export type Database = {
         }
         Insert: {
           amount_collected?: number | null
+          amount_waived?: number
           assigned_officer_id?: string | null
           assigned_officer_name?: string | null
           case_family?: string | null
@@ -14314,6 +14316,7 @@ export type Database = {
         }
         Update: {
           amount_collected?: number | null
+          amount_waived?: number
           assigned_officer_id?: string | null
           assigned_officer_name?: string | null
           case_family?: string | null
@@ -21744,10 +21747,130 @@ export type Database = {
           },
         ]
       }
+      ce_waiver_decisions: {
+        Row: {
+          acted_at: string
+          acted_by: string | null
+          action: string
+          amount: number | null
+          comments: string | null
+          from_status: string | null
+          id: string
+          reason: string | null
+          to_status: string | null
+          waiver_id: string
+          workflow_definition_id: string | null
+        }
+        Insert: {
+          acted_at?: string
+          acted_by?: string | null
+          action: string
+          amount?: number | null
+          comments?: string | null
+          from_status?: string | null
+          id?: string
+          reason?: string | null
+          to_status?: string | null
+          waiver_id: string
+          workflow_definition_id?: string | null
+        }
+        Update: {
+          acted_at?: string
+          acted_by?: string | null
+          action?: string
+          amount?: number | null
+          comments?: string | null
+          from_status?: string | null
+          id?: string
+          reason?: string | null
+          to_status?: string | null
+          waiver_id?: string
+          workflow_definition_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_waiver_decisions_waiver_id_fkey"
+            columns: ["waiver_id"]
+            isOneToOne: false
+            referencedRelation: "ce_waivers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ce_waiver_rules: {
+        Row: {
+          amount_threshold: number | null
+          applicable_funds: Json
+          applicable_violation_type_ids: Json
+          approval_workflow_required: boolean
+          audit_required: boolean
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          enabled: boolean
+          id: string
+          max_percentage: number | null
+          name: string
+          notes: string | null
+          required_documents: Json
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+          valid_reasons: Json
+          waiver_type: string
+        }
+        Insert: {
+          amount_threshold?: number | null
+          applicable_funds?: Json
+          applicable_violation_type_ids?: Json
+          approval_workflow_required?: boolean
+          audit_required?: boolean
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          max_percentage?: number | null
+          name: string
+          notes?: string | null
+          required_documents?: Json
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          valid_reasons?: Json
+          waiver_type: string
+        }
+        Update: {
+          amount_threshold?: number | null
+          applicable_funds?: Json
+          applicable_violation_type_ids?: Json
+          approval_workflow_required?: boolean
+          audit_required?: boolean
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          max_percentage?: number | null
+          name?: string
+          notes?: string | null
+          required_documents?: Json
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          valid_reasons?: Json
+          waiver_type?: string
+        }
+        Relationships: []
+      }
       ce_waivers: {
         Row: {
           amount_approved: number | null
           amount_requested: number | null
+          applied_at: string | null
           approved_at: string | null
           approver_comments: string | null
           approver_decision: string | null
@@ -21758,22 +21881,29 @@ export type Database = {
           employer_id: string
           id: string
           justification: string
+          reason_code: string | null
+          rejected_reason: string | null
           requested_at: string | null
           requested_by: string | null
           reviewed_at: string | null
           reviewer_comments: string | null
           reviewer_decision: string | null
           reviewer_id: string | null
+          source: string | null
           status: string | null
           supporting_documents: Json | null
           updated_at: string | null
           updated_by: string | null
+          violation_id: string | null
           waiver_number: string
+          waiver_rule_id: string | null
           waiver_type: string
+          workflow_definition_id: string | null
         }
         Insert: {
           amount_approved?: number | null
           amount_requested?: number | null
+          applied_at?: string | null
           approved_at?: string | null
           approver_comments?: string | null
           approver_decision?: string | null
@@ -21784,22 +21914,29 @@ export type Database = {
           employer_id: string
           id?: string
           justification: string
+          reason_code?: string | null
+          rejected_reason?: string | null
           requested_at?: string | null
           requested_by?: string | null
           reviewed_at?: string | null
           reviewer_comments?: string | null
           reviewer_decision?: string | null
           reviewer_id?: string | null
+          source?: string | null
           status?: string | null
           supporting_documents?: Json | null
           updated_at?: string | null
           updated_by?: string | null
+          violation_id?: string | null
           waiver_number: string
+          waiver_rule_id?: string | null
           waiver_type: string
+          workflow_definition_id?: string | null
         }
         Update: {
           amount_approved?: number | null
           amount_requested?: number | null
+          applied_at?: string | null
           approved_at?: string | null
           approver_comments?: string | null
           approver_decision?: string | null
@@ -21810,18 +21947,24 @@ export type Database = {
           employer_id?: string
           id?: string
           justification?: string
+          reason_code?: string | null
+          rejected_reason?: string | null
           requested_at?: string | null
           requested_by?: string | null
           reviewed_at?: string | null
           reviewer_comments?: string | null
           reviewer_decision?: string | null
           reviewer_id?: string | null
+          source?: string | null
           status?: string | null
           supporting_documents?: Json | null
           updated_at?: string | null
           updated_by?: string | null
+          violation_id?: string | null
           waiver_number?: string
+          waiver_rule_id?: string | null
           waiver_type?: string
+          workflow_definition_id?: string | null
         }
         Relationships: [
           {
@@ -21829,6 +21972,20 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_waivers_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_waivers_waiver_rule_id_fkey"
+            columns: ["waiver_rule_id"]
+            isOneToOne: false
+            referencedRelation: "ce_waiver_rules"
             referencedColumns: ["id"]
           },
         ]
