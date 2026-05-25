@@ -359,3 +359,11 @@ function ViolationsManagementInner() {
     </div>
   );
 }
+
+export default function ViolationsManagement() {
+  return (
+    <PermissionWrapper moduleName={MODULE}>
+      <ViolationsManagementInner />
+    </PermissionWrapper>
+  );
+}
