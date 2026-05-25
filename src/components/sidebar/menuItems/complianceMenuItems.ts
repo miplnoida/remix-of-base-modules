@@ -155,7 +155,7 @@ const arrangements: SubItem = {
     { title: "Pending Approval", url: "/compliance/arrangements/pending-approval", icon: ClipboardCheck, requiresPermission: "manage_compliance", __feature: "arrangements.pendingApproval" },
     { title: "Active Arrangements", url: "/compliance/arrangements/active", icon: Activity, requiresPermission: "manage_compliance", __feature: "arrangements.active" },
     { title: "Installments Due", url: "/compliance/arrangements/installments-due", icon: Calendar, requiresPermission: "manage_compliance", __feature: "arrangements.installmentsDue" },
-    { title: "Breaches", url: "/compliance/enforcement/breaches", icon: ShieldAlert, requiresPermission: "manage_compliance" },
+    { title: "Breaches", url: "/compliance/arrangements/breaches", icon: ShieldAlert, requiresPermission: "manage_compliance" },
     { title: "Payment Allocation", url: "/compliance/arrangements/payment-allocation", icon: DollarSign, requiresPermission: "manage_compliance", __feature: "arrangements.paymentAllocation" },
   ]),
 };
