@@ -118,7 +118,9 @@ export default function PaymentArrangements() {
           { label: 'Compliance', href: '/compliance/dashboard' },
           { label: 'Payment Arrangements' },
         ]}
+        actions={<ComplianceHelpButton screenKey="arrangements" />}
       />
+
 
       {/* KPI cards */}
       <div className="grid gap-4 md:grid-cols-5">
