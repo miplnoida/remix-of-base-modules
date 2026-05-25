@@ -623,9 +623,10 @@ function calculateEmployeeLevy(
             }
           }
           setBonusPolicy(resolvedPolicy);
-         const errorMessage = err instanceof Error ? err.message : 'Failed to load C3 configuration';
-         setError(errorMessage);
-         console.error('Error loading C3 config:', err);
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to load C3 configuration';
+          setError(errorMessage);
+          console.error('Error loading C3 config:', err);
        } finally {
          setIsLoading(false);
        }
