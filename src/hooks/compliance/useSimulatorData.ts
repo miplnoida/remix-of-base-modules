@@ -134,8 +134,13 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
       const levyMonthlyThreshold = config?.levy_monthly_threshold || 6500;
       const gracePeriodDays = 5; // from ce_compliance_policies
 
-      // ── Expected period analysis ──
-      const { periodStr, periodDate } = getExpectedPeriod();
+      // ── Expected period analysis (with override support) ──
+      let { periodStr, periodDate } = getExpectedPeriod();
+      if (periodOverride && /^\d{4}-\d{2}$/.test(periodOverride)) {
+        const [y, m] = periodOverride.split('-').map(Number);
+        periodDate = new Date(y, m - 1, 1);
+        periodStr = `${periodOverride}-01`;
+      }
       const now = new Date();
 
       // Check if C3 was filed for the expected period
