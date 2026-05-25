@@ -123,9 +123,79 @@ import QueueMembers from './staff/QueueMembers';
 import SupervisorHierarchy from './staff/SupervisorHierarchy';
 import LegacyInspectorLinking from './staff/LegacyInspectorLinking';
 
+// Generic placeholder for menu entries whose target screen is not yet built.
+import PlaceholderPage from './PlaceholderPage';
+
 const ComplianceRoutes = () => {
   return (
     <Routes>
+      {/* ═══════════════════════════════════════════════════════
+          MENU-ALIGNMENT PLACEHOLDERS
+          Routes reserved by the finalized Compliance & Enforcement
+          menu structure but whose target screens are pending
+          implementation. Each renders a clear "implementation pending"
+          message — no mock business data.
+          ═══════════════════════════════════════════════════════ */}
+      <Route path="/my-work-queue" element={<PlaceholderPage title="My Work Queue" area="Top-level" />} />
+
+      {/* Violations */}
+      <Route path="/violations/verification-queue" element={<PlaceholderPage title="Verification Queue" area="Violations" />} />
+      <Route path="/violations/rule-detected" element={<PlaceholderPage title="Rule Detected Violations" area="Violations" />} />
+      <Route path="/violations/duplicate-review" element={<PlaceholderPage title="Duplicate Review" area="Violations" />} />
+      <Route path="/violations/history" element={<PlaceholderPage title="Violation History" area="Violations" />} />
+
+      {/* Cases */}
+      <Route path="/cases/intake" element={<PlaceholderPage title="Case Intake" area="Compliance Cases" />} />
+      <Route path="/cases/assigned" element={<PlaceholderPage title="Assigned Cases" area="Compliance Cases" />} />
+      <Route path="/cases/merge-review" element={<PlaceholderPage title="Case Merge Review" area="Compliance Cases" />} />
+      <Route path="/cases/reopen-requests" element={<PlaceholderPage title="Reopen Requests" area="Compliance Cases" />} />
+      <Route path="/cases/closure" element={<PlaceholderPage title="Case Closure" area="Compliance Cases" />} />
+
+      {/* Notices & Communications */}
+      <Route path="/notices/generate" element={<PlaceholderPage title="Generate Notice" area="Notices And Communications" />} />
+      <Route path="/notices/pending-approval" element={<PlaceholderPage title="Pending Approval" area="Notices And Communications" />} />
+      <Route path="/notices/delivery-tracking" element={<PlaceholderPage title="Delivery Tracking" area="Notices And Communications" />} />
+      <Route path="/notices/employer-responses" element={<PlaceholderPage title="Employer Responses" area="Notices And Communications" />} />
+      <Route path="/notices/communication-history" element={<PlaceholderPage title="Communication History" area="Notices And Communications" />} />
+
+      {/* Payment Arrangements */}
+      <Route path="/arrangements/new" element={<PlaceholderPage title="New Arrangement" area="Payment Arrangements" />} />
+      <Route path="/arrangements/pending-approval" element={<PlaceholderPage title="Pending Approval" area="Payment Arrangements" />} />
+      <Route path="/arrangements/active" element={<PlaceholderPage title="Active Arrangements" area="Payment Arrangements" />} />
+      <Route path="/arrangements/installments-due" element={<PlaceholderPage title="Installments Due" area="Payment Arrangements" />} />
+      <Route path="/arrangements/payment-allocation" element={<PlaceholderPage title="Payment Allocation" area="Payment Arrangements" />} />
+
+      {/* Inspections */}
+      <Route path="/inspections/evidence" element={<PlaceholderPage title="Evidence" area="Inspections" />} />
+      <Route path="/inspections/convert-finding" element={<PlaceholderPage title="Convert Finding To Violation" area="Inspections" />} />
+
+      {/* Legal Escalations */}
+      <Route path="/legal/pack-preparation" element={<PlaceholderPage title="Legal Pack Preparation" area="Legal Escalations" />} />
+      <Route path="/legal/approved-escalations" element={<PlaceholderPage title="Approved Escalations" area="Legal Escalations" />} />
+      <Route path="/legal/returned-from-legal" element={<PlaceholderPage title="Returned From Legal" area="Legal Escalations" />} />
+
+      {/* Risk & Employer Profile */}
+      <Route path="/risk/score-details" element={<PlaceholderPage title="Risk Score Details" area="Risk And Employer Profile" />} />
+      <Route path="/risk/repeat-defaulters" element={<PlaceholderPage title="Repeat Defaulters" area="Risk And Employer Profile" />} />
+      <Route path="/risk/high-risk" element={<PlaceholderPage title="High Risk Employers" area="Risk And Employer Profile" />} />
+      <Route path="/risk/watchlist" element={<PlaceholderPage title="Watchlist" area="Risk And Employer Profile" />} />
+
+      {/* Reports */}
+      <Route path="/reports/automation-jobs" element={<PlaceholderPage title="Automation Job Reports" area="Reports" />} />
+
+      {/* Administration */}
+      <Route path="/admin/setup-wizard" element={<PlaceholderPage title="Setup Wizard" area="Administration" />} />
+      <Route path="/admin/feature-toggles" element={<PlaceholderPage title="Feature Toggles" area="Administration" />} />
+      <Route path="/admin/calculation-rules" element={<PlaceholderPage title="Calculation Rules" area="Administration" />} />
+      <Route path="/admin/escalation-rules" element={<PlaceholderPage title="Escalation Rules" area="Administration" />} />
+      <Route path="/admin/case-families" element={<PlaceholderPage title="Case Families" area="Administration" />} />
+      <Route path="/admin/workflow-mapping" element={<PlaceholderPage title="Workflow Mapping" area="Administration" />} />
+      <Route path="/admin/schedule-settings" element={<PlaceholderPage title="Schedule Settings" area="Administration" />} />
+      <Route path="/admin/payment-arrangement-rules" element={<PlaceholderPage title="Payment Arrangement Rules" area="Administration" />} />
+      <Route path="/admin/waiver-rules" element={<PlaceholderPage title="Waiver Rules" area="Administration" />} />
+      <Route path="/admin/legal-handoff-rules" element={<PlaceholderPage title="Legal Handoff Rules" area="Administration" />} />
+      <Route path="/admin/help" element={<PlaceholderPage title="Help And Instructions" area="Administration" />} />
+
       {/* ═══════════════════════════════════════════════════════
           1. WORKBENCH — dashboards, monitoring, queues
           ═══════════════════════════════════════════════════════ */}
