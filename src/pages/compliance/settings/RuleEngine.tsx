@@ -966,6 +966,10 @@ const RuleEngine = () => {
 
   const saveCalc = useMutation({
     mutationFn: async (formData: any) => {
+      const result = validateCalculationRule(formData, formulaOps.map(o => o.value));
+      if (!result.ok) {
+        throw new Error(formatIssues(result.errors));
+      }
       const isNew = !editingCalc;
       if (isNew) {
         const dup = await checkDuplicateRuleCode('ce_calculation_rules', formData.rule_code);
@@ -986,11 +990,15 @@ const RuleEngine = () => {
       setCalcDialogOpen(false);
       setEditingCalc(null);
     },
-    onError: (err: any) => toast.error('Failed to save rule', { description: err.message }),
+    onError: (err: any) => toast.error('Validation failed', { description: err.message }),
   });
 
   const saveEsc = useMutation({
     mutationFn: async (formData: any) => {
+      const result = validateEscalationRule(formData, conditionVars.map(v => v.value));
+      if (!result.ok) {
+        throw new Error(formatIssues(result.errors));
+      }
       const isNew = !editingEsc;
       if (isNew) {
         const dup = await checkDuplicateRuleCode('ce_escalation_rules', formData.rule_code);
@@ -1011,8 +1019,57 @@ const RuleEngine = () => {
       setEscDialogOpen(false);
       setEditingEsc(null);
     },
-    onError: (err: any) => toast.error('Failed to save rule', { description: err.message }),
+    onError: (err: any) => toast.error('Validation failed', { description: err.message }),
   });
+
+  // ── Activation guard: gate enable-toggle through impact dialog ──
+  const requestActivation = useCallback((
+    table: RuleHistoryTable,
+    rule: DetectionRule | CalculationRule | EscalationRule,
+    ruleType: 'Detection' | 'Calculation' | 'Escalation',
+  ) => {
+    let errors: string[] = [];
+    let triggerOrAction = '';
+    let dataSource = 'ce_* tables';
+    let willAutoCreate = false;
+    if (ruleType === 'Detection') {
+      const r = rule as DetectionRule;
+      const res = validateDetectionRule({ ...r, is_enabled: true }, conditionVars.map(v => v.value));
+      errors = res.errors.map(e => e.message);
+      triggerOrAction = r.trigger_event;
+      willAutoCreate = !!r.auto_create_violation;
+    } else if (ruleType === 'Calculation') {
+      const r = rule as CalculationRule;
+      const res = validateCalculationRule({ ...r, is_enabled: true }, formulaOps.map(o => o.value));
+      errors = res.errors.map(e => e.message);
+      triggerOrAction = r.applies_to;
+    } else {
+      const r = rule as EscalationRule;
+      const res = validateEscalationRule({ ...r, is_enabled: true }, conditionVars.map(v => v.value));
+      errors = res.errors.map(e => e.message);
+      triggerOrAction = `${r.from_status} → ${r.to_status}`;
+    }
+    setImpactState({
+      info: {
+        ruleType,
+        name: rule.name,
+        ruleCode: rule.rule_code,
+        triggerOrAction,
+        dataSource,
+        willAutoCreateViolations: willAutoCreate,
+        approvalGateActive: false,
+      },
+      errors,
+      commit: async () => {
+        const payload = withAuditFields({ is_enabled: true }, userCode || 'SYS', false);
+        const { error } = await supabase.from(table).update(payload as any).eq('id', rule.id);
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: [table] });
+        toast.success('Rule activated');
+        setImpactState(null);
+      },
+    });
+  }, [conditionVars, formulaOps, userCode, queryClient]);
 
   // ── Add button handler ──
 
