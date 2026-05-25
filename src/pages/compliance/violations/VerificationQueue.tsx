@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+// useNavigate intentionally not imported — actions use window.location for simplicity
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
