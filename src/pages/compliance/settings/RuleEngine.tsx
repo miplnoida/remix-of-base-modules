@@ -937,6 +937,10 @@ const RuleEngine = () => {
 
   const saveDetection = useMutation({
     mutationFn: async (formData: any) => {
+      const result = validateDetectionRule(formData, conditionVars.map(v => v.value));
+      if (!result.ok) {
+        throw new Error(formatIssues(result.errors));
+      }
       const isNew = !editingDetection;
       if (isNew) {
         const dup = await checkDuplicateRuleCode('ce_detection_rules', formData.rule_code);
@@ -957,7 +961,7 @@ const RuleEngine = () => {
       setDetectionDialogOpen(false);
       setEditingDetection(null);
     },
-    onError: (err: any) => toast.error('Failed to save rule', { description: err.message }),
+    onError: (err: any) => toast.error('Validation failed', { description: err.message }),
   });
 
   const saveCalc = useMutation({
