@@ -92,7 +92,7 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
         hasActiveArrangement: boolean;
         currentNoticeStage: string | null;
       };
-    }> => {
+      existingViolationsByVtId: Record<string, number>;
       if (!regno) throw new Error('No employer selected');
 
       // Fetch all data in parallel
