@@ -34,6 +34,13 @@ import FieldOperations from './inspections/FieldOperations';
 // Arrangements
 import PaymentArrangements from './arrangements/PaymentArrangements';
 import BreachMonitoring from './arrangements/BreachMonitoring';
+import AllArrangementsPage from './arrangements/AllArrangementsPage';
+import NewArrangementPage from './arrangements/NewArrangementPage';
+import ArrangementPendingApprovalPage from './arrangements/ArrangementPendingApprovalPage';
+import ActiveArrangementsPage from './arrangements/ActiveArrangementsPage';
+import InstallmentsDuePage from './arrangements/InstallmentsDuePage';
+import BreachesPage from './arrangements/BreachesPage';
+import PaymentAllocationPage from './arrangements/PaymentAllocationPage';
 
 // Legal
 import LegalQueue from './legal/LegalQueue';
