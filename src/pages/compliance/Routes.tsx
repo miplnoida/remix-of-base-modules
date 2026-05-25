@@ -226,7 +226,8 @@ const ComplianceRoutes = () => {
       <Route path="/admin/workflow-mapping" element={<WorkflowMappingPage />} />
       <Route path="/admin/schedule-settings" element={<PlaceholderPage title="Schedule Settings" area="Administration" />} />
       <Route path="/admin/payment-arrangement-rules" element={<PlaceholderPage title="Payment Arrangement Rules" area="Administration" />} />
-      <Route path="/admin/waiver-rules" element={<PlaceholderPage title="Waiver Rules" area="Administration" />} />
+      <Route path="/admin/waiver-rules" element={<WaiverRulesPage />} />
+      <Route path="/waivers/requests" element={<WaiverRequestsQueue />} />
       <Route path="/admin/legal-handoff-rules" element={<PlaceholderPage title="Legal Handoff Rules" area="Administration" />} />
       <Route path="/admin/help" element={<PlaceholderPage title="Help And Instructions" area="Administration" />} />
 
