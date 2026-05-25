@@ -114,7 +114,7 @@ function Inner() {
             Eligibility rules used to recommend cases for legal escalation. The first matching enabled rule applies.
           </p>
         </div>
-        <PermissionButton moduleName={PERMISSION} action="create" onClick={() => startEdit()}>
+        <PermissionButton moduleName={PERMISSION} onClick={() => startEdit()}>
           <Plus className="h-4 w-4 mr-2" /> New Rule
         </PermissionButton>
       </div>
