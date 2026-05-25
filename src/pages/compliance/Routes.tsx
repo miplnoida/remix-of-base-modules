@@ -43,6 +43,14 @@ import NoticesManagement from './legal/NoticesManagement';
 import LegalRecommendationQueue from './legal/LegalRecommendationQueue';
 import LegalReferralWizard from './legal/LegalReferralWizard';
 
+// Notices & Communications
+import NoticeRegister from './notices/NoticeRegister';
+import GenerateNoticePage from './notices/GenerateNoticePage';
+import PendingApprovalPage from './notices/PendingApprovalPage';
+import DeliveryTrackingPage from './notices/DeliveryTrackingPage';
+import EmployerResponsesPage from './notices/EmployerResponsesPage';
+import CommunicationHistoryPage from './notices/CommunicationHistoryPage';
+
 // Employers
 import EmployerStatements from './employers/EmployerStatements';
 import EmployerStatementDetail from './employers/EmployerStatementDetail';
