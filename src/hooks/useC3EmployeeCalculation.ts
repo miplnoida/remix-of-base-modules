@@ -183,22 +183,89 @@ export interface EmployeeCalculationResult {
  }
  
 /**
- * Calculate employee levy using slab-based calculation:
- * - Check if monthly levy switching should apply based on config threshold
- * - If total of Week1-6 (excluding bonus) > threshold AND flag enabled:
- *   Calculate monthly levy on sum of Week1-6 using monthly slabs
- * - Otherwise: For each weekly amount (Week1-5, Holiday), find matching slab and calculate levy
- * 
- * Week indices: 0=Week1, 1=Week2, 2=Week3, 3=Week4, 4=Week5, 5=Bonus, 6=Holiday(Week6)
+ * Determine if bonus is eligible based on min/max gating in the policy.
+ */
+function isBonusEligible(bonus: number, policy: BonusPolicyData | null): boolean {
+  if (bonus <= 0) return false;
+  if (!policy) return false;
+  if (policy.minBonusAmount != null && bonus < policy.minBonusAmount) return false;
+  if (policy.maxBonusAmount != null && bonus > policy.maxBonusAmount) return false;
+  return true;
+}
+
+/**
+ * Apply the bonus policy distribution to the weekly slots and return
+ * a new merged array [W1, W2, W3, W4, W5, Holiday(W6)].
+ * Mirrors the merge logic in calculate_c3_contributions (PL/pgSQL) and
+ * the calculate-bonus-policy edge function.
+ */
+function mergeBonusIntoWeeks(
+  weeklyWages: number[],
+  bonus: number,
+  payPeriod: string,
+  policy: BonusPolicyData
+): number[] {
+  // index map: 0=W1 1=W2 2=W3 3=W4 4=W5 5=Holiday(W6)
+  const merged = [
+    weeklyWages[0] || 0,
+    weeklyWages[1] || 0,
+    weeklyWages[2] || 0,
+    weeklyWages[3] || 0,
+    weeklyWages[4] || 0,
+    weeklyWages[6] || 0,
+  ];
+  const dist = policy.distribution;
+
+  if (payPeriod === 'Weekly') {
+    const wk = dist?.weekly;
+    const selected: number[] = [];
+    if (wk?.w1) selected.push(0);
+    if (wk?.w2) selected.push(1);
+    if (wk?.w3) selected.push(2);
+    if (wk?.w4) selected.push(3);
+
+    if (wk?.divide || selected.length === 0) {
+      // Divide equally across W1..W5
+      const per = round2(bonus / 5);
+      for (let i = 0; i < 5; i++) merged[i] += per;
+    } else if (selected.length === 1) {
+      merged[selected[0]] += bonus;
+    } else {
+      const per = round2(bonus / selected.length);
+      for (const idx of selected) merged[idx] += per;
+    }
+  } else if (payPeriod === 'Bi-Weekly' || payPeriod === 'BiWeekly') {
+    const bw = dist?.biweekly;
+    if (bw?.divide) {
+      merged[0] += round2(bonus / 2);
+      merged[2] += round2(bonus / 2);
+    } else if (bw?.b1) {
+      merged[0] += bonus;
+    } else if (bw?.b2) {
+      merged[2] += bonus;
+    } else {
+      merged[0] += bonus;
+    }
+  } else {
+    // Monthly / 2 Monthly / SemiMonthly default → W1
+    merged[0] += bonus;
+  }
+  return merged;
+}
+
+/**
+ * Calculate employee levy honoring the bonus policy (merge / separate / no inclusion).
+ *
+ * Week indices in input: 0=W1, 1=W2, 2=W3, 3=W4, 4=W5, 5=Bonus, 6=Holiday(W6)
  */
 function calculateEmployeeLevy(
   weeklyWages: number[],
   payPeriod: string,
   slabDetails: LevySlabDetail[],
   levyMonthlyThreshold: number,
-  levyUseMonthlyWhenExceeded: boolean
+  levyUseMonthlyWhenExceeded: boolean,
+  bonusPolicy: BonusPolicyData | null
 ): { totalLevy: number; usedMonthlyLogic: boolean } {
-  // Week1-5 = indices 0-4, Bonus = index 5, Holiday(Week6) = index 6
   const week1 = weeklyWages[0] || 0;
   const week2 = weeklyWages[1] || 0;
   const week3 = weeklyWages[2] || 0;
@@ -206,49 +273,52 @@ function calculateEmployeeLevy(
   const week5 = weeklyWages[4] || 0;
   const bonus = weeklyWages[5] || 0;
   const week6Holiday = weeklyWages[6] || 0;
-  
-  // Total wages for threshold check and monthly calculation (Week1-6, excluding bonus)
-  const totalWeek1To6 = week1 + week2 + week3 + week4 + week5 + week6Holiday;
-  
+
+  const bonusEligible = isBonusEligible(bonus, bonusPolicy);
+  const includeBonusInLevy = bonusEligible && (bonusPolicy?.includeInLevy ?? false);
+  const method = bonusPolicy?.calculationMethod ?? 'merge';
+
+  const payPeriodCode = mapPayPeriodToCode(payPeriod);
+  const matchingSlabs = slabDetails
+    .filter(s => s.payPeriod === payPeriodCode)
+    .sort((a, b) => b.overAmt - a.overAmt);
+  const monthlySlabs = slabDetails
+    .filter(s => s.payPeriod === 'M')
+    .sort((a, b) => b.overAmt - a.overAmt);
+
+  // Build the per-week array used for levy.
+  // For MERGE + includeInLevy: bonus folded into the configured slot(s).
+  // Otherwise: bonus left out of weekly slots (separate bonus added later if applicable).
+  let weeksForLevy: number[];
+  if (includeBonusInLevy && method === 'merge') {
+    weeksForLevy = mergeBonusIntoWeeks(weeklyWages, bonus, payPeriod, bonusPolicy!);
+  } else {
+    weeksForLevy = [week1, week2, week3, week4, week5, week6Holiday];
+  }
+
+  const totalWeek1To6 = weeksForLevy.reduce((a, b) => a + b, 0);
+
   let totalLevy = 0;
   let usedMonthlyLogic = false;
-  
-  // Check if monthly levy switching should apply:
-  // If flag is enabled AND total of Week1-6 > threshold, use monthly slab calculation
-  if (levyUseMonthlyWhenExceeded && totalWeek1To6 > levyMonthlyThreshold) {
-    // Use monthly slabs on the combined Week1-6 total
-    const monthlySlabs = slabDetails
-      .filter(s => s.payPeriod === 'M') // Monthly slabs
-      .sort((a, b) => b.overAmt - a.overAmt);
-    
-    if (monthlySlabs.length > 0) {
-      // Calculate levy as monthly payment on sum of Week1-6
-      totalLevy = calculateSlabLevy(totalWeek1To6, monthlySlabs);
-      usedMonthlyLogic = true;
+
+  if (levyUseMonthlyWhenExceeded && totalWeek1To6 > levyMonthlyThreshold && monthlySlabs.length > 0) {
+    totalLevy = calculateSlabLevy(totalWeek1To6, monthlySlabs);
+    usedMonthlyLogic = true;
+  } else {
+    for (const amt of weeksForLevy) {
+      if (amt > 0) totalLevy += calculateSlabLevy(amt, matchingSlabs);
     }
   }
-  
-  // If not using monthly logic, calculate per-week using employee's pay period
-  if (!usedMonthlyLogic) {
-    const payPeriodCode = mapPayPeriodToCode(payPeriod);
-    
-    // Filter slabs for the matching pay period
-    const matchingSlabs = slabDetails
-      .filter(s => s.payPeriod === payPeriodCode)
-      .sort((a, b) => b.overAmt - a.overAmt);
-    
-    // Calculate levy for Week1-5 (indices 0-4) and Holiday/Week6 (index 6)
-    const weekIndices = [0, 1, 2, 3, 4, 6];
-    for (const idx of weekIndices) {
-      const weekAmount = weeklyWages[idx] || 0;
-      if (weekAmount > 0) {
-        const weekLevy = calculateSlabLevy(weekAmount, matchingSlabs);
-        totalLevy += weekLevy;
-      }
+
+  // Separate-method bonus contribution (charged on top of regular weekly levy)
+  if (includeBonusInLevy && method === 'separate' && bonus > 0) {
+    if (bonusPolicy?.calcFlatEnabled && bonusPolicy.calcFlatPercentage) {
+      totalLevy += round2(bonus * (bonusPolicy.calcFlatPercentage / 100));
+    } else if (bonusPolicy?.calcSlabEnabled) {
+      totalLevy += calculateSlabLevy(bonus, matchingSlabs);
     }
   }
-  
-  
+
   return { totalLevy: round2(totalLevy), usedMonthlyLogic };
 }
  
