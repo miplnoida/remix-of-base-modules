@@ -13,6 +13,7 @@ import {
   ArrowLeft, Link2, HandshakeIcon, Mail, Scale, DollarSign, FileText
 } from 'lucide-react';
 import { CasePaymentArrangementDialog } from '@/components/compliance/CasePaymentArrangementDialog';
+import { CaseRequestActions } from '@/components/compliance/CaseRequestActions';
 import { fetchPaymentArrangements } from '@/services/complianceDataService';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
