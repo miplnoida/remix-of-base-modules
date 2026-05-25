@@ -829,6 +829,10 @@ const RuleEngine = () => {
   const [activeTab, setActiveTab] = useState('detection');
   const queryClient = useQueryClient();
   const { userCode } = useUserCode();
+  const canManage =
+    useHasPermission('ce_admin_settings', 'edit') ||
+    useHasPermission('ce_admin_settings', 'manage') ||
+    useHasPermission('manage_compliance', 'edit');
 
   const screenKeyMap: Record<string, string> = {
     detection: 'rule-engine-detection',
@@ -844,6 +848,8 @@ const RuleEngine = () => {
   const [editingCalc, setEditingCalc] = useState<CalculationRule | null>(null);
   const [escDialogOpen, setEscDialogOpen] = useState(false);
   const [editingEsc, setEditingEsc] = useState<EscalationRule | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<{ table: RuleHistoryTable; id: string; label: string } | null>(null);
+  const [impactState, setImpactState] = useState<{ info: RuleImpactInfo; errors: string[]; commit: () => Promise<void> } | null>(null);
 
   // ── Queries ──
 
