@@ -316,12 +316,21 @@ function applyViolationFilters(
   targetMonth: string | undefined,
   employerIds: string[],
 ) {
-  if (filters.status && filters.status !== "ALL") {
-    query = query.eq("status", filters.status);
+  if (filters.status && filters.status !== "ALL") query = query.eq("status", filters.status);
+  if (filters.priority && filters.priority !== "ALL") query = query.eq("priority", filters.priority);
+  if (filters.fund && filters.fund !== "ALL") query = query.eq("fund_type", filters.fund);
+  if (filters.violationTypeId && filters.violationTypeId !== "ALL") query = query.eq("violation_type_id", filters.violationTypeId);
+  if (filters.severity && filters.severity !== "ALL") query = query.eq("severity", filters.severity);
+  if (filters.source && filters.source !== "ALL") query = query.eq("source_type", filters.source);
+  if (filters.assignedOfficer && filters.assignedOfficer !== "ALL") {
+    if (filters.assignedOfficer === 'UNASSIGNED') query = query.is("assigned_to_user_id", null);
+    else query = query.eq("assigned_to_user_id", filters.assignedOfficer);
   }
-  if (filters.priority && filters.priority !== "ALL") {
-    query = query.eq("priority", filters.priority);
+  if (filters.verification && filters.verification !== "ALL") {
+    if (filters.verification === 'PENDING') query = query.is("verification_decision", null);
+    else query = query.eq("verification_decision", filters.verification);
   }
+  if (filters.employerId) query = query.eq("employer_id", filters.employerId);
   if (searchValue) {
     const escaped = searchValue.replace(/,/g, ' ');
     const orParts = [
@@ -330,9 +339,7 @@ function applyViolationFilters(
       `employer_name.ilike.%${escaped}%`,
       `summary.ilike.%${escaped}%`,
     ];
-    if (employerIds.length > 0) {
-      orParts.push(`employer_id.in.(${employerIds.join(',')})`);
-    }
+    if (employerIds.length > 0) orParts.push(`employer_id.in.(${employerIds.join(',')})`);
     query = query.or(orParts.join(','));
   }
   if (targetMonth) {
