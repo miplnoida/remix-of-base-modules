@@ -14,6 +14,8 @@ import ViolationDetails from './violations/ViolationDetails';
 import WeeklyReportSubmission from './violations/WeeklyReportSubmission';
 import VerificationQueue from './violations/VerificationQueue';
 import DuplicateReview from './violations/DuplicateReview';
+import RuleDetectedViolations from './violations/RuleDetectedViolations';
+import ViolationHistory from './violations/ViolationHistory';
 
 // Cases
 import CaseManagement from './cases/CaseManagement';
