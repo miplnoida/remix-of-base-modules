@@ -45,15 +45,19 @@ export function useViolationTypeOptions() {
 
 export function useOfficerOptions() {
   return useQuery({
-    queryKey: ['ce_officer_options'],
+    queryKey: ['ce_violation_officers'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('ce_inspectors')
-        .select('id, inspector_code, full_name, user_code')
-        .order('full_name', { ascending: true })
-        .limit(500);
+        .from('ce_violations')
+        .select('assigned_to_user_id, assigned_to_name')
+        .not('assigned_to_user_id', 'is', null)
+        .limit(1000);
       if (error) return [];
-      return data ?? [];
+      const map = new Map<string, string>();
+      (data ?? []).forEach((r: any) => {
+        if (r.assigned_to_user_id) map.set(r.assigned_to_user_id, r.assigned_to_name || r.assigned_to_user_id);
+      });
+      return Array.from(map.entries()).map(([user_code, name]) => ({ user_code, name }));
     },
     staleTime: 60_000,
   });
