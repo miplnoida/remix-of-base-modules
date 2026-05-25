@@ -35,6 +35,7 @@ export type ComplianceFeatureKey =
   | 'arrangements.active'
   | 'arrangements.installmentsDue'
   | 'arrangements.paymentAllocation'
+  | 'inspections'
   | 'inspections.evidence'
   | 'inspections.convertFinding'
   | 'legal.packPreparation'
@@ -80,6 +81,7 @@ const DEFAULT_TOGGLES: Record<ComplianceFeatureKey, boolean> = {
   'arrangements.active': true,
   'arrangements.installmentsDue': true,
   'arrangements.paymentAllocation': true,
+  inspections: true,
   'inspections.evidence': true,
   'inspections.convertFinding': true,
   'legal.packPreparation': true,

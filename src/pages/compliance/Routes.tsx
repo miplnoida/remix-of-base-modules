@@ -30,6 +30,8 @@ import CaseMergeReviewPage from './cases/CaseMergeReviewPage';
 // Inspections
 import InspectionManagement from './inspections/InspectionManagement';
 import FieldOperations from './inspections/FieldOperations';
+import InspectionEvidencePage from './inspections/InspectionEvidencePage';
+import ConvertFindingToViolationPage from './inspections/ConvertFindingToViolationPage';
 
 // Arrangements
 import PaymentArrangements from './arrangements/PaymentArrangements';
@@ -200,8 +202,8 @@ const ComplianceRoutes = () => {
       <Route path="/arrangements/payment-allocation" element={<PaymentAllocationPage />} />
 
       {/* Inspections */}
-      <Route path="/inspections/evidence" element={<PlaceholderPage title="Evidence" area="Inspections" />} />
-      <Route path="/inspections/convert-finding" element={<PlaceholderPage title="Convert Finding To Violation" area="Inspections" />} />
+      <Route path="/inspections/evidence" element={<InspectionEvidencePage />} />
+      <Route path="/inspections/convert-finding" element={<ConvertFindingToViolationPage />} />
 
       {/* Legal Escalations */}
       <Route path="/legal/pack-preparation" element={<PlaceholderPage title="Legal Pack Preparation" area="Legal Escalations" />} />

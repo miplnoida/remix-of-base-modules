@@ -271,7 +271,7 @@ const complianceMenuItemsRaw = [
       cases,
       notices,
       arrangements,
-      inspections,
+      ...(isComplianceFeatureEnabled("inspections") ? [inspections] : []),
       legalEscalations,
       riskProfile,
       reports,
