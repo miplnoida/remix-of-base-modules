@@ -158,52 +158,7 @@ function ViolationsManagementInner() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by violation #, employer code, name, or summary..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={handleFilterChange(setStatusFilter)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Statuses</SelectItem>
-                {VIOLATION_STATUSES.map(s => (
-                  <SelectItem key={s} value={s}>{s.replace(/_/g, ' ')}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={priorityFilter} onValueChange={handleFilterChange(setPriorityFilter)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Priorities</SelectItem>
-                {VIOLATION_PRIORITIES.map(p => (
-                  <SelectItem key={p} value={p}>{p}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div>
-              <Input
-                type="month"
-                value={monthFilter}
-                onChange={(e) => { setMonthFilter(e.target.value); setPage(1); }}
-                className="w-full"
-              />
-              {monthFilter && (
-                <Button variant="link" size="sm" className="px-0 h-6 text-xs" onClick={() => { setMonthFilter(''); setPage(1); }}>
-                  Show all months
-                </Button>
-              )}
-            </div>
-          </div>
+          <ViolationFiltersBar value={filters} onChange={handleFiltersChange} showSource />
         </CardContent>
       </Card>
 
