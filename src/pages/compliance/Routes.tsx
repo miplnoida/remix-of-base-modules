@@ -6,6 +6,7 @@ import InspectorDashboard from './dashboards/InspectorDashboard';
 import LegalDashboard from './dashboards/LegalDashboard';
 import ComplianceMonitoring from './dashboards/ComplianceMonitoring';
 import ComplianceAnalytics from './dashboards/ComplianceAnalytics';
+import ComplianceCommandCenter from './dashboards/ComplianceCommandCenter';
 
 // Violations
 import ViolationsManagement from './violations/ViolationsManagement';
@@ -246,6 +247,7 @@ const ComplianceRoutes = () => {
       {/* ═══════════════════════════════════════════════════════
           1. WORKBENCH — dashboards, monitoring, queues
           ═══════════════════════════════════════════════════════ */}
+      <Route path="/workbench/overview" element={<ComplianceCommandCenter />} />
       <Route path="/workbench/manager" element={<ManagerDashboard />} />
       <Route path="/workbench/inspector" element={<InspectorDashboard />} />
       <Route path="/workbench/legal" element={<LegalDashboard />} />

@@ -82,6 +82,7 @@ const dashboard: SubItem = {
   requiresPermission: "manage_compliance",
   description: "Overview, KPIs, and role-specific dashboards",
   subItems: [
+    { title: "Command Center", url: "/compliance/workbench/overview", icon: LayoutDashboard, requiresPermission: "manage_compliance" },
     { title: "Overview", url: "/compliance/workbench/manager", icon: LayoutDashboard, requiresPermission: "manage_compliance" },
     { title: "Inspector Dashboard", url: "/compliance/workbench/inspector", icon: UserCheck, requiresPermission: "manage_compliance" },
     { title: "Legal Dashboard", url: "/compliance/workbench/legal", icon: Gavel, requiresPermission: "manage_compliance" },
