@@ -32,9 +32,14 @@ export default function RuleSimulator() {
   const [facts, setFacts] = useState<SimulationFactContext>(createDefaultFactContext());
   const [output, setOutput] = useState<SimulationOutput | null>(null);
   const [overriddenFields, setOverriddenFields] = useState<Set<string>>(new Set());
+  const [ruleCodeFilter, setRuleCodeFilter] = useState<string>('__all__');
+  const [periodOverride, setPeriodOverride] = useState<string>('');
+
+  const canSave = useHasPermission('ce_rule_simulator', 'edit') || useHasPermission('ce_rule_simulator', 'manage');
+  const saveRun = useSaveSimulationRun();
 
   const { data: rules, isLoading: rulesLoading } = useSimulatorRules();
-  const { data: context, isLoading: contextLoading } = useEmployerComplianceContext(selectedRegNo);
+  const { data: context, isLoading: contextLoading } = useEmployerComplianceContext(selectedRegNo, periodOverride || null);
 
   // When employer context loads, populate facts
   const handleEmployerSelect = useCallback((regno: string, name: string, status: string) => {
