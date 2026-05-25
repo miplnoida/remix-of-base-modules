@@ -200,7 +200,7 @@ const ComplianceRoutes = () => {
       <Route path="/arrangements/payment-allocation" element={<PaymentAllocationPage />} />
 
       {/* Inspections */}
-      <Route path="/inspections/evidence" element={<PlaceholderPage title="Evidence" area="Inspections" />} />
+      <Route path="/inspections/evidence" element={<InspectionEvidencePage />} />
       <Route path="/inspections/convert-finding" element={<PlaceholderPage title="Convert Finding To Violation" area="Inspections" />} />
 
       {/* Legal Escalations */}
