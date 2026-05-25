@@ -1,0 +1,192 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+
+/**
+ * Reads real configuration counts + ce_settings flags driving the
+ * Compliance & Enforcement Setup Wizard. No mock/fake data — if a
+ * count cannot be retrieved (table missing, permission denied) the
+ * step is reported as `unknown` so the wizard surfaces a Warning
+ * instead of a false "Completed".
+ */
+export interface ComplianceSetupCounts {
+  violationTypes: number | null;
+  detectionRules: number | null;
+  calculationRules: number | null;
+  caseFamilies: number | null;
+  workflowDefs: number | null;
+  noticeTemplates: number | null;
+  arrangementPolicies: number | null;
+  legalEscalationPolicies: number | null;
+  automationJobs: number | null;
+  riskPriorityWeights: number | null;
+  escalationRules: number | null;
+  assignmentRoutingRules: number | null;
+}
+
+export interface ComplianceSetupFlags {
+  activated: boolean;
+  activatedAt: string | null;
+  activatedBy: string | null;
+  optionalFeatures: Record<string, boolean>;
+  basicSettingsConfigured: boolean;
+  rawSettings: Array<{ setting_key: string; setting_value: string | null; category: string | null; updated_at: string | null; updated_by: string | null }>;
+}
+
+export interface ComplianceSetupStatus {
+  counts: ComplianceSetupCounts;
+  flags: ComplianceSetupFlags;
+  isLoading: boolean;
+  isError: boolean;
+  refetch: () => void;
+}
+
+const ZERO_COUNTS: ComplianceSetupCounts = {
+  violationTypes: null,
+  detectionRules: null,
+  calculationRules: null,
+  caseFamilies: null,
+  workflowDefs: null,
+  noticeTemplates: null,
+  arrangementPolicies: null,
+  legalEscalationPolicies: null,
+  automationJobs: null,
+  riskPriorityWeights: null,
+  escalationRules: null,
+  assignmentRoutingRules: null,
+};
+
+async function countOrNull(table: string): Promise<number | null> {
+  try {
+    const { count, error } = await (supabase as any)
+      .from(table)
+      .select("*", { count: "exact", head: true });
+    if (error) return null;
+    return count ?? 0;
+  } catch {
+    return null;
+  }
+}
+
+export function useComplianceSetupStatus(): ComplianceSetupStatus {
+  const { isAuthReady, isAuthenticated } = useSupabaseAuth();
+
+  const query = useQuery({
+    queryKey: ["compliance-setup-status"],
+    enabled: isAuthReady && isAuthenticated,
+    queryFn: async () => {
+      const [
+        violationTypes,
+        detectionRules,
+        calculationRules,
+        caseFamilies,
+        workflowDefs,
+        noticeTemplates,
+        arrangementPolicies,
+        legalEscalationPolicies,
+        automationJobs,
+        riskPriorityWeights,
+        escalationRules,
+        assignmentRoutingRules,
+      ] = await Promise.all([
+        countOrNull("ce_violation_types"),
+        countOrNull("ce_detection_rules"),
+        countOrNull("ce_calculation_rules"),
+        countOrNull("ce_case_families"),
+        countOrNull("workflow_definitions"),
+        countOrNull("ce_notice_templates"),
+        countOrNull("ce_arrangement_policies"),
+        countOrNull("ce_legal_escalation_policies"),
+        countOrNull("ce_automation_jobs"),
+        countOrNull("ce_audit_priority_weights"),
+        countOrNull("ce_escalation_rules"),
+        countOrNull("ce_assignment_routing_rules"),
+      ]);
+
+      const counts: ComplianceSetupCounts = {
+        violationTypes,
+        detectionRules,
+        calculationRules,
+        caseFamilies,
+        workflowDefs,
+        noticeTemplates,
+        arrangementPolicies,
+        legalEscalationPolicies,
+        automationJobs,
+        riskPriorityWeights,
+        escalationRules,
+        assignmentRoutingRules,
+      };
+
+      const { data: settingsRows, error: settingsErr } = await supabase
+        .from("ce_settings")
+        .select("setting_key, setting_value, category, updated_at, updated_by")
+        .like("setting_key", "compliance.%");
+
+      if (settingsErr) {
+        return {
+          counts,
+          flags: {
+            activated: false,
+            activatedAt: null,
+            activatedBy: null,
+            optionalFeatures: {},
+            basicSettingsConfigured: false,
+            rawSettings: [],
+          } as ComplianceSetupFlags,
+        };
+      }
+
+      const rows = settingsRows ?? [];
+      const byKey = new Map(rows.map((r) => [r.setting_key, r]));
+
+      const activatedRow = byKey.get("compliance.activated");
+      const activated = activatedRow?.setting_value?.toLowerCase() === "true";
+
+      const optionalFeatures: Record<string, boolean> = {};
+      for (const r of rows) {
+        if (r.setting_key.startsWith("compliance.feature.")) {
+          optionalFeatures[r.setting_key.replace("compliance.feature.", "")] =
+            r.setting_value?.toLowerCase() === "true";
+        }
+      }
+
+      const basicKeys = [
+        "compliance.basic.jurisdiction",
+        "compliance.basic.fiscal_year_start",
+        "compliance.basic.default_currency",
+      ];
+      const basicSettingsConfigured = basicKeys.every(
+        (k) => (byKey.get(k)?.setting_value ?? "").trim().length > 0
+      );
+
+      return {
+        counts,
+        flags: {
+          activated,
+          activatedAt: activatedRow?.updated_at ?? null,
+          activatedBy: activatedRow?.updated_by ?? null,
+          optionalFeatures,
+          basicSettingsConfigured,
+          rawSettings: rows,
+        } as ComplianceSetupFlags,
+      };
+    },
+  });
+
+  return {
+    counts: query.data?.counts ?? ZERO_COUNTS,
+    flags:
+      query.data?.flags ?? {
+        activated: false,
+        activatedAt: null,
+        activatedBy: null,
+        optionalFeatures: {},
+        basicSettingsConfigured: false,
+        rawSettings: [],
+      },
+    isLoading: query.isLoading,
+    isError: query.isError,
+    refetch: query.refetch,
+  };
+}

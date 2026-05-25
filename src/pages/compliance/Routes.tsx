@@ -98,6 +98,7 @@ import AuditCommunicationTemplatesPage from './admin/AuditCommunicationTemplates
 import AuditCommunicationTemplateEditorPage from './admin/AuditCommunicationTemplateEditorPage';
 import OnlineResponseConfigPage from './admin/OnlineResponseConfigPage';
 import RiskOperations from './admin/RiskOperations';
+import SetupWizard from './admin/SetupWizard';
 // Reuses the audit module's Document & Output Settings page (Foundation, Section
 // Library, Report Templates) under Compliance Admin routes so officers don't
 // have to leave the Compliance module to manage report-level templates.
@@ -184,7 +185,7 @@ const ComplianceRoutes = () => {
       <Route path="/reports/automation-jobs" element={<PlaceholderPage title="Automation Job Reports" area="Reports" />} />
 
       {/* Administration */}
-      <Route path="/admin/setup-wizard" element={<PlaceholderPage title="Setup Wizard" area="Administration" />} />
+      <Route path="/admin/setup-wizard" element={<SetupWizard />} />
       <Route path="/admin/feature-toggles" element={<PlaceholderPage title="Feature Toggles" area="Administration" />} />
       <Route path="/admin/calculation-rules" element={<PlaceholderPage title="Calculation Rules" area="Administration" />} />
       <Route path="/admin/escalation-rules" element={<PlaceholderPage title="Escalation Rules" area="Administration" />} />
