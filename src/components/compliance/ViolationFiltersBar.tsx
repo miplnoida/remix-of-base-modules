@@ -126,8 +126,8 @@ export function ViolationFiltersBar({ value, onChange, showSource = true }: Prop
           <SelectItem value="ALL">All Officers</SelectItem>
           <SelectItem value="UNASSIGNED">Unassigned</SelectItem>
           {officers.map((o: any) => (
-            <SelectItem key={o.id} value={o.user_code || o.id}>
-              {o.full_name || o.inspector_code}
+            <SelectItem key={o.user_code} value={o.user_code}>
+              {o.name}
             </SelectItem>
           ))}
         </SelectContent>
