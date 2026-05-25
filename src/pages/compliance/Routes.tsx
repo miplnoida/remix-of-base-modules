@@ -79,6 +79,7 @@ import AuditReports from './reports/AuditReports';
 import ArrangementReports from './reports/ArrangementReports';
 import LegalEscalationReports from './reports/LegalEscalationReports';
 import TrendReports from './reports/TrendReports';
+import AutomationJobReports from './reports/AutomationJobReports';
 
 // Settings
 import RuleEngine from './settings/RuleEngine';
