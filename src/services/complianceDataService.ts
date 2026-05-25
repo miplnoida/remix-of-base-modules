@@ -260,6 +260,14 @@ export interface ViolationFilters {
   month?: string;
   page?: number;
   pageSize?: number;
+  // Extended filters (Violations completion)
+  fund?: string;            // ce_violations.fund_type
+  violationTypeId?: string; // ce_violations.violation_type_id
+  severity?: string;        // ce_violations.severity
+  source?: string;          // ce_violations.source_type
+  assignedOfficer?: string; // ce_violations.assigned_to_user_id ('UNASSIGNED' = NULL)
+  verification?: string;    // ce_violations.verification_decision ('PENDING' = NULL)
+  employerId?: string;      // exact employer match
 }
 
 export interface ViolationPage {
@@ -271,9 +279,11 @@ export interface ViolationPage {
 
 function buildViolationFilterConditions(filters: ViolationFilters) {
   const searchValue = filters.search?.trim();
-  const hasActiveFilter = (filters.status && filters.status !== 'ALL') ||
-    (filters.priority && filters.priority !== 'ALL') ||
-    searchValue;
+  const isSet = (v?: string) => v && v !== 'ALL';
+  const hasActiveFilter = isSet(filters.status) || isSet(filters.priority) ||
+    isSet(filters.fund) || isSet(filters.violationTypeId) || isSet(filters.severity) ||
+    isSet(filters.source) || isSet(filters.assignedOfficer) || isSet(filters.verification) ||
+    filters.employerId || searchValue;
   const targetMonth = filters.month || (!hasActiveFilter
     ? new Date().toISOString().slice(0, 7)
     : undefined);
