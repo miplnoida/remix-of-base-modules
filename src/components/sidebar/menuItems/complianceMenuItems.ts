@@ -135,7 +135,7 @@ const notices: SubItem = {
   requiresPermission: "manage_compliance",
   description: "Notices, delivery tracking, and employer correspondence",
   subItems: filterEnabled<SubItem & { __feature?: string }>([
-    { title: "Notice Register", url: "/compliance/enforcement/notices", icon: Bell, requiresPermission: "manage_compliance" },
+    { title: "Notice Register", url: "/compliance/notices/register", icon: Bell, requiresPermission: "manage_compliance" },
     { title: "Generate Notice", url: "/compliance/notices/generate", icon: Mail, requiresPermission: "manage_compliance", __feature: "notices.generate" },
     { title: "Pending Approval", url: "/compliance/notices/pending-approval", icon: ClipboardCheck, requiresPermission: "manage_compliance", __feature: "notices.pendingApproval" },
     { title: "Delivery Tracking", url: "/compliance/notices/delivery-tracking", icon: Activity, requiresPermission: "manage_compliance", __feature: "notices.deliveryTracking" },
