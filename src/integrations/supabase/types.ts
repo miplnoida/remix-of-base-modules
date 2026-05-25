@@ -22306,6 +22306,68 @@ export type Database = {
           },
         ]
       }
+      ce_workflow_mappings: {
+        Row: {
+          applicable_fund: string | null
+          applicable_min_amount: number | null
+          applicable_severity: string | null
+          applicable_violation_type_id: string | null
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          event_key: string
+          fallback_behavior: string
+          id: string
+          notes: string | null
+          priority: number
+          updated_at: string
+          updated_by: string | null
+          workflow_definition_id: string | null
+        }
+        Insert: {
+          applicable_fund?: string | null
+          applicable_min_amount?: number | null
+          applicable_severity?: string | null
+          applicable_violation_type_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          event_key: string
+          fallback_behavior?: string
+          id?: string
+          notes?: string | null
+          priority?: number
+          updated_at?: string
+          updated_by?: string | null
+          workflow_definition_id?: string | null
+        }
+        Update: {
+          applicable_fund?: string | null
+          applicable_min_amount?: number | null
+          applicable_severity?: string | null
+          applicable_violation_type_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          event_key?: string
+          fallback_behavior?: string
+          id?: string
+          notes?: string | null
+          priority?: number
+          updated_at?: string
+          updated_by?: string | null
+          workflow_definition_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_workflow_mappings_workflow_definition_id_fkey"
+            columns: ["workflow_definition_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_zone_office_mapping: {
         Row: {
           created_at: string | null

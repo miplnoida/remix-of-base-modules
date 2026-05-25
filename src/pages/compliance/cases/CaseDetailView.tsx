@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { CasePaymentArrangementDialog } from '@/components/compliance/CasePaymentArrangementDialog';
 import { CaseRequestActions } from '@/components/compliance/CaseRequestActions';
+import { WorkflowStatusBadge } from '@/components/compliance/WorkflowStatusBadge';
 import { fetchPaymentArrangements } from '@/services/complianceDataService';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -197,6 +198,8 @@ export default function CaseDetailView() {
                   {(c.status || '').replace(/_/g, ' ')}
                 </Badge>
                 {c.priority && <Badge variant="outline">{c.priority}</Badge>}
+                <WorkflowStatusBadge eventKey="case.closure_approval"
+                  context={{ fund: c.fund_type, amount: Number(c.total_amount) || 0 }} compact />
               </div>
               <p className="text-sm text-muted-foreground">
                 Opened: {c.opened_date ? formatDate(c.opened_date) : 'N/A'} | Type: {c.case_type || 'General'}
