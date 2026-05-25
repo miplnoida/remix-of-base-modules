@@ -311,6 +311,14 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
         legalResponseReceived: false,
       };
 
+      // Existing open/under-review violations grouped by violation_type_id for duplicate-suppression
+      const existingViolationsByVtId: Record<string, number> = {};
+      for (const v of violations) {
+        if (v.violation_type_id && (v.status === 'OPEN' || v.status === 'UNDER_REVIEW')) {
+          existingViolationsByVtId[v.violation_type_id] = (existingViolationsByVtId[v.violation_type_id] ?? 0) + 1;
+        }
+      }
+
       return {
         facts,
         filingHistory: c3s,
@@ -318,6 +326,7 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
         violations,
         arrangements,
         riskProfile: risk,
+        existingViolationsByVtId,
         snapshot: {
           filedCount,
           notFiledCount,
