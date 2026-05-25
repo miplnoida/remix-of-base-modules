@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { ComplianceHelpButton } from '@/components/help/ComplianceHelpButton';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PermissionButton } from '@/components/ui/permission-button';
 import { Card, CardContent } from '@/components/ui/card';
