@@ -110,6 +110,7 @@ import OnlineResponseConfigPage from './admin/OnlineResponseConfigPage';
 import RiskOperations from './admin/RiskOperations';
 import SetupWizard from './admin/SetupWizard';
 import CaseFamiliesPage from './admin/CaseFamiliesPage';
+import WorkflowMappingPage from './admin/WorkflowMappingPage';
 // Reuses the audit module's Document & Output Settings page (Foundation, Section
 // Library, Report Templates) under Compliance Admin routes so officers don't
 // have to leave the Compliance module to manage report-level templates.
