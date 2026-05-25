@@ -662,9 +662,9 @@ function calculateEmployeeLevy(
           };
        }
  
-       return performCalculation(inputs, config, slabDetails);
+       return performCalculation(inputs, config, slabDetails, bonusPolicy);
      },
-     [config, slabDetails]
+     [config, slabDetails, bonusPolicy]
    );
  
    return {
