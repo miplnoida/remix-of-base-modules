@@ -2,7 +2,11 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FlaskConical, Play, RotateCcw, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { FlaskConical, Play, RotateCcw, ToggleLeft, ToggleRight, Save, Download, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import EmployerSelector from '@/components/compliance/simulator/EmployerSelector';
 import ComplianceSnapshot from '@/components/compliance/simulator/ComplianceSnapshot';
@@ -11,6 +15,8 @@ import SimulationResults from '@/components/compliance/simulator/SimulationResul
 import RecommendedAction from '@/components/compliance/simulator/RecommendedAction';
 import ExplanationPanel from '@/components/compliance/simulator/ExplanationPanel';
 import { useSimulatorRules, useEmployerComplianceContext } from '@/hooks/compliance/useSimulatorData';
+import { useSaveSimulationRun } from '@/hooks/compliance/useSimulationRuns';
+import { useHasPermission } from '@/hooks/useNavigationMenu';
 import {
   createDefaultFactContext,
   runSimulation,
