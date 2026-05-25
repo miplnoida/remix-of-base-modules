@@ -229,19 +229,19 @@ function CaseFamiliesInner() {
         </CardContent>
       </Card>
 
-      <Editor
-        state={editor}
-        onClose={() => setEditor({ open: false, family: null })}
-        onSave={(f) => save.mutate(f)}
-        saving={save.isPending}
-        violationTypes={violationTypesQ.data ?? []}
-        queues={queuesQ.data ?? []}
-        notices={noticeTemplatesQ.data ?? []}
-        workflows={workflowsQ.data ?? []}
-      />
-    </div>
-  );
-}
+      {editor.open && editor.family && (
+        <Editor
+          key={(editor.family as any).id ?? 'new'}
+          state={editor}
+          onClose={() => setEditor({ open: false, family: null })}
+          onSave={(f) => save.mutate(f)}
+          saving={save.isPending}
+          violationTypes={violationTypesQ.data ?? []}
+          queues={queuesQ.data ?? []}
+          notices={noticeTemplatesQ.data ?? []}
+          workflows={workflowsQ.data ?? []}
+        />
+      )}
 
 function Editor({
   state,
