@@ -16004,6 +16004,60 @@ export type Database = {
         }
         Relationships: []
       }
+      ce_employer_watchlist: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          employer_id: string
+          employer_name: string | null
+          end_date: string | null
+          id: string
+          notes: string | null
+          reason: string
+          removal_notes: string | null
+          removed_at: string | null
+          removed_by: string | null
+          source: string
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          employer_id: string
+          employer_name?: string | null
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          reason: string
+          removal_notes?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          source?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          employer_id?: string
+          employer_name?: string | null
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          reason?: string
+          removal_notes?: string | null
+          removed_at?: string | null
+          removed_by?: string | null
+          source?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ce_escalation_log: {
         Row: {
           approval_required: boolean | null
