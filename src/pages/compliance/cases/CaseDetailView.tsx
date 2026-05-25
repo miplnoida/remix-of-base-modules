@@ -247,6 +247,11 @@ export default function CaseDetailView() {
                 Create Payment Arrangement
               </Button>
             )}
+            <CaseRequestActions
+              caseId={c.id}
+              caseStatus={c.status}
+              caseNumber={c.case_number}
+            />
           </div>
         </CardHeader>
       </Card>
