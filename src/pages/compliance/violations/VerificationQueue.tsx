@@ -42,7 +42,7 @@ function fmtAmount(v: number | null | undefined) {
 }
 
 function VerificationQueueInner() {
-  const navigate = useNavigate();
+  // navigation handled via the module-level navigate helper
   const queryClient = useQueryClient();
   const { userCode } = useUserCode();
 
