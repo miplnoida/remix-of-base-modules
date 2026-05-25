@@ -15,6 +15,8 @@ import {
 import { CasePaymentArrangementDialog } from '@/components/compliance/CasePaymentArrangementDialog';
 import { CaseRequestActions } from '@/components/compliance/CaseRequestActions';
 import { WorkflowStatusBadge } from '@/components/compliance/WorkflowStatusBadge';
+import RequestWaiverDialog from '@/components/compliance/RequestWaiverDialog';
+import { BadgePercent } from 'lucide-react';
 import { fetchPaymentArrangements } from '@/services/complianceDataService';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
