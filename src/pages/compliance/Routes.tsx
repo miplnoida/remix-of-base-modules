@@ -201,7 +201,7 @@ const ComplianceRoutes = () => {
 
       {/* Inspections */}
       <Route path="/inspections/evidence" element={<InspectionEvidencePage />} />
-      <Route path="/inspections/convert-finding" element={<PlaceholderPage title="Convert Finding To Violation" area="Inspections" />} />
+      <Route path="/inspections/convert-finding" element={<ConvertFindingToViolationPage />} />
 
       {/* Legal Escalations */}
       <Route path="/legal/pack-preparation" element={<PlaceholderPage title="Legal Pack Preparation" area="Legal Escalations" />} />
