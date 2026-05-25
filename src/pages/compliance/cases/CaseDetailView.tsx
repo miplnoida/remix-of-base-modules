@@ -566,7 +566,7 @@ export default function CaseDetailView() {
             Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0) - Number((c as any).amount_waived ?? 0),
           ),
         }}
-        onCreated={() => qc.invalidateQueries({ queryKey: ['compliance-case', id] })}
+        onCreated={() => queryClient.invalidateQueries({ queryKey: ['ce_case_detail', id] })}
       />
     </div>
   );
