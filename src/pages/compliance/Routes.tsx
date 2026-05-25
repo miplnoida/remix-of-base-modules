@@ -79,6 +79,7 @@ import AuditReports from './reports/AuditReports';
 import ArrangementReports from './reports/ArrangementReports';
 import LegalEscalationReports from './reports/LegalEscalationReports';
 import TrendReports from './reports/TrendReports';
+import AutomationJobReports from './reports/AutomationJobReports';
 
 // Settings
 import RuleEngine from './settings/RuleEngine';
@@ -182,7 +183,7 @@ const ComplianceRoutes = () => {
       <Route path="/risk/watchlist" element={<PlaceholderPage title="Watchlist" area="Risk And Employer Profile" />} />
 
       {/* Reports */}
-      <Route path="/reports/automation-jobs" element={<PlaceholderPage title="Automation Job Reports" area="Reports" />} />
+      <Route path="/reports/automation-jobs" element={<AutomationJobReports />} />
 
       {/* Administration */}
       <Route path="/admin/setup-wizard" element={<SetupWizard />} />
