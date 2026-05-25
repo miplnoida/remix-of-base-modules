@@ -35,6 +35,7 @@ export type ComplianceFeatureKey =
   | 'arrangements.active'
   | 'arrangements.installmentsDue'
   | 'arrangements.paymentAllocation'
+  | 'inspections'
   | 'inspections.evidence'
   | 'inspections.convertFinding'
   | 'legal.packPreparation'
