@@ -459,6 +459,7 @@ function calculateEmployeeLevy(
  export function useC3EmployeeCalculation(periodYear: number, periodMonth: number) {
    const [config, setConfig] = useState<C3ConfigData | null>(null);
    const [slabDetails, setSlabDetails] = useState<LevySlabDetail[]>([]);
+   const [bonusPolicy, setBonusPolicy] = useState<BonusPolicyData | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
  
