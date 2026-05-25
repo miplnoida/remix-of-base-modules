@@ -43,6 +43,14 @@ import NoticesManagement from './legal/NoticesManagement';
 import LegalRecommendationQueue from './legal/LegalRecommendationQueue';
 import LegalReferralWizard from './legal/LegalReferralWizard';
 
+// Notices & Communications
+import NoticeRegister from './notices/NoticeRegister';
+import GenerateNoticePage from './notices/GenerateNoticePage';
+import PendingApprovalPage from './notices/PendingApprovalPage';
+import DeliveryTrackingPage from './notices/DeliveryTrackingPage';
+import EmployerResponsesPage from './notices/EmployerResponsesPage';
+import CommunicationHistoryPage from './notices/CommunicationHistoryPage';
+
 // Employers
 import EmployerStatements from './employers/EmployerStatements';
 import EmployerStatementDetail from './employers/EmployerStatementDetail';
@@ -166,11 +174,12 @@ const ComplianceRoutes = () => {
       <Route path="/cases/closure" element={<CaseClosurePage />} />
 
       {/* Notices & Communications */}
-      <Route path="/notices/generate" element={<PlaceholderPage title="Generate Notice" area="Notices And Communications" />} />
-      <Route path="/notices/pending-approval" element={<PlaceholderPage title="Pending Approval" area="Notices And Communications" />} />
-      <Route path="/notices/delivery-tracking" element={<PlaceholderPage title="Delivery Tracking" area="Notices And Communications" />} />
-      <Route path="/notices/employer-responses" element={<PlaceholderPage title="Employer Responses" area="Notices And Communications" />} />
-      <Route path="/notices/communication-history" element={<PlaceholderPage title="Communication History" area="Notices And Communications" />} />
+      <Route path="/notices/register" element={<NoticeRegister />} />
+      <Route path="/notices/generate" element={<GenerateNoticePage />} />
+      <Route path="/notices/pending-approval" element={<PendingApprovalPage />} />
+      <Route path="/notices/delivery-tracking" element={<DeliveryTrackingPage />} />
+      <Route path="/notices/employer-responses" element={<EmployerResponsesPage />} />
+      <Route path="/notices/communication-history" element={<CommunicationHistoryPage />} />
 
       {/* Payment Arrangements */}
       <Route path="/arrangements/new" element={<PlaceholderPage title="New Arrangement" area="Payment Arrangements" />} />

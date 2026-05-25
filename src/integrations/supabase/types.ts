@@ -18323,6 +18323,79 @@ export type Database = {
           },
         ]
       }
+      ce_notice_responses: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          documents: Json
+          employer_id: string
+          id: string
+          next_action: string | null
+          notes: string | null
+          notice_id: string
+          recorded_by: string
+          recorded_by_name: string | null
+          response_date: string
+          response_type: string
+          updated_at: string
+          violation_id: string | null
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          documents?: Json
+          employer_id: string
+          id?: string
+          next_action?: string | null
+          notes?: string | null
+          notice_id: string
+          recorded_by: string
+          recorded_by_name?: string | null
+          response_date?: string
+          response_type: string
+          updated_at?: string
+          violation_id?: string | null
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          documents?: Json
+          employer_id?: string
+          id?: string
+          next_action?: string | null
+          notes?: string | null
+          notice_id?: string
+          recorded_by?: string
+          recorded_by_name?: string | null
+          response_date?: string
+          response_type?: string
+          updated_at?: string
+          violation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ce_notice_responses_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "ce_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_notice_responses_notice_id_fkey"
+            columns: ["notice_id"]
+            isOneToOne: false
+            referencedRelation: "ce_notices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_notice_responses_violation_id_fkey"
+            columns: ["violation_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_notice_templates: {
         Row: {
           body: string
