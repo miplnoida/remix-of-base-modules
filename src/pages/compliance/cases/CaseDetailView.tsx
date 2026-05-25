@@ -67,6 +67,7 @@ export default function CaseDetailView() {
   const [cascadeReason, setCascadeReason] = useState('');
   const [cascading, setCascading] = useState(false);
   const [arrangementDialogOpen, setArrangementDialogOpen] = useState(false);
+  const [waiverDialogOpen, setWaiverDialogOpen] = useState(false);
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
