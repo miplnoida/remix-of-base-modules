@@ -92,21 +92,75 @@ export default function RuleSimulator() {
       rules.detectionRules,
       rules.calculationRules,
       rules.escalationRules,
-      rules.violationTypes
+      rules.violationTypes,
+      {
+        ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
+        existingViolationsByVtId: context?.existingViolationsByVtId ?? {},
+      }
     );
 
     setOutput(result);
-    toast.success(`Simulation complete: ${result.summary.matchedDetections} detection(s) matched`);
-  }, [facts, rules, overriddenFields]);
+    const dup = result.summary.duplicatesSuppressed;
+    toast.success(
+      `Simulation complete: ${result.summary.matchedDetections} detection(s) matched` +
+        (dup > 0 ? ` — ${dup} suppressed as duplicate` : '')
+    );
+  }, [facts, rules, overriddenFields, ruleCodeFilter, context]);
 
   const handleReset = useCallback(() => {
     setFacts(createDefaultFactContext());
     setOutput(null);
     setOverriddenFields(new Set());
+    setRuleCodeFilter('__all__');
+    setPeriodOverride('');
     if (context?.facts) {
       setFacts(prev => ({ ...prev, ...context.facts, overriddenFields: [] }));
     }
   }, [context]);
+
+  const handleSaveRun = useCallback(() => {
+    if (!output) {
+      toast.error('Run a simulation first');
+      return;
+    }
+    saveRun.mutate(
+      {
+        ruleCode: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
+        ruleType: 'all',
+        employerRegno: selectedRegNo,
+        period: periodOverride || facts.filingPeriod || null,
+        facts,
+        output,
+      },
+      {
+        onSuccess: () => toast.success('Simulation run saved'),
+        onError: (e: any) => toast.error(`Failed to save: ${e?.message ?? 'unknown error'}`),
+      }
+    );
+  }, [output, saveRun, ruleCodeFilter, selectedRegNo, periodOverride, facts]);
+
+  const handleExport = useCallback(() => {
+    if (!output) {
+      toast.error('Run a simulation first');
+      return;
+    }
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      employer: { regno: selectedRegNo, name: selectedName, status: selectedStatus },
+      ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
+      periodOverride: periodOverride || null,
+      facts,
+      output,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `simulation-${selectedRegNo ?? 'manual'}-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Simulation exported');
+  }, [output, selectedRegNo, selectedName, selectedStatus, ruleCodeFilter, periodOverride, facts]);
 
   return (
     <div className="space-y-4">
@@ -134,7 +188,42 @@ export default function RuleSimulator() {
             Test configured detection, calculation, and escalation rules safely
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={ruleCodeFilter} onValueChange={setRuleCodeFilter}>
+            <SelectTrigger className="h-8 w-[180px] text-xs">
+              <SelectValue placeholder="All rules" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All enabled rules</SelectItem>
+              {rules?.detectionRules.map(r => (
+                <SelectItem key={`d-${r.id}`} value={r.rule_code}>
+                  {r.rule_code} — {r.name}
+                </SelectItem>
+              ))}
+              {rules?.calculationRules.map(r => (
+                <SelectItem key={`c-${r.id}`} value={r.rule_code}>
+                  {r.rule_code} — {r.name}
+                </SelectItem>
+              ))}
+              {rules?.escalationRules.map(r => (
+                <SelectItem key={`e-${r.id}`} value={r.rule_code}>
+                  {r.rule_code} — {r.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-1">
+            <Label htmlFor="period-override" className="text-xs text-muted-foreground">
+              Period
+            </Label>
+            <Input
+              id="period-override"
+              type="month"
+              value={periodOverride}
+              onChange={e => setPeriodOverride(e.target.value)}
+              className="h-8 w-[150px] text-xs"
+            />
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -150,8 +239,67 @@ export default function RuleSimulator() {
           <Button size="sm" onClick={handleRun} disabled={rulesLoading} className="gap-1.5 text-xs">
             <Play className="h-3.5 w-3.5" /> Run Simulation
           </Button>
+          {canSave && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveRun}
+              disabled={!output || saveRun.isPending}
+              className="gap-1.5 text-xs"
+            >
+              <Save className="h-3.5 w-3.5" /> Save Run
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={!output}
+            className="gap-1.5 text-xs"
+          >
+            <Download className="h-3.5 w-3.5" /> Export
+          </Button>
         </div>
       </div>
+
+      {/* Missing data / warnings / errors */}
+      {output && (output.missingData.length > 0 || output.warnings.length > 0 || output.errors.length > 0) && (
+        <div className="space-y-2">
+          {output.errors.length > 0 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Evaluation errors</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-4 text-xs space-y-0.5">
+                  {output.errors.map((e, i) => <li key={i}>{e}</li>)}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+          {output.missingData.length > 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Missing data — results may be incomplete</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-4 text-xs space-y-0.5">
+                  {output.missingData.map((m, i) => <li key={i}>{m}</li>)}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+          {output.warnings.length > 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Warnings</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-4 text-xs space-y-0.5">
+                  {output.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
 
       {/* Employer selector */}
       <Card>
