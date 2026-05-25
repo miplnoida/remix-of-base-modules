@@ -542,20 +542,48 @@ export function runSimulation(
   detectionRules: DetectionRuleData[],
   calculationRules: CalculationRuleData[],
   escalationRules: EscalationRuleData[],
-  violationTypes: ViolationTypeData[]
+  violationTypes: ViolationTypeData[],
+  options: SimulationOptions = {}
 ): SimulationOutput {
+  const ruleFilter = options.ruleCodeFilter ?? null;
+  const dupMap = options.existingViolationsByVtId ?? {};
+  const warnings: string[] = [];
+  const errors: string[] = [];
+
+  // ── Missing-data discovery ──
+  const missingData: string[] = [];
+  if (!facts.employerRegNo) missingData.push('employer (no employer selected)');
+  if (!facts.filingPeriod) missingData.push('filing period');
+  if (facts.amountDue === 0 && !facts.filingSubmitted) missingData.push('amount due (no C3 filed for period)');
+  if (facts.priorAverageWages === 0) missingData.push('historical wages (no prior C3 data)');
+  if (facts.employeeCountObserved === 0 && facts.employeeCountDeclared > 0) {
+    missingData.push('observed employee count (no inspection on file)');
+  }
+  if (!facts.noticeStage && facts.totalOwed > 0) missingData.push('current notice stage');
+
+  const passesFilter = (code: string) => !ruleFilter || code === ruleFilter;
+
   // 1. Detection
   const detectionResults: DetectionResult[] = detectionRules
-    .filter(r => r.is_enabled)
+    .filter(r => r.is_enabled && passesFilter(r.rule_code))
     .map(rule => {
       const evaluator = DETECTION_EVALUATORS[rule.rule_code];
       const params = rule.parameters || {};
-      const { matched, reason } = evaluator
-        ? evaluator(facts, params)
-        : { matched: false, reason: `No evaluator for ${rule.rule_code}` };
+      let matched = false;
+      let reason = '';
+      if (evaluator) {
+        const out = evaluator(facts, params);
+        matched = out.matched;
+        reason = out.reason;
+      } else {
+        reason = `No evaluator for ${rule.rule_code}`;
+        errors.push(`Detection rule ${rule.rule_code} has no engine evaluator wired up.`);
+      }
 
       const vt = getViolationType(rule.violation_type_id, violationTypes);
       const autoCreate = rule.auto_create_violation ?? true;
+      const duplicateCount = vt?.id ? (dupMap[vt.id] ?? 0) : 0;
+      const duplicateSuppressed = matched && duplicateCount > 0;
 
       return {
         ruleCode: rule.rule_code,
@@ -566,8 +594,10 @@ export function runSimulation(
         linkedViolationTypeCode: vt?.code || null,
         linkedViolationTypeName: vt?.name || null,
         autoCreate,
-        initialStatus: autoCreate ? 'OPEN' as const : 'UNDER_REVIEW' as const,
+        initialStatus: autoCreate ? ('OPEN' as const) : ('UNDER_REVIEW' as const),
         priority: rule.priority,
+        duplicateCount,
+        duplicateSuppressed,
       };
     });
 
@@ -578,16 +608,13 @@ export function runSimulation(
     if (rule?.violation_type_id) matchedVtIds.add(rule.violation_type_id);
   });
 
-  // Also check generic (outstanding balance)
-  const hasOutstandingBalance = facts.totalOwed > 0;
-
   // 2. Calculation
   const calculationResults: CalculationResult[] = calculationRules
-    .filter(r => r.is_enabled)
+    .filter(r => r.is_enabled && passesFilter(r.rule_code))
     .map(rule => evaluateCalculation(rule, facts, matchedVtIds));
 
-  // For disabled CR-004, still show it
-  const disabledCalc = calculationRules.filter(r => !r.is_enabled);
+  // For disabled rules within filter scope, surface them
+  const disabledCalc = calculationRules.filter(r => !r.is_enabled && passesFilter(r.rule_code));
   disabledCalc.forEach(rule => {
     calculationResults.push({
       ruleCode: rule.rule_code,
@@ -601,9 +628,9 @@ export function runSimulation(
       fundType: rule.fund_type,
       skippedReason: `${rule.rule_code} is disabled`,
     });
+    warnings.push(`Calculation rule ${rule.rule_code} is disabled — no amount produced.`);
   });
 
-  // Sort calculation results
   calculationResults.sort((a, b) => a.ruleCode.localeCompare(b.ruleCode));
 
   // 3. Escalation
@@ -612,11 +639,10 @@ export function runSimulation(
     ? (matchedDetections.some(d => !d.autoCreate) ? 'UNDER_REVIEW' : 'OPEN')
     : 'OPEN';
 
-  // Also evaluate for the notice stage if provided
   const effectiveStatus = facts.noticeStage || primaryStatus;
 
   const escalationResults: EscalationResult[] = escalationRules
-    .filter(r => r.is_enabled)
+    .filter(r => r.is_enabled && passesFilter(r.rule_code))
     .map(rule => evaluateEscalation(rule, facts, effectiveStatus, matchedVtIds));
 
   // 4. Recommendations
@@ -625,7 +651,9 @@ export function runSimulation(
     recommendations.push('✅ No compliance violation detected for this scenario.');
   } else {
     matchedDetections.forEach(d => {
-      if (d.autoCreate) {
+      if (d.duplicateSuppressed) {
+        recommendations.push(`⚠️ Would match ${d.linkedViolationTypeCode}, but ${d.duplicateCount} open violation(s) of the same type already exist — duplicate suppressed.`);
+      } else if (d.autoCreate) {
         recommendations.push(`🔴 Auto-create ${d.linkedViolationTypeCode} violation (initial status: OPEN)`);
       } else {
         recommendations.push(`🟡 Create UNDER_REVIEW case for ${d.linkedViolationTypeCode} — assign compliance officer for review`);
@@ -651,20 +679,25 @@ export function runSimulation(
   // 5. Summary
   const applicableCalcs = calculationResults.filter(c => c.applies);
   const financialImpact = applicableCalcs.reduce((sum, c) => sum + c.simulatedAmount, 0);
+  const duplicatesSuppressed = matchedDetections.filter(d => d.duplicateSuppressed).length;
 
   return {
     detectionResults,
     calculationResults,
     escalationResults,
     recommendations,
+    missingData,
+    warnings,
+    errors,
     summary: {
       matchedDetections: matchedDetections.length,
       totalDetections: detectionResults.length,
       applicableCalculations: applicableCalcs.length,
       applicableEscalations: escalationResults.filter(e => e.applies).length,
-      wouldCreateViolation: matchedDetections.length > 0,
+      wouldCreateViolation: matchedDetections.length > 0 && duplicatesSuppressed < matchedDetections.length,
       initialStatus: matchedDetections.length > 0 ? primaryStatus : null,
       financialImpact,
+      duplicatesSuppressed,
     },
   };
 }
