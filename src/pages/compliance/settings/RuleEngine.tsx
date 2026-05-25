@@ -1110,6 +1110,25 @@ const RuleEngine = () => {
           <p className="text-muted-foreground">Configure detection, calculation, and escalation rules for automated compliance enforcement</p>
         </div>
         <HelpToolbar extraShortcuts={extraShortcutList}>
+          <Button
+            variant="outline"
+            className="gap-2 ml-2"
+            onClick={() => {
+              const exp = buildRuleExport(
+                {
+                  detection_rules: detectionRules,
+                  calculation_rules: calculationRules,
+                  escalation_rules: escalationRules,
+                  variable_mappings: variableMappings,
+                },
+                userCode || null,
+              );
+              downloadRuleExport(exp);
+              toast.success('Rule export downloaded');
+            }}
+          >
+            <Download className="h-4 w-4" />Export
+          </Button>
           <Button className="gap-2 ml-2" onClick={handleAddRule}><Plus className="h-4 w-4" />Add Rule</Button>
         </HelpToolbar>
       </div>
