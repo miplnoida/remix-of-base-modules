@@ -21,6 +21,11 @@ import ViolationHistory from './violations/ViolationHistory';
 import CaseManagement from './cases/CaseManagement';
 import CaseQueue from './cases/CaseQueue';
 import PenaltyManagement from './cases/PenaltyManagement';
+import CaseIntake from './cases/CaseIntake';
+import AssignedCases from './cases/AssignedCases';
+import CaseClosurePage from './cases/CaseClosurePage';
+import ReopenRequestsPage from './cases/ReopenRequestsPage';
+import CaseMergeReviewPage from './cases/CaseMergeReviewPage';
 
 // Inspections
 import InspectionManagement from './inspections/InspectionManagement';
