@@ -3,16 +3,8 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -21,17 +13,19 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Eye, Plus, Search, Filter, Loader2, Merge, Split, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, Plus, Filter, Loader2, Merge, Split, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchViolationsPaginated, fetchViolationSummaryCounts } from '@/services/complianceDataService';
 import { BulkViolationActions } from '@/components/compliance/BulkViolationActions';
 import { ViolationMergeDialog } from '@/components/compliance/ViolationMergeDialog';
 import { ViolationSplitDialog } from '@/components/compliance/ViolationSplitDialog';
+import { PermissionWrapper } from '@/components/ui/permission-wrapper';
+import { PermissionButton } from '@/components/ui/permission-button';
+import { ViolationFiltersBar, emptyViolationFilterState } from '@/components/compliance/ViolationFiltersBar';
 
-const VIOLATION_STATUSES = ['OPEN', 'UNDER_REVIEW', 'IN_PROGRESS', 'ESCALATED', 'RESOLVED', 'CLOSED', 'CANCELLED'];
-const VIOLATION_PRIORITIES = ['Critical', 'High', 'Medium', 'Low'];
 const PAGE_SIZE = 50;
+const MODULE = 'manage_compliance';
 
 const STATUS_COLORS: Record<string, string> = {
   OPEN: 'bg-primary/10 text-primary',
