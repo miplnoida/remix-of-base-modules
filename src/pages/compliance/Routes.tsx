@@ -196,7 +196,7 @@ const ComplianceRoutes = () => {
       <Route path="/admin/feature-toggles" element={<PlaceholderPage title="Feature Toggles" area="Administration" />} />
       <Route path="/admin/calculation-rules" element={<PlaceholderPage title="Calculation Rules" area="Administration" />} />
       <Route path="/admin/escalation-rules" element={<PlaceholderPage title="Escalation Rules" area="Administration" />} />
-      <Route path="/admin/case-families" element={<PlaceholderPage title="Case Families" area="Administration" />} />
+      <Route path="/admin/case-families" element={<CaseFamiliesPage />} />
       <Route path="/admin/workflow-mapping" element={<PlaceholderPage title="Workflow Mapping" area="Administration" />} />
       <Route path="/admin/schedule-settings" element={<PlaceholderPage title="Schedule Settings" area="Administration" />} />
       <Route path="/admin/payment-arrangement-rules" element={<PlaceholderPage title="Payment Arrangement Rules" area="Administration" />} />
