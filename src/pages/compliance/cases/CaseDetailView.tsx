@@ -552,6 +552,22 @@ export default function CaseDetailView() {
         totalAmount={Number(c.total_amount) || 0}
         amountCollected={Number(c.amount_collected) || 0}
       />
+
+      <RequestWaiverDialog
+        open={waiverDialogOpen}
+        onClose={() => setWaiverDialogOpen(false)}
+        context={{
+          employer_id: c.employer_id,
+          case_id: c.id,
+          fund: (c as any).fund_type ?? null,
+          source: 'CASE',
+          defaultAmount: Math.max(
+            0,
+            Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0) - Number((c as any).amount_waived ?? 0),
+          ),
+        }}
+        onCreated={() => qc.invalidateQueries({ queryKey: ['compliance-case', id] })}
+      />
     </div>
   );
 }
