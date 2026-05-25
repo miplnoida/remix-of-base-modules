@@ -292,6 +292,18 @@ export const ACTION_NAMES = {
   DELETE_DESIGNATION: 'delete-designation',
   // Workflow actions
   VIEW_ANALYTICS: 'view-analytics',
-  // Sample Application actions  
+  // Sample Application actions
   SUBMIT: 'submit',
+  // ─── Compliance & Enforcement workflow vocabulary ──────────────
+  APPROVE: 'approve',
+  REJECT: 'reject',
+  ASSIGN: 'assign',
+  CLOSE: 'close',
+  REOPEN: 'reopen',
+  ISSUE: 'issue',
+  ESCALATE: 'escalate',
+  WAIVE: 'waive',
+  CONFIGURE: 'configure',
+  RUN: 'run',
 } as const;
+
