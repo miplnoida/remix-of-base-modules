@@ -1213,7 +1213,11 @@ const RuleEngine = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-3 ml-4">
-                        <Switch checked={rule.is_enabled ?? false} onCheckedChange={(checked) => toggleCalc.mutate({ id: rule.id, is_enabled: checked })} />
+                        <Switch checked={rule.is_enabled ?? false} onCheckedChange={(checked) => {
+                          if (checked) requestActivation('ce_calculation_rules', rule, 'Calculation');
+                          else toggleCalc.mutate({ id: rule.id, is_enabled: false });
+                        }} />
+                        <Button variant="ghost" size="icon" title="History" onClick={() => setHistoryTarget({ table: 'ce_calculation_rules', id: rule.id, label: `${rule.rule_code} — ${rule.name}` })}><History className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="icon" onClick={() => { setEditingCalc(rule); setCalcDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
                       </div>
                     </div>
