@@ -12166,7 +12166,9 @@ export type Database = {
           old_values: Json | null
           performed_at: string | null
           performed_by: string | null
+          reason: string | null
           user_agent: string | null
+          workflow_task_id: string | null
         }
         Insert: {
           action: string
@@ -12179,7 +12181,9 @@ export type Database = {
           old_values?: Json | null
           performed_at?: string | null
           performed_by?: string | null
+          reason?: string | null
           user_agent?: string | null
+          workflow_task_id?: string | null
         }
         Update: {
           action?: string
@@ -12192,7 +12196,9 @@ export type Database = {
           old_values?: Json | null
           performed_at?: string | null
           performed_by?: string | null
+          reason?: string | null
           user_agent?: string | null
+          workflow_task_id?: string | null
         }
         Relationships: []
       }
