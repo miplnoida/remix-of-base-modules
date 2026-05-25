@@ -114,7 +114,7 @@ function Inner() {
             Eligibility rules used to recommend cases for legal escalation. The first matching enabled rule applies.
           </p>
         </div>
-        <PermissionButton moduleName={PERMISSION} onClick={() => startEdit()}>
+        <PermissionButton moduleName={PERMISSION} actionName="manage" onClick={() => startEdit()}>
           <Plus className="h-4 w-4 mr-2" /> New Rule
         </PermissionButton>
       </div>
@@ -259,7 +259,7 @@ function Inner() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditor({ open: false, rule: null })}>Cancel</Button>
-            <PermissionButton moduleName={PERMISSION} action={editor.rule?.id ? 'edit' : 'create'}
+            <PermissionButton moduleName={PERMISSION} actionName="manage" action={editor.rule?.id ? 'edit' : 'create'}
               onClick={() => editor.rule && saveMut.mutate(editor.rule)} disabled={saveMut.isPending}>
               Save
             </PermissionButton>
