@@ -262,6 +262,45 @@ export default function RuleSimulator() {
         </div>
       </div>
 
+      {/* Missing data / warnings / errors */}
+      {output && (output.missingData.length > 0 || output.warnings.length > 0 || output.errors.length > 0) && (
+        <div className="space-y-2">
+          {output.errors.length > 0 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Evaluation errors</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-4 text-xs space-y-0.5">
+                  {output.errors.map((e, i) => <li key={i}>{e}</li>)}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+          {output.missingData.length > 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Missing data — results may be incomplete</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-4 text-xs space-y-0.5">
+                  {output.missingData.map((m, i) => <li key={i}>{m}</li>)}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+          {output.warnings.length > 0 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Warnings</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc pl-4 text-xs space-y-0.5">
+                  {output.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+      )}
+
       {/* Employer selector */}
       <Card>
         <CardContent className="pt-4 pb-3">
