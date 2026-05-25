@@ -69,7 +69,7 @@ function daysBetween(from: Date, to: Date): number {
 
 // ── Load employer compliance context ──
 
-export function useEmployerComplianceContext(regno: string | null) {
+export function useEmployerComplianceContext(regno: string | null, periodOverride?: string | null) {
   return useQuery({
     queryKey: ['simulator-employer-context', regno],
     queryFn: async (): Promise<{
