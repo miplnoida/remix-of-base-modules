@@ -51,6 +51,10 @@ import WaiversOverrides from './legal/WaiversOverrides';
 import NoticesManagement from './legal/NoticesManagement';
 import LegalRecommendationQueue from './legal/LegalRecommendationQueue';
 import LegalReferralWizard from './legal/LegalReferralWizard';
+import LegalPackPreparationPage from './legal/LegalPackPreparationPage';
+import ApprovedEscalationsPage from './legal/ApprovedEscalationsPage';
+import ReturnedFromLegalPage from './legal/ReturnedFromLegalPage';
+import LegalHandoffRulesPage from './admin/LegalHandoffRulesPage';
 
 // Notices & Communications
 import NoticeRegister from './notices/NoticeRegister';
