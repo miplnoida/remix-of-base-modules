@@ -509,8 +509,9 @@ export default function ViolationDetails() {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+        <TabsList className="grid w-full grid-cols-5 lg:grid-cols-9">
           <TabsTrigger value="overview"><FileText className="h-4 w-4 mr-2" />Overview</TabsTrigger>
+          <TabsTrigger value="timeline"><History className="h-4 w-4 mr-2" />Timeline</TabsTrigger>
           <TabsTrigger value="follow-ups"><ClipboardCheck className="h-4 w-4 mr-2" />Follow-Ups</TabsTrigger>
           <TabsTrigger value="notes"><MessageSquare className="h-4 w-4 mr-2" />Notes</TabsTrigger>
           <TabsTrigger value="correspondence"><Mail className="h-4 w-4 mr-2" />Correspondence</TabsTrigger>
@@ -519,6 +520,11 @@ export default function ViolationDetails() {
           <TabsTrigger value="notices"><Bell className="h-4 w-4 mr-2" />Notices ({violationNoticesCount})</TabsTrigger>
           <TabsTrigger value="other-violations"><AlertCircle className="h-4 w-4 mr-2" />Other ({otherViolations.length})</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="timeline" className="space-y-4">
+          <ComplianceTimeline mode="single" entityType="violation" entityId={id!} title="Violation Timeline" />
+        </TabsContent>
+
 
         <TabsContent value="overview" className="space-y-4">
           <Card>
