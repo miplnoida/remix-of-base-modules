@@ -19,7 +19,7 @@ export default function GenerateNoticePage() {
   return (
     <PermissionWrapper moduleName={MODULE}>
       <div className="container mx-auto p-6 space-y-4">
-        <PageHeader title="Generate Notice" description="Create a compliance notice from configured templates." icon={Send} />
+        <PageHeader title="Generate Notice" subtitle="Create a compliance notice from configured templates." />
         {!enabled ? (
           <Card><CardContent className="py-10 text-center text-muted-foreground">Notice generation is disabled in feature toggles.</CardContent></Card>
         ) : (

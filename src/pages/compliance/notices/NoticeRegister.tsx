@@ -43,7 +43,7 @@ export default function NoticeRegister() {
   return (
     <PermissionWrapper moduleName={MODULE}>
       <div className="container mx-auto p-6 space-y-4">
-        <PageHeader title="Notice Register" description="All compliance notices linked to cases and violations." icon={Bell} />
+        <PageHeader title="Notice Register" subtitle="All compliance notices linked to cases and violations." />
 
         <div className="flex items-center justify-between gap-3">
           <div className="relative max-w-md flex-1">

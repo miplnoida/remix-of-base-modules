@@ -67,7 +67,7 @@ export default function DeliveryTrackingPage() {
   return (
     <PermissionWrapper moduleName={MODULE}>
       <div className="container mx-auto p-6 space-y-4">
-        <PageHeader title="Delivery Tracking" description="Track notice dispatch, delivery, and failures." icon={Truck} />
+        <PageHeader title="Delivery Tracking" subtitle="Track notice dispatch, delivery, and failures." />
         {!enabled ? (
           <Card><CardContent className="py-10 text-center text-muted-foreground">Delivery tracking is disabled in feature toggles.</CardContent></Card>
         ) : (

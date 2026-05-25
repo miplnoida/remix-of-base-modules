@@ -78,7 +78,7 @@ export default function EmployerResponsesPage() {
   return (
     <PermissionWrapper moduleName={MODULE}>
       <div className="container mx-auto p-6 space-y-4">
-        <PageHeader title="Employer Responses" description="Capture acknowledgements, disputes, and other responses to notices." icon={Inbox} />
+        <PageHeader title="Employer Responses" subtitle="Capture acknowledgements, disputes, and other responses to notices." />
         {!enabled ? (
           <Card><CardContent className="py-10 text-center text-muted-foreground">Employer responses are disabled in feature toggles.</CardContent></Card>
         ) : (

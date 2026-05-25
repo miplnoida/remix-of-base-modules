@@ -53,7 +53,7 @@ export default function PendingApprovalPage() {
   return (
     <PermissionWrapper moduleName={MODULE}>
       <div className="container mx-auto p-6 space-y-4">
-        <PageHeader title="Pending Approval" description="Notices awaiting officer approval before dispatch." icon={ClipboardCheck} />
+        <PageHeader title="Pending Approval" subtitle="Notices awaiting officer approval before dispatch." />
         {!enabled ? (
           <Card><CardContent className="py-10 text-center text-muted-foreground">Approval workflow is disabled in feature toggles.</CardContent></Card>
         ) : (
