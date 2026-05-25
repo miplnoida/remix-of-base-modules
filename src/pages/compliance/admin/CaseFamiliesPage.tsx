@@ -266,9 +266,7 @@ function Editor({
   notices: any[];
   workflows: any[];
 }) {
-  const f = state.family;
-  if (!f) return null;
-  const [local, setLocal] = useState<Partial<CaseFamily>>(f);
+  const [local, setLocal] = useState<Partial<CaseFamily>>(state.family ?? emptyFamily());
   const rule: GroupingRule = local.grouping_rule ?? { ...DEFAULT_GROUPING_RULE };
   const setRule = (k: keyof GroupingRule, v: any) =>
     setLocal({ ...local, grouping_rule: { ...rule, [k]: v } });
