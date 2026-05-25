@@ -56,7 +56,23 @@ export interface C3ConfigData {
    baseAmt: number;
    taxRate: number;
  }
- 
+
+ export interface BonusPolicyData {
+   id: string;
+   includeInLevy: boolean;
+   calculationMethod: 'merge' | 'separate';
+   calcFlatEnabled: boolean;
+   calcFlatPercentage: number | null;
+   calcSlabEnabled: boolean;
+   distribution: any;
+   minBonusAmount: number | null;
+   maxBonusAmount: number | null;
+   contribEmployee: boolean;
+   contribEmployer: boolean;
+   contribEIR: boolean;
+   contribSeverance: boolean;
+ }
+
  export interface EmployeeCalculationInputs {
    weeklyWages: number[];
    payPeriod: string;
@@ -167,22 +183,89 @@ export interface EmployeeCalculationResult {
  }
  
 /**
- * Calculate employee levy using slab-based calculation:
- * - Check if monthly levy switching should apply based on config threshold
- * - If total of Week1-6 (excluding bonus) > threshold AND flag enabled:
- *   Calculate monthly levy on sum of Week1-6 using monthly slabs
- * - Otherwise: For each weekly amount (Week1-5, Holiday), find matching slab and calculate levy
- * 
- * Week indices: 0=Week1, 1=Week2, 2=Week3, 3=Week4, 4=Week5, 5=Bonus, 6=Holiday(Week6)
+ * Determine if bonus is eligible based on min/max gating in the policy.
+ */
+function isBonusEligible(bonus: number, policy: BonusPolicyData | null): boolean {
+  if (bonus <= 0) return false;
+  if (!policy) return false;
+  if (policy.minBonusAmount != null && bonus < policy.minBonusAmount) return false;
+  if (policy.maxBonusAmount != null && bonus > policy.maxBonusAmount) return false;
+  return true;
+}
+
+/**
+ * Apply the bonus policy distribution to the weekly slots and return
+ * a new merged array [W1, W2, W3, W4, W5, Holiday(W6)].
+ * Mirrors the merge logic in calculate_c3_contributions (PL/pgSQL) and
+ * the calculate-bonus-policy edge function.
+ */
+function mergeBonusIntoWeeks(
+  weeklyWages: number[],
+  bonus: number,
+  payPeriod: string,
+  policy: BonusPolicyData
+): number[] {
+  // index map: 0=W1 1=W2 2=W3 3=W4 4=W5 5=Holiday(W6)
+  const merged = [
+    weeklyWages[0] || 0,
+    weeklyWages[1] || 0,
+    weeklyWages[2] || 0,
+    weeklyWages[3] || 0,
+    weeklyWages[4] || 0,
+    weeklyWages[6] || 0,
+  ];
+  const dist = policy.distribution;
+
+  if (payPeriod === 'Weekly') {
+    const wk = dist?.weekly;
+    const selected: number[] = [];
+    if (wk?.w1) selected.push(0);
+    if (wk?.w2) selected.push(1);
+    if (wk?.w3) selected.push(2);
+    if (wk?.w4) selected.push(3);
+
+    if (wk?.divide || selected.length === 0) {
+      // Divide equally across W1..W5
+      const per = round2(bonus / 5);
+      for (let i = 0; i < 5; i++) merged[i] += per;
+    } else if (selected.length === 1) {
+      merged[selected[0]] += bonus;
+    } else {
+      const per = round2(bonus / selected.length);
+      for (const idx of selected) merged[idx] += per;
+    }
+  } else if (payPeriod === 'Bi-Weekly' || payPeriod === 'BiWeekly') {
+    const bw = dist?.biweekly;
+    if (bw?.divide) {
+      merged[0] += round2(bonus / 2);
+      merged[2] += round2(bonus / 2);
+    } else if (bw?.b1) {
+      merged[0] += bonus;
+    } else if (bw?.b2) {
+      merged[2] += bonus;
+    } else {
+      merged[0] += bonus;
+    }
+  } else {
+    // Monthly / 2 Monthly / SemiMonthly default → W1
+    merged[0] += bonus;
+  }
+  return merged;
+}
+
+/**
+ * Calculate employee levy honoring the bonus policy (merge / separate / no inclusion).
+ *
+ * Week indices in input: 0=W1, 1=W2, 2=W3, 3=W4, 4=W5, 5=Bonus, 6=Holiday(W6)
  */
 function calculateEmployeeLevy(
   weeklyWages: number[],
   payPeriod: string,
   slabDetails: LevySlabDetail[],
   levyMonthlyThreshold: number,
-  levyUseMonthlyWhenExceeded: boolean
+  levyUseMonthlyWhenExceeded: boolean,
+  bonusPolicy: BonusPolicyData | null
 ): { totalLevy: number; usedMonthlyLogic: boolean } {
-  // Week1-5 = indices 0-4, Bonus = index 5, Holiday(Week6) = index 6
   const week1 = weeklyWages[0] || 0;
   const week2 = weeklyWages[1] || 0;
   const week3 = weeklyWages[2] || 0;
@@ -190,49 +273,52 @@ function calculateEmployeeLevy(
   const week5 = weeklyWages[4] || 0;
   const bonus = weeklyWages[5] || 0;
   const week6Holiday = weeklyWages[6] || 0;
-  
-  // Total wages for threshold check and monthly calculation (Week1-6, excluding bonus)
-  const totalWeek1To6 = week1 + week2 + week3 + week4 + week5 + week6Holiday;
-  
+
+  const bonusEligible = isBonusEligible(bonus, bonusPolicy);
+  const includeBonusInLevy = bonusEligible && (bonusPolicy?.includeInLevy ?? false);
+  const method = bonusPolicy?.calculationMethod ?? 'merge';
+
+  const payPeriodCode = mapPayPeriodToCode(payPeriod);
+  const matchingSlabs = slabDetails
+    .filter(s => s.payPeriod === payPeriodCode)
+    .sort((a, b) => b.overAmt - a.overAmt);
+  const monthlySlabs = slabDetails
+    .filter(s => s.payPeriod === 'M')
+    .sort((a, b) => b.overAmt - a.overAmt);
+
+  // Build the per-week array used for levy.
+  // For MERGE + includeInLevy: bonus folded into the configured slot(s).
+  // Otherwise: bonus left out of weekly slots (separate bonus added later if applicable).
+  let weeksForLevy: number[];
+  if (includeBonusInLevy && method === 'merge') {
+    weeksForLevy = mergeBonusIntoWeeks(weeklyWages, bonus, payPeriod, bonusPolicy!);
+  } else {
+    weeksForLevy = [week1, week2, week3, week4, week5, week6Holiday];
+  }
+
+  const totalWeek1To6 = weeksForLevy.reduce((a, b) => a + b, 0);
+
   let totalLevy = 0;
   let usedMonthlyLogic = false;
-  
-  // Check if monthly levy switching should apply:
-  // If flag is enabled AND total of Week1-6 > threshold, use monthly slab calculation
-  if (levyUseMonthlyWhenExceeded && totalWeek1To6 > levyMonthlyThreshold) {
-    // Use monthly slabs on the combined Week1-6 total
-    const monthlySlabs = slabDetails
-      .filter(s => s.payPeriod === 'M') // Monthly slabs
-      .sort((a, b) => b.overAmt - a.overAmt);
-    
-    if (monthlySlabs.length > 0) {
-      // Calculate levy as monthly payment on sum of Week1-6
-      totalLevy = calculateSlabLevy(totalWeek1To6, monthlySlabs);
-      usedMonthlyLogic = true;
+
+  if (levyUseMonthlyWhenExceeded && totalWeek1To6 > levyMonthlyThreshold && monthlySlabs.length > 0) {
+    totalLevy = calculateSlabLevy(totalWeek1To6, monthlySlabs);
+    usedMonthlyLogic = true;
+  } else {
+    for (const amt of weeksForLevy) {
+      if (amt > 0) totalLevy += calculateSlabLevy(amt, matchingSlabs);
     }
   }
-  
-  // If not using monthly logic, calculate per-week using employee's pay period
-  if (!usedMonthlyLogic) {
-    const payPeriodCode = mapPayPeriodToCode(payPeriod);
-    
-    // Filter slabs for the matching pay period
-    const matchingSlabs = slabDetails
-      .filter(s => s.payPeriod === payPeriodCode)
-      .sort((a, b) => b.overAmt - a.overAmt);
-    
-    // Calculate levy for Week1-5 (indices 0-4) and Holiday/Week6 (index 6)
-    const weekIndices = [0, 1, 2, 3, 4, 6];
-    for (const idx of weekIndices) {
-      const weekAmount = weeklyWages[idx] || 0;
-      if (weekAmount > 0) {
-        const weekLevy = calculateSlabLevy(weekAmount, matchingSlabs);
-        totalLevy += weekLevy;
-      }
+
+  // Separate-method bonus contribution (charged on top of regular weekly levy)
+  if (includeBonusInLevy && method === 'separate' && bonus > 0) {
+    if (bonusPolicy?.calcFlatEnabled && bonusPolicy.calcFlatPercentage) {
+      totalLevy += round2(bonus * (bonusPolicy.calcFlatPercentage / 100));
+    } else if (bonusPolicy?.calcSlabEnabled) {
+      totalLevy += calculateSlabLevy(bonus, matchingSlabs);
     }
   }
-  
-  
+
   return { totalLevy: round2(totalLevy), usedMonthlyLogic };
 }
  
@@ -242,7 +328,8 @@ function calculateEmployeeLevy(
  function performCalculation(
    inputs: EmployeeCalculationInputs,
    config: C3ConfigData,
-   slabDetails: LevySlabDetail[]
+   slabDetails: LevySlabDetail[],
+   bonusPolicy: BonusPolicyData | null
  ): EmployeeCalculationResult {
    const { weeklyWages, dateOfBirth, payPeriod } = inputs;
   
@@ -258,28 +345,31 @@ function calculateEmployeeLevy(
   // Calculate Total Wages = Week1-5 + Holiday + Bonus
   const totalWages = round2(week1 + week2 + week3 + week4 + week5 + holiday + bonus);
    
-  // Calculate Taxable Wages = Week1-5 + Holiday (NO bonus)
+  // Taxable Wages = Week1-5 + Holiday (excludes bonus by definition)
   const taxableWages = round2(week1 + week2 + week3 + week4 + week5 + holiday);
    
   // Check age eligibility
   const employeeAge = calculateAge(dateOfBirth);
   const isAgeExemptSS = employeeAge < config.minAgeSS || employeeAge > config.maxAgeSS;
   const isAgeExemptLevy = employeeAge < config.minAgeLevy || employeeAge > config.maxAgeLevy;
+
+  // Bonus eligibility per active policy (min/max gating)
+  const bonusEligible = isBonusEligible(bonus, bonusPolicy);
    
   // ========================================
   // Employee Contributions
   // ========================================
-  
-  // Employee SS = 5% of Taxable Wages (from config)
-  // CAPPED by employeeSSMaxWage from configuration
+
+  // Employee SS — base = taxable wages (+ bonus if policy.contribEmployee)
   let employeeSS = 0;
   if (!isAgeExemptSS) {
-    const cappedTaxableForEmployeeSS = Math.min(taxableWages, config.employeeSSMaxWage);
+    let employeeSSBase = taxableWages;
+    if (bonusEligible && bonusPolicy?.contribEmployee) employeeSSBase += bonus;
+    const cappedTaxableForEmployeeSS = Math.min(employeeSSBase, config.employeeSSMaxWage);
     employeeSS = round2(config.employeeSSRate * cappedTaxableForEmployeeSS);
    }
    
-  // Employee Levy = Slab-based calculation for each week + bonus levy
-  // Uses monthly switching logic when enabled and threshold exceeded
+  // Employee Levy — honors bonus policy (merge / separate / none)
   let employeeLevy = 0;
   let usedMonthlyLevyLogic = false;
   if (!isAgeExemptLevy) {
@@ -288,36 +378,40 @@ function calculateEmployeeLevy(
       payPeriod,
       slabDetails,
       config.levyMonthlyThreshold,
-      config.levyUseMonthlyWhenExceeded
+      config.levyUseMonthlyWhenExceeded,
+      bonusPolicy
     );
     employeeLevy = levyResult.totalLevy;
     usedMonthlyLevyLogic = levyResult.usedMonthlyLogic;
   }
    
   // ========================================
-  // Employer Contributions (all based on Taxable Wages)
+  // Employer Contributions
   // ========================================
    
-  // Employer SS = 5% of Taxable Wages (from config)
    let employerSS = 0;
-  // Employer EIB = 1% of Taxable Wages (from config)
    let employerEIB = 0;
    
    if (!isAgeExemptSS) {
-    // CAPPED by employerSSMaxWage from configuration
-    const cappedTaxableForEmployerSS = Math.min(taxableWages, config.employerSSMaxWage);
-    employerSS = round2(config.employerSSRate * cappedTaxableForEmployerSS);
-    employerEIB = round2(config.employerEIBRate * cappedTaxableForEmployerSS);
+    let employerSSBase = taxableWages;
+    if (bonusEligible && bonusPolicy?.contribEmployer) employerSSBase += bonus;
+    let employerEIBBase = taxableWages;
+    if (bonusEligible && bonusPolicy?.contribEIR) employerEIBBase += bonus;
+    employerSS = round2(config.employerSSRate * Math.min(employerSSBase, config.employerSSMaxWage));
+    employerEIB = round2(config.employerEIBRate * Math.min(employerEIBBase, config.employerSSMaxWage));
    }
    
-  // Total Employer SS = Employer SS + EIB (5% + 1% = 6%)
    const employerSSTotal = round2(employerSS + employerEIB);
    
-  // Employer Levy = 3% of Taxable Wages (from config)
-  const employerLevy = round2(config.employerLevyRate * taxableWages);
+  // Employer Levy base = taxable wages (+ bonus if includeInLevy)
+  let employerLevyBase = taxableWages;
+  if (bonusEligible && bonusPolicy?.includeInLevy) employerLevyBase += bonus;
+  const employerLevy = round2(config.employerLevyRate * employerLevyBase);
    
-  // Employer Severance = 1% of Taxable Wages (from config)
-  const employerSeverance = round2(config.employerSeveranceRate * taxableWages);
+  // Employer Severance base = taxable wages (+ bonus if contribSeverance)
+  let severanceBase = taxableWages;
+  if (bonusEligible && bonusPolicy?.contribSeverance) severanceBase += bonus;
+  const employerSeverance = round2(config.employerSeveranceRate * severanceBase);
    
   // ========================================
   // Output Totals (for display and compatibility)
@@ -365,6 +459,7 @@ function calculateEmployeeLevy(
  export function useC3EmployeeCalculation(periodYear: number, periodMonth: number) {
    const [config, setConfig] = useState<C3ConfigData | null>(null);
    const [slabDetails, setSlabDetails] = useState<LevySlabDetail[]>([]);
+   const [bonusPolicy, setBonusPolicy] = useState<BonusPolicyData | null>(null);
    const [isLoading, setIsLoading] = useState(true);
    const [error, setError] = useState<string | null>(null);
  
@@ -459,13 +554,79 @@ function calculateEmployeeLevy(
                baseAmt: Number(d.base_amt),
                taxRate: Number(d.tax_rate)
              }));
-             setSlabDetails(mappedSlabs);
-           }
-         }
-       } catch (err) {
-         const errorMessage = err instanceof Error ? err.message : 'Failed to load C3 configuration';
-         setError(errorMessage);
-         console.error('Error loading C3 config:', err);
+              setSlabDetails(mappedSlabs);
+            }
+          }
+
+          // Fetch active bonus policy for this period (exception first, then default)
+          let resolvedPolicy: BonusPolicyData | null = null;
+          const { data: excData } = await supabase
+            .from('c3_bonus_policy_exceptions')
+            .select('*')
+            .eq('is_active', true)
+            .eq('override_default', true)
+            .lte('date_from', periodDate)
+            .or(`date_to.gte.${periodDate},date_to.is.null`)
+            .order('date_from', { ascending: false })
+            .limit(1);
+
+          if (excData && excData.length > 0) {
+            const exc = excData[0];
+            const matchesMonth = exc.exception_month === (periodMonth + 1);
+            const matchesYear = exc.year_from <= periodYear &&
+              (exc.year_to === null || exc.year_to >= periodYear);
+            if (matchesMonth && matchesYear) {
+              resolvedPolicy = {
+                id: exc.id,
+                includeInLevy: exc.include_in_levy ?? false,
+                calculationMethod: (exc.calculation_method ?? 'merge') as 'merge' | 'separate',
+                calcFlatEnabled: exc.calc_flat_enabled ?? false,
+                calcFlatPercentage: exc.calc_flat_percentage,
+                calcSlabEnabled: exc.calc_slab_enabled ?? false,
+                distribution: exc.distribution,
+                minBonusAmount: exc.min_bonus_amount,
+                maxBonusAmount: exc.max_bonus_amount,
+                contribEmployee: exc.contrib_employee ?? false,
+                contribEmployer: exc.contrib_employer ?? false,
+                contribEIR: exc.contrib_eir ?? false,
+                contribSeverance: exc.contrib_severance ?? false,
+              };
+            }
+          }
+
+          if (!resolvedPolicy) {
+            const { data: defData } = await supabase
+              .from('c3_bonus_policy_default')
+              .select('*')
+              .eq('is_active', true)
+              .lte('date_from', periodDate)
+              .or(`date_to.gte.${periodDate},date_to.is.null`)
+              .order('date_from', { ascending: false })
+              .limit(1);
+            if (defData && defData.length > 0) {
+              const def = defData[0];
+              resolvedPolicy = {
+                id: def.id,
+                includeInLevy: def.include_in_levy,
+                calculationMethod: (def.calculation_method ?? 'merge') as 'merge' | 'separate',
+                calcFlatEnabled: def.calc_flat_enabled,
+                calcFlatPercentage: def.calc_flat_percentage,
+                calcSlabEnabled: def.calc_slab_enabled,
+                distribution: def.distribution,
+                minBonusAmount: def.min_bonus_amount,
+                maxBonusAmount: def.max_bonus_amount,
+                contribEmployee: def.contrib_employee,
+                contribEmployer: def.contrib_employer,
+                contribEIR: def.contrib_eir,
+                contribSeverance: def.contrib_severance ?? false,
+              };
+            }
+          }
+          setBonusPolicy(resolvedPolicy);
+        } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to load C3 configuration';
+          setError(errorMessage);
+          console.error('Error loading C3 config:', err);
        } finally {
          setIsLoading(false);
        }
@@ -501,9 +662,9 @@ function calculateEmployeeLevy(
           };
        }
  
-       return performCalculation(inputs, config, slabDetails);
+       return performCalculation(inputs, config, slabDetails, bonusPolicy);
      },
-     [config, slabDetails]
+     [config, slabDetails, bonusPolicy]
    );
  
    return {
