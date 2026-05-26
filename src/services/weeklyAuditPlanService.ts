@@ -3,6 +3,7 @@
 // ============================================
 
 import { supabase } from '@/integrations/supabase/client';
+import { getCurrentUserCode } from '@/hooks/useUserCode';
 import {
   WeeklyAuditPlan,
   PlannedVisit,
@@ -11,6 +12,12 @@ import {
   SubmitWeeklyReportRequest,
   WeeklyReportSummary,
 } from '@/types/weeklyAuditPlan';
+
+async function requireUserCode(): Promise<string> {
+  const code = await getCurrentUserCode();
+  if (!code) throw new Error('User identity required: no user_code resolved for the current session.');
+  return code;
+}
 
 // ── Map DB rows to domain types ──
 
@@ -132,6 +139,7 @@ export const weeklyAuditPlanService = {
 
   // Review plan (Senior Inspector or Manager)
   review: async (request: ReviewPlanRequest): Promise<WeeklyAuditPlan> => {
+    const userCode = await requireUserCode();
     const updates: Record<string, any> = {
       reviewer_comments: request.comments,
       updated_at: new Date().toISOString(),
@@ -140,10 +148,11 @@ export const weeklyAuditPlanService = {
     if (request.approved) {
       updates.status = 'APPROVED';
       updates.approved_date = new Date().toISOString();
-      updates.approved_by = 'SYSTEM'; // TODO: use auth user code
+      updates.approved_by = userCode;
     } else {
       updates.status = 'NEED_CHANGES';
       updates.rejected_date = new Date().toISOString();
+      updates.rejected_by = userCode;
     }
 
     const { data, error } = await supabase
@@ -197,9 +206,54 @@ export const weeklyAuditPlanService = {
 
     const { data: plan } = await supabase
       .from('ce_weekly_plans')
-      .select('outcome_narrative')
+      .select('outcome_narrative, week_start_date, week_end_date, inspector_id, inspector_name')
       .eq('id', planId)
       .maybeSingle();
+
+    // Live counts for evidence and violations within the plan window.
+    // We accept any of inspector_id, inspector_name (cashier-code style),
+    // since legacy data may use either as the audit attribution identifier.
+    let evidenceCollected = 0;
+    let violationsOpened = 0;
+    let violationsUpdated = 0;
+
+    if (plan?.week_start_date && plan?.week_end_date) {
+      const fromTs = new Date(plan.week_start_date).toISOString();
+      const toTs = new Date(new Date(plan.week_end_date).getTime() + 24 * 60 * 60 * 1000).toISOString();
+      const fromDate = plan.week_start_date;
+      const toDate = plan.week_end_date;
+      const identities = [plan.inspector_id, plan.inspector_name].filter(Boolean) as string[];
+
+      // Evidence = inspection findings created in the window by this inspector
+      let findingsQ = supabase
+        .from('ce_inspection_findings')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', fromTs)
+        .lt('created_at', toTs);
+      if (identities.length) findingsQ = findingsQ.in('created_by', identities);
+      const { count: findCount } = await findingsQ;
+      evidenceCollected = findCount ?? 0;
+
+      // Violations opened = ce_violations discovered in the window by this inspector
+      let openedQ = supabase
+        .from('ce_violations')
+        .select('id', { count: 'exact', head: true })
+        .gte('discovered_date', fromDate)
+        .lte('discovered_date', toDate);
+      if (identities.length) openedQ = openedQ.in('discovered_by', identities);
+      const { count: openedCount } = await openedQ;
+      violationsOpened = openedCount ?? 0;
+
+      // Violations updated (but not opened) in window by this inspector
+      let updatedQ = supabase
+        .from('ce_violations')
+        .select('id', { count: 'exact', head: true })
+        .gte('updated_at', fromTs)
+        .lt('updated_at', toTs);
+      if (identities.length) updatedQ = updatedQ.in('updated_by', identities);
+      const { count: updatedCount } = await updatedQ;
+      violationsUpdated = Math.max(0, (updatedCount ?? 0) - violationsOpened);
+    }
 
     return {
       planId,
@@ -208,9 +262,9 @@ export const weeklyAuditPlanService = {
       cancelledVisits: cancelled.length,
       rescheduledVisits: rescheduled.length,
       totalHoursSpent: Math.round(totalHours * 10) / 10,
-      evidenceCollected: 0, // TODO: count from ce_inspection_findings
-      violationsOpened: 0, // TODO: count from ce_violations created this week
-      violationsUpdated: 0,
+      evidenceCollected,
+      violationsOpened,
+      violationsUpdated,
       findingsSummary: completed.map(i => i.findings).filter(Boolean).join('; '),
       inspectorNarrative: plan?.outcome_narrative ?? '',
       generatedAt: new Date().toISOString(),
