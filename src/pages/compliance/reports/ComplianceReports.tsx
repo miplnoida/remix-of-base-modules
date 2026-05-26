@@ -116,6 +116,7 @@ export default function ComplianceReports() {
           { label: 'Compliance', href: '/compliance' },
           { label: 'Reports' }
         ]}
+        actions={<ComplianceHelpButton screenKey="reports" />}
       />
 
       <div className="grid gap-6 md:grid-cols-2">

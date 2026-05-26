@@ -33,13 +33,16 @@ function Inner() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ShieldAlert className="h-6 w-6 text-destructive" /> High Risk Employers
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Employers in the High or Critical risk band — sorted by score.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <ShieldAlert className="h-6 w-6 text-destructive" /> High Risk Employers
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Employers in the High or Critical risk band — sorted by score.
+          </p>
+        </div>
+        <ComplianceHelpButton screenKey="risk-high-risk-employers" />
       </div>
 
       <Card>

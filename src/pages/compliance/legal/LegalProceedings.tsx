@@ -180,9 +180,12 @@ const LegalProceedings = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Legal Proceedings</h1>
-          <p className="text-gray-600">Manage legal cases, court proceedings, and enforcement actions</p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Legal Proceedings</h1>
+            <p className="text-gray-600">Manage legal cases, court proceedings, and enforcement actions</p>
+          </div>
+          <ComplianceHelpButton screenKey="legal-proceedings" />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

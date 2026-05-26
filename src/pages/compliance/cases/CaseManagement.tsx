@@ -87,7 +87,10 @@ const CaseManagement = () => {
           </div>
           <p className="text-muted-foreground">Manage employer compliance cases through their full lifecycle</p>
         </div>
-        <Button className="gap-2"><Plus className="h-4 w-4" />New Case</Button>
+        <div className="flex items-center gap-2">
+          <ComplianceHelpButton screenKey="cases" />
+          <Button className="gap-2"><Plus className="h-4 w-4" />New Case</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

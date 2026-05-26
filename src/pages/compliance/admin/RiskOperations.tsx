@@ -95,6 +95,7 @@ export default function RiskOperations() {
         title="Risk Operations"
         subtitle="Two-score model: inherent risk + audit priority"
         breadcrumbs={[{ label: 'Compliance', href: '/compliance' }, { label: 'Risk Operations' }]}
+        actions={<ComplianceHelpButton screenKey="admin-risk-operations" />}
       />
 
       {/* Operational visibility */}

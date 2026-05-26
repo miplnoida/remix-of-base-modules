@@ -60,7 +60,10 @@ export default function InspectionManagement() {
           </div>
           <p className="text-muted-foreground">Schedule, assign, and track field compliance inspections</p>
         </div>
-        <Button className="gap-2"><Plus className="h-4 w-4" />Schedule Inspection</Button>
+        <div className="flex items-center gap-2">
+          <ComplianceHelpButton screenKey="inspections" />
+          <Button className="gap-2"><Plus className="h-4 w-4" />Schedule Inspection</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
