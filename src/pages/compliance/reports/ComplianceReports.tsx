@@ -1,3 +1,4 @@
+import { ComplianceHelpButton } from '@/components/help/ComplianceHelpButton';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -116,6 +117,7 @@ export default function ComplianceReports() {
           { label: 'Compliance', href: '/compliance' },
           { label: 'Reports' }
         ]}
+        actions={<ComplianceHelpButton screenKey="reports" />}
       />
 
       <div className="grid gap-6 md:grid-cols-2">

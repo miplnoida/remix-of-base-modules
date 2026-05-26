@@ -5,6 +5,7 @@
 // - Active policy + last-run timestamps
 // - Job run history (reuses ce_automation_job_runs)
 // ============================================
+import { ComplianceHelpButton } from '@/components/help/ComplianceHelpButton';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -95,6 +96,7 @@ export default function RiskOperations() {
         title="Risk Operations"
         subtitle="Two-score model: inherent risk + audit priority"
         breadcrumbs={[{ label: 'Compliance', href: '/compliance' }, { label: 'Risk Operations' }]}
+        actions={<ComplianceHelpButton screenKey="admin-risk-operations" />}
       />
 
       {/* Operational visibility */}

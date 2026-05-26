@@ -16,6 +16,12 @@ import {
 } from '@/types/centralPaymentArrangement';
 import { getCurrentUserCode } from '@/hooks/useUserCode';
 
+async function requireUserCode(): Promise<string> {
+  const code = await getCurrentUserCode();
+  if (!code) throw new Error('User identity required: no user_code resolved for the current session.');
+  return code;
+}
+
 function calculateDueDate(startDate: string, periodOffset: number, frequency: string): string {
   const date = new Date(startDate);
   switch (frequency) {
@@ -77,7 +83,7 @@ class CentralPaymentArrangementService {
    * transitions case status, and records case history.
    */
   async createArrangementFromCase(request: CreateArrangementFromCaseRequest): Promise<PaymentArrangement> {
-    const userCode = await getCurrentUserCode();
+    const userCode = await requireUserCode();
 
     // 1. Validate the case exists and belongs to the employer
     const { data: caseRow, error: caseErr } = await supabase
@@ -142,8 +148,8 @@ class CentralPaymentArrangementService {
         total_paid: 0,
         installments_paid: 0,
         terms_text: request.terms ?? null,
-        created_by: userCode ?? 'SYSTEM',
-        updated_by: userCode ?? 'SYSTEM',
+        created_by: userCode,
+        updated_by: userCode,
       })
       .select('*')
       .single();
@@ -186,7 +192,7 @@ class CentralPaymentArrangementService {
       .from('ce_cases')
       .update({
         status: 'CSTG_PAYMENT_ARRANGEMENT_ACTIVE',
-        updated_by: userCode ?? 'SYSTEM',
+        updated_by: userCode,
         updated_at: new Date().toISOString(),
       })
       .eq('id', request.caseId);
@@ -199,7 +205,7 @@ class CentralPaymentArrangementService {
         action: 'PAYMENT_ARRANGEMENT_CREATED',
         from_status: previousStatus,
         to_status: 'CSTG_PAYMENT_ARRANGEMENT_ACTIVE',
-        performed_by: userCode ?? 'SYSTEM',
+        performed_by: userCode,
         notes: `Payment arrangement ${arrangementNumber} created for ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD' }).format(request.totalDebtFromCase)}. ${request.numberOfInstallments} ${request.frequency.toLowerCase()} installments of ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD' }).format(installmentAmount)}.`,
         performed_at: new Date().toISOString(),
       });
@@ -211,7 +217,7 @@ class CentralPaymentArrangementService {
    * @deprecated Use createArrangementFromCase instead. Kept for backward compatibility.
    */
   async createArrangement(request: CreateArrangementRequest): Promise<PaymentArrangement> {
-    const userCode = await getCurrentUserCode();
+    const userCode = await requireUserCode();
     const totalArrangedAmount = request.items.reduce((s, i) => s + i.arrangedAmount, 0);
     const numInstallments = request.numberOfInstallments ?? request.customInstallments?.length ?? 1;
     const installmentAmount = totalArrangedAmount / numInstallments;
@@ -251,7 +257,7 @@ class CentralPaymentArrangementService {
         installments_paid: 0,
         terms_text: request.notes ?? null,
         conditions: null,
-        created_by: userCode ?? 'SYSTEM',
+        created_by: userCode,
       })
       .select('*')
       .single();
@@ -378,6 +384,22 @@ class CentralPaymentArrangementService {
     const completed = rows.filter(r => r.status === 'COMPLETED');
     const superseded = rows.filter(r => r.status === 'SUPERSEDED');
 
+    // On-time payment rate from installment-level data:
+    // rate = paid installments where paid_date <= due_date, over all paid installments.
+    let onTimePaymentRate = 0;
+    const { data: paidInstallments, error: instErr } = await supabase
+      .from('ce_installments')
+      .select('due_date, paid_date, amount, paid_amount, status')
+      .in('status', ['PAID', 'PARTIAL'])
+      .not('paid_date', 'is', null);
+    if (!instErr && paidInstallments && paidInstallments.length > 0) {
+      const totalPaid = paidInstallments.length;
+      const onTime = paidInstallments.filter(
+        i => i.paid_date && i.due_date && new Date(i.paid_date) <= new Date(i.due_date),
+      ).length;
+      onTimePaymentRate = totalPaid > 0 ? Math.round((onTime / totalPaid) * 1000) / 10 : 0;
+    }
+
     return {
       totalArrangements: rows.length,
       activeArrangements: active.length,
@@ -386,7 +408,7 @@ class CentralPaymentArrangementService {
       totalArrangedValue: active.reduce((s, r) => s + Number(r.total_debt ?? 0), 0),
       totalPaidToDate: active.reduce((s, r) => s + Number(r.total_paid ?? 0), 0),
       totalOutstanding: active.reduce((s, r) => s + (Number(r.total_debt ?? 0) - Number(r.total_paid ?? 0)), 0),
-      onTimePaymentRate: 0, // TODO: Calculate from installment-level data
+      onTimePaymentRate,
     };
   }
 
