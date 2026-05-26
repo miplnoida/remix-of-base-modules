@@ -1,13 +1,13 @@
 # Compliance & Enforcement — Final Stabilization Report
 
-Date: 2026-05-25
+Date: 2026-05-25 (revised 2026-05-26 — controlled finalization pass)
 Scope: End-of-iteration stabilization pass for the Compliance & Enforcement module.
 
 ## 1. Completed items
 
 | # | Item | Status | Evidence |
 |---|---|---|---|
-| 1 | Mock business data removed or isolated | Partial | Most screens read from `ce_*`. Remaining mock isolation is documented in §2. |
+| 1 | Mock business data removed or isolated | Done | All Compliance services now read from `ce_*` tables. `riskPolicyService` → `ce_risk_policies` / `ce_risk_bands` / `ce_risk_policy_factors`; `riskFactorService` → `ce_risk_config`. Remaining `MOCK_*` constants are out-of-scope (benefits, fees, correspondence). |
 | 2 | Placeholders marked as pending | Done | `src/pages/compliance/PlaceholderPage.tsx` is the single banner used by intentionally deferred screens. |
 | 3 | Compliance menu routes load | Done | All 200+ routes registered in `src/pages/compliance/Routes.tsx`, each wrapped in `ComplianceRouteGate`. |
 | 4 | Feature toggles hide disabled optional sections | Done | `feature_flags` (key namespace `compliance.*`) read by menu/route helpers; disabled tiles render the "Feature disabled" placeholder. |
