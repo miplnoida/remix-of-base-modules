@@ -32,27 +32,31 @@ Scope: End-of-iteration stabilization pass for the Compliance & Enforcement modu
 
 These are honest, known gaps left at the end of this iteration:
 
-1. **`src/services/riskPolicyService.ts` and `src/services/riskFactorService.ts`** still
-   use in-memory `MOCK_*` arrays. The DB tables (`ce_risk_policies`,
-   `ce_risk_policy_factors`, `ce_risk_bands`) exist and are wired by other paths
-   (`riskProfileService`), but the policy-management UI is not yet pointed at them.
-   *Risk*: Risk policy edits made in the UI do not survive page reload.
-   *Fix*: Swap the service bodies to Supabase queries against the existing tables.
-2. **`src/services/feeService.ts`** contains TODOs for finance posting, notifications,
+1. **`src/services/feeService.ts`** contains TODOs for finance posting, notifications,
    audit logging, and a safe expression evaluator. None of these block the compliance
    flows but the fee calculation path should be hardened before live use.
-3. **`src/services/weeklyAuditPlanService.ts`** uses `'SYSTEM'` for `approved_by` and
-   has placeholder counts for `evidenceCollected` / `violationsOpened`. Real user_code
-   resolution and live counts from `ce_inspection_findings` / `ce_violations` are
-   pending.
-4. **`src/services/centralPaymentArrangementService.ts`** reports `onTimePaymentRate=0`
-   pending installment-level aggregation.
-5. **Help content coverage** is wired for Dashboard, Violations, Notices, Arrangements.
-   The remaining listed screens (Cases, Inspections, Legal, Risk, Reports,
-   Administration, Setup Wizard) still rely on the global help drawer — extending the
-   `ComplianceHelpButton` to those headers is mechanical follow-up work.
-6. **Permission-negative automated tests** are not yet wired into CI. The scenarios in
+   *Out of scope for this stabilization pass — fees are an adjacent module.*
+2. **Permission-negative automated tests** are not yet wired into CI. The scenarios in
    `e2e_validation_scenarios.md` describe the manual procedure.
+3. **Help content coverage** — header help buttons are now wired on the principal
+   screens (Dashboard, Violations, Notices, Arrangements, Cases, Inspections, Legal
+   Proceedings, High-Risk Employers, Reports, Risk Operations, Setup Wizard). Deeper
+   sub-screens (case detail tabs, individual report viewers) still rely on the global
+   help drawer; extending the button to each is mechanical follow-up.
+
+## 2a. Closed in this finalization pass
+
+| Gap | Resolution |
+|---|---|
+| `riskPolicyService` used `MOCK_RISK_POLICIES` / `MOCK_RISK_BANDS` | Rewritten against `ce_risk_policies`, `ce_risk_bands`, `ce_risk_policy_factors`. Policy edits now survive page reload. |
+| `riskFactorService` used `MOCK_RISK_FACTORS` | Rewritten against `ce_risk_config`. Domain-only fields (component/employer scope, scoring model, threshold/range/formula payloads, checklist links) are preserved inside the existing `thresholds` jsonb column — additive only, no schema migration. |
+| `weeklyAuditPlanService.review` wrote `approved_by = 'SYSTEM'` | Now requires `getCurrentUserCode()`; throws if no session user_code is available. `rejected_by` also captured. |
+| `weeklyAuditPlanService.generateWeeklyReportSummary` reported `evidenceCollected = 0` and `violationsOpened = 0` | Now counts `ce_inspection_findings` (by `created_at` in week window, `created_by` matching the plan's inspector identity) and `ce_violations` (by `discovered_date` in window, plus a separate `violationsUpdated` count from `updated_at`). |
+| `centralPaymentArrangementService` used `userCode ?? 'SYSTEM'` fallbacks | All call sites now go through `requireUserCode()` and fail loudly when no user_code is resolved. |
+| `centralPaymentArrangementService.getArrangementSummary` reported `onTimePaymentRate = 0` | Now derived from `ce_installments` where `status IN ('PAID','PARTIAL')` and `paid_date IS NOT NULL`: rate = on-time installments (`paid_date <= due_date`) ÷ total paid installments. Returned as a percentage with one decimal. |
+| Help-button coverage on principal Compliance screens | `ComplianceHelpButton` added to Cases, Inspections, Legal Proceedings, High-Risk Employers, Compliance Reports, Risk Operations, and Setup Wizard headers. |
+
+
 
 ## 3. Known limitations
 
@@ -101,16 +105,15 @@ scenarios):
 
 ## 6. Recommended next improvements
 
-1. Migrate `riskPolicyService` and `riskFactorService` off in-memory `MOCK_*` arrays to
-   the existing `ce_risk_*` tables.
-2. Extend `ComplianceHelpButton` to the remaining 7 listed screens.
+1. Harden `feeService` (finance posting, audit logging, safe expression evaluator).
+2. Extend `ComplianceHelpButton` to remaining sub-screens (case detail tabs,
+   individual report viewers, admin sub-pages) as mechanical follow-up.
 3. Add Cypress/Playwright coverage for the permission-negative cases (one denied user
    per role bundle).
-4. Replace `'SYSTEM'` placeholders in `weeklyAuditPlanService` with the resolved
-   `user_code` from `SupabaseAuthContext`.
-5. Introduce a materialised view for the highest-cardinality compliance dashboards
+4. Introduce a materialised view for the highest-cardinality compliance dashboards
    (Command Center + Arrears) once row counts exceed ~250k.
-6. Wire a nightly `pg_cron`-driven re-run of breach monitoring and risk recalculation
+5. Wire a nightly `pg_cron`-driven re-run of breach monitoring and risk recalculation
    instead of relying on manual triggers.
-7. Add a small CI script to flag any new `MOCK_*` constant added under
+6. Add a small CI script to flag any new `MOCK_*` constant added under
    `src/services/` so the data-integrity rule is enforced going forward.
+
