@@ -117,3 +117,37 @@ scenarios):
 6. Add a small CI script to flag any new `MOCK_*` constant added under
    `src/services/` so the data-integrity rule is enforced going forward.
 
+
+---
+
+## Final Verification Pass — 2026-05-26
+
+**Scope:** Verification-only re-run of the Compliance & Enforcement finalization checklist.
+
+### Files checked
+- `src/services/riskPolicyService.ts`
+- `src/services/riskFactorService.ts`
+- `src/services/weeklyAuditPlanService.ts`
+- `src/services/centralPaymentArrangementService.ts`
+- `src/services/complianceAuditService.ts`
+- `src/pages/compliance/**` (help button & permission gating coverage)
+- `src/pages/compliance/Routes.tsx` (route gating)
+
+### Verification results
+
+| # | Item | Result |
+|---|---|---|
+| 1 | No Compliance-scope `MOCK_*` constants in active services | ✅ Pass — only historical comments mentioning the removed arrays remain |
+| 2 | No unsafe `'SYSTEM'` fallbacks in Compliance services | ✅ Pass — `requireUserCode()` throws when `user_code` is missing |
+| 3 | Risk policy/factor/band CRUD persists to Supabase | ✅ Pass — `ce_risk_policies`, `ce_risk_bands`, `ce_risk_policy_factors`, `ce_risk_config` are live-wired |
+| 4 | Weekly audit `evidenceCollected` / `violationsOpened` from real tables | ✅ Pass — `ce_inspection_findings` and `ce_violations` queries confirmed (lines 229, 239) |
+| 5 | `onTimePaymentRate` from `ce_installments` with `paid_date <= due_date` and zero-installment guard | ✅ Pass — line 389-401 with `totalPaid > 0` guard |
+| 6 | Help button mounted on all major Compliance sections | ✅ Pass — 11 pages: Command Center, Violations, Cases, Notices, Arrangements, Inspections, Legal, Risk (Ops + High-Risk), Reports, Setup Wizard |
+| 7 | `ComplianceRouteGate` still wraps protected routes; no hardcoded role-name checks introduced | ✅ Pass — gate used throughout `Routes.tsx`; capability hooks (`useComplianceCapability`) used in sensitive pages |
+| 8 | TypeScript build | ✅ Pass — verified by harness build step |
+
+### Remaining gaps
+None blocking. Carry-over non-Compliance follow-ups remain documented in earlier sections (fee posting TODOs, materialised views at scale, Cypress permission-negative tests).
+
+### Conclusion
+**The Compliance & Enforcement module is finalization-ready.** All P1–P6 stabilization items are verified clean; no defects found in this pass; no code changes required.
