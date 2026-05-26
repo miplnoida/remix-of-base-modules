@@ -83,7 +83,7 @@ class CentralPaymentArrangementService {
    * transitions case status, and records case history.
    */
   async createArrangementFromCase(request: CreateArrangementFromCaseRequest): Promise<PaymentArrangement> {
-    const userCode = await getCurrentUserCode();
+    const userCode = await requireUserCode();
 
     // 1. Validate the case exists and belongs to the employer
     const { data: caseRow, error: caseErr } = await supabase
@@ -148,8 +148,8 @@ class CentralPaymentArrangementService {
         total_paid: 0,
         installments_paid: 0,
         terms_text: request.terms ?? null,
-        created_by: userCode ?? 'SYSTEM',
-        updated_by: userCode ?? 'SYSTEM',
+        created_by: userCode,
+        updated_by: userCode,
       })
       .select('*')
       .single();
@@ -192,7 +192,7 @@ class CentralPaymentArrangementService {
       .from('ce_cases')
       .update({
         status: 'CSTG_PAYMENT_ARRANGEMENT_ACTIVE',
-        updated_by: userCode ?? 'SYSTEM',
+        updated_by: userCode,
         updated_at: new Date().toISOString(),
       })
       .eq('id', request.caseId);
@@ -205,7 +205,7 @@ class CentralPaymentArrangementService {
         action: 'PAYMENT_ARRANGEMENT_CREATED',
         from_status: previousStatus,
         to_status: 'CSTG_PAYMENT_ARRANGEMENT_ACTIVE',
-        performed_by: userCode ?? 'SYSTEM',
+        performed_by: userCode,
         notes: `Payment arrangement ${arrangementNumber} created for ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD' }).format(request.totalDebtFromCase)}. ${request.numberOfInstallments} ${request.frequency.toLowerCase()} installments of ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'XCD' }).format(installmentAmount)}.`,
         performed_at: new Date().toISOString(),
       });
@@ -217,7 +217,7 @@ class CentralPaymentArrangementService {
    * @deprecated Use createArrangementFromCase instead. Kept for backward compatibility.
    */
   async createArrangement(request: CreateArrangementRequest): Promise<PaymentArrangement> {
-    const userCode = await getCurrentUserCode();
+    const userCode = await requireUserCode();
     const totalArrangedAmount = request.items.reduce((s, i) => s + i.arrangedAmount, 0);
     const numInstallments = request.numberOfInstallments ?? request.customInstallments?.length ?? 1;
     const installmentAmount = totalArrangedAmount / numInstallments;
@@ -257,7 +257,7 @@ class CentralPaymentArrangementService {
         installments_paid: 0,
         terms_text: request.notes ?? null,
         conditions: null,
-        created_by: userCode ?? 'SYSTEM',
+        created_by: userCode,
       })
       .select('*')
       .single();
