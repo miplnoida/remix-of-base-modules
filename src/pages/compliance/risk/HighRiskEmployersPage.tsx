@@ -1,3 +1,4 @@
+import { ComplianceHelpButton } from '@/components/help/ComplianceHelpButton';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';

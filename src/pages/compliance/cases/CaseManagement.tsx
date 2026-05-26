@@ -1,3 +1,4 @@
+import { ComplianceHelpButton } from '@/components/help/ComplianceHelpButton';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
