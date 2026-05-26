@@ -16,6 +16,12 @@ import {
 } from '@/types/centralPaymentArrangement';
 import { getCurrentUserCode } from '@/hooks/useUserCode';
 
+async function requireUserCode(): Promise<string> {
+  const code = await getCurrentUserCode();
+  if (!code) throw new Error('User identity required: no user_code resolved for the current session.');
+  return code;
+}
+
 function calculateDueDate(startDate: string, periodOffset: number, frequency: string): string {
   const date = new Date(startDate);
   switch (frequency) {
