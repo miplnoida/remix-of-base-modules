@@ -384,6 +384,22 @@ class CentralPaymentArrangementService {
     const completed = rows.filter(r => r.status === 'COMPLETED');
     const superseded = rows.filter(r => r.status === 'SUPERSEDED');
 
+    // On-time payment rate from installment-level data:
+    // rate = paid installments where paid_date <= due_date, over all paid installments.
+    let onTimePaymentRate = 0;
+    const { data: paidInstallments, error: instErr } = await supabase
+      .from('ce_installments')
+      .select('due_date, paid_date, amount, paid_amount, status')
+      .in('status', ['PAID', 'PARTIAL'])
+      .not('paid_date', 'is', null);
+    if (!instErr && paidInstallments && paidInstallments.length > 0) {
+      const totalPaid = paidInstallments.length;
+      const onTime = paidInstallments.filter(
+        i => i.paid_date && i.due_date && new Date(i.paid_date) <= new Date(i.due_date),
+      ).length;
+      onTimePaymentRate = totalPaid > 0 ? Math.round((onTime / totalPaid) * 1000) / 10 : 0;
+    }
+
     return {
       totalArrangements: rows.length,
       activeArrangements: active.length,
@@ -392,7 +408,7 @@ class CentralPaymentArrangementService {
       totalArrangedValue: active.reduce((s, r) => s + Number(r.total_debt ?? 0), 0),
       totalPaidToDate: active.reduce((s, r) => s + Number(r.total_paid ?? 0), 0),
       totalOutstanding: active.reduce((s, r) => s + (Number(r.total_debt ?? 0) - Number(r.total_paid ?? 0)), 0),
-      onTimePaymentRate: 0, // TODO: Calculate from installment-level data
+      onTimePaymentRate,
     };
   }
 
