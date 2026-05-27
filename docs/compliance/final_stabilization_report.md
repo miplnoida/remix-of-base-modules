@@ -222,3 +222,9 @@ Three visible-by-default 404s identified in `docs/compliance/route_acceptance_sw
 - `/compliance/admin/settings` → redirects to `/compliance/settings` (`ComplianceSettings`) — Setup › General Settings menu entry.
 
 All three targets already enforce existing route guards (`ComplianceRouteGate`) and the menu items already carry their original `requiresPermission` strings (`manage_compliance` / `generate_reports`). No feature toggles were enabled, no PlaceholderPage routes were touched, and none of the 21 toggle-hidden routes were modified.
+
+## Decision — Calculation Rules, Escalation Rules, Schedule Settings
+
+- Calculation Rules redirects to Rule Engine (`/compliance/admin/settings/rule-engine`).
+- Escalation Rules redirects to Rule Engine (`/compliance/admin/settings/rule-engine`).
+- Schedule Settings is hidden by default (`admin.scheduleSettings = false`) until a dedicated Compliance-scoped screen is built.
