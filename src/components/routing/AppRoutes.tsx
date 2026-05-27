@@ -1149,6 +1149,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/automation/employer-jobs" element={<EmployerComplianceJobs />} />
       <Route path="/compliance/admin/tools/rule-simulator" element={<ComplianceRuleSimulator />} />
       <Route path="/compliance/admin/tools/risk-simulator" element={<ComplianceRiskSimulator />} />
+      <Route path="/compliance/admin/feature-toggles" element={<PlaceholderPage title="Feature Toggles" area="Setup" />} />
 
       {/* ═══════════════════════════════════════════════════════════════
           COMPLIANCE — Legacy Redirects (old path → new canonical path)
