@@ -449,19 +449,19 @@ function MyWorkQueueContent() {
       {
         key: 'waivers',
         label: 'Waiver Requests',
-        enabled: isComplianceFeatureEnabled('waivers'),
+        enabled: true,
         query: () => fetchWaiverRequests(userId!),
       },
       {
         key: 'findings',
         label: 'Inspection Findings Awaiting Review',
-        enabled: isComplianceFeatureEnabled('inspections.findings'),
+        enabled: isComplianceFeatureEnabled('inspections'),
         query: () => fetchInspectionFindings(userId!),
       },
       {
         key: 'legal',
         label: 'Legal Escalation Recommendations',
-        enabled: isComplianceFeatureEnabled('legal.recommendations'),
+        enabled: isComplianceFeatureEnabled('legal.approvedEscalations'),
         query: () => fetchLegalRecommendations(userId!),
       },
       {
