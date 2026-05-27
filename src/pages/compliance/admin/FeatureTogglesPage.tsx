@@ -102,8 +102,8 @@ interface FlagRow {
 function FeatureTogglesInner() {
   const qc = useQueryClient();
   const { userCode } = useUserCode();
-  const { canEdit, isAdmin } = useActionPermissions(MODULE_NAME);
-  const editable = isAdmin || canEdit();
+  const { can, isAdmin } = useActionPermissions(MODULE_NAME);
+  const editable = isAdmin || can('edit') || can('update') || can('manage');
 
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState<string>('all');
