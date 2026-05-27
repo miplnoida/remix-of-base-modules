@@ -86,6 +86,12 @@ const AuditCommunicationTemplatesPage = lazy(() => import('@/pages/compliance/ad
 const AuditCommunicationTemplateEditorPage = lazy(() => import('@/pages/compliance/admin/AuditCommunicationTemplateEditorPage'));
 const OnlineResponseConfigPage = lazy(() => import('@/pages/compliance/admin/OnlineResponseConfigPage'));
 const PlaceholderPage = lazy(() => import('@/pages/compliance/PlaceholderPage'));
+const ComplianceSetupWizard = lazy(() => import('@/pages/compliance/admin/SetupWizard'));
+const ComplianceCaseFamiliesPage = lazy(() => import('@/pages/compliance/admin/CaseFamiliesPage'));
+const ComplianceWorkflowMappingPage = lazy(() => import('@/pages/compliance/admin/WorkflowMappingPage'));
+const ComplianceWaiverRulesPage = lazy(() => import('@/pages/compliance/admin/WaiverRulesPage'));
+const ComplianceLegalHandoffRulesPage = lazy(() => import('@/pages/compliance/admin/LegalHandoffRulesPage'));
+const ComplianceHelpAdmin = lazy(() => import('@/pages/compliance/admin/ComplianceHelpAdmin'));
 const WeeklyPlanBuilder = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilder'));
 const WeeklyPlanBuilderV2 = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilderV2'));
 const WeeklyPlanBuilderV3 = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilderV3'));
@@ -1151,6 +1157,16 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/tools/rule-simulator" element={<ComplianceRuleSimulator />} />
       <Route path="/compliance/admin/tools/risk-simulator" element={<ComplianceRiskSimulator />} />
       <Route path="/compliance/admin/feature-toggles" element={<PlaceholderPage title="Feature Toggles" area="Setup" />} />
+      <Route path="/compliance/admin/setup-wizard" element={<ComplianceSetupWizard />} />
+      <Route path="/compliance/admin/case-families" element={<ComplianceCaseFamiliesPage />} />
+      <Route path="/compliance/admin/workflow-mapping" element={<ComplianceWorkflowMappingPage />} />
+      <Route path="/compliance/admin/waiver-rules" element={<ComplianceWaiverRulesPage />} />
+      <Route path="/compliance/admin/legal-handoff-rules" element={<ComplianceLegalHandoffRulesPage />} />
+      <Route path="/compliance/admin/help" element={<ComplianceHelpAdmin />} />
+      <Route path="/compliance/admin/calculation-rules" element={<PlaceholderPage title="Calculation Rules" area="Setup" />} />
+      <Route path="/compliance/admin/escalation-rules" element={<PlaceholderPage title="Escalation Rules" area="Setup" />} />
+      <Route path="/compliance/admin/schedule-settings" element={<PlaceholderPage title="Schedule Settings" area="Setup" />} />
+      <Route path="/compliance/admin/payment-arrangement-rules" element={<PlaceholderPage title="Payment Arrangement Rules" area="Setup" />} />
 
       {/* ═══════════════════════════════════════════════════════════════
           COMPLIANCE — Legacy Redirects (old path → new canonical path)
