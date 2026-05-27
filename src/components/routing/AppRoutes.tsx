@@ -88,6 +88,12 @@ const AuditCommunicationTemplateEditorPage = lazy(() => import('@/pages/complian
 const OnlineResponseConfigPage = lazy(() => import('@/pages/compliance/admin/OnlineResponseConfigPage'));
 const PlaceholderPage = lazy(() => import('@/pages/compliance/PlaceholderPage'));
 const ComplianceFeatureTogglesPage = lazy(() => import('@/pages/compliance/admin/FeatureTogglesPage'));
+const ComplianceNoticeRegister = lazy(() => import('@/pages/compliance/notices/NoticeRegister'));
+const ComplianceGenerateNotice = lazy(() => import('@/pages/compliance/notices/GenerateNoticePage'));
+const ComplianceNoticesPendingApproval = lazy(() => import('@/pages/compliance/notices/PendingApprovalPage'));
+const ComplianceNoticeDeliveryTracking = lazy(() => import('@/pages/compliance/notices/DeliveryTrackingPage'));
+const ComplianceEmployerResponses = lazy(() => import('@/pages/compliance/notices/EmployerResponsesPage'));
+const ComplianceCommunicationHistory = lazy(() => import('@/pages/compliance/notices/CommunicationHistoryPage'));
 const ComplianceSetupWizard = lazy(() => import('@/pages/compliance/admin/SetupWizard'));
 const ComplianceCaseFamiliesPage = lazy(() => import('@/pages/compliance/admin/CaseFamiliesPage'));
 const ComplianceWorkflowMappingPage = lazy(() => import('@/pages/compliance/admin/WorkflowMappingPage'));
@@ -1225,7 +1231,14 @@ export const AppRoutes = () => {
       <Route path="/compliance/legal-recommendation-queue" element={<Navigate to="/compliance/enforcement/recommendation-queue" replace />} />
       <Route path="/compliance/legal/queue" element={<Navigate to="/compliance/enforcement/legal-queue" replace />} />
       <Route path="/compliance/legal/proceedings" element={<Navigate to="/compliance/enforcement/proceedings" replace />} />
-      <Route path="/compliance/notices" element={<Navigate to="/compliance/enforcement/notices" replace />} />
+      {/* Notices & Communications menu group */}
+      <Route path="/compliance/notices" element={<Navigate to="/compliance/notices/register" replace />} />
+      <Route path="/compliance/notices/register" element={<ComplianceNoticeRegister />} />
+      <Route path="/compliance/notices/generate" element={<ComplianceGenerateNotice />} />
+      <Route path="/compliance/notices/pending-approval" element={<ComplianceNoticesPendingApproval />} />
+      <Route path="/compliance/notices/delivery-tracking" element={<ComplianceNoticeDeliveryTracking />} />
+      <Route path="/compliance/notices/employer-responses" element={<ComplianceEmployerResponses />} />
+      <Route path="/compliance/notices/communication-history" element={<ComplianceCommunicationHistory />} />
       <Route path="/compliance/arrangements" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
       <Route path="/compliance/payment-arrangements" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
       <Route path="/compliance/arrangements/breaches" element={<Navigate to="/compliance/enforcement/breaches" replace />} />
