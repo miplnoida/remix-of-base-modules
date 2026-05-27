@@ -1173,8 +1173,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/waiver-rules" element={<ComplianceWaiverRulesPage />} />
       <Route path="/compliance/admin/legal-handoff-rules" element={<ComplianceLegalHandoffRulesPage />} />
       <Route path="/compliance/admin/help" element={<ComplianceHelpAdmin />} />
-      <Route path="/compliance/admin/calculation-rules" element={<PlaceholderPage title="Calculation Rules" area="Setup" />} />
-      <Route path="/compliance/admin/escalation-rules" element={<PlaceholderPage title="Escalation Rules" area="Setup" />} />
+      {/* Calculation Rules & Escalation Rules — canonical location is Rule Engine */}
+      <Route path="/compliance/admin/calculation-rules" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
+      <Route path="/compliance/admin/escalation-rules" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
       <Route path="/compliance/admin/schedule-settings" element={<PlaceholderPage title="Schedule Settings" area="Setup" />} />
       <Route path="/compliance/admin/payment-arrangement-rules" element={<CompliancePaymentArrangementRulesPage />} />
       {/* Risk Scoring aliases — canonical route is /compliance/admin/settings/risk-policy */}

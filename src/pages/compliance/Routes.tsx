@@ -235,8 +235,8 @@ const ComplianceRoutes = () => {
       {/* Administration */}
       <Route path="/admin/setup-wizard" element={<ComplianceRouteGate><SetupWizard /></ComplianceRouteGate>} />
       <Route path="/admin/feature-toggles" element={<ComplianceRouteGate><PlaceholderPage title="Feature Toggles" area="Administration" /></ComplianceRouteGate>} />
-      <Route path="/admin/calculation-rules" element={<ComplianceRouteGate><PlaceholderPage title="Calculation Rules" area="Administration" /></ComplianceRouteGate>} />
-      <Route path="/admin/escalation-rules" element={<ComplianceRouteGate><PlaceholderPage title="Escalation Rules" area="Administration" /></ComplianceRouteGate>} />
+      <Route path="/admin/calculation-rules" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
+      <Route path="/admin/escalation-rules" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
       <Route path="/admin/case-families" element={<ComplianceRouteGate><CaseFamiliesPage /></ComplianceRouteGate>} />
       <Route path="/admin/workflow-mapping" element={<ComplianceRouteGate><WorkflowMappingPage /></ComplianceRouteGate>} />
       <Route path="/admin/schedule-settings" element={<ComplianceRouteGate><PlaceholderPage title="Schedule Settings" area="Administration" /></ComplianceRouteGate>} />

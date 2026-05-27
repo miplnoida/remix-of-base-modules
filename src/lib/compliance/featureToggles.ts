@@ -98,7 +98,7 @@ const DEFAULT_TOGGLES: Record<ComplianceFeatureKey, boolean> = {
   'admin.escalationRules': true,
   'admin.caseFamilies': true,
   'admin.workflowMapping': true,
-  'admin.scheduleSettings': true,
+  'admin.scheduleSettings': false,
   'admin.paymentArrangementRules': true,
   'admin.waiverRules': true,
   'admin.legalHandoffRules': true,

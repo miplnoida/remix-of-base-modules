@@ -178,3 +178,10 @@ All menu items below additionally require `manage_compliance` (or, for Reports, 
 2. For Violations / Cases / Arrangements / Inspections / Legal toggle-gated items, confirm scope before either implementing pages or removing menu entries.
 
 No code was changed during this re-sweep.
+
+## Update — Calculation/Escalation/Schedule decisions
+
+- `/compliance/admin/calculation-rules` → redirects to `/compliance/admin/settings/rule-engine` (Rule Engine).
+- `/compliance/admin/escalation-rules` → redirects to `/compliance/admin/settings/rule-engine` (Rule Engine).
+- `admin.scheduleSettings` toggle default flipped to `false`; Schedule Settings menu item hidden by default until a dedicated Compliance-scoped screen is built. Operational scheduling remains available via `/compliance/admin/automation/jobs` and global `/admin/scheduler`.
+- No PlaceholderPage rendered for visible-by-default Setup items.
