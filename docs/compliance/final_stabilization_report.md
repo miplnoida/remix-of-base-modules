@@ -180,3 +180,21 @@ No other Compliance files were modified.
 - **Rule Engine**: actual working URL — `/compliance/admin/settings/rule-engine`.
 - **Automation Jobs**: actual working URL — `/compliance/admin/automation/jobs`.
 - **Menu label**: Compliance submenu remains labeled **Setup** (renamed from Administration) in `complianceMenuItems.ts`.
+
+## Manual Acceptance Route Fix — My Work Queue
+
+- **Issue:** `/compliance/my-work-queue` returned 404 during manual acceptance testing. The Compliance menu item was correctly pointing to this URL, but no route was registered in `src/components/routing/AppRoutes.tsx` (a placeholder existed only in the unmounted `src/pages/compliance/Routes.tsx`).
+- **Fix:** Implemented a real per-user task inbox at `src/pages/compliance/MyWorkQueue.tsx` and registered the route in `AppRoutes.tsx`.
+- **Final URL:** `/compliance/my-work-queue`
+- **Component:** `MyWorkQueue` (default export of `src/pages/compliance/MyWorkQueue.tsx`)
+- **Access control:** `PermissionWrapper` with module `ce_my_work_queue` (falls back to admin override via `useActionPermissions`).
+- **Sections (tabbed):** Assigned Violations, Violations Awaiting Verification, Assigned Cases, Notices Awaiting Approval, Employer Responses Awaiting Review, Payment Arrangements Awaiting Approval, Waiver Requests, Inspection Findings Awaiting Review, Legal Escalation Recommendations, Workflow Tasks.
+- **Data sources:** Live Supabase queries against `ce_violations`, `ce_cases`, `ce_notices`, `ce_employer_responses`, `ce_payment_arrangements`, `ce_waiver_requests`, `ce_inspection_findings`, `ce_legal_referrals`, and `workflow_tasks`. All queries use the shielded error pattern — a missing table/column degrades to an honest "No assigned items" empty state, never mock data.
+- **Documented assumptions:**
+  - `ce_notices` approver column assumed to be `approver_user_id`, falling back to `assigned_to_user_id`.
+  - `ce_employer_responses` reviewer column assumed to be `reviewer_user_id`.
+  - `ce_payment_arrangements` approver column assumed to be `approver_user_id`, falling back to `assigned_to_user_id`.
+  - `ce_waiver_requests` approver column assumed to be `approver_user_id`.
+  - `ce_inspection_findings` reviewer column assumed to be `reviewer_user_id`.
+  - `ce_legal_referrals` approver column assumed to be `approver_user_id`.
+  - `workflow_tasks` assignment column assumed to be `assigned_to` matched against the current user's `user_code`.
