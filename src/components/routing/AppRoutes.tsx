@@ -85,6 +85,7 @@ const ComplianceTemplates = lazy(() => import('@/pages/compliance/settings/Compl
 const AuditCommunicationTemplatesPage = lazy(() => import('@/pages/compliance/admin/AuditCommunicationTemplatesPage'));
 const AuditCommunicationTemplateEditorPage = lazy(() => import('@/pages/compliance/admin/AuditCommunicationTemplateEditorPage'));
 const OnlineResponseConfigPage = lazy(() => import('@/pages/compliance/admin/OnlineResponseConfigPage'));
+const PlaceholderPage = lazy(() => import('@/pages/compliance/PlaceholderPage'));
 const WeeklyPlanBuilder = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilder'));
 const WeeklyPlanBuilderV2 = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilderV2'));
 const WeeklyPlanBuilderV3 = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilderV3'));
