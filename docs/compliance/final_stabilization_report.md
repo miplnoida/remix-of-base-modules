@@ -212,3 +212,13 @@ No other Compliance files were modified.
   - `/compliance/notices/communication-history` → `CommunicationHistoryPage`
 - **Access control:** Each page retains its existing internal permission/feature-toggle gating (menu items already gate on `manage_compliance` and `notices.*` feature flags). No new permissions introduced.
 - **Data sources:** Existing `ce_notices`, `ce_notice_delivery_log`, `ce_employer_responses`, `ce_communication_history`, `ce_notice_templates` tables — no new tables, no mock data.
+
+## Visible Route Fixes (2026-05-27)
+
+Three visible-by-default 404s identified in `docs/compliance/route_acceptance_sweep.md` are now resolved via redirect aliases to existing working pages (no new components, no PlaceholderPage, no mock data):
+
+- `/compliance/workbench/overview` → redirects to `/compliance/workbench` (`WorkbenchLanding`) — Dashboard › Command Center menu entry.
+- `/compliance/reports/case-analytics` → redirects to `/compliance/reports/violations-analytics` (`CaseAnalytics`, the existing case aging/violations analytics report) — Reports › Case Aging Reports menu entry.
+- `/compliance/admin/settings` → redirects to `/compliance/settings` (`ComplianceSettings`) — Setup › General Settings menu entry.
+
+All three targets already enforce existing route guards (`ComplianceRouteGate`) and the menu items already carry their original `requiresPermission` strings (`manage_compliance` / `generate_reports`). No feature toggles were enabled, no PlaceholderPage routes were touched, and none of the 21 toggle-hidden routes were modified.

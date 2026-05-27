@@ -1181,6 +1181,11 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/risk-scoring" element={<Navigate to="/compliance/admin/settings/risk-policy" replace />} />
       <Route path="/compliance/admin/settings/risk-scoring" element={<Navigate to="/compliance/admin/settings/risk-policy" replace />} />
 
+      {/* Visible-by-default 404 fixes (menu aliases to existing working pages) */}
+      <Route path="/compliance/workbench/overview" element={<Navigate to="/compliance/workbench" replace />} />
+      <Route path="/compliance/reports/case-analytics" element={<Navigate to="/compliance/reports/violations-analytics" replace />} />
+      <Route path="/compliance/admin/settings" element={<Navigate to="/compliance/settings" replace />} />
+
       {/* ═══════════════════════════════════════════════════════════════
           COMPLIANCE — Legacy Redirects (old path → new canonical path)
           All old menu/bookmark URLs continue to work via 301 redirects.
