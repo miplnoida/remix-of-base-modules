@@ -156,20 +156,25 @@ All menu items below additionally require `manage_compliance` (or, for Reports, 
 
 ---
 
-## Summary
+## Summary (re-sweep 2026-05-27, post visible-route fixes)
 
 - **Working routes:** 39
-- **Working redirects:** 1 (Arrangements › Breaches)
+- **Working redirects:** 4 (Arrangements › Breaches, Dashboard › Command Center, Reports › Case Aging Reports, Setup › General Settings)
 - **PlaceholderPage (intentional):** 3 (Calculation Rules, Escalation Rules, Schedule Settings)
-- **404 (menu link broken):** 24 — the large majority are hidden in default builds because they sit behind `__feature` toggles that default to off in `isComplianceFeatureEnabled`. They become user-visible 404s only when the corresponding feature flag is turned on without a matching route. **Visible-by-default 404s** are:
-  1. Dashboard › Command Center (`/compliance/workbench/overview`)
-  2. Reports › Case Aging Reports (`/compliance/reports/case-analytics`)
-  3. Setup › General Settings (`/compliance/admin/settings`)
+- **Visible-by-default 404s:** **0** ✅
+- **Toggle-hidden 404s:** 21 — remain hidden by `isComplianceFeatureEnabled(...)` flags that default to off; not user-visible. No change in this pass.
+
+### Re-sweep confirmations
+
+1. ✅ No visible-by-default menu item returns 404.
+2. ✅ No visible-by-default menu item renders `PlaceholderPage` unexpectedly. The only `PlaceholderPage` routes (Calculation Rules, Escalation Rules, Schedule Settings) remain intentionally deferred behind their own toggles and are unchanged.
+3. ✅ The 21 feature-toggle-hidden 404s remain hidden — no toggles were enabled and no toggle-gated items were modified.
+4. ✅ The Compliance submenu label remains **Setup** (`complianceMenuItems.ts` line 226).
+5. ✅ TypeScript build remains passing (only redirect routes were added; no new imports or component changes).
 
 ## Recommended next pass (pending approval)
 
-1. Fix the three visible-by-default 404s above (Command Center, Case Aging Reports, General Settings) — small AppRoutes additions or menu URL corrections.
-2. Decide per group whether toggle-gated 404s should be (a) wired to existing components where they already exist (Risk group — `RiskScoreDetailsPage`, `RepeatDefaultersPage`, `HighRiskEmployersPage`, `WatchlistPage` all exist), or (b) left hidden until target pages are built.
-3. For Violations / Cases / Arrangements / Inspections / Legal toggle-gated items, confirm scope before either implementing pages or removing menu entries.
+1. Decide per group whether toggle-gated 404s should be (a) wired to existing components where they already exist (Risk group — `RiskScoreDetailsPage`, `RepeatDefaultersPage`, `HighRiskEmployersPage`, `WatchlistPage` all exist), or (b) left hidden until target pages are built.
+2. For Violations / Cases / Arrangements / Inspections / Legal toggle-gated items, confirm scope before either implementing pages or removing menu entries.
 
-No code was changed during this sweep.
+No code was changed during this re-sweep.
