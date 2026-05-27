@@ -20,7 +20,7 @@ All menu items below additionally require `manage_compliance` (or, for Reports, 
 
 | Menu Label | Route Path | Component | Status | Real Data | Deferred? | Recommended Action |
 |---|---|---|---|---|---|---|
-| Command Center | `/compliance/workbench/overview` | — | ❌ 404 | n/a | No | Add route mapping `/compliance/workbench/overview` → `WorkbenchLanding` (already registered at `/compliance/workbench`) or update menu URL to `/compliance/workbench`. |
+| Command Center | `/compliance/workbench/overview` |  | 🔁 Redirect → `/compliance/workbench` (✅ Works) | Yes | No | Fixed 2026-05-27 |
 | Overview | `/compliance/workbench/manager` | `ComplianceManagerDashboard` | ✅ Works | Yes (Supabase aggregation views) | No | None |
 | Inspector Dashboard | `/compliance/workbench/inspector` | `ComplianceInspectorDashboard` | ✅ Works | Yes | No | None |
 | Legal Dashboard | `/compliance/workbench/legal` | `ComplianceLegalDashboard` | ✅ Works | Yes | No | None |
@@ -118,7 +118,7 @@ All menu items below additionally require `manage_compliance` (or, for Reports, 
 | Menu Label | Route Path | Component | Status | Real Data | Deferred? | Recommended Action |
 |---|---|---|---|---|---|---|
 | Violation Reports | `/compliance/reports/violations-analytics` | `CaseAnalytics` | ✅ Works | Yes | No | None |
-| Case Aging Reports | `/compliance/reports/case-analytics` | — | ❌ 404 | n/a | No | Either point menu to `/compliance/reports/violations-analytics` or register dedicated route. |
+| Case Aging Reports | `/compliance/reports/case-analytics` |  | 🔁 Redirect → `/compliance/reports/violations-analytics` (✅ Works) | Yes | No | Fixed 2026-05-27 |
 | Employer Compliance Reports | `/compliance/reports/c3-compliance` | `C3Compliance` | ✅ Works | Yes | No | None |
 | Arrears And Recovery Reports | `/compliance/reports/arrears` | `ArrearsReports` | ✅ Works | Yes | No | None |
 | Payment Arrangement Reports | `/compliance/reports/arrangements` | `ArrangementReports` | ✅ Works | Yes | No | None |
@@ -131,7 +131,7 @@ All menu items below additionally require `manage_compliance` (or, for Reports, 
 | Menu Label | Route Path | Component | Status | Real Data | Deferred? | Recommended Action |
 |---|---|---|---|---|---|---|
 | Setup Wizard | `/compliance/admin/setup-wizard` | `ComplianceSetupWizard` | ✅ Works (🚫 `admin.setupWizard`) | Yes | No | None |
-| General Settings | `/compliance/admin/settings` | — | ❌ 404 | n/a | No | Register `/compliance/admin/settings` → `ComplianceSettings` (or redirect to existing `/compliance/settings`). |
+| General Settings | `/compliance/admin/settings` |  | 🔁 Redirect → `/compliance/settings` (✅ Works) | Yes | No | Fixed 2026-05-27 |
 | Feature Toggles | `/compliance/admin/feature-toggles` | `FeatureTogglesPage` | ✅ Works (🚫 `admin.featureToggles`) | Yes (`feature_flags`) | No | None |
 | Violation Types | `/compliance/admin/settings/violation-types` | `ComplianceViolationTypes` | ✅ Works | Yes | No | None |
 | Rule Engine | `/compliance/admin/settings/rule-engine` | `ComplianceRuleEngine` | ✅ Works | Yes | No | None |
