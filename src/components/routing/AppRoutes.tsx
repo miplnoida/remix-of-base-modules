@@ -1048,6 +1048,7 @@ export const AppRoutes = () => {
 
       {/* ── Workbench ── */}
       <Route path="/compliance/workbench" element={<WorkbenchLanding />} />
+      <Route path="/compliance/my-work-queue" element={<ComplianceMyWorkQueue />} />
       <Route path="/compliance/workbench/manager" element={<ComplianceManagerDashboard />} />
       <Route path="/compliance/workbench/inspector" element={<ComplianceInspectorDashboard />} />
       <Route path="/compliance/workbench/legal" element={<ComplianceLegalDashboard />} />
