@@ -171,3 +171,12 @@ was found still rendering the generic `PlaceholderPage`. Fixed by:
   users without edit capability.
 
 No other Compliance files were modified.
+
+## Manual Acceptance Route Fixes (2026-05-27)
+
+- **Feature Toggles**: fixed earlier — `/compliance/admin/feature-toggles` now renders the real `FeatureTogglesPage` (replaced PlaceholderPage).
+- **Risk Scoring 404 fixed**: Setup menu item "Risk Scoring" points to the canonical working route `/compliance/admin/settings/risk-policy` (renders `RiskRulePolicy`). Added redirect aliases so `/compliance/admin/risk-scoring` and `/compliance/admin/settings/risk-scoring` also resolve.
+- **Payment Arrangement Rules placeholder fixed**: `/compliance/admin/payment-arrangement-rules` now renders a real `PaymentArrangementRulesPage` backed by `ce_arrangement_policies` (down payment, installment limits, breach handling, interest treatment, active toggle). Persists to Supabase with `updated_by`/`updated_at` audit fields and is gated by `PermissionWrapper` on module `ce_admin_arr_rules`.
+- **Rule Engine**: actual working URL — `/compliance/admin/settings/rule-engine`.
+- **Automation Jobs**: actual working URL — `/compliance/admin/automation/jobs`.
+- **Menu label**: Compliance submenu remains labeled **Setup** (renamed from Administration) in `complianceMenuItems.ts`.
