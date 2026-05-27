@@ -63,6 +63,7 @@ const RiskRulePolicy = lazy(() => import('@/pages/compliance/settings/RiskRulePo
 
 // New Compliance & Enforcement pages
 const WorkbenchLanding = lazy(() => import('@/pages/compliance/workbench/WorkbenchLanding'));
+const ComplianceMyWorkQueue = lazy(() => import('@/pages/compliance/MyWorkQueue'));
 const ComplianceManagerDashboard = lazy(() => import('@/pages/compliance/dashboards/ManagerDashboard'));
 const ComplianceInspectorDashboard = lazy(() => import('@/pages/compliance/dashboards/InspectorDashboard'));
 const ComplianceLegalDashboard = lazy(() => import('@/pages/compliance/dashboards/LegalDashboard'));
