@@ -38,6 +38,11 @@ const ViolationsManagement = lazy(() => import('@/pages/compliance/violations/Vi
 const ViolationDetails = lazy(() => import('@/pages/compliance/violations/ViolationDetails'));
 const InspectorPlans = lazy(() => import('@/pages/compliance/audit-planning/InspectorPlans'));
 const PaymentArrangements = lazy(() => import('@/pages/compliance/arrangements/PaymentArrangements'));
+const NewArrangementPage = lazy(() => import('@/pages/compliance/arrangements/NewArrangementPage'));
+const ArrangementPendingApprovalPage = lazy(() => import('@/pages/compliance/arrangements/ArrangementPendingApprovalPage'));
+const ActiveArrangementsPage = lazy(() => import('@/pages/compliance/arrangements/ActiveArrangementsPage'));
+const InstallmentsDuePage = lazy(() => import('@/pages/compliance/arrangements/InstallmentsDuePage'));
+const PaymentAllocationPage = lazy(() => import('@/pages/compliance/arrangements/PaymentAllocationPage'));
 // Retired: FieldOperations (hard cutover)
 const NoticesManagement = lazy(() => import('@/pages/compliance/legal/NoticesManagement'));
 const EmployerStatements = lazy(() => import('@/pages/compliance/employers/EmployerStatements'));
@@ -1247,7 +1252,12 @@ export const AppRoutes = () => {
       <Route path="/compliance/notices/communication-history" element={<ComplianceCommunicationHistory />} />
       <Route path="/compliance/arrangements" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
       <Route path="/compliance/payment-arrangements" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
+      <Route path="/compliance/arrangements/new" element={<NewArrangementPage />} />
+      <Route path="/compliance/arrangements/pending-approval" element={<ArrangementPendingApprovalPage />} />
+      <Route path="/compliance/arrangements/active" element={<ActiveArrangementsPage />} />
+      <Route path="/compliance/arrangements/installments-due" element={<InstallmentsDuePage />} />
       <Route path="/compliance/arrangements/breaches" element={<Navigate to="/compliance/enforcement/breaches" replace />} />
+      <Route path="/compliance/arrangements/payment-allocation" element={<PaymentAllocationPage />} />
       <Route path="/compliance/waivers" element={<Navigate to="/compliance/enforcement/waivers" replace />} />
       <Route path="/compliance/penalties" element={<Navigate to="/compliance/cases/penalties" replace />} />
 
