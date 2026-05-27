@@ -86,6 +86,7 @@ const AuditCommunicationTemplatesPage = lazy(() => import('@/pages/compliance/ad
 const AuditCommunicationTemplateEditorPage = lazy(() => import('@/pages/compliance/admin/AuditCommunicationTemplateEditorPage'));
 const OnlineResponseConfigPage = lazy(() => import('@/pages/compliance/admin/OnlineResponseConfigPage'));
 const PlaceholderPage = lazy(() => import('@/pages/compliance/PlaceholderPage'));
+const ComplianceFeatureTogglesPage = lazy(() => import('@/pages/compliance/admin/FeatureTogglesPage'));
 const ComplianceSetupWizard = lazy(() => import('@/pages/compliance/admin/SetupWizard'));
 const ComplianceCaseFamiliesPage = lazy(() => import('@/pages/compliance/admin/CaseFamiliesPage'));
 const ComplianceWorkflowMappingPage = lazy(() => import('@/pages/compliance/admin/WorkflowMappingPage'));
@@ -1156,7 +1157,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/automation/employer-jobs" element={<EmployerComplianceJobs />} />
       <Route path="/compliance/admin/tools/rule-simulator" element={<ComplianceRuleSimulator />} />
       <Route path="/compliance/admin/tools/risk-simulator" element={<ComplianceRiskSimulator />} />
-      <Route path="/compliance/admin/feature-toggles" element={<PlaceholderPage title="Feature Toggles" area="Setup" />} />
+      <Route path="/compliance/admin/feature-toggles" element={<ComplianceFeatureTogglesPage />} />
       <Route path="/compliance/admin/setup-wizard" element={<ComplianceSetupWizard />} />
       <Route path="/compliance/admin/case-families" element={<ComplianceCaseFamiliesPage />} />
       <Route path="/compliance/admin/workflow-mapping" element={<ComplianceWorkflowMappingPage />} />

@@ -151,3 +151,23 @@ None blocking. Carry-over non-Compliance follow-ups remain documented in earlier
 
 ### Conclusion
 **The Compliance & Enforcement module is finalization-ready.** All P1–P6 stabilization items are verified clean; no defects found in this pass; no code changes required.
+
+## Manual AT — Feature Toggles route fix (post-verification)
+
+During manual acceptance testing the route `/compliance/admin/feature-toggles`
+was found still rendering the generic `PlaceholderPage`. Fixed by:
+
+- Created `src/pages/compliance/admin/FeatureTogglesPage.tsx` — real
+  administration screen using existing `feature_flags` table (no parallel
+  system), grouped catalog of 34 `compliance.*` toggles, search/group/status
+  filters, per-toggle fallback descriptions, audited via `updated_by` from
+  `useUserCode()`.
+- Replaced placeholder mount in `src/components/routing/AppRoutes.tsx` with
+  the new lazy-loaded component.
+- Seeded 34 `compliance.*` rows into `feature_flags` via
+  `INSERT ... ON CONFLICT (flag_key) DO NOTHING` (additive, idempotent).
+- Access gated by existing `ComplianceRouteGate` + `PermissionWrapper`
+  (`compliance_admin_feature_toggles` module). Switch is disabled for
+  users without edit capability.
+
+No other Compliance files were modified.
