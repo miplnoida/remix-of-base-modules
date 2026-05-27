@@ -1157,7 +1157,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/automation/employer-jobs" element={<EmployerComplianceJobs />} />
       <Route path="/compliance/admin/tools/rule-simulator" element={<ComplianceRuleSimulator />} />
       <Route path="/compliance/admin/tools/risk-simulator" element={<ComplianceRiskSimulator />} />
-      <Route path="/compliance/admin/feature-toggles" element={<PlaceholderPage title="Feature Toggles" area="Setup" />} />
+      <Route path="/compliance/admin/feature-toggles" element={<ComplianceFeatureTogglesPage />} />
       <Route path="/compliance/admin/setup-wizard" element={<ComplianceSetupWizard />} />
       <Route path="/compliance/admin/case-families" element={<ComplianceCaseFamiliesPage />} />
       <Route path="/compliance/admin/workflow-mapping" element={<ComplianceWorkflowMappingPage />} />
