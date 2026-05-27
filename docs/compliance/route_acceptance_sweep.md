@@ -185,3 +185,16 @@ No code was changed during this re-sweep.
 - `/compliance/admin/escalation-rules` → redirects to `/compliance/admin/settings/rule-engine` (Rule Engine).
 - `admin.scheduleSettings` toggle default flipped to `false`; Schedule Settings menu item hidden by default until a dedicated Compliance-scoped screen is built. Operational scheduling remains available via `/compliance/admin/automation/jobs` and global `/admin/scheduler`.
 - No PlaceholderPage rendered for visible-by-default Setup items.
+
+## Re-sweep after Calculation/Escalation/Schedule decisions
+
+| Check | Status |
+|---|---|
+| No visible-by-default route returns 404 | ✅ |
+| No visible-by-default route renders PlaceholderPage | ✅ |
+| Calculation Rules redirects to Rule Engine | ✅ `/compliance/admin/calculation-rules` → `/compliance/admin/settings/rule-engine` |
+| Escalation Rules redirects to Rule Engine | ✅ `/compliance/admin/escalation-rules` → `/compliance/admin/settings/rule-engine` |
+| Schedule Settings hidden by default | ✅ `admin.scheduleSettings = false` in `featureToggles.ts` (menu entry hidden by `__feature` flag; route preserved for direct access) |
+| Feature-toggle-hidden 404s remain hidden | ✅ unchanged |
+| Setup label preserved | ✅ `complianceMenuItems.ts:226` `title: "Setup"` |
+| TypeScript build | ✅ passes |
