@@ -93,6 +93,7 @@ const ComplianceWorkflowMappingPage = lazy(() => import('@/pages/compliance/admi
 const ComplianceWaiverRulesPage = lazy(() => import('@/pages/compliance/admin/WaiverRulesPage'));
 const ComplianceLegalHandoffRulesPage = lazy(() => import('@/pages/compliance/admin/LegalHandoffRulesPage'));
 const ComplianceHelpAdmin = lazy(() => import('@/pages/compliance/admin/ComplianceHelpAdmin'));
+const CompliancePaymentArrangementRulesPage = lazy(() => import('@/pages/compliance/admin/PaymentArrangementRulesPage'));
 const WeeklyPlanBuilder = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilder'));
 const WeeklyPlanBuilderV2 = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilderV2'));
 const WeeklyPlanBuilderV3 = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilderV3'));
@@ -1167,7 +1168,10 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/calculation-rules" element={<PlaceholderPage title="Calculation Rules" area="Setup" />} />
       <Route path="/compliance/admin/escalation-rules" element={<PlaceholderPage title="Escalation Rules" area="Setup" />} />
       <Route path="/compliance/admin/schedule-settings" element={<PlaceholderPage title="Schedule Settings" area="Setup" />} />
-      <Route path="/compliance/admin/payment-arrangement-rules" element={<PlaceholderPage title="Payment Arrangement Rules" area="Setup" />} />
+      <Route path="/compliance/admin/payment-arrangement-rules" element={<CompliancePaymentArrangementRulesPage />} />
+      {/* Risk Scoring aliases — canonical route is /compliance/admin/settings/risk-policy */}
+      <Route path="/compliance/admin/risk-scoring" element={<Navigate to="/compliance/admin/settings/risk-policy" replace />} />
+      <Route path="/compliance/admin/settings/risk-scoring" element={<Navigate to="/compliance/admin/settings/risk-policy" replace />} />
 
       {/* ═══════════════════════════════════════════════════════════════
           COMPLIANCE — Legacy Redirects (old path → new canonical path)

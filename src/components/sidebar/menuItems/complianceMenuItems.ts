@@ -223,7 +223,7 @@ const reports: SubItem = {
 };
 
 const administration: SubItem = {
-  title: "Administration",
+  title: "Setup",
   icon: Settings,
   requiresPermission: "manage_compliance",
   description: "Compliance configuration, rules, templates, and automation",
