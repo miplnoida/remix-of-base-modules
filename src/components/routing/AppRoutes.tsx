@@ -85,6 +85,7 @@ const ComplianceTemplates = lazy(() => import('@/pages/compliance/settings/Compl
 const AuditCommunicationTemplatesPage = lazy(() => import('@/pages/compliance/admin/AuditCommunicationTemplatesPage'));
 const AuditCommunicationTemplateEditorPage = lazy(() => import('@/pages/compliance/admin/AuditCommunicationTemplateEditorPage'));
 const OnlineResponseConfigPage = lazy(() => import('@/pages/compliance/admin/OnlineResponseConfigPage'));
+const PlaceholderPage = lazy(() => import('@/pages/compliance/PlaceholderPage'));
 const WeeklyPlanBuilder = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilder'));
 const WeeklyPlanBuilderV2 = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilderV2'));
 const WeeklyPlanBuilderV3 = lazy(() => import('@/pages/compliance/audit-planning/WeeklyPlanBuilderV3'));
@@ -1149,6 +1150,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/automation/employer-jobs" element={<EmployerComplianceJobs />} />
       <Route path="/compliance/admin/tools/rule-simulator" element={<ComplianceRuleSimulator />} />
       <Route path="/compliance/admin/tools/risk-simulator" element={<ComplianceRiskSimulator />} />
+      <Route path="/compliance/admin/feature-toggles" element={<PlaceholderPage title="Feature Toggles" area="Setup" />} />
 
       {/* ═══════════════════════════════════════════════════════════════
           COMPLIANCE — Legacy Redirects (old path → new canonical path)
