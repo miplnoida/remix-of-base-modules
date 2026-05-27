@@ -198,3 +198,17 @@ No other Compliance files were modified.
   - `ce_inspection_findings` reviewer column assumed to be `reviewer_user_id`.
   - `ce_legal_referrals` approver column assumed to be `approver_user_id`.
   - `workflow_tasks` assignment column assumed to be `assigned_to` matched against the current user's `user_code`.
+
+## Manual Acceptance Route Fix — Notices & Communications Group
+
+- **Issue:** All six menu items under Compliance & Enforcement > Notices And Communications returned 404 (`/compliance/notices/register`, `/generate`, `/pending-approval`, `/delivery-tracking`, `/employer-responses`, `/communication-history`). The page components existed under `src/pages/compliance/notices/` and were registered in the unmounted `src/pages/compliance/Routes.tsx`, but not in the active `src/components/routing/AppRoutes.tsx`. The only registration for `/compliance/notices` was a redirect to `/compliance/enforcement/notices` (legacy NoticesManagement).
+- **Fix:** Lazy-imported the six existing page components and registered them in `AppRoutes.tsx`. The bare `/compliance/notices` path now redirects to `/compliance/notices/register`.
+- **Routes wired:**
+  - `/compliance/notices/register` → `NoticeRegister` (functional list, Supabase `ce_notices`)
+  - `/compliance/notices/generate` → `GenerateNoticePage` (functional create flow)
+  - `/compliance/notices/pending-approval` → `PendingApprovalPage`
+  - `/compliance/notices/delivery-tracking` → `DeliveryTrackingPage`
+  - `/compliance/notices/employer-responses` → `EmployerResponsesPage`
+  - `/compliance/notices/communication-history` → `CommunicationHistoryPage`
+- **Access control:** Each page retains its existing internal permission/feature-toggle gating (menu items already gate on `manage_compliance` and `notices.*` feature flags). No new permissions introduced.
+- **Data sources:** Existing `ce_notices`, `ce_notice_delivery_log`, `ce_employer_responses`, `ce_communication_history`, `ce_notice_templates` tables — no new tables, no mock data.
