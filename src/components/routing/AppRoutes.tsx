@@ -1078,6 +1078,27 @@ export const AppRoutes = () => {
           COMPLIANCE MODULE — Canonical Routes (new structure)
           ═══════════════════════════════════════════════════════════════ */}
 
+      {/* ── Compliance — wired leaf routes (close menu/route gap) ── */}
+      <Route path="/compliance/inspections/evidence" element={<InspectionEvidencePage />} />
+      <Route path="/compliance/inspections/convert-finding" element={<ConvertFindingToViolationPage />} />
+      <Route path="/compliance/violations/verification-queue" element={<VerificationQueue />} />
+      <Route path="/compliance/violations/rule-detected" element={<RuleDetectedViolations />} />
+      <Route path="/compliance/violations/duplicate-review" element={<DuplicateReview />} />
+      <Route path="/compliance/violations/history" element={<ViolationHistory />} />
+      <Route path="/compliance/cases/intake" element={<ComplianceCaseIntake />} />
+      <Route path="/compliance/cases/assigned" element={<AssignedCases />} />
+      <Route path="/compliance/cases/merge-review" element={<CaseMergeReviewPage />} />
+      <Route path="/compliance/cases/reopen-requests" element={<ReopenRequestsPage />} />
+      <Route path="/compliance/cases/closure" element={<CaseClosurePage />} />
+      <Route path="/compliance/legal/pack-preparation" element={<LegalPackPreparationPage />} />
+      <Route path="/compliance/legal/approved-escalations" element={<ApprovedEscalationsPage />} />
+      <Route path="/compliance/legal/returned-from-legal" element={<ReturnedFromLegalPage />} />
+      <Route path="/compliance/risk/score-details" element={<RiskScoreDetailsPage />} />
+      <Route path="/compliance/risk/repeat-defaulters" element={<RepeatDefaultersPage />} />
+      <Route path="/compliance/risk/high-risk" element={<HighRiskEmployersPage />} />
+      <Route path="/compliance/risk/watchlist" element={<WatchlistPage />} />
+      <Route path="/compliance/reports/automation-jobs" element={<AutomationJobReports />} />
+
       {/* ── Workbench ── */}
       <Route path="/compliance/workbench" element={<WorkbenchLanding />} />
       <Route path="/compliance/my-work-queue" element={<ComplianceMyWorkQueue />} />
