@@ -271,7 +271,7 @@ const VerificationQueue = lazy(() => import('@/pages/compliance/violations/Verif
 const RuleDetectedViolations = lazy(() => import('@/pages/compliance/violations/RuleDetectedViolations'));
 const DuplicateReview = lazy(() => import('@/pages/compliance/violations/DuplicateReview'));
 const ViolationHistory = lazy(() => import('@/pages/compliance/violations/ViolationHistory'));
-const CaseIntake = lazy(() => import('@/pages/compliance/cases/CaseIntake'));
+const ComplianceCaseIntake = lazy(() => import('@/pages/compliance/cases/CaseIntake'));
 const AssignedCases = lazy(() => import('@/pages/compliance/cases/AssignedCases'));
 const CaseMergeReviewPage = lazy(() => import('@/pages/compliance/cases/CaseMergeReviewPage'));
 const ReopenRequestsPage = lazy(() => import('@/pages/compliance/cases/ReopenRequestsPage'));
