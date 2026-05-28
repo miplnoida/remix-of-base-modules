@@ -259,3 +259,34 @@ already correct.
 ## 13. Final Verification Results
 
 _To be completed after implementation and verification pass._
+
+## §13 Final Verification Results (2026-05-28)
+
+### Database (app_modules)
+- Query: `SELECT route, COUNT(*) FROM app_modules WHERE route LIKE '/compliance/reports/%' GROUP BY route HAVING COUNT(*) > 1` → **0 rows**. No duplicate report routes remain.
+- All 28 drill-down submenu items repointed to unique URLs (Inspector Performance ×4, C3 Compliance ×4, Arrears ×4, Audit ×4, Arrangements ×4, Legal ×4, Trends ×4). Violations (×5) were already corrected in the previous round.
+
+### Routing (src/components/routing/AppRoutes.tsx)
+- `VariantReport` lazy import added; 28 unique routes wired to `<VariantReport variant="…" />`.
+- Group dashboard routes (e.g., `/compliance/reports/arrears`) preserved as summary pages.
+
+### Hub (src/pages/compliance/reports/ComplianceReports.tsx)
+- All hub buttons updated to navigate to the unique drill-down URLs that match the sidebar.
+
+### Data sources
+- Every variant loads from a real Supabase table or view (`ce_v_*`, `ce_arrears_report_entries`, `ce_audit_report_entries`, `ce_v_violation_trends`, `ce_v_officer_performance`, …). No mock data introduced.
+
+### Permissions
+- No changes to RLS or `app_modules.is_enabled`; existing permission gates untouched.
+
+### Build
+- TypeScript build is run automatically by the harness after each edit. Previous TS2304 errors for `VariantReport` resolved by the lazy import.
+
+### Acceptance criteria
+1. No two Reports submenu items share the same URL — ✅
+2. Each item renders content matching its label — ✅ (via per-variant config: title, columns, KPIs, data source)
+3. Useful dashboards preserved as group summary pages — ✅
+4. No duplicate dashboard content on unrelated drill-downs — ✅
+5. No mock data — ✅
+6. Existing permissions preserved — ✅
+7. TypeScript build passes — ✅
