@@ -145,6 +145,8 @@ import SetupWizard from './admin/SetupWizard';
 import CaseFamiliesPage from './admin/CaseFamiliesPage';
 import WorkflowMappingPage from './admin/WorkflowMappingPage';
 import WaiverRulesPage from './admin/WaiverRulesPage';
+import ScheduleSettings from './admin/ScheduleSettings';
+
 import WaiverRequestsQueue from './waivers/WaiverRequestsQueue';
 // Reuses the audit module's Document & Output Settings page (Foundation, Section
 // Library, Report Templates) under Compliance Admin routes so officers don't
