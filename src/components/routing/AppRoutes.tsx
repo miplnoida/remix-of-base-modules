@@ -1177,6 +1177,11 @@ export const AppRoutes = () => {
       {/* ── Reports (unchanged paths) ── */}
       <Route path="/compliance/reports" element={<ComplianceReports />} />
       <Route path="/compliance/reports/violations-analytics" element={<CaseAnalytics />} />
+      <Route path="/compliance/reports/violations/summary" element={<CaseAnalytics />} />
+      <Route path="/compliance/reports/violations/status" element={<ViolationsByStatusReport />} />
+      <Route path="/compliance/reports/violations/type" element={<ViolationsByTypeReport />} />
+      <Route path="/compliance/reports/violations/resolution-time" element={<ViolationResolutionTimeReport />} />
+      <Route path="/compliance/reports/violations/zone" element={<ViolationsByZoneReport />} />
       <Route path="/compliance/reports/inspector-performance" element={<InspectorPerformance />} />
       <Route path="/compliance/reports/c3-compliance" element={<C3Compliance />} />
       <Route path="/compliance/reports/arrears" element={<ArrearsReports />} />
