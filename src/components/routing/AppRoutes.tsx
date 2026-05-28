@@ -1190,6 +1190,36 @@ export const AppRoutes = () => {
       <Route path="/compliance/reports/legal" element={<LegalEscalationReports />} />
       <Route path="/compliance/reports/trends" element={<TrendReports />} />
 
+      {/* ── Unique drill-down report leaves (shared VariantReport renderer) ── */}
+      <Route path="/compliance/reports/inspector-performance/weekly-plan" element={<VariantReport variant="inspector_perf_weekly_plan" />} />
+      <Route path="/compliance/reports/inspector-performance/field-activities" element={<VariantReport variant="inspector_perf_field_activities" />} />
+      <Route path="/compliance/reports/inspector-performance/check-in-out" element={<VariantReport variant="inspector_perf_check_in_out" />} />
+      <Route path="/compliance/reports/inspector-performance/violations-by-inspector" element={<VariantReport variant="inspector_perf_violations_by_officer" />} />
+      <Route path="/compliance/reports/c3-compliance/on-time-vs-late" element={<VariantReport variant="c3_on_time_vs_late" />} />
+      <Route path="/compliance/reports/c3-compliance/missing" element={<VariantReport variant="c3_missing" />} />
+      <Route path="/compliance/reports/c3-compliance/without-payment" element={<VariantReport variant="c3_without_payment" />} />
+      <Route path="/compliance/reports/c3-compliance/rate-by-zone" element={<VariantReport variant="c3_rate_by_zone" />} />
+      <Route path="/compliance/reports/arrears/by-zone" element={<VariantReport variant="arrears_by_zone" />} />
+      <Route path="/compliance/reports/arrears/aging" element={<VariantReport variant="arrears_aging" />} />
+      <Route path="/compliance/reports/arrears/collections-over-time" element={<VariantReport variant="arrears_collections_over_time" />} />
+      <Route path="/compliance/reports/arrears/top-50" element={<VariantReport variant="arrears_top_50" />} />
+      <Route path="/compliance/reports/audit/completion-rate" element={<VariantReport variant="audit_completion_rate" />} />
+      <Route path="/compliance/reports/audit/findings-by-severity" element={<VariantReport variant="audit_findings_by_severity" />} />
+      <Route path="/compliance/reports/audit/coverage-by-zone" element={<VariantReport variant="audit_coverage_by_zone" />} />
+      <Route path="/compliance/reports/audit/risk-based" element={<VariantReport variant="audit_risk_based" />} />
+      <Route path="/compliance/reports/arrangements/active" element={<VariantReport variant="arrangements_active" />} />
+      <Route path="/compliance/reports/arrangements/defaulted" element={<VariantReport variant="arrangements_defaulted" />} />
+      <Route path="/compliance/reports/arrangements/success-rate" element={<VariantReport variant="arrangements_success_rate" />} />
+      <Route path="/compliance/reports/arrangements/installment-trends" element={<VariantReport variant="arrangements_installment_trends" />} />
+      <Route path="/compliance/reports/legal/escalated" element={<VariantReport variant="legal_escalated" />} />
+      <Route path="/compliance/reports/legal/stage-distribution" element={<VariantReport variant="legal_stage_distribution" />} />
+      <Route path="/compliance/reports/legal/court-status" element={<VariantReport variant="legal_court_status" />} />
+      <Route path="/compliance/reports/legal/judgements" element={<VariantReport variant="legal_judgements" />} />
+      <Route path="/compliance/reports/trends/compliance-12m" element={<VariantReport variant="trends_compliance_12m" />} />
+      <Route path="/compliance/reports/trends/violation-creation" element={<VariantReport variant="trends_violation_creation" />} />
+      <Route path="/compliance/reports/trends/resolution-rate" element={<VariantReport variant="trends_resolution_rate" />} />
+      <Route path="/compliance/reports/trends/financial-recovery" element={<VariantReport variant="trends_financial_recovery" />} />
+
       {/* ── Admin — settings, geography, staff, automation, tools ── */}
       <Route path="/compliance/admin/settings/rule-engine" element={<ComplianceRuleEngine />} />
       <Route path="/compliance/admin/settings/violation-types" element={<ComplianceViolationTypes />} />
