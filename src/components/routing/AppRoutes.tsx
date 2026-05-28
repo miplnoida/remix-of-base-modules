@@ -47,6 +47,8 @@ const PaymentAllocationPage = lazy(() => import('@/pages/compliance/arrangements
 const NoticesManagement = lazy(() => import('@/pages/compliance/legal/NoticesManagement'));
 const EmployerStatements = lazy(() => import('@/pages/compliance/employers/EmployerStatements'));
 const ComplianceSettings = lazy(() => import('@/pages/compliance/settings/ComplianceSettings'));
+const ComplianceScheduleSettings = lazy(() => import('@/pages/compliance/admin/ScheduleSettings'));
+
 const CompletionGateSettings = lazy(() => import('@/pages/compliance/settings/CompletionGateSettings'));
 const ComplianceDashboard = lazy(() => import('@/pages/compliance/dashboards/ComplianceDashboard'));
 const ComplianceReports = lazy(() => import('@/pages/compliance/reports/ComplianceReports'));
