@@ -264,6 +264,27 @@ const LedgerHelpCenter = lazy(() => import('@/pages/compliance/settings/LedgerHe
 const PaymentLedgerSync = lazy(() => import('@/pages/compliance/settings/PaymentLedgerSync'));
 const TrendReports = lazy(() => import('@/pages/compliance/reports/TrendReports'));
 
+// Compliance — wired leaf routes (added to close menu/route gap)
+const InspectionEvidencePage = lazy(() => import('@/pages/compliance/inspections/InspectionEvidencePage'));
+const ConvertFindingToViolationPage = lazy(() => import('@/pages/compliance/inspections/ConvertFindingToViolationPage'));
+const VerificationQueue = lazy(() => import('@/pages/compliance/violations/VerificationQueue'));
+const RuleDetectedViolations = lazy(() => import('@/pages/compliance/violations/RuleDetectedViolations'));
+const DuplicateReview = lazy(() => import('@/pages/compliance/violations/DuplicateReview'));
+const ViolationHistory = lazy(() => import('@/pages/compliance/violations/ViolationHistory'));
+const CaseIntake = lazy(() => import('@/pages/compliance/cases/CaseIntake'));
+const AssignedCases = lazy(() => import('@/pages/compliance/cases/AssignedCases'));
+const CaseMergeReviewPage = lazy(() => import('@/pages/compliance/cases/CaseMergeReviewPage'));
+const ReopenRequestsPage = lazy(() => import('@/pages/compliance/cases/ReopenRequestsPage'));
+const CaseClosurePage = lazy(() => import('@/pages/compliance/cases/CaseClosurePage'));
+const LegalPackPreparationPage = lazy(() => import('@/pages/compliance/legal/LegalPackPreparationPage'));
+const ApprovedEscalationsPage = lazy(() => import('@/pages/compliance/legal/ApprovedEscalationsPage'));
+const ReturnedFromLegalPage = lazy(() => import('@/pages/compliance/legal/ReturnedFromLegalPage'));
+const RiskScoreDetailsPage = lazy(() => import('@/pages/compliance/risk/RiskScoreDetailsPage'));
+const RepeatDefaultersPage = lazy(() => import('@/pages/compliance/risk/RepeatDefaultersPage'));
+const HighRiskEmployersPage = lazy(() => import('@/pages/compliance/risk/HighRiskEmployersPage'));
+const WatchlistPage = lazy(() => import('@/pages/compliance/risk/WatchlistPage'));
+const AutomationJobReports = lazy(() => import('@/pages/compliance/reports/AutomationJobReports'));
+
 // Legal Module
 const LegalAuth = lazy(() => import('@/pages/legal/LegalAuth'));
 const LegalHearingCalendar = lazy(() => import('@/pages/legal/LegalHearingCalendar'));
