@@ -1,59 +1,56 @@
 ## Problem
 
-`/compliance/my-work-queue` returns 404. The Compliance submenu item "My Work Queue" (`complianceMenuItems.ts:96`) points to it, but no route is registered in `src/components/routing/AppRoutes.tsx` (the active router). A placeholder mount exists in `src/pages/compliance/Routes.tsx`, but that file is not mounted anywhere — dead code.
+A full audit of `src/components/sidebar/menuItems/complianceMenuItems.ts` against `src/components/routing/AppRoutes.tsx` shows **19 menu items that are visible by default but have no matching `<Route>`** — they all fall through to the catch-all `NotFound` (404). The 2 you just hit (Evidence, Convert Finding To Violation) are part of this same gap.
 
-Existing assets we can reuse:
-- `useComplianceWorkbench` already aggregates "my open violations / plans / visits today / draft plans" from `ce_violations`, `ce_weekly_plans`, `ce_weekly_plan_items`, etc., scoped by `userId`.
-- `RoleWorkbench` + `WorkbenchLanding` render role-aware widgets but are not a per-user task inbox.
-- `PermissionWrapper`, `useUserCode`, `useSupabaseAuth`, `ComplianceRouteGate` are the standard guards used by `FeatureTogglesPage`.
+The previous sweeps only fixed the items called out by name. The root cause is methodological: prior sweeps matched on prefix, not exact path, so any child path whose parent existed looked "green". This plan walks every leaf and fixes all of them at once.
 
-No existing component is a true per-user multi-section task inbox, so we will implement one (reusing existing data/queries) and register the route. We will not create a duplicate workbench.
+## Missing routes (all visible by default, all have page files already in `src/pages/compliance/...`)
 
-## Plan
+```text
+Inspections
+  /compliance/inspections/evidence              → InspectionEvidencePage
+  /compliance/inspections/convert-finding       → ConvertFindingToViolationPage
 
-1. **Create page** `src/pages/compliance/MyWorkQueue.tsx`
-   - Wrapped in `PermissionWrapper` (module `ce_my_work_queue`, falls back to `manage_compliance`).
-   - Resolves current user via `useSupabaseAuth()` + `useUserCode()` — no `'SYSTEM'` fallback; if no user, show error state.
-   - Layout: header + summary KPI strip + Tabs/Sections (Tabs component already in design system).
-   - Sections (each: own React-Query hook, real Supabase queries, honest empty states, loading & error states):
-     1. **Assigned Violations** — `ce_violations` where `assigned_to_user_id = userId` and status in open/in_progress/investigating.
-     2. **Violations Awaiting Verification** — `ce_violations` status `pending_verification` (or feature-gated `violations.verificationQueue`); scope to assigned_to_user_id when set.
-     3. **Assigned Cases** — `ce_cases` where `assigned_to_user_id = userId` and status open/active/in_progress.
-     4. **Notices Awaiting Approval** — `ce_notices` where `approver_user_id = userId` (fallback `assigned_to_user_id`) and status pending_approval. Assumption documented.
-     5. **Employer Responses Awaiting Review** — `ce_employer_responses` where `reviewer_user_id = userId` and status pending_review.
-     6. **Payment Arrangements Awaiting Approval** — `ce_payment_arrangements` where `approver_user_id = userId` (fallback `assigned_to_user_id`) and status pending_approval.
-     7. **Waiver Requests** — feature-gated `waivers`; `ce_waiver_requests` pending decision assigned to user.
-     8. **Inspection Findings Awaiting Review** — feature-gated `inspections.findings`; `ce_inspection_findings` reviewer = user, status pending.
-     9. **Legal Escalation Recommendations** — feature-gated `legal.recommendations`; `ce_legal_referrals` approver = user, status pending.
-     10. **Workflow Tasks** — `workflow_tasks`/`workflow_step_instances` assigned to user_code, status open/pending.
-   - All queries use the **shielded pattern** (try/catch → empty array; never break the page). If a table or column doesn't exist, that section silently shows "No assigned items".
-   - Row schema: `type | reference | employer | status | priority | due date | action link`. Each row links to its existing detail route (`/compliance/violations/:id`, `/compliance/cases/:id`, `/compliance/enforcement/notices/:id`, etc.); no new detail routes invented.
-   - Filters (lightweight): item type (tab), status, priority, due-date range — using existing `FilterBar` pattern.
-   - Action buttons gated with `PermissionWrapper`/`PermissionButton`.
+Violations
+  /compliance/violations/verification-queue     → VerificationQueue
+  /compliance/violations/rule-detected          → RuleDetectedViolations
+  /compliance/violations/duplicate-review       → DuplicateReview
+  /compliance/violations/history                → ViolationHistory
 
-2. **Register route** in `src/components/routing/AppRoutes.tsx`
-   - Lazy import `MyWorkQueue`.
-   - `<Route path="/compliance/my-work-queue" element={<MyWorkQueue />} />` placed alongside other `/compliance/*` routes, wrapped consistently with sibling routes (the file uses direct elements; `ComplianceRouteGate` is not used in `AppRoutes.tsx`, so we follow the local convention and rely on `PermissionWrapper` inside the page, matching `FeatureTogglesPage`).
+Cases
+  /compliance/cases/intake                      → CaseIntake
+  /compliance/cases/assigned                    → AssignedCases
+  /compliance/cases/merge-review                → CaseMergeReviewPage
+  /compliance/cases/reopen-requests             → ReopenRequestsPage
+  /compliance/cases/closure                     → CaseClosurePage
 
-3. **Menu** — leave `complianceMenuItems.ts` unchanged; URL already correct.
+Legal
+  /compliance/legal/pack-preparation            → LegalPackPreparationPage
+  /compliance/legal/approved-escalations        → ApprovedEscalationsPage
+  /compliance/legal/returned-from-legal         → ReturnedFromLegalPage
 
-4. **Documentation** — append a "Manual Acceptance Route Fixes" entry to `docs/compliance/final_stabilization_report.md`:
-   - Note 404 found at `/compliance/my-work-queue`.
-   - Final URL: `/compliance/my-work-queue`, component: `MyWorkQueue`.
-   - List documented assumptions for approver/reviewer column names per source table.
+Risk
+  /compliance/risk/score-details                → RiskScoreDetailsPage
+  /compliance/risk/repeat-defaulters            → RepeatDefaultersPage
+  /compliance/risk/high-risk                    → HighRiskEmployersPage
+  /compliance/risk/watchlist                    → WatchlistPage
 
-5. **Verification**
-   - TS build runs automatically.
-   - Manually verify route opens, renders sections, no PlaceholderPage, empty states honest.
+Reports
+  /compliance/reports/automation-jobs           → AutomationJobReports
+```
 
-## Out of scope
+## Changes
 
-- No changes to other Compliance pages, menu structure, or "Setup" naming.
-- No new detail routes, no new permissions table, no schema migrations.
-- No mock data; sections with missing/unknown tables show empty states.
+1. **`src/components/routing/AppRoutes.tsx`** — add lazy imports + `<Route>` entries for all 19 paths above, wrapped in the same `ProtectedRoute` / `Suspense` pattern used by neighboring compliance routes. No redirects; each maps to its existing page file.
 
-## Files changed
+2. **`docs/compliance/route_acceptance_sweep.md`** — replace the old prefix-match check with an **exact-leaf** assertion: extract every `url` from `complianceMenuItems.ts` and every `path` from `AppRoutes.tsx`, then diff. Record the full leaf-by-leaf table so this class of regression is caught.
 
-- **Created**: `src/pages/compliance/MyWorkQueue.tsx`
-- **Edited**: `src/components/routing/AppRoutes.tsx` (1 import + 1 route)
-- **Edited**: `docs/compliance/final_stabilization_report.md` (append entry)
+3. **No changes** to feature toggles, menu structure, permissions, or business logic. Page files already exist and are unchanged.
+
+## Acceptance
+
+- All 6 Inspections menu items resolve to their page (no 404).
+- All 19 paths above resolve to their page when clicked from the sidebar.
+- `comm -23 <menu_urls> <route_urls>` returns empty for `/compliance/*`.
+- TypeScript build passes.
+- Schedule Settings and other intentionally-hidden items remain hidden (no toggle changes).
