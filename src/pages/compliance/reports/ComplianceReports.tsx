@@ -74,6 +74,18 @@ export default function ComplianceReports() {
       ]
     },
     {
+      title: 'Violation Reports',
+      icon: AlertTriangle,
+      description: 'Violation counts, types, resolution time, and zone distribution',
+      reports: [
+        { name: 'Violations Summary', path: '/compliance/reports/violations/summary' },
+        { name: 'Violations by Status', path: '/compliance/reports/violations/status' },
+        { name: 'Violations by Type', path: '/compliance/reports/violations/type' },
+        { name: 'Violation Resolution Time', path: '/compliance/reports/violations/resolution-time' },
+        { name: 'Violations by Zone', path: '/compliance/reports/violations/zone' },
+      ]
+    },
+    {
       title: 'Payment Arrangements',
       icon: Calendar,
       description: 'Active arrangements, defaults, and compliance tracking',

@@ -228,3 +228,22 @@ All three targets already enforce existing route guards (`ComplianceRouteGate`) 
 - Calculation Rules redirects to Rule Engine (`/compliance/admin/settings/rule-engine`).
 - Escalation Rules redirects to Rule Engine (`/compliance/admin/settings/rule-engine`).
 - Schedule Settings is hidden by default (`admin.scheduleSettings = false`) until a dedicated Compliance-scoped screen is built.
+
+## Manual Acceptance Reports Fixes
+
+### Violation Reports — Duplicate URL Resolution
+
+**Issue:** All four "Violation Reports" submenu items (Violations by Status, by Type, Resolution Time, by Zone) pointed to the same generic dashboard URL, opening identical content regardless of which label was clicked.
+
+**Resolution:**
+- Converted the sidebar "Violation Reports" entry in `complianceMenuItems.ts` into a parent menu with 5 unique leaf URLs:
+  - `/compliance/reports/violations/summary` (preserved useful dashboard → `CaseAnalytics`)
+  - `/compliance/reports/violations/status`
+  - `/compliance/reports/violations/type`
+  - `/compliance/reports/violations/resolution-time`
+  - `/compliance/reports/violations/zone`
+- Added new data-driven report pages under `src/pages/compliance/reports/violations/` backed by a shared `ViolationReportShell` and `violationReportsService` (fetches `ce_violations` joined with `ce_violation_types` and `ce_zones`, chunked to honour the 1k-row Supabase limit).
+- Registered the 4 new leaf routes in `AppRoutes.tsx` and `pages/compliance/Routes.tsx`.
+- Updated the Reports hub (`ComplianceReports.tsx`) to include the new "Violation Reports" category with unique destinations for each card button.
+
+**Acceptance:** Each drill-down label now opens its own page with content matching the label. The useful aggregate dashboard is kept as "Violations Summary". No mock data — empty states are honest and report-specific. Existing permissions preserved.
