@@ -34,10 +34,10 @@ export default function ComplianceReports() {
       icon: Users,
       description: 'Field activity, plan compliance, and productivity metrics',
       reports: [
-        { name: 'Weekly Plan Compliance', path: '/compliance/reports/inspector-performance' },
-        { name: 'Field Activities Summary', path: '/compliance/reports/inspector-performance' },
-        { name: 'Check-In/Check-Out Audit', path: '/compliance/reports/inspector-performance' },
-        { name: 'Cases Handled by Inspector', path: '/compliance/reports/inspector-performance' },
+        { name: 'Weekly Plan Compliance', path: '/compliance/reports/inspector-performance/weekly-plan' },
+        { name: 'Field Activities Summary', path: '/compliance/reports/inspector-performance/field-activities' },
+        { name: 'Check-In/Check-Out Audit', path: '/compliance/reports/inspector-performance/check-in-out' },
+        { name: 'Violations Handled by Inspector', path: '/compliance/reports/inspector-performance/violations-by-inspector' },
       ]
     },
     {
@@ -45,10 +45,10 @@ export default function ComplianceReports() {
       icon: ClipboardCheck,
       description: 'C3 submission rates, timeliness, and employer compliance',
       reports: [
-        { name: 'On-Time vs Late Submissions', path: '/compliance/reports/c3-compliance' },
-        { name: 'Missing C3 Submissions', path: '/compliance/reports/c3-compliance' },
-        { name: 'C3 Without Payment', path: '/compliance/reports/c3-compliance' },
-        { name: 'Compliance Rate by Zone', path: '/compliance/reports/c3-compliance' },
+        { name: 'On-Time vs Late Submissions', path: '/compliance/reports/c3-compliance/on-time-vs-late' },
+        { name: 'Missing C3 Submissions', path: '/compliance/reports/c3-compliance/missing' },
+        { name: 'C3 Without Payment', path: '/compliance/reports/c3-compliance/without-payment' },
+        { name: 'Compliance Rate by Zone', path: '/compliance/reports/c3-compliance/rate-by-zone' },
       ]
     },
     {
@@ -56,10 +56,10 @@ export default function ComplianceReports() {
       icon: DollarSign,
       description: 'Outstanding balances, payment trends, and recovery metrics',
       reports: [
-        { name: 'Total Arrears by Zone', path: '/compliance/reports/arrears' },
-        { name: 'Arrears Aging Analysis', path: '/compliance/reports/arrears' },
-        { name: 'Collections Over Time', path: '/compliance/reports/arrears' },
-        { name: 'Top 50 Arrears Employers', path: '/compliance/reports/arrears' },
+        { name: 'Total Arrears by Zone', path: '/compliance/reports/arrears/by-zone' },
+        { name: 'Arrears Aging Analysis', path: '/compliance/reports/arrears/aging' },
+        { name: 'Collections Over Time', path: '/compliance/reports/arrears/collections-over-time' },
+        { name: 'Top 50 Arrears Employers', path: '/compliance/reports/arrears/top-50' },
       ]
     },
     {
@@ -67,10 +67,10 @@ export default function ComplianceReports() {
       icon: BarChart3,
       description: 'Audit findings, inspection results, and risk assessments',
       reports: [
-        { name: 'Audit Completion Rate', path: '/compliance/reports/audit' },
-        { name: 'Findings by Severity', path: '/compliance/reports/audit' },
-        { name: 'Inspection Coverage by Zone', path: '/compliance/reports/audit' },
-        { name: 'Risk-Based Audit Results', path: '/compliance/reports/audit' },
+        { name: 'Audit Completion Rate', path: '/compliance/reports/audit/completion-rate' },
+        { name: 'Findings by Severity', path: '/compliance/reports/audit/findings-by-severity' },
+        { name: 'Inspection Coverage by Zone', path: '/compliance/reports/audit/coverage-by-zone' },
+        { name: 'Risk-Based Audit Results', path: '/compliance/reports/audit/risk-based' },
       ]
     },
     {
@@ -90,10 +90,10 @@ export default function ComplianceReports() {
       icon: Calendar,
       description: 'Active arrangements, defaults, and compliance tracking',
       reports: [
-        { name: 'Active Arrangements', path: '/compliance/reports/arrangements' },
-        { name: 'Defaulted Arrangements', path: '/compliance/reports/arrangements' },
-        { name: 'Arrangement Success Rate', path: '/compliance/reports/arrangements' },
-        { name: 'Installment Payment Trends', path: '/compliance/reports/arrangements' },
+        { name: 'Active Arrangements', path: '/compliance/reports/arrangements/active' },
+        { name: 'Defaulted Arrangements', path: '/compliance/reports/arrangements/defaulted' },
+        { name: 'Arrangement Success Rate', path: '/compliance/reports/arrangements/success-rate' },
+        { name: 'Installment Payment Trends', path: '/compliance/reports/arrangements/installment-trends' },
       ]
     },
     {
@@ -101,10 +101,10 @@ export default function ComplianceReports() {
       icon: AlertTriangle,
       description: 'Cases escalated to legal, court proceedings, and outcomes',
       reports: [
-        { name: 'Cases Escalated to Legal', path: '/compliance/reports/legal' },
-        { name: 'Legal Stage Distribution', path: '/compliance/reports/legal' },
-        { name: 'Court Proceedings Status', path: '/compliance/reports/legal' },
-        { name: 'Judgements & Enforcement', path: '/compliance/reports/legal' },
+        { name: 'Violations Escalated to Legal', path: '/compliance/reports/legal/escalated' },
+        { name: 'Legal Stage Distribution', path: '/compliance/reports/legal/stage-distribution' },
+        { name: 'Court Proceedings Status', path: '/compliance/reports/legal/court-status' },
+        { name: 'Judgements & Enforcement', path: '/compliance/reports/legal/judgements' },
       ]
     },
     {
@@ -112,12 +112,13 @@ export default function ComplianceReports() {
       icon: TrendingUp,
       description: 'Historical trends and predictive analytics',
       reports: [
-        { name: 'Compliance Trends (12 months)', path: '/compliance/reports/trends' },
-        { name: 'Case Creation Trends', path: '/compliance/reports/trends' },
-        { name: 'Resolution Rate Trends', path: '/compliance/reports/trends' },
-        { name: 'Financial Recovery Trends', path: '/compliance/reports/trends' },
+        { name: 'Compliance Trends (12 months)', path: '/compliance/reports/trends/compliance-12m' },
+        { name: 'Violation Creation Trends', path: '/compliance/reports/trends/violation-creation' },
+        { name: 'Resolution Rate Trends', path: '/compliance/reports/trends/resolution-rate' },
+        { name: 'Financial Recovery Trends', path: '/compliance/reports/trends/financial-recovery' },
       ]
     }
+
   ];
 
   return (
