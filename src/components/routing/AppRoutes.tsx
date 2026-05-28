@@ -47,6 +47,8 @@ const PaymentAllocationPage = lazy(() => import('@/pages/compliance/arrangements
 const NoticesManagement = lazy(() => import('@/pages/compliance/legal/NoticesManagement'));
 const EmployerStatements = lazy(() => import('@/pages/compliance/employers/EmployerStatements'));
 const ComplianceSettings = lazy(() => import('@/pages/compliance/settings/ComplianceSettings'));
+const ComplianceScheduleSettings = lazy(() => import('@/pages/compliance/admin/ScheduleSettings'));
+
 const CompletionGateSettings = lazy(() => import('@/pages/compliance/settings/CompletionGateSettings'));
 const ComplianceDashboard = lazy(() => import('@/pages/compliance/dashboards/ComplianceDashboard'));
 const ComplianceReports = lazy(() => import('@/pages/compliance/reports/ComplianceReports'));
@@ -1263,7 +1265,7 @@ export const AppRoutes = () => {
       {/* Calculation Rules & Escalation Rules — canonical location is Rule Engine */}
       <Route path="/compliance/admin/calculation-rules" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
       <Route path="/compliance/admin/escalation-rules" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
-      <Route path="/compliance/admin/schedule-settings" element={<PlaceholderPage title="Schedule Settings" area="Setup" />} />
+      <Route path="/compliance/admin/schedule-settings" element={<ComplianceScheduleSettings />} />
       <Route path="/compliance/admin/payment-arrangement-rules" element={<CompliancePaymentArrangementRulesPage />} />
       {/* Risk Scoring aliases — canonical route is /compliance/admin/settings/risk-policy */}
       <Route path="/compliance/admin/risk-scoring" element={<Navigate to="/compliance/admin/settings/risk-policy" replace />} />

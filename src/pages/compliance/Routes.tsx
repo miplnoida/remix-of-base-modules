@@ -145,6 +145,8 @@ import SetupWizard from './admin/SetupWizard';
 import CaseFamiliesPage from './admin/CaseFamiliesPage';
 import WorkflowMappingPage from './admin/WorkflowMappingPage';
 import WaiverRulesPage from './admin/WaiverRulesPage';
+import ScheduleSettings from './admin/ScheduleSettings';
+
 import WaiverRequestsQueue from './waivers/WaiverRequestsQueue';
 // Reuses the audit module's Document & Output Settings page (Foundation, Section
 // Library, Report Templates) under Compliance Admin routes so officers don't
@@ -243,7 +245,7 @@ const ComplianceRoutes = () => {
       <Route path="/admin/escalation-rules" element={<Navigate to="/compliance/admin/settings/rule-engine" replace />} />
       <Route path="/admin/case-families" element={<ComplianceRouteGate><CaseFamiliesPage /></ComplianceRouteGate>} />
       <Route path="/admin/workflow-mapping" element={<ComplianceRouteGate><WorkflowMappingPage /></ComplianceRouteGate>} />
-      <Route path="/admin/schedule-settings" element={<ComplianceRouteGate><PlaceholderPage title="Schedule Settings" area="Administration" /></ComplianceRouteGate>} />
+      <Route path="/admin/schedule-settings" element={<ComplianceRouteGate><ScheduleSettings /></ComplianceRouteGate>} />
       <Route path="/admin/payment-arrangement-rules" element={<ComplianceRouteGate><PlaceholderPage title="Payment Arrangement Rules" area="Administration" /></ComplianceRouteGate>} />
       <Route path="/admin/waiver-rules" element={<ComplianceRouteGate><WaiverRulesPage /></ComplianceRouteGate>} />
       <Route path="/waivers/requests" element={<ComplianceRouteGate><WaiverRequestsQueue /></ComplianceRouteGate>} />
