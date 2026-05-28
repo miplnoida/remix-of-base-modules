@@ -325,6 +325,11 @@ const ComplianceRoutes = () => {
           6. REPORTS (paths unchanged)
           ═══════════════════════════════════════════════════════ */}
       <Route path="/reports/violations-analytics" element={<ComplianceRouteGate><CaseAnalytics /></ComplianceRouteGate>} />
+      <Route path="/reports/violations/summary" element={<ComplianceRouteGate><CaseAnalytics /></ComplianceRouteGate>} />
+      <Route path="/reports/violations/status" element={<ComplianceRouteGate><ViolationsByStatusReport /></ComplianceRouteGate>} />
+      <Route path="/reports/violations/type" element={<ComplianceRouteGate><ViolationsByTypeReport /></ComplianceRouteGate>} />
+      <Route path="/reports/violations/resolution-time" element={<ComplianceRouteGate><ViolationResolutionTimeReport /></ComplianceRouteGate>} />
+      <Route path="/reports/violations/zone" element={<ComplianceRouteGate><ViolationsByZoneReport /></ComplianceRouteGate>} />
       <Route path="/reports/inspector-performance" element={<ComplianceRouteGate><InspectorPerformance /></ComplianceRouteGate>} />
       <Route path="/reports/c3-compliance" element={<ComplianceRouteGate><C3Compliance /></ComplianceRouteGate>} />
       <Route path="/reports/arrears" element={<ComplianceRouteGate><ArrearsReports /></ComplianceRouteGate>} />
