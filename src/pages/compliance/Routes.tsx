@@ -110,6 +110,10 @@ import EmployerComplianceJobs from './automation/EmployerComplianceJobs';
 
 // Reports
 import CaseAnalytics from './reports/CaseAnalytics';
+import ViolationsByStatusReport from './reports/violations/ViolationsByStatus';
+import ViolationsByTypeReport from './reports/violations/ViolationsByType';
+import ViolationResolutionTimeReport from './reports/violations/ViolationResolutionTime';
+import ViolationsByZoneReport from './reports/violations/ViolationsByZone';
 import InspectorPerformance from './reports/InspectorPerformance';
 import C3Compliance from './reports/C3Compliance';
 import ArrearsReports from './reports/ArrearsReports';
