@@ -211,7 +211,13 @@ const reports: SubItem = {
   requiresPermission: "generate_reports",
   description: "Compliance analytics and operational reports",
   subItems: filterEnabled<SubItem & { __feature?: string }>([
-    { title: "Violation Reports", url: "/compliance/reports/violations-analytics", icon: FileText, requiresPermission: "generate_reports" },
+    { title: "Violation Reports", icon: FileText, requiresPermission: "generate_reports", subItems: [
+      { title: "Violation Summary", url: "/compliance/reports/violations/summary", icon: BarChart3, requiresPermission: "generate_reports" },
+      { title: "Violations by Status", url: "/compliance/reports/violations/status", icon: FileText, requiresPermission: "generate_reports" },
+      { title: "Violations by Type", url: "/compliance/reports/violations/type", icon: FileText, requiresPermission: "generate_reports" },
+      { title: "Violation Resolution Time", url: "/compliance/reports/violations/resolution-time", icon: FileText, requiresPermission: "generate_reports" },
+      { title: "Violations by Zone", url: "/compliance/reports/violations/zone", icon: FileText, requiresPermission: "generate_reports" },
+    ] },
     { title: "Case Aging Reports", url: "/compliance/reports/case-analytics", icon: Timer, requiresPermission: "generate_reports" },
     { title: "Employer Compliance Reports", url: "/compliance/reports/c3-compliance", icon: ClipboardCheck, requiresPermission: "generate_reports" },
     { title: "Arrears And Recovery Reports", url: "/compliance/reports/arrears", icon: DollarSign, requiresPermission: "generate_reports" },
