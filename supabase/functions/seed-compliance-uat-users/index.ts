@@ -139,6 +139,11 @@ Deno.serve(async (req) => {
         );
       if (profErr) throw profErr;
 
+      // Compliance Admin UAT user must NOT carry the global Admin role.
+      if (u.email.toLowerCase() === "mipl.student+compliance.admin@gmail.com") {
+        await admin.from("user_roles").delete().eq("user_id", userId).eq("role", "Admin");
+      }
+
       // Upsert role mapping (unique on user_id+role)
       const { error: roleErr } = await admin
         .from("user_roles")
