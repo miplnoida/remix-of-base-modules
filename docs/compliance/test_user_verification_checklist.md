@@ -60,3 +60,24 @@ For each user: log in → set new password → walk the steps below. Every "must
 - [ ] `ComplianceRouteGate` denies blocked routes for every applicable user.
 - [ ] Workflow approve/reject buttons honour `useActionPermissions`.
 - [ ] No console errors during gating decisions.
+
+## Correction: Compliance Admin is not Global Admin
+
+**Reason:** Initial UAT seed mapped `mipl.student+compliance.admin@gmail.com` to the global `Admin` role, which grants application-wide bypass across every module. The intended role is module-scoped: full Compliance & Enforcement admin only.
+
+- **Old mapping:** `mipl.student+compliance.admin@gmail.com` → `Admin`
+- **New mapping:** `mipl.student+compliance.admin@gmail.com` → `ComplianceAdmin`
+
+**Expected access**
+- Full view/create/edit/submit/delete/configure/run/approve/reject/escalate/export on all Compliance & Enforcement modules (`ce_*`, `compliance*` in `app_modules`), including Compliance Setup (rule engine, feature toggles, automation, templates, risk scoring, legal handoff rules).
+
+**Expected denied access**
+- Top-level Administration (global user/role management).
+- Any non-Compliance module (Benefits, Cashier, Audit, Employer Master, IP Registration, etc.).
+
+**Verification steps**
+1. Sign in as `mipl.student+compliance.admin@gmail.com`.
+2. Confirm all Compliance menus and Compliance Setup pages load.
+3. Attempt to navigate to a non-Compliance admin route — must redirect to Unauthorized.
+4. Run: `SELECT role FROM user_roles WHERE user_id = (SELECT id FROM auth.users WHERE email = 'mipl.student+compliance.admin@gmail.com');` → must return `ComplianceAdmin` only (no `Admin` row).
+5. Confirm real global Admin users are unaffected: `SELECT COUNT(*) FROM user_roles WHERE role = 'Admin';` matches pre-correction count minus 1 (only the UAT user removed).
