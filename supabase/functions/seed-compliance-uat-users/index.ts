@@ -118,7 +118,10 @@ Deno.serve(async (req) => {
         entry.auth = "updated";
       }
 
-      // Upsert profile
+      // Upsert profile (split full name into first/last for user_code trigger)
+      const nameParts = u.fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || "UAT";
+      const lastName = nameParts.slice(1).join(" ") || "User";
       const { error: profErr } = await admin
         .from("profiles")
         .upsert(
@@ -126,6 +129,8 @@ Deno.serve(async (req) => {
             id: userId,
             email: u.email,
             full_name: u.fullName,
+            first_name: firstName,
+            last_name: lastName,
             user_code: u.userCode,
             is_active: true,
             force_password_change: true,
@@ -150,9 +155,10 @@ Deno.serve(async (req) => {
       } catch { /* table may not exist — ignore */ }
 
       entry.status = "ok";
-    } catch (err) {
+    } catch (err: any) {
       entry.status = "error";
-      entry.error = err instanceof Error ? err.message : String(err);
+      entry.error = err?.message || err?.error_description || err?.msg || err?.code || JSON.stringify(err);
+      entry.error_details = { message: err?.message, code: err?.code, details: err?.details, hint: err?.hint };
     }
     results.push(entry);
   }
