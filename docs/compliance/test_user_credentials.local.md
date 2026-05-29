@@ -4,7 +4,7 @@
 
 | # | Email | Role (`roles.role_name`) | Password source |
 |---|---|---|---|
-| 1 | `mipl.student+compliance.admin@gmail.com` | `Admin` | env: `COMPLIANCE_UAT_TEMP_PASSWORD` |
+| 1 | `mipl.student+compliance.admin@gmail.com` | `ComplianceAdmin` | env: `COMPLIANCE_UAT_TEMP_PASSWORD` |
 | 2 | `mipl.student+compliance.manager@gmail.com` | `ComplianceHead` | env: `COMPLIANCE_UAT_TEMP_PASSWORD` |
 | 3 | `mipl.student+compliance.officer@gmail.com` | `ComplianceInspector` | env: `COMPLIANCE_UAT_TEMP_PASSWORD` |
 | 4 | `mipl.student+compliance.supervisor@gmail.com` | `SeniorInspector` | env: `COMPLIANCE_UAT_TEMP_PASSWORD` |
