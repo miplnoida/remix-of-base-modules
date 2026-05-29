@@ -150,9 +150,10 @@ Deno.serve(async (req) => {
       } catch { /* table may not exist — ignore */ }
 
       entry.status = "ok";
-    } catch (err) {
+    } catch (err: any) {
       entry.status = "error";
-      entry.error = err instanceof Error ? err.message : String(err);
+      entry.error = err?.message || err?.error_description || err?.msg || err?.code || JSON.stringify(err);
+      entry.error_details = { message: err?.message, code: err?.code, details: err?.details, hint: err?.hint };
     }
     results.push(entry);
   }
