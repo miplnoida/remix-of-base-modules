@@ -17,3 +17,9 @@
 All 9 accounts are seeded with `force_password_change = true`; each tester sets a personal password at first login.
 
 To rotate: update the `COMPLIANCE_UAT_TEMP_PASSWORD` secret, then re-invoke `seed-compliance-uat-users`.
+
+## Correction: Compliance Admin is not Global Admin
+
+- **Old mapping:** `mipl.student+compliance.admin@gmail.com` → `Admin` (incorrect — granted application-wide bypass).
+- **New mapping:** `mipl.student+compliance.admin@gmail.com` → `ComplianceAdmin` (full Compliance & Enforcement module access only).
+- See `test_users_permission_plan.md` for the dedicated correction section.
