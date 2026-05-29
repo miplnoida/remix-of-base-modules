@@ -149,3 +149,32 @@ Re-running the function is safe and produces no duplicates.
 - Legal role has no approve/reject/escalate outside `ce_legal_*`, no payment, no Setup, no rule-engine, no inspection.
 - Existing `ComplianceRouteGate` / `PermissionWrapper` / `useActionPermissions` remain the only gating path.
 - Seed is fully idempotent and production-safe.
+
+---
+
+## Correction: Compliance Admin is not Global Admin
+
+**Reason for correction:** The initial UAT plan mapped the Compliance Admin test user to the global `Admin` role, which grants application-wide bypass. Compliance Admin must instead be a module-scoped role with full access to Compliance & Enforcement only.
+
+| | Old | New |
+|---|---|---|
+| User | `mipl.student+compliance.admin@gmail.com` | `mipl.student+compliance.admin@gmail.com` |
+| Role | `Admin` (global bypass) | `ComplianceAdmin` (Compliance module only) |
+
+**ComplianceAdmin grants (additive migration):**
+- Every existing action on every `app_modules` row whose `name` starts with `ce_` or `compliance` (Compliance Dashboard / Command Center, My Work Queue, Violations, Cases, Notices & Communications, Payment Arrangements, Inspections, Legal Escalations, Risk & Employer Profile, Reports, Setup, and all Compliance admin / rule / workflow / feature-toggle / automation / template pages).
+- No new `module_actions` were created; existing actions are reused.
+
+**ComplianceAdmin does NOT grant:**
+- Global Admin bypass.
+- Any module outside the Compliance namespace (Benefits, Cashier, Audit, Employer Master, IP Registration, etc.).
+- Top-level application Administration unless that surface is already modelled as a Compliance module.
+
+**Idempotency:**
+- Role creation uses `ON CONFLICT (role_name) DO NOTHING`.
+- Grants use `ON CONFLICT (role_id, module_id, action_id) DO NOTHING`.
+- The migration deletes any stale `Admin` row from `user_roles` for this single UAT email and inserts the `ComplianceAdmin` row; no real Admin user is affected.
+- The seed function (`seed-compliance-uat-users`) repeats the same delete-Admin / insert-ComplianceAdmin step for this user on every run.
+
+**Access-control model reused — no parallel system:**
+`profiles`, `roles`, `user_roles`, `app_modules`, `module_actions`, `role_permissions`, `get_user_permissions` RPC, `ComplianceRouteGate`, `PermissionWrapper`, `useActionPermissions`.
