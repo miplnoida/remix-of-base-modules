@@ -19,7 +19,7 @@ type SeedUser = {
 };
 
 const USERS: SeedUser[] = [
-  { email: "mipl.student+compliance.admin@gmail.com",      role: "Admin",                    fullName: "Compliance Admin (UAT)",      userCode: "UAT_CE_ADMIN" },
+  { email: "mipl.student+compliance.admin@gmail.com",      role: "ComplianceAdmin",          fullName: "Compliance Admin (UAT)",      userCode: "UAT_CE_ADMIN" },
   { email: "mipl.student+compliance.manager@gmail.com",    role: "ComplianceHead",           fullName: "Compliance Manager (UAT)",    userCode: "UAT_CE_MANAGER" },
   { email: "mipl.student+compliance.officer@gmail.com",    role: "ComplianceInspector",      fullName: "Compliance Officer (UAT)",    userCode: "UAT_CE_OFFICER" },
   { email: "mipl.student+compliance.supervisor@gmail.com", role: "SeniorInspector",          fullName: "Compliance Supervisor (UAT)", userCode: "UAT_CE_SUPERVISOR" },
@@ -138,6 +138,11 @@ Deno.serve(async (req) => {
           { onConflict: "id" },
         );
       if (profErr) throw profErr;
+
+      // Compliance Admin UAT user must NOT carry the global Admin role.
+      if (u.email.toLowerCase() === "mipl.student+compliance.admin@gmail.com") {
+        await admin.from("user_roles").delete().eq("user_id", userId).eq("role", "Admin");
+      }
 
       // Upsert role mapping (unique on user_id+role)
       const { error: roleErr } = await admin

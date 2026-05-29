@@ -9,9 +9,12 @@ For each user: log in → set new password → walk the steps below. Every "must
 - [ ] All 9 users visible in **Admin → Users**, each with the expected role.
 - [ ] `grep -RInE "role_name\s*===\s*'(Compliance|Admin|ReadOnly)" src/` returns no business-logic hits — only `useActionPermissions` / `PermissionWrapper` gating remains.
 
-## 1. Compliance Admin (`mipl.student+compliance.admin@gmail.com` → `Admin`)
-- [ ] Sees every top-level Compliance menu, including **Administration**.
-- [ ] Can open Setup Wizard, Feature Toggles, Rule Engine.
+## 1. Compliance Admin (`mipl.student+compliance.admin@gmail.com` → `ComplianceAdmin`)
+- [ ] Sees every Compliance & Enforcement menu, including **Compliance Setup** (rule engine, feature toggles, workflow mapping, automation jobs, templates, risk scoring, payment rules, legal handoff rules).
+- [ ] Can configure / run / approve / reject / escalate within Compliance modules as required.
+- [ ] Can export Compliance reports.
+- [ ] **Must NOT** see top-level Administration (User & Role management, system-wide settings) or any non-Compliance module — this user is NOT the global Admin.
+- [ ] `user_roles` row shows `ComplianceAdmin` only — no `Admin` row.
 
 ## 2. Compliance Manager (`mipl.student+compliance.manager@gmail.com` → `ComplianceHead`)
 - [ ] Manager dashboard loads. Approvals queue accessible.
@@ -57,3 +60,24 @@ For each user: log in → set new password → walk the steps below. Every "must
 - [ ] `ComplianceRouteGate` denies blocked routes for every applicable user.
 - [ ] Workflow approve/reject buttons honour `useActionPermissions`.
 - [ ] No console errors during gating decisions.
+
+## Correction: Compliance Admin is not Global Admin
+
+**Reason:** Initial UAT seed mapped `mipl.student+compliance.admin@gmail.com` to the global `Admin` role, which grants application-wide bypass across every module. The intended role is module-scoped: full Compliance & Enforcement admin only.
+
+- **Old mapping:** `mipl.student+compliance.admin@gmail.com` → `Admin`
+- **New mapping:** `mipl.student+compliance.admin@gmail.com` → `ComplianceAdmin`
+
+**Expected access**
+- Full view/create/edit/submit/delete/configure/run/approve/reject/escalate/export on all Compliance & Enforcement modules (`ce_*`, `compliance*` in `app_modules`), including Compliance Setup (rule engine, feature toggles, automation, templates, risk scoring, legal handoff rules).
+
+**Expected denied access**
+- Top-level Administration (global user/role management).
+- Any non-Compliance module (Benefits, Cashier, Audit, Employer Master, IP Registration, etc.).
+
+**Verification steps**
+1. Sign in as `mipl.student+compliance.admin@gmail.com`.
+2. Confirm all Compliance menus and Compliance Setup pages load.
+3. Attempt to navigate to a non-Compliance admin route — must redirect to Unauthorized.
+4. Run: `SELECT role FROM user_roles WHERE user_id = (SELECT id FROM auth.users WHERE email = 'mipl.student+compliance.admin@gmail.com');` → must return `ComplianceAdmin` only (no `Admin` row).
+5. Confirm real global Admin users are unaffected: `SELECT COUNT(*) FROM user_roles WHERE role = 'Admin';` matches pre-correction count minus 1 (only the UAT user removed).

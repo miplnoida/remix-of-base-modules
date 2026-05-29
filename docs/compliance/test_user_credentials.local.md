@@ -4,7 +4,7 @@
 
 | # | Email | Role (`roles.role_name`) | Password source |
 |---|---|---|---|
-| 1 | `mipl.student+compliance.admin@gmail.com` | `Admin` | env: `COMPLIANCE_UAT_TEMP_PASSWORD` |
+| 1 | `mipl.student+compliance.admin@gmail.com` | `ComplianceAdmin` | env: `COMPLIANCE_UAT_TEMP_PASSWORD` |
 | 2 | `mipl.student+compliance.manager@gmail.com` | `ComplianceHead` | env: `COMPLIANCE_UAT_TEMP_PASSWORD` |
 | 3 | `mipl.student+compliance.officer@gmail.com` | `ComplianceInspector` | env: `COMPLIANCE_UAT_TEMP_PASSWORD` |
 | 4 | `mipl.student+compliance.supervisor@gmail.com` | `SeniorInspector` | env: `COMPLIANCE_UAT_TEMP_PASSWORD` |
@@ -17,3 +17,9 @@
 All 9 accounts are seeded with `force_password_change = true`; each tester sets a personal password at first login.
 
 To rotate: update the `COMPLIANCE_UAT_TEMP_PASSWORD` secret, then re-invoke `seed-compliance-uat-users`.
+
+## Correction: Compliance Admin is not Global Admin
+
+- **Old mapping:** `mipl.student+compliance.admin@gmail.com` → `Admin` (incorrect — granted application-wide bypass).
+- **New mapping:** `mipl.student+compliance.admin@gmail.com` → `ComplianceAdmin` (full Compliance & Enforcement module access only).
+- See `test_users_permission_plan.md` for the dedicated correction section.
