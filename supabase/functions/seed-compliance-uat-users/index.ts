@@ -118,7 +118,10 @@ Deno.serve(async (req) => {
         entry.auth = "updated";
       }
 
-      // Upsert profile
+      // Upsert profile (split full name into first/last for user_code trigger)
+      const nameParts = u.fullName.trim().split(/\s+/);
+      const firstName = nameParts[0] || "UAT";
+      const lastName = nameParts.slice(1).join(" ") || "User";
       const { error: profErr } = await admin
         .from("profiles")
         .upsert(
@@ -126,6 +129,8 @@ Deno.serve(async (req) => {
             id: userId,
             email: u.email,
             full_name: u.fullName,
+            first_name: firstName,
+            last_name: lastName,
             user_code: u.userCode,
             is_active: true,
             force_password_change: true,
