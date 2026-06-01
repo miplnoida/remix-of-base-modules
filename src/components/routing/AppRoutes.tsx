@@ -1344,12 +1344,12 @@ export const AppRoutes = () => {
       <Route path="/compliance/notices/communication-history" element={<ComplianceCommunicationHistory />} />
       <Route path="/compliance/arrangements" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
       <Route path="/compliance/payment-arrangements" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
-      <Route path="/compliance/arrangements/new" element={<NewArrangementPage />} />
-      <Route path="/compliance/arrangements/pending-approval" element={<ArrangementPendingApprovalPage />} />
-      <Route path="/compliance/arrangements/active" element={<ActiveArrangementsPage />} />
-      <Route path="/compliance/arrangements/installments-due" element={<InstallmentsDuePage />} />
+      <Route path="/compliance/arrangements/new" element={<ComplianceFeatureGate flagKey="compliance.payment.arrangement" title="New Payment Arrangement"><NewArrangementPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/arrangements/pending-approval" element={<ComplianceFeatureGate flagKey="compliance.payment.arrangement" title="Pending Arrangement Approvals"><ArrangementPendingApprovalPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/arrangements/active" element={<ComplianceFeatureGate flagKey="compliance.payment.arrangement" title="Active Arrangements"><ActiveArrangementsPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/arrangements/installments-due" element={<ComplianceFeatureGate flagKey="compliance.payment.arrangement" title="Installments Due"><InstallmentsDuePage /></ComplianceFeatureGate>} />
       <Route path="/compliance/arrangements/breaches" element={<Navigate to="/compliance/enforcement/breaches" replace />} />
-      <Route path="/compliance/arrangements/payment-allocation" element={<PaymentAllocationPage />} />
+      <Route path="/compliance/arrangements/payment-allocation" element={<ComplianceFeatureGate flagKey="compliance.payment.arrangement" title="Payment Allocation"><PaymentAllocationPage /></ComplianceFeatureGate>} />
       <Route path="/compliance/waivers" element={<Navigate to="/compliance/enforcement/waivers" replace />} />
       <Route path="/compliance/penalties" element={<Navigate to="/compliance/cases/penalties" replace />} />
 
