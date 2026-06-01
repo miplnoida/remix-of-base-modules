@@ -90,6 +90,7 @@ class CentralPaymentArrangementService {
    * transitions case status, and records case history.
    */
   async createArrangementFromCase(request: CreateArrangementFromCaseRequest): Promise<PaymentArrangement> {
+    assertArrangementEnabled();
     const userCode = await requireUserCode();
 
     // 1. Validate the case exists and belongs to the employer
