@@ -107,6 +107,7 @@ export async function allocatePayment(input: {
   userCode: string;
   notes?: string;
 }): Promise<{ allocations: any[]; remaining: number }> {
+  assertArrangementEnabled();
   const order = input.order || DEFAULT_ALLOCATION_ORDER;
   let remaining = input.totalAmount;
   const allocations: any[] = [];
