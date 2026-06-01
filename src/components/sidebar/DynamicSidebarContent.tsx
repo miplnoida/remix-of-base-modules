@@ -92,7 +92,7 @@ export default function DynamicSidebarContent({ collapsed }: DynamicSidebarConte
         )}
 
         {/* Separator between dynamic and default menus */}
-        {(menuItems.length > 0 || isLoading) && (
+        {(visibleMenuItems.length > 0 || isLoading) && (
           <div className="py-2">
             <Separator className="bg-border/50" />
           </div>
