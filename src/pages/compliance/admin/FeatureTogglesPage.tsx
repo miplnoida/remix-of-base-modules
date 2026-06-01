@@ -110,8 +110,12 @@ function FeatureTogglesInner() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all');
   const [savingKey, setSavingKey] = useState<string | null>(null);
 
-  const { data: flagRows = [], isLoading, error } = useQuery({
-    queryKey: ['compliance-feature-flags'],
+  // NOTE: unique queryKey on purpose — the global bootstrap hook
+  // (useComplianceFeatureFlagsBootstrap) uses 'compliance-feature-flags' with a
+  // different return shape (Record<string, boolean>). Sharing the key caused
+  // the page to read a non-array from cache and crash with TypeError.
+  const { data: flagRowsRaw, isLoading, error, refetch } = useQuery({
+    queryKey: ['compliance-feature-flags-admin'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('feature_flags')
@@ -122,6 +126,8 @@ function FeatureTogglesInner() {
       return (data || []) as FlagRow[];
     },
   });
+  // Defensive: tolerate any unexpected cache shape without crashing the page.
+  const flagRows: FlagRow[] = Array.isArray(flagRowsRaw) ? flagRowsRaw : [];
 
   const flagsByKey = useMemo(() => {
     const m = new Map<string, FlagRow>();
