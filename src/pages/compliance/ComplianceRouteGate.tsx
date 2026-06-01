@@ -2,6 +2,9 @@ import React, { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { PermissionProtectedRoute } from '@/components/auth/PermissionProtectedRoute';
 import { MODULE_NAMES } from '@/hooks/useActionPermission';
+import { useComplianceFeatureFlagsBootstrap } from '@/hooks/compliance/useComplianceFeatureFlags';
+import { isComplianceDbFlagEnabled } from '@/lib/compliance/featureToggles';
+import FeatureDisabled from '@/pages/compliance/FeatureDisabled';
 
 /**
  * Path-prefix → app_modules.name map for the /compliance/* surface.
