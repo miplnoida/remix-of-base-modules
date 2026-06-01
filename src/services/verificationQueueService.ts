@@ -6,6 +6,14 @@
  * PermissionButton with the existing `manage_compliance` permission key).
  */
 import { supabase } from '@/integrations/supabase/client';
+import { isComplianceDbFlagEnabled } from '@/lib/compliance/featureToggles';
+
+const VERIFICATION_QUEUE_FLAG = 'compliance.core.verification_queue';
+function assertVerificationQueueEnabled() {
+  if (!isComplianceDbFlagEnabled(VERIFICATION_QUEUE_FLAG)) {
+    throw new Error('Verification Queue is disabled in Setup → Feature Toggles.');
+  }
+}
 
 export interface VerificationSettings {
   enabled: boolean;
