@@ -1093,25 +1093,26 @@ export const AppRoutes = () => {
           ═══════════════════════════════════════════════════════════════ */}
 
       {/* ── Compliance — wired leaf routes (close menu/route gap) ── */}
-      <Route path="/compliance/inspections/evidence" element={<InspectionEvidencePage />} />
-      <Route path="/compliance/inspections/convert-finding" element={<ConvertFindingToViolationPage />} />
+      <Route path="/compliance/inspections/evidence" element={<ComplianceFeatureGate flagKey="compliance.inspection.evidence" title="Inspection Evidence"><InspectionEvidencePage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/inspections/convert-finding" element={<ComplianceFeatureGate flagKey="compliance.inspection.convert_finding" title="Convert Finding To Violation"><ConvertFindingToViolationPage /></ComplianceFeatureGate>} />
       <Route path="/compliance/violations/verification-queue" element={<ComplianceFeatureGate flagKey="compliance.core.verification_queue" title="Verification Queue"><VerificationQueue /></ComplianceFeatureGate>} />
       <Route path="/compliance/violations/rule-detected" element={<RuleDetectedViolations />} />
       <Route path="/compliance/violations/duplicate-review" element={<DuplicateReview />} />
       <Route path="/compliance/violations/history" element={<ViolationHistory />} />
       <Route path="/compliance/cases/intake" element={<ComplianceCaseIntake />} />
       <Route path="/compliance/cases/assigned" element={<AssignedCases />} />
-      <Route path="/compliance/cases/merge-review" element={<CaseMergeReviewPage />} />
-      <Route path="/compliance/cases/reopen-requests" element={<ReopenRequestsPage />} />
-      <Route path="/compliance/cases/closure" element={<CaseClosurePage />} />
-      <Route path="/compliance/legal/pack-preparation" element={<LegalPackPreparationPage />} />
-      <Route path="/compliance/legal/approved-escalations" element={<ApprovedEscalationsPage />} />
-      <Route path="/compliance/legal/returned-from-legal" element={<ReturnedFromLegalPage />} />
-      <Route path="/compliance/risk/score-details" element={<RiskScoreDetailsPage />} />
-      <Route path="/compliance/risk/repeat-defaulters" element={<RepeatDefaultersPage />} />
-      <Route path="/compliance/risk/high-risk" element={<HighRiskEmployersPage />} />
-      <Route path="/compliance/risk/watchlist" element={<WatchlistPage />} />
+      <Route path="/compliance/cases/merge-review" element={<ComplianceFeatureGate flagKey="compliance.core.case_merge" title="Case Merge Review"><CaseMergeReviewPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/cases/reopen-requests" element={<ComplianceFeatureGate flagKey="compliance.core.case_reopen" title="Reopen Requests"><ReopenRequestsPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/cases/closure" element={<ComplianceFeatureGate flagKey="compliance.core.case_closure_approval" title="Case Closure Approval"><CaseClosurePage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/legal/pack-preparation" element={<ComplianceFeatureGate flagKey="compliance.legal.pack_generation" title="Legal Pack Preparation"><LegalPackPreparationPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/legal/approved-escalations" element={<ComplianceFeatureGate flagKey="compliance.legal.handoff" title="Approved Escalations"><ApprovedEscalationsPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/legal/returned-from-legal" element={<ComplianceFeatureGate flagKey="compliance.legal.returned_handling" title="Returned From Legal"><ReturnedFromLegalPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/risk/score-details" element={<ComplianceFeatureGate flagKey="compliance.risk.scoring" title="Risk Score Details"><RiskScoreDetailsPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/risk/repeat-defaulters" element={<ComplianceFeatureGate flagKey="compliance.risk.scoring" title="Repeat Defaulters"><RepeatDefaultersPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/risk/high-risk" element={<ComplianceFeatureGate flagKey="compliance.risk.scoring" title="High Risk Employers"><HighRiskEmployersPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/risk/watchlist" element={<ComplianceFeatureGate flagKey="compliance.risk.scoring" title="Risk Watchlist"><WatchlistPage /></ComplianceFeatureGate>} />
       <Route path="/compliance/reports/automation-jobs" element={<ComplianceFeatureGate flagKey="compliance.risk.automation_jobs" title="Automation Job Reports"><AutomationJobReports /></ComplianceFeatureGate>} />
+
 
       {/* ── Workbench ── */}
       <Route path="/compliance/workbench" element={<WorkbenchLanding />} />
