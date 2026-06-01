@@ -204,7 +204,7 @@ export default function FeatureToggleDiagnosticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {PHASE1_HELPER_KEYS.map((k) => (
+                {[...PHASE1_HELPER_KEYS, ...PHASE2_HELPER_KEYS].map((k) => (
                   <tr key={k} className="border-b last:border-0">
                     <td className="py-2 font-mono text-xs">{k}</td>
                     <td className="py-2 font-mono text-xs">{COMPLIANCE_HELPER_TO_DB_FLAG[k] ?? '—'}</td>
