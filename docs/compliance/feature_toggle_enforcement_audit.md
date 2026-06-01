@@ -590,3 +590,39 @@ for the list.
 - No `app_modules` rows mutated.
 - Permission checks still run first (filter is permission-AND-feature).
 - Fail-open cache behaviour unchanged.
+
+---
+
+## 13. Phase 2 route sweep fixes (post-UAT)
+
+UAT for Phase 2 surfaced four regressions:
+
+1. `/compliance/enforcement/legal-referral` — direct URL bypassed
+   `compliance.legal.handoff` OFF.
+2. `/compliance/enforcement/waivers` — direct URL bypassed
+   `compliance.payment.waiver_requests` OFF.
+3. `/compliance/risk/score-details` — stayed accessible after an
+   ON → OFF toggle cycle on `compliance.risk.scoring`.
+4. `/compliance/admin/tools/rule-simulator` — showed the global
+   "Something went wrong" screen after toggling
+   `compliance.risk.rule_simulator`.
+
+All four collapsed to two defects in `ComplianceFeatureGate`:
+
+- Gate did not subscribe to `subscribeComplianceDbFlags`, so it kept its
+  initial decision until the route component itself remounted.
+- Gate did not wrap its children in an error boundary, so any per-feature
+  crash escaped to the global `ErrorBoundary` (full-page error screen).
+
+Fix is contained in `src/components/compliance/ComplianceFeatureGate.tsx`:
+- `useSyncExternalStore(subscribeComplianceDbFlags, …)` — re-renders on
+  every cache change; the snapshot encodes both load state and the
+  specific flag value so ON⇄OFF cycles are detected.
+- Wraps `children` in the existing project `ErrorBoundary` with a
+  page-local "{title} is temporarily unavailable" fallback.
+
+Full sweep matrix and verification results:
+**docs/compliance/feature_toggle_phase2_route_sweep.md**.
+
+No app_modules rows were modified. No new toggle system introduced. No
+unrelated routes were changed.
