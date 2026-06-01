@@ -57,6 +57,7 @@ export async function recordInstallmentPayment(input: {
   paidDate?: string;
   userCode: string;
 }): Promise<void> {
+  assertArrangementEnabled();
   const { data: inst, error: iErr } = await supabase
     .from('ce_installments').select('*').eq('id', input.installmentId).single();
   if (iErr || !inst) throw iErr || new Error('Installment not found');
