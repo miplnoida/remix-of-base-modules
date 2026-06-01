@@ -5,6 +5,14 @@
  * ce_payment_allocations, ce_arrangement_policies. No parallel permission system.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { isComplianceDbFlagEnabled } from '@/lib/compliance/featureToggles';
+
+const PAYMENT_ARRANGEMENT_FLAG = 'compliance.payment.arrangement';
+function assertArrangementEnabled() {
+  if (!isComplianceDbFlagEnabled(PAYMENT_ARRANGEMENT_FLAG)) {
+    throw new Error('Payment Arrangement is disabled in Setup → Feature Toggles.');
+  }
+}
 
 export type AllocationTarget = 'principal' | 'penalty' | 'interest' | 'legal_fee' | 'oldest_balance';
 
