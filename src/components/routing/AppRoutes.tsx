@@ -1095,7 +1095,7 @@ export const AppRoutes = () => {
       {/* ── Compliance — wired leaf routes (close menu/route gap) ── */}
       <Route path="/compliance/inspections/evidence" element={<InspectionEvidencePage />} />
       <Route path="/compliance/inspections/convert-finding" element={<ConvertFindingToViolationPage />} />
-      <Route path="/compliance/violations/verification-queue" element={<VerificationQueue />} />
+      <Route path="/compliance/violations/verification-queue" element={<ComplianceFeatureGate flagKey="compliance.core.verification_queue" title="Verification Queue"><VerificationQueue /></ComplianceFeatureGate>} />
       <Route path="/compliance/violations/rule-detected" element={<RuleDetectedViolations />} />
       <Route path="/compliance/violations/duplicate-review" element={<DuplicateReview />} />
       <Route path="/compliance/violations/history" element={<ViolationHistory />} />
