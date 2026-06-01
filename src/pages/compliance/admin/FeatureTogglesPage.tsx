@@ -150,6 +150,7 @@ function FeatureTogglesInner() {
     onMutate: (p) => setSavingKey(p.row.flag_key),
     onSettled: () => setSavingKey(null),
     onSuccess: (_, p) => {
+      qc.invalidateQueries({ queryKey: ['compliance-feature-flags-admin'] });
       qc.invalidateQueries({ queryKey: ['compliance-feature-flags'] });
       toast.success(`${p.row.display_name} ${p.next ? 'enabled' : 'disabled'}`);
     },
