@@ -1,3 +1,4 @@
+import { useSyncExternalStore, useMemo } from 'react';
 import { useDynamicNavigation, MenuItem } from '@/hooks/useDynamicNavigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SidebarMenu } from '@/components/ui/sidebar';
@@ -6,6 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, RefreshCw, User, KeyRound, Bell, MonitorSmartphone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { filterComplianceMenuByFeatureFlags } from '@/lib/compliance/menuFeatureFilter';
+import { subscribeComplianceDbFlags, hasComplianceDbFlagsLoaded } from '@/lib/compliance/featureFlagCache';
 
 interface DynamicSidebarContentProps {
   collapsed: boolean;
@@ -30,6 +33,19 @@ const defaultMenuItems: MenuItem[] = [
 
 export default function DynamicSidebarContent({ collapsed }: DynamicSidebarContentProps) {
   const { menuItems, isLoading, isError, isEmpty, refetch } = useDynamicNavigation();
+
+  // Subscribe to compliance feature-flag cache so toggling a flag re-renders
+  // the sidebar (the navigation react-query cache is keyed on user.id only).
+  useSyncExternalStore(
+    subscribeComplianceDbFlags,
+    () => (hasComplianceDbFlagsLoaded() ? 'loaded' : 'pending'),
+    () => 'pending',
+  );
+
+  const visibleMenuItems = useMemo(
+    () => filterComplianceMenuByFeatureFlags(menuItems),
+    [menuItems],
+  );
 
   return (
     <ScrollArea className="flex-1 px-3">
@@ -62,7 +78,7 @@ export default function DynamicSidebarContent({ collapsed }: DynamicSidebarConte
         ) : (
           <>
             {/* Dynamic menu items */}
-            {menuItems.map((item: MenuItem) => (
+            {visibleMenuItems.map((item: MenuItem) => (
               <SidebarMenuGroup key={item.id} item={item} collapsed={collapsed} />
             ))}
 
@@ -76,7 +92,7 @@ export default function DynamicSidebarContent({ collapsed }: DynamicSidebarConte
         )}
 
         {/* Separator between dynamic and default menus */}
-        {(menuItems.length > 0 || isLoading) && (
+        {(visibleMenuItems.length > 0 || isLoading) && (
           <div className="py-2">
             <Separator className="bg-border/50" />
           </div>
