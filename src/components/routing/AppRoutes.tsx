@@ -1176,14 +1176,15 @@ export const AppRoutes = () => {
       {/* Retired (hard cutover): /compliance/field/sampling/candidates — folded into Sampling Dashboard */}
 
       {/* ── Enforcement — legal, notices, arrangements, waivers ── */}
-      <Route path="/compliance/enforcement/recommendation-queue" element={<LegalRecommendationQueue />} />
-      <Route path="/compliance/enforcement/legal-referral" element={<LegalReferralWizard />} />
+      <Route path="/compliance/enforcement/recommendation-queue" element={<ComplianceFeatureGate flagKey="compliance.legal.handoff" title="Legal Recommendation Queue"><LegalRecommendationQueue /></ComplianceFeatureGate>} />
+      <Route path="/compliance/enforcement/legal-referral" element={<ComplianceFeatureGate flagKey="compliance.legal.handoff" title="Legal Referral"><LegalReferralWizard /></ComplianceFeatureGate>} />
       <Route path="/compliance/enforcement/legal-queue" element={<ComplianceLegalQueue />} />
-      <Route path="/compliance/enforcement/proceedings" element={<ComplianceLegalProceedings />} />
+      <Route path="/compliance/enforcement/proceedings" element={<ComplianceFeatureGate flagKey="compliance.legal.court_monitoring" title="Legal Proceedings & Court Monitoring"><ComplianceLegalProceedings /></ComplianceFeatureGate>} />
       <Route path="/compliance/enforcement/notices" element={<NoticesManagement />} />
       <Route path="/compliance/enforcement/arrangements" element={<PaymentArrangements />} />
       <Route path="/compliance/enforcement/breaches" element={<ComplianceBreachMonitoring />} />
-      <Route path="/compliance/enforcement/waivers" element={<ComplianceWaivers />} />
+      <Route path="/compliance/enforcement/waivers" element={<ComplianceFeatureGate flagKey="compliance.payment.waiver_requests" title="Waiver Requests"><ComplianceWaivers /></ComplianceFeatureGate>} />
+
 
       {/* ── Reports (unchanged paths) ── */}
       <Route path="/compliance/reports" element={<ComplianceReports />} />
