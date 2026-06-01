@@ -33,10 +33,45 @@ interface Rule {
 }
 
 const RULES: Rule[] = [
+  // Phase 1
   { prefix: '/compliance/violations/verification-queue', flag: 'compliance.core.verification_queue' },
   { prefix: '/compliance/arrangements', flag: 'compliance.payment.arrangement' },
   { prefix: '/compliance/admin/automation/jobs', flag: 'compliance.risk.automation_jobs' },
   { prefix: '/compliance/reports/automation-jobs', flag: 'compliance.risk.automation_jobs' },
+  // Phase 2 — Core Case Flow
+  { prefix: '/compliance/cases/merge-review', flag: 'compliance.core.case_merge' },
+  { prefix: '/compliance/cases/reopen-requests', flag: 'compliance.core.case_reopen' },
+  { prefix: '/compliance/notices/pending-approval', flag: 'compliance.core.notice_approval' },
+  { prefix: '/compliance/cases/closure', flag: 'compliance.core.case_closure_approval' },
+  // Phase 2 — Payment & Recovery
+  { prefix: '/compliance/enforcement/waivers', flag: 'compliance.payment.waiver_requests' },
+  { prefix: '/compliance/waivers', flag: 'compliance.payment.waiver_requests' },
+  // Phase 2 — Inspection
+  { prefix: '/compliance/field/execution', flag: 'compliance.inspection.field' },
+  { prefix: '/compliance/field/employer-statements', flag: 'compliance.inspection.field' },
+  { prefix: '/compliance/field/findings', flag: 'compliance.inspection.field' },
+  { prefix: '/compliance/field/visit', flag: 'compliance.inspection.field' },
+  { prefix: '/compliance/field/plan-builder', flag: 'compliance.inspection.planning' },
+  { prefix: '/compliance/field/my-plans', flag: 'compliance.inspection.planning' },
+  { prefix: '/compliance/field/approval-inbox', flag: 'compliance.inspection.planning' },
+  { prefix: '/compliance/field/pending-review', flag: 'compliance.inspection.planning' },
+  { prefix: '/compliance/field/revisions-pending', flag: 'compliance.inspection.planning' },
+  { prefix: '/compliance/inspections/evidence', flag: 'compliance.inspection.evidence' },
+  { prefix: '/compliance/inspections/convert-finding', flag: 'compliance.inspection.convert_finding' },
+  // Phase 2 — Legal
+  { prefix: '/compliance/enforcement/legal-referral', flag: 'compliance.legal.handoff' },
+  { prefix: '/compliance/enforcement/recommendation-queue', flag: 'compliance.legal.handoff' },
+  { prefix: '/compliance/legal/approved-escalations', flag: 'compliance.legal.handoff' },
+  { prefix: '/compliance/legal/pack-preparation', flag: 'compliance.legal.pack_generation' },
+  { prefix: '/compliance/enforcement/proceedings', flag: 'compliance.legal.court_monitoring' },
+  { prefix: '/compliance/reports/legal/court-status', flag: 'compliance.legal.court_monitoring' },
+  { prefix: '/compliance/legal/returned-from-legal', flag: 'compliance.legal.returned_handling' },
+  // Phase 2 — Risk & Automation
+  { prefix: '/compliance/risk', flag: 'compliance.risk.scoring' },
+  { prefix: '/compliance/admin/tools/rule-simulator', flag: 'compliance.risk.rule_simulator' },
+  { prefix: '/compliance/tools/rule-simulator', flag: 'compliance.risk.rule_simulator' },
+  { prefix: '/compliance/admin/tools/risk-simulator', flag: 'compliance.risk.risk_simulator' },
+  { prefix: '/compliance/tools/risk-simulator', flag: 'compliance.risk.risk_simulator' },
 ];
 
 function normalizeRoute(url?: string): string {

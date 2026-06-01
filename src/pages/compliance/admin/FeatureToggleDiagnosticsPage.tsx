@@ -32,6 +32,25 @@ const PHASE1_DB_FLAGS = [
   'compliance.risk.automation_jobs',
 ];
 
+const PHASE2_DB_FLAGS = [
+  'compliance.core.case_merge',
+  'compliance.core.case_reopen',
+  'compliance.core.notice_approval',
+  'compliance.core.case_closure_approval',
+  'compliance.payment.waiver_requests',
+  'compliance.inspection.field',
+  'compliance.inspection.planning',
+  'compliance.inspection.evidence',
+  'compliance.inspection.convert_finding',
+  'compliance.legal.handoff',
+  'compliance.legal.pack_generation',
+  'compliance.legal.court_monitoring',
+  'compliance.legal.returned_handling',
+  'compliance.risk.scoring',
+  'compliance.risk.rule_simulator',
+  'compliance.risk.risk_simulator',
+];
+
 const PHASE1_HELPER_KEYS: ComplianceFeatureKey[] = [
   'violations.verificationQueue',
   'arrangements.new',
@@ -40,6 +59,25 @@ const PHASE1_HELPER_KEYS: ComplianceFeatureKey[] = [
   'arrangements.installmentsDue',
   'arrangements.paymentAllocation',
   'reports.automationJobs',
+];
+
+const PHASE2_HELPER_KEYS: ComplianceFeatureKey[] = [
+  'cases.mergeReview',
+  'cases.reopenRequests',
+  'notices.pendingApproval',
+  'cases.closure',
+  'enforcement.waivers',
+  'inspections',
+  'inspections.planning',
+  'inspections.evidence',
+  'inspections.convertFinding',
+  'legal.handoff',
+  'legal.packPreparation',
+  'legal.courtMonitoring',
+  'legal.returnedFromLegal',
+  'risk.scoring',
+  'risk.ruleSimulator',
+  'risk.riskSimulator',
 ];
 
 interface RouteTest {
@@ -55,7 +93,25 @@ const ROUTE_TESTS: RouteTest[] = [
   { path: '/compliance/arrangements/payment-allocation', flagKey: 'compliance.payment.arrangement', expectedWhenOff: 'FeatureDisabled' },
   { path: '/compliance/admin/automation/jobs', flagKey: 'compliance.risk.automation_jobs', expectedWhenOff: 'FeatureDisabled' },
   { path: '/compliance/reports/automation-jobs', flagKey: 'compliance.risk.automation_jobs', expectedWhenOff: 'FeatureDisabled' },
+  // Phase 2
+  { path: '/compliance/cases/merge-review', flagKey: 'compliance.core.case_merge', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/cases/reopen-requests', flagKey: 'compliance.core.case_reopen', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/notices/pending-approval', flagKey: 'compliance.core.notice_approval', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/cases/closure', flagKey: 'compliance.core.case_closure_approval', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/enforcement/waivers', flagKey: 'compliance.payment.waiver_requests', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/field/execution', flagKey: 'compliance.inspection.field', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/field/plan-builder', flagKey: 'compliance.inspection.planning', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/inspections/evidence', flagKey: 'compliance.inspection.evidence', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/inspections/convert-finding', flagKey: 'compliance.inspection.convert_finding', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/enforcement/legal-referral', flagKey: 'compliance.legal.handoff', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/legal/pack-preparation', flagKey: 'compliance.legal.pack_generation', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/enforcement/proceedings', flagKey: 'compliance.legal.court_monitoring', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/legal/returned-from-legal', flagKey: 'compliance.legal.returned_handling', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/risk/score-details', flagKey: 'compliance.risk.scoring', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/admin/tools/rule-simulator', flagKey: 'compliance.risk.rule_simulator', expectedWhenOff: 'FeatureDisabled' },
+  { path: '/compliance/admin/tools/risk-simulator', flagKey: 'compliance.risk.risk_simulator', expectedWhenOff: 'FeatureDisabled' },
 ];
+
 
 function BoolBadge({ value }: { value: boolean | undefined }) {
   if (value === undefined) return <Badge variant="outline">unloaded</Badge>;
@@ -112,7 +168,7 @@ export default function FeatureToggleDiagnosticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>2. Raw DB flag values (Phase 1)</CardTitle>
+            <CardTitle>2. Raw DB flag values (Phase 1 + Phase 2)</CardTitle>
           </CardHeader>
           <CardContent className="text-sm">
             <table className="w-full">
@@ -123,7 +179,7 @@ export default function FeatureToggleDiagnosticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {PHASE1_DB_FLAGS.map((k) => (
+                {[...PHASE1_DB_FLAGS, ...PHASE2_DB_FLAGS].map((k) => (
                   <tr key={k} className="border-b last:border-0">
                     <td className="py-2 font-mono text-xs">{k}</td>
                     <td className="py-2"><BoolBadge value={getComplianceDbFlag(k)} /></td>
@@ -148,7 +204,7 @@ export default function FeatureToggleDiagnosticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {PHASE1_HELPER_KEYS.map((k) => (
+                {[...PHASE1_HELPER_KEYS, ...PHASE2_HELPER_KEYS].map((k) => (
                   <tr key={k} className="border-b last:border-0">
                     <td className="py-2 font-mono text-xs">{k}</td>
                     <td className="py-2 font-mono text-xs">{COMPLIANCE_HELPER_TO_DB_FLAG[k] ?? '—'}</td>

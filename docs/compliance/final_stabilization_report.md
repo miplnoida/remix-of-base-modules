@@ -295,3 +295,24 @@ with a new `ComplianceFeatureGate`. Added a UAT diagnostics page at
   sidebar, or runtime-cache code was modified.
 - **Confirmed:** control-plane pages render, toggles persist, Phase 1 gates
   still enforce correctly.
+
+---
+
+### Phase 2 feature toggle enforcement (16 toggles)
+
+- Reused Phase 1 bridge (`featureFlagCache`, bootstrap hook,
+  `ComplianceFeatureGate`, `menuFeatureFilter`) — no new toggle system.
+- Extended `COMPLIANCE_HELPER_TO_DB_FLAG` with 16 Phase 2 mappings and
+  added 7 new helper keys.
+- Wrapped 28 Phase 2 routes with `<ComplianceFeatureGate>`; covers Core
+  Case Flow, Waivers, Inspection (field + planning + evidence + convert),
+  Legal (handoff, pack, court, returned), and Risk (scoring + both
+  simulators).
+- Added 26 prefix → flag rules to `menuFeatureFilter.ts` so sidebar links
+  hide at runtime when the DB flag is OFF. `app_modules` rows are never
+  mutated.
+- Extended `FeatureToggleDiagnosticsPage` with Phase 2 raw-flag rows,
+  helper-key rows, and 16 new route tests.
+- Feature Toggles control-plane page and Diagnostics page remain ungated
+  and reachable.
+- Verification guide: `docs/compliance/feature_toggle_phase2_verification.md`.

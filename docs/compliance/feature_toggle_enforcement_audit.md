@@ -510,3 +510,83 @@ mutated.
 - Permission check runs first (filter is permission-AND-feature).
 - Server-side / Edge guards remain authoritative for writes.
 - Cache fail-open: a transient flag-load failure never hides the UI.
+
+---
+
+## 13. Phase 2 — DB-bridge enforcement (16 toggles)
+
+The Phase 1 bridge (`featureFlagCache` + `useComplianceFeatureFlagsBootstrap`
++ `subscribeComplianceDbFlags` + `ComplianceFeatureGate` +
+`menuFeatureFilter`) is reused unchanged. Phase 2 only extends the mapping
+tables and route wrappers.
+
+### 13.1 New helper keys added
+
+`enforcement.waivers`, `inspections.planning`, `legal.handoff`,
+`legal.courtMonitoring`, `risk.scoring`, `risk.ruleSimulator`,
+`risk.riskSimulator`.
+
+### 13.2 Mapping table extension (`COMPLIANCE_HELPER_TO_DB_FLAG`)
+
+| Helper key | DB flag |
+|---|---|
+| `cases.mergeReview` | `compliance.core.case_merge` |
+| `cases.reopenRequests` | `compliance.core.case_reopen` |
+| `notices.pendingApproval` | `compliance.core.notice_approval` |
+| `cases.closure` | `compliance.core.case_closure_approval` |
+| `enforcement.waivers` | `compliance.payment.waiver_requests` |
+| `inspections` | `compliance.inspection.field` |
+| `inspections.planning` | `compliance.inspection.planning` |
+| `inspections.evidence` | `compliance.inspection.evidence` |
+| `inspections.convertFinding` | `compliance.inspection.convert_finding` |
+| `legal.handoff` / `legal.approvedEscalations` | `compliance.legal.handoff` |
+| `legal.packPreparation` | `compliance.legal.pack_generation` |
+| `legal.courtMonitoring` | `compliance.legal.court_monitoring` |
+| `legal.returnedFromLegal` | `compliance.legal.returned_handling` |
+| `risk.scoring` / `risk.scoreDetails` / `risk.repeatDefaulters` / `risk.highRiskEmployers` / `risk.watchlist` | `compliance.risk.scoring` |
+| `risk.ruleSimulator` | `compliance.risk.rule_simulator` |
+| `risk.riskSimulator` | `compliance.risk.risk_simulator` |
+
+### 13.3 Routes wrapped with `ComplianceFeatureGate`
+
+`/compliance/cases/merge-review`, `/cases/reopen-requests`, `/cases/closure`,
+`/notices/pending-approval`, `/enforcement/waivers`,
+`/field/plan-builder{,-v2,-v3}`, `/field/my-plans`, `/field/approval-inbox`,
+`/field/pending-review[/:planId]`, `/field/revisions-pending`,
+`/field/revision-review/:revisionId`, `/field/execution`, `/field/findings`,
+`/field/employer-statements`, `/field/employer-statement/:id`,
+`/field/visit/:employerId`, `/inspections/evidence`,
+`/inspections/convert-finding`, `/enforcement/legal-referral`,
+`/enforcement/recommendation-queue`, `/legal/approved-escalations`,
+`/legal/pack-preparation`, `/enforcement/proceedings`,
+`/legal/returned-from-legal`, `/risk/score-details`,
+`/risk/repeat-defaulters`, `/risk/high-risk`, `/risk/watchlist`,
+`/admin/tools/rule-simulator`, `/admin/tools/risk-simulator`.
+
+### 13.4 Menu visibility (sidebar)
+
+26 new prefix → flag rules added to `menuFeatureFilter.ts`. Filtering is
+fail-open (cache must be loaded before anything is hidden). `app_modules`
+rows are never mutated.
+
+### 13.5 Actions / mutations
+
+Phase 1 server- / service-level guards remain in force
+(`arrangementWorkflowService`, `verificationQueueService`,
+`run-compliance-job`). For Phase 2 the action surface is protected
+**indirectly** because the dedicated routes that surface those actions
+(merge-review, reopen-requests, notice pending-approval, waiver, evidence,
+convert-finding, pack-preparation, simulators, etc.) are gated.
+
+**Phase 2.5 (deferred):** click-handler + service-call guards on shared
+in-page action buttons — see `docs/compliance/feature_toggle_phase2_verification.md`
+for the list.
+
+### 13.6 Control-plane invariants preserved
+
+- `/compliance/admin/feature-toggles` and
+  `/compliance/admin/feature-toggle-diagnostics` are NOT gated.
+- No third toggle system introduced.
+- No `app_modules` rows mutated.
+- Permission checks still run first (filter is permission-AND-feature).
+- Fail-open cache behaviour unchanged.

@@ -1093,25 +1093,26 @@ export const AppRoutes = () => {
           ═══════════════════════════════════════════════════════════════ */}
 
       {/* ── Compliance — wired leaf routes (close menu/route gap) ── */}
-      <Route path="/compliance/inspections/evidence" element={<InspectionEvidencePage />} />
-      <Route path="/compliance/inspections/convert-finding" element={<ConvertFindingToViolationPage />} />
+      <Route path="/compliance/inspections/evidence" element={<ComplianceFeatureGate flagKey="compliance.inspection.evidence" title="Inspection Evidence"><InspectionEvidencePage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/inspections/convert-finding" element={<ComplianceFeatureGate flagKey="compliance.inspection.convert_finding" title="Convert Finding To Violation"><ConvertFindingToViolationPage /></ComplianceFeatureGate>} />
       <Route path="/compliance/violations/verification-queue" element={<ComplianceFeatureGate flagKey="compliance.core.verification_queue" title="Verification Queue"><VerificationQueue /></ComplianceFeatureGate>} />
       <Route path="/compliance/violations/rule-detected" element={<RuleDetectedViolations />} />
       <Route path="/compliance/violations/duplicate-review" element={<DuplicateReview />} />
       <Route path="/compliance/violations/history" element={<ViolationHistory />} />
       <Route path="/compliance/cases/intake" element={<ComplianceCaseIntake />} />
       <Route path="/compliance/cases/assigned" element={<AssignedCases />} />
-      <Route path="/compliance/cases/merge-review" element={<CaseMergeReviewPage />} />
-      <Route path="/compliance/cases/reopen-requests" element={<ReopenRequestsPage />} />
-      <Route path="/compliance/cases/closure" element={<CaseClosurePage />} />
-      <Route path="/compliance/legal/pack-preparation" element={<LegalPackPreparationPage />} />
-      <Route path="/compliance/legal/approved-escalations" element={<ApprovedEscalationsPage />} />
-      <Route path="/compliance/legal/returned-from-legal" element={<ReturnedFromLegalPage />} />
-      <Route path="/compliance/risk/score-details" element={<RiskScoreDetailsPage />} />
-      <Route path="/compliance/risk/repeat-defaulters" element={<RepeatDefaultersPage />} />
-      <Route path="/compliance/risk/high-risk" element={<HighRiskEmployersPage />} />
-      <Route path="/compliance/risk/watchlist" element={<WatchlistPage />} />
+      <Route path="/compliance/cases/merge-review" element={<ComplianceFeatureGate flagKey="compliance.core.case_merge" title="Case Merge Review"><CaseMergeReviewPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/cases/reopen-requests" element={<ComplianceFeatureGate flagKey="compliance.core.case_reopen" title="Reopen Requests"><ReopenRequestsPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/cases/closure" element={<ComplianceFeatureGate flagKey="compliance.core.case_closure_approval" title="Case Closure Approval"><CaseClosurePage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/legal/pack-preparation" element={<ComplianceFeatureGate flagKey="compliance.legal.pack_generation" title="Legal Pack Preparation"><LegalPackPreparationPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/legal/approved-escalations" element={<ComplianceFeatureGate flagKey="compliance.legal.handoff" title="Approved Escalations"><ApprovedEscalationsPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/legal/returned-from-legal" element={<ComplianceFeatureGate flagKey="compliance.legal.returned_handling" title="Returned From Legal"><ReturnedFromLegalPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/risk/score-details" element={<ComplianceFeatureGate flagKey="compliance.risk.scoring" title="Risk Score Details"><RiskScoreDetailsPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/risk/repeat-defaulters" element={<ComplianceFeatureGate flagKey="compliance.risk.scoring" title="Repeat Defaulters"><RepeatDefaultersPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/risk/high-risk" element={<ComplianceFeatureGate flagKey="compliance.risk.scoring" title="High Risk Employers"><HighRiskEmployersPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/risk/watchlist" element={<ComplianceFeatureGate flagKey="compliance.risk.scoring" title="Risk Watchlist"><WatchlistPage /></ComplianceFeatureGate>} />
       <Route path="/compliance/reports/automation-jobs" element={<ComplianceFeatureGate flagKey="compliance.risk.automation_jobs" title="Automation Job Reports"><AutomationJobReports /></ComplianceFeatureGate>} />
+
 
       {/* ── Workbench ── */}
       <Route path="/compliance/workbench" element={<WorkbenchLanding />} />
@@ -1137,23 +1138,24 @@ export const AppRoutes = () => {
       <Route path="/compliance/cases/:id" element={<ComplianceCaseDetailView />} />
 
       {/* ── Field — planning, execution, inspections, employer views ── */}
-      <Route path="/compliance/field/plan-builder" element={<WeeklyPlanBuilder />} />
-      <Route path="/compliance/field/plan-builder-v2" element={<WeeklyPlanBuilderV2 />} />
-      <Route path="/compliance/field/plan-builder-v3" element={<WeeklyPlanBuilderV3 />} />
-      <Route path="/compliance/field/approval-inbox" element={<PlannerApprovalInbox />} />
+      <Route path="/compliance/field/plan-builder" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Inspection Planning"><WeeklyPlanBuilder /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/plan-builder-v2" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Inspection Planning"><WeeklyPlanBuilderV2 /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/plan-builder-v3" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Inspection Planning"><WeeklyPlanBuilderV3 /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/approval-inbox" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plan Approval Inbox"><PlannerApprovalInbox /></ComplianceFeatureGate>} />
       <Route path="/approval/inbox" element={<PlannerApprovalInbox />} />
       <Route path="/approval/decide" element={<PlannerApprovalDecidePage />} />
-      <Route path="/compliance/field/revisions-pending" element={<RevisionsPending />} />
-      <Route path="/compliance/field/revision-review/:revisionId" element={<PlanRevisionReview />} />
-      <Route path="/compliance/field/my-plans" element={<MyPlans />} />
-      <Route path="/compliance/field/pending-review" element={<CompliancePendingReview />} />
-      <Route path="/compliance/field/pending-review/:planId" element={<WeeklyPlanReview />} />
-      <Route path="/compliance/field/execution" element={<FieldExecution />} />
+      <Route path="/compliance/field/revisions-pending" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plan Revisions Pending"><RevisionsPending /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/revision-review/:revisionId" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plan Revision Review"><PlanRevisionReview /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/my-plans" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="My Inspection Plans"><MyPlans /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/pending-review" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plans Pending Review"><CompliancePendingReview /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/pending-review/:planId" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plan Review"><WeeklyPlanReview /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/execution" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection Execution"><FieldExecution /></ComplianceFeatureGate>} />
       {/* Retired (hard cutover): /compliance/field/operations, /compliance/field/inspections — see .lovable/plan.md */}
-      <Route path="/compliance/field/findings" element={<EmployerFindings />} />
-      <Route path="/compliance/field/employer-statements" element={<EmployerStatements />} />
-      <Route path="/compliance/field/employer-statement/:employerId" element={<EmployerStatementDetail />} />
-      <Route path="/compliance/field/visit/:employerId" element={<EmployerVisitWorkspace />} />
+      <Route path="/compliance/field/findings" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection Findings"><EmployerFindings /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/employer-statements" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection — Employer Statements"><EmployerStatements /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/employer-statement/:employerId" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection — Employer Statement"><EmployerStatementDetail /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/visit/:employerId" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection Visit"><EmployerVisitWorkspace /></ComplianceFeatureGate>} />
+
       <Route path="/compliance/field/employer-360" element={<Employer360Search />} />
       <Route path="/compliance/field/employer-360/:employerId" element={<Employer360 />} />
       <Route path="/compliance/field/employer-risk/:employerId" element={<EmployerRiskProfile />} />
@@ -1175,14 +1177,15 @@ export const AppRoutes = () => {
       {/* Retired (hard cutover): /compliance/field/sampling/candidates — folded into Sampling Dashboard */}
 
       {/* ── Enforcement — legal, notices, arrangements, waivers ── */}
-      <Route path="/compliance/enforcement/recommendation-queue" element={<LegalRecommendationQueue />} />
-      <Route path="/compliance/enforcement/legal-referral" element={<LegalReferralWizard />} />
+      <Route path="/compliance/enforcement/recommendation-queue" element={<ComplianceFeatureGate flagKey="compliance.legal.handoff" title="Legal Recommendation Queue"><LegalRecommendationQueue /></ComplianceFeatureGate>} />
+      <Route path="/compliance/enforcement/legal-referral" element={<ComplianceFeatureGate flagKey="compliance.legal.handoff" title="Legal Referral"><LegalReferralWizard /></ComplianceFeatureGate>} />
       <Route path="/compliance/enforcement/legal-queue" element={<ComplianceLegalQueue />} />
-      <Route path="/compliance/enforcement/proceedings" element={<ComplianceLegalProceedings />} />
+      <Route path="/compliance/enforcement/proceedings" element={<ComplianceFeatureGate flagKey="compliance.legal.court_monitoring" title="Legal Proceedings & Court Monitoring"><ComplianceLegalProceedings /></ComplianceFeatureGate>} />
       <Route path="/compliance/enforcement/notices" element={<NoticesManagement />} />
       <Route path="/compliance/enforcement/arrangements" element={<PaymentArrangements />} />
       <Route path="/compliance/enforcement/breaches" element={<ComplianceBreachMonitoring />} />
-      <Route path="/compliance/enforcement/waivers" element={<ComplianceWaivers />} />
+      <Route path="/compliance/enforcement/waivers" element={<ComplianceFeatureGate flagKey="compliance.payment.waiver_requests" title="Waiver Requests"><ComplianceWaivers /></ComplianceFeatureGate>} />
+
 
       {/* ── Reports (unchanged paths) ── */}
       <Route path="/compliance/reports" element={<ComplianceReports />} />
@@ -1261,8 +1264,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/feature-toggle-diagnostics" element={<FeatureToggleDiagnosticsPage />} />
       <Route path="/compliance/admin/automation/history" element={<ComplianceJobHistory />} />
       <Route path="/compliance/admin/automation/employer-jobs" element={<EmployerComplianceJobs />} />
-      <Route path="/compliance/admin/tools/rule-simulator" element={<ComplianceRuleSimulator />} />
-      <Route path="/compliance/admin/tools/risk-simulator" element={<ComplianceRiskSimulator />} />
+      <Route path="/compliance/admin/tools/rule-simulator" element={<ComplianceFeatureGate flagKey="compliance.risk.rule_simulator" title="Rule Simulator"><ComplianceRuleSimulator /></ComplianceFeatureGate>} />
+      <Route path="/compliance/admin/tools/risk-simulator" element={<ComplianceFeatureGate flagKey="compliance.risk.risk_simulator" title="Risk Simulator"><ComplianceRiskSimulator /></ComplianceFeatureGate>} />
+
       <Route path="/compliance/admin/feature-toggles" element={<ComplianceFeatureTogglesPage />} />
       <Route path="/compliance/admin/setup-wizard" element={<ComplianceSetupWizard />} />
       <Route path="/compliance/admin/case-families" element={<ComplianceCaseFamiliesPage />} />
@@ -1338,7 +1342,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/notices" element={<Navigate to="/compliance/notices/register" replace />} />
       <Route path="/compliance/notices/register" element={<ComplianceNoticeRegister />} />
       <Route path="/compliance/notices/generate" element={<ComplianceGenerateNotice />} />
-      <Route path="/compliance/notices/pending-approval" element={<ComplianceNoticesPendingApproval />} />
+      <Route path="/compliance/notices/pending-approval" element={<ComplianceFeatureGate flagKey="compliance.core.notice_approval" title="Notice Approval Queue"><ComplianceNoticesPendingApproval /></ComplianceFeatureGate>} />
       <Route path="/compliance/notices/delivery-tracking" element={<ComplianceNoticeDeliveryTracking />} />
       <Route path="/compliance/notices/employer-responses" element={<ComplianceEmployerResponses />} />
       <Route path="/compliance/notices/communication-history" element={<ComplianceCommunicationHistory />} />

@@ -38,12 +38,19 @@ export type ComplianceFeatureKey =
   | 'arrangements.active'
   | 'arrangements.installmentsDue'
   | 'arrangements.paymentAllocation'
+  | 'enforcement.waivers'
   | 'inspections'
+  | 'inspections.planning'
   | 'inspections.evidence'
   | 'inspections.convertFinding'
+  | 'legal.handoff'
   | 'legal.packPreparation'
+  | 'legal.courtMonitoring'
   | 'legal.approvedEscalations'
   | 'legal.returnedFromLegal'
+  | 'risk.scoring'
+  | 'risk.ruleSimulator'
+  | 'risk.riskSimulator'
   | 'risk.scoreDetails'
   | 'risk.repeatDefaulters'
   | 'risk.highRiskEmployers'
@@ -60,6 +67,7 @@ export type ComplianceFeatureKey =
   | 'admin.waiverRules'
   | 'admin.legalHandoffRules'
   | 'admin.helpAndInstructions';
+
 
 /** Default-on for every feature key. Set to `false` to hide from menu. */
 const DEFAULT_TOGGLES: Record<ComplianceFeatureKey, boolean> = {
@@ -84,12 +92,19 @@ const DEFAULT_TOGGLES: Record<ComplianceFeatureKey, boolean> = {
   'arrangements.active': true,
   'arrangements.installmentsDue': true,
   'arrangements.paymentAllocation': true,
+  'enforcement.waivers': true,
   inspections: true,
+  'inspections.planning': true,
   'inspections.evidence': true,
   'inspections.convertFinding': true,
+  'legal.handoff': true,
   'legal.packPreparation': true,
+  'legal.courtMonitoring': true,
   'legal.approvedEscalations': true,
   'legal.returnedFromLegal': true,
+  'risk.scoring': true,
+  'risk.ruleSimulator': true,
+  'risk.riskSimulator': true,
   'risk.scoreDetails': true,
   'risk.repeatDefaulters': true,
   'risk.highRiskEmployers': true,
@@ -127,17 +142,43 @@ const envDisabled = parseEnvDisabled();
  * static DEFAULT_TOGGLES / env behavior (documented as Phase 2/3).
  */
 export const COMPLIANCE_HELPER_TO_DB_FLAG: Partial<Record<ComplianceFeatureKey, string>> = {
-  // Verification Queue
+  // ── Phase 1 ──
   'violations.verificationQueue': 'compliance.core.verification_queue',
-  // Payment Arrangement (covers route + action helper keys)
   'arrangements.new': 'compliance.payment.arrangement',
   'arrangements.active': 'compliance.payment.arrangement',
   'arrangements.pendingApproval': 'compliance.payment.arrangement',
   'arrangements.installmentsDue': 'compliance.payment.arrangement',
   'arrangements.paymentAllocation': 'compliance.payment.arrangement',
-  // Automation Jobs
   'reports.automationJobs': 'compliance.risk.automation_jobs',
+  // ── Phase 2 ──
+  // Core Case Flow
+  'cases.mergeReview': 'compliance.core.case_merge',
+  'cases.reopenRequests': 'compliance.core.case_reopen',
+  'notices.pendingApproval': 'compliance.core.notice_approval',
+  'cases.closure': 'compliance.core.case_closure_approval',
+  // Payment & Recovery
+  'enforcement.waivers': 'compliance.payment.waiver_requests',
+  // Inspection
+  inspections: 'compliance.inspection.field',
+  'inspections.planning': 'compliance.inspection.planning',
+  'inspections.evidence': 'compliance.inspection.evidence',
+  'inspections.convertFinding': 'compliance.inspection.convert_finding',
+  // Legal
+  'legal.handoff': 'compliance.legal.handoff',
+  'legal.approvedEscalations': 'compliance.legal.handoff',
+  'legal.packPreparation': 'compliance.legal.pack_generation',
+  'legal.courtMonitoring': 'compliance.legal.court_monitoring',
+  'legal.returnedFromLegal': 'compliance.legal.returned_handling',
+  // Risk & Automation
+  'risk.scoring': 'compliance.risk.scoring',
+  'risk.scoreDetails': 'compliance.risk.scoring',
+  'risk.repeatDefaulters': 'compliance.risk.scoring',
+  'risk.highRiskEmployers': 'compliance.risk.scoring',
+  'risk.watchlist': 'compliance.risk.scoring',
+  'risk.ruleSimulator': 'compliance.risk.rule_simulator',
+  'risk.riskSimulator': 'compliance.risk.risk_simulator',
 };
+
 
 /** Reverse lookup: DB key → helper keys (for direct DB-key checks). */
 export const COMPLIANCE_DB_FLAG_TO_HELPERS: Record<string, ComplianceFeatureKey[]> = (() => {
