@@ -13,6 +13,9 @@
  * model (see docs/compliance/access_control_inventory.md).
  */
 
+import { getComplianceDbFlag } from '@/lib/compliance/featureFlagCache';
+
+
 export type ComplianceFeatureKey =
   | 'workQueue'
   | 'violations.verificationQueue'
