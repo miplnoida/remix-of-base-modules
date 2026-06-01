@@ -1138,23 +1138,24 @@ export const AppRoutes = () => {
       <Route path="/compliance/cases/:id" element={<ComplianceCaseDetailView />} />
 
       {/* ── Field — planning, execution, inspections, employer views ── */}
-      <Route path="/compliance/field/plan-builder" element={<WeeklyPlanBuilder />} />
-      <Route path="/compliance/field/plan-builder-v2" element={<WeeklyPlanBuilderV2 />} />
-      <Route path="/compliance/field/plan-builder-v3" element={<WeeklyPlanBuilderV3 />} />
-      <Route path="/compliance/field/approval-inbox" element={<PlannerApprovalInbox />} />
+      <Route path="/compliance/field/plan-builder" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Inspection Planning"><WeeklyPlanBuilder /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/plan-builder-v2" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Inspection Planning"><WeeklyPlanBuilderV2 /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/plan-builder-v3" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Inspection Planning"><WeeklyPlanBuilderV3 /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/approval-inbox" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plan Approval Inbox"><PlannerApprovalInbox /></ComplianceFeatureGate>} />
       <Route path="/approval/inbox" element={<PlannerApprovalInbox />} />
       <Route path="/approval/decide" element={<PlannerApprovalDecidePage />} />
-      <Route path="/compliance/field/revisions-pending" element={<RevisionsPending />} />
-      <Route path="/compliance/field/revision-review/:revisionId" element={<PlanRevisionReview />} />
-      <Route path="/compliance/field/my-plans" element={<MyPlans />} />
-      <Route path="/compliance/field/pending-review" element={<CompliancePendingReview />} />
-      <Route path="/compliance/field/pending-review/:planId" element={<WeeklyPlanReview />} />
-      <Route path="/compliance/field/execution" element={<FieldExecution />} />
+      <Route path="/compliance/field/revisions-pending" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plan Revisions Pending"><RevisionsPending /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/revision-review/:revisionId" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plan Revision Review"><PlanRevisionReview /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/my-plans" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="My Inspection Plans"><MyPlans /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/pending-review" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plans Pending Review"><CompliancePendingReview /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/pending-review/:planId" element={<ComplianceFeatureGate flagKey="compliance.inspection.planning" title="Plan Review"><WeeklyPlanReview /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/execution" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection Execution"><FieldExecution /></ComplianceFeatureGate>} />
       {/* Retired (hard cutover): /compliance/field/operations, /compliance/field/inspections — see .lovable/plan.md */}
-      <Route path="/compliance/field/findings" element={<EmployerFindings />} />
-      <Route path="/compliance/field/employer-statements" element={<EmployerStatements />} />
-      <Route path="/compliance/field/employer-statement/:employerId" element={<EmployerStatementDetail />} />
-      <Route path="/compliance/field/visit/:employerId" element={<EmployerVisitWorkspace />} />
+      <Route path="/compliance/field/findings" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection Findings"><EmployerFindings /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/employer-statements" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection — Employer Statements"><EmployerStatements /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/employer-statement/:employerId" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection — Employer Statement"><EmployerStatementDetail /></ComplianceFeatureGate>} />
+      <Route path="/compliance/field/visit/:employerId" element={<ComplianceFeatureGate flagKey="compliance.inspection.field" title="Field Inspection Visit"><EmployerVisitWorkspace /></ComplianceFeatureGate>} />
+
       <Route path="/compliance/field/employer-360" element={<Employer360Search />} />
       <Route path="/compliance/field/employer-360/:employerId" element={<Employer360 />} />
       <Route path="/compliance/field/employer-risk/:employerId" element={<EmployerRiskProfile />} />
