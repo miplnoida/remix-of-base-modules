@@ -1341,7 +1341,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/notices" element={<Navigate to="/compliance/notices/register" replace />} />
       <Route path="/compliance/notices/register" element={<ComplianceNoticeRegister />} />
       <Route path="/compliance/notices/generate" element={<ComplianceGenerateNotice />} />
-      <Route path="/compliance/notices/pending-approval" element={<ComplianceNoticesPendingApproval />} />
+      <Route path="/compliance/notices/pending-approval" element={<ComplianceFeatureGate flagKey="compliance.core.notice_approval" title="Notice Approval Queue"><ComplianceNoticesPendingApproval /></ComplianceFeatureGate>} />
       <Route path="/compliance/notices/delivery-tracking" element={<ComplianceNoticeDeliveryTracking />} />
       <Route path="/compliance/notices/employer-responses" element={<ComplianceEmployerResponses />} />
       <Route path="/compliance/notices/communication-history" element={<ComplianceCommunicationHistory />} />
