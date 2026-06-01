@@ -84,6 +84,23 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // ── Phase 1 feature-flag enforcement: Automation Jobs ──
+    const { data: ffRow } = await serviceClient
+      .from('feature_flags')
+      .select('is_enabled')
+      .eq('flag_key', 'compliance.risk.automation_jobs')
+      .maybeSingle();
+    if (ffRow && ffRow.is_enabled === false) {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: "Automation Jobs is disabled in Setup → Feature Toggles (compliance.risk.automation_jobs).",
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
     const { data: jobRecord, error: jobErr } = await serviceClient
       .from("ce_automation_jobs")
       .select("id, job_code, name, parameters, is_enabled")
