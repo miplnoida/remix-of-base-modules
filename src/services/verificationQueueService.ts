@@ -250,6 +250,7 @@ async function writeHistory(violationId: string, action: string, fromValue: stri
 }
 
 export async function confirmViolation(violationId: string, performedBy: string, notes: string) {
+  assertVerificationQueueEnabled();
   const { error } = await supabase
     .from('ce_violations')
     .update({
@@ -287,6 +288,7 @@ export async function confirmViolation(violationId: string, performedBy: string,
 }
 
 export async function rejectViolation(violationId: string, performedBy: string, notes: string) {
+  assertVerificationQueueEnabled();
   const { error } = await supabase
     .from('ce_violations')
     .update({
@@ -304,6 +306,7 @@ export async function rejectViolation(violationId: string, performedBy: string, 
 }
 
 export async function markAsDuplicate(violationId: string, masterId: string, performedBy: string, notes: string) {
+  assertVerificationQueueEnabled();
   if (violationId === masterId) throw new Error('Cannot mark a violation as a duplicate of itself');
   const { error } = await supabase
     .from('ce_violations')
