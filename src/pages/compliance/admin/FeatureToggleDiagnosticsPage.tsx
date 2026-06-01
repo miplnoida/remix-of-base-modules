@@ -168,7 +168,7 @@ export default function FeatureToggleDiagnosticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>2. Raw DB flag values (Phase 1)</CardTitle>
+            <CardTitle>2. Raw DB flag values (Phase 1 + Phase 2)</CardTitle>
           </CardHeader>
           <CardContent className="text-sm">
             <table className="w-full">
