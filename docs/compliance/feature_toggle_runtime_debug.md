@@ -112,3 +112,44 @@ authenticated render.
 No new toggle system introduced. No Phase 2/3 keys touched. The unmounted
 `src/pages/compliance/Routes.tsx` / `ComplianceRouteGate.tsx` remain in
 place as dead code — left untouched to avoid widening scope.
+
+---
+
+## Update 2026-06-01 — Menu visibility filter
+
+Direct-URL gating (FeatureDisabled) was working, but normal users still saw
+sidebar links pointing to disabled features. We now also hide those links at
+runtime.
+
+- New helper: `src/lib/compliance/menuFeatureFilter.ts` — pure function that
+  walks the menu tree and drops items whose route is gated by an OFF DB
+  feature flag. Empty parent groups (no surviving children, no own URL) are
+  collapsed away.
+- Applied in `src/components/sidebar/DynamicSidebarContent.tsx`. The component
+  subscribes to `subscribeComplianceDbFlags` so toggling a flag re-renders
+  the sidebar immediately (the navigation react-query cache is keyed on
+  `user.id` only and would not otherwise refresh).
+- Phase 1 rules (route prefix → DB flag):
+  - `/compliance/violations/verification-queue` → `compliance.core.verification_queue`
+  - `/compliance/arrangements*` → `compliance.payment.arrangement`
+  - `/compliance/admin/automation/jobs` → `compliance.risk.automation_jobs`
+  - `/compliance/reports/automation-jobs` → `compliance.risk.automation_jobs`
+- Fail-open: if the DB cache hasn't loaded yet, no filtering happens — the
+  UI never disappears on a transient flag-load failure.
+- Setup control-plane pages remain visible regardless of feature state:
+  Feature Toggles, Feature Toggle Diagnostics, automation **history**,
+  employer-jobs reference, and every unrelated Setup page (no rule matches).
+- `app_modules` rows are **never** mutated; this is a render-time filter.
+- Permissions are unchanged — a user must still pass both the permission
+  check (RPC `get_user_accessible_modules`) AND the feature-toggle filter.
+
+### Acceptance after this change
+
+- Verification Queue OFF → sidebar link hidden; direct URL → `<FeatureDisabled />`.
+- Payment Arrangement OFF → entire Payment Arrangements group hidden (all
+  child links removed; parent collapses); direct URLs → `<FeatureDisabled />`;
+  service-layer writes still blocked.
+- Automation Jobs OFF → Setup → Automation Jobs and Reports → Automation
+  Jobs Report hidden; direct URLs → `<FeatureDisabled />`; Run Now/Dry Run
+  still blocked server-side.
+- Toggling any flag back ON restores the sidebar entry without a refresh.

@@ -476,3 +476,37 @@ Phase 2/3 toggles, removal of the unmounted legacy `Routes.tsx`.
 
 **Verification:** see `docs/compliance/feature_toggle_phase1_verification.md`.
 TypeScript build passes (`tsc --noEmit`, 0 errors).
+
+---
+
+## Section 12 — Menu Visibility (Phase 1 follow-up, 2026-06-01)
+
+Phase 1 originally only enforced direct-URL and service/edge gates. Manual
+UAT showed normal users still saw clickable sidebar links that only led to
+the "Feature Disabled" page — confusing UX.
+
+**Change:** added a runtime menu filter applied where the DB-driven
+`app_modules` tree is rendered (`DynamicSidebarContent` →
+`filterComplianceMenuByFeatureFlags`). The filter consults the same
+`featureFlagCache` already used by `isComplianceFeatureEnabled`, so no
+third toggle system is introduced and `app_modules` rows are never
+mutated.
+
+**Behaviour matrix (Phase 1):**
+
+| Feature flag (DB key)                       | When OFF, sidebar hides                                              | Direct URL                          |
+| ------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------- |
+| `compliance.core.verification_queue`        | Violations → Verification Queue                                      | `<FeatureDisabled />`               |
+| `compliance.payment.arrangement`            | Payment Arrangements group + all child links (New / Active / Pending / Installments Due / Payment Allocation) | `<FeatureDisabled />` |
+| `compliance.risk.automation_jobs`           | Setup → Automation Jobs, Reports → Automation Jobs Report            | `<FeatureDisabled />`               |
+
+**Always visible (control-plane), regardless of any compliance flag:**
+- Setup → Feature Toggles
+- Compliance Admin → Feature Toggle Diagnostics
+- Automation History (historical record view)
+- All unrelated Setup pages
+
+**Guarantees still in force:**
+- Permission check runs first (filter is permission-AND-feature).
+- Server-side / Edge guards remain authoritative for writes.
+- Cache fail-open: a transient flag-load failure never hides the UI.
