@@ -225,6 +225,7 @@ class CentralPaymentArrangementService {
    * @deprecated Use createArrangementFromCase instead. Kept for backward compatibility.
    */
   async createArrangement(request: CreateArrangementRequest): Promise<PaymentArrangement> {
+    assertArrangementEnabled();
     const userCode = await requireUserCode();
     const totalArrangedAmount = request.items.reduce((s, i) => s + i.arrangedAmount, 0);
     const numInstallments = request.numberOfInstallments ?? request.customInstallments?.length ?? 1;
