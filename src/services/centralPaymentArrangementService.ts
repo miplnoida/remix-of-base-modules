@@ -15,6 +15,13 @@ import {
   ArrangementSourceModule
 } from '@/types/centralPaymentArrangement';
 import { getCurrentUserCode } from '@/hooks/useUserCode';
+import { isComplianceDbFlagEnabled } from '@/lib/compliance/featureToggles';
+
+function assertArrangementEnabled() {
+  if (!isComplianceDbFlagEnabled('compliance.payment.arrangement')) {
+    throw new Error('Payment Arrangement is disabled in Setup → Feature Toggles.');
+  }
+}
 
 async function requireUserCode(): Promise<string> {
   const code = await getCurrentUserCode();
