@@ -264,3 +264,16 @@ All three targets already enforce existing route guards (`ComplianceRouteGate`) 
 **Files:** see `docs/compliance/feature_toggle_enforcement_audit.md` §11 for the full change list, fallback behaviour, verification matrix, and remaining unmapped toggles (Phase 2 / 3).
 
 **Fallback:** on transient DB-load failure the helper falls back to existing `DEFAULT_TOGGLES` so the Compliance sidebar/routes do not vanish. Server-side `run-compliance-job` blocks only when the row is present and explicitly disabled.
+
+---
+
+## Feature Toggle Runtime Fix (2026-06-01)
+
+Phase 1 toggle enforcement was inert because the bootstrap hook and
+route gate lived in the unmounted `src/pages/compliance/Routes.tsx`
+instead of the active `src/components/routing/AppRoutes.tsx`. Fixed by
+mounting the bootstrap globally and wrapping the six Phase 1 routes
+with a new `ComplianceFeatureGate`. Added a UAT diagnostics page at
+`/compliance/admin/feature-toggle-diagnostics`. See
+`docs/compliance/feature_toggle_runtime_debug.md` and
+`docs/compliance/feature_toggle_phase1_verification.md`.

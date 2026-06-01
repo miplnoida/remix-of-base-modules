@@ -433,3 +433,46 @@ All other `compliance.*` flags shown in §3 of this document are **still unmappe
 - Phase 3 (later): `compliance.legal.*`, `compliance.risk.scoring` / `risk.rule_simulator` / `risk.risk_simulator`, `compliance.reports.*`, `compliance.integration.*`, `compliance.employer.*`.
 
 Add them to `COMPLIANCE_HELPER_TO_DB_FLAG` and (where needed) to `FEATURE_FLAG_ROUTE_MAP` in `ComplianceRouteGate.tsx` plus the corresponding service-level assert.
+
+---
+
+## 12. Manual Acceptance — Feature Toggle Runtime Fix (2026-06-01)
+
+Manual UAT confirmed Phase 1 enforcement was inert: toggles persisted in
+the DB but had **no runtime effect** (menus, direct URLs, actions, and
+job runs all behaved as if ON).
+
+**Root cause (evidence-first):** the bootstrap hook
+`useComplianceFeatureFlagsBootstrap()` and the `ComplianceRouteGate`
+wrapper were only used in `src/pages/compliance/Routes.tsx`, which is
+**not mounted** in the running app. The active route file
+`src/components/routing/AppRoutes.tsx` had no compliance feature gate
+and never populated the runtime cache → every helper call fell through
+to the fail-open default (`true`). Full evidence:
+`docs/compliance/feature_toggle_runtime_debug.md`.
+
+**Repair (scope-controlled, Phase 1 only):**
+1. Mounted `useComplianceFeatureFlagsBootstrap()` at the top of
+   `AppRoutes()` so the cache is populated app-wide.
+2. Added `src/components/compliance/ComplianceFeatureGate.tsx` and wrapped
+   the six Phase 1 routes in `AppRoutes.tsx`:
+   - `/compliance/violations/verification-queue` →
+     `compliance.core.verification_queue`
+   - `/compliance/arrangements/new|active|pending-approval|installments-due|payment-allocation`
+     → `compliance.payment.arrangement`
+   - `/compliance/admin/automation/jobs` and
+     `/compliance/reports/automation-jobs` →
+     `compliance.risk.automation_jobs`
+3. Added UAT diagnostics page at
+   `/compliance/admin/feature-toggle-diagnostics` (gated by the existing
+   `ce_admin_feature_toggles` permission, not added to the sidebar).
+4. Service guards (verification, arrangements) and the
+   `run-compliance-job` edge function were already wired and now fire
+   correctly once the cache is loaded.
+
+**Not done (out of scope):** sidebar menu hiding for Phase 1 flags
+(deferred — clicking a disabled link lands on `FeatureDisabled`),
+Phase 2/3 toggles, removal of the unmounted legacy `Routes.tsx`.
+
+**Verification:** see `docs/compliance/feature_toggle_phase1_verification.md`.
+TypeScript build passes (`tsc --noEmit`, 0 errors).

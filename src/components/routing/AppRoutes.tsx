@@ -6,6 +6,9 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useLegalAuth } from '@/contexts/LegalAuthContext';
 import React, { Suspense, lazy } from 'react';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
+import { ComplianceFeatureGate } from '@/components/compliance/ComplianceFeatureGate';
+import { useComplianceFeatureFlagsBootstrap } from '@/hooks/compliance/useComplianceFeatureFlags';
+const FeatureToggleDiagnosticsPage = lazy(() => import('@/pages/compliance/admin/FeatureToggleDiagnosticsPage'));
 
 const InspectorLogin = lazy(() => import('@/pages/inspector/InspectorLogin').then((m) => ({ default: m.InspectorLogin })));
 const InspectorDashboard = lazy(() => import('@/pages/inspector/InspectorDashboard').then((m) => ({ default: m.InspectorDashboard })));
@@ -942,6 +945,10 @@ const PaymentHistoryReport = lazy(() => import('@/pages/cashier/PaymentHistoryRe
 const VCPaymentUpdate = lazy(() => import('@/pages/cashier/VCPaymentUpdate'));
 
 export const AppRoutes = () => {
+  // Phase 1: bootstrap DB-backed compliance.* feature flags into the
+  // runtime cache so isComplianceFeatureEnabled / isComplianceDbFlagEnabled
+  // can return the canonical DB values. Mounted once at app root.
+  useComplianceFeatureFlagsBootstrap();
   return (
     <Suspense fallback={<div className="min-h-screen w-full flex items-center justify-center bg-background text-sm text-muted-foreground">Loading…</div>}>
     <Routes>
@@ -1088,7 +1095,7 @@ export const AppRoutes = () => {
       {/* ── Compliance — wired leaf routes (close menu/route gap) ── */}
       <Route path="/compliance/inspections/evidence" element={<InspectionEvidencePage />} />
       <Route path="/compliance/inspections/convert-finding" element={<ConvertFindingToViolationPage />} />
-      <Route path="/compliance/violations/verification-queue" element={<VerificationQueue />} />
+      <Route path="/compliance/violations/verification-queue" element={<ComplianceFeatureGate flagKey="compliance.core.verification_queue" title="Verification Queue"><VerificationQueue /></ComplianceFeatureGate>} />
       <Route path="/compliance/violations/rule-detected" element={<RuleDetectedViolations />} />
       <Route path="/compliance/violations/duplicate-review" element={<DuplicateReview />} />
       <Route path="/compliance/violations/history" element={<ViolationHistory />} />
@@ -1104,7 +1111,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/risk/repeat-defaulters" element={<RepeatDefaultersPage />} />
       <Route path="/compliance/risk/high-risk" element={<HighRiskEmployersPage />} />
       <Route path="/compliance/risk/watchlist" element={<WatchlistPage />} />
-      <Route path="/compliance/reports/automation-jobs" element={<AutomationJobReports />} />
+      <Route path="/compliance/reports/automation-jobs" element={<ComplianceFeatureGate flagKey="compliance.risk.automation_jobs" title="Automation Job Reports"><AutomationJobReports /></ComplianceFeatureGate>} />
 
       {/* ── Workbench ── */}
       <Route path="/compliance/workbench" element={<WorkbenchLanding />} />
@@ -1250,7 +1257,8 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/staff/queue-members" element={<QueueMembers />} />
       <Route path="/compliance/admin/staff/supervisors" element={<SupervisorHierarchy />} />
       <Route path="/compliance/admin/staff/link-legacy" element={<LegacyInspectorLinking />} />
-      <Route path="/compliance/admin/automation/jobs" element={<ComplianceJobConfiguration />} />
+      <Route path="/compliance/admin/automation/jobs" element={<ComplianceFeatureGate flagKey="compliance.risk.automation_jobs" title="Automation Jobs"><ComplianceJobConfiguration /></ComplianceFeatureGate>} />
+      <Route path="/compliance/admin/feature-toggle-diagnostics" element={<FeatureToggleDiagnosticsPage />} />
       <Route path="/compliance/admin/automation/history" element={<ComplianceJobHistory />} />
       <Route path="/compliance/admin/automation/employer-jobs" element={<EmployerComplianceJobs />} />
       <Route path="/compliance/admin/tools/rule-simulator" element={<ComplianceRuleSimulator />} />
@@ -1336,12 +1344,12 @@ export const AppRoutes = () => {
       <Route path="/compliance/notices/communication-history" element={<ComplianceCommunicationHistory />} />
       <Route path="/compliance/arrangements" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
       <Route path="/compliance/payment-arrangements" element={<Navigate to="/compliance/enforcement/arrangements" replace />} />
-      <Route path="/compliance/arrangements/new" element={<NewArrangementPage />} />
-      <Route path="/compliance/arrangements/pending-approval" element={<ArrangementPendingApprovalPage />} />
-      <Route path="/compliance/arrangements/active" element={<ActiveArrangementsPage />} />
-      <Route path="/compliance/arrangements/installments-due" element={<InstallmentsDuePage />} />
+      <Route path="/compliance/arrangements/new" element={<ComplianceFeatureGate flagKey="compliance.payment.arrangement" title="New Payment Arrangement"><NewArrangementPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/arrangements/pending-approval" element={<ComplianceFeatureGate flagKey="compliance.payment.arrangement" title="Pending Arrangement Approvals"><ArrangementPendingApprovalPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/arrangements/active" element={<ComplianceFeatureGate flagKey="compliance.payment.arrangement" title="Active Arrangements"><ActiveArrangementsPage /></ComplianceFeatureGate>} />
+      <Route path="/compliance/arrangements/installments-due" element={<ComplianceFeatureGate flagKey="compliance.payment.arrangement" title="Installments Due"><InstallmentsDuePage /></ComplianceFeatureGate>} />
       <Route path="/compliance/arrangements/breaches" element={<Navigate to="/compliance/enforcement/breaches" replace />} />
-      <Route path="/compliance/arrangements/payment-allocation" element={<PaymentAllocationPage />} />
+      <Route path="/compliance/arrangements/payment-allocation" element={<ComplianceFeatureGate flagKey="compliance.payment.arrangement" title="Payment Allocation"><PaymentAllocationPage /></ComplianceFeatureGate>} />
       <Route path="/compliance/waivers" element={<Navigate to="/compliance/enforcement/waivers" replace />} />
       <Route path="/compliance/penalties" element={<Navigate to="/compliance/cases/penalties" replace />} />
 
