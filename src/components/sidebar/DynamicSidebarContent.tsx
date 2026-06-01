@@ -1,3 +1,4 @@
+import { useSyncExternalStore, useMemo } from 'react';
 import { useDynamicNavigation, MenuItem } from '@/hooks/useDynamicNavigation';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { SidebarMenu } from '@/components/ui/sidebar';
@@ -6,6 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, RefreshCw, User, KeyRound, Bell, MonitorSmartphone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { filterComplianceMenuByFeatureFlags } from '@/lib/compliance/menuFeatureFilter';
+import { subscribeComplianceDbFlags, hasComplianceDbFlagsLoaded } from '@/lib/compliance/featureFlagCache';
 
 interface DynamicSidebarContentProps {
   collapsed: boolean;
