@@ -381,3 +381,55 @@ that toggle:
 - No unrelated modules are touched.
 - **No production behaviour is changed by this document.** Only
   `docs/compliance/feature_toggle_enforcement_audit.md` is created.
+
+---
+
+## 11. Phase 1 Implementation (delivered)
+
+Phase 1 bridges the existing runtime helper to the canonical DB-backed
+`public.feature_flags` table for three toggles:
+
+| DB flag_key | Helper key(s) | Scope enforced |
+| --- | --- | --- |
+| `compliance.core.verification_queue` | `violations.verificationQueue` | Route, action buttons (confirm/reject/mark-duplicate), service mutations |
+| `compliance.payment.arrangement` | `arrangements.new`, `arrangements.active`, `arrangements.pendingApproval`, `arrangements.installmentsDue`, `arrangements.paymentAllocation` | Routes (new / active / pending-approval / installments-due / payment-allocation), approve/reject buttons, allocation actions, service writes (create, approve, reject, record installment payment, allocate) |
+| `compliance.risk.automation_jobs` | `reports.automationJobs` | Routes (`/admin/automation/jobs`, `/reports/automation-jobs`), run / dry-run / force-run mutations, edge function `run-compliance-job` (server-side block) |
+
+### Files changed
+
+- `src/lib/compliance/featureFlagCache.ts` (new) — module-level cache + subscribe
+- `src/hooks/compliance/useComplianceFeatureFlags.ts` (new) — react-query loader that populates the cache (staleTime 30 s, no refetchOnWindowFocus)
+- `src/lib/compliance/featureToggles.ts` — added `COMPLIANCE_HELPER_TO_DB_FLAG` map, DB lookup inside `isComplianceFeatureEnabled`, and the new direct accessor `isComplianceDbFlagEnabled(dbKey)`
+- `src/pages/compliance/FeatureDisabled.tsx` (new) — disabled-feature page (distinct from `PlaceholderPage`)
+- `src/pages/compliance/ComplianceRouteGate.tsx` — mounts the bootstrap hook for every `/compliance/*` route and renders `<FeatureDisabled />` for Phase 1 routes when the flag is OFF
+- `src/services/arrangementWorkflowService.ts` — `assertArrangementEnabled()` guards on `submitForApproval`, `approveArrangement`, `rejectArrangement`, `recordInstallmentPayment`, `allocatePayment`
+- `src/services/centralPaymentArrangementService.ts` — `assertArrangementEnabled()` guards on `createArrangement` and `createArrangementFromCase`
+- `src/services/verificationQueueService.ts` — `assertVerificationQueueEnabled()` guards on `confirmViolation`, `rejectViolation`, `markAsDuplicate`
+- `src/hooks/compliance/useComplianceJobs.ts` — client guard on `useRunComplianceJob`
+- `supabase/functions/run-compliance-job/index.ts` — server-side check of `feature_flags.compliance.risk.automation_jobs` before any job dispatch
+
+### Fallback behaviour (chosen)
+
+- Cache UNSET (first paint / transient DB error) → `isComplianceFeatureEnabled` falls back to the existing `DEFAULT_TOGGLES` value. The Compliance sidebar/routes therefore do **not** disappear on a transient `feature_flags` query failure.
+- Cache LOADED and flag PRESENT → the DB value wins.
+- Cache LOADED and flag MISSING → falls back to `DEFAULT_TOGGLES`.
+- Server-side edge function check fails closed (job execution blocked) only when the DB row is present and `is_enabled = false`; missing rows do not block (consistent with current admin-row behaviour).
+
+### Verification results
+
+| Toggle | Menu | Direct URL | Action buttons | Write/mutation |
+| --- | --- | --- | --- | --- |
+| `compliance.core.verification_queue` OFF | helper returns false (post-load) so any future menu binding hides Verification Queue | `/compliance/violations/verification-queue` → `<FeatureDisabled />` | confirm / reject / mark-duplicate throw clear error | `confirmViolation` / `rejectViolation` / `markAsDuplicate` blocked |
+| `compliance.payment.arrangement` OFF | helper returns false for all five arrangement sub-items | every Phase 1 arrangement route → `<FeatureDisabled />` | new/approve/reject/allocate actions throw clear error | `createArrangement*`, `submitForApproval`, `approveArrangement`, `rejectArrangement`, `recordInstallmentPayment`, `allocatePayment` blocked |
+| `compliance.risk.automation_jobs` OFF | helper returns false for `reports.automationJobs` | `/compliance/admin/automation/jobs` and `/compliance/reports/automation-jobs` → `<FeatureDisabled />` | run / dry-run buttons surface a clear error toast | `useRunComplianceJob` blocked client-side; `run-compliance-job` edge function blocks server-side |
+
+Turning each flag back ON via Setup → Feature Toggles restores normal behaviour after the cache refreshes (≤ 30 s staleTime or via React Query manual invalidation on save — the Feature Toggles page already invalidates `['compliance-feature-flags']`).
+
+### Remaining unmapped toggles (Phase 2 / 3)
+
+All other `compliance.*` flags shown in §3 of this document are **still unmapped** and continue to follow their existing helper behaviour. They are not enforced yet:
+
+- Phase 2 (next): `compliance.core.notice_approval`, `compliance.core.case_closure_approval`, `compliance.core.case_merge`, `compliance.core.case_reopen`, `compliance.payment.allocation` (currently grouped under arrangement; future split), `compliance.payment.installment_breach_detection`, `compliance.payment.waiver_requests`, `compliance.inspection.*`.
+- Phase 3 (later): `compliance.legal.*`, `compliance.risk.scoring` / `risk.rule_simulator` / `risk.risk_simulator`, `compliance.reports.*`, `compliance.integration.*`, `compliance.employer.*`.
+
+Add them to `COMPLIANCE_HELPER_TO_DB_FLAG` and (where needed) to `FEATURE_FLAG_ROUTE_MAP` in `ComplianceRouteGate.tsx` plus the corresponding service-level assert.
