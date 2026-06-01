@@ -247,3 +247,20 @@ All three targets already enforce existing route guards (`ComplianceRouteGate`) 
 - Updated the Reports hub (`ComplianceReports.tsx`) to include the new "Violation Reports" category with unique destinations for each card button.
 
 **Acceptance:** Each drill-down label now opens its own page with content matching the label. The useful aggregate dashboard is kept as "Violations Summary". No mock data — empty states are honest and report-specific. Existing permissions preserved.
+
+---
+
+## Manual Acceptance — Feature Toggle Enforcement Fix
+
+**Issue:** Feature toggles on Setup → Feature Toggles persisted ON/OFF state in `public.feature_flags`, but the related menus, routes, and actions stayed visible/usable because the runtime helper `isComplianceFeatureEnabled` consulted only a static `DEFAULT_TOGGLES` map.
+
+**Fix:** Phase 1 bridge — `isComplianceFeatureEnabled` now consults the canonical DB-backed `feature_flags` table (no new toggle system). Bootstrapped from `ComplianceRouteGate` via a react-query loader that populates a module-level cache.
+
+**Phase 1 toggles enforced (route + action + write):**
+- `compliance.core.verification_queue`
+- `compliance.payment.arrangement`
+- `compliance.risk.automation_jobs`
+
+**Files:** see `docs/compliance/feature_toggle_enforcement_audit.md` §11 for the full change list, fallback behaviour, verification matrix, and remaining unmapped toggles (Phase 2 / 3).
+
+**Fallback:** on transient DB-load failure the helper falls back to existing `DEFAULT_TOGGLES` so the Compliance sidebar/routes do not vanish. Server-side `run-compliance-job` blocks only when the row is present and explicitly disabled.
