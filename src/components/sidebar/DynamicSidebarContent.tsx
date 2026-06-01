@@ -78,7 +78,7 @@ export default function DynamicSidebarContent({ collapsed }: DynamicSidebarConte
         ) : (
           <>
             {/* Dynamic menu items */}
-            {menuItems.map((item: MenuItem) => (
+            {visibleMenuItems.map((item: MenuItem) => (
               <SidebarMenuGroup key={item.id} item={item} collapsed={collapsed} />
             ))}
 
