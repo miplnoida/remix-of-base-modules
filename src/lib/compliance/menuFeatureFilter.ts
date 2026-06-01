@@ -25,7 +25,6 @@ interface MenuItemLike {
   title: string;
   url?: string;
   subItems?: MenuItemLike[];
-  [k: string]: unknown;
 }
 
 interface Rule {
