@@ -6,6 +6,9 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { useLegalAuth } from '@/contexts/LegalAuthContext';
 import React, { Suspense, lazy } from 'react';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
+import { ComplianceFeatureGate } from '@/components/compliance/ComplianceFeatureGate';
+import { useComplianceFeatureFlagsBootstrap } from '@/hooks/compliance/useComplianceFeatureFlags';
+const FeatureToggleDiagnosticsPage = lazy(() => import('@/pages/compliance/admin/FeatureToggleDiagnosticsPage'));
 
 const InspectorLogin = lazy(() => import('@/pages/inspector/InspectorLogin').then((m) => ({ default: m.InspectorLogin })));
 const InspectorDashboard = lazy(() => import('@/pages/inspector/InspectorDashboard').then((m) => ({ default: m.InspectorDashboard })));
