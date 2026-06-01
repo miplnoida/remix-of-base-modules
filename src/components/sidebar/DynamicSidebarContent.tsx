@@ -34,6 +34,19 @@ const defaultMenuItems: MenuItem[] = [
 export default function DynamicSidebarContent({ collapsed }: DynamicSidebarContentProps) {
   const { menuItems, isLoading, isError, isEmpty, refetch } = useDynamicNavigation();
 
+  // Subscribe to compliance feature-flag cache so toggling a flag re-renders
+  // the sidebar (the navigation react-query cache is keyed on user.id only).
+  useSyncExternalStore(
+    subscribeComplianceDbFlags,
+    () => (hasComplianceDbFlagsLoaded() ? 'loaded' : 'pending'),
+    () => 'pending',
+  );
+
+  const visibleMenuItems = useMemo(
+    () => filterComplianceMenuByFeatureFlags(menuItems),
+    [menuItems],
+  );
+
   return (
     <ScrollArea className="flex-1 px-3">
       <SidebarMenu className="py-2 space-y-1">
