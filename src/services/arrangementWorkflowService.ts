@@ -22,6 +22,7 @@ export const DEFAULT_ALLOCATION_ORDER: AllocationTarget[] = [
 
 // ── Lifecycle ───────────────────────────────────────────────────
 export async function submitForApproval(arrangementId: string, userCode: string) {
+  assertArrangementEnabled();
   const { error } = await supabase
     .from('ce_payment_arrangements')
     .update({ status: 'PENDING_APPROVAL', updated_by: userCode, updated_at: new Date().toISOString() } as any)
@@ -30,6 +31,7 @@ export async function submitForApproval(arrangementId: string, userCode: string)
 }
 
 export async function approveArrangement(arrangementId: string, userCode: string) {
+  assertArrangementEnabled();
   const now = new Date().toISOString();
   const { error } = await supabase
     .from('ce_payment_arrangements')
@@ -39,6 +41,7 @@ export async function approveArrangement(arrangementId: string, userCode: string
 }
 
 export async function rejectArrangement(arrangementId: string, userCode: string) {
+  assertArrangementEnabled();
   const { error } = await supabase
     .from('ce_payment_arrangements')
     .update({ status: 'DRAFT', updated_by: userCode, updated_at: new Date().toISOString() } as any)
