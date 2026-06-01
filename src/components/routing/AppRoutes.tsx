@@ -945,6 +945,10 @@ const PaymentHistoryReport = lazy(() => import('@/pages/cashier/PaymentHistoryRe
 const VCPaymentUpdate = lazy(() => import('@/pages/cashier/VCPaymentUpdate'));
 
 export const AppRoutes = () => {
+  // Phase 1: bootstrap DB-backed compliance.* feature flags into the
+  // runtime cache so isComplianceFeatureEnabled / isComplianceDbFlagEnabled
+  // can return the canonical DB values. Mounted once at app root.
+  useComplianceFeatureFlagsBootstrap();
   return (
     <Suspense fallback={<div className="min-h-screen w-full flex items-center justify-center bg-background text-sm text-muted-foreground">Loading…</div>}>
     <Routes>
