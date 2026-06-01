@@ -5,6 +5,14 @@
  * ce_payment_allocations, ce_arrangement_policies. No parallel permission system.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { isComplianceDbFlagEnabled } from '@/lib/compliance/featureToggles';
+
+const PAYMENT_ARRANGEMENT_FLAG = 'compliance.payment.arrangement';
+function assertArrangementEnabled() {
+  if (!isComplianceDbFlagEnabled(PAYMENT_ARRANGEMENT_FLAG)) {
+    throw new Error('Payment Arrangement is disabled in Setup → Feature Toggles.');
+  }
+}
 
 export type AllocationTarget = 'principal' | 'penalty' | 'interest' | 'legal_fee' | 'oldest_balance';
 
@@ -14,6 +22,7 @@ export const DEFAULT_ALLOCATION_ORDER: AllocationTarget[] = [
 
 // ── Lifecycle ───────────────────────────────────────────────────
 export async function submitForApproval(arrangementId: string, userCode: string) {
+  assertArrangementEnabled();
   const { error } = await supabase
     .from('ce_payment_arrangements')
     .update({ status: 'PENDING_APPROVAL', updated_by: userCode, updated_at: new Date().toISOString() } as any)
@@ -22,6 +31,7 @@ export async function submitForApproval(arrangementId: string, userCode: string)
 }
 
 export async function approveArrangement(arrangementId: string, userCode: string) {
+  assertArrangementEnabled();
   const now = new Date().toISOString();
   const { error } = await supabase
     .from('ce_payment_arrangements')
@@ -31,6 +41,7 @@ export async function approveArrangement(arrangementId: string, userCode: string
 }
 
 export async function rejectArrangement(arrangementId: string, userCode: string) {
+  assertArrangementEnabled();
   const { error } = await supabase
     .from('ce_payment_arrangements')
     .update({ status: 'DRAFT', updated_by: userCode, updated_at: new Date().toISOString() } as any)
@@ -46,6 +57,7 @@ export async function recordInstallmentPayment(input: {
   paidDate?: string;
   userCode: string;
 }): Promise<void> {
+  assertArrangementEnabled();
   const { data: inst, error: iErr } = await supabase
     .from('ce_installments').select('*').eq('id', input.installmentId).single();
   if (iErr || !inst) throw iErr || new Error('Installment not found');
@@ -95,6 +107,7 @@ export async function allocatePayment(input: {
   userCode: string;
   notes?: string;
 }): Promise<{ allocations: any[]; remaining: number }> {
+  assertArrangementEnabled();
   const order = input.order || DEFAULT_ALLOCATION_ORDER;
   let remaining = input.totalAmount;
   const allocations: any[] = [];

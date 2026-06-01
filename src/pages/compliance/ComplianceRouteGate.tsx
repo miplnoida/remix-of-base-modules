@@ -2,6 +2,9 @@ import React, { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { PermissionProtectedRoute } from '@/components/auth/PermissionProtectedRoute';
 import { MODULE_NAMES } from '@/hooks/useActionPermission';
+import { useComplianceFeatureFlagsBootstrap } from '@/hooks/compliance/useComplianceFeatureFlags';
+import { isComplianceDbFlagEnabled } from '@/lib/compliance/featureToggles';
+import FeatureDisabled from '@/pages/compliance/FeatureDisabled';
 
 /**
  * Path-prefix → app_modules.name map for the /compliance/* surface.
@@ -147,13 +150,49 @@ function resolveModuleForPath(pathname: string): string | null {
  * screen's own `useActionPermissions(...)` check takes over — matching the
  * existing per-screen pattern documented in access_control_inventory.md.
  */
+/**
+ * Phase 1 feature-flag enforcement map: route path-suffix → DB feature_flags.flag_key.
+ * If the flag is OFF, the route renders <FeatureDisabled /> instead of the page.
+ * Permission check still runs first (unchanged).
+ */
+const FEATURE_FLAG_ROUTE_MAP: Array<{ prefix: string; flagKey: string; title: string }> = [
+  { prefix: '/violations/verification-queue', flagKey: 'compliance.core.verification_queue', title: 'Verification Queue' },
+  { prefix: '/arrangements/new', flagKey: 'compliance.payment.arrangement', title: 'New Payment Arrangement' },
+  { prefix: '/arrangements/active', flagKey: 'compliance.payment.arrangement', title: 'Active Arrangements' },
+  { prefix: '/arrangements/pending-approval', flagKey: 'compliance.payment.arrangement', title: 'Pending Arrangement Approvals' },
+  { prefix: '/arrangements/installments-due', flagKey: 'compliance.payment.arrangement', title: 'Installments Due' },
+  { prefix: '/arrangements/payment-allocation', flagKey: 'compliance.payment.arrangement', title: 'Payment Allocation' },
+  { prefix: '/admin/automation/jobs', flagKey: 'compliance.risk.automation_jobs', title: 'Automation Jobs' },
+  { prefix: '/reports/automation-jobs', flagKey: 'compliance.risk.automation_jobs', title: 'Automation Job Reports' },
+];
+
+function resolveFeatureFlagForPath(pathname: string): { flagKey: string; title: string } | null {
+  const rel = pathname.replace(/^\/compliance/, '') || '/';
+  // longest-prefix match
+  const sorted = [...FEATURE_FLAG_ROUTE_MAP].sort((a, b) => b.prefix.length - a.prefix.length);
+  for (const entry of sorted) {
+    if (rel === entry.prefix || rel.startsWith(entry.prefix + '/')) return entry;
+  }
+  return null;
+}
+
 export const ComplianceRouteGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { pathname } = useLocation();
   const moduleName = useMemo(() => resolveModuleForPath(pathname), [pathname]);
+  const featureFlag = useMemo(() => resolveFeatureFlagForPath(pathname), [pathname]);
+
+  // Bootstrap DB-backed compliance.* feature flags into the runtime cache.
+  // Safe loading: on transient failure, isComplianceDbFlagEnabled returns
+  // true so the Compliance sidebar/routes do not vanish.
+  useComplianceFeatureFlagsBootstrap();
+
+  const content = featureFlag && !isComplianceDbFlagEnabled(featureFlag.flagKey)
+    ? <FeatureDisabled title={featureFlag.title} flagKey={featureFlag.flagKey} />
+    : children;
 
   return (
     <PermissionProtectedRoute moduleName={moduleName ?? undefined}>
-      {children}
+      {content}
     </PermissionProtectedRoute>
   );
 };

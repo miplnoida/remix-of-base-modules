@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { isComplianceDbFlagEnabled } from '@/lib/compliance/featureToggles';
 
 export interface ComplianceJob {
   id: string;
@@ -71,6 +72,9 @@ export function useRunComplianceJob() {
 
   return useMutation({
     mutationFn: async ({ jobCode, dryRun, force }: { jobCode: string; dryRun: boolean; force?: boolean }) => {
+      if (!isComplianceDbFlagEnabled('compliance.risk.automation_jobs')) {
+        throw new Error('Automation Jobs is disabled in Setup → Feature Toggles.');
+      }
       const { data, error } = await supabase.functions.invoke('run-compliance-job', {
         body: { job_code: jobCode, dry_run: dryRun, force: force ?? false },
       });

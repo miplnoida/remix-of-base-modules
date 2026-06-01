@@ -15,6 +15,13 @@ import {
   ArrangementSourceModule
 } from '@/types/centralPaymentArrangement';
 import { getCurrentUserCode } from '@/hooks/useUserCode';
+import { isComplianceDbFlagEnabled } from '@/lib/compliance/featureToggles';
+
+function assertArrangementEnabled() {
+  if (!isComplianceDbFlagEnabled('compliance.payment.arrangement')) {
+    throw new Error('Payment Arrangement is disabled in Setup → Feature Toggles.');
+  }
+}
 
 async function requireUserCode(): Promise<string> {
   const code = await getCurrentUserCode();
@@ -83,6 +90,7 @@ class CentralPaymentArrangementService {
    * transitions case status, and records case history.
    */
   async createArrangementFromCase(request: CreateArrangementFromCaseRequest): Promise<PaymentArrangement> {
+    assertArrangementEnabled();
     const userCode = await requireUserCode();
 
     // 1. Validate the case exists and belongs to the employer
@@ -217,6 +225,7 @@ class CentralPaymentArrangementService {
    * @deprecated Use createArrangementFromCase instead. Kept for backward compatibility.
    */
   async createArrangement(request: CreateArrangementRequest): Promise<PaymentArrangement> {
+    assertArrangementEnabled();
     const userCode = await requireUserCode();
     const totalArrangedAmount = request.items.reduce((s, i) => s + i.arrangedAmount, 0);
     const numInstallments = request.numberOfInstallments ?? request.customInstallments?.length ?? 1;

@@ -13,6 +13,9 @@
  * model (see docs/compliance/access_control_inventory.md).
  */
 
+import { getComplianceDbFlag } from '@/lib/compliance/featureFlagCache';
+
+
 export type ComplianceFeatureKey =
   | 'workQueue'
   | 'violations.verificationQueue'
@@ -118,7 +121,48 @@ function parseEnvDisabled(): Set<string> {
 
 const envDisabled = parseEnvDisabled();
 
+/**
+ * Phase 1 bridge — map legacy helper keys to canonical DB `feature_flags.flag_key`s.
+ * Only Phase 1 toggles are mapped. Unmapped helper keys continue using the
+ * static DEFAULT_TOGGLES / env behavior (documented as Phase 2/3).
+ */
+export const COMPLIANCE_HELPER_TO_DB_FLAG: Partial<Record<ComplianceFeatureKey, string>> = {
+  // Verification Queue
+  'violations.verificationQueue': 'compliance.core.verification_queue',
+  // Payment Arrangement (covers route + action helper keys)
+  'arrangements.new': 'compliance.payment.arrangement',
+  'arrangements.active': 'compliance.payment.arrangement',
+  'arrangements.pendingApproval': 'compliance.payment.arrangement',
+  'arrangements.installmentsDue': 'compliance.payment.arrangement',
+  'arrangements.paymentAllocation': 'compliance.payment.arrangement',
+  // Automation Jobs
+  'reports.automationJobs': 'compliance.risk.automation_jobs',
+};
+
+/** Reverse lookup: DB key → helper keys (for direct DB-key checks). */
+export const COMPLIANCE_DB_FLAG_TO_HELPERS: Record<string, ComplianceFeatureKey[]> = (() => {
+  const out: Record<string, ComplianceFeatureKey[]> = {};
+  (Object.entries(COMPLIANCE_HELPER_TO_DB_FLAG) as Array<[ComplianceFeatureKey, string]>)
+    .forEach(([h, db]) => { (out[db] ||= []).push(h); });
+  return out;
+})();
+
+
 export function isComplianceFeatureEnabled(key: ComplianceFeatureKey): boolean {
   if (envDisabled.has(key)) return false;
+  // Phase 1 bridge: consult DB-backed flag if mapped & cache is loaded.
+  const dbKey = COMPLIANCE_HELPER_TO_DB_FLAG[key];
+  if (dbKey) {
+    const dbVal = getComplianceDbFlag(dbKey);
+    if (dbVal !== undefined) return dbVal;
+    // Cache not loaded yet OR flag missing → fall back to DEFAULT_TOGGLES
+    // (do NOT hide UI on transient load failure).
+  }
   return DEFAULT_TOGGLES[key] ?? true;
+}
+
+/** Direct DB-key check (post-load value, or default `true` while loading). */
+export function isComplianceDbFlagEnabled(dbKey: string): boolean {
+  const v = getComplianceDbFlag(dbKey);
+  return v === undefined ? true : v;
 }
