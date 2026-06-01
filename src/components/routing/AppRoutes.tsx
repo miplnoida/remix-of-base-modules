@@ -1111,7 +1111,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/risk/repeat-defaulters" element={<RepeatDefaultersPage />} />
       <Route path="/compliance/risk/high-risk" element={<HighRiskEmployersPage />} />
       <Route path="/compliance/risk/watchlist" element={<WatchlistPage />} />
-      <Route path="/compliance/reports/automation-jobs" element={<AutomationJobReports />} />
+      <Route path="/compliance/reports/automation-jobs" element={<ComplianceFeatureGate flagKey="compliance.risk.automation_jobs" title="Automation Job Reports"><AutomationJobReports /></ComplianceFeatureGate>} />
 
       {/* ── Workbench ── */}
       <Route path="/compliance/workbench" element={<WorkbenchLanding />} />
