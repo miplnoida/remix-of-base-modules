@@ -153,3 +153,44 @@ runtime.
   Jobs Report hidden; direct URLs → `<FeatureDisabled />`; Run Now/Dry Run
   still blocked server-side.
 - Toggling any flag back ON restores the sidebar entry without a refresh.
+
+---
+
+## Feature Toggles control-plane crash fix (post-Phase 1)
+
+**Symptom:** `/compliance/admin/feature-toggles` rendered the global ErrorBoundary
+("Something went wrong"). `/compliance/admin/feature-toggle-diagnostics` was at
+risk of the same failure mode.
+
+**Root cause:** React Query cache key collision.
+- `useComplianceFeatureFlagsBootstrap` (mounted globally in `AppRoutes`) uses
+  `queryKey: ['compliance-feature-flags']` and returns
+  `Record<string, boolean>`.
+- `FeatureTogglesPage` previously used the **same** key but expected
+  `FlagRow[]`. Because the bootstrap query mounts first and is fresh
+  (`staleTime: 30s`), the page subscribed to the cached object and ran
+  `flagRows.forEach(...)` on a non-array → `TypeError` → ErrorBoundary.
+
+**Fix (single file change):** `src/pages/compliance/admin/FeatureTogglesPage.tsx`
+1. Page now uses a unique key `['compliance-feature-flags-admin']`.
+2. Defensive `Array.isArray` guard so any unexpected cache shape renders as
+   "no rows" instead of crashing.
+3. Toggle mutation invalidates **both** keys so the runtime gate cache
+   (`compliance-feature-flags`) refreshes immediately after a flip.
+
+**Not changed:** routing, `ComplianceFeatureGate`, sidebar filter,
+`featureToggles.ts`, bootstrap hook, edge function. The Feature Toggles route
+was already NOT wrapped by `ComplianceFeatureGate` and remains protected only
+by `PermissionWrapper`.
+
+**Verification:**
+- `/compliance/admin/feature-toggles` renders the catalog (8 groups).
+- `/compliance/admin/feature-toggle-diagnostics` renders (unchanged file).
+- Search for "Payment Arrangement" filters correctly.
+- Toggling Payment Arrangement ON/OFF persists across refresh and is
+  reflected in `getComplianceDbFlag('compliance.payment.arrangement')`
+  via the invalidated bootstrap query.
+- Phase 1 direct route gates (`/compliance/violations/verification-queue`,
+  `/compliance/arrangements/new`, `/compliance/admin/automation/jobs`)
+  continue to honour the DB flag.
+- TypeScript build passes.

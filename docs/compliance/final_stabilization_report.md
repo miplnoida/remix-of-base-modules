@@ -277,3 +277,21 @@ with a new `ComplianceFeatureGate`. Added a UAT diagnostics page at
 `/compliance/admin/feature-toggle-diagnostics`. See
 `docs/compliance/feature_toggle_runtime_debug.md` and
 `docs/compliance/feature_toggle_phase1_verification.md`.
+
+---
+
+### Feature Toggles control-plane crash fix
+
+- **Issue:** `/compliance/admin/feature-toggles` triggered the global
+  ErrorBoundary after Phase 1 enforcement was wired in.
+- **Root cause:** React Query key `['compliance-feature-flags']` was shared
+  by the global bootstrap hook (returns `Record<string, boolean>`) and the
+  admin page (expected `FlagRow[]`); the page read the bootstrap's cached
+  object and crashed on `.forEach`.
+- **Fix:** `FeatureTogglesPage` now uses the unique key
+  `['compliance-feature-flags-admin']`, guards with `Array.isArray`, and
+  invalidates both keys on toggle. Single-file change in
+  `src/pages/compliance/admin/FeatureTogglesPage.tsx`. No routing, gate,
+  sidebar, or runtime-cache code was modified.
+- **Confirmed:** control-plane pages render, toggles persist, Phase 1 gates
+  still enforce correctly.
