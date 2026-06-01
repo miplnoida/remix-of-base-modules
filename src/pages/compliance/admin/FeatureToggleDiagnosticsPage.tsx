@@ -179,7 +179,7 @@ export default function FeatureToggleDiagnosticsPage() {
                 </tr>
               </thead>
               <tbody>
-                {PHASE1_DB_FLAGS.map((k) => (
+                {[...PHASE1_DB_FLAGS, ...PHASE2_DB_FLAGS].map((k) => (
                   <tr key={k} className="border-b last:border-0">
                     <td className="py-2 font-mono text-xs">{k}</td>
                     <td className="py-2"><BoolBadge value={getComplianceDbFlag(k)} /></td>
