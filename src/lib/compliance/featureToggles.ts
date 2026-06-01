@@ -38,12 +38,19 @@ export type ComplianceFeatureKey =
   | 'arrangements.active'
   | 'arrangements.installmentsDue'
   | 'arrangements.paymentAllocation'
+  | 'enforcement.waivers'
   | 'inspections'
+  | 'inspections.planning'
   | 'inspections.evidence'
   | 'inspections.convertFinding'
+  | 'legal.handoff'
   | 'legal.packPreparation'
+  | 'legal.courtMonitoring'
   | 'legal.approvedEscalations'
   | 'legal.returnedFromLegal'
+  | 'risk.scoring'
+  | 'risk.ruleSimulator'
+  | 'risk.riskSimulator'
   | 'risk.scoreDetails'
   | 'risk.repeatDefaulters'
   | 'risk.highRiskEmployers'
@@ -60,6 +67,7 @@ export type ComplianceFeatureKey =
   | 'admin.waiverRules'
   | 'admin.legalHandoffRules'
   | 'admin.helpAndInstructions';
+
 
 /** Default-on for every feature key. Set to `false` to hide from menu. */
 const DEFAULT_TOGGLES: Record<ComplianceFeatureKey, boolean> = {
