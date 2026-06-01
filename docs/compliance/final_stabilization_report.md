@@ -316,3 +316,32 @@ with a new `ComplianceFeatureGate`. Added a UAT diagnostics page at
 - Feature Toggles control-plane page and Diagnostics page remain ungated
   and reachable.
 - Verification guide: `docs/compliance/feature_toggle_phase2_verification.md`.
+
+---
+
+## Phase 2 route sweep fixes
+
+UAT on Phase 2 found four bypass / stale-cache / crash regressions on
+`/compliance/enforcement/legal-referral`, `/compliance/enforcement/waivers`,
+`/compliance/risk/score-details`, and `/compliance/admin/tools/rule-simulator`.
+
+Root cause was localised to `ComplianceFeatureGate`:
+- it didn't subscribe to feature-flag cache changes, so toggles only took
+  effect after a route remount,
+- and it didn't isolate its children behind an error boundary, so a single
+  gated page crashing tripped the global error screen.
+
+Fix (single file: `src/components/compliance/ComplianceFeatureGate.tsx`):
+- subscribes via `useSyncExternalStore` to `subscribeComplianceDbFlags`
+  with a snapshot of `loaded-state + flag-value`, so the gate re-evaluates
+  on every ON⇄OFF cycle,
+- wraps gated children in the project `ErrorBoundary` with a local
+  "feature temporarily unavailable" fallback.
+
+All four reported routes were already wrapped in `ComplianceFeatureGate`
+in `AppRoutes.tsx` — no route re-wiring was needed. Aliases
+(`/compliance/waivers`, `/compliance/tools/rule-simulator`, `/bema/waivers`)
+already redirect to the canonical gated paths.
+
+Coverage matrix and verification log:
+**docs/compliance/feature_toggle_phase2_route_sweep.md**.
