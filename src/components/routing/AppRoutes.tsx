@@ -1263,8 +1263,9 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/feature-toggle-diagnostics" element={<FeatureToggleDiagnosticsPage />} />
       <Route path="/compliance/admin/automation/history" element={<ComplianceJobHistory />} />
       <Route path="/compliance/admin/automation/employer-jobs" element={<EmployerComplianceJobs />} />
-      <Route path="/compliance/admin/tools/rule-simulator" element={<ComplianceRuleSimulator />} />
-      <Route path="/compliance/admin/tools/risk-simulator" element={<ComplianceRiskSimulator />} />
+      <Route path="/compliance/admin/tools/rule-simulator" element={<ComplianceFeatureGate flagKey="compliance.risk.rule_simulator" title="Rule Simulator"><ComplianceRuleSimulator /></ComplianceFeatureGate>} />
+      <Route path="/compliance/admin/tools/risk-simulator" element={<ComplianceFeatureGate flagKey="compliance.risk.risk_simulator" title="Risk Simulator"><ComplianceRiskSimulator /></ComplianceFeatureGate>} />
+
       <Route path="/compliance/admin/feature-toggles" element={<ComplianceFeatureTogglesPage />} />
       <Route path="/compliance/admin/setup-wizard" element={<ComplianceSetupWizard />} />
       <Route path="/compliance/admin/case-families" element={<ComplianceCaseFamiliesPage />} />
