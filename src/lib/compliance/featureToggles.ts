@@ -144,7 +144,6 @@ export const COMPLIANCE_DB_FLAG_TO_HELPERS: Record<string, ComplianceFeatureKey[
   return out;
 })();
 
-import { getComplianceDbFlag } from '@/lib/compliance/featureFlagCache';
 
 export function isComplianceFeatureEnabled(key: ComplianceFeatureKey): boolean {
   if (envDisabled.has(key)) return false;
