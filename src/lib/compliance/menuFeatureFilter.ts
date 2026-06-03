@@ -27,12 +27,12 @@ interface MenuItemLike {
   subItems?: MenuItemLike[];
 }
 
-interface Rule {
+export interface Rule {
   prefix: string;
   flag: string;
 }
 
-const RULES: Rule[] = [
+export const COMPLIANCE_FEATURE_FLAG_RULES: Rule[] = [
   // Phase 1
   { prefix: '/compliance/violations/verification-queue', flag: 'compliance.core.verification_queue' },
   { prefix: '/compliance/arrangements', flag: 'compliance.payment.arrangement' },
@@ -87,7 +87,7 @@ function normalizeRoute(url?: string): string {
 function isUrlDisabledByFlag(url?: string): boolean {
   const norm = normalizeRoute(url);
   if (!norm) return false;
-  for (const r of RULES) {
+  for (const r of COMPLIANCE_FEATURE_FLAG_RULES) {
     if (norm === r.prefix || norm.startsWith(r.prefix + '/')) {
       const v = getComplianceDbFlag(r.flag);
       if (v === false) return true;
