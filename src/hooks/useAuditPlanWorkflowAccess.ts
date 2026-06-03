@@ -14,6 +14,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { fetchAllUserPermissions } from '@/lib/permissions/fetchAllUserPermissions';
 
 export interface PlanReadinessSummary {
   ready: boolean;
