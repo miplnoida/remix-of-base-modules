@@ -73,13 +73,11 @@ export function useNavigationMenu() {
     queryKey: ['user-navigation-permissions', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase
-        .rpc('get_user_permissions', { _user_id: user.id });
-      if (error) throw error;
-      return data as Array<{ module_name: string; action_name: string; is_granted: boolean }>;
+      return await fetchAllUserPermissions(user.id);
     },
     enabled: isAuthReady && isAuthenticated && !!user?.id,
   });
+
 
   // Build navigation tree (recursive — supports unlimited nesting)
   const buildMenuItems = (): MenuItem[] => {
