@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { Info, Search, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { formatDateForDisplay } from '@/lib/format-config';
 
-const MODULE_NAME = 'compliance_admin_feature_toggles';
+const MODULE_NAME = 'ce_admin_feature_toggles';
 const FLAG_PREFIX = 'compliance.';
 
 interface CatalogEntry {

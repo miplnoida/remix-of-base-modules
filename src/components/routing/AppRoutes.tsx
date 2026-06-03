@@ -7,6 +7,7 @@ import { useLegalAuth } from '@/contexts/LegalAuthContext';
 import React, { Suspense, lazy } from 'react';
 import { AuditFeatureGate } from '@/components/audit/AuditFeatureGate';
 import { ComplianceFeatureGate } from '@/components/compliance/ComplianceFeatureGate';
+import { ComplianceRouteGuard } from '@/components/compliance/ComplianceRouteGuard';
 import { useComplianceFeatureFlagsBootstrap } from '@/hooks/compliance/useComplianceFeatureFlags';
 const FeatureToggleDiagnosticsPage = lazy(() => import('@/pages/compliance/admin/FeatureToggleDiagnosticsPage'));
 
@@ -1178,13 +1179,13 @@ export const AppRoutes = () => {
 
       {/* ── Enforcement — legal, notices, arrangements, waivers ── */}
       <Route path="/compliance/enforcement/recommendation-queue" element={<ComplianceFeatureGate flagKey="compliance.legal.handoff" title="Legal Recommendation Queue"><LegalRecommendationQueue /></ComplianceFeatureGate>} />
-      <Route path="/compliance/enforcement/legal-referral" element={<ComplianceFeatureGate flagKey="compliance.legal.handoff" title="Legal Referral"><LegalReferralWizard /></ComplianceFeatureGate>} />
+      <Route path="/compliance/enforcement/legal-referral" element={<ComplianceRouteGuard moduleName="ce_legal_referral" flagKey="compliance.legal.handoff" title="Legal Referral"><LegalReferralWizard /></ComplianceRouteGuard>} />
       <Route path="/compliance/enforcement/legal-queue" element={<ComplianceLegalQueue />} />
       <Route path="/compliance/enforcement/proceedings" element={<ComplianceFeatureGate flagKey="compliance.legal.court_monitoring" title="Legal Proceedings & Court Monitoring"><ComplianceLegalProceedings /></ComplianceFeatureGate>} />
       <Route path="/compliance/enforcement/notices" element={<NoticesManagement />} />
       <Route path="/compliance/enforcement/arrangements" element={<PaymentArrangements />} />
       <Route path="/compliance/enforcement/breaches" element={<ComplianceBreachMonitoring />} />
-      <Route path="/compliance/enforcement/waivers" element={<ComplianceFeatureGate flagKey="compliance.payment.waiver_requests" title="Waiver Requests"><ComplianceWaivers /></ComplianceFeatureGate>} />
+      <Route path="/compliance/enforcement/waivers" element={<ComplianceRouteGuard moduleName="ce_waiver_requests" flagKey="compliance.payment.waiver_requests" title="Waiver Requests"><ComplianceWaivers /></ComplianceRouteGuard>} />
 
 
       {/* ── Reports (unchanged paths) ── */}
@@ -1267,7 +1268,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/admin/tools/rule-simulator" element={<ComplianceFeatureGate flagKey="compliance.risk.rule_simulator" title="Rule Simulator"><ComplianceRuleSimulator /></ComplianceFeatureGate>} />
       <Route path="/compliance/admin/tools/risk-simulator" element={<ComplianceFeatureGate flagKey="compliance.risk.risk_simulator" title="Risk Simulator"><ComplianceRiskSimulator /></ComplianceFeatureGate>} />
 
-      <Route path="/compliance/admin/feature-toggles" element={<ComplianceFeatureTogglesPage />} />
+      <Route path="/compliance/admin/feature-toggles" element={<ComplianceRouteGuard moduleName="ce_admin_feature_toggles" title="Feature Toggles"><ComplianceFeatureTogglesPage /></ComplianceRouteGuard>} />
       <Route path="/compliance/admin/setup-wizard" element={<ComplianceSetupWizard />} />
       <Route path="/compliance/admin/case-families" element={<ComplianceCaseFamiliesPage />} />
       <Route path="/compliance/admin/workflow-mapping" element={<ComplianceWorkflowMappingPage />} />
