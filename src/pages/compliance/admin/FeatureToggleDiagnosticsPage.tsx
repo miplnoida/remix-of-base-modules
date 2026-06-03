@@ -194,11 +194,11 @@ export default function FeatureToggleDiagnosticsPage() {
     queryKey: ['compliance-access-diag-permissions', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)('get_user_permissions', { _user_id: userId! });
-      if (error) throw error;
-      return data || [];
+      const all = await fetchAllUserPermissions(userId!);
+      return all;
     },
   });
+
 
   const accessibleQ = useQuery({
     queryKey: ['compliance-access-diag-accessible', userId],
