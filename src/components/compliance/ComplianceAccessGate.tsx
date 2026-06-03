@@ -115,19 +115,23 @@ export function ComplianceAccessGate({ children }: { children?: React.ReactNode 
     );
   }
 
-  const matched = allMods ? findBestModule(pathname, allMods) : null;
+  const matchedList = allMods ? findBestModules(pathname, allMods) : [];
 
   // No module match — fail-open. Inner PermissionWrapper / per-page guards
   // still apply where present.
-  if (!matched) {
+  if (matchedList.length === 0) {
     return <>{children ?? <Outlet />}</>;
   }
 
-  // Permission check (admins bypass)
-  if (!isAdmin && !(accessibleNames && accessibleNames.has(matched.name))) {
+  // Permission check (admins bypass). When a route has multiple module rows,
+  // having permission on ANY of them grants access.
+  const hasPermission =
+    isAdmin || (accessibleNames && matchedList.some((m) => accessibleNames.has(m.name)));
+  if (!hasPermission) {
     return <AccessDenied />;
   }
 
+  const matched = matchedList[0];
   // Feature flag check
   const rule = findRule(pathname, matched.route);
   if (rule) {
