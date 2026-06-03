@@ -203,12 +203,10 @@ export function useModulePermissions(moduleName: string) {
     queryKey: ['module-permissions', user?.id, moduleName],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase
-        .rpc('get_user_permissions', { _user_id: user.id });
-      if (error) throw error;
-      return (data as Array<{ module_name: string; action_name: string }>)
-        .filter(p => p.module_name === moduleName)
-        .map(p => p.action_name);
+      const all = await fetchAllUserPermissions(user.id);
+      return all
+        .filter((p) => p.module_name === moduleName)
+        .map((p) => p.action_name);
     },
     enabled: isAuthReady && isAuthenticated && !!user?.id && !!moduleName,
   });
