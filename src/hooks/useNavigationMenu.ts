@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import * as LucideIcons from "lucide-react";
 import { resolveComplianceAccess, type ComplianceModuleRow } from "@/lib/compliance/accessResolution";
+import { fetchAllUserPermissions } from "@/lib/permissions/fetchAllUserPermissions";
 
 interface AppModule {
   id: string;
@@ -73,13 +74,11 @@ export function useNavigationMenu() {
     queryKey: ['user-navigation-permissions', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase
-        .rpc('get_user_permissions', { _user_id: user.id });
-      if (error) throw error;
-      return data as Array<{ module_name: string; action_name: string; is_granted: boolean }>;
+      return await fetchAllUserPermissions(user.id);
     },
     enabled: isAuthReady && isAuthenticated && !!user?.id,
   });
+
 
   // Build navigation tree (recursive — supports unlimited nesting)
   const buildMenuItems = (): MenuItem[] => {
@@ -157,17 +156,15 @@ export function useHasPermission(moduleName: string, actionName: string): boolea
     queryFn: async () => {
       if (!user?.id) return false;
       if (useRouteModule) {
-        const [modulesResult, permissionsResult] = await Promise.all([
+        const [modulesResult, permissions] = await Promise.all([
           supabase
             .from('app_modules')
             .select('id,name,display_name,route,parent_id,sort_order,is_enabled,show_in_menu,routes_enabled')
             .or('route.like./compliance/%,route.eq./compliance')
             .eq('is_enabled', true),
-          supabase.rpc('get_user_permissions', { _user_id: user.id }),
+          fetchAllUserPermissions(user.id),
         ]);
         if (modulesResult.error) throw modulesResult.error;
-        if (permissionsResult.error) throw permissionsResult.error;
-        const permissions = permissionsResult.data as Array<{ module_name: string; action_name: string; is_granted?: boolean }>;
         const resolution = resolveComplianceAccess({
           pathname,
           modules: (modulesResult.data || []) as ComplianceModuleRow[],
@@ -177,6 +174,7 @@ export function useHasPermission(moduleName: string, actionName: string): boolea
         const effectiveNames = resolution.selectedCandidates.map((candidate) => candidate.module.name);
         return permissions.some((p) => effectiveNames.includes(p.module_name) && p.action_name === actionName && p.is_granted !== false);
       }
+
       // Admin always has permission - handled by RPC but we can short-circuit here
       const { data, error } = await supabase
         .rpc('has_permission', {

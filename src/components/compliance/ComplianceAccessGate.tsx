@@ -60,17 +60,29 @@ export function ComplianceAccessGate({ children }: { children?: React.ReactNode 
     enabled: inCompliance && isAuthenticated && !!user?.id && !isAdmin,
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const [permissionsResult, accessibleResult] = await Promise.all([
-        (supabase.rpc as any)('get_user_permissions', { _user_id: user!.id }),
-        (supabase.rpc as any)('get_user_accessible_modules', { _user_id: user!.id }),
-      ]);
-      if (permissionsResult.error) throw permissionsResult.error;
-      if (accessibleResult.error) throw accessibleResult.error;
+      // NOTE: PostgREST applies a default 1000-row cap. Some roles (e.g. ComplianceAdmin)
+      // own >1000 (module, action) pairs, so the unbounded RPC quietly truncates the result
+      // and per-module view grants get dropped — causing false "Access Denied" on
+      // /compliance/* even when permissions exist. Page through with .range() to bypass it.
+      const PAGE = 1000;
+      const permissions: Array<{ module_name: string; action_name: string; is_granted?: boolean }> = [];
+      for (let offset = 0; ; offset += PAGE) {
+        const { data, error } = await (supabase.rpc as any)('get_user_permissions', { _user_id: user!.id })
+          .range(offset, offset + PAGE - 1);
+        if (error) throw error;
+        const chunk = (data || []) as typeof permissions;
+        permissions.push(...chunk);
+        if (chunk.length < PAGE) break;
+      }
+      const { data: accessibleData, error: accessibleError } = await (supabase.rpc as any)('get_user_accessible_modules', { _user_id: user!.id })
+        .range(0, 9999);
+      if (accessibleError) throw accessibleError;
       return {
-        permissions: permissionsResult.data || [],
-        accessibleNames: new Set<string>((accessibleResult.data || []).map((m: any) => m.name)),
+        permissions,
+        accessibleNames: new Set<string>((accessibleData || []).map((m: any) => m.name)),
       };
     },
+
   });
 
   if (!inCompliance || !isAuthenticated) {
