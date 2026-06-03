@@ -8,6 +8,7 @@ import { useIsAdmin } from '@/hooks/useNavigationMenu';
 import { AccessDenied } from '@/components/auth/AccessDenied';
 import ComplianceFeatureGate from '@/components/compliance/ComplianceFeatureGate';
 import { resolveComplianceAccess, type ComplianceModuleRow } from '@/lib/compliance/accessResolution';
+import { fetchAllUserPermissions } from '@/lib/permissions/fetchAllUserPermissions';
 
 /**
  * Global Compliance & Enforcement access gate.
