@@ -125,6 +125,17 @@ function BoolBadge({ value }: { value: boolean | undefined }) {
   return value ? <Badge className="bg-emerald-600">ON</Badge> : <Badge variant="destructive">OFF</Badge>;
 }
 
+function DecisionBadge({ decision }: { decision: string }) {
+  if (decision === 'render') return <Badge className="bg-emerald-600">Render page</Badge>;
+  if (decision === 'feature-disabled') return <Badge variant="secondary">FeatureDisabled</Badge>;
+  if (decision === 'fail-closed') return <Badge variant="destructive">Fail closed</Badge>;
+  return <Badge variant="destructive">Access Denied</Badge>;
+}
+
+function Mono({ children }: { children: React.ReactNode }) {
+  return <span className="font-mono text-xs break-all">{children ?? '—'}</span>;
+}
+
 export default function FeatureToggleDiagnosticsPage() {
   const auth = useSupabaseAuth();
   const { isLoading, isError, refetch } = useComplianceFeatureFlagsBootstrap();
