@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { AppLayout } from './AppLayout';
 import { Loader2 } from 'lucide-react';
+import { ComplianceAccessGate } from '@/components/compliance/ComplianceAccessGate';
 
 interface ProtectedLayoutProps {
   children?: ReactNode;
@@ -19,7 +20,9 @@ export const ProtectedLayout = ({ children }: ProtectedLayoutProps) => {
     <ProtectedRoute>
       <AppLayout>
         <Suspense fallback={<ContentFallback />}>
-          {children ?? <Outlet />}
+          <ComplianceAccessGate>
+            {children ?? <Outlet />}
+          </ComplianceAccessGate>
         </Suspense>
       </AppLayout>
     </ProtectedRoute>
