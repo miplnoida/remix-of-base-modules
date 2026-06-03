@@ -98,10 +98,10 @@ export function useAuditAnnualPlanPermissionContext(): AnnualPlanPermissionConte
     queryKey: ['audit-annual-plan-runtime-access', user?.id],
     queryFn: async () => {
       if (!user?.id) return [] as PermissionRow[];
-      const { data, error } = await supabase.rpc('get_user_permissions', { _user_id: user.id });
-      if (error) throw error;
-      return ((data as PermissionRow[]) || []).filter((entry) => entry.is_granted !== false);
+      const all = await fetchAllUserPermissions(user.id);
+      return (all as PermissionRow[]).filter((entry) => entry.is_granted !== false);
     },
+
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
   });
