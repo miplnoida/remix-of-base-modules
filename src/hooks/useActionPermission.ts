@@ -1,7 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { useIsAdmin } from "@/hooks/useNavigationMenu";
+import { resolveComplianceAccess, type ComplianceModuleRow } from "@/lib/compliance/accessResolution";
 
 /**
  * Hook to get all action permissions for a specific module for the current user.
@@ -11,18 +13,44 @@ import { useIsAdmin } from "@/hooks/useNavigationMenu";
 export function useActionPermissions(moduleName: string) {
   const { user } = useSupabaseAuth();
   const isAdmin = useIsAdmin();
+  const { pathname } = useLocation();
+  const useRouteModule = moduleName === 'manage_compliance' && pathname.startsWith('/compliance');
+
+  const { data: routeModules = [], isLoading: routeModulesLoading } = useQuery({
+    queryKey: ['action-permissions-route-modules', pathname],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_modules')
+        .select('id,name,display_name,route,parent_id,sort_order,is_enabled,show_in_menu,routes_enabled')
+        .or('route.like./compliance/%,route.eq./compliance')
+        .eq('is_enabled', true);
+      if (error) throw error;
+      return (data || []) as ComplianceModuleRow[];
+    },
+    enabled: useRouteModule,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const { data: permissions = [], isLoading, error } = useQuery({
-    queryKey: ['action-permissions', user?.id, moduleName],
+    queryKey: ['action-permissions', user?.id, moduleName, useRouteModule ? pathname : 'static'],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase.rpc('get_user_permissions', { _user_id: user.id });
       if (error) throw error;
-      return (data as Array<{ module_name: string; action_name: string }>)
-        .filter(p => p.module_name === moduleName)
+      const allPermissions = data as Array<{ module_name: string; action_name: string; is_granted?: boolean }>;
+      const effectiveNames = useRouteModule
+        ? resolveComplianceAccess({
+            pathname,
+            modules: routeModules,
+            permissions: allPermissions,
+            isAdmin,
+          }).selectedCandidates.map((candidate) => candidate.module.name)
+        : [moduleName];
+      return allPermissions
+        .filter(p => effectiveNames.includes(p.module_name))
         .map(p => p.action_name);
     },
-    enabled: !!user?.id && !!moduleName,
+    enabled: !!user?.id && !!moduleName && (!useRouteModule || !routeModulesLoading),
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
@@ -47,7 +75,7 @@ export function useActionPermissions(moduleName: string) {
     can,
     canView,
     permissions,
-    isLoading,
+    isLoading: isLoading || routeModulesLoading,
     isAdmin,
     error,
   };

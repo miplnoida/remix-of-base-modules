@@ -7,7 +7,7 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useIsAdmin } from '@/hooks/useNavigationMenu';
 import { AccessDenied } from '@/components/auth/AccessDenied';
 import ComplianceFeatureGate from '@/components/compliance/ComplianceFeatureGate';
-import { COMPLIANCE_FEATURE_FLAG_RULES } from '@/lib/compliance/menuFeatureFilter';
+import { resolveComplianceAccess, type ComplianceModuleRow } from '@/lib/compliance/accessResolution';
 
 /**
  * Global Compliance & Enforcement access gate.
@@ -32,40 +32,6 @@ import { COMPLIANCE_FEATURE_FLAG_RULES } from '@/lib/compliance/menuFeatureFilte
  * PermissionWrapper / inner checks still apply.
  */
 
-interface ModuleRow {
-  id: string;
-  name: string;
-  display_name: string;
-  route: string;
-}
-
-function matchPrefix(pathname: string, route: string): boolean {
-  if (!route) return false;
-  if (pathname === route) return true;
-  return pathname.startsWith(route.replace(/\/+$/, '') + '/');
-}
-
-/** Returns all modules tied to the longest matching route prefix. */
-function findBestModules(pathname: string, mods: ModuleRow[]): ModuleRow[] {
-  let bestLen = 0;
-  let bestRoute = '';
-  for (const m of mods) {
-    if (!m.route) continue;
-    if (matchPrefix(pathname, m.route) && m.route.length > bestLen) {
-      bestLen = m.route.length;
-      bestRoute = m.route;
-    }
-  }
-  if (!bestLen) return [];
-  return mods.filter((m) => m.route === bestRoute);
-}
-
-function findRule(pathname: string, modRoute: string) {
-  return COMPLIANCE_FEATURE_FLAG_RULES.find(
-    (r) => matchPrefix(pathname, r.prefix) || matchPrefix(modRoute, r.prefix),
-  );
-}
-
 export function ComplianceAccessGate({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const pathname = location.pathname;
@@ -81,25 +47,29 @@ export function ComplianceAccessGate({ children }: { children?: React.ReactNode 
     queryFn: async () => {
       const { data, error } = await supabase
         .from('app_modules')
-        .select('id,name,display_name,route')
-        .like('route', '/compliance/%')
+        .select('id,name,display_name,route,parent_id,sort_order,is_enabled,show_in_menu,routes_enabled')
+        .or('route.like./compliance/%,route.eq./compliance')
         .eq('is_enabled', true);
       if (error) throw error;
-      return (data || []) as ModuleRow[];
+      return (data || []) as ComplianceModuleRow[];
     },
   });
 
-  const { data: accessibleNames, isLoading: accLoading } = useQuery({
-    queryKey: ['compliance-accessible-modules', user?.id],
+  const { data: permissionState, isLoading: permissionLoading } = useQuery({
+    queryKey: ['compliance-access-resolution-permissions', user?.id],
     enabled: inCompliance && isAuthenticated && !!user?.id && !isAdmin,
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)(
-        'get_user_accessible_modules',
-        { _user_id: user!.id },
-      );
-      if (error) throw error;
-      return new Set<string>((data || []).map((m: any) => m.name));
+      const [permissionsResult, accessibleResult] = await Promise.all([
+        (supabase.rpc as any)('get_user_permissions', { _user_id: user!.id }),
+        (supabase.rpc as any)('get_user_accessible_modules', { _user_id: user!.id }),
+      ]);
+      if (permissionsResult.error) throw permissionsResult.error;
+      if (accessibleResult.error) throw accessibleResult.error;
+      return {
+        permissions: permissionsResult.data || [],
+        accessibleNames: new Set<string>((accessibleResult.data || []).map((m: any) => m.name)),
+      };
     },
   });
 
@@ -107,7 +77,7 @@ export function ComplianceAccessGate({ children }: { children?: React.ReactNode 
     return <>{children ?? <Outlet />}</>;
   }
 
-  if (modsLoading || (!isAdmin && accLoading)) {
+  if (modsLoading || (!isAdmin && permissionLoading)) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -115,28 +85,24 @@ export function ComplianceAccessGate({ children }: { children?: React.ReactNode 
     );
   }
 
-  const matchedList = allMods ? findBestModules(pathname, allMods) : [];
+  const resolution = resolveComplianceAccess({
+    pathname,
+    modules: allMods || [],
+    permissions: isAdmin ? [] : (permissionState?.permissions || []),
+    accessibleModuleNames: permissionState?.accessibleNames,
+    isAdmin,
+  });
 
-  // No module match — fail-open. Inner PermissionWrapper / per-page guards
-  // still apply where present.
-  if (matchedList.length === 0) {
-    return <>{children ?? <Outlet />}</>;
-  }
-
-  // Permission check (admins bypass). When a route has multiple module rows,
-  // having permission on ANY of them grants access.
-  const hasPermission =
-    isAdmin || (accessibleNames && matchedList.some((m) => accessibleNames.has(m.name)));
-  if (!hasPermission) {
+  if (resolution.finalDecision === 'access-denied' || resolution.finalDecision === 'fail-closed') {
     return <AccessDenied />;
   }
 
-  const matched = matchedList[0];
-  // Feature flag check
-  const rule = findRule(pathname, matched.route);
-  if (rule) {
+  if (resolution.matchedFeatureRule) {
     return (
-      <ComplianceFeatureGate flagKey={rule.flag} title={matched.display_name || 'This page'}>
+      <ComplianceFeatureGate
+        flagKey={resolution.matchedFeatureRule.flag}
+        title={resolution.selectedModule?.display_name || 'This page'}
+      >
         {children ?? <Outlet />}
       </ComplianceFeatureGate>
     );
