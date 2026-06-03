@@ -299,7 +299,85 @@ export default function FeatureToggleDiagnosticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>2. Raw DB flag values (Phase 1 + Phase 2)</CardTitle>
+            <CardTitle>2. Compliance access resolution</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-sm">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <div><span className="text-muted-foreground">Profile email:</span> <Mono>{profileQ.data?.email ?? auth?.user?.email}</Mono></div>
+                <div><span className="text-muted-foreground">Profile name:</span> <Mono>{profileQ.data?.full_name}</Mono></div>
+                <div><span className="text-muted-foreground">Assigned roles:</span> <Mono>{(rolesQ.data || []).map((r: any) => r.role).join(', ') || '—'}</Mono></div>
+                <div><span className="text-muted-foreground">Compliance Admin role:</span> <BoolBadge value={(rolesQ.data || []).some((r: any) => r.role === 'ComplianceAdmin')} /></div>
+                <div><span className="text-muted-foreground">Admin/superadmin bypass:</span> <BoolBadge value={isAdmin} /></div>
+              </div>
+              <div className="space-y-3">
+                <label className="text-sm font-medium" htmlFor="diag-route-path">Requested pathname</label>
+                <Input id="diag-route-path" value={routePath} onChange={(e) => setRoutePath(e.target.value)} className="font-mono" />
+                <div className="flex flex-wrap gap-2">
+                  {['/compliance/violations', '/compliance/enforcement/waivers', '/compliance/enforcement/legal-referral', '/compliance/admin/feature-toggles'].map((path) => (
+                    <Button key={path} type="button" size="sm" variant="outline" onClick={() => setRoutePath(path)}>{path}</Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Final decision: <DecisionBadge decision={resolution.finalDecision} /></AlertTitle>
+              <AlertDescription>{resolution.reason}</AlertDescription>
+            </Alert>
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <div><span className="text-muted-foreground">Selected module:</span> <Mono>{resolution.selectedModule?.name}</Mono></div>
+              <div><span className="text-muted-foreground">Required action:</span> <Mono>{resolution.requiredAction}</Mono></div>
+              <div><span className="text-muted-foreground">Permission:</span> <BoolBadge value={resolution.hasPermission} /></div>
+              <div><span className="text-muted-foreground">Feature rule:</span> <Mono>{resolution.matchedFeatureRule?.prefix ?? '—'}</Mono></div>
+              <div><span className="text-muted-foreground">Feature flag:</span> <Mono>{resolution.matchedFeatureRule?.flag ?? '—'}</Mono></div>
+              <div><span className="text-muted-foreground">Feature value:</span> <BoolBadge value={resolution.featureFlagValue} /></div>
+              <div><span className="text-muted-foreground">Gate evaluated:</span> <BoolBadge value={resolution.featureGateEvaluated} /></div>
+              <div><span className="text-muted-foreground">RPC returns selected:</span> <BoolBadge value={resolution.selectedModule ? accessibleNames.has(resolution.selectedModule.name) || isAdmin : undefined} /></div>
+              <div><span className="text-muted-foreground">Flag cache loaded:</span> <BoolBadge value={resolution.featureFlagLoaded} /></div>
+            </div>
+
+            <div>
+              <h3 className="font-medium mb-2">Route/module candidates</h3>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Selected</TableHead><TableHead>Match</TableHead><TableHead>Module key</TableHead><TableHead>Route</TableHead><TableHead>Parent</TableHead><TableHead>Menu</TableHead><TableHead>Action row</TableHead><TableHead>Role permission</TableHead><TableHead>RPC</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {resolution.candidates.map((candidate) => {
+                    const action = actionsByModule.get(candidate.module.id) as any;
+                    const rolePermission = action ? rolePermByModuleAction.get(`${candidate.module.id}:${action.id}`) as any : null;
+                    const parent = candidate.module.parent_id ? parentById.get(candidate.module.parent_id) : null;
+                    return (
+                      <TableRow key={candidate.module.id}>
+                        <TableCell><BoolBadge value={candidate.selected} /></TableCell>
+                        <TableCell><Badge variant="outline">{candidate.matchType}</Badge></TableCell>
+                        <TableCell><Mono>{candidate.module.name}</Mono></TableCell>
+                        <TableCell><Mono>{candidate.module.route}</Mono></TableCell>
+                        <TableCell><Mono>{parent?.name}</Mono></TableCell>
+                        <TableCell><BoolBadge value={candidate.module.show_in_menu ?? undefined} /></TableCell>
+                        <TableCell><Mono>{action ? `${action.action_name} / ${action.id}` : 'missing view action'}</Mono></TableCell>
+                        <TableCell><BoolBadge value={Boolean(rolePermission?.is_granted) || isAdmin} /></TableCell>
+                        <TableCell><BoolBadge value={candidate.rpcReturnsModule} /></TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {resolution.candidates.length === 0 && (
+                    <TableRow><TableCell colSpan={9} className="text-muted-foreground">No app_modules route matched this path.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>3. Raw DB flag values (Phase 1 + Phase 2)</CardTitle>
           </CardHeader>
           <CardContent className="text-sm">
             <table className="w-full">
