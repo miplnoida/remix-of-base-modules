@@ -35,9 +35,8 @@ export function useActionPermissions(moduleName: string) {
     queryKey: ['action-permissions', user?.id, moduleName, useRouteModule ? pathname : 'static'],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error } = await supabase.rpc('get_user_permissions', { _user_id: user.id });
-      if (error) throw error;
-      const allPermissions = data as Array<{ module_name: string; action_name: string; is_granted?: boolean }>;
+      const allPermissions = await fetchAllUserPermissions(user.id);
+
       const effectiveNames = useRouteModule
         ? resolveComplianceAccess({
             pathname,
