@@ -1179,7 +1179,7 @@ export const AppRoutes = () => {
 
       {/* ── Enforcement — legal, notices, arrangements, waivers ── */}
       <Route path="/compliance/enforcement/recommendation-queue" element={<ComplianceFeatureGate flagKey="compliance.legal.handoff" title="Legal Recommendation Queue"><LegalRecommendationQueue /></ComplianceFeatureGate>} />
-      <Route path="/compliance/enforcement/legal-referral" element={<ComplianceRouteGuard moduleName="ce_legal_referral" flagKey="compliance.legal.handoff" title="Legal Referral"><LegalReferralWizard /></ComplianceRouteGuard>} />
+      <Route path="/compliance/enforcement/legal-referral" element={<ComplianceFeatureGate flagKey="compliance.legal.handoff" title="Legal Referral"><LegalReferralWizard /></ComplianceFeatureGate>} />
       <Route path="/compliance/enforcement/legal-queue" element={<ComplianceLegalQueue />} />
       <Route path="/compliance/enforcement/proceedings" element={<ComplianceFeatureGate flagKey="compliance.legal.court_monitoring" title="Legal Proceedings & Court Monitoring"><ComplianceLegalProceedings /></ComplianceFeatureGate>} />
       <Route path="/compliance/enforcement/notices" element={<NoticesManagement />} />
