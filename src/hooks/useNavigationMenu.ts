@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import * as LucideIcons from "lucide-react";
 import { resolveComplianceAccess, type ComplianceModuleRow } from "@/lib/compliance/accessResolution";
+import { fetchAllUserPermissions } from "@/lib/permissions/fetchAllUserPermissions";
 
 interface AppModule {
   id: string;
