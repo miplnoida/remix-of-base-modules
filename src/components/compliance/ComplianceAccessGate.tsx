@@ -45,15 +45,19 @@ function matchPrefix(pathname: string, route: string): boolean {
   return pathname.startsWith(route.replace(/\/+$/, '') + '/');
 }
 
-function findBestModule(pathname: string, mods: ModuleRow[]): ModuleRow | null {
-  let best: ModuleRow | null = null;
+/** Returns all modules tied to the longest matching route prefix. */
+function findBestModules(pathname: string, mods: ModuleRow[]): ModuleRow[] {
+  let bestLen = 0;
+  let bestRoute = '';
   for (const m of mods) {
     if (!m.route) continue;
-    if (matchPrefix(pathname, m.route)) {
-      if (!best || m.route.length > best.route.length) best = m;
+    if (matchPrefix(pathname, m.route) && m.route.length > bestLen) {
+      bestLen = m.route.length;
+      bestRoute = m.route;
     }
   }
-  return best;
+  if (!bestLen) return [];
+  return mods.filter((m) => m.route === bestRoute);
 }
 
 function findRule(pathname: string, modRoute: string) {
