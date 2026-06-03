@@ -32,7 +32,7 @@ export function useActionPermissions(moduleName: string) {
   });
 
   const { data: permissions = [], isLoading, error } = useQuery({
-    queryKey: ['action-permissions', user?.id, moduleName],
+    queryKey: ['action-permissions', user?.id, moduleName, useRouteModule ? pathname : 'static'],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase.rpc('get_user_permissions', { _user_id: user.id });
