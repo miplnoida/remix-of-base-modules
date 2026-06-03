@@ -132,7 +132,7 @@ export function resolveComplianceAccess(input: {
         rpcReturnsModule: input.isAdmin || Boolean(input.accessibleModuleNames?.has(module.name)),
       } satisfies ComplianceRouteCandidate;
     })
-    .filter((c): c is ComplianceRouteCandidate => c !== null)
+    .filter((c): c is NonNullable<typeof c> => c !== null)
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       if (Number(b.module.show_in_menu === true) !== Number(a.module.show_in_menu === true)) {
