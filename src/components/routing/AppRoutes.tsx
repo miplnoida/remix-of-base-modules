@@ -1185,7 +1185,7 @@ export const AppRoutes = () => {
       <Route path="/compliance/enforcement/notices" element={<NoticesManagement />} />
       <Route path="/compliance/enforcement/arrangements" element={<PaymentArrangements />} />
       <Route path="/compliance/enforcement/breaches" element={<ComplianceBreachMonitoring />} />
-      <Route path="/compliance/enforcement/waivers" element={<ComplianceFeatureGate flagKey="compliance.payment.waiver_requests" title="Waiver Requests"><ComplianceWaivers /></ComplianceFeatureGate>} />
+      <Route path="/compliance/enforcement/waivers" element={<ComplianceRouteGuard moduleName="ce_waiver_requests" flagKey="compliance.payment.waiver_requests" title="Waiver Requests"><ComplianceWaivers /></ComplianceRouteGuard>} />
 
 
       {/* ── Reports (unchanged paths) ── */}
