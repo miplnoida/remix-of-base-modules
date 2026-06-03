@@ -138,12 +138,125 @@ function Mono({ children }: { children: React.ReactNode }) {
 
 export default function FeatureToggleDiagnosticsPage() {
   const auth = useSupabaseAuth();
+  const isAdmin = useIsAdmin();
   const { isLoading, isError, refetch } = useComplianceFeatureFlagsBootstrap();
+  const [routePath, setRoutePath] = useState('/compliance/violations');
   // Force re-render when cache changes
   const [, setTick] = useState(0);
   useEffect(() => subscribeComplianceDbFlags(() => setTick((t) => t + 1)), []);
 
   const loaded = hasComplianceDbFlagsLoaded();
+
+  const userId = auth?.user?.id;
+
+  const profileQ = useQuery({
+    queryKey: ['compliance-access-diag-profile', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id,email,full_name')
+        .eq('id', userId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const rolesQ = useQuery({
+    queryKey: ['compliance-access-diag-roles', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role,created_at')
+        .eq('user_id', userId!);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const modulesQ = useQuery({
+    queryKey: ['compliance-access-diag-modules'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('app_modules')
+        .select('id,name,display_name,route,parent_id,sort_order,is_enabled,show_in_menu,routes_enabled')
+        .or('route.like./compliance/%,route.eq./compliance')
+        .order('sort_order');
+      if (error) throw error;
+      return (data || []) as ComplianceModuleRow[];
+    },
+  });
+
+  const permissionsQ = useQuery({
+    queryKey: ['compliance-access-diag-permissions', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_user_permissions', { _user_id: userId! });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const accessibleQ = useQuery({
+    queryKey: ['compliance-access-diag-accessible', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)('get_user_accessible_modules', { _user_id: userId! });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const actionQ = useQuery({
+    queryKey: ['compliance-access-diag-actions', modulesQ.data?.map((m) => m.id).join(',')],
+    enabled: !!modulesQ.data?.length,
+    queryFn: async () => {
+      const ids = modulesQ.data!.map((m) => m.id);
+      const { data, error } = await supabase
+        .from('module_actions')
+        .select('id,module_id,action_name,display_name,is_enabled')
+        .in('module_id', ids)
+        .eq('action_name', 'view');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const rolePermissionQ = useQuery({
+    queryKey: ['compliance-access-diag-role-permissions', rolesQ.data?.map((r: any) => r.role).join(','), modulesQ.data?.map((m) => m.id).join(',')],
+    enabled: !!rolesQ.data?.length && !!modulesQ.data?.length,
+    queryFn: async () => {
+      const roleNames = (rolesQ.data || []).map((r: any) => r.role);
+      const { data: roleRows, error: roleError } = await supabase
+        .from('roles')
+        .select('id,role_name')
+        .in('role_name', roleNames);
+      if (roleError) throw roleError;
+      const roleIds = (roleRows || []).map((r) => r.id);
+      if (!roleIds.length) return [];
+      const { data, error } = await supabase
+        .from('role_permissions')
+        .select('id,role_id,module_id,action_id,is_granted')
+        .in('role_id', roleIds)
+        .in('module_id', modulesQ.data!.map((m) => m.id));
+      if (error) throw error;
+      return (data || []).map((rp: any) => ({ ...rp, role_name: roleRows?.find((r) => r.id === rp.role_id)?.role_name }));
+    },
+  });
+
+  const parentById = useMemo(() => new Map((modulesQ.data || []).map((m) => [m.id, m])), [modulesQ.data]);
+  const actionsByModule = useMemo(() => new Map((actionQ.data || []).map((a: any) => [a.module_id, a])), [actionQ.data]);
+  const rolePermByModuleAction = useMemo(() => new Map((rolePermissionQ.data || []).map((rp: any) => [`${rp.module_id}:${rp.action_id}`, rp])), [rolePermissionQ.data]);
+  const accessibleNames = useMemo(() => new Set((accessibleQ.data || []).map((m: any) => m.name)), [accessibleQ.data]);
+  const resolution = useMemo(() => resolveComplianceAccess({
+    pathname: routePath,
+    modules: modulesQ.data || [],
+    permissions: permissionsQ.data || [],
+    accessibleModuleNames: accessibleNames,
+    isAdmin,
+  }), [routePath, modulesQ.data, permissionsQ.data, accessibleNames, isAdmin]);
 
   return (
     <PermissionWrapper moduleName="ce_admin_feature_toggles">
