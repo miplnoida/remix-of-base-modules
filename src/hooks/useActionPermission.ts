@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { useIsAdmin } from "@/hooks/useNavigationMenu";
 import { resolveComplianceAccess, type ComplianceModuleRow } from "@/lib/compliance/accessResolution";
+import { fetchAllUserPermissions } from "@/lib/permissions/fetchAllUserPermissions";
 
 /**
  * Hook to get all action permissions for a specific module for the current user.
