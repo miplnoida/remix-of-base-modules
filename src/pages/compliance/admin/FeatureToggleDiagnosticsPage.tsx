@@ -5,15 +5,22 @@
  * Not added to the main sidebar. Gated by the existing Compliance Setup
  * permission via PermissionWrapper. Read-only.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useIsAdmin } from '@/hooks/useNavigationMenu';
 import { useComplianceFeatureFlagsBootstrap } from '@/hooks/compliance/useComplianceFeatureFlags';
+import { resolveComplianceAccess, type ComplianceModuleRow } from '@/lib/compliance/accessResolution';
 import {
   getComplianceDbFlag,
   hasComplianceDbFlagsLoaded,
