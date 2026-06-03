@@ -21,6 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useIsAdmin } from '@/hooks/useNavigationMenu';
 import { useComplianceFeatureFlagsBootstrap } from '@/hooks/compliance/useComplianceFeatureFlags';
 import { resolveComplianceAccess, type ComplianceModuleRow } from '@/lib/compliance/accessResolution';
+import { fetchAllUserPermissions } from '@/lib/permissions/fetchAllUserPermissions';
 import {
   getComplianceDbFlag,
   hasComplianceDbFlagsLoaded,
