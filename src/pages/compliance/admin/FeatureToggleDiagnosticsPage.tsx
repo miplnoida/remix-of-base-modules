@@ -249,7 +249,7 @@ export default function FeatureToggleDiagnosticsPage() {
   const parentById = useMemo(() => new Map((modulesQ.data || []).map((m) => [m.id, m])), [modulesQ.data]);
   const actionsByModule = useMemo(() => new Map((actionQ.data || []).map((a: any) => [a.module_id, a])), [actionQ.data]);
   const rolePermByModuleAction = useMemo(() => new Map((rolePermissionQ.data || []).map((rp: any) => [`${rp.module_id}:${rp.action_id}`, rp])), [rolePermissionQ.data]);
-  const accessibleNames = useMemo(() => new Set((accessibleQ.data || []).map((m: any) => m.name)), [accessibleQ.data]);
+  const accessibleNames = useMemo(() => new Set<string>((accessibleQ.data || []).map((m: any) => String(m.name))), [accessibleQ.data]);
   const resolution = useMemo(() => resolveComplianceAccess({
     pathname: routePath,
     modules: modulesQ.data || [],
