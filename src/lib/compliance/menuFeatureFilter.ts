@@ -87,7 +87,7 @@ function normalizeRoute(url?: string): string {
 function isUrlDisabledByFlag(url?: string): boolean {
   const norm = normalizeRoute(url);
   if (!norm) return false;
-  for (const r of RULES) {
+  for (const r of COMPLIANCE_FEATURE_FLAG_RULES) {
     if (norm === r.prefix || norm.startsWith(r.prefix + '/')) {
       const v = getComplianceDbFlag(r.flag);
       if (v === false) return true;
