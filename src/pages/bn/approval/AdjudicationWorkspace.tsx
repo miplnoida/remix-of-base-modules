@@ -1,3 +1,4 @@
+import { useUserCode } from '@/hooks/useUserCode';
 /**
  * Screen 10: Approval / Adjudication Workspace
  * 
@@ -56,7 +57,7 @@ export default function AdjudicationWorkspace() {
   const { data: reasonCodes } = useBnReasonCodes(dialogAction?.action);
 
   const userRoles = ['admin', 'supervisor'];
-  const userCode = 'SYSTEM';
+  const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
   const highestRole = userRoles.find(r => APPROVAL_ROLE_MATRIX[r.toUpperCase()]?.canAct) || '';
   const roleConfig = APPROVAL_ROLE_MATRIX[highestRole.toUpperCase()];
   const allowedActions = roleConfig?.actions ?? [];

@@ -1,3 +1,4 @@
+import { useUserCode } from '@/hooks/useUserCode';
 /**
  * Benefits Dashboard — Screen 1
  *
@@ -72,7 +73,7 @@ export default function BenefitsDashboard() {
   const queryClient = useQueryClient();
 
   // TODO: Replace with actual auth context userCode
-  const userCode = 'SYSTEM';
+  const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
 
   const { data: summary, isLoading: summaryLoading } = useBnDashboardSummary();
   const { data: byStatus = [], isLoading: statusLoading } = useBnClaimsByStatus();

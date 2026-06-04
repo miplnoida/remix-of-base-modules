@@ -1,3 +1,4 @@
+import { useUserCode } from '@/hooks/useUserCode';
 /**
  * BN Claim Workbench — Full Enterprise Claim Processing Screen
  * 
@@ -122,7 +123,7 @@ export default function ClaimWorkbench() {
 
   // ── Derived State ──────────────────────────────────────────────
   const userRoles = ['Admin']; // TODO: get from auth context
-  const userCode = 'SYSTEM'; // TODO: get from auth context
+  const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
 
   const product = (claim as any)?.bn_product;
   const currentStatus = localUpdates.status || claim?.status || 'DRAFT';

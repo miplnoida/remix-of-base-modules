@@ -1,3 +1,4 @@
+import { useUserCode } from '@/hooks/useUserCode';
 /**
  * Screen 6: Eligibility Review
  * 
@@ -45,7 +46,7 @@ export default function EligibilityReview() {
   const [compareSnapshot, setCompareSnapshot] = useState(1);
 
   const userRoles = ['admin', 'claims_officer'];
-  const userCode = 'SYSTEM';
+  const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
   const isSupervisor = userRoles.some(r => ['supervisor', 'admin', 'manager'].includes(r.toLowerCase()));
 
   const handleRunEligibility = () => {

@@ -1,3 +1,4 @@
+import { useUserCode } from '@/hooks/useUserCode';
 /**
  * Approval Console — Main Page
  * 
@@ -29,7 +30,7 @@ export default function ApprovalConsole() {
 
   // TODO: get from auth context
   const userRoles = ['admin', 'supervisor'];
-  const userCode = 'SYSTEM';
+  const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
 
   // Stats
   const stats = useMemo(() => {
