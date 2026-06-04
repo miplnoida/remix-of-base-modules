@@ -72,8 +72,8 @@ export async function updateProductVersion(id: string, updates: Partial<BnProduc
  * Copy all rules from a source version to a new version.
  * Copies: eligibility rules, calculation rules, timeline rules.
  */
-export async function copyVersionRules(sourceVersionId: string, targetVersionId: string): Promise<{ eligibility: number; calculation: number; timeline: number }> {
-  let counts = { eligibility: 0, calculation: 0, timeline: 0 };
+export async function copyVersionRules(sourceVersionId: string, targetVersionId: string): Promise<{ eligibility: number; calculation: number; timeline: number; documents: number }> {
+  let counts = { eligibility: 0, calculation: 0, timeline: 0, documents: 0 };
 
   // Copy eligibility rules
   const eligRules = await fetchEligibilityRules(sourceVersionId);
@@ -98,6 +98,10 @@ export async function copyVersionRules(sourceVersionId: string, targetVersionId:
     await upsertTimelineRule({ ...rest, product_version_id: targetVersionId });
     counts.timeline++;
   }
+
+  // Copy document requirements
+  const { copyDocumentRequirements } = await import('./configService');
+  counts.documents = await copyDocumentRequirements(sourceVersionId, targetVersionId);
 
   return counts;
 }

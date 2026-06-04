@@ -9,9 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import { Plus, Trash2, Edit, Copy, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBnDocumentRules, useUpsertBnDocumentRule, useDeleteBnDocumentRule } from '@/hooks/bn/useBnConfig';
+import { useBnProductVersions } from '@/hooks/bn/useBnProduct';
+import { copyDocumentRequirements } from '@/services/bn/configService';
+import { useQueryClient } from '@tanstack/react-query';
 import type { BnDocumentRule } from '@/types/bn';
 
 interface Props { productId: string | undefined; versionId?: string | undefined; }
@@ -25,14 +28,37 @@ const channelBadge = (c?: string) => {
 
 export function DocumentRulesTab({ productId, versionId }: Props) {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const { data: rules = [], isLoading } = useBnDocumentRules(productId, versionId);
+  const { data: versions = [] } = useBnProductVersions(productId);
   const upsertMutation = useUpsertBnDocumentRule();
   const deleteMutation = useDeleteBnDocumentRule();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<BnDocumentRule>>({});
   const [conditionText, setConditionText] = useState('');
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copySourceId, setCopySourceId] = useState('');
+  const [copying, setCopying] = useState(false);
 
   if (!productId) return <Card><CardContent className="py-8 text-center text-muted-foreground">Save the product first to configure documents.</CardContent></Card>;
+
+  const otherVersions = versions.filter(v => v.id !== versionId);
+
+  const handleCopyFromVersion = async () => {
+    if (!versionId || !copySourceId) return;
+    setCopying(true);
+    try {
+      const n = await copyDocumentRequirements(copySourceId, versionId);
+      toast({ title: 'Documents Copied', description: `Copied ${n} document requirement(s).` });
+      setCopyOpen(false);
+      setCopySourceId('');
+      qc.invalidateQueries({ queryKey: ['bn', 'document-rules'] });
+    } catch (err: any) {
+      toast({ title: 'Copy Failed', description: err?.message, variant: 'destructive' });
+    } finally {
+      setCopying(false);
+    }
+  };
 
   const openNew = () => {
     setEditing({
@@ -82,7 +108,14 @@ export function DocumentRulesTab({ productId, versionId }: Props) {
               and whether it blocks submission, decision, or payment.
             </CardDescription>
           </div>
-          <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Document</Button>
+          <div className="flex gap-2">
+            {versionId && otherVersions.length > 0 && (
+              <Button variant="outline" onClick={() => setCopyOpen(true)} className="gap-2">
+                <Copy className="h-4 w-4" /> Copy from another version
+              </Button>
+            )}
+            <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Document</Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? <p className="text-muted-foreground py-4">Loading...</p> : rules.length === 0 ? (
@@ -252,6 +285,37 @@ export function DocumentRulesTab({ productId, versionId }: Props) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleSave} disabled={upsertMutation.isPending}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={copyOpen} onOpenChange={(o) => { setCopyOpen(o); if (!o) setCopySourceId(''); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Copy Documents from Another Version</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Copy all document requirements from a source version into this version. Existing rows are kept; copied rows are added.
+            </p>
+            <div className="space-y-2">
+              <Label>Source Version *</Label>
+              <Select value={copySourceId} onValueChange={setCopySourceId}>
+                <SelectTrigger><SelectValue placeholder="Select source version" /></SelectTrigger>
+                <SelectContent>
+                  {otherVersions.map(v => (
+                    <SelectItem key={v.id} value={v.id}>
+                      V{v.version_number} [{v.status}]
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCopyOpen(false); setCopySourceId(''); }}>Cancel</Button>
+            <Button onClick={handleCopyFromVersion} disabled={!copySourceId || copying} className="gap-2">
+              {copying && <Loader2 className="h-4 w-4 animate-spin" />}
+              Copy Documents
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
