@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SKN_BENEFIT_BASELINE, type SknBenefitBaseline } from './skn/sknBenefitCatalogueBaseline';
+import { checkPublicReadiness, checkStaffReadiness } from './productAcceptanceService';
 
 export type ValidationStatus = 'PASS' | 'WARNING' | 'FAIL' | 'NEEDS_REVIEW' | 'NOT_APPLICABLE';
 
