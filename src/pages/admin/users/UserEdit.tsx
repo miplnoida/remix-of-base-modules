@@ -306,6 +306,74 @@ const UserEdit = () => {
           </CardContent>
         </Card>
       </form>
+
+      {isAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5" />
+              Account Security
+            </CardTitle>
+            <CardDescription>
+              Manage lockout state and exemption for this user. Lockout-exempt accounts are never auto-locked after failed sign-in attempts.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start justify-between gap-4 p-4 border rounded-lg">
+              <div className="space-y-1">
+                <Label className="text-base">Exempt from auto-lockout</Label>
+                <p className="text-sm text-muted-foreground">
+                  When enabled, failed login attempts will not lock this account. Use only for break-glass / system admin accounts.
+                </p>
+              </div>
+              <Switch
+                checked={!!(user as any).lockout_exempt}
+                disabled={updateUser.isPending}
+                onCheckedChange={async (checked) => {
+                  try {
+                    await updateUser.mutateAsync({ id: userId!, lockout_exempt: checked } as any);
+                    toast.success(checked ? 'User is now exempt from auto-lockout' : 'Auto-lockout exemption removed');
+                  } catch (e: any) {
+                    toast.error('Failed to update exemption', { description: e?.message });
+                  }
+                }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4 p-4 border rounded-lg">
+              <div className="space-y-1">
+                <Label className="text-base">Lockout status</Label>
+                <p className="text-sm text-muted-foreground">
+                  Failed attempts: <span className="font-medium">{user.failed_login_attempts || 0}</span>
+                  {user.locked_until && new Date(user.locked_until) > new Date() && (
+                    <> · Locked until <span className="font-medium">{new Date(user.locked_until).toLocaleString()}</span></>
+                  )}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={updateUser.isPending || (!user.locked_until && (user.failed_login_attempts ?? 0) === 0)}
+                onClick={async () => {
+                  try {
+                    await updateUser.mutateAsync({
+                      id: userId!,
+                      locked_until: null,
+                      failed_login_attempts: 0,
+                    } as any);
+                    toast.success('Account unlocked');
+                  } catch (e: any) {
+                    toast.error('Failed to unlock', { description: e?.message });
+                  }
+                }}
+              >
+                <KeyRound className="h-4 w-4 mr-2" />
+                Unlock account
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
