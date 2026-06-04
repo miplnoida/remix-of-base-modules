@@ -13,7 +13,7 @@ import { Plus, Trash2, Edit, GripVertical, FlaskConical, CheckCircle2, XCircle }
 import { useToast } from '@/hooks/use-toast';
 import { useBnEligibilityRules, useUpsertBnEligibilityRule, useDeleteBnEligibilityRule } from '@/hooks/bn/useBnProduct';
 import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
-import { BN_RULE_TYPES, BN_FAIL_ACTIONS } from '@/types/bn';
+import { BN_FAIL_ACTIONS } from '@/types/bn';
 import type { BnEligibilityRule } from '@/types/bn';
 import {
   ELIGIBILITY_FIELD_REGISTRY,
