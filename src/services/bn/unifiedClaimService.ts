@@ -430,21 +430,18 @@ export async function getUnifiedClaimPayments(
 
   if (resolution.source === 'LEGACY_BEMA') {
     const { num, seq } = requireLegacyKey(input);
-    const resp = await historicalInquiryAdapter.getLegacyClaimPayments(num, seq);
-    return resp.data.cheques.map((c) => ({
-      reference: c.cheque_number ?? null,
-      amount: c.amount ?? null,
-      date: c.issue_date ?? null,
-      status: c.status ?? null,
-      voided: c.voided,
-      bank_account: c.bank_account ?? null,
-      raw: c.raw,
-    }));
+    const rows = await paymentBoundaryService.getUnifiedPaymentsForClaim({
+      sourceClaimNumber: num,
+      sourceClaimSeq: seq,
+    });
+    return rows as UnifiedPayment[];
   }
 
-  // BN payments live in payment/post-issue services; unified facade returns
-  // an empty list here so screens can fall back to those modules.
-  return [];
+  // BN: surface payment intents from bn_payment_instruction with source badge.
+  const bnId = input.bnClaimId ?? resolution.mapping?.bn_claim_id ?? null;
+  if (!bnId) return [];
+  const rows = await paymentBoundaryService.getUnifiedPaymentsForClaim({ bnClaimId: bnId });
+  return rows as UnifiedPayment[];
 }
 
 export async function getUnifiedClaimTimeline(
