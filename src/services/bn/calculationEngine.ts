@@ -768,12 +768,14 @@ async function loadTimelineRules(versionId: string): Promise<BnTimelineRule[]> {
 }
 
 async function createCalcRun(input: BnCalcEngineInput): Promise<BnCalcRun> {
+  const { requireUserCode } = await import('@/lib/bn/requireUserCode');
+  const triggeredBy = requireUserCode((input as any).triggeredBy, 'runCalculationEngine');
   const { data, error } = await db.from('bn_calc_run').insert({
     claim_id: input.claimId,
     product_version_id: input.productVersionId,
     run_mode: input.mode,
     run_status: 'RUNNING',
-    triggered_by: 'SYSTEM',
+    triggered_by: triggeredBy,
     country_code: input.countryCode,
   }).select().single();
   if (error) throw error;
