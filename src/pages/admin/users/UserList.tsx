@@ -185,7 +185,7 @@ const UserList = () => {
                   <TableCell>{user.employee_code || '-'}</TableCell>
                   <TableCell>{user.office?.description || '-'}</TableCell>
                   <TableCell>{user.department?.name || '-'}</TableCell>
-                  <TableCell>{getStatusBadge(user.is_active, user.locked_until)}</TableCell>
+                  <TableCell>{getStatusBadge(user.is_active, user.locked_until, (user as any).lockout_exempt)}</TableCell>
                   <TableCell>{user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
@@ -198,11 +198,21 @@ const UserList = () => {
                       <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}/roles`)} title="Manage Roles">
                         <Shield className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      {((user.locked_until && new Date(user.locked_until) > new Date()) || (user.failed_login_attempts ?? 0) > 0) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleUnlock(user.id, user.email)}
+                          title="Unlock account (clear lockout & failed attempts)"
+                        >
+                          <KeyRound className="h-4 w-4 text-amber-600" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleToggleStatus(user.id, user.is_active)}
-                        title={user.is_active ? "Disable User" : "Enable User"}
+                        title={user.is_active ? "Deactivate User" : "Activate User"}
                       >
                         {user.is_active ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
                       </Button>
