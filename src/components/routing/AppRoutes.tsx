@@ -1826,6 +1826,7 @@ export const AppRoutes = () => {
       <Route path="/bn/config/formulas" element={<BnFeatureGate flag="bn.config.rules"><BnFormulaConfiguration /></BnFeatureGate>} />
       <Route path="/bn/config/document-setup" element={<BnFeatureGate flag="bn.config.rules"><BnDocumentSetup /></BnFeatureGate>} />
       <Route path="/bn/config/screen-setup" element={<BnFeatureGate flag="bn.config.rules"><BnScreenMetadataSetup /></BnFeatureGate>} />
+      <Route path="/bn/config/validation" element={<BnFeatureGate flag="bn.config.rules"><BnBenefitConfigurationValidation /></BnFeatureGate>} />
 
       {/* Medical Benefit Setup */}
       <Route path="/bn/config/medical" element={<BnFeatureGate flag="bn.config.rules"><BnMedicalSetupHome /></BnFeatureGate>} />
