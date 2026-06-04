@@ -50,9 +50,30 @@ const UserList = () => {
     await updateUser.mutateAsync({ id: userId, is_active: !currentStatus });
   };
 
-  const getStatusBadge = (isActive: boolean | null, lockedUntil: string | null) => {
+  const handleUnlock = async (userId: string, email: string | null) => {
+    try {
+      await updateUser.mutateAsync({
+        id: userId,
+        locked_until: null,
+        failed_login_attempts: 0,
+      } as any);
+      toast.success(`Unlocked ${email || 'user'}`);
+    } catch (e: any) {
+      toast.error('Failed to unlock user', { description: e?.message });
+    }
+  };
+
+  const getStatusBadge = (isActive: boolean | null, lockedUntil: string | null, lockoutExempt?: boolean | null) => {
     if (lockedUntil && new Date(lockedUntil) > new Date()) {
       return <Badge variant="destructive">Locked</Badge>;
+    }
+    if (lockoutExempt) {
+      return (
+        <span className="inline-flex items-center gap-1">
+          <Badge variant="default">Active</Badge>
+          <Badge variant="outline" className="gap-1"><ShieldCheck className="h-3 w-3" />Lock-Exempt</Badge>
+        </span>
+      );
     }
     return isActive ? (
       <Badge variant="default">Active</Badge>
