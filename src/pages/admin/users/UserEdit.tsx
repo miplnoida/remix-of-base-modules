@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, User } from "lucide-react";
+import { ArrowLeft, Save, User, ShieldCheck, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { useUserProfile, useUpdateUserProfile, useTbOffices, useDepartments } from "@/hooks/useAdminData";
 import { useDesignations, useHigherDesignationUsers } from "@/hooks/useDesignations";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Switch } from "@/components/ui/switch";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 
 const UserEdit = () => {
   const navigate = useNavigate();
