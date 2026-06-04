@@ -74,6 +74,7 @@ export interface UserProfile {
   mfa_enabled: boolean | null;
   failed_login_attempts: number | null;
   locked_until: string | null;
+  lockout_exempt?: boolean | null;
   office?: TbOffice | null;
   department?: DepartmentPartial | null;
   roles?: { role: AppRole }[];
