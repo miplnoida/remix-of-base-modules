@@ -609,7 +609,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const fetchProfileByEmail = async (lookupEmail: string) => {
         const { data } = await supabase
           .from('profiles')
-          .select('id, locked_until, failed_login_attempts, is_active, force_password_change, email')
+          .select('id, locked_until, failed_login_attempts, is_active, force_password_change, email, lockout_exempt')
           .eq('email', lookupEmail)
           .limit(1)
           .maybeSingle();
@@ -624,7 +624,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
           return 'Account is deactivated. Please contact administrator.';
         }
 
-        if (existingProfile.locked_until) {
+        if (existingProfile.locked_until && !(existingProfile as any).lockout_exempt) {
           const lockUntil = new Date(existingProfile.locked_until);
           if (lockUntil > new Date()) {
             const minutesRemaining = Math.ceil((lockUntil.getTime() - Date.now()) / 60000);
