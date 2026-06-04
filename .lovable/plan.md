@@ -1,49 +1,54 @@
-## Goal
-1. Immediately unlock `admin@secureserve.gov` (currently locked until 2026-06-04 11:44 UTC, 7 failed attempts).
-2. Add a proper "Unlock User" action in the admin UI.
-3. Add a "Lockout Exemption" flag so designated accounts (e.g. system admins) never get auto-locked.
+## Problem
 
-## Changes
+Clicking a leaf submenu item in the sidebar triggers a full browser reload instead of a client-side route change. Symptoms in the preview confirm this: after each click the auth provider re-runs (`[Auth] getSession() timed out — proceeding as unauthenticated` repeats on every navigation, which only happens on a fresh app boot).
 
-### 1. Immediate unlock (data fix)
-Run an update on `profiles` for `admin@secureserve.gov`:
-- `locked_until = NULL`
-- `failed_login_attempts = 0`
+## Root cause
 
-### 2. Schema: lockout-exemption flag
-Migration on `profiles`:
-- Add `lockout_exempt BOOLEAN NOT NULL DEFAULT false`
-- Set `lockout_exempt = true` for `admin@secureserve.gov` as part of the same migration.
+The dynamic (DB-driven) sidebar renders leaf items through `src/components/sidebar/SidebarMenuLink.tsx`. That component does **not** use react-router-dom's `Link`. Instead it renders:
 
-### 3. Login flow update (`src/contexts/SupabaseAuthContext.tsx`)
-- Include `lockout_exempt` in the profile select.
-- Skip the "account is locked" check when `lockout_exempt` is true.
-- On failed login for an exempt user: still increment `failed_login_attempts` for visibility, but never set `locked_until`.
-- On successful login: existing reset of attempts/lock continues to apply.
+```tsx
+<a href={item.url} onClick={handleInternalClick}>...</a>
+```
 
-### 4. Admin UI — Unlock action
-In `src/pages/admin/users/UserList.tsx` and `UserView.tsx`:
-- Replace the ambiguous Lock/Unlock icon (which today toggles `is_active`) with two distinct actions:
-  - **Activate/Deactivate** (toggles `is_active`)
-  - **Unlock account** (visible only when `locked_until > now()` OR `failed_login_attempts > 0`) — clears `locked_until` and resets `failed_login_attempts`, writes `system_audit_trail` entry.
-- Show a "Locked" badge with the unlock-until timestamp.
+where `handleInternalClick` is:
 
-### 5. Admin UI — Lockout exemption
-In `src/pages/admin/users/UserEdit.tsx` (and shown read-only in `UserView.tsx`):
-- Add a switch **"Exempt from auto-lockout"** (admin-only, requires `system_admin` permission).
-- Persists to `profiles.lockout_exempt`.
-- Audit-log every change (old → new value) to `system_audit_trail`.
+```ts
+if (e.defaultPrevented) return;   // <-- bail-out
+if (e.button !== 0) return;
+if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+e.preventDefault();
+navigate(item.url);
+```
 
-### 6. Audit + safety
-- All unlock and exemption changes recorded via existing `logAuditTrail` service with `module: 'Security'`.
-- Exemption toggle restricted to users with `system_admin` permission in the UI; document that DB-level enforcement is via app role check (RLS is intentionally off per project rule).
+The `<a>` sits inside `SidebarMenuButton asChild` (Radix `Slot`) and, when collapsed, additionally inside `TooltipTrigger asChild`. Radix composes click handlers along that chain. Whenever any ancestor handler (Tooltip open/close, Sheet close on mobile, Slot prop-merge edge cases) marks the event with `defaultPrevented`, the `if (e.defaultPrevented) return;` guard fires, `navigate()` is **never called**, and the browser then follows the `<a href>` → full page reload, which re-mounts the whole app (explaining the repeated auth re-initialisation in the logs).
 
-## Technical notes
-- No RLS changes (per project constraint).
-- No new tables; just one column on `profiles`.
-- `auth-logs` shows the account exists and is reachable; only lockout state needs resetting.
-- The existing `admin-update-password` edge function already resets login state on password change — no change needed there.
+The sibling component `SidebarGroupMenu.tsx` already uses `<Link to=…>` for its leaves and does not exhibit the problem, which confirms the diagnosis.
+
+## Fix
+
+Replace the manual anchor + `useNavigate` pattern in `SidebarMenuLink` with react-router-dom's `<Link to=…>` for internal URLs. `Link` always performs SPA navigation, ignores modifier/middle-click correctly out of the box, and is immune to ancestor `preventDefault` quirks. Keep the existing external/satellite handling for absolute URLs.
+
+### Files to change
+
+1. **`src/components/sidebar/SidebarMenuLink.tsx`**
+   - Import `Link` from `react-router-dom`; remove `useNavigate` and `handleInternalClick`.
+   - For internal `item.url`, render `<Link to={item.url} className={linkClass}>{inner}</Link>` inside `SidebarMenuButton asChild`.
+   - Keep the external branch (`isExternal`) as-is, including `navigateToSatellite` handling and `onClick` with `preventDefault`.
+   - Preserve all existing class names, active styling, tooltip-when-collapsed behaviour, and the `description` tooltip.
+
+No other files need changes. `SidebarGroupMenu.tsx` already uses `Link` for its own leaves and is unaffected.
+
+## Verification
+
+1. From `/compliance/violations`, click any sidebar leaf (e.g. Person 360, BN Product Catalog, Compliance submenus). The URL should change and the page should swap **without** a full reload.
+2. Console should no longer print `[Auth] getSession() timed out` on every sidebar click (auth provider stays mounted).
+3. Ctrl/Cmd/middle-click on a leaf should still open in a new tab (native `<Link>` behaviour).
+4. External / satellite links continue to work (still routed through `navigateToSatellite`).
+5. Active highlighting and the collapsed-state tooltip still render correctly.
+6. TypeScript build passes.
 
 ## Out of scope
-- Per-IP or per-role exemption lists (can be added later if needed).
-- Changing the 5-attempt threshold or 30-min duration (keep current policy).
+
+- No changes to permissions, routing config, or menu data.
+- No changes to `SidebarGroupMenu` leaf rendering (already correct).
+- No changes to the auth timeout warning itself — it will simply stop firing on every click once SPA navigation is restored.
