@@ -710,12 +710,13 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         if (existingProfile) {
           const newAttempts = (existingProfile.failed_login_attempts || 0) + 1;
           const lockoutThreshold = 5;
-          
-          const updateData: Record<string, unknown> = { 
-            failed_login_attempts: newAttempts 
+          const isExempt = !!(existingProfile as any).lockout_exempt;
+
+          const updateData: Record<string, unknown> = {
+            failed_login_attempts: newAttempts
           };
-          
-          if (newAttempts >= lockoutThreshold) {
+
+          if (!isExempt && newAttempts >= lockoutThreshold) {
             const lockDuration = 30;
             updateData.locked_until = new Date(Date.now() + lockDuration * 60000).toISOString();
           }
