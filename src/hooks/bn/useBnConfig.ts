@@ -35,10 +35,10 @@ export const useUpsertBnDocumentProfile = () => {
   return useMutation({ mutationFn: configService.upsertDocumentProfile, onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'document-profiles'] }) });
 };
 
-// Document Rules (by product)
-export const useBnDocumentRules = (productId: string | undefined) => useQuery({
-  queryKey: ['bn', 'document-rules', productId],
-  queryFn: () => configService.fetchDocumentRulesByProduct(productId!),
+// Document Rules (by product, optionally scoped to a version)
+export const useBnDocumentRules = (productId: string | undefined, versionId?: string | undefined) => useQuery({
+  queryKey: ['bn', 'document-rules', productId, versionId ?? null],
+  queryFn: () => configService.fetchDocumentRulesByProduct(productId!, versionId),
   enabled: !!productId,
 });
 export const useUpsertBnDocumentRule = () => {
