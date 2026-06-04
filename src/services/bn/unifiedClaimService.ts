@@ -258,13 +258,15 @@ async function buildBnUnified(
   let events: any[] = [];
   let docs: any[] = [];
 
+  let bnPayments: any[] = [];
   if (input.includeRelated !== false) {
-    [detail, eligibility, calculation, events, docs] = await Promise.all([
+    [detail, eligibility, calculation, events, docs, bnPayments] = await Promise.all([
       claimService.fetchClaimDetail(bnId).catch(() => null),
       claimService.fetchClaimEligibility(bnId).catch(() => []),
       claimService.fetchClaimCalculations(bnId).catch(() => []),
       claimService.fetchClaimEvents(bnId).catch(() => []),
       claimService.fetchClaimDocuments(bnId).catch(() => []),
+      paymentBoundaryService.getUnifiedPaymentsForClaim({ bnClaimId: bnId }).catch(() => []),
     ]);
   }
 
