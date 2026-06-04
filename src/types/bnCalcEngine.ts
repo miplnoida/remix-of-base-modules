@@ -29,6 +29,8 @@ export interface BnCalcEngineInput {
   claimDate: string;
   countryCode: string;
   mode: BnCalcRunMode;
+  /** Authenticated user_code that triggered the run (audit). */
+  triggeredBy: string;
   // optional overrides for simulation
   overrideParams?: Record<string, unknown>;
   // legacy snapshot id for comparison mode
