@@ -52,6 +52,7 @@ export interface EligibilityFieldDef {
     | 'employer.status'
     | 'evidence.requiredDocsComplete'
     | 'evidence.documentVerified'
+    | 'claim.hasDuplicateActiveClaim'
     | 'claim.claimDate'
     | 'claim.benefitType';
   /** Whether a contribution window selector should be exposed on the rule. */
@@ -155,6 +156,16 @@ export const ELIGIBILITY_FIELD_REGISTRY: EligibilityFieldDef[] = [
     resolver: 'evidence.documentVerified',
     supportsDocumentType: true,
     helpText: 'True when a verified evidence row exists for the chosen document type.',
+  },
+  {
+    key: 'claim.has_duplicate_active_claim',
+    label: 'Has duplicate active claim',
+    category: 'CLAIM',
+    dataSource: 'bn_claim + legacy cl_head (via historicalInquiryAdapter)',
+    valueType: 'boolean',
+    operators: ['==', '!='],
+    resolver: 'claim.hasDuplicateActiveClaim',
+    helpText: 'True when an active claim for the same person/benefit already exists in BN or legacy.',
   },
   {
     key: 'claim.claim_date',

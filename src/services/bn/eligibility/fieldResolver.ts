@@ -167,6 +167,29 @@ export async function resolveField(
       return { fieldKey, resolver: def.resolver, value: ctx.claimDate, sourceLabel: 'engine input' };
     case 'claim.benefitType':
       return { fieldKey, resolver: def.resolver, value: ctx.benefitType ?? null, sourceLabel: 'engine input' };
+    case 'claim.hasDuplicateActiveClaim': {
+      // Check active BN claims for same SSN + benefit type (excluding this claim)
+      let bnQ = db.from('bn_claim').select('id, status, product_id').eq('ssn', ctx.ssn)
+        .not('status', 'in', '(REJECTED,CANCELLED,CLOSED,DRAFT)');
+      if (ctx.claimId) bnQ = bnQ.neq('id', ctx.claimId);
+      const { data: bnRows } = await bnQ;
+      const bnDup = (bnRows ?? []).length > 0;
+      let legacyDup = false;
+      try {
+        const { getLegacyClaimsBySsn } = await import('@/services/bn/integration/historicalInquiryAdapter');
+        const legacy = await getLegacyClaimsBySsn(ctx.ssn);
+        legacyDup = (legacy?.data ?? []).some((c: any) => {
+          const st = String(c.status ?? '').toUpperCase();
+          const benefitMatch = !ctx.benefitType || String(c.benefitType ?? c.benefit_type ?? '').toUpperCase() === ctx.benefitType.toUpperCase();
+          return benefitMatch && !['CLOSED', 'REJECTED', 'CANCELLED', 'PAID'].includes(st);
+        });
+      } catch { /* legacy unavailable — non-fatal */ }
+      return {
+        fieldKey, resolver: def.resolver, value: bnDup || legacyDup,
+        sourceLabel: 'bn_claim + legacy cl_head',
+        notes: `bn=${bnDup} legacy=${legacyDup}`,
+      };
+    }
     default:
       throw new Error(`No resolver implemented for ${def.resolver}`);
   }
