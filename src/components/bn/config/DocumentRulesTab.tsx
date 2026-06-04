@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useBnDocumentRules, useUpsertBnDocumentRule, useDeleteBnDocumentRule } from '@/hooks/bn/useBnConfig';
 import type { BnDocumentRule } from '@/types/bn';
 
-interface Props { productId: string | undefined; }
+interface Props { productId: string | undefined; versionId?: string | undefined; }
 
 const channelBadge = (c?: string) => {
   const v = (c ?? 'BOTH').toUpperCase();
