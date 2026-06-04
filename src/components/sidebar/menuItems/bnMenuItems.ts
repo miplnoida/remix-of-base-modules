@@ -259,3 +259,6 @@ const _bnMenuItemsRaw = [
     ],
   },
 ];
+
+export const bnMenuItems = filterMenuByFeatures(_bnMenuItemsRaw as any);
+
