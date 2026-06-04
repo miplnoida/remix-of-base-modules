@@ -30,6 +30,9 @@ export interface UnifiedClaimant {
 }
 
 export interface UnifiedPayment {
+  /** Discriminator for source-badge rendering. */
+  source?: 'LEGACY_CHEQUE' | 'BN_INSTRUCTION';
+  sourceBadge?: 'Legacy Cheque' | 'BN Instruction';
   id?: string | null;
   reference?: string | null;
   amount: number | null;
