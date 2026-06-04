@@ -22,6 +22,8 @@ export interface ProductValidationReport {
   screen_template: CheckResult;
   timeline: CheckResult;
   test_cases: CheckResult;
+  offline_channel: CheckResult;
+  online_channel: CheckResult;
   overall_status: ValidationStatus;
   issues: string[];
   product_id?: string;
