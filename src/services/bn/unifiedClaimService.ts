@@ -147,6 +147,8 @@ async function buildLegacyUnified(
       historicalInquiryAdapter.getLegacyClaimTimeline(num, seq),
     ]);
     payments = payResp.data.cheques.map((c) => ({
+      source: 'LEGACY_CHEQUE' as const,
+      sourceBadge: 'Legacy Cheque' as const,
       reference: c.cheque_number ?? null,
       amount: c.amount ?? null,
       date: c.issue_date ?? null,
