@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as configService from '@/services/bn/configService';
+import * as channelService from '@/services/bn/productChannelConfigService';
 
 // Countries
 export const useBnCountries = () => useQuery({ queryKey: ['bn', 'countries'], queryFn: configService.fetchCountries });
