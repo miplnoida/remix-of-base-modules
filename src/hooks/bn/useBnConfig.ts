@@ -99,3 +99,27 @@ export const useCreateBnVersionApproval = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: configService.createVersionApproval, onSuccess: () => qc.invalidateQueries({ queryKey: ['bn'] }) });
 };
+
+// Channel Configurations (online/offline per product version)
+export const useBnChannelConfigs = (productVersionId: string | undefined) => useQuery({
+  queryKey: ['bn', 'channel-configs', productVersionId],
+  queryFn: () => channelService.fetchChannelConfigs(productVersionId!),
+  enabled: !!productVersionId,
+});
+
+export const useUpsertBnChannelConfig = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: channelService.upsertChannelConfig,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'channel-configs'] }),
+  });
+};
+
+export const useEnsureBnChannelConfigs = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ productId, productVersionId }: { productId: string; productVersionId: string }) =>
+      channelService.ensureChannelConfigs(productId, productVersionId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'channel-configs'] }),
+  });
+};
