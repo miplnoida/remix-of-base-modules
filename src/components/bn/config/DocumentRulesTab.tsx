@@ -288,6 +288,37 @@ export function DocumentRulesTab({ productId, versionId }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={copyOpen} onOpenChange={(o) => { setCopyOpen(o); if (!o) setCopySourceId(''); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Copy Documents from Another Version</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Copy all document requirements from a source version into this version. Existing rows are kept; copied rows are added.
+            </p>
+            <div className="space-y-2">
+              <Label>Source Version *</Label>
+              <Select value={copySourceId} onValueChange={setCopySourceId}>
+                <SelectTrigger><SelectValue placeholder="Select source version" /></SelectTrigger>
+                <SelectContent>
+                  {otherVersions.map(v => (
+                    <SelectItem key={v.id} value={v.id}>
+                      V{v.version_number} [{v.status}]
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setCopyOpen(false); setCopySourceId(''); }}>Cancel</Button>
+            <Button onClick={handleCopyFromVersion} disabled={!copySourceId || copying} className="gap-2">
+              {copying && <Loader2 className="h-4 w-4 animate-spin" />}
+              Copy Documents
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
