@@ -49,7 +49,7 @@ export default function RuleConfiguration() {
   const [form, setForm] = useState<RuleGroupForm>(emptyForm);
   const { data: ruleGroups = [], isLoading } = useBnRuleGroups();
   const upsert = useUpsertBnRuleGroup();
-  const userCode = useUserCode();
+  const { userCode } = useUserCode();
 
   const filtered = ruleGroups.filter((rg: BnRuleGroup) =>
     !search || rg.group_name?.toLowerCase().includes(search.toLowerCase()) ||
