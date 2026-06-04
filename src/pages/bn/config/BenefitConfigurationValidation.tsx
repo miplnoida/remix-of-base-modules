@@ -223,6 +223,8 @@ export default function BenefitConfigurationValidation() {
                       <TableCell><CheckCell check={r.screen_template} /></TableCell>
                       <TableCell><CheckCell check={r.timeline} /></TableCell>
                       <TableCell><CheckCell check={r.test_cases} /></TableCell>
+                      <TableCell><CheckCell check={r.offline_channel} /></TableCell>
+                      <TableCell><CheckCell check={r.online_channel} /></TableCell>
                       <TableCell><StatusBadge status={r.overall_status} /></TableCell>
                     </TableRow>
                   ))}
