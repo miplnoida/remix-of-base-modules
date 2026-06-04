@@ -9,9 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import { Plus, Trash2, Edit, Copy, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBnDocumentRules, useUpsertBnDocumentRule, useDeleteBnDocumentRule } from '@/hooks/bn/useBnConfig';
+import { useBnProductVersions } from '@/hooks/bn/useBnProduct';
+import { copyDocumentRequirements } from '@/services/bn/configService';
+import { useQueryClient } from '@tanstack/react-query';
 import type { BnDocumentRule } from '@/types/bn';
 
 interface Props { productId: string | undefined; versionId?: string | undefined; }
