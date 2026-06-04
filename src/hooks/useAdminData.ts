@@ -470,6 +470,7 @@ export function useUserProfiles() {
           mfa_enabled,
           failed_login_attempts,
           locked_until,
+          lockout_exempt,
           office:tb_office!profiles_office_code_fkey(code, description, address1, address2),
           department:tb_office_departments!profiles_department_id_fkey(id, name)
         `)
