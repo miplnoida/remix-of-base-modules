@@ -138,6 +138,28 @@ export const deleteDocumentRule = async (id: string): Promise<void> => {
   if (error) throw error;
 };
 
+/**
+ * Copy all bn_doc_requirement rows from sourceVersionId into targetVersionId.
+ * Preserves all fields (channel, visibility, blocking flags, condition_json, etc.)
+ * other than id/audit/version columns.
+ */
+export const copyDocumentRequirements = async (
+  sourceVersionId: string,
+  targetVersionId: string,
+): Promise<number> => {
+  const { data: source, error: e1 } = await db
+    .from('bn_doc_requirement').select('*').eq('product_version_id', sourceVersionId);
+  if (e1) throw e1;
+  if (!source || source.length === 0) return 0;
+  const rows = source.map((r: any) => {
+    const { id, entered_at, modified_at, entered_by, modified_by, ...rest } = r;
+    return { ...rest, product_version_id: targetVersionId };
+  });
+  const { error: e2 } = await db.from('bn_doc_requirement').insert(rows);
+  if (e2) throw e2;
+  return rows.length;
+};
+
 // ---- Workflow Templates ----
 export const fetchWorkflowTemplates = async (): Promise<BnWorkflowTemplate[]> => {
   const { data, error } = await db.from('bn_workflow_template').select('*').order('template_name');
