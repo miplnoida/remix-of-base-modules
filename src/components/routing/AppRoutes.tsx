@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { BnFeatureGate } from '@/lib/bn/featureToggles';
 import { LoginScreen } from '@/components/auth/LoginScreen';
 import { InspectorLayout } from '@/components/inspector/InspectorLayout';
 import { ProtectedLayout } from '@/components/layout/ProtectedLayout';
@@ -1774,73 +1775,73 @@ export const AppRoutes = () => {
           <Route path="/newbenefit/auditor" element={<AuditorView />} />
 
       {/* Benefit Management Module (bn_) */}
-      <Route path="/bn/dashboard" element={<BenefitsDashboard />} />
-      <Route path="/bn/person-360" element={<BnPerson360 />} />
-      <Route path="/bn/config/products" element={<BnProductCatalog />} />
-      <Route path="/bn/config/products/:id" element={<BnProductEditor />} />
-      <Route path="/bn/claims" element={<BnClaimWorklist />} />
-      <Route path="/bn/claims/:id" element={<BnClaimWorkbench />} />
-      <Route path="/bn/claims/:id/legacy" element={<BnClaim360 />} />
-      <Route path="/bn/claims/:id/determination" element={<BnBenefitDetermination />} />
-      <Route path="/bn/claims/:id/eligibility" element={<BnEligibilityReview />} />
-      <Route path="/bn/claims/:id/calculation" element={<BnCalculationWorkspace />} />
-      <Route path="/bn/claims/:id/recommendation" element={<BnDeterminationRecommendation />} />
-      <Route path="/bn/engine" element={<BnCalculationEngine />} />
-      <Route path="/bn/intake/register" element={<BnClaimRegistration />} />
-      <Route path="/bn/queue" element={<BnClaimQueue />} />
-      <Route path="/bn/approval" element={<BnApprovalConsole />} />
-      <Route path="/bn/approval/queue" element={<BnApprovalQueue />} />
-      <Route path="/bn/approval/workspace/:claimId" element={<BnAdjudicationWorkspace />} />
-      <Route path="/bn/entitlements" element={<BnEntitlementManagement />} />
-      <Route path="/bn/payables" element={<BnPayablesQueue />} />
-      <Route path="/bn/schedules" element={<BnPaymentSchedule />} />
-      <Route path="/bn/batches" element={<BnBatchOperations />} />
-      <Route path="/bn/issue" element={<BnPaymentIssue />} />
-      <Route path="/bn/post-issue" element={<BnPostIssueReview />} />
-      <Route path="/bn/history" element={<BnHistoricalInquiry />} />
-      <Route path="/bn/exceptions" element={<BnPaymentExceptions />} />
-      <Route path="/bn/post-issue-enhanced" element={<BnPostIssueEnhanced />} />
-      <Route path="/bn/worklist" element={<BnClaimWorklistEnhanced />} />
-      <Route path="/bn/payment-history" element={<BnPaymentHistoryInquiry />} />
-      <Route path="/bn/audit-history" element={<BnAuditDecisionHistory />} />
-      <Route path="/bn/life-certificates" element={<BnLifeCertificateManagement />} />
-      <Route path="/bn/medical-reviews" element={<BnMedicalReviewScheduler />} />
-      <Route path="/bn/overpayments" element={<BnOverpaymentRecovery />} />
-      <Route path="/bn/award-suspension" element={<BnAwardSuspensionConsole />} />
-      <Route path="/bn/survivors" element={<BnSurvivorsBenefitProcessing />} />
-      <Route path="/bn/config/reason-codes" element={<BnReasonCodes />} />
-      <Route path="/bn/config/transitions" element={<BnTransitionMatrix />} />
-      <Route path="/bn/config/workbaskets" element={<BnWorkbasketConfig />} />
-      <Route path="/bn/config/escalation" element={<BnEscalationConfig />} />
-      <Route path="/bn/config/service-doc-types" element={<BnServiceDocTypes />} />
-      <Route path="/bn/config/country" element={<BnCountryPackPage />} />
-      <Route path="/bn/config/country/id-rules" element={<BnCountryIdRules />} />
-      <Route path="/bn/config/country/address-model" element={<BnCountryAddressModel />} />
-      <Route path="/bn/config/country/participant-types" element={<BnCountryParticipantTypes />} />
-      <Route path="/bn/config/country/payment-config" element={<BnCountryPaymentConfig />} />
-      <Route path="/bn/config/country/legal-refs" element={<BnCountryLegalRefs />} />
-      <Route path="/bn/config/rules" element={<BnRuleConfiguration />} />
-      <Route path="/bn/config/rules-admin" element={<BnRulesAdministration />} />
-      <Route path="/bn/config/formulas" element={<BnFormulaConfiguration />} />
-      <Route path="/bn/config/document-setup" element={<BnDocumentSetup />} />
-      <Route path="/bn/config/screen-setup" element={<BnScreenMetadataSetup />} />
+      <Route path="/bn/dashboard" element={<BnFeatureGate flag="bn.enabled"><BenefitsDashboard /></BnFeatureGate>} />
+      <Route path="/bn/person-360" element={<BnFeatureGate flag="bn.person360"><BnPerson360 /></BnFeatureGate>} />
+      <Route path="/bn/config/products" element={<BnFeatureGate flag="bn.config.products"><BnProductCatalog /></BnFeatureGate>} />
+      <Route path="/bn/config/products/:id" element={<BnFeatureGate flag="bn.config.products"><BnProductEditor /></BnFeatureGate>} />
+      <Route path="/bn/claims" element={<BnFeatureGate flag="bn.claims.workbench"><BnClaimWorklist /></BnFeatureGate>} />
+      <Route path="/bn/claims/:id" element={<BnFeatureGate flag="bn.claims.workbench"><BnClaimWorkbench /></BnFeatureGate>} />
+      <Route path="/bn/claims/:id/legacy" element={<BnFeatureGate flag="bn.claim360"><BnClaim360 /></BnFeatureGate>} />
+      <Route path="/bn/claims/:id/determination" element={<BnFeatureGate flag="bn.claims.workbench"><BnBenefitDetermination /></BnFeatureGate>} />
+      <Route path="/bn/claims/:id/eligibility" element={<BnFeatureGate flag="bn.claims.workbench"><BnEligibilityReview /></BnFeatureGate>} />
+      <Route path="/bn/claims/:id/calculation" element={<BnFeatureGate flag="bn.claims.workbench"><BnCalculationWorkspace /></BnFeatureGate>} />
+      <Route path="/bn/claims/:id/recommendation" element={<BnFeatureGate flag="bn.claims.workbench"><BnDeterminationRecommendation /></BnFeatureGate>} />
+      <Route path="/bn/engine" element={<BnFeatureGate flag="bn.config.rules"><BnCalculationEngine /></BnFeatureGate>} />
+      <Route path="/bn/intake/register" element={<BnFeatureGate flag="bn.claims.intake"><BnClaimRegistration /></BnFeatureGate>} />
+      <Route path="/bn/queue" element={<BnFeatureGate flag="bn.claims.workbench"><BnClaimQueue /></BnFeatureGate>} />
+      <Route path="/bn/approval" element={<BnFeatureGate flag="bn.claims.workbench"><BnApprovalConsole /></BnFeatureGate>} />
+      <Route path="/bn/approval/queue" element={<BnFeatureGate flag="bn.claims.workbench"><BnApprovalQueue /></BnFeatureGate>} />
+      <Route path="/bn/approval/workspace/:claimId" element={<BnFeatureGate flag="bn.claims.workbench"><BnAdjudicationWorkspace /></BnFeatureGate>} />
+      <Route path="/bn/entitlements" element={<BnFeatureGate flag="bn.awards"><BnEntitlementManagement /></BnFeatureGate>} />
+      <Route path="/bn/payables" element={<BnFeatureGate flag="bn.payments"><BnPayablesQueue /></BnFeatureGate>} />
+      <Route path="/bn/schedules" element={<BnFeatureGate flag="bn.payments"><BnPaymentSchedule /></BnFeatureGate>} />
+      <Route path="/bn/batches" element={<BnFeatureGate flag="bn.payments"><BnBatchOperations /></BnFeatureGate>} />
+      <Route path="/bn/issue" element={<BnFeatureGate flag="bn.payments"><BnPaymentIssue /></BnFeatureGate>} />
+      <Route path="/bn/post-issue" element={<BnFeatureGate flag="bn.payments"><BnPostIssueReview /></BnFeatureGate>} />
+      <Route path="/bn/history" element={<BnFeatureGate flag="bn.historicalInquiry"><BnHistoricalInquiry /></BnFeatureGate>} />
+      <Route path="/bn/exceptions" element={<BnFeatureGate flag="bn.payments"><BnPaymentExceptions /></BnFeatureGate>} />
+      <Route path="/bn/post-issue-enhanced" element={<BnFeatureGate flag="bn.payments"><BnPostIssueEnhanced /></BnFeatureGate>} />
+      <Route path="/bn/worklist" element={<BnFeatureGate flag="bn.claims.workbench"><BnClaimWorklistEnhanced /></BnFeatureGate>} />
+      <Route path="/bn/payment-history" element={<BnFeatureGate flag="bn.payments"><BnPaymentHistoryInquiry /></BnFeatureGate>} />
+      <Route path="/bn/audit-history" element={<BnFeatureGate flag="bn.enabled"><BnAuditDecisionHistory /></BnFeatureGate>} />
+      <Route path="/bn/life-certificates" element={<BnFeatureGate flag="bn.servicing.lifeCert"><BnLifeCertificateManagement /></BnFeatureGate>} />
+      <Route path="/bn/medical-reviews" element={<BnFeatureGate flag="bn.servicing.medicalReview"><BnMedicalReviewScheduler /></BnFeatureGate>} />
+      <Route path="/bn/overpayments" element={<BnFeatureGate flag="bn.servicing.overpayment"><BnOverpaymentRecovery /></BnFeatureGate>} />
+      <Route path="/bn/award-suspension" element={<BnFeatureGate flag="bn.awards"><BnAwardSuspensionConsole /></BnFeatureGate>} />
+      <Route path="/bn/survivors" element={<BnFeatureGate flag="bn.awards"><BnSurvivorsBenefitProcessing /></BnFeatureGate>} />
+      <Route path="/bn/config/reason-codes" element={<BnFeatureGate flag="bn.config.rules"><BnReasonCodes /></BnFeatureGate>} />
+      <Route path="/bn/config/transitions" element={<BnFeatureGate flag="bn.config.rules"><BnTransitionMatrix /></BnFeatureGate>} />
+      <Route path="/bn/config/workbaskets" element={<BnFeatureGate flag="bn.config.rules"><BnWorkbasketConfig /></BnFeatureGate>} />
+      <Route path="/bn/config/escalation" element={<BnFeatureGate flag="bn.config.rules"><BnEscalationConfig /></BnFeatureGate>} />
+      <Route path="/bn/config/service-doc-types" element={<BnFeatureGate flag="bn.config.rules"><BnServiceDocTypes /></BnFeatureGate>} />
+      <Route path="/bn/config/country" element={<BnFeatureGate flag="bn.config.rules"><BnCountryPackPage /></BnFeatureGate>} />
+      <Route path="/bn/config/country/id-rules" element={<BnFeatureGate flag="bn.config.rules"><BnCountryIdRules /></BnFeatureGate>} />
+      <Route path="/bn/config/country/address-model" element={<BnFeatureGate flag="bn.config.rules"><BnCountryAddressModel /></BnFeatureGate>} />
+      <Route path="/bn/config/country/participant-types" element={<BnFeatureGate flag="bn.config.rules"><BnCountryParticipantTypes /></BnFeatureGate>} />
+      <Route path="/bn/config/country/payment-config" element={<BnFeatureGate flag="bn.config.rules"><BnCountryPaymentConfig /></BnFeatureGate>} />
+      <Route path="/bn/config/country/legal-refs" element={<BnFeatureGate flag="bn.config.rules"><BnCountryLegalRefs /></BnFeatureGate>} />
+      <Route path="/bn/config/rules" element={<BnFeatureGate flag="bn.config.rules"><BnRuleConfiguration /></BnFeatureGate>} />
+      <Route path="/bn/config/rules-admin" element={<BnFeatureGate flag="bn.config.rules"><BnRulesAdministration /></BnFeatureGate>} />
+      <Route path="/bn/config/formulas" element={<BnFeatureGate flag="bn.config.rules"><BnFormulaConfiguration /></BnFeatureGate>} />
+      <Route path="/bn/config/document-setup" element={<BnFeatureGate flag="bn.config.rules"><BnDocumentSetup /></BnFeatureGate>} />
+      <Route path="/bn/config/screen-setup" element={<BnFeatureGate flag="bn.config.rules"><BnScreenMetadataSetup /></BnFeatureGate>} />
 
       {/* Medical Benefit Setup */}
-      <Route path="/bn/config/medical" element={<BnMedicalSetupHome />} />
-      <Route path="/bn/config/medical/procedures" element={<BnMedicalProceduresCatalog />} />
-      <Route path="/bn/config/medical/facility-availability" element={<BnFacilityAvailabilityMatrix />} />
-      <Route path="/bn/config/medical/referral-rules" element={<BnReferralRulesPage />} />
-      <Route path="/bn/config/medical/reimbursement-limits" element={<BnReimbursementLimitsPage />} />
-      <Route path="/bn/config/medical/expense-types" element={<BnExpenseTypeConfiguration />} />
-      <Route path="/bn/config/medical/review-rules" element={<BnMedicalReviewRulesPage />} />
-      <Route path="/bn/config/medical/documents" element={<BnMedicalDocumentsPage />} />
+      <Route path="/bn/config/medical" element={<BnFeatureGate flag="bn.config.rules"><BnMedicalSetupHome /></BnFeatureGate>} />
+      <Route path="/bn/config/medical/procedures" element={<BnFeatureGate flag="bn.config.rules"><BnMedicalProceduresCatalog /></BnFeatureGate>} />
+      <Route path="/bn/config/medical/facility-availability" element={<BnFeatureGate flag="bn.config.rules"><BnFacilityAvailabilityMatrix /></BnFeatureGate>} />
+      <Route path="/bn/config/medical/referral-rules" element={<BnFeatureGate flag="bn.config.rules"><BnReferralRulesPage /></BnFeatureGate>} />
+      <Route path="/bn/config/medical/reimbursement-limits" element={<BnFeatureGate flag="bn.config.rules"><BnReimbursementLimitsPage /></BnFeatureGate>} />
+      <Route path="/bn/config/medical/expense-types" element={<BnFeatureGate flag="bn.config.rules"><BnExpenseTypeConfiguration /></BnFeatureGate>} />
+      <Route path="/bn/config/medical/review-rules" element={<BnFeatureGate flag="bn.config.rules"><BnMedicalReviewRulesPage /></BnFeatureGate>} />
+      <Route path="/bn/config/medical/documents" element={<BnFeatureGate flag="bn.config.rules"><BnMedicalDocumentsPage /></BnFeatureGate>} />
 
       {/* Benefit Simulation Engine */}
-      <Route path="/bn/simulation" element={<BnSimulationDashboard />} />
-      <Route path="/bn/simulation/new" element={<BnScenarioBuilder />} />
-      <Route path="/bn/simulation/edit/:id" element={<BnScenarioBuilder />} />
-      <Route path="/bn/simulation/:id" element={<BnRunSimulation />} />
-      <Route path="/bn/simulation/:id/run/:runId" element={<BnSimulationResult />} />
+      <Route path="/bn/simulation" element={<BnFeatureGate flag="bn.simulation"><BnSimulationDashboard /></BnFeatureGate>} />
+      <Route path="/bn/simulation/new" element={<BnFeatureGate flag="bn.simulation"><BnScenarioBuilder /></BnFeatureGate>} />
+      <Route path="/bn/simulation/edit/:id" element={<BnFeatureGate flag="bn.simulation"><BnScenarioBuilder /></BnFeatureGate>} />
+      <Route path="/bn/simulation/:id" element={<BnFeatureGate flag="bn.simulation"><BnRunSimulation /></BnFeatureGate>} />
+      <Route path="/bn/simulation/:id/run/:runId" element={<BnFeatureGate flag="bn.simulation"><BnSimulationResult /></BnFeatureGate>} />
 
 
       {/* Benefit Application Form */}
