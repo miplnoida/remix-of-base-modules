@@ -108,7 +108,14 @@ export function DocumentRulesTab({ productId, versionId }: Props) {
               and whether it blocks submission, decision, or payment.
             </CardDescription>
           </div>
-          <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Document</Button>
+          <div className="flex gap-2">
+            {versionId && otherVersions.length > 0 && (
+              <Button variant="outline" onClick={() => setCopyOpen(true)} className="gap-2">
+                <Copy className="h-4 w-4" /> Copy from another version
+              </Button>
+            )}
+            <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Document</Button>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? <p className="text-muted-foreground py-4">Loading...</p> : rules.length === 0 ? (
