@@ -1,13 +1,11 @@
 /**
  * Screen 24: Medical Review Scheduler
- * 
- * Manages periodic medical reviews for invalidity and injury benefits.
- * Tracks scheduling, outcomes, disability ratings, and next review dates.
- * Integrates with Medical Board for complex cases.
+ *
+ * Real-data wiring against bn_medical_review_schedule + bn_award + ip_master.
  * Role visibility: Claims Officer, Medical Admin, Supervisor
  */
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -16,40 +14,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import {
-  Search, Stethoscope, Calendar, AlertTriangle, CheckCircle2,
-  Clock, User, Filter, FileText, ArrowRight
-} from 'lucide-react';
+import { Search, Stethoscope, Calendar, AlertTriangle, CheckCircle2, Clock, Filter, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import {
+  fetchAwards,
+  fetchClaimantsBySsns,
+  fetchMedicalReviews,
+  recordMedicalReviewOutcome,
+  scheduleMedicalReview,
+  type BnAwardRow,
+  type BnMedicalReviewRow,
+} from '@/services/bn/awardServicingService';
 
-type ReviewStatus = 'SCHEDULED' | 'COMPLETED' | 'OVERDUE' | 'CANCELLED' | 'REFERRED_BOARD' | 'PENDING_SCHEDULE';
-
-interface MedicalReview {
-  id: string;
-  awardId: string;
-  ssn: string;
-  fullName: string;
-  benefitType: string;
-  reviewType: 'PERIODIC' | 'INITIAL' | 'BOARD_REFERRAL' | 'REASSESSMENT';
-  scheduledDate: string | null;
-  completedDate: string | null;
-  outcome: string | null;
-  disabilityRating: number | null;
-  nextReviewDate: string | null;
-  doctorName: string | null;
-  status: ReviewStatus;
-  notes: string | null;
-}
-
-const MOCK_REVIEWS: MedicalReview[] = [
-  { id: 'MR-001', awardId: 'AWD-2024-005', ssn: '100456', fullName: 'Mary Johnson', benefitType: 'Invalidity Pension', reviewType: 'PERIODIC', scheduledDate: '2026-04-20', completedDate: null, outcome: null, disabilityRating: 75, nextReviewDate: null, doctorName: 'Dr. Smith', status: 'SCHEDULED', notes: null },
-  { id: 'MR-002', awardId: 'AWD-2025-003', ssn: '100890', fullName: 'Peter Clarke', benefitType: 'Employment Injury', reviewType: 'REASSESSMENT', scheduledDate: '2026-03-01', completedDate: null, outcome: null, disabilityRating: 50, nextReviewDate: null, doctorName: null, status: 'OVERDUE', notes: 'Patient missed appointment' },
-  { id: 'MR-003', awardId: 'AWD-2024-015', ssn: '100123', fullName: 'Sarah Adams', benefitType: 'Invalidity Pension', reviewType: 'PERIODIC', scheduledDate: '2026-02-15', completedDate: '2026-02-15', outcome: 'CONTINUE', disabilityRating: 80, nextReviewDate: '2027-02-15', doctorName: 'Dr. Lee', status: 'COMPLETED', notes: 'Condition stable' },
-  { id: 'MR-004', awardId: 'AWD-2025-009', ssn: '100567', fullName: 'James Martin', benefitType: 'Invalidity Pension', reviewType: 'BOARD_REFERRAL', scheduledDate: null, completedDate: null, outcome: null, disabilityRating: 60, nextReviewDate: null, doctorName: null, status: 'REFERRED_BOARD', notes: 'Complex case — referred to full board' },
-  { id: 'MR-005', awardId: 'AWD-2024-022', ssn: '100234', fullName: 'Lisa Herbert', benefitType: 'Employment Injury', reviewType: 'INITIAL', scheduledDate: null, completedDate: null, outcome: null, disabilityRating: null, nextReviewDate: null, doctorName: null, status: 'PENDING_SCHEDULE', notes: null },
-];
-
-const statusConfig: Record<ReviewStatus, { label: string; color: string }> = {
+const statusConfig: Record<string, { label: string; color: string }> = {
   SCHEDULED: { label: 'Scheduled', color: 'bg-blue-500/10 text-blue-700 border-blue-300' },
   COMPLETED: { label: 'Completed', color: 'bg-emerald-500/10 text-emerald-700 border-emerald-300' },
   OVERDUE: { label: 'Overdue', color: 'bg-destructive/10 text-destructive border-destructive/30' },
@@ -58,31 +36,116 @@ const statusConfig: Record<ReviewStatus, { label: string; color: string }> = {
   PENDING_SCHEDULE: { label: 'Needs Scheduling', color: 'bg-amber-500/10 text-amber-700 border-amber-300' },
 };
 
+interface EnrichedReview extends BnMedicalReviewRow {
+  awardNumber: string | null;
+  ssn: string;
+  benefitCode: string | null;
+  claimantName: string;
+}
+
 const MedicalReviewScheduler: React.FC = () => {
+  const { isAuthReady, isAuthenticated, profile, hasAnyRole } = useSupabaseAuth();
+  const canAct = hasAnyRole(['admin', 'supervisor', 'claims_officer', 'medical_admin']);
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [reviews] = useState<MedicalReview[]>(MOCK_REVIEWS);
-  const [selectedReview, setSelectedReview] = useState<MedicalReview | null>(null);
+  const [rows, setRows] = useState<EnrichedReview[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<EnrichedReview | null>(null);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [outcomeOpen, setOutcomeOpen] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleDr, setScheduleDr] = useState('');
   const [outcomeResult, setOutcomeResult] = useState('CONTINUE');
   const [outcomeNotes, setOutcomeNotes] = useState('');
-  const [newRating, setNewRating] = useState('');
+  const [nextReview, setNextReview] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const filtered = useMemo(() => reviews.filter(r => {
-    const matchSearch = !search || r.fullName.toLowerCase().includes(search.toLowerCase()) || r.ssn.includes(search);
-    const matchStatus = statusFilter === 'all' || r.status === statusFilter;
-    return matchSearch && matchStatus;
-  }), [reviews, search, statusFilter]);
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [reviews, awards] = await Promise.all([fetchMedicalReviews(), fetchAwards()]);
+      const awardMap = new Map(awards.map((a) => [a.id, a] as const));
+      const ssns = reviews.map((r) => awardMap.get(r.bn_award_id)?.ssn).filter(Boolean) as string[];
+      const claimants = await fetchClaimantsBySsns(ssns);
+      const enriched: EnrichedReview[] = reviews.map((r) => {
+        const a = awardMap.get(r.bn_award_id) as BnAwardRow | undefined;
+        const ssn = a?.ssn ?? '';
+        return {
+          ...r,
+          awardNumber: a?.award_number ?? null,
+          ssn,
+          benefitCode: a?.benefit_code ?? null,
+          claimantName: claimants[ssn]?.full_name ?? ssn,
+        };
+      });
+      setRows(enriched);
+    } catch (e) {
+      console.error(e);
+      toast.error('Unable to load medical reviews');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const counts = useMemo(() => ({
-    scheduled: reviews.filter(r => r.status === 'SCHEDULED').length,
-    overdue: reviews.filter(r => r.status === 'OVERDUE').length,
-    needsScheduling: reviews.filter(r => r.status === 'PENDING_SCHEDULE').length,
-    boardReferrals: reviews.filter(r => r.status === 'REFERRED_BOARD').length,
-  }), [reviews]);
+  useEffect(() => {
+    if (isAuthReady && isAuthenticated) void load();
+  }, [isAuthReady, isAuthenticated]);
+
+  const filtered = useMemo(
+    () =>
+      rows.filter((r) => {
+        const matchSearch = !search || r.claimantName.toLowerCase().includes(search.toLowerCase()) || r.ssn.includes(search);
+        const matchStatus = statusFilter === 'all' || r.status === statusFilter;
+        return matchSearch && matchStatus;
+      }),
+    [rows, search, statusFilter]
+  );
+
+  const counts = useMemo(
+    () => ({
+      scheduled: rows.filter((r) => r.status === 'SCHEDULED').length,
+      overdue: rows.filter((r) => r.status === 'OVERDUE').length,
+      needsScheduling: rows.filter((r) => r.status === 'PENDING_SCHEDULE').length,
+      boardReferrals: rows.filter((r) => r.status === 'REFERRED_BOARD').length,
+    }),
+    [rows]
+  );
+
+  const doSchedule = async () => {
+    if (!selected) return;
+    if (!scheduleDate) { toast.error('Pick an appointment date'); return; }
+    setSubmitting(true);
+    try {
+      await scheduleMedicalReview(selected.id, scheduleDate, scheduleDr || null, profile?.user_code ?? null);
+      toast.success('Review scheduled');
+      setScheduleOpen(false);
+      setScheduleDate(''); setScheduleDr('');
+      await load();
+    } catch (e) {
+      console.error(e);
+      toast.error('Schedule failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const doOutcome = async () => {
+    if (!selected) return;
+    setSubmitting(true);
+    try {
+      await recordMedicalReviewOutcome(selected.id, outcomeResult, outcomeNotes || null, nextReview || null, profile?.user_code ?? null);
+      toast.success('Outcome recorded');
+      setOutcomeOpen(false);
+      setOutcomeNotes(''); setNextReview(''); setOutcomeResult('CONTINUE');
+      await load();
+    } catch (e) {
+      console.error(e);
+      toast.error('Save failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -93,14 +156,13 @@ const MedicalReviewScheduler: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Upcoming', value: counts.scheduled, icon: Calendar, color: 'text-blue-600' },
           { label: 'Overdue', value: counts.overdue, icon: AlertTriangle, color: 'text-destructive' },
           { label: 'Needs Scheduling', value: counts.needsScheduling, icon: Clock, color: 'text-amber-600' },
           { label: 'Board Referrals', value: counts.boardReferrals, icon: FileText, color: 'text-purple-600' },
-        ].map(kpi => (
+        ].map((kpi) => (
           <Card key={kpi.label}>
             <CardContent className="p-3 flex items-center gap-3">
               <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
@@ -113,12 +175,11 @@ const MedicalReviewScheduler: React.FC = () => {
         ))}
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="p-4 flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by name or SSN..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+            <Input placeholder="Search by name or SSN..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]"><Filter className="h-4 w-4 mr-1" /><SelectValue /></SelectTrigger>
@@ -130,7 +191,6 @@ const MedicalReviewScheduler: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Table */}
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -141,76 +201,77 @@ const MedicalReviewScheduler: React.FC = () => {
                 <TableHead>Benefit</TableHead>
                 <TableHead>Review Type</TableHead>
                 <TableHead>Scheduled</TableHead>
-                <TableHead>Rating</TableHead>
-                <TableHead>Doctor</TableHead>
+                <TableHead>Provider</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No reviews found</TableCell></TableRow>
-              ) : filtered.map(r => (
-                <TableRow key={r.id} className={r.status === 'OVERDUE' ? 'bg-destructive/5' : ''}>
-                  <TableCell className="font-mono text-xs">{r.awardId}</TableCell>
-                  <TableCell className="font-medium">{r.fullName}</TableCell>
-                  <TableCell className="text-sm">{r.benefitType}</TableCell>
-                  <TableCell className="text-sm capitalize">{r.reviewType.replace('_', ' ').toLowerCase()}</TableCell>
-                  <TableCell>{r.scheduledDate || '—'}</TableCell>
-                  <TableCell>{r.disabilityRating != null ? `${r.disabilityRating}%` : '—'}</TableCell>
-                  <TableCell>{r.doctorName || '—'}</TableCell>
-                  <TableCell><Badge variant="outline" className={statusConfig[r.status].color}>{statusConfig[r.status].label}</Badge></TableCell>
-                  <TableCell className="text-right space-x-1">
-                    {['PENDING_SCHEDULE', 'OVERDUE'].includes(r.status) && (
-                      <Button size="sm" variant="outline" onClick={() => { setSelectedReview(r); setScheduleOpen(true); }}>
-                        <Calendar className="h-3 w-3 mr-1" />Schedule
-                      </Button>
-                    )}
-                    {r.status === 'SCHEDULED' && (
-                      <Button size="sm" variant="outline" onClick={() => { setSelectedReview(r); setOutcomeOpen(true); }}>
-                        <CheckCircle2 className="h-3 w-3 mr-1" />Record Outcome
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {loading ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading…</TableCell></TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No medical reviews scheduled</TableCell></TableRow>
+              ) : (
+                filtered.map((r) => (
+                  <TableRow key={r.id} className={r.status === 'OVERDUE' ? 'bg-destructive/5' : ''}>
+                    <TableCell className="font-mono text-xs">{r.awardNumber ?? r.bn_award_id.slice(0, 8)}</TableCell>
+                    <TableCell className="font-medium">{r.claimantName}</TableCell>
+                    <TableCell className="text-sm">{r.benefitCode ?? '—'}</TableCell>
+                    <TableCell className="text-sm capitalize">{(r.review_type ?? '').replace('_', ' ').toLowerCase() || '—'}</TableCell>
+                    <TableCell>{r.scheduled_date ?? '—'}</TableCell>
+                    <TableCell>{r.examining_provider ?? '—'}</TableCell>
+                    <TableCell><Badge variant="outline" className={statusConfig[r.status]?.color ?? ''}>{statusConfig[r.status]?.label ?? r.status}</Badge></TableCell>
+                    <TableCell className="text-right space-x-1">
+                      {canAct && ['PENDING_SCHEDULE', 'OVERDUE'].includes(r.status) && (
+                        <Button size="sm" variant="outline" onClick={() => { setSelected(r); setScheduleDate(''); setScheduleDr(''); setScheduleOpen(true); }}>
+                          <Calendar className="h-3 w-3 mr-1" />Schedule
+                        </Button>
+                      )}
+                      {canAct && r.status === 'SCHEDULED' && (
+                        <Button size="sm" variant="outline" onClick={() => { setSelected(r); setOutcomeOpen(true); }}>
+                          <CheckCircle2 className="h-3 w-3 mr-1" />Record Outcome
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* Schedule Dialog */}
       <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Schedule Medical Review</DialogTitle>
-            <DialogDescription>Schedule a review for {selectedReview?.fullName}</DialogDescription>
+            <DialogDescription>Schedule a review for {selected?.claimantName}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>Appointment Date</Label>
-              <Input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} />
+              <Label>Appointment Date *</Label>
+              <Input type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Examining Doctor</Label>
-              <Input placeholder="Doctor name..." value={scheduleDr} onChange={e => setScheduleDr(e.target.value)} />
+              <Label>Examining Provider</Label>
+              <Input placeholder="Doctor / clinic name..." value={scheduleDr} onChange={(e) => setScheduleDr(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setScheduleOpen(false)}>Cancel</Button>
-            <Button onClick={() => { toast.success('Review scheduled'); setScheduleOpen(false); }}>
-              <Calendar className="h-4 w-4 mr-1" />Confirm Schedule
+            <Button variant="outline" onClick={() => setScheduleOpen(false)} disabled={submitting}>Cancel</Button>
+            <Button onClick={doSchedule} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Calendar className="h-4 w-4 mr-1" />}
+              Confirm Schedule
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Outcome Dialog */}
       <Dialog open={outcomeOpen} onOpenChange={setOutcomeOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Record Review Outcome</DialogTitle>
-            <DialogDescription>Record the medical review result for {selectedReview?.fullName}</DialogDescription>
+            <DialogDescription>Record the medical review result for {selected?.claimantName}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -227,18 +288,19 @@ const MedicalReviewScheduler: React.FC = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Updated Disability Rating (%)</Label>
-              <Input type="number" min="0" max="100" value={newRating} onChange={e => setNewRating(e.target.value)} placeholder={selectedReview?.disabilityRating?.toString() || ''} />
+              <Label>Next Review Date</Label>
+              <Input type="date" value={nextReview} onChange={(e) => setNextReview(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Notes</Label>
-              <Textarea value={outcomeNotes} onChange={e => setOutcomeNotes(e.target.value)} placeholder="Medical findings and recommendations..." />
+              <Textarea value={outcomeNotes} onChange={(e) => setOutcomeNotes(e.target.value)} placeholder="Medical findings and recommendations..." />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOutcomeOpen(false)}>Cancel</Button>
-            <Button onClick={() => { toast.success('Outcome recorded'); setOutcomeOpen(false); }}>
-              <CheckCircle2 className="h-4 w-4 mr-1" />Save Outcome
+            <Button variant="outline" onClick={() => setOutcomeOpen(false)} disabled={submitting}>Cancel</Button>
+            <Button onClick={doOutcome} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
+              Save Outcome
             </Button>
           </DialogFooter>
         </DialogContent>
