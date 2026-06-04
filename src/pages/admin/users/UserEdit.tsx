@@ -20,6 +20,7 @@ const UserEdit = () => {
   const updateUser = useUpdateUserProfile();
   const { data: offices = [] } = useTbOffices();
   const { data: designations = [] } = useDesignations();
+  const { isAdmin } = useSupabaseAuth();
   
   const [selectedOfficeId, setSelectedOfficeId] = useState<string>("");
   const { data: departments = [] } = useDepartments(selectedOfficeId || undefined);
