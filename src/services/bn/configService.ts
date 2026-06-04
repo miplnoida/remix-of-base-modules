@@ -81,8 +81,10 @@ export const upsertDocumentProfile = async (dp: Partial<BnDocumentProfile>): Pro
 };
 
 // ---- Document Rules (by product) ----
-export const fetchDocumentRulesByProduct = async (productId: string): Promise<BnDocumentRule[]> => {
-  const { data, error } = await db.from('bn_doc_requirement').select('*').eq('product_id', productId).order('sort_order');
+export const fetchDocumentRulesByProduct = async (productId: string, versionId?: string): Promise<BnDocumentRule[]> => {
+  let q = db.from('bn_doc_requirement').select('*').eq('product_id', productId).order('sort_order');
+  if (versionId) q = q.or(`product_version_id.eq.${versionId},product_version_id.is.null`);
+  const { data, error } = await q;
   if (error) throw error;
   return (data ?? []).map((r: any) => ({
     id: r.id,
@@ -112,6 +114,7 @@ export const fetchDocumentRulesByProduct = async (productId: string): Promise<Bn
 export const upsertDocumentRule = async (rule: Partial<BnDocumentRule>): Promise<BnDocumentRule> => {
   const payload: any = {
     product_id: rule.product_id,
+    product_version_id: rule.product_version_id ?? null,
     document_type_code: rule.document_type_code,
     description: rule.document_name || rule.description,
     requirement_level: rule.is_mandatory ? 'MANDATORY' : 'OPTIONAL',

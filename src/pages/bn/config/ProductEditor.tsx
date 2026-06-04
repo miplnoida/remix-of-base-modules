@@ -289,7 +289,7 @@ export default function ProductEditor() {
         </TabsContent>
 
         <TabsContent value="documents" className="mt-6">
-          <DocumentRulesTab productId={isNew ? undefined : id} />
+          <DocumentRulesTab productId={isNew ? undefined : id} versionId={selectedVersionId} />
         </TabsContent>
 
         <TabsContent value="workflow" className="mt-6">

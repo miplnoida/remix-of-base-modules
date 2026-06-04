@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useBnDocumentRules, useUpsertBnDocumentRule, useDeleteBnDocumentRule } from '@/hooks/bn/useBnConfig';
 import type { BnDocumentRule } from '@/types/bn';
 
-interface Props { productId: string | undefined; }
+interface Props { productId: string | undefined; versionId?: string | undefined; }
 
 const channelBadge = (c?: string) => {
   const v = (c ?? 'BOTH').toUpperCase();
@@ -23,9 +23,9 @@ const channelBadge = (c?: string) => {
   return <Badge variant="outline">Both</Badge>;
 };
 
-export function DocumentRulesTab({ productId }: Props) {
+export function DocumentRulesTab({ productId, versionId }: Props) {
   const { toast } = useToast();
-  const { data: rules = [], isLoading } = useBnDocumentRules(productId);
+  const { data: rules = [], isLoading } = useBnDocumentRules(productId, versionId);
   const upsertMutation = useUpsertBnDocumentRule();
   const deleteMutation = useDeleteBnDocumentRule();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -36,7 +36,8 @@ export function DocumentRulesTab({ productId }: Props) {
 
   const openNew = () => {
     setEditing({
-      product_id: productId, document_type_code: '', document_name: '', description: '',
+      product_id: productId, product_version_id: versionId,
+      document_type_code: '', document_name: '', description: '',
       is_mandatory: true, stage: 'INTAKE', sort_order: 0, is_active: true, max_file_size_mb: 10,
       channel_code: 'BOTH', public_visible: true, internal_visible: true,
       blocks_submission: false, blocks_decision: true, blocks_payment: false, condition_json: {},
