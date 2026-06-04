@@ -74,6 +74,8 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
       screen_template: { status: 'FAIL', message: 'N/A' },
       timeline: { status: 'FAIL', message: 'N/A' },
       test_cases: { status: 'FAIL', message: 'N/A' },
+      offline_channel: { status: 'FAIL', message: 'N/A' },
+      online_channel: { status: 'FAIL', message: 'N/A' },
       overall_status: 'FAIL',
       issues: [`Product ${baseline.benefit_code} not configured.`, ...issues],
     };
