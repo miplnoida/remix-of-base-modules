@@ -57,7 +57,7 @@ export async function executeSimulationRun(req: BnSimulationRequest): Promise<Bn
     product_version_id: req.productVersionId,
     country_code: req.countryCode,
     started_at: new Date().toISOString(),
-    triggered_by: req.triggeredBy || 'SYSTEM',
+    triggered_by: (await import('@/lib/bn/requireUserCode')).requireUserCode(req.triggeredBy, 'runSimulation'),
   });
 
   // 3. Persist input parameters
