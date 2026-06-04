@@ -75,9 +75,26 @@ export default function ClaimWorkbench() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // Unified Claim 360: if the route id is a legacy synthetic id
+  // (`legacy:CLAIMNUMBER:SEQ`), render the read-only legacy view
+  // instead of the BN workbench. Source routing is decided here so
+  // the rest of the workbench code keeps assuming a modern bn_claim.
+  if (id && id.startsWith('legacy:')) {
+    const [, claimNumber, seqStr] = id.split(':');
+    const claimSeq = Number(seqStr);
+    if (claimNumber && Number.isFinite(claimSeq)) {
+      // Lazy require to avoid pulling the legacy view into the
+      // main workbench bundle path when not needed.
+      const LegacyClaim360View =
+        require('@/components/bn/claim/LegacyClaim360View').default;
+      return <LegacyClaim360View claimNumber={claimNumber} claimSeq={claimSeq} />;
+    }
+  }
+
   // ── Core Data ──────────────────────────────────────────────────
   const { data: claim, isLoading } = useBnClaim(id);
   const { data: events = [] } = useBnClaimEvents(id);
+
   const { data: notes = [] } = useBnClaimNotes(id);
   const { data: eligibility = [] } = useBnClaimEligibility(id);
   const { data: calculations = [] } = useBnClaimCalculations(id);
