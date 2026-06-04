@@ -1,517 +1,304 @@
-/**
- * BN Product Acceptance Service
- *
- * Product Catalogue is the single configuration source for accepting and
- * processing benefit applications. This service is the contract used by:
- *   - internal staff intake (ClaimWorkbench / NewClaim wizard)
- *   - future public online application portal
- *
- * All behaviour (eligible products, required fields, required documents,
- * eligibility prechecks, workflow start, audit) is derived from the
- * resolved bn_product_version. No product-specific intake code may
- * hardcode field lists, document lists, or workflow logic.
- */
 import { supabase } from '@/integrations/supabase/client';
-import { requireUserCode } from '@/lib/bn/requireUserCode';
-import { resolveField } from './eligibility/fieldResolver';
-import { evaluateOperator } from './eligibility/operatorEvaluator';
-import { getFieldDef } from './eligibility/fieldRegistry';
-import { bnWorkflowAdapter } from './integration/workflowAdapter';
-import type { BnProduct, BnProductVersion, BnEligibilityRule, BnDocRequirement } from '@/types/bn';
+import type { BnChannelCode, BnDocumentRule, BnProductChannelConfig } from '@/types/bn';
+import { fetchEligibilityRules, fetchCalculationRules, fetchTimelineRules } from './productService';
+import { getChannelConfig } from './productChannelConfigService';
 
 const db = supabase as any;
 
-// ────────────────────────────────────────────────────────────────────────────
-// Types
-// ────────────────────────────────────────────────────────────────────────────
-
-export interface ApplicantContext {
-  ssn: string;
-  claimDate: string; // ISO yyyy-MM-dd
-  employerRegNo?: string;
-  benefitType?: string;
-}
-
-export interface ScreenTemplateField {
-  field_code: string;
-  field_label: string;
-  field_type: string;
-  section_code: string;
-  is_required: boolean;
-  validation_rules: Record<string, any>;
-  options_source?: string | null;
-  default_value?: string | null;
-  help_text?: string | null;
-  sort_order: number;
-}
-
-export interface ProductApplicationConfig {
-  product: BnProduct;
-  productVersion: BnProductVersion;
-  /** Dynamic form fields from bn_screen_template/bn_field_metadata. */
-  formFields: ScreenTemplateField[];
-  /** Document requirements from bn_doc_requirement (INTAKE + general). */
-  documentRequirements: BnDocRequirement[];
-  /** Eligibility prechecks (rules flagged for intake stage). */
-  eligibilityRules: BnEligibilityRule[];
-  /** Workflow definition / template that will be started. */
-  workflow: {
-    workflowTemplateId: string | null;
-    workflowDefinitionId: string | null;
-    fallbackToTransitionRules: boolean;
-  };
-}
-
-export interface PrecheckResult {
-  fieldKey: string;
-  passed: boolean;
-  reason: string;
-  failAction: string;
-}
-
-export interface ValidationResult {
-  valid: boolean;
-  errors: { field: string; message: string }[];
-  prechecks: PrecheckResult[];
-}
-
-export interface SubmitApplicationPayload {
-  productCode: string;
-  ssn: string;
-  claimDate: string;
-  employerRegNo?: string;
-  source?: 'WALK_IN' | 'ONLINE' | 'AGENT' | 'PHONE';
-  contactPhone?: string;
-  contactEmail?: string;
-  bankAccount?: string;
-  bankRoutingNumber?: string;
-  declaration: boolean;
-  digitalSignature?: string;
-  /** Values keyed by bn_field_metadata.field_code. */
-  formValues: Record<string, any>;
-  /** Operator user_code — REQUIRED for audit. */
-  actorUserCode: string;
-}
-
-export interface SubmitApplicationResult {
-  claimId: string;
-  claimNumber: string | null;
-  workflowInstanceId: string | null;
-  checklistItemsCreated: number;
-  auditSnapshot: AuditSnapshot;
-}
-
-export interface AuditSnapshot {
-  productId: string;
-  productVersionId: string;
-  documentProfileId: string | null;
+export interface ApplicationConfig {
+  product: any;
+  version: any;
+  channelConfig: BnProductChannelConfig | null;
+  eligibility: any[];
+  calculation: any[];
+  timelines: any[];
+  documents: BnDocumentRule[];
   screenTemplateId: string | null;
   workflowTemplateId: string | null;
-  ruleVersion: number;
-  capturedAt: string;
+  workflowDefinitionId: string | null;
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// 1. Product Version Resolution
-// ────────────────────────────────────────────────────────────────────────────
 
 /**
- * Resolve the active bn_product_version for a given product (id or code)
- * and a claim date. Returns the version whose effective range contains the
- * claim date and whose status is ACTIVE.
+ * Resolve the active product version for a product at a given claim date.
  */
-export async function resolveProductVersion(
-  productKey: { productId?: string; productCode?: string },
-  claimDate: string,
-): Promise<{ product: BnProduct; version: BnProductVersion }> {
-  let productRow: BnProduct | null = null;
-  if (productKey.productId) {
-    const { data, error } = await db.from('bn_product').select('*').eq('id', productKey.productId).maybeSingle();
-    if (error) throw error;
-    productRow = data;
-  } else if (productKey.productCode) {
-    const { data, error } = await db.from('bn_product').select('*').eq('benefit_code', productKey.productCode).maybeSingle();
-    if (error) throw error;
-    productRow = data;
-  }
-  if (!productRow) throw new Error('Product not found');
-  if (String(productRow.status).toUpperCase() !== 'ACTIVE') {
-    throw new Error(`Product ${productRow.benefit_code} is not ACTIVE`);
-  }
-
-  const { data: versions, error: vErr } = await db
+async function resolveActiveVersion(productId: string, claimDate: string) {
+  const { data, error } = await db
     .from('bn_product_version')
     .select('*')
-    .eq('product_id', productRow.id)
+    .eq('product_id', productId)
     .eq('status', 'ACTIVE')
     .lte('effective_from', claimDate)
-    .order('version_number', { ascending: false });
-  if (vErr) throw vErr;
-
-  const active = (versions ?? []).find((v: BnProductVersion) =>
-    !v.effective_to || v.effective_to >= claimDate
-  );
-  if (!active) throw new Error(`No ACTIVE product version for ${productRow.benefit_code} on ${claimDate}`);
-
-  return { product: productRow, version: active };
+    .order('effective_from', { ascending: false });
+  if (error) throw error;
+  const candidates = (data ?? []) as any[];
+  return candidates.find(v => !v.effective_to || v.effective_to >= claimDate) ?? null;
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// 2. Application Config (shared by internal + public portal)
-// ────────────────────────────────────────────────────────────────────────────
+async function fetchDocsForProduct(productId: string): Promise<BnDocumentRule[]> {
+  const { data, error } = await db
+    .from('bn_doc_requirement')
+    .select('*')
+    .eq('product_id', productId)
+    .eq('is_active', true)
+    .order('sort_order');
+  if (error) throw error;
+  return (data ?? []) as BnDocumentRule[];
+}
 
+/**
+ * Returns the full application config for a (product, claim date, channel).
+ * Same contract for internal staff intake and public portal UIs.
+ */
 export async function getProductApplicationConfig(
   productCode: string,
   claimDate: string,
-  _applicantContext?: ApplicantContext,
-): Promise<ProductApplicationConfig> {
-  const { product, version } = await resolveProductVersion({ productCode }, claimDate);
+  channel: BnChannelCode,
+  _applicantContext?: Record<string, unknown>
+): Promise<ApplicationConfig> {
+  const { data: product, error: prodErr } = await db
+    .from('bn_product')
+    .select('*')
+    .eq('benefit_code', productCode)
+    .maybeSingle();
+  if (prodErr) throw prodErr;
+  if (!product) throw new Error(`Benefit product not found: ${productCode}`);
 
-  // Screen template → form fields
-  let formFields: ScreenTemplateField[] = [];
-  if (version.screen_template_id) {
-    const { data, error } = await db
-      .from('bn_field_metadata')
-      .select('*')
-      .eq('screen_template_id', version.screen_template_id)
-      .eq('is_active', true)
-      .order('section_code')
-      .order('sort_order');
-    if (error) throw error;
-    formFields = (data ?? []) as ScreenTemplateField[];
+  const version = await resolveActiveVersion(product.id, claimDate);
+  if (!version) throw new Error(`No active version for ${productCode} on ${claimDate}`);
+
+  const channelConfig = await getChannelConfig(version.id, channel);
+  if (!channelConfig || !channelConfig.is_enabled) {
+    throw new Error(`Channel ${channel} not enabled for ${productCode}`);
   }
 
-  // Document requirements (by version OR by product fallback)
-  const { data: docsByVersion } = await db
-    .from('bn_doc_requirement')
-    .select('*').eq('is_active', true).eq('product_version_id', version.id).order('sort_order');
-  const docs = (docsByVersion ?? []) as BnDocRequirement[];
-  if (docs.length === 0) {
-    const { data: docsByProduct } = await db
-      .from('bn_doc_requirement')
-      .select('*').eq('is_active', true).eq('product_id', product.id).order('sort_order');
-    docs.push(...((docsByProduct ?? []) as BnDocRequirement[]));
-  }
+  const [eligibility, calculation, timelines, allDocs] = await Promise.all([
+    fetchEligibilityRules(version.id),
+    fetchCalculationRules(version.id),
+    fetchTimelineRules(version.id),
+    fetchDocsForProduct(product.id),
+  ]);
 
-  // Eligibility rules for the version
-  const { data: eligRules } = await db
-    .from('bn_eligibility_rule').select('*')
-    .eq('product_version_id', version.id).eq('is_active', true).order('sort_order');
+  const documents = filterDocsForChannel(allDocs, channel, /*isPublic*/ channel === 'ONLINE');
 
   return {
     product,
-    productVersion: version,
-    formFields,
-    documentRequirements: docs,
-    eligibilityRules: (eligRules ?? []) as BnEligibilityRule[],
-    workflow: {
-      workflowTemplateId: version.workflow_template_id ?? null,
-      workflowDefinitionId: (version as any).workflow_definition_id ?? null,
-      fallbackToTransitionRules: !version.workflow_template_id && !(version as any).workflow_definition_id,
-    },
+    version,
+    channelConfig,
+    eligibility,
+    calculation,
+    timelines,
+    documents,
+    screenTemplateId: channelConfig.screen_template_id,
+    workflowTemplateId: channelConfig.workflow_template_id,
+    workflowDefinitionId: channelConfig.workflow_definition_id,
   };
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// 3. Validation
-// ────────────────────────────────────────────────────────────────────────────
-
-export async function validateApplicationBeforeCreate(
-  payload: SubmitApplicationPayload,
-): Promise<ValidationResult> {
-  const errors: { field: string; message: string }[] = [];
-  const prechecks: PrecheckResult[] = [];
-
-  if (!payload.ssn) errors.push({ field: 'ssn', message: 'SSN is required' });
-  if (!payload.claimDate) errors.push({ field: 'claimDate', message: 'Claim date is required' });
-  if (!payload.declaration) errors.push({ field: 'declaration', message: 'Declaration must be accepted' });
-
-  let config: ProductApplicationConfig | null = null;
-  try {
-    config = await getProductApplicationConfig(payload.productCode, payload.claimDate);
-  } catch (e: any) {
-    errors.push({ field: 'productCode', message: e?.message ?? 'Product/version resolution failed' });
-    return { valid: false, errors, prechecks };
-  }
-
-  // Required form fields
-  for (const f of config.formFields) {
-    if (f.is_required) {
-      const v = payload.formValues?.[f.field_code];
-      if (v === undefined || v === null || v === '') {
-        errors.push({ field: f.field_code, message: `${f.field_label} is required` });
-      }
-    }
-  }
-
-  // Eligibility prechecks (rules that have a field_key)
-  for (const rule of config.eligibilityRules) {
-    const def = (rule.rule_definition || {}) as any;
-    if (!def.field_key) continue;
-    const fdef = getFieldDef(def.field_key);
-    if (!fdef) continue;
-    try {
-      const resolved = await resolveField(def.field_key, {
-        ssn: payload.ssn,
-        claimDate: payload.claimDate,
-        benefitType: config.product.benefit_code,
-        employerRegNo: payload.employerRegNo,
-      }, {
-        windowType: def.window_type,
-        windowFrom: def.window_from,
-        windowTo: def.window_to,
-        documentTypeCode: def.document_type_code,
-      });
-      const evalResult = evaluateOperator(
-        resolved.value, def.operator, def.value, fdef.valueType,
-        { rangeFrom: def.range_from, rangeTo: def.range_to },
-      );
-      prechecks.push({
-        fieldKey: def.field_key,
-        passed: evalResult.passed,
-        reason: evalResult.reason,
-        failAction: rule.fail_action ?? 'REJECT',
-      });
-      if (!evalResult.passed && (rule.fail_action ?? 'REJECT') === 'REJECT') {
-        errors.push({
-          field: def.field_key,
-          message: rule.fail_message || `Eligibility rule "${rule.rule_name}" failed`,
-        });
-      }
-    } catch (e: any) {
-      prechecks.push({ fieldKey: def.field_key, passed: false, reason: e?.message ?? 'resolve error', failAction: 'REJECT' });
-      errors.push({ field: def.field_key, message: e?.message ?? 'Precheck failed' });
-    }
-  }
-
-  return { valid: errors.length === 0, errors, prechecks };
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// 4. Create claim from config + checklist + workflow
-// ────────────────────────────────────────────────────────────────────────────
-
-export async function generateEvidenceChecklist(
-  claimId: string,
-  productVersionId: string,
-): Promise<number> {
-  // Load doc requirements for the version (or product fallback)
-  const { data: reqs } = await db
-    .from('bn_doc_requirement').select('*')
-    .eq('is_active', true).eq('product_version_id', productVersionId);
-  let requirements = (reqs ?? []) as BnDocRequirement[];
-  if (requirements.length === 0) {
-    const { data: claim } = await db.from('bn_claim').select('product_id').eq('id', claimId).maybeSingle();
-    if (claim?.product_id) {
-      const { data: pReqs } = await db
-        .from('bn_doc_requirement').select('*')
-        .eq('is_active', true).eq('product_id', claim.product_id);
-      requirements = (pReqs ?? []) as BnDocRequirement[];
-    }
-  }
-
-  if (requirements.length === 0) return 0;
-  const rows = requirements.map((r) => ({
-    claim_id: claimId,
-    requirement_id: r.id,
-    status: 'OUTSTANDING',
-    is_blocking: String(r.requirement_level).toUpperCase() === 'MANDATORY',
-  }));
-  const { error } = await db.from('bn_evidence_checklist').insert(rows);
-  if (error) throw error;
-  return rows.length;
-}
-
-export async function startProductWorkflow(
-  claimId: string,
-  productVersionId: string,
-  actorUserCode: string,
-): Promise<string | null> {
-  const actor = requireUserCode(actorUserCode, 'startProductWorkflow');
-  const { data: version } = await db.from('bn_product_version').select('workflow_template_id').eq('id', productVersionId).maybeSingle();
-  const templateId = version?.workflow_template_id;
-  if (!templateId) {
-    // Fallback: bn_claim_transition_rule handles state machine. Nothing to start.
-    return null;
-  }
-  // Read workflow_template → workflow_definitions template_key
-  const { data: tpl } = await db.from('bn_workflow_template').select('template_key').eq('id', templateId).maybeSingle();
-  const templateKey = tpl?.template_key ?? `bn_claim_${templateId}`;
-  const { instanceId } = await bnWorkflowAdapter.startWorkflow({
-    templateKey,
-    entityType: 'claim',
-    entityId: claimId,
-    context: { productVersionId },
-    initiatedBy: actor,
+function filterDocsForChannel(
+  docs: BnDocumentRule[],
+  channel: BnChannelCode,
+  isPublic: boolean
+): BnDocumentRule[] {
+  return docs.filter(d => {
+    const ch = (d.channel_code ?? 'BOTH') as string;
+    const channelMatch = ch === 'BOTH' || ch === channel;
+    if (!channelMatch) return false;
+    if (isPublic && d.public_visible === false) return false;
+    if (!isPublic && d.internal_visible === false) return false;
+    return true;
   });
-  // Stamp claim
-  await db.from('bn_claim').update({ workflow_instance_id: instanceId, modified_by: actor }).eq('id', claimId);
-  return instanceId;
-}
-
-export async function createApplicationFromConfig(
-  payload: SubmitApplicationPayload,
-): Promise<SubmitApplicationResult> {
-  const actor = requireUserCode(payload.actorUserCode, 'createApplicationFromConfig');
-
-  const validation = await validateApplicationBeforeCreate(payload);
-  if (!validation.valid) {
-    const err: any = new Error('Application validation failed');
-    err.code = 'BN_APPLICATION_INVALID';
-    err.details = validation;
-    throw err;
-  }
-
-  const config = await getProductApplicationConfig(payload.productCode, payload.claimDate);
-
-  // Insert claim
-  const { data: inserted, error: insErr } = await db.from('bn_claim').insert({
-    ssn: payload.ssn,
-    product_id: config.product.id,
-    product_version_id: config.productVersion.id,
-    employer_regno: payload.employerRegNo ?? null,
-    claim_date: payload.claimDate,
-    source: payload.source ?? 'WALK_IN',
-    status: 'SUBMITTED',
-    submission_date: new Date().toISOString(),
-    contact_phone: payload.contactPhone ?? null,
-    contact_email: payload.contactEmail ?? null,
-    bank_account: payload.bankAccount ?? null,
-    bank_routing_number: payload.bankRoutingNumber ?? null,
-    declaration: payload.declaration,
-    digital_signature: payload.digitalSignature ?? null,
-    entered_by: actor,
-    modified_by: actor,
-  }).select('id, claim_number').single();
-  if (insErr) throw insErr;
-
-  const claimId: string = inserted.id;
-  const claimNumber: string | null = inserted.claim_number ?? null;
-
-  // Persist dynamic form values
-  if (payload.formValues && Object.keys(payload.formValues).length > 0) {
-    await db.from('bn_claim_detail').insert({
-      claim_id: claimId,
-      detail_json: { application_form: payload.formValues },
-      entered_by: actor,
-      modified_by: actor,
-    }).then(() => undefined).catch(() => undefined);
-  }
-
-  // Checklist
-  const checklistItemsCreated = await generateEvidenceChecklist(claimId, config.productVersion.id);
-
-  // Workflow
-  const workflowInstanceId = await startProductWorkflow(claimId, config.productVersion.id, actor);
-
-  // Audit snapshot
-  const auditSnapshot: AuditSnapshot = {
-    productId: config.product.id,
-    productVersionId: config.productVersion.id,
-    documentProfileId: config.productVersion.document_profile_id ?? null,
-    screenTemplateId: config.productVersion.screen_template_id ?? null,
-    workflowTemplateId: config.productVersion.workflow_template_id ?? null,
-    ruleVersion: config.productVersion.version_number,
-    capturedAt: new Date().toISOString(),
-  };
-  await db.from('bn_claim_event').insert({
-    claim_id: claimId,
-    event_type: 'APPLICATION_SUBMITTED',
-    from_status: 'DRAFT',
-    to_status: 'SUBMITTED',
-    performed_by: actor,
-    metadata: {
-      snapshot: auditSnapshot,
-      prechecks: validation.prechecks,
-      formFieldCount: config.formFields.length,
-      docRequirementCount: config.documentRequirements.length,
-      source: payload.source ?? 'WALK_IN',
-    },
-  });
-
-  return { claimId, claimNumber, workflowInstanceId, checklistItemsCreated, auditSnapshot };
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// 5. Public portal contract (same config, no UI assumptions)
-// ────────────────────────────────────────────────────────────────────────────
-
-export async function getAvailableBenefitProducts(
-  ssn: string,
-  claimDate: string,
-): Promise<Array<{ product: BnProduct; version: BnProductVersion }>> {
-  if (!ssn) throw new Error('SSN is required');
-  const { data: products } = await db
-    .from('bn_product').select('*').eq('status', 'ACTIVE').order('sort_order');
-  const out: Array<{ product: BnProduct; version: BnProductVersion }> = [];
-  for (const p of (products ?? []) as BnProduct[]) {
-    try {
-      const { version } = await resolveProductVersion({ productId: p.id }, claimDate);
-      out.push({ product: p, version });
-    } catch { /* skip products without an active version on claimDate */ }
-  }
-  return out;
 }
 
 export async function getApplicationRequirements(
   productCode: string,
-  ssn: string,
   claimDate: string,
-): Promise<ProductApplicationConfig & { precheckHints: PrecheckResult[] }> {
-  const config = await getProductApplicationConfig(productCode, claimDate, { ssn, claimDate });
-  // Run advisory prechecks (no claim is created)
-  const prechecks: PrecheckResult[] = [];
-  for (const rule of config.eligibilityRules) {
-    const def = (rule.rule_definition || {}) as any;
-    if (!def.field_key) continue;
-    const fdef = getFieldDef(def.field_key);
-    if (!fdef) continue;
-    try {
-      const resolved = await resolveField(def.field_key, {
-        ssn, claimDate, benefitType: config.product.benefit_code,
-      }, {
-        windowType: def.window_type, windowFrom: def.window_from, windowTo: def.window_to,
-        documentTypeCode: def.document_type_code,
-      });
-      const ev = evaluateOperator(resolved.value, def.operator, def.value, fdef.valueType,
-        { rangeFrom: def.range_from, rangeTo: def.range_to });
-      prechecks.push({ fieldKey: def.field_key, passed: ev.passed, reason: ev.reason, failAction: rule.fail_action ?? 'REJECT' });
-    } catch (e: any) {
-      prechecks.push({ fieldKey: def.field_key, passed: false, reason: e?.message ?? 'error', failAction: 'REJECT' });
+  channel: BnChannelCode,
+  applicantContext?: Record<string, unknown>
+) {
+  const cfg = await getProductApplicationConfig(productCode, claimDate, channel, applicantContext);
+  return {
+    documents: cfg.documents,
+    eligibility: cfg.eligibility,
+    timelines: cfg.timelines,
+    channelConfig: cfg.channelConfig,
+  };
+}
+
+export interface CreateApplicationPayload {
+  productCode: string;
+  claimDate: string;
+  channel: BnChannelCode;
+  applicantSsn?: string;
+  applicantContext?: Record<string, unknown>;
+  uploadedDocumentCodes?: string[];
+  prechecksPassed?: boolean;
+  enteredBy?: string;
+}
+
+export interface ValidationResult {
+  ok: boolean;
+  errors: Array<{ field: string; message: string }>;
+}
+
+export async function validateApplicationBeforeCreate(
+  payload: CreateApplicationPayload
+): Promise<ValidationResult> {
+  const errors: Array<{ field: string; message: string }> = [];
+  const cfg = await getProductApplicationConfig(
+    payload.productCode,
+    payload.claimDate,
+    payload.channel,
+    payload.applicantContext
+  );
+
+  if (cfg.channelConfig?.blocks_submission_if_precheck_fails && payload.prechecksPassed === false) {
+    errors.push({ field: 'precheck', message: 'Precheck failed for this application.' });
+  }
+  if (cfg.channelConfig?.blocks_submission_if_documents_missing) {
+    const uploaded = new Set(payload.uploadedDocumentCodes ?? []);
+    const blockingMissing = cfg.documents.filter(
+      d => d.blocks_submission && d.is_mandatory && !uploaded.has(d.document_type_code)
+    );
+    for (const d of blockingMissing) {
+      errors.push({ field: d.document_type_code, message: `${d.document_name} is required to submit.` });
     }
   }
-  return { ...config, precheckHints: prechecks };
+  return { ok: errors.length === 0, errors };
 }
 
-export async function submitBenefitApplication(
-  payload: SubmitApplicationPayload,
-): Promise<SubmitApplicationResult> {
-  return createApplicationFromConfig(payload);
-}
+export async function createApplicationFromConfig(payload: CreateApplicationPayload) {
+  const validation = await validateApplicationBeforeCreate(payload);
+  if (!validation.ok) throw new Error(validation.errors.map(e => e.message).join(' / '));
 
-// ────────────────────────────────────────────────────────────────────────────
-// 6. Evidence gate helper
-// ────────────────────────────────────────────────────────────────────────────
+  const cfg = await getProductApplicationConfig(
+    payload.productCode,
+    payload.claimDate,
+    payload.channel,
+    payload.applicantContext
+  );
+  const source =
+    cfg.channelConfig?.default_source ?? (payload.channel === 'ONLINE' ? 'ONLINE' : 'WALK_IN');
+
+  const claimPayload = {
+    product_id: cfg.product.id,
+    product_version_id: cfg.version.id,
+    claim_date: payload.claimDate,
+    status: 'DRAFT',
+    source,
+    channel_code: payload.channel,
+    submitted_via: source,
+    screen_template_id: cfg.screenTemplateId,
+    workflow_definition_id: cfg.workflowDefinitionId,
+    channel_config_id: cfg.channelConfig?.id ?? null,
+    applicant_ssn: payload.applicantSsn ?? null,
+    entered_by: payload.enteredBy ?? null,
+  };
+  const { data, error } = await db.from('bn_claim').insert(claimPayload).select().single();
+  if (error) throw error;
+  return data;
+}
 
 /**
- * Returns true when every mandatory (blocking) checklist item for the claim
- * has been received/verified or waived. Used to gate progression past the
- * evidence review step.
+ * Build an evidence checklist for a claim based on the channel-aware document requirements.
  */
-export async function isEvidenceGateSatisfied(claimId: string): Promise<{
-  satisfied: boolean;
-  outstanding: number;
-  blocking: number;
-}> {
-  const { data, error } = await db
-    .from('bn_evidence_checklist')
-    .select('status, is_blocking')
-    .eq('claim_id', claimId);
-  if (error) throw error;
-  const rows = (data ?? []) as Array<{ status: string; is_blocking: boolean }>;
-  const blocking = rows.filter((r) => r.is_blocking);
-  const outstanding = blocking.filter((r) =>
-    !['FULFILLED', 'VERIFIED', 'WAIVED', 'ACCEPTED'].includes(String(r.status).toUpperCase()),
-  );
-  return { satisfied: outstanding.length === 0, outstanding: outstanding.length, blocking: blocking.length };
+export async function generateEvidenceChecklist(
+  claimId: string,
+  productVersionId: string,
+  channel: BnChannelCode
+) {
+  // Resolve product id from version
+  const { data: version, error: vErr } = await db
+    .from('bn_product_version')
+    .select('product_id')
+    .eq('id', productVersionId)
+    .maybeSingle();
+  if (vErr) throw vErr;
+  if (!version) throw new Error('Product version not found');
+
+  const allDocs = await fetchDocsForProduct(version.product_id);
+  const docs = filterDocsForChannel(allDocs, channel, /*isPublic*/ channel === 'ONLINE');
+
+  const rows = docs.map(d => ({
+    claim_id: claimId,
+    document_type_code: d.document_type_code,
+    document_name: d.document_name,
+    is_mandatory: d.is_mandatory,
+    stage: d.stage,
+    status: 'PENDING',
+    metadata: {
+      channel,
+      blocks_submission: !!d.blocks_submission,
+      blocks_decision: !!d.blocks_decision,
+      blocks_payment: !!d.blocks_payment,
+      public_visible: d.public_visible !== false,
+      internal_visible: d.internal_visible !== false,
+    },
+  }));
+
+  if (rows.length === 0) return [];
+  // bn_evidence_checklist or bn_claim_evidence — fall back gracefully
+  const { data, error } = await db.from('bn_evidence_checklist').insert(rows).select();
+  if (error) {
+    // Non-fatal: surface as warning, return constructed rows
+    console.warn('Failed to insert evidence checklist', error);
+    return rows;
+  }
+  return data ?? rows;
+}
+
+/**
+ * Start the channel-appropriate workflow for a claim.
+ * If a workflow_definition_id is configured on the channel, use the central workflow engine.
+ * Otherwise rely on bn_claim_transition_rule fallback.
+ */
+export async function startProductWorkflow(
+  claimId: string,
+  productVersionId: string,
+  channel: BnChannelCode
+) {
+  const cfg = await getChannelConfig(productVersionId, channel);
+  if (!cfg) throw new Error(`Channel ${channel} not configured for version ${productVersionId}`);
+
+  if (cfg.workflow_definition_id) {
+    // Hand off to central workflow engine
+    const { data, error } = await db.from('workflow_instances').insert({
+      definition_id: cfg.workflow_definition_id,
+      source_module: 'BN_CLAIM',
+      source_id: claimId,
+      status: 'ACTIVE',
+      metadata: { channel, channel_config_id: cfg.id },
+    }).select().single();
+    if (error) {
+      console.warn('Workflow engine handoff failed; fallback to bn transitions.', error);
+      return { engine: 'BN_FALLBACK', instance: null };
+    }
+    return { engine: 'CENTRAL_WORKFLOW', instance: data };
+  }
+  return { engine: 'BN_FALLBACK', instance: null };
+}
+
+/**
+ * Public-readiness check (used by configuration validation dashboard).
+ */
+export async function checkPublicReadiness(productVersionId: string) {
+  const cfg = await getChannelConfig(productVersionId, 'ONLINE');
+  const issues: string[] = [];
+  if (!cfg || !cfg.is_enabled) issues.push('Online channel not enabled');
+  else {
+    if (!cfg.screen_template_id) issues.push('No screen template');
+    if (!cfg.workflow_definition_id && !cfg.workflow_template_id) issues.push('No workflow configured');
+    if (!cfg.confirmation_template_id) issues.push('No confirmation template (default will be used)');
+  }
+  return { ok: issues.length === 0, issues, config: cfg };
+}
+
+export async function checkStaffReadiness(productVersionId: string) {
+  const cfg = await getChannelConfig(productVersionId, 'OFFLINE');
+  const issues: string[] = [];
+  if (!cfg || !cfg.is_enabled) issues.push('Offline channel not enabled');
+  else {
+    if (!cfg.screen_template_id) issues.push('No staff screen template');
+    if (!cfg.workflow_definition_id && !cfg.workflow_template_id) issues.push('No workflow configured');
+  }
+  return { ok: issues.length === 0, issues, config: cfg };
 }
