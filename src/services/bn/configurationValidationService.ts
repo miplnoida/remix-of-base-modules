@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { SKN_BENEFIT_BASELINE, type SknBenefitBaseline } from './skn/sknBenefitCatalogueBaseline';
+import { checkPublicReadiness, checkStaffReadiness } from './productAcceptanceService';
 
 export type ValidationStatus = 'PASS' | 'WARNING' | 'FAIL' | 'NEEDS_REVIEW' | 'NOT_APPLICABLE';
 
@@ -21,6 +22,8 @@ export interface ProductValidationReport {
   screen_template: CheckResult;
   timeline: CheckResult;
   test_cases: CheckResult;
+  offline_channel: CheckResult;
+  online_channel: CheckResult;
   overall_status: ValidationStatus;
   issues: string[];
   product_id?: string;
@@ -71,6 +74,8 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
       screen_template: { status: 'FAIL', message: 'N/A' },
       timeline: { status: 'FAIL', message: 'N/A' },
       test_cases: { status: 'FAIL', message: 'N/A' },
+      offline_channel: { status: 'FAIL', message: 'N/A' },
+      online_channel: { status: 'FAIL', message: 'N/A' },
       overall_status: 'FAIL',
       issues: [`Product ${baseline.benefit_code} not configured.`, ...issues],
     };
@@ -191,6 +196,28 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
     ? { status: 'WARNING', message: 'No test cases — seed baseline tests' }
     : { status: 'PASS', message: `${activeTests.length} test case(s)` };
 
+  // Channel readiness (ONLINE / OFFLINE) — only if we have an active version
+  let offlineCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
+  let onlineCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
+  if (activeVersion) {
+    try {
+      const off = await checkStaffReadiness(activeVersion.id);
+      offlineCheck = off.ok
+        ? { status: 'PASS', message: 'Offline channel ready' }
+        : { status: off.config?.is_enabled === false ? 'FAIL' : 'WARNING', message: off.issues.join('; ') };
+    } catch (e) {
+      offlineCheck = { status: 'WARNING', message: (e as Error).message };
+    }
+    try {
+      const on = await checkPublicReadiness(activeVersion.id);
+      onlineCheck = on.ok
+        ? { status: 'PASS', message: 'Online channel ready' }
+        : { status: on.config?.is_enabled === false ? 'NOT_APPLICABLE' : 'WARNING', message: on.issues.join('; ') };
+    } catch (e) {
+      onlineCheck = { status: 'WARNING', message: (e as Error).message };
+    }
+  }
+
   const overall = worst(
     productCheck.status,
     activeVersionCheck.status,
@@ -201,6 +228,8 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
     screenCheck.status,
     timelineCheck.status,
     testCasesCheck.status,
+    offlineCheck.status,
+    onlineCheck.status,
   );
 
   return {
@@ -217,6 +246,8 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
     screen_template: screenCheck,
     timeline: timelineCheck,
     test_cases: testCasesCheck,
+    offline_channel: offlineCheck,
+    online_channel: onlineCheck,
     overall_status: overall,
     issues,
   };
