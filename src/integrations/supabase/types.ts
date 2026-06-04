@@ -5547,6 +5547,77 @@ export type Database = {
           },
         ]
       }
+      bn_claim_source_map: {
+        Row: {
+          benefit_code: string | null
+          bn_claim_id: string | null
+          claim_date: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          linked_at: string | null
+          linked_by: string | null
+          migration_status: string
+          modified_by: string | null
+          notes: string | null
+          routing_basis: string
+          source_benefit_type: string | null
+          source_claim_number: string | null
+          source_claim_seq: number | null
+          source_system: string
+          ssn: string | null
+          updated_at: string
+        }
+        Insert: {
+          benefit_code?: string | null
+          bn_claim_id?: string | null
+          claim_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          linked_at?: string | null
+          linked_by?: string | null
+          migration_status?: string
+          modified_by?: string | null
+          notes?: string | null
+          routing_basis: string
+          source_benefit_type?: string | null
+          source_claim_number?: string | null
+          source_claim_seq?: number | null
+          source_system: string
+          ssn?: string | null
+          updated_at?: string
+        }
+        Update: {
+          benefit_code?: string | null
+          bn_claim_id?: string | null
+          claim_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          linked_at?: string | null
+          linked_by?: string | null
+          migration_status?: string
+          modified_by?: string | null
+          notes?: string | null
+          routing_basis?: string
+          source_benefit_type?: string | null
+          source_claim_number?: string | null
+          source_claim_seq?: number | null
+          source_system?: string
+          ssn?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_source_map_bn_claim_id_fkey"
+            columns: ["bn_claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_claim_status_def: {
         Row: {
           color_code: string | null
