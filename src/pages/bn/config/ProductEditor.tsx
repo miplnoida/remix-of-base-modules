@@ -300,6 +300,10 @@ export default function ProductEditor() {
           <ScreenTemplateTab versionId={selectedVersionId} />
         </TabsContent>
 
+        <TabsContent value="channels" className="mt-6">
+          <ChannelsTab productId={isNew ? undefined : id} versionId={selectedVersionId} />
+        </TabsContent>
+
         <TabsContent value="interactions" className="mt-6">
           <InteractionRulesTab productId={isNew ? undefined : id} />
         </TabsContent>
