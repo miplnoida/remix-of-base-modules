@@ -271,7 +271,29 @@ export const MODULE_NAMES = {
   CE_SUPERVISORS: 'ce_supervisors',
   CE_QUEUE_MEMBERS_MGMT: 'ce_queue_members_mgmt',
   CE_SAMPLING_SETTINGS: 'ce_sampling_settings',
+  // ─── Benefits (BN) module ─────────────────────────────────────
+  /** Umbrella module — keep granting this for full BN access. */
+  BENEFITS_MANAGEMENT: 'benefits_management',
 } as const;
+
+/**
+ * Granular BN action keys. Use against MODULE_NAMES.BENEFITS_MANAGEMENT.
+ * The umbrella `benefits_management` permission continues to imply all of
+ * these; admin users always pass.
+ */
+export const BN_ACTIONS = {
+  VIEW_BENEFIT_CLAIM: 'view_benefit_claim',
+  CREATE_BENEFIT_CLAIM: 'create_benefit_claim',
+  PROCESS_BENEFIT_CLAIM: 'process_benefit_claim',
+  APPROVE_BENEFIT_CLAIM: 'approve_benefit_claim',
+  DENY_BENEFIT_CLAIM: 'deny_benefit_claim',
+  CONFIGURE_BENEFIT_RULES: 'configure_benefit_rules',
+  ISSUE_BENEFIT_PAYMENT: 'issue_benefit_payment',
+  SUSPEND_BENEFIT_AWARD: 'suspend_benefit_award',
+  VIEW_BENEFIT_AUDIT: 'view_benefit_audit',
+  VIEW_LEGACY_BENEFIT_DATA: 'view_legacy_benefit_data',
+} as const;
+export type BnActionKey = typeof BN_ACTIONS[keyof typeof BN_ACTIONS];
 
 
 /**
