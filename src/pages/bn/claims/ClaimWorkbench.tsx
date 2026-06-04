@@ -83,13 +83,11 @@ export default function ClaimWorkbench() {
     const [, claimNumber, seqStr] = id.split(':');
     const claimSeq = Number(seqStr);
     if (claimNumber && Number.isFinite(claimSeq)) {
-      // Lazy require to avoid pulling the legacy view into the
-      // main workbench bundle path when not needed.
-      const LegacyClaim360View =
-        require('@/components/bn/claim/LegacyClaim360View').default;
       return <LegacyClaim360View claimNumber={claimNumber} claimSeq={claimSeq} />;
     }
   }
+
+
 
   // ── Core Data ──────────────────────────────────────────────────
   const { data: claim, isLoading } = useBnClaim(id);
