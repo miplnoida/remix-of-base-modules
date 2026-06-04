@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, UserPlus, Search, Edit, Lock, Unlock, Shield, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, UserPlus, Search, Edit, Lock, Unlock, Shield, Eye, ChevronLeft, ChevronRight, KeyRound, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 import { useUserProfiles, useUpdateUserProfile, useTbOffices } from "@/hooks/useAdminData";
 
 const PAGE_SIZES = [10, 25, 50, 100];
