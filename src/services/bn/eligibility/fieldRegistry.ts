@@ -52,6 +52,7 @@ export interface EligibilityFieldDef {
     | 'employer.status'
     | 'evidence.requiredDocsComplete'
     | 'evidence.documentVerified'
+    | 'claim.hasDuplicateActiveClaim'
     | 'claim.claimDate'
     | 'claim.benefitType';
   /** Whether a contribution window selector should be exposed on the rule. */
