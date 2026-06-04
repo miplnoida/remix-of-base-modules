@@ -29,8 +29,9 @@ import {
   ListChecks,
   History,
 } from "lucide-react";
+import { filterMenuByFeatures } from "@/lib/bn/featureToggles";
 
-export const bnMenuItems = [
+const _bnMenuItemsRaw = [
   {
     title: "Benefit Management",
     icon: Heart,
