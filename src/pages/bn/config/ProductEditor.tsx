@@ -91,7 +91,8 @@ export default function ProductEditor() {
     if (!id || isNew) return;
     const nextNum = versions.length > 0 ? Math.max(...versions.map((v: BnProductVersion) => v.version_number)) + 1 : 1;
     try {
-      const created = await createVersionMutation.mutateAsync({ product_id: id, version_number: nextNum, status: 'DRAFT' });
+      const today = new Date().toISOString().slice(0, 10);
+      const created = await createVersionMutation.mutateAsync({ product_id: id, version_number: nextNum, status: 'DRAFT', effective_from: today, version_label: `V${nextNum}` });
       setSelectedVersionId(created.id);
       toast({ title: 'Success', description: `Version ${nextNum} created.` });
     } catch (err: any) {
