@@ -176,7 +176,7 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
           <DialogHeader><DialogTitle>Copy Rules from Another Version</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              This will copy eligibility, calculation, and timeline rules from the selected source version into the draft version.
+              This will copy eligibility, calculation, timeline rules, and document requirements from the selected source version into the draft version.
             </p>
             <div className="space-y-2">
               <Label>Source Version *</Label>
