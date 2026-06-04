@@ -212,16 +212,57 @@ async function runEligibilityEngine(
 }
 
 async function evaluateEligibilityRule(input: BnCalcEngineInput, rule: BnEligibilityRule): Promise<BnEligibilityRuleResult> {
-  const def = rule.rule_definition as Record<string, any>;
+  const def = (rule.rule_definition || {}) as Record<string, any>;
   const base: Omit<BnEligibilityRuleResult, 'passed' | 'actualValue' | 'message'> = {
     ruleCode: rule.rule_code,
     ruleName: rule.rule_name,
     ruleGroup: rule.rule_group,
-    requiredValue: def.required_value ?? def.min_weeks ?? def.min_age ?? null,
+    requiredValue: def.value ?? def.required_value ?? def.min_weeks ?? def.min_age ?? null,
     failAction: (rule.fail_action as any) || 'REJECT',
     severity: rule.fail_action === 'WARN' ? 'WARN' : 'ERROR',
   };
 
+  // Preferred path: registry-driven evaluation via field_key
+  if (def.field_key) {
+    try {
+      const { resolveField } = await import('./eligibility/fieldResolver');
+      const { evaluateOperator } = await import('./eligibility/operatorEvaluator');
+      const { getFieldDef } = await import('./eligibility/fieldRegistry');
+      const fieldDef = getFieldDef(def.field_key);
+      if (!fieldDef) {
+        return { ...base, actualValue: null, passed: false, message: `Unknown field_key: ${def.field_key}` };
+      }
+      const resolved = await resolveField(def.field_key, {
+        ssn: input.ssn,
+        claimId: (input as any).claimId,
+        claimDate: input.claimDate,
+        benefitType: (input as any).benefitType,
+        employerRegNo: (input as any).employerRegNo,
+      }, {
+        windowType: def.window_type,
+        windowFrom: def.window_from,
+        windowTo: def.window_to,
+        documentTypeCode: def.document_type_code,
+      });
+      const operator = def.operator || '==';
+      const evalResult = evaluateOperator(resolved.value, operator, def.value, fieldDef.valueType, {
+        rangeFrom: def.range_from,
+        rangeTo: def.range_to,
+      });
+      return {
+        ...base,
+        actualValue: resolved.value as any,
+        passed: evalResult.passed,
+        message: evalResult.passed
+          ? `${fieldDef.label}: ${evalResult.reason} — pass`
+          : (rule.fail_message || `${fieldDef.label}: ${evalResult.reason}`),
+      };
+    } catch (err: any) {
+      return { ...base, actualValue: null, passed: false, message: `Evaluation error: ${err?.message || err}` };
+    }
+  }
+
+  // Legacy fallback (no field_key on rule_definition)
   switch (rule.rule_type) {
     case 'CONTRIBUTION': {
       const summary = await getContributionSummary(input.ssn, def.window_from, def.window_to);
@@ -230,28 +271,14 @@ async function evaluateEligibilityRule(input: BnCalcEngineInput, rule: BnEligibi
       return { ...base, actualValue: actual, passed: actual >= required, message: actual >= required ? `Has ${actual} contribution weeks (need ${required})` : `Only ${actual} contribution weeks (need ${required})` };
     }
     case 'AGE': {
-      const age = calculateAge(input.ssn, input.claimDate);
+      const age = await calculateAge(input.ssn, input.claimDate);
       const minAge = def.min_age || 0;
       const maxAge = def.max_age || 999;
-      const passed = age >= minAge && age <= maxAge;
-      return { ...base, actualValue: age, passed, message: passed ? `Age ${age} within range [${minAge}-${maxAge}]` : `Age ${age} outside required range [${minAge}-${maxAge}]` };
-    }
-    case 'RESIDENCY': {
-      // Placeholder — in production, check residency records
-      return { ...base, actualValue: true, passed: true, message: 'Residency confirmed (placeholder)' };
-    }
-    case 'EMPLOYMENT': {
-      return { ...base, actualValue: true, passed: true, message: 'Employment status check passed (placeholder)' };
-    }
-    case 'MEDICAL': {
-      return { ...base, actualValue: true, passed: true, message: 'Medical certification present (placeholder)' };
-    }
-    case 'INCOME': {
-      return { ...base, actualValue: true, passed: true, message: 'Means test passed (placeholder)' };
+      const passed = age != null && age >= minAge && age <= maxAge;
+      return { ...base, actualValue: age, passed, message: passed ? `Age ${age} within range [${minAge}-${maxAge}]` : `Age ${age ?? 'unknown'} outside required range [${minAge}-${maxAge}]` };
     }
     default: {
-      // CUSTOM rule — evaluate expression if available
-      return { ...base, actualValue: null, passed: true, message: `Custom rule ${rule.rule_code} — auto-pass (expression eval not yet implemented)` };
+      return { ...base, actualValue: null, passed: false, message: `Rule ${rule.rule_code} has no field_key — please reconfigure using the field catalogue.` };
     }
   }
 }
@@ -744,9 +771,17 @@ async function getContributionSummary(ssn: string, fromDate?: string, toDate?: s
   return data?.[0] ?? { total_weeks: 0, total_wages: 0, avg_weekly_wages: 0 };
 }
 
-function calculateAge(ssn: string, refDate: string): number {
-  // Placeholder — in production, look up DOB from ip_master
-  return 45;
+async function calculateAge(ssn: string, refDate: string): Promise<number | null> {
+  const { bnPersonAdapter } = await import('./integration/personAdapter');
+  const dob = await bnPersonAdapter.getPersonDOB(ssn);
+  if (!dob) return null;
+  const d = new Date(dob);
+  const ref = new Date(refDate);
+  if (isNaN(d.getTime()) || isNaN(ref.getTime())) return null;
+  let age = ref.getFullYear() - d.getFullYear();
+  const m = ref.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && ref.getDate() < d.getDate())) age--;
+  return age;
 }
 
 async function loadEligibilityRules(versionId: string): Promise<BnEligibilityRule[]> {
