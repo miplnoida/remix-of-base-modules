@@ -392,8 +392,9 @@ export async function createApplicationFromConfig(
   if (payload.formValues && Object.keys(payload.formValues).length > 0) {
     await db.from('bn_claim_detail').insert({
       claim_id: claimId,
-      detail_type: 'APPLICATION_FORM',
-      detail_data: payload.formValues,
+      detail_json: { application_form: payload.formValues },
+      entered_by: actor,
+      modified_by: actor,
     }).then(() => undefined).catch(() => undefined);
   }
 
