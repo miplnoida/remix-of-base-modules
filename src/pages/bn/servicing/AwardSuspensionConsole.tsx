@@ -1,13 +1,11 @@
 /**
  * Screen 26: Award Suspension / Resumption Console
- * 
- * Manages award lifecycle actions: Suspend, Resume, Terminate.
- * Tracks reason codes, effective dates, and approval workflows.
- * Supports bulk operations for compliance-triggered suspensions.
+ *
+ * Real-data wiring against bn_award + bn_award_status_event + bn_award_suspension_event.
  * Role visibility: Claims Officer, Supervisor, Admin
  */
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -16,38 +14,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Search, PauseCircle, PlayCircle, XCircle, Filter,
-  AlertTriangle, CheckCircle2, Clock, Shield
-} from 'lucide-react';
+import { Search, PauseCircle, PlayCircle, XCircle, AlertTriangle, CheckCircle2, Shield, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import {
+  fetchAwards,
+  fetchClaimantsBySsns,
+  updateAwardStatus,
+  type BnAwardRow,
+  type ClaimantInfo,
+} from '@/services/bn/awardServicingService';
 
 type AwardActionType = 'SUSPEND' | 'RESUME' | 'TERMINATE';
-type AwardCurrentStatus = 'ACTIVE' | 'SUSPENDED' | 'TERMINATED';
-
-interface AwardRecord {
-  id: string;
-  awardId: string;
-  ssn: string;
-  fullName: string;
-  benefitType: string;
-  weeklyRate: number;
-  startDate: string;
-  currentStatus: AwardCurrentStatus;
-  lastActionDate: string | null;
-  lastActionType: AwardActionType | null;
-  lastActionReason: string | null;
-  suspensionCount: number;
-}
-
-const MOCK_AWARDS: AwardRecord[] = [
-  { id: '1', awardId: 'AWD-2024-001', ssn: '100234', fullName: 'John Williams', benefitType: 'Age Pension', weeklyRate: 450.00, startDate: '2024-06-01', currentStatus: 'ACTIVE', lastActionDate: null, lastActionType: null, lastActionReason: null, suspensionCount: 0 },
-  { id: '2', awardId: 'AWD-2024-005', ssn: '100456', fullName: 'Mary Johnson', benefitType: 'Invalidity Pension', weeklyRate: 380.00, startDate: '2024-09-15', currentStatus: 'SUSPENDED', lastActionDate: '2026-03-01', lastActionType: 'SUSPEND', lastActionReason: 'Failed life certificate', suspensionCount: 1 },
-  { id: '3', awardId: 'AWD-2023-003', ssn: '100112', fullName: 'Grace Thomas', benefitType: 'Age Pension', weeklyRate: 420.00, startDate: '2023-01-10', currentStatus: 'SUSPENDED', lastActionDate: '2026-02-15', lastActionType: 'SUSPEND', lastActionReason: 'Proof of life overdue', suspensionCount: 2 },
-  { id: '4', awardId: 'AWD-2025-012', ssn: '100789', fullName: 'David Brown', benefitType: 'Survivors Pension', weeklyRate: 310.00, startDate: '2025-03-01', currentStatus: 'ACTIVE', lastActionDate: '2026-01-15', lastActionType: 'RESUME', lastActionReason: 'Life certificate verified', suspensionCount: 1 },
-  { id: '5', awardId: 'AWD-2022-018', ssn: '100678', fullName: 'Anna Phillip', benefitType: 'Age Pension', weeklyRate: 400.00, startDate: '2022-07-01', currentStatus: 'TERMINATED', lastActionDate: '2025-12-01', lastActionType: 'TERMINATE', lastActionReason: 'Beneficiary deceased', suspensionCount: 0 },
-];
 
 const SUSPEND_REASONS = [
   'Life certificate not submitted',
@@ -66,97 +44,162 @@ const TERMINATE_REASONS = [
   'Fraud confirmed',
   'Other',
 ];
+const RESUME_REASONS = ['Life certificate verified', 'Medical review passed', 'Investigation cleared', 'Other'];
 
-const statusColors: Record<AwardCurrentStatus, string> = {
+const statusColors: Record<string, string> = {
   ACTIVE: 'bg-emerald-500/10 text-emerald-700 border-emerald-300',
   SUSPENDED: 'bg-amber-500/10 text-amber-700 border-amber-300',
   TERMINATED: 'bg-muted text-muted-foreground border-muted',
 };
 
 const AwardSuspensionConsole: React.FC = () => {
+  const { isAuthReady, isAuthenticated, profile, hasAnyRole } = useSupabaseAuth();
+  const canAct = hasAnyRole(['admin', 'supervisor', 'claims_officer']);
+
   const [tab, setTab] = useState('all');
   const [search, setSearch] = useState('');
-  const [awards] = useState<AwardRecord[]>(MOCK_AWARDS);
-  const [selected, setSelected] = useState<AwardRecord | null>(null);
+  const [awards, setAwards] = useState<BnAwardRow[]>([]);
+  const [claimants, setClaimants] = useState<Record<string, ClaimantInfo>>({});
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<BnAwardRow | null>(null);
   const [actionType, setActionType] = useState<AwardActionType | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [reason, setReason] = useState('');
   const [effectiveDate, setEffectiveDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const filtered = useMemo(() => awards.filter(a => {
-    const matchSearch = !search || a.fullName.toLowerCase().includes(search.toLowerCase()) || a.ssn.includes(search) || a.awardId.toLowerCase().includes(search.toLowerCase());
-    const matchTab = tab === 'all' || a.currentStatus === tab;
-    return matchSearch && matchTab;
-  }), [awards, search, tab]);
+  const load = async () => {
+    setLoading(true);
+    try {
+      const rows = await fetchAwards();
+      setAwards(rows);
+      const map = await fetchClaimantsBySsns(rows.map((r) => r.ssn));
+      setClaimants(map);
+    } catch (e) {
+      console.error(e);
+      toast.error('Unable to load awards');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const counts = useMemo(() => ({
-    active: awards.filter(a => a.currentStatus === 'ACTIVE').length,
-    suspended: awards.filter(a => a.currentStatus === 'SUSPENDED').length,
-    terminated: awards.filter(a => a.currentStatus === 'TERMINATED').length,
-  }), [awards]);
+  useEffect(() => {
+    if (isAuthReady && isAuthenticated) void load();
+  }, [isAuthReady, isAuthenticated]);
 
-  const openAction = (award: AwardRecord, type: AwardActionType) => {
+  const filtered = useMemo(
+    () =>
+      awards.filter((a) => {
+        const name = claimants[a.ssn]?.full_name ?? '';
+        const matchSearch =
+          !search ||
+          name.toLowerCase().includes(search.toLowerCase()) ||
+          a.ssn.includes(search) ||
+          (a.award_number ?? '').toLowerCase().includes(search.toLowerCase());
+        const matchTab = tab === 'all' || a.status === tab;
+        return matchSearch && matchTab;
+      }),
+    [awards, claimants, search, tab]
+  );
+
+  const counts = useMemo(
+    () => ({
+      active: awards.filter((a) => a.status === 'ACTIVE').length,
+      suspended: awards.filter((a) => a.status === 'SUSPENDED').length,
+      terminated: awards.filter((a) => a.status === 'TERMINATED').length,
+    }),
+    [awards]
+  );
+
+  const openAction = (award: BnAwardRow, type: AwardActionType) => {
     setSelected(award);
     setActionType(type);
     setReason('');
-    setEffectiveDate('');
+    setEffectiveDate(new Date().toISOString().slice(0, 10));
     setNotes('');
     setDialogOpen(true);
   };
 
-  const executeAction = () => {
-    if (!reason) { toast.error('Please select a reason'); return; }
-    if (!effectiveDate) { toast.error('Please set an effective date'); return; }
-    toast.success(`Award ${selected?.awardId} — ${actionType?.toLowerCase()} action submitted`);
-    setDialogOpen(false);
+  const executeAction = async () => {
+    if (!selected || !actionType) return;
+    if (!reason) {
+      toast.error('Please select a reason');
+      return;
+    }
+    if (!effectiveDate) {
+      toast.error('Please set an effective date');
+      return;
+    }
+    const toStatus = actionType === 'RESUME' ? 'ACTIVE' : actionType === 'SUSPEND' ? 'SUSPENDED' : 'TERMINATED';
+    setSubmitting(true);
+    try {
+      await updateAwardStatus(selected.id, toStatus, reason, effectiveDate, notes || null, profile?.user_code ?? null);
+      toast.success(`Award ${selected.award_number ?? selected.id} ${actionType.toLowerCase()}d`);
+      setDialogOpen(false);
+      await load();
+    } catch (e) {
+      console.error(e);
+      toast.error('Action failed');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const fmt = (n: number) => `$${n.toFixed(2)}`;
+  const fmt = (n: number | null) => (n == null ? '—' : `$${n.toFixed(2)}`);
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Shield className="h-6 w-6" />Award Suspension & Resumption</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <Shield className="h-6 w-6" />
+            Award Suspension & Resumption
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">Manage award lifecycle: suspend, resume, or terminate entitlements</p>
         </div>
       </div>
 
-      {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
         <Card className="cursor-pointer hover:shadow-md" onClick={() => setTab('ACTIVE')}>
           <CardContent className="p-4 flex items-center gap-3">
             <PlayCircle className="h-6 w-6 text-emerald-600" />
-            <div><p className="text-xs text-muted-foreground">Active</p><p className="text-2xl font-bold">{counts.active}</p></div>
+            <div>
+              <p className="text-xs text-muted-foreground">Active</p>
+              <p className="text-2xl font-bold">{counts.active}</p>
+            </div>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:shadow-md" onClick={() => setTab('SUSPENDED')}>
           <CardContent className="p-4 flex items-center gap-3">
             <PauseCircle className="h-6 w-6 text-amber-600" />
-            <div><p className="text-xs text-muted-foreground">Suspended</p><p className="text-2xl font-bold">{counts.suspended}</p></div>
+            <div>
+              <p className="text-xs text-muted-foreground">Suspended</p>
+              <p className="text-2xl font-bold">{counts.suspended}</p>
+            </div>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:shadow-md" onClick={() => setTab('TERMINATED')}>
           <CardContent className="p-4 flex items-center gap-3">
             <XCircle className="h-6 w-6 text-muted-foreground" />
-            <div><p className="text-xs text-muted-foreground">Terminated</p><p className="text-2xl font-bold">{counts.terminated}</p></div>
+            <div>
+              <p className="text-xs text-muted-foreground">Terminated</p>
+              <p className="text-2xl font-bold">{counts.terminated}</p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search */}
       <Card>
         <CardContent className="p-4 flex gap-3 items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by name, SSN, or award ID..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+            <Input placeholder="Search by name, SSN, or award ID..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <Button variant="outline" size="sm" onClick={() => { setTab('all'); setSearch(''); }}>Clear</Button>
         </CardContent>
       </Card>
 
-      {/* Table */}
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -166,67 +209,70 @@ const AwardSuspensionConsole: React.FC = () => {
                 <TableHead>SSN</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Benefit</TableHead>
-                <TableHead className="text-right">Weekly Rate</TableHead>
+                <TableHead className="text-right">Base Amount</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Last Action</TableHead>
+                <TableHead>Start</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {loading ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading awards…</TableCell></TableRow>
+              ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No awards found</TableCell></TableRow>
-              ) : filtered.map(a => (
-                <TableRow key={a.id}>
-                  <TableCell className="font-mono text-xs">{a.awardId}</TableCell>
-                  <TableCell className="font-mono">{a.ssn}</TableCell>
-                  <TableCell className="font-medium">{a.fullName}</TableCell>
-                  <TableCell className="text-sm">{a.benefitType}</TableCell>
-                  <TableCell className="text-right font-mono">{fmt(a.weeklyRate)}</TableCell>
-                  <TableCell><Badge variant="outline" className={statusColors[a.currentStatus]}>{a.currentStatus}</Badge></TableCell>
-                  <TableCell className="text-xs">
-                    {a.lastActionType ? (
-                      <span>{a.lastActionType} — {a.lastActionDate}</span>
-                    ) : '—'}
-                  </TableCell>
-                  <TableCell className="text-right space-x-1">
-                    {a.currentStatus === 'ACTIVE' && (
-                      <>
-                        <Button size="sm" variant="outline" onClick={() => openAction(a, 'SUSPEND')}>
-                          <PauseCircle className="h-3 w-3 mr-1" />Suspend
-                        </Button>
-                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => openAction(a, 'TERMINATE')}>
-                          <XCircle className="h-3 w-3 mr-1" />Terminate
-                        </Button>
-                      </>
-                    )}
-                    {a.currentStatus === 'SUSPENDED' && (
-                      <>
-                        <Button size="sm" variant="outline" onClick={() => openAction(a, 'RESUME')}>
-                          <PlayCircle className="h-3 w-3 mr-1" />Resume
-                        </Button>
-                        <Button size="sm" variant="outline" className="text-destructive" onClick={() => openAction(a, 'TERMINATE')}>
-                          <XCircle className="h-3 w-3 mr-1" />Terminate
-                        </Button>
-                      </>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+              ) : (
+                filtered.map((a) => (
+                  <TableRow key={a.id}>
+                    <TableCell className="font-mono text-xs">{a.award_number ?? a.id.slice(0, 8)}</TableCell>
+                    <TableCell className="font-mono">{a.ssn}</TableCell>
+                    <TableCell className="font-medium">{claimants[a.ssn]?.full_name ?? '—'}</TableCell>
+                    <TableCell className="text-sm">{a.benefit_code ?? '—'}</TableCell>
+                    <TableCell className="text-right font-mono">{fmt(a.base_amount)}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={statusColors[a.status] ?? ''}>{a.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs">{a.start_date}</TableCell>
+                    <TableCell className="text-right space-x-1">
+                      {canAct && a.status === 'ACTIVE' && (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => openAction(a, 'SUSPEND')}>
+                            <PauseCircle className="h-3 w-3 mr-1" />Suspend
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-destructive" onClick={() => openAction(a, 'TERMINATE')}>
+                            <XCircle className="h-3 w-3 mr-1" />Terminate
+                          </Button>
+                        </>
+                      )}
+                      {canAct && a.status === 'SUSPENDED' && (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => openAction(a, 'RESUME')}>
+                            <PlayCircle className="h-3 w-3 mr-1" />Resume
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-destructive" onClick={() => openAction(a, 'TERMINATE')}>
+                            <XCircle className="h-3 w-3 mr-1" />Terminate
+                          </Button>
+                        </>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* Action Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {actionType === 'SUSPEND' && <><PauseCircle className="h-5 w-5 text-amber-600" />Suspend Award</>}
-              {actionType === 'RESUME' && <><PlayCircle className="h-5 w-5 text-emerald-600" />Resume Award</>}
-              {actionType === 'TERMINATE' && <><XCircle className="h-5 w-5 text-destructive" />Terminate Award</>}
+              {actionType === 'SUSPEND' && (<><PauseCircle className="h-5 w-5 text-amber-600" />Suspend Award</>)}
+              {actionType === 'RESUME' && (<><PlayCircle className="h-5 w-5 text-emerald-600" />Resume Award</>)}
+              {actionType === 'TERMINATE' && (<><XCircle className="h-5 w-5 text-destructive" />Terminate Award</>)}
             </DialogTitle>
-            <DialogDescription>{selected?.awardId} — {selected?.fullName} ({selected?.benefitType})</DialogDescription>
+            <DialogDescription>
+              {selected?.award_number ?? selected?.id.slice(0, 8)} — {selected ? (claimants[selected.ssn]?.full_name ?? selected.ssn) : ''} ({selected?.benefit_code ?? '—'})
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
@@ -234,7 +280,7 @@ const AwardSuspensionConsole: React.FC = () => {
               <Select value={reason} onValueChange={setReason}>
                 <SelectTrigger><SelectValue placeholder="Select reason..." /></SelectTrigger>
                 <SelectContent>
-                  {(actionType === 'TERMINATE' ? TERMINATE_REASONS : actionType === 'RESUME' ? ['Life certificate verified', 'Medical review passed', 'Investigation cleared', 'Other'] : SUSPEND_REASONS).map(r => (
+                  {(actionType === 'TERMINATE' ? TERMINATE_REASONS : actionType === 'RESUME' ? RESUME_REASONS : SUSPEND_REASONS).map((r) => (
                     <SelectItem key={r} value={r}>{r}</SelectItem>
                   ))}
                 </SelectContent>
@@ -242,11 +288,11 @@ const AwardSuspensionConsole: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label>Effective Date *</Label>
-              <Input type="date" value={effectiveDate} onChange={e => setEffectiveDate(e.target.value)} />
+              <Input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} />
             </div>
             <div className="space-y-2">
               <Label>Notes</Label>
-              <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Additional details..." />
+              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Additional details..." />
             </div>
             {actionType === 'TERMINATE' && (
               <div className="bg-destructive/10 border border-destructive/30 rounded-md p-3 text-sm text-destructive">
@@ -256,9 +302,10 @@ const AwardSuspensionConsole: React.FC = () => {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button variant={actionType === 'TERMINATE' ? 'destructive' : 'default'} onClick={executeAction}>
-              <CheckCircle2 className="h-4 w-4 mr-1" />Confirm {actionType?.toLowerCase()}
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={submitting}>Cancel</Button>
+            <Button variant={actionType === 'TERMINATE' ? 'destructive' : 'default'} onClick={executeAction} disabled={submitting}>
+              {submitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
+              Confirm {actionType?.toLowerCase()}
             </Button>
           </DialogFooter>
         </DialogContent>
