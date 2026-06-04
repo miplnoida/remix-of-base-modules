@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, FileCheck } from 'lucide-react';
+import { Plus, Edit, FileCheck, Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useBnDocumentProfiles } from '@/hooks/bn/useBnConfig';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -24,14 +25,24 @@ export default function DocumentSetup() {
     <PermissionWrapper moduleName="bn_configuration">
       <div className="space-y-6 p-6">
         <PageHeader
-          title="Document Profiles"
-          subtitle="Configure document requirements for each benefit product"
+          title="Document Setup"
+          subtitle="Reusable document type and profile library"
           breadcrumbs={[
             { label: 'Benefit Management', href: '/bn/claims' },
             { label: 'Configuration' },
             { label: 'Document Setup' },
           ]}
         />
+
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Library screen — required documents are set inside Product Catalog</AlertTitle>
+          <AlertDescription>
+            Document Setup defines reusable document types and profiles. Product-specific document
+            requirements are configured in Product Catalog → select the product version → Documents tab.
+          </AlertDescription>
+        </Alert>
+
 
         <Card>
           <CardHeader className="pb-3">

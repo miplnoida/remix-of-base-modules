@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit } from 'lucide-react';
+import { Plus, Edit, Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useBnFormulaTemplates } from '@/hooks/bn/useBnConfig';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -26,13 +27,23 @@ export default function FormulaConfiguration() {
       <div className="space-y-6 p-6">
         <PageHeader
           title="Formula Templates"
-          subtitle="Define reusable calculation formulas for benefit products"
+          subtitle="Reusable calculation formula library"
           breadcrumbs={[
             { label: 'Benefit Management', href: '/bn/claims' },
             { label: 'Configuration' },
-            { label: 'Formulas' },
+            { label: 'Formula Templates' },
           ]}
         />
+
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Library screen — formulas are attached inside Product Catalog</AlertTitle>
+          <AlertDescription>
+            Formula Templates are reusable calculation building blocks. To assign a formula to a benefit
+            product, open Product Catalog → select the product version → Calculation tab.
+          </AlertDescription>
+        </Alert>
+
 
         <Card>
           <CardHeader className="pb-3">

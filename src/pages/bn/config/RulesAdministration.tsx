@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   BookOpen, Copy, CheckCircle, XCircle, Send, Eye, Play,
   GitCompare, Search, Plus, ArrowRight, Shield, Clock, AlertTriangle,
@@ -116,14 +117,24 @@ export default function RulesAdministration() {
     <PermissionWrapper moduleName="bn_configuration">
       <div className="space-y-6 p-6">
         <PageHeader
-          title="Rules Administration"
-          subtitle="Manage effective-dated benefit rules with governed change control"
+          title="Rule Version Governance"
+          subtitle="Approve, publish, retire, and audit product rule versions"
           breadcrumbs={[
             { label: 'Benefit Management', href: '/bn/claims' },
             { label: 'Configuration' },
-            { label: 'Rules Administration' },
+            { label: 'Rule Version Governance' },
           ]}
         />
+
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Governance screen — rules are edited in Product Catalog</AlertTitle>
+          <AlertDescription>
+            Use this screen to review, compare, approve, publish, retire, or roll back product
+            rule versions. To edit eligibility, calculation, documents, workflow, or timelines,
+            open the draft version inside Product Catalog.
+          </AlertDescription>
+        </Alert>
 
         <Tabs defaultValue="versions" className="w-full">
           <TabsList>

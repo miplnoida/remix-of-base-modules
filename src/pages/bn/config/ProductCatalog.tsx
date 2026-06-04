@@ -35,7 +35,7 @@ export default function ProductCatalog() {
         <div>
           <h1 className="text-3xl font-semibold text-foreground">Benefit Product Catalog</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage benefit types, versions, and configuration rules
+            Configure all rules and requirements for each benefit product — eligibility, calculation, documents, workflow, screens, timelines, interactions, and overrides.
           </p>
         </div>
         <Button onClick={() => navigate('/bn/config/products/new')} className="gap-2">
