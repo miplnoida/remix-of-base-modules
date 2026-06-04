@@ -8064,6 +8064,54 @@ export type Database = {
           },
         ]
       }
+      bn_product_test_case: {
+        Row: {
+          entered_at: string
+          entered_by: string | null
+          expected_result_json: Json
+          id: string
+          input_json: Json
+          is_active: boolean
+          product_id: string | null
+          product_version_id: string | null
+          scenario_type: string
+          test_case_code: string
+          test_case_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          entered_at?: string
+          entered_by?: string | null
+          expected_result_json?: Json
+          id?: string
+          input_json?: Json
+          is_active?: boolean
+          product_id?: string | null
+          product_version_id?: string | null
+          scenario_type: string
+          test_case_code: string
+          test_case_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          entered_at?: string
+          entered_by?: string | null
+          expected_result_json?: Json
+          id?: string
+          input_json?: Json
+          is_active?: boolean
+          product_id?: string | null
+          product_version_id?: string | null
+          scenario_type?: string
+          test_case_code?: string
+          test_case_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       bn_product_version: {
         Row: {
           calculation_config: Json
