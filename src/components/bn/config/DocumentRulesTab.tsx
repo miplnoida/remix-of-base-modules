@@ -28,14 +28,37 @@ const channelBadge = (c?: string) => {
 
 export function DocumentRulesTab({ productId, versionId }: Props) {
   const { toast } = useToast();
+  const qc = useQueryClient();
   const { data: rules = [], isLoading } = useBnDocumentRules(productId, versionId);
+  const { data: versions = [] } = useBnProductVersions(productId);
   const upsertMutation = useUpsertBnDocumentRule();
   const deleteMutation = useDeleteBnDocumentRule();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<BnDocumentRule>>({});
   const [conditionText, setConditionText] = useState('');
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copySourceId, setCopySourceId] = useState('');
+  const [copying, setCopying] = useState(false);
 
   if (!productId) return <Card><CardContent className="py-8 text-center text-muted-foreground">Save the product first to configure documents.</CardContent></Card>;
+
+  const otherVersions = versions.filter(v => v.id !== versionId);
+
+  const handleCopyFromVersion = async () => {
+    if (!versionId || !copySourceId) return;
+    setCopying(true);
+    try {
+      const n = await copyDocumentRequirements(copySourceId, versionId);
+      toast({ title: 'Documents Copied', description: `Copied ${n} document requirement(s).` });
+      setCopyOpen(false);
+      setCopySourceId('');
+      qc.invalidateQueries({ queryKey: ['bn', 'document-rules'] });
+    } catch (err: any) {
+      toast({ title: 'Copy Failed', description: err?.message, variant: 'destructive' });
+    } finally {
+      setCopying(false);
+    }
+  };
 
   const openNew = () => {
     setEditing({
