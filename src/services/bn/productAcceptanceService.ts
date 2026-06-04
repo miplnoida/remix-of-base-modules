@@ -339,7 +339,7 @@ export async function startProductWorkflow(
   const templateKey = tpl?.template_key ?? `bn_claim_${templateId}`;
   const { instanceId } = await bnWorkflowAdapter.startWorkflow({
     templateKey,
-    entityType: 'bn_claim',
+    entityType: 'claim',
     entityId: claimId,
     context: { productVersionId },
     initiatedBy: actor,
