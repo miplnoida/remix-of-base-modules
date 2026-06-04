@@ -44,8 +44,8 @@ export async function fetchVersionById(id: string): Promise<BnProductVersion | n
 }
 
 export async function createProductVersion(version: Partial<BnProductVersion>): Promise<BnProductVersion> {
-  // Validate no overlapping active versions for same product
-  if (version.product_id && version.effective_from) {
+  // Validate no overlapping active versions for same product (skip for DRAFT — overlap is only enforced at publish time)
+  if (version.product_id && version.effective_from && version.status && version.status !== 'DRAFT') {
     const existing = await fetchVersionsByProduct(version.product_id);
     const overlap = existing.find(v =>
       v.status === 'ACTIVE' &&
