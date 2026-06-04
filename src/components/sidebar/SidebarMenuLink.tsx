@@ -1,6 +1,6 @@
 
 import { SidebarMenuButton } from "@/components/ui/sidebar";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { isSatelliteUrl, navigateToSatellite } from "@/lib/satelliteSso";
 
@@ -16,8 +16,6 @@ interface SidebarMenuLinkProps {
 }
 
 const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) => {
-  const navigate = useNavigate();
-
   const isExternal = item.url.startsWith('http://') || item.url.startsWith('https://');
 
   const handleExternalClick = (e: React.MouseEvent) => {
@@ -27,15 +25,6 @@ const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) =>
     } else {
       window.location.href = item.url;
     }
-  };
-
-  const handleInternalClick = (e: React.MouseEvent) => {
-    // Allow modifier-click / middle-click to use browser defaults (new tab, etc.)
-    if (e.defaultPrevented) return;
-    if (e.button !== 0) return;
-    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-    e.preventDefault();
-    navigate(item.url);
   };
 
   const linkClass = `flex items-center gap-4 min-w-0 ${collapsed ? 'justify-center px-1' : 'px-1 py-3'}`;
@@ -67,9 +56,9 @@ const SidebarMenuLink = ({ item, collapsed, isActive }: SidebarMenuLinkProps) =>
           {inner}
         </a>
       ) : (
-        <a href={item.url} onClick={handleInternalClick} className={linkClass}>
+        <Link to={item.url} className={linkClass}>
           {inner}
-        </a>
+        </Link>
       )}
     </SidebarMenuButton>
   );
