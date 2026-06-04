@@ -44041,6 +44041,7 @@ export type Database = {
           last_name: string | null
           last_password_change: string | null
           locked_until: string | null
+          lockout_exempt: boolean
           mfa_enabled: boolean | null
           mfa_method: string | null
           middle_name: string | null
@@ -44070,6 +44071,7 @@ export type Database = {
           last_name?: string | null
           last_password_change?: string | null
           locked_until?: string | null
+          lockout_exempt?: boolean
           mfa_enabled?: boolean | null
           mfa_method?: string | null
           middle_name?: string | null
@@ -44099,6 +44101,7 @@ export type Database = {
           last_name?: string | null
           last_password_change?: string | null
           locked_until?: string | null
+          lockout_exempt?: boolean
           mfa_enabled?: boolean | null
           mfa_method?: string | null
           middle_name?: string | null

@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Users, UserPlus, Search, Edit, Lock, Unlock, Shield, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, UserPlus, Search, Edit, Lock, Unlock, Shield, Eye, ChevronLeft, ChevronRight, KeyRound, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
 import { useUserProfiles, useUpdateUserProfile, useTbOffices } from "@/hooks/useAdminData";
 
 const PAGE_SIZES = [10, 25, 50, 100];
@@ -49,9 +50,30 @@ const UserList = () => {
     await updateUser.mutateAsync({ id: userId, is_active: !currentStatus });
   };
 
-  const getStatusBadge = (isActive: boolean | null, lockedUntil: string | null) => {
+  const handleUnlock = async (userId: string, email: string | null) => {
+    try {
+      await updateUser.mutateAsync({
+        id: userId,
+        locked_until: null,
+        failed_login_attempts: 0,
+      } as any);
+      toast.success(`Unlocked ${email || 'user'}`);
+    } catch (e: any) {
+      toast.error('Failed to unlock user', { description: e?.message });
+    }
+  };
+
+  const getStatusBadge = (isActive: boolean | null, lockedUntil: string | null, lockoutExempt?: boolean | null) => {
     if (lockedUntil && new Date(lockedUntil) > new Date()) {
       return <Badge variant="destructive">Locked</Badge>;
+    }
+    if (lockoutExempt) {
+      return (
+        <span className="inline-flex items-center gap-1">
+          <Badge variant="default">Active</Badge>
+          <Badge variant="outline" className="gap-1"><ShieldCheck className="h-3 w-3" />Lock-Exempt</Badge>
+        </span>
+      );
     }
     return isActive ? (
       <Badge variant="default">Active</Badge>
@@ -163,7 +185,7 @@ const UserList = () => {
                   <TableCell>{user.employee_code || '-'}</TableCell>
                   <TableCell>{user.office?.description || '-'}</TableCell>
                   <TableCell>{user.department?.name || '-'}</TableCell>
-                  <TableCell>{getStatusBadge(user.is_active, user.locked_until)}</TableCell>
+                  <TableCell>{getStatusBadge(user.is_active, user.locked_until, (user as any).lockout_exempt)}</TableCell>
                   <TableCell>{user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
@@ -176,11 +198,21 @@ const UserList = () => {
                       <Button variant="ghost" size="icon" onClick={() => navigate(`/admin/users/${user.id}/roles`)} title="Manage Roles">
                         <Shield className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      {((user.locked_until && new Date(user.locked_until) > new Date()) || (user.failed_login_attempts ?? 0) > 0) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleUnlock(user.id, user.email)}
+                          title="Unlock account (clear lockout & failed attempts)"
+                        >
+                          <KeyRound className="h-4 w-4 text-amber-600" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleToggleStatus(user.id, user.is_active)}
-                        title={user.is_active ? "Disable User" : "Enable User"}
+                        title={user.is_active ? "Deactivate User" : "Activate User"}
                       >
                         {user.is_active ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
                       </Button>

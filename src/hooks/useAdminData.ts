@@ -74,6 +74,7 @@ export interface UserProfile {
   mfa_enabled: boolean | null;
   failed_login_attempts: number | null;
   locked_until: string | null;
+  lockout_exempt?: boolean | null;
   office?: TbOffice | null;
   department?: DepartmentPartial | null;
   roles?: { role: AppRole }[];
@@ -469,6 +470,7 @@ export function useUserProfiles() {
           mfa_enabled,
           failed_login_attempts,
           locked_until,
+          lockout_exempt,
           office:tb_office!profiles_office_code_fkey(code, description, address1, address2),
           department:tb_office_departments!profiles_department_id_fkey(id, name)
         `)
