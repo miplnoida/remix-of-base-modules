@@ -1,3 +1,4 @@
+import { useUserCode } from '@/hooks/useUserCode';
 /**
  * Benefit Determination Screen
  * 
@@ -42,7 +43,7 @@ export default function BenefitDetermination() {
 
   // TODO: get from auth context
   const userRoles = ['admin', 'claims_officer'];
-  const userCode = 'SYSTEM';
+  const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
 
   const handleAction = (action: string, narrative?: string, reasonCodeId?: string) => {
     if (!claimId) return;

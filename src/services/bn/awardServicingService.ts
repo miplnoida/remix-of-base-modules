@@ -252,6 +252,8 @@ export async function verifyLifeCertificate(
 }
 
 export async function recordLifeCertificateReminder(id: string, userCode: string | null): Promise<void> {
+  const { requireUserCode } = await import('@/lib/bn/requireUserCode');
+  const actor = requireUserCode(userCode, 'recordLifeCertificateReminder');
   // Reminders aren't tracked in the table directly — append a marker to remarks.
   const { data: row, error: rErr } = await db
     .from('bn_life_certificate')
@@ -259,11 +261,11 @@ export async function recordLifeCertificateReminder(id: string, userCode: string
     .eq('id', id)
     .maybeSingle();
   if (rErr) throw rErr;
-  const stamp = `[Reminder sent ${new Date().toISOString().slice(0, 10)} by ${userCode ?? 'SYSTEM'}]`;
+  const stamp = `[Reminder sent ${new Date().toISOString().slice(0, 10)} by ${actor}]`;
   const next = row?.remarks ? `${row.remarks}\n${stamp}` : stamp;
   const { error } = await db
     .from('bn_life_certificate')
-    .update({ remarks: next, modified_by: userCode })
+    .update({ remarks: next, modified_by: actor })
     .eq('id', id);
   if (error) throw error;
 }

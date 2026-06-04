@@ -1,3 +1,4 @@
+import { useUserCode } from '@/hooks/useUserCode';
 /**
  * Screen 8: Determination / Recommendation
  * 
@@ -42,7 +43,7 @@ export default function DeterminationRecommendation() {
 
   const { data: reasonCodes } = useBnReasonCodes(recommendation === 'DISALLOW_READY' ? 'DISALLOW_READY' : undefined);
 
-  const userCode = 'SYSTEM';
+  const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
 
   const handleSubmit = () => {
     if (!claimId || !recommendation) {

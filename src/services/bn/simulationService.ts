@@ -57,7 +57,7 @@ export async function executeSimulationRun(req: BnSimulationRequest): Promise<Bn
     product_version_id: req.productVersionId,
     country_code: req.countryCode,
     started_at: new Date().toISOString(),
-    triggered_by: req.triggeredBy || 'SYSTEM',
+    triggered_by: (await import('@/lib/bn/requireUserCode')).requireUserCode(req.triggeredBy, 'runSimulation'),
   });
 
   // 3. Persist input parameters
@@ -74,6 +74,7 @@ export async function executeSimulationRun(req: BnSimulationRequest): Promise<Bn
       claimDate: getInputValue(req.inputs, 'claim_date') || new Date().toISOString().substring(0, 10),
       countryCode: req.countryCode,
       mode: 'SIMULATION',
+      triggeredBy: req.triggeredBy,
     };
 
     // 5. Execute the EXISTING production engine (read-only for rules/wages)

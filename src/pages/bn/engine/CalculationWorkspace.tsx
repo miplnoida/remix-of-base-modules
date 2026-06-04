@@ -1,3 +1,4 @@
+import { useUserCode } from '@/hooks/useUserCode';
 /**
  * Screen 7: Calculation Workspace
  * 
@@ -43,7 +44,7 @@ export default function CalculationWorkspace() {
   const [expandedLines, setExpandedLines] = useState<Set<string>>(new Set());
   const [whatIfOverrides, setWhatIfOverrides] = useState<Record<string, string>>({});
 
-  const userCode = 'SYSTEM';
+  const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
 
   const handleRunCalc = () => {
     if (!ctx?.claim || !ctx.product) return;
