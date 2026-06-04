@@ -1,28 +1,99 @@
 /**
- * Rule Configuration — CRUD for eligibility, calculation, and timeline rules
+ * Rule Configuration — Reusable rule group library
  */
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Search, BookOpen, Calculator, Clock, Info } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog';
+import { Plus, Edit, BookOpen, Calculator, Clock, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
+import { toast } from 'sonner';
+import { useBnRuleGroups, useUpsertBnRuleGroup } from '@/hooks/bn/useBnConfig';
+import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BnEmptyState, BnFilterBar } from '@/components/bn/shared';
+import type { BnRuleGroup } from '@/types/bn';
+
+type RuleGroupForm = {
+  id?: string;
+  group_code: string;
+  group_name: string;
+  description: string;
+  country_code: string;
+  sort_order: number;
+  is_active: boolean;
+};
+
+const emptyForm: RuleGroupForm = {
+  group_code: '',
+  group_name: '',
+  description: '',
+  country_code: '',
+  sort_order: 0,
+  is_active: true,
+};
 
 export default function RuleConfiguration() {
   const [search, setSearch] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [form, setForm] = useState<RuleGroupForm>(emptyForm);
   const { data: ruleGroups = [], isLoading } = useBnRuleGroups();
+  const upsert = useUpsertBnRuleGroup();
+  const userCode = useUserCode();
 
-  const filtered = ruleGroups.filter((rg: any) =>
+  const filtered = ruleGroups.filter((rg: BnRuleGroup) =>
     !search || rg.group_name?.toLowerCase().includes(search.toLowerCase()) ||
     rg.group_code?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const openAdd = () => { setForm(emptyForm); setDialogOpen(true); };
+  const openEdit = (rg: BnRuleGroup) => {
+    setForm({
+      id: rg.id,
+      group_code: rg.group_code,
+      group_name: rg.group_name,
+      description: rg.description ?? '',
+      country_code: rg.country_code ?? '',
+      sort_order: rg.sort_order ?? 0,
+      is_active: rg.is_active ?? true,
+    });
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.group_code.trim() || !form.group_name.trim()) {
+      toast.error('Please check the form for valid information!', {
+        description: 'Code and Name are required.',
+      });
+      return;
+    }
+    try {
+      await upsert.mutateAsync({
+        ...(form.id ? { id: form.id } : {}),
+        group_code: form.group_code.trim(),
+        group_name: form.group_name.trim(),
+        description: form.description.trim() || null,
+        country_code: form.country_code.trim() || null,
+        sort_order: form.sort_order,
+        is_active: form.is_active,
+        entered_by: userCode ?? null,
+      } as Partial<BnRuleGroup>);
+      toast.success(form.id ? 'Rule group updated' : 'Rule group created');
+      setDialogOpen(false);
+    } catch (e: any) {
+      toast.error('Save failed', { description: e?.message ?? 'Unable to save rule group.' });
+    }
+  };
 
   return (
     <PermissionWrapper moduleName="bn_configuration">
@@ -47,7 +118,6 @@ export default function RuleConfiguration() {
           </AlertDescription>
         </Alert>
 
-
         <Tabs defaultValue="groups" className="w-full">
           <TabsList>
             <TabsTrigger value="groups" className="gap-1.5"><BookOpen className="h-3.5 w-3.5" /> Rule Groups</TabsTrigger>
@@ -65,7 +135,7 @@ export default function RuleConfiguration() {
                   searchPlaceholder="Search rule groups..."
                   filters={[]}
                   actions={
-                    <Button size="sm" className="gap-1.5">
+                    <Button size="sm" className="gap-1.5" onClick={openAdd}>
                       <Plus className="h-3.5 w-3.5" /> Add Group
                     </Button>
                   }
@@ -88,16 +158,18 @@ export default function RuleConfiguration() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filtered.map((rg: any) => (
-                        <TableRow key={rg.id}>
+                      {filtered.map((rg: BnRuleGroup) => (
+                        <TableRow key={rg.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEdit(rg)}>
                           <TableCell className="font-mono text-sm">{rg.group_code}</TableCell>
                           <TableCell className="font-medium text-sm">{rg.group_name}</TableCell>
                           <TableCell>
                             <Badge variant="outline">{rg.country_code || 'Global'}</Badge>
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground max-w-[300px] truncate">{rg.description}</TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(rg)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -147,6 +219,59 @@ export default function RuleConfiguration() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{form.id ? 'Edit Rule Group' : 'Add Rule Group'}</DialogTitle>
+              <DialogDescription>
+                Define a reusable classification label. Used inside Product Catalog to organize rules.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="rg_code">Code *</Label>
+                  <Input id="rg_code" value={form.group_code} maxLength={50}
+                    onChange={(e) => setForm({ ...form, group_code: e.target.value.toUpperCase() })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="rg_country">Country code</Label>
+                  <Input id="rg_country" value={form.country_code} maxLength={3} placeholder="e.g. KN"
+                    onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rg_name">Name *</Label>
+                <Input id="rg_name" value={form.group_name} maxLength={120}
+                  onChange={(e) => setForm({ ...form, group_name: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="rg_desc">Description</Label>
+                <Textarea id="rg_desc" value={form.description} maxLength={500} rows={3}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1.5">
+                  <Label htmlFor="rg_sort">Sort order</Label>
+                  <Input id="rg_sort" type="number" className="w-28" value={form.sort_order}
+                    onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) || 0 })} />
+                </div>
+                <div className="flex items-center gap-2 pt-6">
+                  <Switch id="rg_active" checked={form.is_active}
+                    onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
+                  <Label htmlFor="rg_active">Active</Label>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleSave} disabled={upsert.isPending}>
+                {upsert.isPending ? 'Saving…' : (form.id ? 'Save changes' : 'Create group')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </PermissionWrapper>
   );
