@@ -99,6 +99,13 @@ export const fetchDocumentRulesByProduct = async (productId: string): Promise<Bn
     is_active: r.is_active,
     entered_by: r.entered_by,
     entered_at: r.entered_at,
+    channel_code: r.channel_code ?? 'BOTH',
+    public_visible: r.public_visible,
+    internal_visible: r.internal_visible,
+    blocks_submission: r.blocks_submission,
+    blocks_decision: r.blocks_decision,
+    blocks_payment: r.blocks_payment,
+    condition_json: r.condition_json,
   }));
 };
 

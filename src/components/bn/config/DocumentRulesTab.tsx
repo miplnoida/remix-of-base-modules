@@ -106,39 +106,64 @@ export function DocumentRulesTab({ productId }: Props) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rules.map((r: BnDocumentRule) => {
-                    const hasCondition = r.condition_json && Object.keys(r.condition_json).length > 0;
-                    return (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-mono text-xs">{r.document_type_code}</TableCell>
-                        <TableCell className="text-sm">{r.document_name}</TableCell>
-                        <TableCell><Badge variant="outline">{r.stage}</Badge></TableCell>
-                        <TableCell>
-                          {r.is_mandatory
-                            ? <Badge variant="destructive">Required</Badge>
-                            : <Badge variant="secondary">Optional</Badge>}
-                        </TableCell>
-                        <TableCell>{channelBadge(r.channel_code)}</TableCell>
-                        <TableCell>{r.public_visible !== false ? '✓' : '—'}</TableCell>
-                        <TableCell>{r.internal_visible !== false ? '✓' : '—'}</TableCell>
-                        <TableCell>{r.blocks_submission ? '✓' : '—'}</TableCell>
-                        <TableCell>{r.blocks_decision !== false ? '✓' : '—'}</TableCell>
-                        <TableCell>{r.blocks_payment ? '✓' : '—'}</TableCell>
-                        <TableCell>{hasCondition ? <Badge variant="outline">cond</Badge> : '—'}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(r)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon"
-                              onClick={async () => { await deleteMutation.mutateAsync(r.id); }}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {(() => {
+                    // Group rows that share the same (doc_type, stage) AND same settings,
+                    // differing only by channel. Collapses ONLINE+OFFLINE duplicates into one row.
+                    const groups = new Map<string, BnDocumentRule[]>();
+                    for (const r of rules as BnDocumentRule[]) {
+                      const settingsKey = [
+                        r.document_type_code, r.stage, r.is_mandatory,
+                        !!r.blocks_submission, r.blocks_decision !== false, !!r.blocks_payment,
+                        r.public_visible !== false, r.internal_visible !== false,
+                      ].join('|');
+                      const arr = groups.get(settingsKey) ?? [];
+                      arr.push(r);
+                      groups.set(settingsKey, arr);
+                    }
+                    return Array.from(groups.values()).map((grp) => {
+                      const r = grp[0];
+                      const hasCondition = r.condition_json && Object.keys(r.condition_json).length > 0;
+                      const channels = new Set(grp.map(g => (g.channel_code ?? 'BOTH').toUpperCase()));
+                      const channelDisplay =
+                        channels.has('BOTH') || (channels.has('ONLINE') && channels.has('OFFLINE'))
+                          ? <Badge variant="outline">Both</Badge>
+                          : channels.has('ONLINE')
+                            ? <Badge>Online</Badge>
+                            : <Badge variant="secondary">Offline</Badge>;
+                      return (
+                        <TableRow key={grp.map(g => g.id).join('-')}>
+                          <TableCell className="font-mono text-xs">{r.document_type_code}</TableCell>
+                          <TableCell className="text-sm">{r.document_name}</TableCell>
+                          <TableCell><Badge variant="outline">{r.stage}</Badge></TableCell>
+                          <TableCell>
+                            {r.is_mandatory
+                              ? <Badge variant="destructive">Required</Badge>
+                              : <Badge variant="secondary">Optional</Badge>}
+                          </TableCell>
+                          <TableCell>{channelDisplay}</TableCell>
+                          <TableCell>{r.public_visible !== false ? '✓' : '—'}</TableCell>
+                          <TableCell>{r.internal_visible !== false ? '✓' : '—'}</TableCell>
+                          <TableCell>{r.blocks_submission ? '✓' : '—'}</TableCell>
+                          <TableCell>{r.blocks_decision !== false ? '✓' : '—'}</TableCell>
+                          <TableCell>{r.blocks_payment ? '✓' : '—'}</TableCell>
+                          <TableCell>{hasCondition ? <Badge variant="outline">cond</Badge> : '—'}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => openEdit(r)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon"
+                                onClick={async () => {
+                                  for (const g of grp) await deleteMutation.mutateAsync(g.id);
+                                }}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    });
+                  })()}
                 </TableBody>
               </Table>
             </div>
