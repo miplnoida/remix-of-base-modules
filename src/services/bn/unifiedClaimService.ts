@@ -16,6 +16,7 @@ import { resolveClaimSource } from '@/services/bn/source/claimSourceResolver';
 import { historicalInquiryAdapter } from '@/services/bn/integration/historicalInquiryAdapter';
 import * as claimService from '@/services/bn/claimService';
 import type { ClaimSourceLookup, ClaimSourceResolution, BnSourceSystem } from '@/types/bnClaimSource';
+import { paymentBoundaryService } from '@/services/bn/paymentBoundaryService';
 
 // ---------------------------------------------------------------------------
 // Types
