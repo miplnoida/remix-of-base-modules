@@ -4810,43 +4810,91 @@ export type Database = {
       }
       bn_calc_legacy_snapshot: {
         Row: {
+          benefit_code: string | null
+          bn_amount: number | null
+          bn_claim_id: string | null
           captured_at: string | null
           captured_by: string | null
           claim_id: string
+          comparison_notes: string | null
+          comparison_status: string | null
+          difference_amount: number | null
+          difference_percent: number | null
+          entered_at: string
+          entered_by: string | null
           id: string
+          legacy_amount: number | null
+          legacy_claim_number: string | null
           legacy_claim_ref: string | null
+          legacy_claim_seq: number | null
           legacy_lump_sum: number | null
           legacy_monthly_rate: number | null
           legacy_raw_output: Json | null
           legacy_system: string | null
           legacy_weekly_rate: number | null
+          modified_at: string
+          modified_by: string | null
           notes: string | null
+          raw_bn_json: Json | null
+          raw_legacy_json: Json | null
         }
         Insert: {
+          benefit_code?: string | null
+          bn_amount?: number | null
+          bn_claim_id?: string | null
           captured_at?: string | null
           captured_by?: string | null
           claim_id: string
+          comparison_notes?: string | null
+          comparison_status?: string | null
+          difference_amount?: number | null
+          difference_percent?: number | null
+          entered_at?: string
+          entered_by?: string | null
           id?: string
+          legacy_amount?: number | null
+          legacy_claim_number?: string | null
           legacy_claim_ref?: string | null
+          legacy_claim_seq?: number | null
           legacy_lump_sum?: number | null
           legacy_monthly_rate?: number | null
           legacy_raw_output?: Json | null
           legacy_system?: string | null
           legacy_weekly_rate?: number | null
+          modified_at?: string
+          modified_by?: string | null
           notes?: string | null
+          raw_bn_json?: Json | null
+          raw_legacy_json?: Json | null
         }
         Update: {
+          benefit_code?: string | null
+          bn_amount?: number | null
+          bn_claim_id?: string | null
           captured_at?: string | null
           captured_by?: string | null
           claim_id?: string
+          comparison_notes?: string | null
+          comparison_status?: string | null
+          difference_amount?: number | null
+          difference_percent?: number | null
+          entered_at?: string
+          entered_by?: string | null
           id?: string
+          legacy_amount?: number | null
+          legacy_claim_number?: string | null
           legacy_claim_ref?: string | null
+          legacy_claim_seq?: number | null
           legacy_lump_sum?: number | null
           legacy_monthly_rate?: number | null
           legacy_raw_output?: Json | null
           legacy_system?: string | null
           legacy_weekly_rate?: number | null
+          modified_at?: string
+          modified_by?: string | null
           notes?: string | null
+          raw_bn_json?: Json | null
+          raw_legacy_json?: Json | null
         }
         Relationships: []
       }
