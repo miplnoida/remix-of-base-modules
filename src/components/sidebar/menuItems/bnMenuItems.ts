@@ -158,6 +158,13 @@ const _bnMenuItemsRaw = [
             description: "Screen templates and field metadata",
           },
           {
+            title: "Configuration Validation",
+            url: "/bn/config/validation",
+            icon: ClipboardCheck,
+            requiresPermission: "benefits_management",
+            description: "Validate product setup across rules, formulas, documents, workflow, screens, and public readiness",
+          },
+          {
             title: "Calculation Engine",
             url: "/bn/engine",
             icon: FlaskConical,
