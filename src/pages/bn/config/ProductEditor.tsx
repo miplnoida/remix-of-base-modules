@@ -24,6 +24,7 @@ import { InteractionRulesTab } from '@/components/bn/config/InteractionRulesTab'
 import { OverridePoliciesTab } from '@/components/bn/config/OverridePoliciesTab';
 import { VersionHistoryTab } from '@/components/bn/config/VersionHistoryTab';
 import { PreviewTab } from '@/components/bn/config/PreviewTab';
+import { ChannelsTab } from '@/components/bn/config/ChannelsTab';
 
 const statusBadge: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'secondary', PENDING_APPROVAL: 'outline', ACTIVE: 'default', SUSPENDED: 'destructive', ARCHIVED: 'outline',
