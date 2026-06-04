@@ -307,7 +307,7 @@ async function buildBnUnified(
     benefitDetails: (detail ?? null) as Record<string, unknown> | null,
     eligibility: eligibility ?? [],
     calculation: calculation ?? [],
-    payments: [], // BN payments fed via payablesQueueService/postIssueService — unified view stays empty here
+    payments: (bnPayments ?? []) as UnifiedPayment[],
     timeline,
     documents,
     audit: {
