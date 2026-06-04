@@ -1,54 +1,81 @@
-## Problem
+# BN Product Catalogue — Channels (Online + Offline)
 
-Clicking a leaf submenu item in the sidebar triggers a full browser reload instead of a client-side route change. Symptoms in the preview confirm this: after each click the auth provider re-runs (`[Auth] getSession() timed out — proceeding as unauthenticated` repeats on every navigation, which only happens on a fresh app boot).
+Make every benefit product/version support both online (public self-service) and offline (staff-assisted) applications. Eligibility, calculation, timelines, and interactions stay shared. Screens, documents, validation, and workflows become channel-specific.
 
-## Root cause
+## 1. Database migration
 
-The dynamic (DB-driven) sidebar renders leaf items through `src/components/sidebar/SidebarMenuLink.tsx`. That component does **not** use react-router-dom's `Link`. Instead it renders:
+New table `bn_product_channel_config`
+- Keys: `product_id`, `product_version_id`, `channel_code` (`ONLINE`|`OFFLINE`), unique on `(product_version_id, channel_code)`
+- Refs: `screen_template_id` → `bn_screen_template`, `workflow_template_id` → `bn_workflow_template`, `workflow_definition_id`, `document_profile_id` → `bn_document_profile`, `confirmation_template_id`
+- Flags: `is_enabled`, `allow_save_draft`, `allow_upload_later`, `requires_identity_verification`, `requires_email_or_phone_otp`, `requires_staff_review_before_acceptance`, `blocks_submission_if_documents_missing`, `blocks_submission_if_precheck_fails`, `correction_allowed`, `correction_deadline_days`, `default_source`, `metadata`
+- Standard audit columns
 
-```tsx
-<a href={item.url} onClick={handleInternalClick}>...</a>
-```
+Alter `bn_doc_requirement` — add `channel_code` (default `BOTH`), `public_visible`, `internal_visible`, `blocks_submission`, `blocks_decision`, `blocks_payment`, `condition_json`.
 
-where `handleInternalClick` is:
+Alter `bn_claim` — add `channel_code`, `submitted_via`, `screen_template_id`, `workflow_definition_id`, `channel_config_id`.
 
-```ts
-if (e.defaultPrevented) return;   // <-- bail-out
-if (e.button !== 0) return;
-if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-e.preventDefault();
-navigate(item.url);
-```
+All new tables get GRANTs for `authenticated` and `service_role`; RLS stays off per project policy.
 
-The `<a>` sits inside `SidebarMenuButton asChild` (Radix `Slot`) and, when collapsed, additionally inside `TooltipTrigger asChild`. Radix composes click handlers along that chain. Whenever any ancestor handler (Tooltip open/close, Sheet close on mobile, Slot prop-merge edge cases) marks the event with `defaultPrevented`, the `if (e.defaultPrevented) return;` guard fires, `navigate()` is **never called**, and the browser then follows the `<a href>` → full page reload, which re-mounts the whole app (explaining the repeated auth re-initialisation in the logs).
+## 2. Service layer
 
-The sibling component `SidebarGroupMenu.tsx` already uses `<Link to=…>` for its leaves and does not exhibit the problem, which confirms the diagnosis.
+`src/services/bn/productChannelConfigService.ts` (new)
+- `fetchChannelConfigs(versionId)`, `upsertChannelConfig`, `deleteChannelConfig`
+- `getChannelConfig(productVersionId, channel)`
 
-## Fix
+`src/services/bn/productAcceptanceService.ts` (new)
+- `getProductApplicationConfig(productCode, claimDate, channel, applicantContext)` — resolves active version + channel config + shared rules
+- `getApplicationRequirements(...)` — filters `bn_doc_requirement` by channel + `condition_json` + visibility flags
+- `validateApplicationBeforeCreate(payload)` — runs precheck + blocks_submission_if_documents_missing
+- `createApplicationFromConfig(payload)` — inserts `bn_claim` with channel metadata
+- `generateEvidenceChecklist(claimId, productVersionId, channel)`
+- `startProductWorkflow(claimId, productVersionId, channel)` — central engine if `workflow_definition_id` set, else fallback to `bn_claim_transition_rule`
 
-Replace the manual anchor + `useNavigate` pattern in `SidebarMenuLink` with react-router-dom's `<Link to=…>` for internal URLs. `Link` always performs SPA navigation, ignores modifier/middle-click correctly out of the box, and is immune to ancestor `preventDefault` quirks. Keep the existing external/satellite handling for absolute URLs.
+Update `bn_claim` insert paths in existing services to populate channel metadata when called.
 
-### Files to change
+## 3. Validation hook
 
-1. **`src/components/sidebar/SidebarMenuLink.tsx`**
-   - Import `Link` from `react-router-dom`; remove `useNavigate` and `handleInternalClick`.
-   - For internal `item.url`, render `<Link to={item.url} className={linkClass}>{inner}</Link>` inside `SidebarMenuButton asChild`.
-   - Keep the external branch (`isExternal`) as-is, including `navigateToSatellite` handling and `onClick` with `preventDefault`.
-   - Preserve all existing class names, active styling, tooltip-when-collapsed behaviour, and the `description` tooltip.
+Extend `src/services/bn/configurationValidationService.ts`:
+- Public-ready check: ONLINE channel enabled + screen + docs + workflow + confirmation
+- Staff-ready check: OFFLINE channel enabled + screen + docs + workflow
+- Surface in Benefit Configuration Validation dashboard
 
-No other files need changes. `SidebarGroupMenu.tsx` already uses `Link` for its own leaves and is unaffected.
+## 4. UI — Product Editor
 
-## Verification
+New tab `ChannelsTab` (`src/components/bn/config/ChannelsTab.tsx`)
+- Two cards: Offline Staff Intake, Online Public Portal
+- Per card: enabled toggle, screen template select, document profile select, workflow template/definition selects, all behavior switches, correction deadline input
+- Save/upsert via new hooks `useBnChannelConfigs`, `useUpsertBnChannelConfig`
 
-1. From `/compliance/violations`, click any sidebar leaf (e.g. Person 360, BN Product Catalog, Compliance submenus). The URL should change and the page should swap **without** a full reload.
-2. Console should no longer print `[Auth] getSession() timed out` on every sidebar click (auth provider stays mounted).
-3. Ctrl/Cmd/middle-click on a leaf should still open in a new tab (native `<Link>` behaviour).
-4. External / satellite links continue to work (still routed through `navigateToSatellite`).
-5. Active highlighting and the collapsed-state tooltip still render correctly.
-6. TypeScript build passes.
+Update `DocumentRulesTab` to show + edit:
+- `channel_code` select (Online/Offline/Both)
+- `public_visible`, `internal_visible`, `blocks_submission`, `blocks_decision`, `blocks_payment` toggles
+- Optional `condition_json` JSON textarea
 
-## Out of scope
+Add explanation banner to Product Editor:
+> Eligibility, calculation, timelines, and benefit interactions are shared for the product version. Channel settings control how online and offline applications collect data, require documents, and route workflow.
 
-- No changes to permissions, routing config, or menu data.
-- No changes to `SidebarGroupMenu` leaf rendering (already correct).
-- No changes to the auth timeout warning itself — it will simply stop firing on every click once SPA navigation is restored.
+## 5. Seed SKN channels
+
+Data insert (via insert tool after migration):
+- OFFLINE enabled = true for every active SKN product version
+- ONLINE enabled = true only for: `SKN-SVC-LIFE`, `SKN-SVC-SCH`, `SKN-SVC-EFT`
+- ONLINE disabled (row created but `is_enabled = false`) for everything else
+
+## 6. Types & hooks
+
+- Add types in `src/types/bn.ts`: `BnProductChannelConfig`, channel-related fields on `BnDocRequirement`, `BnClaim`
+- Add React Query hooks in `src/hooks/bn/useBnConfig.ts` for channel config CRUD
+
+## 7. Out of scope this turn
+
+- No new public portal UI built. Service layer + config so portal can consume it.
+- No central workflow engine changes — only wiring `workflow_definition_id` through.
+- No changes to existing eligibility/calculation/timeline tabs.
+
+## Technical notes
+
+- Migration order: CREATE TABLE → GRANT → (no RLS per project rule) → ALTER existing tables.
+- Channel codes uppercase, validated in service layer.
+- `default_source` defaults: `STAFF_ASSISTED` for OFFLINE, `ONLINE` for ONLINE.
+- Use `(supabase as any)` pattern consistent with existing `productService.ts`.
+- All new audit fields populated from `requireUserCode()` like other BN services.

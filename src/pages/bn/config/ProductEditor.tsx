@@ -24,6 +24,7 @@ import { InteractionRulesTab } from '@/components/bn/config/InteractionRulesTab'
 import { OverridePoliciesTab } from '@/components/bn/config/OverridePoliciesTab';
 import { VersionHistoryTab } from '@/components/bn/config/VersionHistoryTab';
 import { PreviewTab } from '@/components/bn/config/PreviewTab';
+import { ChannelsTab } from '@/components/bn/config/ChannelsTab';
 
 const statusBadge: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'secondary', PENDING_APPROVAL: 'outline', ACTIVE: 'default', SUSPENDED: 'destructive', ARCHIVED: 'outline',
@@ -184,6 +185,7 @@ export default function ProductEditor() {
           <TabsTrigger value="documents" disabled={isNew}>Documents</TabsTrigger>
           <TabsTrigger value="workflow" disabled={isNew}>Workflow</TabsTrigger>
           <TabsTrigger value="screens" disabled={isNew}>Screens</TabsTrigger>
+          <TabsTrigger value="channels" disabled={isNew}>Channels</TabsTrigger>
           <TabsTrigger value="interactions" disabled={isNew}>Interactions</TabsTrigger>
           <TabsTrigger value="overrides" disabled={isNew}>Overrides</TabsTrigger>
           <TabsTrigger value="preview" disabled={isNew}>Preview</TabsTrigger>
@@ -296,6 +298,10 @@ export default function ProductEditor() {
 
         <TabsContent value="screens" className="mt-6">
           <ScreenTemplateTab versionId={selectedVersionId} />
+        </TabsContent>
+
+        <TabsContent value="channels" className="mt-6">
+          <ChannelsTab productId={isNew ? undefined : id} versionId={selectedVersionId} />
         </TabsContent>
 
         <TabsContent value="interactions" className="mt-6">

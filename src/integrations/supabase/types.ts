@@ -5258,6 +5258,8 @@ export type Database = {
           assigned_to: string | null
           bank_account: string | null
           bank_routing_number: string | null
+          channel_code: string | null
+          channel_config_id: string | null
           claim_date: string
           claim_number: string | null
           contact_email: string | null
@@ -5276,16 +5278,21 @@ export type Database = {
           priority: string
           product_id: string
           product_version_id: string | null
+          screen_template_id: string | null
           source: string
           ssn: string
           status: string
           submission_date: string | null
+          submitted_via: string | null
+          workflow_definition_id: string | null
           workflow_instance_id: string | null
         }
         Insert: {
           assigned_to?: string | null
           bank_account?: string | null
           bank_routing_number?: string | null
+          channel_code?: string | null
+          channel_config_id?: string | null
           claim_date?: string
           claim_number?: string | null
           contact_email?: string | null
@@ -5304,16 +5311,21 @@ export type Database = {
           priority?: string
           product_id: string
           product_version_id?: string | null
+          screen_template_id?: string | null
           source?: string
           ssn: string
           status?: string
           submission_date?: string | null
+          submitted_via?: string | null
+          workflow_definition_id?: string | null
           workflow_instance_id?: string | null
         }
         Update: {
           assigned_to?: string | null
           bank_account?: string | null
           bank_routing_number?: string | null
+          channel_code?: string | null
+          channel_config_id?: string | null
           claim_date?: string
           claim_number?: string | null
           contact_email?: string | null
@@ -5332,13 +5344,23 @@ export type Database = {
           priority?: string
           product_id?: string
           product_version_id?: string | null
+          screen_template_id?: string | null
           source?: string
           ssn?: string
           status?: string
           submission_date?: string | null
+          submitted_via?: string | null
+          workflow_definition_id?: string | null
           workflow_instance_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "bn_claim_channel_config_id_fkey"
+            columns: ["channel_config_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_channel_config"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bn_claim_product_id_fkey"
             columns: ["product_id"]
@@ -6471,18 +6493,25 @@ export type Database = {
       bn_doc_requirement: {
         Row: {
           allowed_extensions: string[] | null
+          blocks_decision: boolean
+          blocks_payment: boolean
+          blocks_submission: boolean
+          channel_code: string
+          condition_json: Json
           description: string | null
           document_type_code: string
           entered_at: string
           entered_by: string | null
           expiry_days: number | null
           id: string
+          internal_visible: boolean
           is_active: boolean
           max_file_size_mb: number
           modified_at: string
           modified_by: string | null
           product_id: string | null
           product_version_id: string | null
+          public_visible: boolean
           requirement_level: string
           requires_notarization: boolean
           sort_order: number
@@ -6490,18 +6519,25 @@ export type Database = {
         }
         Insert: {
           allowed_extensions?: string[] | null
+          blocks_decision?: boolean
+          blocks_payment?: boolean
+          blocks_submission?: boolean
+          channel_code?: string
+          condition_json?: Json
           description?: string | null
           document_type_code: string
           entered_at?: string
           entered_by?: string | null
           expiry_days?: number | null
           id?: string
+          internal_visible?: boolean
           is_active?: boolean
           max_file_size_mb?: number
           modified_at?: string
           modified_by?: string | null
           product_id?: string | null
           product_version_id?: string | null
+          public_visible?: boolean
           requirement_level?: string
           requires_notarization?: boolean
           sort_order?: number
@@ -6509,18 +6545,25 @@ export type Database = {
         }
         Update: {
           allowed_extensions?: string[] | null
+          blocks_decision?: boolean
+          blocks_payment?: boolean
+          blocks_submission?: boolean
+          channel_code?: string
+          condition_json?: Json
           description?: string | null
           document_type_code?: string
           entered_at?: string
           entered_by?: string | null
           expiry_days?: number | null
           id?: string
+          internal_visible?: boolean
           is_active?: boolean
           max_file_size_mb?: number
           modified_at?: string
           modified_by?: string | null
           product_id?: string | null
           product_version_id?: string | null
+          public_visible?: boolean
           requirement_level?: string
           requires_notarization?: boolean
           sort_order?: number
@@ -8060,6 +8103,126 @@ export type Database = {
             columns: ["scheme_id"]
             isOneToOne: false
             referencedRelation: "bn_scheme"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_product_channel_config: {
+        Row: {
+          allow_save_draft: boolean
+          allow_upload_later: boolean
+          blocks_submission_if_documents_missing: boolean
+          blocks_submission_if_precheck_fails: boolean
+          channel_code: string
+          confirmation_template_id: string | null
+          correction_allowed: boolean
+          correction_deadline_days: number | null
+          default_source: string | null
+          document_profile_id: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_enabled: boolean
+          metadata: Json
+          modified_at: string
+          modified_by: string | null
+          product_id: string
+          product_version_id: string
+          requires_email_or_phone_otp: boolean
+          requires_identity_verification: boolean
+          requires_staff_review_before_acceptance: boolean
+          screen_template_id: string | null
+          workflow_definition_id: string | null
+          workflow_template_id: string | null
+        }
+        Insert: {
+          allow_save_draft?: boolean
+          allow_upload_later?: boolean
+          blocks_submission_if_documents_missing?: boolean
+          blocks_submission_if_precheck_fails?: boolean
+          channel_code: string
+          confirmation_template_id?: string | null
+          correction_allowed?: boolean
+          correction_deadline_days?: number | null
+          default_source?: string | null
+          document_profile_id?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_enabled?: boolean
+          metadata?: Json
+          modified_at?: string
+          modified_by?: string | null
+          product_id: string
+          product_version_id: string
+          requires_email_or_phone_otp?: boolean
+          requires_identity_verification?: boolean
+          requires_staff_review_before_acceptance?: boolean
+          screen_template_id?: string | null
+          workflow_definition_id?: string | null
+          workflow_template_id?: string | null
+        }
+        Update: {
+          allow_save_draft?: boolean
+          allow_upload_later?: boolean
+          blocks_submission_if_documents_missing?: boolean
+          blocks_submission_if_precheck_fails?: boolean
+          channel_code?: string
+          confirmation_template_id?: string | null
+          correction_allowed?: boolean
+          correction_deadline_days?: number | null
+          default_source?: string | null
+          document_profile_id?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_enabled?: boolean
+          metadata?: Json
+          modified_at?: string
+          modified_by?: string | null
+          product_id?: string
+          product_version_id?: string
+          requires_email_or_phone_otp?: boolean
+          requires_identity_verification?: boolean
+          requires_staff_review_before_acceptance?: boolean
+          screen_template_id?: string | null
+          workflow_definition_id?: string | null
+          workflow_template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_product_channel_config_document_profile_id_fkey"
+            columns: ["document_profile_id"]
+            isOneToOne: false
+            referencedRelation: "bn_document_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_channel_config_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_channel_config_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_version"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_channel_config_screen_template_id_fkey"
+            columns: ["screen_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_screen_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_channel_config_workflow_template_id_fkey"
+            columns: ["workflow_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workflow_template"
             referencedColumns: ["id"]
           },
         ]

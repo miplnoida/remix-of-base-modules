@@ -8,12 +8,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBnDocumentRules, useUpsertBnDocumentRule, useDeleteBnDocumentRule } from '@/hooks/bn/useBnConfig';
 import type { BnDocumentRule } from '@/types/bn';
 
 interface Props { productId: string | undefined; }
+
+const channelBadge = (c?: string) => {
+  const v = (c ?? 'BOTH').toUpperCase();
+  if (v === 'ONLINE') return <Badge>Online</Badge>;
+  if (v === 'OFFLINE') return <Badge variant="secondary">Offline</Badge>;
+  return <Badge variant="outline">Both</Badge>;
+};
 
 export function DocumentRulesTab({ productId }: Props) {
   const { toast } = useToast();
@@ -22,76 +30,198 @@ export function DocumentRulesTab({ productId }: Props) {
   const deleteMutation = useDeleteBnDocumentRule();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<BnDocumentRule>>({});
+  const [conditionText, setConditionText] = useState('');
 
   if (!productId) return <Card><CardContent className="py-8 text-center text-muted-foreground">Save the product first to configure documents.</CardContent></Card>;
 
   const openNew = () => {
-    setEditing({ product_id: productId, document_type_code: '', document_name: '', description: '', is_mandatory: true, stage: 'INTAKE', sort_order: 0, is_active: true, max_file_size_mb: 10 });
+    setEditing({
+      product_id: productId, document_type_code: '', document_name: '', description: '',
+      is_mandatory: true, stage: 'INTAKE', sort_order: 0, is_active: true, max_file_size_mb: 10,
+      channel_code: 'BOTH', public_visible: true, internal_visible: true,
+      blocks_submission: false, blocks_decision: true, blocks_payment: false, condition_json: {},
+    });
+    setConditionText('');
+    setDialogOpen(true);
+  };
+  const openEdit = (r: BnDocumentRule) => {
+    setEditing({ ...r });
+    setConditionText(r.condition_json ? JSON.stringify(r.condition_json, null, 2) : '');
     setDialogOpen(true);
   };
   const update = (f: string, v: unknown) => setEditing(p => ({ ...p, [f]: v }));
 
   const handleSave = async () => {
-    if (!editing.document_type_code || !editing.document_name) { toast({ title: 'Validation', description: 'Type code and name are required.', variant: 'destructive' }); return; }
-    try { await upsertMutation.mutateAsync(editing); toast({ title: 'Saved' }); setDialogOpen(false); }
-    catch (err: any) { toast({ title: 'Error', description: err?.message, variant: 'destructive' }); }
+    if (!editing.document_type_code || !editing.document_name) {
+      toast({ title: 'Validation', description: 'Type code and name are required.', variant: 'destructive' });
+      return;
+    }
+    let condition: Record<string, unknown> = {};
+    if (conditionText.trim()) {
+      try { condition = JSON.parse(conditionText); }
+      catch { toast({ title: 'Invalid Condition JSON', variant: 'destructive' }); return; }
+    }
+    try {
+      await upsertMutation.mutateAsync({ ...editing, condition_json: condition });
+      toast({ title: 'Saved' });
+      setDialogOpen(false);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err?.message, variant: 'destructive' });
+    }
   };
 
   return (
     <>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div><CardTitle>Document Requirements</CardTitle><CardDescription>Documents required at each stage of claim processing</CardDescription></div>
+          <div>
+            <CardTitle>Document Requirements</CardTitle>
+            <CardDescription>
+              Documents required at each stage. Channel and visibility flags control where the document appears
+              and whether it blocks submission, decision, or payment.
+            </CardDescription>
+          </div>
           <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Document</Button>
         </CardHeader>
         <CardContent>
           {isLoading ? <p className="text-muted-foreground py-4">Loading...</p> : rules.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">No document rules configured.</p>
           ) : (
-            <Table>
-              <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Stage</TableHead><TableHead>Mandatory</TableHead><TableHead>Max Size</TableHead><TableHead>Active</TableHead><TableHead className="w-20">Actions</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {rules.map((r: BnDocumentRule) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-mono text-sm">{r.document_type_code}</TableCell>
-                    <TableCell>{r.document_name}</TableCell>
-                    <TableCell><Badge variant="outline">{r.stage}</Badge></TableCell>
-                    <TableCell>{r.is_mandatory ? <Badge variant="destructive">Required</Badge> : <Badge variant="secondary">Optional</Badge>}</TableCell>
-                    <TableCell>{r.max_file_size_mb} MB</TableCell>
-                    <TableCell>{r.is_active ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => { setEditing({ ...r }); setDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={async () => { await deleteMutation.mutateAsync(r.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </div>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Stage</TableHead>
+                    <TableHead>Level</TableHead>
+                    <TableHead>Channel</TableHead>
+                    <TableHead>Public</TableHead>
+                    <TableHead>Internal</TableHead>
+                    <TableHead>Blocks Sub</TableHead>
+                    <TableHead>Blocks Dec</TableHead>
+                    <TableHead>Blocks Pay</TableHead>
+                    <TableHead>Cond</TableHead>
+                    <TableHead className="w-20">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {rules.map((r: BnDocumentRule) => {
+                    const hasCondition = r.condition_json && Object.keys(r.condition_json).length > 0;
+                    return (
+                      <TableRow key={r.id}>
+                        <TableCell className="font-mono text-xs">{r.document_type_code}</TableCell>
+                        <TableCell className="text-sm">{r.document_name}</TableCell>
+                        <TableCell><Badge variant="outline">{r.stage}</Badge></TableCell>
+                        <TableCell>
+                          {r.is_mandatory
+                            ? <Badge variant="destructive">Required</Badge>
+                            : <Badge variant="secondary">Optional</Badge>}
+                        </TableCell>
+                        <TableCell>{channelBadge(r.channel_code)}</TableCell>
+                        <TableCell>{r.public_visible !== false ? '✓' : '—'}</TableCell>
+                        <TableCell>{r.internal_visible !== false ? '✓' : '—'}</TableCell>
+                        <TableCell>{r.blocks_submission ? '✓' : '—'}</TableCell>
+                        <TableCell>{r.blocks_decision !== false ? '✓' : '—'}</TableCell>
+                        <TableCell>{r.blocks_payment ? '✓' : '—'}</TableCell>
+                        <TableCell>{hasCondition ? <Badge variant="outline">cond</Badge> : '—'}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(r)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon"
+                              onClick={async () => { await deleteMutation.mutateAsync(r.id); }}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>{editing.id ? 'Edit' : 'Add'} Document Rule</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Document Type Code *</Label><Input value={editing.document_type_code || ''} onChange={e => update('document_type_code', e.target.value.toUpperCase())} /></div>
-            <div className="space-y-2"><Label>Document Name *</Label><Input value={editing.document_name || ''} onChange={e => update('document_name', e.target.value)} /></div>
+            <div className="space-y-2">
+              <Label>Document Type Code *</Label>
+              <Input value={editing.document_type_code || ''} onChange={e => update('document_type_code', e.target.value.toUpperCase())} />
+            </div>
+            <div className="space-y-2">
+              <Label>Document Name *</Label>
+              <Input value={editing.document_name || ''} onChange={e => update('document_name', e.target.value)} />
+            </div>
             <div className="space-y-2">
               <Label>Stage</Label>
               <Select value={editing.stage || 'INTAKE'} onValueChange={v => update('stage', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="INTAKE">Intake</SelectItem><SelectItem value="EVIDENCE">Evidence Review</SelectItem>
-                  <SelectItem value="REVIEW">Review</SelectItem><SelectItem value="AWARD">Award</SelectItem>
+                  <SelectItem value="INTAKE">Intake</SelectItem>
+                  <SelectItem value="EVIDENCE">Evidence Review</SelectItem>
+                  <SelectItem value="REVIEW">Review</SelectItem>
+                  <SelectItem value="AWARD">Award</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2"><Label>Max File Size (MB)</Label><Input type="number" value={editing.max_file_size_mb ?? 10} onChange={e => update('max_file_size_mb', parseFloat(e.target.value) || 10)} /></div>
-            <div className="flex items-center gap-2"><Switch checked={editing.is_mandatory ?? true} onCheckedChange={v => update('is_mandatory', v)} /><Label>Mandatory</Label></div>
-            <div className="flex items-center gap-2"><Switch checked={editing.is_active ?? true} onCheckedChange={v => update('is_active', v)} /><Label>Active</Label></div>
+            <div className="space-y-2">
+              <Label>Channel</Label>
+              <Select value={(editing.channel_code as string) || 'BOTH'} onValueChange={v => update('channel_code', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BOTH">Both</SelectItem>
+                  <SelectItem value="ONLINE">Online only</SelectItem>
+                  <SelectItem value="OFFLINE">Offline only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Max File Size (MB)</Label>
+              <Input type="number" value={editing.max_file_size_mb ?? 10}
+                onChange={e => update('max_file_size_mb', parseFloat(e.target.value) || 10)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Sort Order</Label>
+              <Input type="number" value={editing.sort_order ?? 0}
+                onChange={e => update('sort_order', parseInt(e.target.value) || 0)} />
+            </div>
+
+            <div className="col-span-2 grid grid-cols-3 gap-2 rounded-md border p-3">
+              {[
+                ['is_mandatory', 'Mandatory'],
+                ['is_active', 'Active'],
+                ['public_visible', 'Public Visible'],
+                ['internal_visible', 'Internal Visible'],
+                ['blocks_submission', 'Blocks Submission'],
+                ['blocks_decision', 'Blocks Decision'],
+                ['blocks_payment', 'Blocks Payment'],
+              ].map(([key, label]) => (
+                <div key={key} className="flex items-center gap-2">
+                  <Switch
+                    checked={Boolean((editing as any)[key])}
+                    onCheckedChange={v => update(key as string, v)}
+                  />
+                  <Label className="text-sm">{label}</Label>
+                </div>
+              ))}
+            </div>
+
+            <div className="col-span-2 space-y-2">
+              <Label>Condition JSON (optional)</Label>
+              <Textarea
+                rows={4}
+                placeholder='{"applicantAge": {">": 60}}'
+                value={conditionText}
+                onChange={e => setConditionText(e.target.value)}
+                className="font-mono text-xs"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>

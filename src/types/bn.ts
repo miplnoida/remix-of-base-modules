@@ -213,6 +213,44 @@ export interface BnDocumentRule {
   is_active: boolean;
   entered_by: string | null;
   entered_at: string;
+  // Channel-aware fields (added for online/offline support)
+  channel_code?: 'ONLINE' | 'OFFLINE' | 'BOTH';
+  public_visible?: boolean;
+  internal_visible?: boolean;
+  blocks_submission?: boolean;
+  blocks_decision?: boolean;
+  blocks_payment?: boolean;
+  condition_json?: Record<string, unknown>;
+}
+
+export type BnChannelCode = 'ONLINE' | 'OFFLINE';
+
+export interface BnProductChannelConfig {
+  id: string;
+  product_id: string;
+  product_version_id: string;
+  channel_code: BnChannelCode;
+  is_enabled: boolean;
+  screen_template_id: string | null;
+  workflow_template_id: string | null;
+  workflow_definition_id: string | null;
+  document_profile_id: string | null;
+  default_source: string | null;
+  allow_save_draft: boolean;
+  allow_upload_later: boolean;
+  requires_identity_verification: boolean;
+  requires_email_or_phone_otp: boolean;
+  requires_staff_review_before_acceptance: boolean;
+  blocks_submission_if_documents_missing: boolean;
+  blocks_submission_if_precheck_fails: boolean;
+  confirmation_template_id: string | null;
+  correction_allowed: boolean;
+  correction_deadline_days: number | null;
+  metadata: Record<string, unknown>;
+  entered_by: string | null;
+  entered_at: string;
+  modified_by: string | null;
+  modified_at: string;
 }
 
 export interface BnWorkflowTemplate {
