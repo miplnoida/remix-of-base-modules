@@ -95,6 +95,7 @@ export const ClaimsTab: React.FC<ClaimsTabProps> = ({ claims, isLoading }) => {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead>Claim #</TableHead>
+              <TableHead>Source</TableHead>
               <TableHead>Benefit Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
@@ -104,6 +105,7 @@ export const ClaimsTab: React.FC<ClaimsTabProps> = ({ claims, isLoading }) => {
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
