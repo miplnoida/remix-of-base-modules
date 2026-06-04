@@ -120,7 +120,7 @@ export default function SimulationResultSummary() {
                 <div className="flex justify-between"><span className="text-muted-foreground">Started</span><span>{run.started_at ? new Date(run.started_at).toLocaleString() : '—'}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Completed</span><span>{run.completed_at ? new Date(run.completed_at).toLocaleString() : '—'}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Duration</span><span>{run.duration_ms}ms</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Triggered By</span><span>{run.triggered_by || 'SYSTEM'}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Triggered By</span><span>{run.triggered_by || 'Unknown'}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Country</span><span>{run.country_code}</span></div>
               </CardContent>
             </Card>
