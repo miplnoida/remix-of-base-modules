@@ -456,15 +456,15 @@ async function activateEntitlementOnApproval(claimId: string, performedBy: strin
     });
   }
 
-  // Create initial payable instruction (status PENDING — not yet batched)
-  await db.from('bn_payment_instruction').insert({
-    claim_id: claimId,
-    instruction_type: latestCalc?.lump_sum ? 'LUMP_SUM' : 'PERIODIC',
-    amount: latestCalc?.total_payable ?? latestCalc?.weekly_rate ?? 0,
-    currency: 'XCD',
-    status: 'PENDING',
-    entered_by: performedBy,
-  }).select().maybeSingle(); // Ignore if table doesn't exist yet
+  // Spin up the BN payment intent chain: award → schedule → instruction.
+  // Finance/Cashier owns execution (paymentIssueService / cl_cheques);
+  // approval here only creates the intent.
+  try {
+    const { provisionPaymentIntent } = await import('@/services/bn/paymentBoundaryService');
+    await provisionPaymentIntent(claimId, performedBy);
+  } catch {
+    // boundary unavailable — leave entitlement created; intent can be backfilled
+  }
 }
 
 async function cancelDraftEntitlement(claimId: string, performedBy: string) {
