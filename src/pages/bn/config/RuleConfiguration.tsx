@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Search, BookOpen, Calculator, Clock } from 'lucide-react';
+import { Plus, Edit, Search, BookOpen, Calculator, Clock, Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
@@ -27,14 +28,25 @@ export default function RuleConfiguration() {
     <PermissionWrapper moduleName="bn_configuration">
       <div className="space-y-6 p-6">
         <PageHeader
-          title="Rule Configuration"
-          subtitle="Manage eligibility, calculation, and timeline rule groups"
+          title="Rule Group Library"
+          subtitle="Reusable classification labels for organizing product rules"
           breadcrumbs={[
             { label: 'Benefit Management', href: '/bn/claims' },
             { label: 'Configuration' },
-            { label: 'Rules' },
+            { label: 'Rule Group Library' },
           ]}
         />
+
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertTitle>Library screen — not a rule editor</AlertTitle>
+          <AlertDescription>
+            Rule Groups are classification labels used to organize rules inside Product Catalog.
+            Actual benefit rules (eligibility, calculation, timeline) are defined inside Product Catalog
+            against a specific product version.
+          </AlertDescription>
+        </Alert>
+
 
         <Tabs defaultValue="groups" className="w-full">
           <TabsList>
