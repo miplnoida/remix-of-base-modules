@@ -201,6 +201,7 @@ export interface BnDocumentProfile {
 export interface BnDocumentRule {
   id: string;
   product_id: string;
+  product_version_id?: string | null;
   document_profile_id: string | null;
   document_type_code: string;
   document_name: string;
