@@ -66,8 +66,8 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
         targetVersionId: copyDialog.targetVersionId,
       });
       toast({
-        title: 'Rules Copied',
-        description: `Copied ${counts.eligibility} eligibility, ${counts.calculation} calculation, and ${counts.timeline} timeline rules.`,
+        title: 'Configuration Copied',
+        description: `Copied ${counts.eligibility} eligibility, ${counts.calculation} calculation, ${counts.timeline} timeline rules, and ${counts.documents} document requirements.`,
       });
       setCopyDialog(null);
       setCopySourceId('');
