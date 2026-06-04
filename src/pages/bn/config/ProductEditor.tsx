@@ -309,7 +309,7 @@ export default function ProductEditor() {
         </TabsContent>
 
         <TabsContent value="overrides" className="mt-6">
-          <OverridePoliciesTab productId={isNew ? undefined : id} />
+          <OverridePoliciesTab productId={isNew ? undefined : id} versionStatus={activeVersion?.status} />
         </TabsContent>
 
         <TabsContent value="preview" className="mt-6">

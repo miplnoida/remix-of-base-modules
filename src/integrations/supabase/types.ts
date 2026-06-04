@@ -7855,7 +7855,10 @@ export type Database = {
       }
       bn_override_policy: {
         Row: {
-          allowed_role: string
+          allowed_permission_key: string | null
+          allowed_role: string | null
+          allowed_role_code: string | null
+          allowed_role_id: string | null
           effective_from: string
           effective_to: string | null
           entered_at: string
@@ -7864,13 +7867,18 @@ export type Database = {
           id: string
           is_active: boolean
           max_override_amount: number | null
+          metadata: Json
+          override_level: number | null
           override_target: string
           product_id: string | null
           requires_justification: boolean
           requires_maker_checker: boolean
         }
         Insert: {
-          allowed_role: string
+          allowed_permission_key?: string | null
+          allowed_role?: string | null
+          allowed_role_code?: string | null
+          allowed_role_id?: string | null
           effective_from?: string
           effective_to?: string | null
           entered_at?: string
@@ -7879,13 +7887,18 @@ export type Database = {
           id?: string
           is_active?: boolean
           max_override_amount?: number | null
+          metadata?: Json
+          override_level?: number | null
           override_target: string
           product_id?: string | null
           requires_justification?: boolean
           requires_maker_checker?: boolean
         }
         Update: {
-          allowed_role?: string
+          allowed_permission_key?: string | null
+          allowed_role?: string | null
+          allowed_role_code?: string | null
+          allowed_role_id?: string | null
           effective_from?: string
           effective_to?: string | null
           entered_at?: string
@@ -7894,12 +7907,21 @@ export type Database = {
           id?: string
           is_active?: boolean
           max_override_amount?: number | null
+          metadata?: Json
+          override_level?: number | null
           override_target?: string
           product_id?: string | null
           requires_justification?: boolean
           requires_maker_checker?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "bn_override_policy_allowed_role_id_fkey"
+            columns: ["allowed_role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bn_override_policy_product_id_fkey"
             columns: ["product_id"]

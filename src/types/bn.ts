@@ -319,7 +319,12 @@ export interface BnOverridePolicy {
   product_id: string | null;
   override_target: string;
   field_path: string;
-  allowed_role: string;
+  allowed_role: string | null;
+  allowed_role_id: string | null;
+  allowed_role_code: string | null;
+  allowed_permission_key: string | null;
+  override_level: number | null;
+  metadata: Record<string, unknown>;
   requires_justification: boolean;
   requires_maker_checker: boolean;
   max_override_amount: number | null;
