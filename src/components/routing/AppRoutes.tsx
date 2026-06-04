@@ -779,6 +779,7 @@ const BnRulesAdministration = lazy(() => import('@/pages/bn/config/RulesAdminist
 const BnFormulaConfiguration = lazy(() => import('@/pages/bn/config/FormulaConfiguration'));
 const BnDocumentSetup = lazy(() => import('@/pages/bn/config/DocumentSetup'));
 const BnScreenMetadataSetup = lazy(() => import('@/pages/bn/config/ScreenMetadataSetup'));
+const BnBenefitConfigurationValidation = lazy(() => import('@/pages/bn/config/BenefitConfigurationValidation'));
 // Medical Benefit Setup
 const BnMedicalSetupHome = lazy(() => import('@/pages/bn/config/medical/MedicalSetupHome'));
 const BnMedicalProceduresCatalog = lazy(() => import('@/pages/bn/config/medical/MedicalProceduresCatalog'));
