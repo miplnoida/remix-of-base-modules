@@ -197,6 +197,8 @@ export default function BenefitConfigurationValidation() {
                     <TableHead>Screen</TableHead>
                     <TableHead>Timeline</TableHead>
                     <TableHead>Tests</TableHead>
+                    <TableHead>Offline</TableHead>
+                    <TableHead>Online</TableHead>
                     <TableHead>Overall</TableHead>
                   </TableRow>
                 </TableHeader>
