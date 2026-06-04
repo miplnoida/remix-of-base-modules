@@ -40,9 +40,13 @@ export async function getPersonDependants(ssn: string) {
 }
 
 // ─── Claims ────────────────────────────────────────────────────────
+// Unified view: merges modern bn_claim with legacy cl_head (BEMA) so a
+// single Person 360 stream shows both. Source routing lives in
+// unifiedClaimService — pages must NOT query cl_* tables directly.
 export interface Person360Claim {
   id: string;
   claim_number: string;
+  claim_seq?: number | null;
   benefit_type: string;
   product_name?: string;
   status: string;
@@ -52,30 +56,45 @@ export interface Person360Claim {
   assigned_to?: string;
   employer_regno?: string;
   legacy_claim_ref?: string;
+  /** 'BN' = modern bn_claim row; 'LEGACY_BEMA' = legacy cl_head row. */
+  source: 'BN' | 'LEGACY_BEMA';
+  source_badge: 'BN' | 'Legacy (BEMA)';
 }
 
 export async function getPersonClaims(ssn: string): Promise<Person360Claim[]> {
-  const { data, error } = await db
-    .from('bn_claim')
-    .select('id, claim_number, legacy_benefit_type, status, priority, claim_date, decision_date, assigned_to, employer_regno, legacy_claim_ref, bn_product(benefit_name, category)')
-    .eq('ssn', ssn.trim())
-    .order('claim_date', { ascending: false });
+  // Lazy import to avoid circular module init.
+  const { unifiedClaimService } = await import('@/services/bn/unifiedClaimService');
+  const unified = await unifiedClaimService.getUnifiedClaimsBySsn(ssn.trim());
 
-  if (error) throw error;
-  return (data ?? []).map((c: any) => ({
-    id: c.id,
-    claim_number: c.claim_number || '—',
-    benefit_type: c.bn_product?.category || c.legacy_benefit_type || 'Unknown',
-    product_name: c.bn_product?.benefit_name,
-    status: c.status || 'DRAFT',
-    priority: c.priority || 'NORMAL',
-    claim_date: c.claim_date,
-    decision_date: c.decision_date,
-    assigned_to: c.assigned_to,
-    employer_regno: c.employer_regno,
-    legacy_claim_ref: c.legacy_claim_ref,
-  }));
+  return unified.map((u) => {
+    const isLegacy = u.sourceSystem === 'LEGACY_BEMA';
+    // Synthetic id for legacy rows so navigation stays on /bn/claims/:id;
+    // Claim 360 resolves "legacy:NUM:SEQ" via unifiedClaimService.
+    const id = isLegacy
+      ? `legacy:${u.claimNumber}:${u.claimSeq}`
+      : (u.claimId ?? `${u.claimNumber}-${u.claimSeq ?? 0}`);
+
+    return {
+      id,
+      claim_number: u.claimNumber ?? '—',
+      claim_seq: u.claimSeq ?? null,
+      benefit_type: u.benefitName ?? u.benefitCode ?? 'Unknown',
+      product_name: u.benefitName ?? undefined,
+      status: u.status ?? (isLegacy ? 'LEGACY' : 'DRAFT'),
+      priority: 'NORMAL',
+      claim_date: u.claimDate ?? '',
+      decision_date: undefined,
+      assigned_to: undefined,
+      employer_regno: undefined,
+      legacy_claim_ref: isLegacy && u.claimNumber
+        ? `${u.claimNumber}-${u.claimSeq ?? ''}`
+        : undefined,
+      source: u.sourceSystem,
+      source_badge: u.sourceBadge,
+    };
+  });
 }
+
 
 // ─── Entitlements (bn_entitlement — when table exists) ─────────────
 export interface Person360Entitlement {

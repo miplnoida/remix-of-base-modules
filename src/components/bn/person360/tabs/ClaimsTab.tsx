@@ -95,6 +95,7 @@ export const ClaimsTab: React.FC<ClaimsTabProps> = ({ claims, isLoading }) => {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead>Claim #</TableHead>
+              <TableHead>Source</TableHead>
               <TableHead>Benefit Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
@@ -104,11 +105,12 @@ export const ClaimsTab: React.FC<ClaimsTabProps> = ({ claims, isLoading }) => {
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Loading...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No claims found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No claims found</TableCell></TableRow>
             ) : filtered.map(claim => (
               <TableRow
                 key={claim.id}
@@ -116,6 +118,16 @@ export const ClaimsTab: React.FC<ClaimsTabProps> = ({ claims, isLoading }) => {
                 onClick={() => navigate(`/bn/claims/${claim.id}`)}
               >
                 <TableCell className="font-mono font-medium">{claim.claim_number}</TableCell>
+                <TableCell>
+                  <Badge
+                    variant="outline"
+                    className={claim.source === 'LEGACY_BEMA'
+                      ? 'bg-amber-500/15 text-amber-700 border-amber-500/30'
+                      : 'bg-primary/10 text-primary border-primary/20'}
+                  >
+                    {claim.source_badge}
+                  </Badge>
+                </TableCell>
                 <TableCell>{claim.product_name || claim.benefit_type}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className={claimStatusColor[claim.status] || ''}>
@@ -135,6 +147,7 @@ export const ClaimsTab: React.FC<ClaimsTabProps> = ({ claims, isLoading }) => {
                 </TableCell>
               </TableRow>
             ))}
+
           </TableBody>
         </Table>
       </div>
