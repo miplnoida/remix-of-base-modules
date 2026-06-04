@@ -1,14 +1,12 @@
 /**
  * Screen 27: Survivors' Benefit Processing
- * 
- * Manages the end-to-end workflow for survivors' benefit claims:
- * deceased verification, dependant identification, share allocation,
- * ongoing eligibility, and payment setup.
- * Integrates with existing Survivors' configuration rules.
+ *
+ * Real-data wiring: bn_award (award_type = 'SURVIVORS') + bn_award_beneficiary
+ * + bn_claim (deceased context) + ip_master (names + date_died).
  * Role visibility: Claims Officer, Pension Admin, Supervisor
  */
-import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -16,98 +14,117 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import {
-  Search, Users, UserCheck, AlertTriangle, CheckCircle2,
-  Clock, FileText, Filter, ArrowRight, Heart, Shield
-} from 'lucide-react';
+import { Search, AlertTriangle, CheckCircle2, Clock, FileText, Filter, ArrowRight, Heart, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import {
+  advanceSurvivorAward,
+  fetchAwards,
+  fetchBeneficiariesByAward,
+  fetchClaimantsBySsns,
+  type BnAwardBeneficiaryRow,
+  type BnAwardRow,
+  type ClaimantInfo,
+} from '@/services/bn/awardServicingService';
 
-type SurvivorCaseStatus = 'INTAKE' | 'DECEASED_VERIFIED' | 'DEPENDANTS_IDENTIFIED' | 'SHARES_ALLOCATED' | 'APPROVED' | 'IN_PAYMENT' | 'CLOSED' | 'DENIED';
-
-interface SurvivorCase {
-  id: string;
-  claimId: string;
-  deceasedSsn: string;
-  deceasedName: string;
-  dateOfDeath: string;
-  lastContribution: string;
-  totalWeeks: number;
-  dependantCount: number;
-  totalSharePercent: number;
-  weeklyBenefitBase: number;
-  status: SurvivorCaseStatus;
-  createdDate: string;
-  assignedTo: string | null;
-}
-
-interface SurvivorDependant {
-  id: string;
-  caseId: string;
-  ssn: string | null;
-  fullName: string;
-  relationship: string;
-  dateOfBirth: string;
-  sharePercent: number;
-  eligible: boolean;
-  eligibilityNotes: string | null;
-  paymentStatus: 'PENDING' | 'ACTIVE' | 'CEASED';
-}
-
-const MOCK_CASES: SurvivorCase[] = [
-  { id: 'SC-001', claimId: 'BN-2026-000301', deceasedSsn: '100999', deceasedName: 'Henry Wallace', dateOfDeath: '2026-03-10', lastContribution: '2026-02', totalWeeks: 780, dependantCount: 3, totalSharePercent: 100, weeklyBenefitBase: 420.00, status: 'SHARES_ALLOCATED', createdDate: '2026-03-15', assignedTo: 'JM' },
-  { id: 'SC-002', claimId: 'BN-2026-000310', deceasedSsn: '100888', deceasedName: 'Margaret Lewis', dateOfDeath: '2026-04-01', lastContribution: '2026-03', totalWeeks: 1200, dependantCount: 1, totalSharePercent: 50, weeklyBenefitBase: 380.00, status: 'INTAKE', createdDate: '2026-04-05', assignedTo: null },
-  { id: 'SC-003', claimId: 'BN-2025-000250', deceasedSsn: '100777', deceasedName: 'Robert Francis', dateOfDeath: '2025-11-20', lastContribution: '2025-10', totalWeeks: 520, dependantCount: 4, totalSharePercent: 100, weeklyBenefitBase: 350.00, status: 'IN_PAYMENT', createdDate: '2025-12-01', assignedTo: 'SK' },
-  { id: 'SC-004', claimId: 'BN-2026-000315', deceasedSsn: '100666', deceasedName: 'James Patterson', dateOfDeath: '2026-04-10', lastContribution: '2025-06', totalWeeks: 120, dependantCount: 2, totalSharePercent: 0, weeklyBenefitBase: 0, status: 'DENIED', createdDate: '2026-04-12', assignedTo: 'JM' },
-];
-
-const MOCK_DEPENDANTS: Record<string, SurvivorDependant[]> = {
-  'SC-001': [
-    { id: 'SD-01', caseId: 'SC-001', ssn: '100501', fullName: 'Clara Wallace', relationship: 'Spouse', dateOfBirth: '1975-08-12', sharePercent: 50, eligible: true, eligibilityNotes: null, paymentStatus: 'PENDING' },
-    { id: 'SD-02', caseId: 'SC-001', ssn: '100502', fullName: 'Michael Wallace', relationship: 'Child', dateOfBirth: '2010-03-20', sharePercent: 25, eligible: true, eligibilityNotes: 'Under 18 — eligible', paymentStatus: 'PENDING' },
-    { id: 'SD-03', caseId: 'SC-001', ssn: '100503', fullName: 'Sophia Wallace', relationship: 'Child', dateOfBirth: '2008-11-05', sharePercent: 25, eligible: true, eligibilityNotes: 'Under 18 — eligible', paymentStatus: 'PENDING' },
-  ],
-  'SC-003': [
-    { id: 'SD-04', caseId: 'SC-003', ssn: '100701', fullName: 'Edith Francis', relationship: 'Spouse', dateOfBirth: '1968-05-22', sharePercent: 50, eligible: true, eligibilityNotes: null, paymentStatus: 'ACTIVE' },
-    { id: 'SD-05', caseId: 'SC-003', ssn: null, fullName: 'Thomas Francis', relationship: 'Child', dateOfBirth: '2012-01-15', sharePercent: 16.67, eligible: true, eligibilityNotes: 'Under 18', paymentStatus: 'ACTIVE' },
-    { id: 'SD-06', caseId: 'SC-003', ssn: null, fullName: 'Lisa Francis', relationship: 'Child', dateOfBirth: '2014-07-30', sharePercent: 16.67, eligible: true, eligibilityNotes: 'Under 18', paymentStatus: 'ACTIVE' },
-    { id: 'SD-07', caseId: 'SC-003', ssn: null, fullName: 'Mark Francis', relationship: 'Child', dateOfBirth: '2005-09-10', sharePercent: 16.66, eligible: true, eligibilityNotes: 'Over 18 — student verification pending', paymentStatus: 'ACTIVE' },
-  ],
+const statusConfig: Record<string, { label: string; color: string; step: number; next: string | null }> = {
+  INTAKE:                { label: 'Intake',           color: 'bg-blue-500/10 text-blue-700 border-blue-300', step: 1, next: 'DECEASED_VERIFIED' },
+  DECEASED_VERIFIED:     { label: 'Deceased Verified',color: 'bg-blue-500/10 text-blue-700 border-blue-300', step: 2, next: 'DEPENDANTS_IDENTIFIED' },
+  DEPENDANTS_IDENTIFIED: { label: "Dependants ID'd",  color: 'bg-amber-500/10 text-amber-700 border-amber-300', step: 3, next: 'SHARES_ALLOCATED' },
+  SHARES_ALLOCATED:      { label: 'Shares Set',       color: 'bg-amber-500/10 text-amber-700 border-amber-300', step: 4, next: 'APPROVED' },
+  APPROVED:              { label: 'Approved',         color: 'bg-emerald-500/10 text-emerald-700 border-emerald-300', step: 5, next: 'ACTIVE' },
+  ACTIVE:                { label: 'In Payment',       color: 'bg-emerald-600/10 text-emerald-700 border-emerald-400', step: 6, next: null },
+  IN_PAYMENT:            { label: 'In Payment',       color: 'bg-emerald-600/10 text-emerald-700 border-emerald-400', step: 6, next: null },
+  CLOSED:                { label: 'Closed',           color: 'bg-muted text-muted-foreground border-muted', step: 7, next: null },
+  TERMINATED:            { label: 'Terminated',       color: 'bg-muted text-muted-foreground border-muted', step: 7, next: null },
+  DENIED:                { label: 'Denied',           color: 'bg-destructive/10 text-destructive border-destructive/30', step: 0, next: null },
 };
 
-const statusConfig: Record<SurvivorCaseStatus, { label: string; color: string; step: number }> = {
-  INTAKE: { label: 'Intake', color: 'bg-blue-500/10 text-blue-700 border-blue-300', step: 1 },
-  DECEASED_VERIFIED: { label: 'Deceased Verified', color: 'bg-blue-500/10 text-blue-700 border-blue-300', step: 2 },
-  DEPENDANTS_IDENTIFIED: { label: 'Dependants ID\'d', color: 'bg-amber-500/10 text-amber-700 border-amber-300', step: 3 },
-  SHARES_ALLOCATED: { label: 'Shares Set', color: 'bg-amber-500/10 text-amber-700 border-amber-300', step: 4 },
-  APPROVED: { label: 'Approved', color: 'bg-emerald-500/10 text-emerald-700 border-emerald-300', step: 5 },
-  IN_PAYMENT: { label: 'In Payment', color: 'bg-emerald-600/10 text-emerald-700 border-emerald-400', step: 6 },
-  CLOSED: { label: 'Closed', color: 'bg-muted text-muted-foreground border-muted', step: 7 },
-  DENIED: { label: 'Denied', color: 'bg-destructive/10 text-destructive border-destructive/30', step: 0 },
-};
+const fmt = (n: number | null) => (n == null ? '—' : `$${n.toFixed(2)}`);
 
 const SurvivorsBenefitProcessing: React.FC = () => {
+  const { isAuthReady, isAuthenticated, profile, hasAnyRole } = useSupabaseAuth();
+  const canAdvance = hasAnyRole(['admin', 'supervisor', 'claims_officer', 'pension_admin']);
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [cases] = useState<SurvivorCase[]>(MOCK_CASES);
-  const [selectedCase, setSelectedCase] = useState<SurvivorCase | null>(null);
+  const [cases, setCases] = useState<BnAwardRow[]>([]);
+  const [claimants, setClaimants] = useState<Record<string, ClaimantInfo>>({});
+  const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<BnAwardRow | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [beneficiaries, setBeneficiaries] = useState<BnAwardBeneficiaryRow[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
-  const filtered = useMemo(() => cases.filter(c => {
-    const matchSearch = !search || c.deceasedName.toLowerCase().includes(search.toLowerCase()) || c.deceasedSsn.includes(search) || c.claimId.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'all' || c.status === statusFilter;
-    return matchSearch && matchStatus;
-  }), [cases, search, statusFilter]);
+  const load = async () => {
+    setLoading(true);
+    try {
+      const rows = await fetchAwards({ award_type: 'SURVIVORS' });
+      setCases(rows);
+      const map = await fetchClaimantsBySsns(rows.map((r) => r.ssn));
+      setClaimants(map);
+    } catch (e) {
+      console.error(e);
+      toast.error('Unable to load survivor cases');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const counts = useMemo(() => ({
-    active: cases.filter(c => !['CLOSED', 'DENIED'].includes(c.status)).length,
-    intake: cases.filter(c => c.status === 'INTAKE').length,
-    inPayment: cases.filter(c => c.status === 'IN_PAYMENT').length,
-  }), [cases]);
+  useEffect(() => {
+    if (isAuthReady && isAuthenticated) void load();
+  }, [isAuthReady, isAuthenticated]);
 
-  const fmt = (n: number) => `$${n.toFixed(2)}`;
+  const openCase = async (c: BnAwardRow) => {
+    setSelected(c);
+    setDetailOpen(true);
+    try {
+      const list = await fetchBeneficiariesByAward(c.id);
+      setBeneficiaries(list);
+    } catch (e) {
+      console.error(e);
+      toast.error('Unable to load beneficiaries');
+      setBeneficiaries([]);
+    }
+  };
 
-  const dependants = selectedCase ? (MOCK_DEPENDANTS[selectedCase.id] || []) : [];
+  const advance = async () => {
+    if (!selected) return;
+    const next = statusConfig[selected.status]?.next;
+    if (!next) return;
+    setSubmitting(true);
+    try {
+      await advanceSurvivorAward(selected.id, next, profile?.user_code ?? null);
+      toast.success(`Case advanced to ${statusConfig[next]?.label ?? next}`);
+      setDetailOpen(false);
+      await load();
+    } catch (e) {
+      console.error(e);
+      toast.error('Stage advance failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const filtered = useMemo(
+    () =>
+      cases.filter((c) => {
+        const name = claimants[c.ssn]?.full_name ?? '';
+        const matchSearch = !search || name.toLowerCase().includes(search.toLowerCase()) || c.ssn.includes(search) || (c.award_number ?? '').toLowerCase().includes(search.toLowerCase());
+        const matchStatus = statusFilter === 'all' || c.status === statusFilter;
+        return matchSearch && matchStatus;
+      }),
+    [cases, claimants, search, statusFilter]
+  );
+
+  const counts = useMemo(
+    () => ({
+      active: cases.filter((c) => !['CLOSED', 'DENIED', 'TERMINATED'].includes(c.status)).length,
+      intake: cases.filter((c) => c.status === 'INTAKE').length,
+      inPayment: cases.filter((c) => c.status === 'ACTIVE' || c.status === 'IN_PAYMENT').length,
+    }),
+    [cases]
+  );
 
   return (
     <div className="space-y-6 p-6">
@@ -118,19 +135,17 @@ const SurvivorsBenefitProcessing: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary */}
       <div className="grid grid-cols-3 gap-3">
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Active Cases</p><p className="text-2xl font-bold">{counts.active}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Awaiting Intake</p><p className="text-2xl font-bold text-blue-600">{counts.intake}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">In Payment</p><p className="text-2xl font-bold text-emerald-600">{counts.inPayment}</p></CardContent></Card>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="p-4 flex flex-wrap gap-3 items-center">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by deceased name, SSN, or claim ID..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+            <Input placeholder="Search by deceased name, SSN, or award ID..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]"><Filter className="h-4 w-4 mr-1" /><SelectValue /></SelectTrigger>
@@ -142,74 +157,73 @@ const SurvivorsBenefitProcessing: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Table */}
       <Card>
         <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Claim ID</TableHead>
+                <TableHead>Award</TableHead>
                 <TableHead>Deceased</TableHead>
                 <TableHead>SSN</TableHead>
                 <TableHead>Date of Death</TableHead>
-                <TableHead>Weeks</TableHead>
-                <TableHead>Dependants</TableHead>
-                <TableHead className="text-right">Base Rate</TableHead>
+                <TableHead className="text-right">Base Amount</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">No cases found</TableCell></TableRow>
-              ) : filtered.map(c => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-mono text-xs">{c.claimId}</TableCell>
-                  <TableCell className="font-medium">{c.deceasedName}</TableCell>
-                  <TableCell className="font-mono">{c.deceasedSsn}</TableCell>
-                  <TableCell>{c.dateOfDeath}</TableCell>
-                  <TableCell>{c.totalWeeks}</TableCell>
-                  <TableCell className="text-center">{c.dependantCount}</TableCell>
-                  <TableCell className="text-right font-mono">{c.weeklyBenefitBase > 0 ? fmt(c.weeklyBenefitBase) : '—'}</TableCell>
-                  <TableCell><Badge variant="outline" className={statusConfig[c.status].color}>{statusConfig[c.status].label}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" variant="outline" onClick={() => { setSelectedCase(c); setDetailOpen(true); }}>
-                      <FileText className="h-3 w-3 mr-1" />View
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {loading ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8"><Loader2 className="h-4 w-4 animate-spin inline mr-2" />Loading…</TableCell></TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No survivor cases</TableCell></TableRow>
+              ) : (
+                filtered.map((c) => {
+                  const info = claimants[c.ssn];
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-mono text-xs">{c.award_number ?? c.id.slice(0, 8)}</TableCell>
+                      <TableCell className="font-medium">{info?.full_name ?? '—'}</TableCell>
+                      <TableCell className="font-mono">{c.ssn}</TableCell>
+                      <TableCell>{info?.date_died ?? '—'}</TableCell>
+                      <TableCell className="text-right font-mono">{fmt(c.base_amount)}</TableCell>
+                      <TableCell><Badge variant="outline" className={statusConfig[c.status]?.color ?? ''}>{statusConfig[c.status]?.label ?? c.status}</Badge></TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="outline" onClick={() => void openCase(c)}>
+                          <FileText className="h-3 w-3 mr-1" />View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {/* Detail Dialog */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Survivors' Case — {selectedCase?.claimId}</DialogTitle>
-            <DialogDescription>Deceased: {selectedCase?.deceasedName} (SSN: {selectedCase?.deceasedSsn})</DialogDescription>
+            <DialogTitle>Survivors' Case — {selected?.award_number ?? selected?.id.slice(0, 8)}</DialogTitle>
+            <DialogDescription>Deceased: {selected ? (claimants[selected.ssn]?.full_name ?? '—') : ''} (SSN: {selected?.ssn})</DialogDescription>
           </DialogHeader>
 
-          {selectedCase && (
+          {selected && (
             <Tabs defaultValue="overview" className="mt-2">
               <TabsList>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="dependants">Dependants ({dependants.length})</TabsTrigger>
+                <TabsTrigger value="dependants">Beneficiaries ({beneficiaries.length})</TabsTrigger>
                 <TabsTrigger value="timeline">Progress</TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview" className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-muted-foreground">Date of Death:</span> {selectedCase.dateOfDeath}</div>
-                  <div><span className="text-muted-foreground">Last Contribution:</span> {selectedCase.lastContribution}</div>
-                  <div><span className="text-muted-foreground">Total Weeks:</span> {selectedCase.totalWeeks}</div>
-                  <div><span className="text-muted-foreground">Weekly Benefit Base:</span> {fmt(selectedCase.weeklyBenefitBase)}</div>
-                  <div><span className="text-muted-foreground">Dependant Count:</span> {selectedCase.dependantCount}</div>
-                  <div><span className="text-muted-foreground">Total Share:</span> {selectedCase.totalSharePercent}%</div>
-                  <div><span className="text-muted-foreground">Assigned To:</span> {selectedCase.assignedTo || 'Unassigned'}</div>
-                  <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={statusConfig[selectedCase.status].color}>{statusConfig[selectedCase.status].label}</Badge></div>
+                  <div><span className="text-muted-foreground">Date of Death:</span> {claimants[selected.ssn]?.date_died ?? '—'}</div>
+                  <div><span className="text-muted-foreground">Start Date:</span> {selected.start_date}</div>
+                  <div><span className="text-muted-foreground">Base Amount:</span> {fmt(selected.base_amount)}</div>
+                  <div><span className="text-muted-foreground">Frequency:</span> {selected.frequency ?? '—'}</div>
+                  <div><span className="text-muted-foreground">Beneficiary Count:</span> {beneficiaries.length}</div>
+                  <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline" className={statusConfig[selected.status]?.color ?? ''}>{statusConfig[selected.status]?.label ?? selected.status}</Badge></div>
                 </div>
               </TabsContent>
 
@@ -219,44 +233,43 @@ const SurvivorsBenefitProcessing: React.FC = () => {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Relationship</TableHead>
-                      <TableHead>DOB</TableHead>
                       <TableHead>Share %</TableHead>
                       <TableHead>Weekly Amount</TableHead>
-                      <TableHead>Eligible</TableHead>
-                      <TableHead>Payment</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {dependants.map(d => (
+                    {beneficiaries.length === 0 ? (
+                      <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground">No beneficiaries recorded</TableCell></TableRow>
+                    ) : beneficiaries.map((d) => (
                       <TableRow key={d.id}>
-                        <TableCell className="font-medium">{d.fullName}</TableCell>
-                        <TableCell>{d.relationship}</TableCell>
-                        <TableCell>{d.dateOfBirth}</TableCell>
-                        <TableCell>{d.sharePercent.toFixed(2)}%</TableCell>
-                        <TableCell className="font-mono">{fmt(selectedCase.weeklyBenefitBase * d.sharePercent / 100)}</TableCell>
-                        <TableCell>
-                          {d.eligible
-                            ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                            : <AlertTriangle className="h-4 w-4 text-destructive" />
-                          }
+                        <TableCell className="font-medium">{d.full_name}</TableCell>
+                        <TableCell>{d.relationship ?? '—'}</TableCell>
+                        <TableCell>{d.share_percent != null ? `${d.share_percent.toFixed(2)}%` : '—'}</TableCell>
+                        <TableCell className="font-mono">
+                          {d.share_amount != null
+                            ? fmt(d.share_amount)
+                            : d.share_percent != null && selected.base_amount != null
+                              ? fmt((selected.base_amount * d.share_percent) / 100)
+                              : '—'}
                         </TableCell>
-                        <TableCell><Badge variant="outline" className="text-xs">{d.paymentStatus}</Badge></TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs">{d.status}</Badge></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-                {dependants.length > 0 && (
+                {beneficiaries.length > 0 && (
                   <div className="mt-3 text-sm text-muted-foreground text-right">
-                    Total allocated: {dependants.reduce((s, d) => s + d.sharePercent, 0).toFixed(2)}% of {fmt(selectedCase.weeklyBenefitBase)}/week
+                    Total allocated: {beneficiaries.reduce((s, d) => s + (d.share_percent ?? 0), 0).toFixed(2)}% of {fmt(selected.base_amount)}
                   </div>
                 )}
               </TabsContent>
 
               <TabsContent value="timeline" className="mt-4">
                 <div className="space-y-3">
-                  {Object.entries(statusConfig).filter(([k]) => k !== 'DENIED').map(([key, cfg]) => {
-                    const current = statusConfig[selectedCase.status].step;
-                    const isComplete = cfg.step > 0 && cfg.step < current;
+                  {Object.entries(statusConfig).filter(([k, cfg]) => cfg.step > 0 && k !== 'IN_PAYMENT' && k !== 'TERMINATED').map(([key, cfg]) => {
+                    const current = statusConfig[selected.status]?.step ?? 0;
+                    const isComplete = cfg.step < current;
                     const isCurrent = cfg.step === current;
                     return (
                       <div key={key} className={`flex items-center gap-3 p-3 rounded-md border ${isCurrent ? 'border-primary bg-primary/5' : isComplete ? 'border-emerald-300 bg-emerald-50/50' : 'border-muted'}`}>
@@ -272,10 +285,11 @@ const SurvivorsBenefitProcessing: React.FC = () => {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDetailOpen(false)}>Close</Button>
-            {selectedCase && !['CLOSED', 'DENIED', 'IN_PAYMENT'].includes(selectedCase.status) && (
-              <Button onClick={() => { toast.success('Case advanced to next stage'); setDetailOpen(false); }}>
-                <ArrowRight className="h-4 w-4 mr-1" />Advance Stage
+            <Button variant="outline" onClick={() => setDetailOpen(false)} disabled={submitting}>Close</Button>
+            {canAdvance && selected && statusConfig[selected.status]?.next && (
+              <Button onClick={advance} disabled={submitting}>
+                {submitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <ArrowRight className="h-4 w-4 mr-1" />}
+                Advance Stage
               </Button>
             )}
           </DialogFooter>
