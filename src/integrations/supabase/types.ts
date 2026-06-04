@@ -6493,6 +6493,7 @@ export type Database = {
       bn_doc_requirement: {
         Row: {
           allowed_extensions: string[] | null
+          applies_to_applicant_type: string | null
           blocks_decision: boolean
           blocks_payment: boolean
           blocks_submission: boolean
@@ -6515,10 +6516,14 @@ export type Database = {
           requirement_level: string
           requires_notarization: boolean
           sort_order: number
+          source_note: string | null
           stage: string
+          upload_mode: string
+          verification_status: string
         }
         Insert: {
           allowed_extensions?: string[] | null
+          applies_to_applicant_type?: string | null
           blocks_decision?: boolean
           blocks_payment?: boolean
           blocks_submission?: boolean
@@ -6541,10 +6546,14 @@ export type Database = {
           requirement_level?: string
           requires_notarization?: boolean
           sort_order?: number
+          source_note?: string | null
           stage?: string
+          upload_mode?: string
+          verification_status?: string
         }
         Update: {
           allowed_extensions?: string[] | null
+          applies_to_applicant_type?: string | null
           blocks_decision?: boolean
           blocks_payment?: boolean
           blocks_submission?: boolean
@@ -6567,7 +6576,10 @@ export type Database = {
           requirement_level?: string
           requires_notarization?: boolean
           sort_order?: number
+          source_note?: string | null
           stage?: string
+          upload_mode?: string
+          verification_status?: string
         }
         Relationships: []
       }
