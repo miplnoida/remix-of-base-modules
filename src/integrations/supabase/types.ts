@@ -4456,6 +4456,314 @@ export type Database = {
         }
         Relationships: []
       }
+      bn_award: {
+        Row: {
+          award_number: string | null
+          award_type: string | null
+          base_amount: number | null
+          benefit_code: string | null
+          bn_claim_id: string | null
+          bn_product_id: string | null
+          currency: string | null
+          end_date: string | null
+          entered_at: string
+          entered_by: string | null
+          frequency: string | null
+          id: string
+          metadata: Json | null
+          modified_at: string
+          modified_by: string | null
+          next_review_date: string | null
+          notes: string | null
+          ssn: string
+          start_date: string
+          status: string
+        }
+        Insert: {
+          award_number?: string | null
+          award_type?: string | null
+          base_amount?: number | null
+          benefit_code?: string | null
+          bn_claim_id?: string | null
+          bn_product_id?: string | null
+          currency?: string | null
+          end_date?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          frequency?: string | null
+          id?: string
+          metadata?: Json | null
+          modified_at?: string
+          modified_by?: string | null
+          next_review_date?: string | null
+          notes?: string | null
+          ssn: string
+          start_date: string
+          status?: string
+        }
+        Update: {
+          award_number?: string | null
+          award_type?: string | null
+          base_amount?: number | null
+          benefit_code?: string | null
+          bn_claim_id?: string | null
+          bn_product_id?: string | null
+          currency?: string | null
+          end_date?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          frequency?: string | null
+          id?: string
+          metadata?: Json | null
+          modified_at?: string
+          modified_by?: string | null
+          next_review_date?: string | null
+          notes?: string | null
+          ssn?: string
+          start_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_award_bn_claim_id_fkey"
+            columns: ["bn_claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_award_bn_product_id_fkey"
+            columns: ["bn_product_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_award_beneficiary: {
+        Row: {
+          bank_acct: string | null
+          bank_code: string | null
+          beneficiary_ssn: string | null
+          bn_award_id: string
+          end_date: string | null
+          entered_at: string
+          entered_by: string | null
+          full_name: string
+          id: string
+          modified_at: string
+          modified_by: string | null
+          notes: string | null
+          relationship: string | null
+          share_amount: number | null
+          share_percent: number | null
+          start_date: string | null
+          status: string | null
+        }
+        Insert: {
+          bank_acct?: string | null
+          bank_code?: string | null
+          beneficiary_ssn?: string | null
+          bn_award_id: string
+          end_date?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          full_name: string
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          relationship?: string | null
+          share_amount?: number | null
+          share_percent?: number | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Update: {
+          bank_acct?: string | null
+          bank_code?: string | null
+          beneficiary_ssn?: string | null
+          bn_award_id?: string
+          end_date?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          full_name?: string
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          relationship?: string | null
+          share_amount?: number | null
+          share_percent?: number | null
+          start_date?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_award_beneficiary_bn_award_id_fkey"
+            columns: ["bn_award_id"]
+            isOneToOne: false
+            referencedRelation: "bn_award"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_award_rate_history: {
+        Row: {
+          bn_award_id: string
+          change_reason: string | null
+          currency: string | null
+          effective_from: string
+          effective_to: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          modified_at: string
+          modified_by: string | null
+          rate_amount: number
+          reference_doc: string | null
+        }
+        Insert: {
+          bn_award_id: string
+          change_reason?: string | null
+          currency?: string | null
+          effective_from: string
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          rate_amount: number
+          reference_doc?: string | null
+        }
+        Update: {
+          bn_award_id?: string
+          change_reason?: string | null
+          currency?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          rate_amount?: number
+          reference_doc?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_award_rate_history_bn_award_id_fkey"
+            columns: ["bn_award_id"]
+            isOneToOne: false
+            referencedRelation: "bn_award"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_award_status_event: {
+        Row: {
+          bn_award_id: string
+          entered_at: string
+          entered_by: string | null
+          event_date: string
+          from_status: string | null
+          id: string
+          reason_code: string | null
+          remarks: string | null
+          to_status: string
+        }
+        Insert: {
+          bn_award_id: string
+          entered_at?: string
+          entered_by?: string | null
+          event_date?: string
+          from_status?: string | null
+          id?: string
+          reason_code?: string | null
+          remarks?: string | null
+          to_status: string
+        }
+        Update: {
+          bn_award_id?: string
+          entered_at?: string
+          entered_by?: string | null
+          event_date?: string
+          from_status?: string | null
+          id?: string
+          reason_code?: string | null
+          remarks?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_award_status_event_bn_award_id_fkey"
+            columns: ["bn_award_id"]
+            isOneToOne: false
+            referencedRelation: "bn_award"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_award_suspension_event: {
+        Row: {
+          bn_award_id: string
+          entered_at: string
+          entered_by: string | null
+          id: string
+          modified_at: string
+          modified_by: string | null
+          reason_code: string | null
+          reason_text: string | null
+          resumed_at: string | null
+          resumed_by: string | null
+          status: string
+          suspended_from: string
+          suspended_to: string | null
+          suspension_type: string | null
+        }
+        Insert: {
+          bn_award_id: string
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          reason_code?: string | null
+          reason_text?: string | null
+          resumed_at?: string | null
+          resumed_by?: string | null
+          status?: string
+          suspended_from: string
+          suspended_to?: string | null
+          suspension_type?: string | null
+        }
+        Update: {
+          bn_award_id?: string
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          reason_code?: string | null
+          reason_text?: string | null
+          resumed_at?: string | null
+          resumed_by?: string | null
+          status?: string
+          suspended_from?: string
+          suspended_to?: string | null
+          suspension_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_award_suspension_event_bn_award_id_fkey"
+            columns: ["bn_award_id"]
+            isOneToOne: false
+            referencedRelation: "bn_award"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_branch: {
         Row: {
           branch_code: string
@@ -6663,6 +6971,68 @@ export type Database = {
           },
         ]
       }
+      bn_life_certificate: {
+        Row: {
+          bn_award_id: string
+          document_ref: string | null
+          due_date: string
+          entered_at: string
+          entered_by: string | null
+          id: string
+          modified_at: string
+          modified_by: string | null
+          remarks: string | null
+          required_for_period: string | null
+          status: string
+          submitted_date: string | null
+          verification_method: string | null
+          verified_by: string | null
+          verified_date: string | null
+        }
+        Insert: {
+          bn_award_id: string
+          document_ref?: string | null
+          due_date: string
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          remarks?: string | null
+          required_for_period?: string | null
+          status?: string
+          submitted_date?: string | null
+          verification_method?: string | null
+          verified_by?: string | null
+          verified_date?: string | null
+        }
+        Update: {
+          bn_award_id?: string
+          document_ref?: string | null
+          due_date?: string
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          remarks?: string | null
+          required_for_period?: string | null
+          status?: string
+          submitted_date?: string | null
+          verification_method?: string | null
+          verified_by?: string | null
+          verified_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_life_certificate_bn_award_id_fkey"
+            columns: ["bn_award_id"]
+            isOneToOne: false
+            referencedRelation: "bn_award"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_medical_claim_expense: {
         Row: {
           approved_amount: number | null
@@ -7217,6 +7587,65 @@ export type Database = {
           },
         ]
       }
+      bn_medical_review_schedule: {
+        Row: {
+          bn_award_id: string
+          completed_date: string | null
+          entered_at: string
+          entered_by: string | null
+          examining_provider: string | null
+          id: string
+          modified_at: string
+          modified_by: string | null
+          next_review_date: string | null
+          outcome: string | null
+          remarks: string | null
+          review_type: string | null
+          scheduled_date: string
+          status: string
+        }
+        Insert: {
+          bn_award_id: string
+          completed_date?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          examining_provider?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          next_review_date?: string | null
+          outcome?: string | null
+          remarks?: string | null
+          review_type?: string | null
+          scheduled_date: string
+          status?: string
+        }
+        Update: {
+          bn_award_id?: string
+          completed_date?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          examining_provider?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          next_review_date?: string | null
+          outcome?: string | null
+          remarks?: string | null
+          review_type?: string | null
+          scheduled_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_medical_review_schedule_bn_award_id_fkey"
+            columns: ["bn_award_id"]
+            isOneToOne: false
+            referencedRelation: "bn_award"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_module_events: {
         Row: {
           consumed: boolean
@@ -7255,6 +7684,71 @@ export type Database = {
           published_by?: string | null
         }
         Relationships: []
+      }
+      bn_overpayment: {
+        Row: {
+          bn_award_id: string
+          detected_date: string
+          entered_at: string
+          entered_by: string | null
+          id: string
+          modified_at: string
+          modified_by: string | null
+          original_amount: number
+          outstanding_amount: number | null
+          period_from: string | null
+          period_to: string | null
+          reason_code: string | null
+          recovered_amount: number | null
+          recovery_method: string | null
+          recovery_status: string
+          remarks: string | null
+        }
+        Insert: {
+          bn_award_id: string
+          detected_date?: string
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          original_amount: number
+          outstanding_amount?: number | null
+          period_from?: string | null
+          period_to?: string | null
+          reason_code?: string | null
+          recovered_amount?: number | null
+          recovery_method?: string | null
+          recovery_status?: string
+          remarks?: string | null
+        }
+        Update: {
+          bn_award_id?: string
+          detected_date?: string
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          original_amount?: number
+          outstanding_amount?: number | null
+          period_from?: string | null
+          period_to?: string | null
+          reason_code?: string | null
+          recovered_amount?: number | null
+          recovery_method?: string | null
+          recovery_status?: string
+          remarks?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_overpayment_bn_award_id_fkey"
+            columns: ["bn_award_id"]
+            isOneToOne: false
+            referencedRelation: "bn_award"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_override_policy: {
         Row: {
@@ -7374,6 +7868,81 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      bn_payment_schedule: {
+        Row: {
+          bn_award_id: string
+          bn_payment_instruction_id: string | null
+          deductions: number | null
+          due_date: string
+          entered_at: string
+          entered_by: string | null
+          gross_amount: number
+          id: string
+          modified_at: string
+          modified_by: string | null
+          net_amount: number | null
+          notes: string | null
+          paid_at: string | null
+          payment_method: string | null
+          payment_ref: string | null
+          schedule_period: string
+          status: string
+        }
+        Insert: {
+          bn_award_id: string
+          bn_payment_instruction_id?: string | null
+          deductions?: number | null
+          due_date: string
+          entered_at?: string
+          entered_by?: string | null
+          gross_amount: number
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          net_amount?: number | null
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_ref?: string | null
+          schedule_period: string
+          status?: string
+        }
+        Update: {
+          bn_award_id?: string
+          bn_payment_instruction_id?: string | null
+          deductions?: number | null
+          due_date?: string
+          entered_at?: string
+          entered_by?: string | null
+          gross_amount?: number
+          id?: string
+          modified_at?: string
+          modified_by?: string | null
+          net_amount?: number | null
+          notes?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_ref?: string | null
+          schedule_period?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_payment_schedule_bn_award_id_fkey"
+            columns: ["bn_award_id"]
+            isOneToOne: false
+            referencedRelation: "bn_award"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_payment_schedule_bn_payment_instruction_id_fkey"
+            columns: ["bn_payment_instruction_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_instruction"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_product: {
         Row: {
