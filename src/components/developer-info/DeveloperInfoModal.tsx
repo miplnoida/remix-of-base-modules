@@ -78,10 +78,14 @@ export const DeveloperInfoModal = ({ open, onOpenChange, currentRoute }: Props) 
   };
 
   const handleAIAnalysis = async () => {
-    if (!devInfo?.screen) return;
     setAnalyzing(true);
     try {
-      await developerInfoService.triggerAIAnalysis(devInfo.screen.id, currentRoute);
+      let screenId = devInfo?.screen?.id;
+      if (!screenId) {
+        const ensured = await developerInfoService.ensureScreenForRoute(currentRoute);
+        screenId = ensured.id;
+      }
+      await developerInfoService.triggerAIAnalysis(screenId, currentRoute);
       toast.success('AI analysis completed. Refreshing...');
       await loadDevInfo();
     } catch (err: any) {
