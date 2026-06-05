@@ -14,10 +14,11 @@ import { useBnInteractionRules, useUpsertBnInteractionRule, useDeleteBnInteracti
 import { useBnProducts } from '@/hooks/bn/useBnProduct';
 import { BN_INTERACTION_TYPES } from '@/types/bn';
 import type { BnInteractionRule, BnProduct } from '@/types/bn';
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-interface Props { productId: string | undefined; }
+interface Props { productId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
-export function InteractionRulesTab({ productId }: Props) {
+export function InteractionRulesTab({ productId, isReadOnly = false, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: allRules = [] } = useBnInteractionRules();
   const { data: products = [] } = useBnProducts();
@@ -46,10 +47,11 @@ export function InteractionRulesTab({ productId }: Props) {
 
   return (
     <>
+      <ReadOnlyVersionBanner show={isReadOnly} status={versionStatus} />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Interaction Rules</CardTitle><CardDescription>Define how this product interacts with other benefit products</CardDescription></div>
-          <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Rule</Button>
+          <Button onClick={openNew} className="gap-2" disabled={isReadOnly}><Plus className="h-4 w-4" /> Add Rule</Button>
         </CardHeader>
         <CardContent>
           {rules.length === 0 ? (
@@ -67,8 +69,8 @@ export function InteractionRulesTab({ productId }: Props) {
                     <TableCell>{r.is_active ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => { setEditing({ ...r }); setDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={async () => { await deleteMutation.mutateAsync(r.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={() => { setEditing({ ...r }); setDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={async () => { await deleteMutation.mutateAsync(r.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
