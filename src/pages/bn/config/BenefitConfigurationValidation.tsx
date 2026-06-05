@@ -61,6 +61,9 @@ export default function BenefitConfigurationValidation() {
   const [selected, setSelected] = useState<ProductValidationReport | null>(null);
   const [testResults, setTestResults] = useState<TestRunResult[] | null>(null);
   const [runningTests, setRunningTests] = useState(false);
+  const [showFailedOnly, setShowFailedOnly] = useState(false);
+  const [runningAll, setRunningAll] = useState(false);
+  const [allResults, setAllResults] = useState<TestRunResult[]>([]);
 
   const refresh = async () => {
     setLoading(true);
