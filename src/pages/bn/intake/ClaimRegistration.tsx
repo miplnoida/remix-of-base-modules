@@ -45,6 +45,7 @@ export default function ClaimRegistration() {
   const navigate = useNavigate();
   const { data: products = [] } = useBnProducts();
   const createClaim = useCreateBnClaim();
+  const intake = useBnClaimIntake();
 
   const activeProducts = products.filter((p: BnProduct) => p.status === 'ACTIVE');
 
