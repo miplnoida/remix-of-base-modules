@@ -26,7 +26,7 @@ const channelBadge = (c?: string) => {
   return <Badge variant="outline">Both</Badge>;
 };
 
-export function DocumentRulesTab({ productId, versionId }: Props) {
+export function DocumentRulesTab({ productId, versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: rules = [], isLoading } = useBnDocumentRules(productId, versionId);
