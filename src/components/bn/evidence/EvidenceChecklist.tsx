@@ -259,7 +259,7 @@ export function EvidenceChecklist({
                         <TableCell>
                           <TooltipProvider>
                             <div className="flex gap-1">
-                              {ev.status === 'RECEIVED' && canVerify && (
+                              {isInternal && ev.status === 'RECEIVED' && roleCanVerify && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button size="icon" variant="ghost" onClick={() => openAction('VERIFY', ev)}>
@@ -269,7 +269,7 @@ export function EvidenceChecklist({
                                   <TooltipContent>Verify</TooltipContent>
                                 </Tooltip>
                               )}
-                              {ev.status === 'RECEIVED' && canVerify && (
+                              {isInternal && ev.status === 'RECEIVED' && roleCanVerify && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button size="icon" variant="ghost" onClick={() => openAction('REJECT', ev)}>
@@ -279,7 +279,7 @@ export function EvidenceChecklist({
                                   <TooltipContent>Reject</TooltipContent>
                                 </Tooltip>
                               )}
-                              {(ev.status === 'RECEIVED' || ev.status === 'REJECTED') && canWaive && (
+                              {isInternal && (ev.status === 'RECEIVED' || ev.status === 'REJECTED') && roleCanWaive && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button size="icon" variant="ghost" onClick={() => openAction('WAIVE', ev)}>
@@ -289,7 +289,7 @@ export function EvidenceChecklist({
                                   <TooltipContent>Waive</TooltipContent>
                                 </Tooltip>
                               )}
-                              {ev.status !== 'VERIFIED' && ev.status !== 'WAIVED' && (
+                              {isInternal && ev.status !== 'VERIFIED' && ev.status !== 'WAIVED' && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button size="icon" variant="ghost" onClick={() => openAction('REQUEST_INFO', ev)}>
@@ -301,6 +301,7 @@ export function EvidenceChecklist({
                               )}
                             </div>
                           </TooltipProvider>
+
                         </TableCell>
                       </TableRow>
                     ))}
