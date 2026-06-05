@@ -1,10 +1,17 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useBnProduct, useBnProductVersion, useBnEligibilityRules, useBnCalculationRules, useBnTimelineRules } from '@/hooks/bn/useBnProduct';
 import { useBnDocumentRules } from '@/hooks/bn/useBnConfig';
+import { useApplicationFormDefinition } from '@/hooks/bn/useApplicationFormDefinition';
+import { ApplicationFormEngine } from '@/components/bn/forms/ApplicationFormEngine';
+import type { FormChannel } from '@/services/bn/forms/sectionCatalogue';
 import { BN_CATEGORY_LABELS, BN_PRODUCT_STATUS_LABELS, BN_RULE_TYPES, BN_CALC_TYPES, BN_TIMELINE_TYPES } from '@/types/bn';
-import { CheckCircle, FileText, Calculator, Clock, Shield } from 'lucide-react';
+import { CheckCircle, FileText, Calculator, Clock, Shield, Eye } from 'lucide-react';
 
 interface Props { productId: string | undefined; versionId: string | undefined; }
 
@@ -16,10 +23,19 @@ export function PreviewTab({ productId, versionId }: Props) {
   const { data: timeRules = [] } = useBnTimelineRules(versionId);
   const { data: docRules = [] } = useBnDocumentRules(productId);
 
+  const [channel, setChannel] = useState<FormChannel>('ASSISTED_OFFLINE');
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: formDef, isLoading: formLoading, error: formError } = useApplicationFormDefinition(
+    product?.benefit_code,
+    today,
+    channel,
+  );
+
   if (!productId || !product) return <Card><CardContent className="py-8 text-center text-muted-foreground">Save the product first to preview configuration.</CardContent></Card>;
 
   return (
     <div className="space-y-4">
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" /> Configuration Summary</CardTitle>
@@ -126,6 +142,38 @@ export function PreviewTab({ productId, versionId }: Props) {
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Eye className="h-5 w-5" /> Application Form Preview</CardTitle>
+          <CardDescription>Renders the live form engine for this product version. Switch channel to see how Internal, Assisted Offline, and Public applicants experience the form.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={channel} onValueChange={(v) => setChannel(v as FormChannel)}>
+            <TabsList>
+              <TabsTrigger value="INTERNAL">Internal</TabsTrigger>
+              <TabsTrigger value="ASSISTED_OFFLINE">Assisted Offline</TabsTrigger>
+              <TabsTrigger value="PUBLIC">Public Online</TabsTrigger>
+            </TabsList>
+            <TabsContent value={channel} className="pt-4">
+              {formLoading && <Skeleton className="h-64 w-full" />}
+              {formError && (
+                <Alert variant="destructive">
+                  <AlertTitle>Unable to load form</AlertTitle>
+                  <AlertDescription>{(formError as Error).message}</AlertDescription>
+                </Alert>
+              )}
+              {formDef && (
+                <ApplicationFormEngine
+                  definition={formDef}
+                  channel={channel}
+                  readOnly
+                />
+              )}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
