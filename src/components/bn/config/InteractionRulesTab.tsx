@@ -14,10 +14,11 @@ import { useBnInteractionRules, useUpsertBnInteractionRule, useDeleteBnInteracti
 import { useBnProducts } from '@/hooks/bn/useBnProduct';
 import { BN_INTERACTION_TYPES } from '@/types/bn';
 import type { BnInteractionRule, BnProduct } from '@/types/bn';
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-interface Props { productId: string | undefined; }
+interface Props { productId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
-export function InteractionRulesTab({ productId }: Props) {
+export function InteractionRulesTab({ productId, isReadOnly = false, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: allRules = [] } = useBnInteractionRules();
   const { data: products = [] } = useBnProducts();
