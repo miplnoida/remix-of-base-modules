@@ -41,7 +41,7 @@ const CHANNEL_META: Record<BnChannelCode, { label: string; description: string; 
   },
 };
 
-export function ChannelsTab({ productId, versionId }: Props) {
+export function ChannelsTab({ productId, versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: configs = [], isLoading } = useBnChannelConfigs(versionId);
   const upsertMutation = useUpsertBnChannelConfig();
