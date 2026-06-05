@@ -88,14 +88,35 @@ export default function ProductEditor() {
     }
   };
 
+  const copyRulesMutation = useCopyBnVersionRules();
+
   const handleCreateVersion = async () => {
     if (!id || isNew) return;
     const nextNum = versions.length > 0 ? Math.max(...versions.map((v: BnProductVersion) => v.version_number)) + 1 : 1;
     try {
       const today = new Date().toISOString().slice(0, 10);
       const created = await createVersionMutation.mutateAsync({ product_id: id, version_number: nextNum, status: 'DRAFT', effective_from: today });
+      // Offer to copy from current selected or active version
+      const sourceId =
+        (activeVersion && window.confirm(
+          `New draft Version ${nextNum} created. Copy full configuration from currently selected V${activeVersion.version_number} [${activeVersion.status}]?\n\nOK = copy from selected, Cancel = leave empty.`,
+        ))
+          ? activeVersion.id
+          : null;
+      if (sourceId) {
+        try {
+          const c = await copyRulesMutation.mutateAsync({ sourceVersionId: sourceId, targetVersionId: created.id });
+          toast({
+            title: `Version ${nextNum} created and populated`,
+            description: `Copied ${c.eligibility} eligibility, ${c.calculation} calculation, ${c.timeline} timeline, ${c.documents} documents, ${c.channels} channels, ${c.overrides} overrides.`,
+          });
+        } catch (copyErr: any) {
+          toast({ title: 'Version created — copy failed', description: copyErr?.message, variant: 'destructive' });
+        }
+      } else {
+        toast({ title: 'Success', description: `Version ${nextNum} created (empty draft).` });
+      }
       setSelectedVersionId(created.id);
-      toast({ title: 'Success', description: `Version ${nextNum} created.` });
     } catch (err: any) {
       toast({ title: 'Error', description: err?.message || 'Failed to create version.', variant: 'destructive' });
     }
