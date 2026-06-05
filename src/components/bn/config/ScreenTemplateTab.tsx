@@ -8,10 +8,11 @@ import { Save, Monitor } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-interface Props { versionId: string | undefined; }
+interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
-export function ScreenTemplateTab({ versionId }: Props) {
+export function ScreenTemplateTab({ versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: version } = useBnProductVersion(versionId);
   const { data: templates = [] } = useBnScreenTemplates();
