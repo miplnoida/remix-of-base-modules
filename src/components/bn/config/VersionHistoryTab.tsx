@@ -35,6 +35,8 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
   const updateVersionMutation = useUpdateBnProductVersion();
   const createApprovalMutation = useCreateBnVersionApproval();
   const copyRulesMutation = useCopyBnVersionRules();
+  const publishMutation = usePublishBnProductVersion();
+  const retireMutation = useRetireBnProductVersion();
   const [approvalDialog, setApprovalDialog] = useState<{ versionId: string; action: string } | null>(null);
   const [copyDialog, setCopyDialog] = useState<{ targetVersionId: string } | null>(null);
   const [copySourceId, setCopySourceId] = useState('');
@@ -42,16 +44,23 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
 
   const handleStatusAction = async (versionId: string, action: string, toStatus: string) => {
     try {
-      // Validation: Require at least one calc rule before activation
-      if (action === 'APPROVE') {
-        // Check for active version overlap — already handled in service layer
-      }
       if (action === 'REJECT' && !comments.trim()) {
         toast({ title: 'Validation', description: 'Comments are required when rejecting.', variant: 'destructive' });
         return;
       }
-      await updateVersionMutation.mutateAsync({ id: versionId, updates: { status: toStatus } as any });
-      await createApprovalMutation.mutateAsync({ product_version_id: versionId, action, from_status: versions.find(v => v.id === versionId)?.status, to_status: toStatus, comments, performed_by: 'system' });
+      const fromStatus = versions.find(v => v.id === versionId)?.status;
+      const version = versions.find(v => v.id === versionId);
+
+      if (action === 'APPROVE') {
+        // Publish path — auto-closes prior ACTIVE version
+        const effFrom = version?.effective_from || new Date().toISOString().slice(0, 10);
+        await publishMutation.mutateAsync({ versionId, effectiveFrom: effFrom });
+      } else if (action === 'RETIRE') {
+        await retireMutation.mutateAsync(versionId);
+      } else {
+        await updateVersionMutation.mutateAsync({ id: versionId, updates: { status: toStatus } as any });
+      }
+      await createApprovalMutation.mutateAsync({ product_version_id: versionId, action, from_status: fromStatus, to_status: toStatus, comments, performed_by: 'system' });
       toast({ title: 'Success', description: `Version ${action.toLowerCase()}d.` });
       setApprovalDialog(null);
       setComments('');
