@@ -216,85 +216,45 @@ export function validateApplicationPayload(
 }
 
 // ─── Submission ──────────────────────────────────────────────────
+// Always routes through the central transactional RPC so every channel
+// (PUBLIC, ASSISTED_OFFLINE, INTERNAL) produces the same bn_claim +
+// bn_claim_application + snapshots + checklist + workflow instance.
+import { submitClaimApplication, type ApplicationChannel } from '@/services/bn/intake/claimIntakeService';
+
+const CHANNEL_MAP: Record<FormChannel, ApplicationChannel> = {
+  PUBLIC: 'PUBLIC_ONLINE',
+  ASSISTED_OFFLINE: 'ASSISTED_COUNTER',
+  INTERNAL: 'STAFF_OFFLINE',
+};
+
 export async function submitApplication(
   payload: ApplicationPayload,
   channel: FormChannel,
-): Promise<{ claimId: string; errors?: FieldError[] }> {
+): Promise<{ claimId: string; claimNumber?: string; errors?: FieldError[] }> {
   const definition = await getApplicationFormDefinition(payload.productCode, payload.claimDate, channel);
   const errors = validateApplicationPayload(payload, definition);
   if (errors.length) return { claimId: '', errors };
 
-  const userCode = payload.userCode ?? 'PUBLIC';
   const v = payload.values;
-
-  // Create claim
-  const { data: claim, error } = await db
-    .from('bn_claim')
-    .insert({
-      product_id: definition.productId,
-      product_version_id: definition.productVersionId,
-      ssn: v.ssn ?? null,
-      employer_regno: v.employer_regno ?? null,
-      claim_date: payload.claimDate,
-      submission_date: new Date().toISOString(),
-      status: 'SUBMITTED',
-      priority: v.priority ?? 'NORMAL',
-      source: channel,
-      channel_code: channel,
-      submitted_via: channel,
-      legacy_claim_ref: v.legacy_claim_ref ?? null,
-      assigned_to: v.assigned_to ?? null,
-      contact_phone: v.claimant_phone ?? null,
-      contact_email: v.claimant_email ?? null,
-      bank_account: v.bank_account ?? null,
-      bank_routing_number: v.bank_routing_number ?? null,
-      declaration: !!v.declaration,
-      entered_by: userCode,
-      modified_by: userCode,
-      screen_template_id: (definition as any).screen_template_id ?? null,
-    })
-    .select('id')
-    .single();
-
-  if (error || !claim) {
-    return { claimId: '', errors: [{ field: '_form', message: error?.message ?? 'Failed to create claim.' }] };
+  if (!v.ssn) {
+    return { claimId: '', errors: [{ field: 'ssn', message: 'SSN is required for claim submission.' }] };
   }
-  const claimId = claim.id;
 
-  // Evidence checklist
-  await generateEvidenceChecklist(claimId, definition.productVersionId);
-
-  // Audit event
-  await db.from('bn_claim_event').insert({
-    claim_id: claimId,
-    event_type: 'SUBMITTED',
-    to_status: 'SUBMITTED',
-    performed_by: userCode,
-    performed_at: new Date().toISOString(),
-    metadata: { channel, productCode: definition.productCode, fields: Object.keys(v) },
-  });
-
-  // Workflow (best-effort; non-blocking on failure)
   try {
-    if (definition.workflow.hasWorkflow) {
-      const wfId = definition.workflow.workflow_definition_id ?? definition.workflow.workflow_template_id;
-      if (wfId) {
-        await db.from('workflow_instances').insert({
-          workflow_definition_id: wfId,
-          source_table: 'bn_claim',
-          source_record_id: claimId,
-          status: 'RUNNING',
-          started_at: new Date().toISOString(),
-          started_by: userCode,
-        });
-      }
-    }
-  } catch {
-    // Workflow start failure should not block claim submission. The fallback
-    // BN transition rules can pick it up.
+    const result = await submitClaimApplication({
+      ssn: String(v.ssn),
+      productCode: definition.productCode,
+      claimDate: payload.claimDate,
+      channel: CHANNEL_MAP[channel],
+      formPayload: { ...v, declaration_accepted: !!v.declaration },
+      employerRegno: v.employer_regno ?? null,
+      submittedByUserId: payload.userCode ?? null,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+    });
+    return { claimId: result.claimId, claimNumber: result.claimNumber };
+  } catch (e: any) {
+    return { claimId: '', errors: [{ field: '_form', message: e?.message ?? 'Failed to submit application.' }] };
   }
-
-  return { claimId };
 }
 
 export async function generateEvidenceChecklist(
