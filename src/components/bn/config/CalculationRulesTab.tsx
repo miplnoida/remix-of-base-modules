@@ -74,8 +74,8 @@ export function CalculationRulesTab({ versionId, isReadOnly, versionStatus }: Pr
                     <TableCell>{r.is_active ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={async () => { await deleteMutation.mutateAsync(r.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={() => openEdit(r)}><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={async () => { await deleteMutation.mutateAsync(r.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
