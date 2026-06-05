@@ -346,7 +346,7 @@ export default function ProductEditor() {
         </TabsContent>
 
         <TabsContent value="interactions" className="mt-6">
-          <InteractionRulesTab productId={isNew ? undefined : id} />
+          <InteractionRulesTab productId={isNew ? undefined : id} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
 
         <TabsContent value="overrides" className="mt-6">
