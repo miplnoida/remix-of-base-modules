@@ -307,8 +307,23 @@ export default function ClaimWorkbench() {
           <TabsTrigger value="linked" className="gap-1.5"><GitBranch className="h-3.5 w-3.5" /> Linked</TabsTrigger>
           <TabsTrigger value="history" className="gap-1.5"><History className="h-3.5 w-3.5" /> History</TabsTrigger>
           <TabsTrigger value="workflow" className="gap-1.5"><GitBranch className="h-3.5 w-3.5" /> Workflow</TabsTrigger>
+          <TabsTrigger value="tasks" className="gap-1.5"><ListChecks className="h-3.5 w-3.5" /> Tasks</TabsTrigger>
+          <TabsTrigger value="application" className="gap-1.5"><Inbox className="h-3.5 w-3.5" /> Application</TabsTrigger>
+          <TabsTrigger value="payments" className="gap-1.5"><CreditCard className="h-3.5 w-3.5" /> Payments</TabsTrigger>
           <TabsTrigger value="snapshots" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Snapshots</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="application" className="mt-6">
+          <ApplicationDetailsPanel claimId={claim.id} productVersionId={(claim as any).product_version_id} />
+        </TabsContent>
+
+        <TabsContent value="tasks" className="mt-6">
+          <WorkflowTasksPanel claimId={claim.id} workflowInstanceId={claim.workflow_instance_id} />
+        </TabsContent>
+
+        <TabsContent value="payments" className="mt-6">
+          <PaymentsPanel claimId={claim.id} />
+        </TabsContent>
 
         <TabsContent value="snapshots" className="mt-6">
           <ClaimSnapshotsPanel claimId={claim.id} />
