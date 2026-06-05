@@ -164,21 +164,29 @@ export default function ClaimRegistration() {
     }
 
     try {
-      const result = await createClaim.mutateAsync({
+      const selectedProduct = activeProducts.find((p: BnProduct) => p.id === form.product_id);
+      const productCode = (selectedProduct as any)?.benefit_code;
+      if (!productCode) throw new Error('Selected benefit has no code.');
+
+      const result = await intake.mutateAsync({
         ssn: form.ssn,
-        product_id: form.product_id,
-        employer_regno: form.employer_regno || undefined,
-        source: form.source,
-        priority: form.priority,
-        contact_phone: form.contact_phone || undefined,
-        contact_email: form.contact_email || undefined,
-        bank_account: form.bank_account || undefined,
-        bank_routing_number: form.bank_routing_number || undefined,
-        status: 'SUBMITTED',
-        submission_date: new Date().toISOString(),
+        productCode,
+        claimDate: form.event_date || new Date().toISOString().slice(0, 10),
+        channel: 'STAFF_OFFLINE',
+        employerRegno: form.employer_regno || null,
+        formPayload: {
+          source: form.source,
+          priority: form.priority,
+          contact_phone: form.contact_phone,
+          contact_email: form.contact_email,
+          bank_account: form.bank_account,
+          bank_routing_number: form.bank_routing_number,
+          remarks: form.remarks,
+          declaration_accepted: true,
+        },
       });
-      toast.success(`Claim registered: ${result.claim_number || result.id.slice(0, 8)}`);
-      navigate(`/bn/claims/${result.id}`);
+      toast.success(`Claim registered: ${result.claimNumber}`);
+      navigate(`/bn/claims/${result.claimId}`);
     } catch (err: any) {
       toast.error('Failed to register claim', { description: err?.message });
     }
