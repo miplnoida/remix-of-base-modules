@@ -283,6 +283,70 @@ export async function generateEvidenceChecklist(claimId: string, productId: stri
   if (error) throw error;
 }
 
+/**
+ * Officer-only: mark a checklist row as pending (document not yet provided
+ * but intake may proceed). Writes an audit row.
+ */
+export async function markChecklistPending(
+  claimId: string,
+  checklistId: string,
+  reason: string,
+  userCode: string,
+): Promise<void> {
+  if (!reason?.trim()) throw new Error('A reason is required to mark a document pending.');
+  const { error } = await db
+    .from('bn_evidence_checklist')
+    .update({
+      status: 'PENDING',
+      is_blocking: false,
+      modified_by: userCode,
+      modified_at: new Date().toISOString(),
+    })
+    .eq('id', checklistId);
+  if (error) throw error;
+  await db.from('bn_evidence_audit').insert({
+    claim_id: claimId,
+    evidence_id: null,
+    action: 'MARK_PENDING',
+    from_status: 'OUTSTANDING',
+    to_status: 'PENDING',
+    reason,
+    performed_by: userCode,
+  });
+}
+
+/**
+ * Officer-only: waive a checklist row directly (when no evidence record
+ * exists yet). Requires reason + permission check at the call site.
+ */
+export async function waiveChecklistItem(
+  claimId: string,
+  checklistId: string,
+  reason: string,
+  userCode: string,
+): Promise<void> {
+  if (!reason?.trim()) throw new Error('A reason is required to waive a document.');
+  const { error } = await db
+    .from('bn_evidence_checklist')
+    .update({
+      status: 'WAIVED',
+      is_blocking: false,
+      modified_by: userCode,
+      modified_at: new Date().toISOString(),
+    })
+    .eq('id', checklistId);
+  if (error) throw error;
+  await db.from('bn_evidence_audit').insert({
+    claim_id: claimId,
+    evidence_id: null,
+    action: 'WAIVE_CHECKLIST',
+    from_status: 'OUTSTANDING',
+    to_status: 'WAIVED',
+    reason,
+    performed_by: userCode,
+  });
+}
+
 // ── Audit ──
 
 export async function fetchEvidenceAudit(claimId: string): Promise<BnEvidenceAudit[]> {
