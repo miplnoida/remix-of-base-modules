@@ -167,6 +167,9 @@ export function useWaiveChecklistItem() {
       qc.invalidateQueries({ queryKey: ['bn', 'evidence-complete', vars.claimId] });
     },
   });
+}
+
+
 
 // ── Audit ──
 
