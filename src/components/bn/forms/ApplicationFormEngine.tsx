@@ -17,7 +17,15 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { ValidationSummary } from '@/components/registration/ValidationSummary';
+function ValidationSummary({ errorCount }: { errorCount: number }) {
+  if (!errorCount) return null;
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>Please check the form</AlertTitle>
+      <AlertDescription>{errorCount} field{errorCount === 1 ? '' : 's'} need attention.</AlertDescription>
+    </Alert>
+  );
+}
 import type { FormChannel, FormFieldDef } from '@/services/bn/forms/sectionCatalogue';
 import type {
   FormDefinition,
