@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-interface Props { versionId: string | undefined; }
+interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
-export function WorkflowTab({ versionId }: Props) {
+export function WorkflowTab({ versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: version } = useBnProductVersion(versionId);
   const { data: templates = [] } = useBnWorkflowTemplates();
