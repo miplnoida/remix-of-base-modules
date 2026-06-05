@@ -186,10 +186,10 @@ export function DocumentRulesTab({ productId, versionId, isReadOnly, versionStat
                           <TableCell>{hasCondition ? <Badge variant="outline">cond</Badge> : '—'}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => openEdit(r)}>
+                              <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={() => openEdit(r)}>
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon"
+                              <Button variant="ghost" size="icon" disabled={isReadOnly}
                                 onClick={async () => {
                                   for (const g of grp) await deleteMutation.mutateAsync(g.id);
                                 }}>
