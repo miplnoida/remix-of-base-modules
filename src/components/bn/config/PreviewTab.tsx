@@ -1,10 +1,17 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useBnProduct, useBnProductVersion, useBnEligibilityRules, useBnCalculationRules, useBnTimelineRules } from '@/hooks/bn/useBnProduct';
 import { useBnDocumentRules } from '@/hooks/bn/useBnConfig';
+import { useApplicationFormDefinition } from '@/hooks/bn/useApplicationFormDefinition';
+import { ApplicationFormEngine } from '@/components/bn/forms/ApplicationFormEngine';
+import type { FormChannel } from '@/services/bn/forms/sectionCatalogue';
 import { BN_CATEGORY_LABELS, BN_PRODUCT_STATUS_LABELS, BN_RULE_TYPES, BN_CALC_TYPES, BN_TIMELINE_TYPES } from '@/types/bn';
-import { CheckCircle, FileText, Calculator, Clock, Shield } from 'lucide-react';
+import { CheckCircle, FileText, Calculator, Clock, Shield, Eye } from 'lucide-react';
 
 interface Props { productId: string | undefined; versionId: string | undefined; }
 
