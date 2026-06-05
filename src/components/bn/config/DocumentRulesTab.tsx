@@ -16,6 +16,7 @@ import { useBnProductVersions } from '@/hooks/bn/useBnProduct';
 import { copyDocumentRequirements } from '@/services/bn/configService';
 import { useQueryClient } from '@tanstack/react-query';
 import type { BnDocumentRule } from '@/types/bn';
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
 interface Props { productId: string | undefined; versionId?: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
