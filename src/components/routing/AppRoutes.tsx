@@ -553,6 +553,7 @@ const CalculationEngines = lazy(() => import('@/pages/nbenefit/shared/Calculatio
 const DocumentTemplates = lazy(() => import('@/pages/nbenefit/shared/DocumentTemplates'));
 const BenefitWorkflows = lazy(() => import('@/pages/nbenefit/shared/BenefitWorkflows'));
 const BenefitApplicationFormPage = lazy(() => import('@/pages/nbenefit/BenefitApplicationFormPage'));
+const PublicBenefitApplication = lazy(() => import('@/pages/public/bn/PublicBenefitApplication'));
 
 // Medical Module
 const DoctorApplicationsList = lazy(() => import('@/pages/medical/DoctorApplicationsList'));
