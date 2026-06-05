@@ -168,12 +168,10 @@ export const DeveloperInfoModal = ({ open, onOpenChange, currentRoute }: Props) 
             <Button variant="outline" size="sm" onClick={handleExport} disabled={!devInfo}>
               <Download className="h-3.5 w-3.5 mr-1" /> Export
             </Button>
-            {devInfo?.screen && (
-              <Button variant="outline" size="sm" onClick={handleAIAnalysis} disabled={analyzing}>
-                {analyzing ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
-                Re-analyze
-              </Button>
-            )}
+            <Button variant="outline" size="sm" onClick={handleAIAnalysis} disabled={analyzing}>
+              {analyzing ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+              Re-analyze
+            </Button>
           </div>
         </DialogHeader>
 
