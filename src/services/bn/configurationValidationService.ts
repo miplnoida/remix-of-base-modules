@@ -15,15 +15,20 @@ export interface ProductValidationReport {
   benefit_name: string;
   product_exists: CheckResult;
   active_version: CheckResult;
+  overlap_versions: CheckResult;
   eligibility: CheckResult;
   calculation: CheckResult;
+  formula_resolvable: CheckResult;
   documents: CheckResult;
+  documents_library: CheckResult;
   workflow: CheckResult;
+  workflow_exists: CheckResult;
   screen_template: CheckResult;
   timeline: CheckResult;
   test_cases: CheckResult;
   offline_channel: CheckResult;
   online_channel: CheckResult;
+  version_governance: CheckResult;
   overall_status: ValidationStatus;
   issues: string[];
   product_id?: string;
@@ -67,15 +72,20 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
       benefit_name: baseline.benefit_name,
       product_exists: { status: 'FAIL', message: 'Product not found in bn_product' },
       active_version: { status: 'FAIL', message: 'N/A — product missing' },
+      overlap_versions: { status: 'NOT_APPLICABLE', message: 'N/A' },
       eligibility: { status: 'FAIL', message: 'N/A' },
       calculation: { status: 'FAIL', message: 'N/A' },
+      formula_resolvable: { status: 'NOT_APPLICABLE', message: 'N/A' },
       documents: { status: 'FAIL', message: 'N/A' },
+      documents_library: { status: 'NOT_APPLICABLE', message: 'N/A' },
       workflow: { status: 'FAIL', message: 'N/A' },
+      workflow_exists: { status: 'NOT_APPLICABLE', message: 'N/A' },
       screen_template: { status: 'FAIL', message: 'N/A' },
       timeline: { status: 'FAIL', message: 'N/A' },
       test_cases: { status: 'FAIL', message: 'N/A' },
       offline_channel: { status: 'FAIL', message: 'N/A' },
       online_channel: { status: 'FAIL', message: 'N/A' },
+      version_governance: { status: 'NOT_APPLICABLE', message: 'N/A' },
       overall_status: 'FAIL',
       issues: [`Product ${baseline.benefit_code} not configured.`, ...issues],
     };
@@ -90,13 +100,52 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
 
   let eligibilityCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
   let calculationCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
+  let formulaResolvableCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
   let docsCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
+  let docsLibraryCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
   let workflowCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
+  let workflowExistsCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
   let screenCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
   let timelineCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
+  let versionGovernanceCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
+
+  // ─── Version governance: no overlapping ACTIVE versions, draft editable ───
+  const { data: allVersions = [] } = await supabase
+    .from('bn_product_version')
+    .select('id, version_number, status, effective_from, effective_to')
+    .eq('product_id', product.id);
+  const activeRows = (allVersions ?? []).filter((v) => v.status === 'ACTIVE');
+  const draftRows = (allVersions ?? []).filter((v) => v.status === 'DRAFT');
+  let overlapCheck: CheckResult;
+  if (activeRows.length <= 1) {
+    overlapCheck = { status: 'PASS', message: activeRows.length === 1 ? 'Single active version' : 'No active versions' };
+  } else {
+    const overlaps: string[] = [];
+    for (let i = 0; i < activeRows.length; i++) {
+      for (let j = i + 1; j < activeRows.length; j++) {
+        const a = activeRows[i];
+        const b = activeRows[j];
+        const aEnd = a.effective_to ? new Date(a.effective_to).getTime() : Infinity;
+        const bEnd = b.effective_to ? new Date(b.effective_to).getTime() : Infinity;
+        const aStart = new Date(a.effective_from).getTime();
+        const bStart = new Date(b.effective_from).getTime();
+        if (aStart <= bEnd && bStart <= aEnd) {
+          overlaps.push(`v${a.version_number} ↔ v${b.version_number}`);
+        }
+      }
+    }
+    overlapCheck = overlaps.length
+      ? { status: 'FAIL', message: `Overlapping active versions: ${overlaps.join(', ')}`, details: overlaps }
+      : { status: 'PASS', message: `${activeRows.length} active, no overlap` };
+    if (overlaps.length) issues.push(overlapCheck.message);
+  }
 
   if (activeVersion) {
     const versionId = activeVersion.id;
+    versionGovernanceCheck = {
+      status: 'PASS',
+      message: `Active v${activeVersion.version_number} is read-only; ${draftRows.length} draft(s) editable`,
+    };
 
     // Eligibility
     const { data: rules = [] } = await supabase
@@ -104,7 +153,9 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
       .select('id, rule_code, rule_definition, data_source, is_active')
       .eq('product_version_id', versionId);
     const activeRules = (rules ?? []).filter((r) => r.is_active);
-    if (activeRules.length === 0) {
+    if (!baseline.requires_eligibility) {
+      eligibilityCheck = { status: 'NOT_APPLICABLE', message: 'Not required (service case)' };
+    } else if (activeRules.length === 0) {
       eligibilityCheck = { status: 'FAIL', message: 'No active eligibility rules' };
     } else {
       const freeText = activeRules.filter((r) => {
@@ -126,13 +177,53 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
     // Calculation
     const { data: calcs = [] } = await supabase
       .from('bn_calculation_rule')
-      .select('id, is_active')
+      .select('id, rule_code, formula_template_id, formula_definition, variables, is_active')
       .eq('product_version_id', versionId);
     const activeCalcs = (calcs ?? []).filter((c) => c.is_active);
-    if (activeCalcs.length === 0) {
+    if (!baseline.requires_calculation) {
+      calculationCheck = { status: 'NOT_APPLICABLE', message: 'Not required (service case)' };
+      formulaResolvableCheck = { status: 'NOT_APPLICABLE', message: 'Not required' };
+    } else if (activeCalcs.length === 0) {
       calculationCheck = { status: 'FAIL', message: 'No active calculation rule' };
+      formulaResolvableCheck = { status: 'FAIL', message: 'No calc rule to resolve' };
     } else {
       calculationCheck = { status: 'PASS', message: `${activeCalcs.length} calc rule(s)` };
+
+      // Formula variables resolvable: each variable referenced in formula must exist
+      // in either `variables` payload or the linked formula_template.input_variables.
+      const templateIds = activeCalcs.map((c) => c.formula_template_id).filter(Boolean);
+      const { data: templates = [] } = templateIds.length
+        ? await supabase
+            .from('bn_formula_template')
+            .select('id, input_variables, formula_expression')
+            .in('id', templateIds as string[])
+        : { data: [] as any[] };
+      const templateMap = new Map((templates ?? []).map((t) => [t.id, t]));
+      const unresolved: string[] = [];
+      for (const c of activeCalcs) {
+        const tpl = c.formula_template_id ? templateMap.get(c.formula_template_id) : null;
+        const expr: string = (c.formula_definition as any)?.expression
+          ?? (tpl as any)?.formula_expression
+          ?? '';
+        const provided = new Set<string>([
+          ...Object.keys((c.variables as any) ?? {}),
+          ...(((tpl as any)?.input_variables ?? []) as string[]),
+        ]);
+        const referenced = Array.from(new Set(
+          (String(expr).match(/[a-zA-Z_][a-zA-Z0-9_\.]*/g) ?? [])
+            .filter((tok) => !/^(min|max|round|floor|ceil|if|and|or|not|true|false)$/i.test(tok))
+        ));
+        for (const r of referenced) {
+          // accept any prefix match (e.g. wages.avg_weekly resolves against `wages`)
+          if (!provided.has(r) && !Array.from(provided).some((p) => r.startsWith(p))) {
+            unresolved.push(`${c.rule_code}:${r}`);
+          }
+        }
+      }
+      formulaResolvableCheck = unresolved.length
+        ? { status: 'NEEDS_REVIEW', message: `${unresolved.length} unresolved variable ref(s)`, details: unresolved.slice(0, 10) }
+        : { status: 'PASS', message: 'All formula variables resolvable' };
+      if (unresolved.length) issues.push(`Formula variables unresolved: ${unresolved.slice(0, 5).join(', ')}${unresolved.length > 5 ? '…' : ''}`);
     }
 
     // Documents
@@ -158,10 +249,48 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
       }
     }
 
+    // Document library linkage (bn_document_profile)
+    if ((activeVersion as any).document_profile_id) {
+      const { data: profile } = await supabase
+        .from('bn_document_profile')
+        .select('id, profile_code, is_active')
+        .eq('id', (activeVersion as any).document_profile_id)
+        .maybeSingle();
+      if (!profile) {
+        docsLibraryCheck = { status: 'FAIL', message: 'document_profile_id references missing library row' };
+        issues.push('Document profile reference broken.');
+      } else if (profile.is_active === false) {
+        docsLibraryCheck = { status: 'WARNING', message: `Library profile ${profile.profile_code} is inactive` };
+      } else {
+        docsLibraryCheck = { status: 'PASS', message: `Library profile ${profile.profile_code}` };
+      }
+    } else {
+      docsLibraryCheck = { status: 'WARNING', message: 'No bn_document_profile linked — docs not governed by library' };
+    }
+
     // Workflow
     workflowCheck = activeVersion.workflow_template_id
       ? { status: 'PASS', message: 'Workflow template linked' }
       : { status: 'WARNING', message: 'No workflow_template_id — relies on fallback transition matrix' };
+
+    // Workflow definition exists?
+    if (activeVersion.workflow_template_id) {
+      const { data: wfDef } = await supabase
+        .from('workflow_definitions')
+        .select('id, name, is_active')
+        .eq('id', activeVersion.workflow_template_id)
+        .maybeSingle();
+      if (!wfDef) {
+        workflowExistsCheck = { status: 'FAIL', message: 'workflow_template_id points to missing workflow_definitions row' };
+        issues.push('Workflow definition missing.');
+      } else if (wfDef.is_active === false) {
+        workflowExistsCheck = { status: 'WARNING', message: `Workflow "${wfDef.name}" exists but inactive` };
+      } else {
+        workflowExistsCheck = { status: 'PASS', message: `Workflow "${wfDef.name}" present` };
+      }
+    } else {
+      workflowExistsCheck = { status: 'NOT_APPLICABLE', message: 'No workflow linked' };
+    }
 
     // Screen template
     if (baseline.requires_screen_template) {
@@ -221,15 +350,20 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
   const overall = worst(
     productCheck.status,
     activeVersionCheck.status,
+    overlapCheck.status,
     eligibilityCheck.status,
     calculationCheck.status,
+    formulaResolvableCheck.status,
     docsCheck.status,
+    docsLibraryCheck.status,
     workflowCheck.status,
+    workflowExistsCheck.status,
     screenCheck.status,
     timelineCheck.status,
     testCasesCheck.status,
     offlineCheck.status,
     onlineCheck.status,
+    versionGovernanceCheck.status,
   );
 
   return {
@@ -239,15 +373,20 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
     active_version_id: activeVersion?.id,
     product_exists: productCheck,
     active_version: activeVersionCheck,
+    overlap_versions: overlapCheck,
     eligibility: eligibilityCheck,
     calculation: calculationCheck,
+    formula_resolvable: formulaResolvableCheck,
     documents: docsCheck,
+    documents_library: docsLibraryCheck,
     workflow: workflowCheck,
+    workflow_exists: workflowExistsCheck,
     screen_template: screenCheck,
     timeline: timelineCheck,
     test_cases: testCasesCheck,
     offline_channel: offlineCheck,
     online_channel: onlineCheck,
+    version_governance: versionGovernanceCheck,
     overall_status: overall,
     issues,
   };
