@@ -34,6 +34,7 @@ import {
 import { toast } from 'sonner';
 import { useBnProducts } from '@/hooks/bn/useBnProduct';
 import { useCreateBnClaim, useBnClaims } from '@/hooks/bn/useBnClaim';
+import { useBnClaimIntake } from '@/hooks/bn/useBnClaimIntake';
 import { useBnPersonLookup, useBnContributionSummary, useBnEmployerLookup } from '@/hooks/bn/useBnIntegration';
 import type { BnProduct } from '@/types/bn';
 import { BnDetailRow, BnStatusBadge } from '@/components/bn/shared';
