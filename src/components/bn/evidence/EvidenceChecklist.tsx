@@ -139,6 +139,17 @@ export function EvidenceChecklist({
           </div>
         </CardHeader>
         <CardContent>
+          {mode === 'PUBLIC' && (
+            <Alert className="mb-4">
+              <FileText className="h-4 w-4" />
+              <AlertTitle>Required documents come from the Product Catalog</AlertTitle>
+              <AlertDescription>
+                {allowPendingDocuments
+                  ? 'You can submit and upload remaining mandatory documents later.'
+                  : 'All mandatory documents must be uploaded before you can submit this application.'}
+              </AlertDescription>
+            </Alert>
+          )}
           {isLoading ? (
             <p className="text-muted-foreground py-4">Loading evidence...</p>
           ) : (
@@ -154,12 +165,13 @@ export function EvidenceChecklist({
                         <TableHead>Stage</TableHead>
                         <TableHead>Level</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="w-24">Actions</TableHead>
+                        <TableHead className="w-48">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {checklist.map((item: any) => {
                         const req = item.bn_doc_requirement;
+                        const isOutstanding = item.status === 'OUTSTANDING';
                         return (
                           <TableRow key={item.id} className={item.is_blocking ? 'bg-destructive/5' : ''}>
                             <TableCell>
@@ -176,17 +188,35 @@ export function EvidenceChecklist({
                             </TableCell>
                             <TableCell><EvidenceStatusBadge status={item.status} /></TableCell>
                             <TableCell>
-                              {item.status === 'OUTSTANDING' && (
-                                <Button size="sm" variant="outline" className="gap-1" onClick={() => openUpload({
-                                  typeCode: req?.document_type_code,
-                                  name: req?.document_type_code,
-                                  requirementId: item.requirement_id,
-                                  extensions: req?.allowed_extensions,
-                                  maxSize: req?.max_file_size_mb,
-                                })}>
-                                  <Upload className="h-3 w-3" /> Upload
-                                </Button>
-                              )}
+                              <div className="flex flex-wrap gap-1">
+                                {isOutstanding && (
+                                  <Button size="sm" variant="outline" className="gap-1" onClick={() => openUpload({
+                                    typeCode: req?.document_type_code,
+                                    name: req?.document_type_code,
+                                    requirementId: item.requirement_id,
+                                    extensions: req?.allowed_extensions,
+                                    maxSize: req?.max_file_size_mb,
+                                  })}>
+                                    <Upload className="h-3 w-3" /> Upload
+                                  </Button>
+                                )}
+                                {isInternal && isOutstanding && roleCanMarkPending && (
+                                  <Button size="sm" variant="ghost" className="gap-1" onClick={() => {
+                                    setReasonDialog({ open: true, kind: 'PENDING', checklistId: item.id, docName: req?.document_type_code ?? 'Document' });
+                                    setReasonText('');
+                                  }}>
+                                    <Clock className="h-3 w-3" /> Pending
+                                  </Button>
+                                )}
+                                {isInternal && isOutstanding && roleCanWaive && req?.requirement_level !== 'MANDATORY' && (
+                                  <Button size="sm" variant="ghost" className="gap-1" onClick={() => {
+                                    setReasonDialog({ open: true, kind: 'WAIVE', checklistId: item.id, docName: req?.document_type_code ?? 'Document' });
+                                    setReasonText('');
+                                  }}>
+                                    <ShieldOff className="h-3 w-3" /> Waive
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
@@ -195,6 +225,7 @@ export function EvidenceChecklist({
                   </Table>
                 </div>
               )}
+
 
               {/* All Evidence */}
               <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">All Evidence ({evidence.length})</h4>
