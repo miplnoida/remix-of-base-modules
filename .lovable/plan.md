@@ -1,85 +1,115 @@
-## BN Product Catalogue: Classification & Version Governance
+# BN Configurable Application Form Engine
 
-Make Product Catalog the single source of product configuration, with safe version lifecycle, claim-date resolution, and read-only enforcement for non-draft versions.
+Replace per-benefit hardcoded forms with a single engine driven by Product Catalogue (product version → screen template + field metadata + documents + eligibility + workflow). Same engine renders Internal, Assisted Offline, and Public channels.
 
-### 1. ProductEditor UI changes (`src/pages/bn/config/ProductEditor.tsx`)
-- Rename "Active Version:" → "Selected Version:" with helper text: *"Claims use the version active on the claim date. Draft versions are for future changes."*
-- Compute `isEditableVersion = selectedVersion?.status === 'DRAFT'` and pass to every tab.
-- Add **Version Summary Card** above tabs showing: Status badge, Effective From/To, Editable Yes/No, counts (eligibility, calculation, document), workflow assigned, screen template assigned, public application ready.
-- Add **Version Lifecycle Actions** bar (Submit / Approve / Reject / Publish / Retire) gated by current status.
-- Add **Compare with Active** button → opens dialog using existing `compareVersions` / `useBnCompareVersions`.
+## 1. Form Definition Service (new)
 
-### 2. Read-only enforcement across tabs
-Add `isReadOnly` prop (or reuse pattern from `OverridePoliciesTab`) to:
-- `EligibilityRulesTab`, `CalculationRulesTab`, `TimelineRulesTab`, `DocumentRulesTab`, `WorkflowTab`, `ScreenTemplateTab`, `ChannelsTab`, `InteractionRulesTab`, `OverridePoliciesTab`.
+`src/services/bn/forms/formDefinitionService.ts`
 
-When read-only:
-- Hide Add / Edit / Delete / Save buttons.
-- Show banner: *"This version is read-only. Create a new draft version to make changes."*
-
-### 3. New Version flow (`VersionHistoryTab.tsx` + `productService.ts`)
-When user clicks **New Version**:
-- Dialog asks: copy from **Selected Version** or **Current Active Version** (or blank).
-- Create DRAFT version, then call extended `copyVersionRules` to copy:
-  - eligibility, calculation, timeline rules (already done)
-  - document requirements (already done)
-  - workflow assignment (`workflow_template_id` on version)
-  - screen template assignment (`screen_template_id`)
-  - channels (`bn_product_channel_config` rows)
-  - version-specific override policies
-  - relevant version-level JSON config fields
-
-### 4. Version lifecycle service
-Extend / wire existing `src/services/bn/rulesAdminService.ts` actions (submit, approve, reject, publish, retire) into ProductEditor:
-- DRAFT → Submit
-- PENDING_APPROVAL → Approve / Reject
-- APPROVED → Publish (with effective_from date)
-- ACTIVE → Retire (only if replacement exists OR `effective_to` set)
-- ARCHIVED/RETIRED → no actions
-
-### 5. No overlapping ACTIVE versions on publish
-In publish path (service layer):
-- Query existing ACTIVE versions for same `product_id`.
-- If new `effective_from` > existing active's `effective_from` and existing has no `effective_to`, auto-set existing `effective_to = new.effective_from - 1 day`.
-- If ranges still overlap, throw blocking error.
-
-### 6. Claim date resolver — new file
-Create `src/services/bn/productVersionResolver.ts`:
 ```ts
-resolveProductVersion(productIdOrCode: string, claimDate: string | Date)
+type Channel = 'INTERNAL' | 'ASSISTED_OFFLINE' | 'PUBLIC';
+
+getApplicationFormDefinition(productCode, claimDate, channel) // resolves version + sections + fields + docs + eligibility + workflow
+getRequiredSections(productVersionId, channel)
+getVisibleFields(productVersionId, channel, applicantContext)
+validateApplicationPayload(payload, definition)
+generateEvidenceChecklist(claimId, productVersionId) // inserts bn_evidence_checklist
+submitApplication(payload, channel) // creates bn_claim, docs, evidence, starts workflow, audit
 ```
-- Resolves product by id or `benefit_code`; product must be ACTIVE.
-- Finds versions where status=ACTIVE, `effective_from <= claimDate`, and (`effective_to IS NULL` OR `claimDate <= effective_to`).
-- 0 rows → `NoActiveVersionError`; >1 rows → `OverlappingVersionsError`.
 
-Integrate the resolver at these call sites (replace existing "latest active" lookups):
-- Claim intake (BN claim creation entry point)
-- Public application config loader
-- Calculation engine entry
-- Eligibility check entry
-- Document checklist generator
+Uses existing `productVersionResolver.resolveProductVersion(productCode, claimDate)`.
 
-### 7. Classification/menu copy updates
-Update descriptions on these pages/menu entries:
-- **Product Catalog** — "Configure benefit products, versions, eligibility, calculations, documents, workflow, screens, and application requirements."
-- **Rule Group Library** — "Reusable categories for organizing rules. Product-specific rules are configured in Product Catalog."
-- **Formula Templates** — "Reusable formula library. Attach formulas inside Product Catalog → Calculation."
-- **Document Setup** — "Reusable document type library. Required documents for each benefit are configured in Product Catalog → Documents."
-- **Rule Version Governance** — "Approve, publish, retire, and audit product versions. Rules are edited in Product Catalog."
+## 2. Section Catalogue
 
-### 8. Version comparison view
-Reuse `useBnCompareVersions` in a `VersionCompareDialog` shown from ProductEditor; render diff sections: eligibility, calculation, documents, workflow, screens, timelines.
+Shared sections (apply to every product):
+`claimant_details, insured_person_details, benefit_selection, claim_event_details, employment_details, contribution_context, banking_payee_details, documents, declaration_consent, internal_review`
 
-### Technical notes
-- No new DB tables needed; relies on existing `bn_product_version.status`, `effective_from`, `effective_to`, and `bn_version_approval`.
-- Read-only is enforced in UI; service layer should also reject writes when version status ≠ DRAFT (defense in depth — add status check inside `upsertEligibilityRule`/`upsertCalculationRule`/`upsertTimelineRule`/`upsertDocumentRule` by joining to version).
-- `copyVersionRules` return type expands to include `workflow`, `screen_template`, `channels`, `overrides` counts.
-- Resolver errors surface via existing shielded-error pattern.
+Benefit-specific section templates (one per product type):
+`sickness_details, maternity_details, employment_injury_details, disablement_details, medical_expense_details, employment_injury_death_details, funeral_grant_details, invalidity_details, age_benefit_details, survivor_details, non_contributory_pension_details`
 
-### Verification
-- Switching to an ACTIVE version hides all mutation controls and shows banner.
-- DRAFT version remains fully editable.
-- Creating a new version offers copy-from choice and produces non-zero counts across all categories.
-- Publish blocks when an overlapping ACTIVE version cannot be auto-closed.
-- `resolveProductVersion(code, date)` returns correct version for a given claim date in unit/manual check.
+Stored as seed rows in `bn_screen_template` + `bn_field_metadata`. New file `src/services/bn/forms/sectionCatalogue.ts` holds the canonical section codes and default field sets used to seed and to fall back to when a product version has no custom template.
+
+Each field row carries: `field_code, field_label, field_type, section_code, required, visible_for_channels (INTERNAL/ASSISTED_OFFLINE/PUBLIC), validation_rules (JSON), data_source, help_text, sort_order`.
+
+## 3. Channel rules
+
+- `PUBLIC`: hide `internal_review` section; hide fields where `visible_for_channels` excludes PUBLIC; documents marked required must be uploaded before submit; pre-eligibility must pass.
+- `ASSISTED_OFFLINE` / `INTERNAL`: all sections visible; documents may be marked Pending; waiver allowed when user has `bn.documents.waive`; legacy lookup, priority, basket routing, internal notes available.
+
+Visibility/required computed in `getVisibleFields` so the renderer stays dumb.
+
+## 4. Form Renderer (new)
+
+`src/components/bn/forms/ApplicationFormEngine.tsx` — props `{ definition, channel, value, onChange, onSubmit }`. Iterates sections → fields, uses existing inputs (`SearchableSelect`, `DatePicker`, `PhoneInput`, `InputWithCounter`) per `field_type`. Errors shown inline + `ValidationSummary` banner + destructive toast on failed submit (per project Validation-UX rules).
+
+Section renderers under `src/components/bn/forms/sections/*` for the few sections that need composite UI (documents checklist, banking, survivors grid). Everything else renders from field metadata.
+
+## 5. Channel entry points
+
+- Internal/offline: `src/pages/nbenefit/BenefitApplicationFormPage.tsx` rewired to load definition via `getApplicationFormDefinition(benefitType, today, 'ASSISTED_OFFLINE')` and render `ApplicationFormEngine`. Removes the per-benefit hardcoded path.
+- Public: new `src/pages/public/bn/PublicBenefitApplication.tsx` (route `/public/benefit/:productCode`) using channel `PUBLIC`.
+- Both call `submitApplication`.
+
+## 6. Product Catalogue Preview tab
+
+Update `ProductEditor` Preview tab to add channel switcher (Internal / Assisted Offline / Public). Renders `ApplicationFormEngine` in read-only/preview mode against the selected draft/active version. Shows required documents, eligibility pre-checks summary, and which workflow will start.
+
+## 7. Document integration
+
+On `submitApplication`:
+- Read `bn_doc_requirement` for the resolved version.
+- Insert `bn_evidence_checklist` rows (mandatory + optional).
+- PUBLIC: reject submission if any mandatory doc missing.
+- INTERNAL/ASSISTED_OFFLINE: allow Pending; record waiver in `bn_claim_event` if waiver permission used.
+
+## 8. Workflow integration
+
+After claim insert:
+- If product version has `workflow_template_id` (or central `workflow_definition_id`), start a `workflow_instances` row + initial `workflow_tasks` via existing workflow service.
+- Else fallback to BN transition matrix (`bn_claim_transition_rule`).
+- Always write `bn_claim_event` audit row (`SUBMITTED`, channel, user_code).
+
+## 9. Validation pipeline
+
+`validateApplicationPayload` runs in this order, short-circuits on first hard failure:
+1. Product ACTIVE
+2. Resolver returns ACTIVE version for claim date
+3. Required fields present (per channel visibility)
+4. Required documents uploaded (PUBLIC) or marked Pending (INTERNAL)
+5. Eligibility pre-checks via existing eligibility rule evaluator
+6. Duplicate claim check (same IP + product + overlapping event date)
+7. Workflow exists or fallback enabled
+
+Errors returned as `{ field, message }[]` per project API-design rule.
+
+## 10. Migration / seed
+
+Single migration:
+- Seed `bn_screen_template` rows for the 11 benefit-specific templates + 1 shared base template.
+- Seed `bn_field_metadata` rows for shared + benefit-specific fields with `visible_for_channels` JSON.
+- Backfill existing `bn_product_version.screen_template_id` to point at the matching benefit template where null.
+- No new tables.
+
+## 11. Hooks
+
+`src/hooks/bn/useApplicationFormDefinition.ts` — React Query wrapper around `getApplicationFormDefinition`. Used by both pages and Preview tab.
+
+## 12. Tests
+
+`src/__tests__/bn/formEngine.test.ts` — for each of the 11 benefits and each channel: render definition, assert required-field validation, missing-document validation, eligibility-fail path, and happy-path submit (mocked supabase).
+
+## Verification
+
+- One engine renders all 11 benefits in 3 channels from Product Catalogue config.
+- No new hardcoded per-benefit forms.
+- Required documents auto-listed from `bn_doc_requirement`.
+- PUBLIC hides internal-only fields/sections.
+- Workflow starts on submit when configured; fallback otherwise.
 - TypeScript build passes.
+
+## Technical notes
+
+- Resolver, read-only enforcement, and version lifecycle from the prior plan are reused as-is.
+- All writes use the current logged-in `user_code` for `createdby`/`modifiedby` (project rule).
+- No RLS introduced (project rule); role checks done in service layer.
+- Dates use `formatDateForStorage` / `formatDateForDisplay`; phones use `PhoneInput`.
