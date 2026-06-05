@@ -190,15 +190,20 @@ export default function BenefitConfigurationValidation() {
                     <TableHead>Name</TableHead>
                     <TableHead>Product</TableHead>
                     <TableHead>Active Ver.</TableHead>
+                    <TableHead>Overlap</TableHead>
                     <TableHead>Eligibility</TableHead>
                     <TableHead>Calculation</TableHead>
+                    <TableHead>Formulas</TableHead>
                     <TableHead>Documents</TableHead>
+                    <TableHead>Doc Library</TableHead>
                     <TableHead>Workflow</TableHead>
+                    <TableHead>WF Exists</TableHead>
                     <TableHead>Screen</TableHead>
                     <TableHead>Timeline</TableHead>
                     <TableHead>Tests</TableHead>
                     <TableHead>Offline</TableHead>
                     <TableHead>Online</TableHead>
+                    <TableHead>Governance</TableHead>
                     <TableHead>Overall</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -216,15 +221,20 @@ export default function BenefitConfigurationValidation() {
                       <TableCell className="font-medium">{r.benefit_name}</TableCell>
                       <TableCell><CheckCell check={r.product_exists} /></TableCell>
                       <TableCell><CheckCell check={r.active_version} /></TableCell>
+                      <TableCell><CheckCell check={r.overlap_versions} /></TableCell>
                       <TableCell><CheckCell check={r.eligibility} /></TableCell>
                       <TableCell><CheckCell check={r.calculation} /></TableCell>
+                      <TableCell><CheckCell check={r.formula_resolvable} /></TableCell>
                       <TableCell><CheckCell check={r.documents} /></TableCell>
+                      <TableCell><CheckCell check={r.documents_library} /></TableCell>
                       <TableCell><CheckCell check={r.workflow} /></TableCell>
+                      <TableCell><CheckCell check={r.workflow_exists} /></TableCell>
                       <TableCell><CheckCell check={r.screen_template} /></TableCell>
                       <TableCell><CheckCell check={r.timeline} /></TableCell>
                       <TableCell><CheckCell check={r.test_cases} /></TableCell>
                       <TableCell><CheckCell check={r.offline_channel} /></TableCell>
                       <TableCell><CheckCell check={r.online_channel} /></TableCell>
+                      <TableCell><CheckCell check={r.version_governance} /></TableCell>
                       <TableCell><StatusBadge status={r.overall_status} /></TableCell>
                     </TableRow>
                   ))}
