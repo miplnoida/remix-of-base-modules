@@ -121,12 +121,46 @@ export default function BenefitConfigurationValidation() {
     }
   };
 
+  const handleRunAllTests = async () => {
+    setRunningAll(true);
+    try {
+      const all: TestRunResult[] = [];
+      for (const r of reports) {
+        if (!r.product_id) continue;
+        const res = await runAllProductTests(r.product_id);
+        all.push(...res);
+      }
+      setAllResults(all);
+      const failed = all.filter((x) => !x.passed).length;
+      toast.success(`Ran ${all.length} test(s) — ${failed} failed`);
+    } catch (e) {
+      toast.error('Run failed', { description: (e as Error).message });
+    } finally {
+      setRunningAll(false);
+    }
+  };
+
   const exportReport = () => {
     const blob = new Blob([JSON.stringify(reports, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `bn-validation-report-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportTestCsv = () => {
+    if (allResults.length === 0) {
+      toast.error('Run tests first');
+      return;
+    }
+    const csv = buildValidationReportCsv(allResults);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bn-test-results-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
