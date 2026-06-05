@@ -34,6 +34,7 @@ import {
 import { toast } from 'sonner';
 import { useBnProducts } from '@/hooks/bn/useBnProduct';
 import { useCreateBnClaim, useBnClaims } from '@/hooks/bn/useBnClaim';
+import { useBnClaimIntake } from '@/hooks/bn/useBnClaimIntake';
 import { useBnPersonLookup, useBnContributionSummary, useBnEmployerLookup } from '@/hooks/bn/useBnIntegration';
 import type { BnProduct } from '@/types/bn';
 import { BnDetailRow, BnStatusBadge } from '@/components/bn/shared';
@@ -44,6 +45,7 @@ export default function ClaimRegistration() {
   const navigate = useNavigate();
   const { data: products = [] } = useBnProducts();
   const createClaim = useCreateBnClaim();
+  const intake = useBnClaimIntake();
 
   const activeProducts = products.filter((p: BnProduct) => p.status === 'ACTIVE');
 
@@ -162,21 +164,29 @@ export default function ClaimRegistration() {
     }
 
     try {
-      const result = await createClaim.mutateAsync({
+      const selectedProduct = activeProducts.find((p: BnProduct) => p.id === form.product_id);
+      const productCode = (selectedProduct as any)?.benefit_code;
+      if (!productCode) throw new Error('Selected benefit has no code.');
+
+      const result = await intake.mutateAsync({
         ssn: form.ssn,
-        product_id: form.product_id,
-        employer_regno: form.employer_regno || undefined,
-        source: form.source,
-        priority: form.priority,
-        contact_phone: form.contact_phone || undefined,
-        contact_email: form.contact_email || undefined,
-        bank_account: form.bank_account || undefined,
-        bank_routing_number: form.bank_routing_number || undefined,
-        status: 'SUBMITTED',
-        submission_date: new Date().toISOString(),
+        productCode,
+        claimDate: form.event_date || new Date().toISOString().slice(0, 10),
+        channel: 'STAFF_OFFLINE',
+        employerRegno: form.employer_regno || null,
+        formPayload: {
+          source: form.source,
+          priority: form.priority,
+          contact_phone: form.contact_phone,
+          contact_email: form.contact_email,
+          bank_account: form.bank_account,
+          bank_routing_number: form.bank_routing_number,
+          remarks: form.remarks,
+          declaration_accepted: true,
+        },
       });
-      toast.success(`Claim registered: ${result.claim_number || result.id.slice(0, 8)}`);
-      navigate(`/bn/claims/${result.id}`);
+      toast.success(`Claim registered: ${result.claimNumber}`);
+      navigate(`/bn/claims/${result.claimId}`);
     } catch (err: any) {
       toast.error('Failed to register claim', { description: err?.message });
     }
@@ -476,9 +486,9 @@ export default function ClaimRegistration() {
             {/* Action Bar */}
             <div className="flex justify-end gap-3 rounded-lg border bg-card p-4 sticky bottom-0">
               <Button variant="outline" onClick={() => navigate('/bn/claims')}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={createClaim.isPending} className="gap-2">
-                {createClaim.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {createClaim.isPending ? 'Registering...' : 'Register Claim'}
+              <Button onClick={handleSubmit} disabled={intake.isPending} className="gap-2">
+                {intake.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {intake.isPending ? 'Registering...' : 'Register Claim'}
               </Button>
             </div>
           </div>

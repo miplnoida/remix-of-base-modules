@@ -5255,6 +5255,7 @@ export type Database = {
       }
       bn_claim: {
         Row: {
+          application_channel: string | null
           assigned_to: string | null
           bank_account: string | null
           bank_routing_number: string | null
@@ -5288,6 +5289,7 @@ export type Database = {
           workflow_instance_id: string | null
         }
         Insert: {
+          application_channel?: string | null
           assigned_to?: string | null
           bank_account?: string | null
           bank_routing_number?: string | null
@@ -5321,6 +5323,7 @@ export type Database = {
           workflow_instance_id?: string | null
         }
         Update: {
+          application_channel?: string | null
           assigned_to?: string | null
           bank_account?: string | null
           bank_routing_number?: string | null
@@ -5366,6 +5369,68 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "bn_product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_application: {
+        Row: {
+          application_channel: string
+          claim_id: string
+          declaration_accepted: boolean | null
+          entered_at: string
+          entered_by: string | null
+          form_template_id: string | null
+          id: string
+          product_id: string | null
+          product_version_id: string | null
+          raw_application_json: Json | null
+          source_ip: string | null
+          submitted_at: string
+          submitted_by_type: string
+          submitted_by_user_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          application_channel: string
+          claim_id: string
+          declaration_accepted?: boolean | null
+          entered_at?: string
+          entered_by?: string | null
+          form_template_id?: string | null
+          id?: string
+          product_id?: string | null
+          product_version_id?: string | null
+          raw_application_json?: Json | null
+          source_ip?: string | null
+          submitted_at?: string
+          submitted_by_type: string
+          submitted_by_user_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          application_channel?: string
+          claim_id?: string
+          declaration_accepted?: boolean | null
+          entered_at?: string
+          entered_by?: string | null
+          form_template_id?: string | null
+          id?: string
+          product_id?: string | null
+          product_version_id?: string | null
+          raw_application_json?: Json | null
+          source_ip?: string | null
+          submitted_at?: string
+          submitted_by_type?: string
+          submitted_by_user_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_application_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
             referencedColumns: ["id"]
           },
         ]
@@ -5443,6 +5508,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "bn_claim_calculation_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_contribution_snapshot: {
+        Row: {
+          average_weekly_wage: number | null
+          captured_at: string
+          claim_id: string
+          contribution_json: Json | null
+          credited_weeks: number | null
+          id: string
+          paid_weeks: number | null
+          period_from: string | null
+          period_to: string | null
+          total_wages: number | null
+          total_weeks: number | null
+        }
+        Insert: {
+          average_weekly_wage?: number | null
+          captured_at?: string
+          claim_id: string
+          contribution_json?: Json | null
+          credited_weeks?: number | null
+          id?: string
+          paid_weeks?: number | null
+          period_from?: string | null
+          period_to?: string | null
+          total_wages?: number | null
+          total_weeks?: number | null
+        }
+        Update: {
+          average_weekly_wage?: number | null
+          captured_at?: string
+          claim_id?: string
+          contribution_json?: Json | null
+          credited_weeks?: number | null
+          id?: string
+          paid_weeks?: number | null
+          period_from?: string | null
+          period_to?: string | null
+          total_wages?: number | null
+          total_weeks?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_contribution_snapshot_claim_id_fkey"
             columns: ["claim_id"]
             isOneToOne: false
             referencedRelation: "bn_claim"
@@ -5685,6 +5800,44 @@ export type Database = {
           },
         ]
       }
+      bn_claim_employer_snapshot: {
+        Row: {
+          address_json: Json | null
+          captured_at: string
+          claim_id: string
+          employer_name: string | null
+          employer_regno: string | null
+          employer_status: string | null
+          id: string
+        }
+        Insert: {
+          address_json?: Json | null
+          captured_at?: string
+          claim_id: string
+          employer_name?: string | null
+          employer_regno?: string | null
+          employer_status?: string | null
+          id?: string
+        }
+        Update: {
+          address_json?: Json | null
+          captured_at?: string
+          claim_id?: string
+          employer_name?: string | null
+          employer_regno?: string | null
+          employer_status?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_employer_snapshot_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_claim_event: {
         Row: {
           claim_id: string
@@ -5833,6 +5986,44 @@ export type Database = {
           },
         ]
       }
+      bn_claim_intake_validation: {
+        Row: {
+          check_code: string
+          checked_at: string
+          claim_id: string
+          details_json: Json | null
+          id: string
+          message: string | null
+          status: string
+        }
+        Insert: {
+          check_code: string
+          checked_at?: string
+          claim_id: string
+          details_json?: Json | null
+          id?: string
+          message?: string | null
+          status: string
+        }
+        Update: {
+          check_code?: string
+          checked_at?: string
+          claim_id?: string
+          details_json?: Json | null
+          id?: string
+          message?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_intake_validation_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_claim_note: {
         Row: {
           body: string
@@ -5864,6 +6055,56 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "bn_claim_note_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_person_snapshot: {
+        Row: {
+          address_json: Json | null
+          captured_at: string
+          claim_id: string
+          date_of_birth: string | null
+          email: string | null
+          full_name: string | null
+          gender: string | null
+          id: string
+          person_status: string | null
+          phone: string | null
+          ssn: string | null
+        }
+        Insert: {
+          address_json?: Json | null
+          captured_at?: string
+          claim_id: string
+          date_of_birth?: string | null
+          email?: string | null
+          full_name?: string | null
+          gender?: string | null
+          id?: string
+          person_status?: string | null
+          phone?: string | null
+          ssn?: string | null
+        }
+        Update: {
+          address_json?: Json | null
+          captured_at?: string
+          claim_id?: string
+          date_of_birth?: string | null
+          email?: string | null
+          full_name?: string | null
+          gender?: string | null
+          id?: string
+          person_status?: string | null
+          phone?: string | null
+          ssn?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_person_snapshot_claim_id_fkey"
             columns: ["claim_id"]
             isOneToOne: false
             referencedRelation: "bn_claim"
@@ -54115,6 +54356,24 @@ export type Database = {
           avg_weekly_wages: number
           total_wages: number
           total_weeks: number
+        }[]
+      }
+      bn_submit_claim_application: {
+        Args: {
+          p_channel: string
+          p_claim_date: string
+          p_employer_regno?: string
+          p_form_payload: Json
+          p_product_code: string
+          p_source_ip?: string
+          p_ssn: string
+          p_submitted_by_user_id?: string
+          p_user_agent?: string
+        }
+        Returns: {
+          claim_id: string
+          claim_number: string
+          workflow_instance_id: string
         }[]
       }
       c3_config_period_deletability: {

@@ -1,115 +1,128 @@
-# BN Configurable Application Form Engine
+# BN: Claimant-Centred Claim & Workflow Architecture
 
-Replace per-benefit hardcoded forms with a single engine driven by Product Catalogue (product version → screen template + field metadata + documents + eligibility + workflow). Same engine renders Internal, Assisted Offline, and Public channels.
+## Goal
+Stop treating "forms" as standalone modules. Make **Claimant → Claim → Workflow → Tasks** the spine. Public online, staff-assisted offline, and back-office entry all produce the same `bn_claim` row, the same snapshots, the same workflow instance, and land in the same employee worklist + Claim Workspace.
 
-## 1. Form Definition Service (new)
+---
 
-`src/services/bn/forms/formDefinitionService.ts`
+## 1. Database (single migration)
 
-```ts
-type Channel = 'INTERNAL' | 'ASSISTED_OFFLINE' | 'PUBLIC';
+### 1.1 Extend `bn_claim`
+- `application_channel` text — `PUBLIC_ONLINE | STAFF_OFFLINE | ASSISTED_COUNTER | BACK_OFFICE_ENTRY | MIGRATED_LEGACY`
+- `workflow_instance_id uuid` (nullable) — link to `workflow_instances.id`
+- `employer_regno text` (nullable) — for benefits where employer matters
+- index on `(status, application_channel)` and `(assigned_to, status)`
 
-getApplicationFormDefinition(productCode, claimDate, channel) // resolves version + sections + fields + docs + eligibility + workflow
-getRequiredSections(productVersionId, channel)
-getVisibleFields(productVersionId, channel, applicantContext)
-validateApplicationPayload(payload, definition)
-generateEvidenceChecklist(claimId, productVersionId) // inserts bn_evidence_checklist
-submitApplication(payload, channel) // creates bn_claim, docs, evidence, starts workflow, audit
-```
+### 1.2 New tables (all GRANTed, RLS off per project rule)
+- **`bn_claim_application`** — submitted form payload
+  - `claim_id`, `product_id`, `product_version_id`, `application_channel`,
+    `submitted_by_type` (`PUBLIC_USER|EMPLOYEE|SYSTEM`), `submitted_by_user_id`,
+    `submitted_at`, `form_template_id`, `declaration_accepted bool`,
+    `raw_application_json jsonb`, `source_ip`, `user_agent`, `entered_by`, `entered_at`
+- **`bn_claim_person_snapshot`** — ssn, full_name, dob, gender, person_status, address_json, phone, email, captured_at
+- **`bn_claim_employer_snapshot`** — employer_regno, employer_name, employer_status, address_json, captured_at
+- **`bn_claim_contribution_snapshot`** — period_from/to, total/paid/credited weeks, total_wages, average_weekly_wage, contribution_json, captured_at
+- **`bn_claim_intake_validation`** — claim_id, check_code, status (`PASS|WARN|FAIL`), details_json, checked_at
 
-Uses existing `productVersionResolver.resolveProductVersion(productCode, claimDate)`.
+All tables: `GRANT SELECT,INSERT,UPDATE,DELETE TO authenticated; GRANT ALL TO service_role;` plus `anon SELECT/INSERT` only on `bn_claim_application` for public submission via service layer (we'll route through edge function, so anon grant not needed — keep authenticated only and use service_role from an edge function later).
 
-## 2. Section Catalogue
+### 1.3 RPC `bn_submit_claim_application`
+Single transactional RPC the UI calls:
+- inputs: `p_ssn, p_product_code, p_claim_date, p_channel, p_form_payload jsonb, p_employer_regno, p_submitted_by_user_id, p_source_ip, p_user_agent`
+- resolves active `bn_product_version` by `p_claim_date`
+- creates `bn_claim` (status `INTAKE`)
+- inserts `bn_claim_application` with payload
+- captures `bn_claim_person_snapshot` from `ip_master`
+- captures `bn_claim_employer_snapshot` from `er_master` (when regno present)
+- captures `bn_claim_contribution_snapshot` from `ip_wages` / `bn_get_contribution_summary`
+- materialises `bn_evidence_checklist` from `bn_doc_requirement` for that version
+- runs lightweight intake validations into `bn_claim_intake_validation`
+- if version has `workflow_definition_id` → insert `workflow_instances` (`source_module='bn_claim'`, `source_record_id=claim.id`) and first `workflow_tasks` row; set `bn_claim.workflow_instance_id`
+- returns `claim_id, claim_number, workflow_instance_id`
 
-Shared sections (apply to every product):
-`claimant_details, insured_person_details, benefit_selection, claim_event_details, employment_details, contribution_context, banking_payee_details, documents, declaration_consent, internal_review`
+---
 
-Benefit-specific section templates (one per product type):
-`sickness_details, maternity_details, employment_injury_details, disablement_details, medical_expense_details, employment_injury_death_details, funeral_grant_details, invalidity_details, age_benefit_details, survivor_details, non_contributory_pension_details`
+## 2. Services (TypeScript)
 
-Stored as seed rows in `bn_screen_template` + `bn_field_metadata`. New file `src/services/bn/forms/sectionCatalogue.ts` holds the canonical section codes and default field sets used to seed and to fall back to when a product version has no custom template.
+- `src/services/bn/intake/claimIntakeService.ts`
+  - `submitClaimApplication(input)` → calls the RPC
+  - `lookupClaimant(ssn)` → reuses `bnPersonAdapter`
+  - `lookupEmployer(regno)` → reuses `bnEmployerAdapter`
+  - `getContributionSnapshot(ssn, from, to)` → reuses `bnContributionAdapter`
+  - `runIntakePreChecks(productCode, ssn, claimDate)` → returns array of `{code,status,message}`
+- `src/services/bn/claimWorkspaceService.ts` — fetch snapshots, application payload, intake validations, workflow context for a claim id.
 
-Each field row carries: `field_code, field_label, field_type, section_code, required, visible_for_channels (INTERNAL/ASSISTED_OFFLINE/PUBLIC), validation_rules (JSON), data_source, help_text, sort_order`.
+## 3. Hooks
+- `useBnClaimIntake()` — mutation wrapping `submitClaimApplication`
+- `useBnClaimantLookup(ssn)`, `useBnEmployerLookupRegno(regno)` (thin wrappers around existing adapters)
+- `useBnClaimWorkspace(claimId)` — aggregates snapshots + application + workflow
 
-## 3. Channel rules
+## 4. Staff-assisted intake (`/bn/intake/register`)
+Rewrite as a 5-step wizard, not a form:
+1. **SSN lookup** — search `ip_master`, show identity card
+2. **Confirm claimant** — display masked PII, address, status; block if `deceased`/`suspended` with override note
+3. **Benefit selection** — pick product, claim date → resolver loads active version, shows version banner
+4. **Smart intake** — renders `ApplicationFormEngine` for channel `ASSISTED_OFFLINE`, with auto-loaded:
+   - eligibility pre-check results (read-only panel)
+   - required documents checklist
+   - contribution snapshot summary
+   - only the benefit-specific fields are user-editable
+5. **Submit** — calls `bn_submit_claim_application`, shows claim number + "Open in workspace" / "Go to my tasks"
 
-- `PUBLIC`: hide `internal_review` section; hide fields where `visible_for_channels` excludes PUBLIC; documents marked required must be uploaded before submit; pre-eligibility must pass.
-- `ASSISTED_OFFLINE` / `INTERNAL`: all sections visible; documents may be marked Pending; waiver allowed when user has `bn.documents.waive`; legacy lookup, priority, basket routing, internal notes available.
+Public route `/public/benefit/:productCode` re-uses steps 1, 3, 4, 5 with `application_channel='PUBLIC_ONLINE'` and `submitted_by_type='PUBLIC_USER'`. Document upload is mandatory unless product version allows pending.
 
-Visibility/required computed in `getVisibleFields` so the renderer stays dumb.
+## 5. Employee worklist (`/bn/queue` or new `/bn/my-tasks`)
+Columns: `claim_number, claimant_name, ssn (masked), benefit_name, application_channel (badge), current_status, workflow_stage, assigned_to, due_at, priority, document_status, eligibility_status`.
 
-## 4. Form Renderer (new)
+Driven by a view `vw_bn_worklist` joining `bn_claim` + product + workflow_tasks + checklist counts + latest intake validation.
 
-`src/components/bn/forms/ApplicationFormEngine.tsx` — props `{ definition, channel, value, onChange, onSubmit }`. Iterates sections → fields, uses existing inputs (`SearchableSelect`, `DatePicker`, `PhoneInput`, `InputWithCounter`) per `field_type`. Errors shown inline + `ValidationSummary` banner + destructive toast on failed submit (per project Validation-UX rules).
+## 6. Claim Workspace (`/bn/claims/:id`)
+Tabs / sections, all reading the snapshots:
+- Claimant Snapshot (+ link "View live person master")
+- Application Details (channel, submitted_by, submitted_at, raw payload viewer)
+- Product Version Used (link to read-only version)
+- Eligibility Results
+- Contribution Snapshot
+- Employer Snapshot
+- Required Documents (checklist progress + upload)
+- Workflow Tasks (uses `useBnWorkflowActions`)
+- Notes, Decisions, Audit, Payments (existing components rewired)
 
-Section renderers under `src/components/bn/forms/sections/*` for the few sections that need composite UI (documents checklist, banking, survivors grid). Everything else renders from field metadata.
+## 7. Routing & nav
+- `/bn/intake/register` → new staff intake wizard
+- `/public/benefit/:productCode` → already exists, switched to call new RPC
+- `/bn/claims` → list page reads from `vw_bn_worklist`
+- `/bn/claims/:id` → workspace
+- Sidebar: add **"Benefit Intake"** under BN module pointing to `/bn/intake/register`
 
-## 5. Channel entry points
+## 8. Linking rules (enforced by RPC + adapters)
+- `bn_claim.ssn` → `ip_master.ssn`
+- `bn_claim.employer_regno` → `er_master.employer_reg_no`
+- `bn_claim.product_version_id` → `bn_product_version.id`
+- `bn_claim.workflow_instance_id` → `workflow_instances.id`
+- `workflow_instances.source_module = 'bn_claim'`, `source_record_id = bn_claim.id`
+- All evidence rows link by `claim_id`
 
-- Internal/offline: `src/pages/nbenefit/BenefitApplicationFormPage.tsx` rewired to load definition via `getApplicationFormDefinition(benefitType, today, 'ASSISTED_OFFLINE')` and render `ApplicationFormEngine`. Removes the per-benefit hardcoded path.
-- Public: new `src/pages/public/bn/PublicBenefitApplication.tsx` (route `/public/benefit/:productCode`) using channel `PUBLIC`.
-- Both call `submitApplication`.
+## 9. Audit
+RPC writes to `system_audit_trail` for: application submitted, claimant/employer lookup, eligibility pre-check, checklist generated, workflow started, pending verifications.
 
-## 6. Product Catalogue Preview tab
+## 10. Verification checklist
+- Submit from staff wizard → row in `bn_claim` + `bn_claim_application` + 3 snapshots + checklist + workflow instance + first task.
+- Submit from public route → same.
+- Both appear in `/bn/claims` worklist with correct channel badge.
+- Opening workspace shows snapshots even if `ip_master` is later edited.
+- `tsc` clean.
 
-Update `ProductEditor` Preview tab to add channel switcher (Internal / Assisted Offline / Public). Renders `ApplicationFormEngine` in read-only/preview mode against the selected draft/active version. Shows required documents, eligibility pre-checks summary, and which workflow will start.
+---
 
-## 7. Document integration
+## Technical notes (for engineers)
+- Migration is additive only — no destructive changes to existing `bn_claim`.
+- Existing `BenefitApplicationFormPage` is repurposed as Step 4 renderer inside the new wizard; not deleted.
+- Public submission for now goes through `authenticated`-only RPC via a thin edge function (`public-bn-submit`) to be added in a follow-up; this plan covers staff intake fully and stubs the public path against the same RPC.
+- All new components follow existing tokenized design system (no raw colors).
+- No RLS added (project rule: role-based only).
 
-On `submitApplication`:
-- Read `bn_doc_requirement` for the resolved version.
-- Insert `bn_evidence_checklist` rows (mandatory + optional).
-- PUBLIC: reject submission if any mandatory doc missing.
-- INTERNAL/ASSISTED_OFFLINE: allow Pending; record waiver in `bn_claim_event` if waiver permission used.
-
-## 8. Workflow integration
-
-After claim insert:
-- If product version has `workflow_template_id` (or central `workflow_definition_id`), start a `workflow_instances` row + initial `workflow_tasks` via existing workflow service.
-- Else fallback to BN transition matrix (`bn_claim_transition_rule`).
-- Always write `bn_claim_event` audit row (`SUBMITTED`, channel, user_code).
-
-## 9. Validation pipeline
-
-`validateApplicationPayload` runs in this order, short-circuits on first hard failure:
-1. Product ACTIVE
-2. Resolver returns ACTIVE version for claim date
-3. Required fields present (per channel visibility)
-4. Required documents uploaded (PUBLIC) or marked Pending (INTERNAL)
-5. Eligibility pre-checks via existing eligibility rule evaluator
-6. Duplicate claim check (same IP + product + overlapping event date)
-7. Workflow exists or fallback enabled
-
-Errors returned as `{ field, message }[]` per project API-design rule.
-
-## 10. Migration / seed
-
-Single migration:
-- Seed `bn_screen_template` rows for the 11 benefit-specific templates + 1 shared base template.
-- Seed `bn_field_metadata` rows for shared + benefit-specific fields with `visible_for_channels` JSON.
-- Backfill existing `bn_product_version.screen_template_id` to point at the matching benefit template where null.
-- No new tables.
-
-## 11. Hooks
-
-`src/hooks/bn/useApplicationFormDefinition.ts` — React Query wrapper around `getApplicationFormDefinition`. Used by both pages and Preview tab.
-
-## 12. Tests
-
-`src/__tests__/bn/formEngine.test.ts` — for each of the 11 benefits and each channel: render definition, assert required-field validation, missing-document validation, eligibility-fail path, and happy-path submit (mocked supabase).
-
-## Verification
-
-- One engine renders all 11 benefits in 3 channels from Product Catalogue config.
-- No new hardcoded per-benefit forms.
-- Required documents auto-listed from `bn_doc_requirement`.
-- PUBLIC hides internal-only fields/sections.
-- Workflow starts on submit when configured; fallback otherwise.
-- TypeScript build passes.
-
-## Technical notes
-
-- Resolver, read-only enforcement, and version lifecycle from the prior plan are reused as-is.
-- All writes use the current logged-in `user_code` for `createdby`/`modifiedby` (project rule).
-- No RLS introduced (project rule); role checks done in service layer.
-- Dates use `formatDateForStorage` / `formatDateForDisplay`; phones use `PhoneInput`.
+## Out of scope (next iterations)
+- Public anonymous edge function + captcha
+- Migrated legacy backfill tooling
+- Worklist saved views / bulk actions
