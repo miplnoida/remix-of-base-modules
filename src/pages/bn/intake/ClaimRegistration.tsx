@@ -100,10 +100,9 @@ type StepKey = (typeof STEPS)[number]['key'];
 
 export default function ClaimRegistration() {
   const navigate = useNavigate();
-  const { user, userProfile } = useAuth() as any;
-  const userCode: string = userProfile?.user_code ?? user?.email ?? 'STAFF';
-  const userPerms: string[] = userProfile?.permissions ?? [];
-  const can = (perm: string) => checkPermission(userPerms, perm);
+  const { user, hasPermission } = useAuth();
+  const userCode: string = (user as any)?.user_code ?? user?.email ?? user?.name ?? 'STAFF';
+  const can = (perm: string) => hasPermission(perm);
 
   const { data: products = [] } = useBnProducts();
   const activeProducts = useMemo(
