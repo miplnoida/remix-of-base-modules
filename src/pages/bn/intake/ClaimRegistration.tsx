@@ -627,7 +627,7 @@ export default function ClaimRegistration() {
                   <div className="rounded border bg-muted/30 p-3 text-sm space-y-1">
                     <div className="flex items-center gap-2 font-medium">
                       <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                      v{resolvedVersion.version.version_number} <Badge variant="outline">{resolvedVersion.version.version.status}</Badge>
+                      v{resolvedVersion.version.version_number} <Badge variant="outline">{resolvedVersion.version.status}</Badge>
                     </div>
                     <Detail k="Effective From" v={resolvedVersion.version.effective_from} />
                     <Detail k="Effective To" v={resolvedVersion.version.effective_to ?? '(open)'} />
