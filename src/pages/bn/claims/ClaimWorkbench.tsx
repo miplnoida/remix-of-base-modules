@@ -70,6 +70,7 @@ import { LinkedClaimsPanel } from '@/components/bn/workbench/LinkedClaimsPanel';
 import { StatusHistorySection } from '@/components/bn/workbench/StatusHistorySection';
 import { ClaimActionBar } from '@/components/bn/workbench/ClaimActionBar';
 import LegacyClaim360View from '@/components/bn/claim/LegacyClaim360View';
+import { ClaimSnapshotsPanel } from '@/components/bn/claims/ClaimSnapshotsPanel';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
