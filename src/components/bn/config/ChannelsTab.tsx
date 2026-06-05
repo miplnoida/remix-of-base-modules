@@ -17,10 +17,13 @@ import {
   useBnDocumentProfiles,
 } from '@/hooks/bn/useBnConfig';
 import type { BnProductChannelConfig, BnChannelCode } from '@/types/bn';
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
 interface Props {
   productId: string | undefined;
   versionId: string | undefined;
+  isReadOnly?: boolean;
+  versionStatus?: string | null;
 }
 
 const CHANNEL_META: Record<BnChannelCode, { label: string; description: string; icon: any; defaultSource: string }> = {
