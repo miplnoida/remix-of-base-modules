@@ -246,8 +246,17 @@ export default function ClaimWorkbench() {
               dot
             />
           </div>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {product?.benefit_name || 'Unknown Benefit'} • SSN: {claim.ssn} • Filed: {formatDateForDisplay(claim.claim_date)}
+          <p className="mt-0.5 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+            <span>{product?.benefit_name || 'Unknown Benefit'}</span>
+            <span>•</span><span>SSN: {claim.ssn}</span>
+            <span>•</span><span>Filed: {formatDateForDisplay(claim.claim_date)}</span>
+            <span>•</span>
+            <Badge variant="secondary" className="font-normal">
+              Channel: {channelLabel((claim as any).application_channel ?? (claim as any).source)}
+            </Badge>
+            {claim.legacy_claim_ref && (
+              <Badge variant="outline" className="font-normal">Legacy ref: {claim.legacy_claim_ref}</Badge>
+            )}
           </p>
         </div>
       </div>
