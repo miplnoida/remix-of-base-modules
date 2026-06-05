@@ -486,9 +486,9 @@ export default function ClaimRegistration() {
             {/* Action Bar */}
             <div className="flex justify-end gap-3 rounded-lg border bg-card p-4 sticky bottom-0">
               <Button variant="outline" onClick={() => navigate('/bn/claims')}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={createClaim.isPending} className="gap-2">
-                {createClaim.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {createClaim.isPending ? 'Registering...' : 'Register Claim'}
+              <Button onClick={handleSubmit} disabled={intake.isPending} className="gap-2">
+                {intake.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {intake.isPending ? 'Registering...' : 'Register Claim'}
               </Button>
             </div>
           </div>
