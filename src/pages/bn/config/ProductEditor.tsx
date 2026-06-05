@@ -201,7 +201,7 @@ export default function ProductEditor() {
             </div>
             <p className="flex items-start gap-2 text-xs text-muted-foreground">
               <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-              Claims use the version active on the claim date. Draft versions are for future changes.
+              Claims use the product version active on the claim date. Draft versions are for future rule changes.
             </p>
             {activeVersion && (
               <div className="grid grid-cols-2 gap-x-6 gap-y-1 rounded-md border bg-muted/30 px-3 py-2 text-xs sm:grid-cols-4">
