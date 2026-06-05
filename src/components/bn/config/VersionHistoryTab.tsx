@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, CheckCircle, XCircle, Clock, Send, Copy, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useUpdateBnProductVersion, useCopyBnVersionRules } from '@/hooks/bn/useBnProduct';
+import { useUpdateBnProductVersion, useCopyBnVersionRules, usePublishBnProductVersion, useRetireBnProductVersion } from '@/hooks/bn/useBnProduct';
 import { useBnVersionApprovals, useCreateBnVersionApproval } from '@/hooks/bn/useBnConfig';
 import { BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProductVersion, BnProductStatus } from '@/types/bn';
