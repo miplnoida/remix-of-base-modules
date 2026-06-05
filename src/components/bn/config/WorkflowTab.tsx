@@ -42,12 +42,13 @@ export function WorkflowTab({ versionId, isReadOnly, versionStatus }: Props) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div><CardTitle>Workflow Configuration</CardTitle><CardDescription>Assign workflow templates and processing flags for this version</CardDescription></div>
-        <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2"><Save className="h-4 w-4" /> Save</Button>
+        <Button onClick={handleSave} disabled={updateMutation.isPending || isReadOnly} className="gap-2"><Save className="h-4 w-4" /> Save</Button>
       </CardHeader>
       <CardContent className="space-y-6">
+        <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
         <div className="space-y-2 max-w-md">
           <Label>Workflow Template</Label>
-          <Select value={form.workflow_template_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, workflow_template_id: v === '__none__' ? '' : v }))}>
+          <Select disabled={isReadOnly} value={form.workflow_template_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, workflow_template_id: v === '__none__' ? '' : v }))}>
             <SelectTrigger><SelectValue placeholder="Select workflow template" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">None</SelectItem>
