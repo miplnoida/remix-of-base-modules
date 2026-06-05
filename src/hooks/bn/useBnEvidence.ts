@@ -143,6 +143,34 @@ export function useBnIsEvidenceComplete(claimId: string | undefined) {
   });
 }
 
+export function useMarkChecklistPending() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ claimId, checklistId, reason, userCode }: { claimId: string; checklistId: string; reason: string; userCode: string }) =>
+      evidenceService.markChecklistPending(claimId, checklistId, reason, userCode),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['bn', 'evidence-checklist', vars.claimId] });
+      qc.invalidateQueries({ queryKey: ['bn', 'evidence-audit', vars.claimId] });
+      qc.invalidateQueries({ queryKey: ['bn', 'evidence-complete', vars.claimId] });
+    },
+  });
+}
+
+export function useWaiveChecklistItem() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ claimId, checklistId, reason, userCode }: { claimId: string; checklistId: string; reason: string; userCode: string }) =>
+      evidenceService.waiveChecklistItem(claimId, checklistId, reason, userCode),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['bn', 'evidence-checklist', vars.claimId] });
+      qc.invalidateQueries({ queryKey: ['bn', 'evidence-audit', vars.claimId] });
+      qc.invalidateQueries({ queryKey: ['bn', 'evidence-complete', vars.claimId] });
+    },
+  });
+}
+
+
+
 // ── Audit ──
 
 export function useBnEvidenceAudit(claimId: string | undefined) {

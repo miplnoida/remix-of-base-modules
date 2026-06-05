@@ -1,34 +1,83 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Upload, CheckCircle2, XCircle, ShieldOff, HelpCircle, AlertTriangle, FileText } from 'lucide-react';
-import { useBnClaimEvidence, useBnEvidenceChecklist, useBnIsEvidenceComplete } from '@/hooks/bn/useBnEvidence';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Upload, CheckCircle2, XCircle, ShieldOff, HelpCircle, AlertTriangle, FileText, Clock } from 'lucide-react';
+import {
+  useBnClaimEvidence,
+  useBnEvidenceChecklist,
+  useBnIsEvidenceComplete,
+  useMarkChecklistPending,
+  useWaiveChecklistItem,
+} from '@/hooks/bn/useBnEvidence';
 import { EvidenceStatusBadge } from './EvidenceStatusBadge';
 import { EvidenceUploadDialog } from './EvidenceUploadDialog';
 import { EvidenceActionDialog } from './EvidenceActionDialog';
+import { useUserCode } from '@/hooks/useUserCode';
+import { toast } from 'sonner';
 import type { BnClaimEvidence, BnEvidenceChecklist as ChecklistType } from '@/types/bn';
+
+export type EvidenceMode = 'PUBLIC' | 'INTERNAL';
+export type EvidenceStage = 'INTAKE' | 'EVIDENCE_REVIEW' | 'DECISION' | 'POST_AWARD' | 'PERIODIC_REVIEW';
 
 interface Props {
   claimId: string;
   userRoles?: string[];
+  /** PUBLIC hides verify/reject/waive/mark-pending. */
+  mode?: EvidenceMode;
+  /** When true (from Product Catalog channel config) public users can submit with pending docs. */
+  allowPendingDocuments?: boolean;
+  /** Permission gate for waiver actions in INTERNAL mode. */
+  canWaive?: boolean;
+  /** Permission gate for mark-pending in INTERNAL mode. */
+  canMarkPending?: boolean;
+  /** Optional stage filter — limit checklist rows to these stages. */
+  stages?: EvidenceStage[];
 }
 
-export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
+export function EvidenceChecklist({
+  claimId,
+  userRoles = [],
+  mode = 'INTERNAL',
+  allowPendingDocuments = false,
+  canWaive,
+  canMarkPending,
+  stages,
+}: Props) {
+  const { userCode } = useUserCode();
   const { data: evidence = [], isLoading: loadingEvidence } = useBnClaimEvidence(claimId);
-  const { data: checklist = [], isLoading: loadingChecklist } = useBnEvidenceChecklist(claimId);
+  const { data: rawChecklist = [], isLoading: loadingChecklist } = useBnEvidenceChecklist(claimId);
   const { data: isComplete } = useBnIsEvidenceComplete(claimId);
+
+  const checklist = useMemo(() => {
+    if (!stages || stages.length === 0) return rawChecklist as ChecklistType[];
+    const allowed = new Set(stages);
+    return (rawChecklist as any[]).filter(item => allowed.has(item.bn_doc_requirement?.stage));
+  }, [rawChecklist, stages]);
+
+  const markPending = useMarkChecklistPending();
+  const waiveItem = useWaiveChecklistItem();
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadContext, setUploadContext] = useState<{ typeCode?: string; name?: string; requirementId?: string; extensions?: string[]; maxSize?: number }>({});
   const [actionOpen, setActionOpen] = useState(false);
   const [actionType, setActionType] = useState<'VERIFY' | 'REJECT' | 'WAIVE' | 'REQUEST_INFO'>('VERIFY');
   const [selectedEvidence, setSelectedEvidence] = useState<BnClaimEvidence | null>(null);
+  const [reasonDialog, setReasonDialog] = useState<{ open: boolean; kind: 'PENDING' | 'WAIVE'; checklistId: string; docName: string } | null>(null);
+  const [reasonText, setReasonText] = useState('');
 
-  const canVerify = userRoles.some(r => ['Admin', 'SUPERVISOR', 'CLAIMS_OFFICER'].includes(r));
-  const canWaive = userRoles.some(r => ['Admin', 'SUPERVISOR', 'MANAGER'].includes(r));
+  const isInternal = mode === 'INTERNAL';
+  const roleCanVerify = isInternal && userRoles.some(r => ['Admin', 'SUPERVISOR', 'CLAIMS_OFFICER'].includes(r));
+  const roleCanWaive = canWaive ?? (isInternal && userRoles.some(r => ['Admin', 'SUPERVISOR', 'MANAGER'].includes(r)));
+  const roleCanMarkPending = canMarkPending ?? (isInternal && userRoles.some(r => ['Admin', 'SUPERVISOR', 'CLAIMS_OFFICER'].includes(r)));
 
   const blockingCount = checklist.filter((c: ChecklistType) => c.is_blocking).length;
 
@@ -43,7 +92,26 @@ export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
     setActionOpen(true);
   };
 
+  const submitReason = async () => {
+    if (!reasonDialog) return;
+    if (!reasonText.trim()) { toast.error('A reason is required.'); return; }
+    try {
+      if (reasonDialog.kind === 'PENDING') {
+        await markPending.mutateAsync({ claimId, checklistId: reasonDialog.checklistId, reason: reasonText, userCode: userCode || 'SYSTEM' });
+        toast.success(`${reasonDialog.docName} marked pending.`);
+      } else {
+        await waiveItem.mutateAsync({ claimId, checklistId: reasonDialog.checklistId, reason: reasonText, userCode: userCode || 'SYSTEM' });
+        toast.success(`${reasonDialog.docName} waived.`);
+      }
+      setReasonDialog(null);
+      setReasonText('');
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Action failed.');
+    }
+  };
+
   const isLoading = loadingEvidence || loadingChecklist;
+
 
   return (
     <>
@@ -71,6 +139,17 @@ export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
           </div>
         </CardHeader>
         <CardContent>
+          {mode === 'PUBLIC' && (
+            <Alert className="mb-4">
+              <FileText className="h-4 w-4" />
+              <AlertTitle>Required documents come from the Product Catalog</AlertTitle>
+              <AlertDescription>
+                {allowPendingDocuments
+                  ? 'You can submit and upload remaining mandatory documents later.'
+                  : 'All mandatory documents must be uploaded before you can submit this application.'}
+              </AlertDescription>
+            </Alert>
+          )}
           {isLoading ? (
             <p className="text-muted-foreground py-4">Loading evidence...</p>
           ) : (
@@ -86,12 +165,13 @@ export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
                         <TableHead>Stage</TableHead>
                         <TableHead>Level</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="w-24">Actions</TableHead>
+                        <TableHead className="w-48">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {checklist.map((item: any) => {
                         const req = item.bn_doc_requirement;
+                        const isOutstanding = item.status === 'OUTSTANDING';
                         return (
                           <TableRow key={item.id} className={item.is_blocking ? 'bg-destructive/5' : ''}>
                             <TableCell>
@@ -108,17 +188,35 @@ export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
                             </TableCell>
                             <TableCell><EvidenceStatusBadge status={item.status} /></TableCell>
                             <TableCell>
-                              {item.status === 'OUTSTANDING' && (
-                                <Button size="sm" variant="outline" className="gap-1" onClick={() => openUpload({
-                                  typeCode: req?.document_type_code,
-                                  name: req?.document_type_code,
-                                  requirementId: item.requirement_id,
-                                  extensions: req?.allowed_extensions,
-                                  maxSize: req?.max_file_size_mb,
-                                })}>
-                                  <Upload className="h-3 w-3" /> Upload
-                                </Button>
-                              )}
+                              <div className="flex flex-wrap gap-1">
+                                {isOutstanding && (
+                                  <Button size="sm" variant="outline" className="gap-1" onClick={() => openUpload({
+                                    typeCode: req?.document_type_code,
+                                    name: req?.document_type_code,
+                                    requirementId: item.requirement_id,
+                                    extensions: req?.allowed_extensions,
+                                    maxSize: req?.max_file_size_mb,
+                                  })}>
+                                    <Upload className="h-3 w-3" /> Upload
+                                  </Button>
+                                )}
+                                {isInternal && isOutstanding && roleCanMarkPending && (
+                                  <Button size="sm" variant="ghost" className="gap-1" onClick={() => {
+                                    setReasonDialog({ open: true, kind: 'PENDING', checklistId: item.id, docName: req?.document_type_code ?? 'Document' });
+                                    setReasonText('');
+                                  }}>
+                                    <Clock className="h-3 w-3" /> Pending
+                                  </Button>
+                                )}
+                                {isInternal && isOutstanding && roleCanWaive && req?.requirement_level !== 'MANDATORY' && (
+                                  <Button size="sm" variant="ghost" className="gap-1" onClick={() => {
+                                    setReasonDialog({ open: true, kind: 'WAIVE', checklistId: item.id, docName: req?.document_type_code ?? 'Document' });
+                                    setReasonText('');
+                                  }}>
+                                    <ShieldOff className="h-3 w-3" /> Waive
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
@@ -127,6 +225,7 @@ export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
                   </Table>
                 </div>
               )}
+
 
               {/* All Evidence */}
               <h4 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wide">All Evidence ({evidence.length})</h4>
@@ -160,7 +259,7 @@ export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
                         <TableCell>
                           <TooltipProvider>
                             <div className="flex gap-1">
-                              {ev.status === 'RECEIVED' && canVerify && (
+                              {isInternal && ev.status === 'RECEIVED' && roleCanVerify && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button size="icon" variant="ghost" onClick={() => openAction('VERIFY', ev)}>
@@ -170,7 +269,7 @@ export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
                                   <TooltipContent>Verify</TooltipContent>
                                 </Tooltip>
                               )}
-                              {ev.status === 'RECEIVED' && canVerify && (
+                              {isInternal && ev.status === 'RECEIVED' && roleCanVerify && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button size="icon" variant="ghost" onClick={() => openAction('REJECT', ev)}>
@@ -180,7 +279,7 @@ export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
                                   <TooltipContent>Reject</TooltipContent>
                                 </Tooltip>
                               )}
-                              {(ev.status === 'RECEIVED' || ev.status === 'REJECTED') && canWaive && (
+                              {isInternal && (ev.status === 'RECEIVED' || ev.status === 'REJECTED') && roleCanWaive && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button size="icon" variant="ghost" onClick={() => openAction('WAIVE', ev)}>
@@ -190,7 +289,7 @@ export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
                                   <TooltipContent>Waive</TooltipContent>
                                 </Tooltip>
                               )}
-                              {ev.status !== 'VERIFIED' && ev.status !== 'WAIVED' && (
+                              {isInternal && ev.status !== 'VERIFIED' && ev.status !== 'WAIVED' && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Button size="icon" variant="ghost" onClick={() => openAction('REQUEST_INFO', ev)}>
@@ -202,6 +301,7 @@ export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
                               )}
                             </div>
                           </TooltipProvider>
+
                         </TableCell>
                       </TableRow>
                     ))}
@@ -233,6 +333,28 @@ export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
           documentName={selectedEvidence.document_name}
         />
       )}
+
+      <Dialog open={!!reasonDialog} onOpenChange={(o) => { if (!o) { setReasonDialog(null); setReasonText(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{reasonDialog?.kind === 'PENDING' ? 'Mark Document Pending' : 'Waive Document Requirement'}</DialogTitle>
+            <DialogDescription>
+              {reasonDialog?.docName} — a reason is required and will be recorded in the audit trail.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="reason">Reason</Label>
+            <Textarea id="reason" value={reasonText} onChange={(e) => setReasonText(e.target.value)} rows={4} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setReasonDialog(null); setReasonText(''); }}>Cancel</Button>
+            <Button onClick={submitReason} disabled={!reasonText.trim() || markPending.isPending || waiveItem.isPending}>
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
+
 }
