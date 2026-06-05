@@ -53,7 +53,7 @@ import { useBnProducts } from '@/hooks/bn/useBnProduct';
 import { useBnClaimIntake } from '@/hooks/bn/useBnClaimIntake';
 import type { BnProduct } from '@/types/bn';
 import { formatDateForDisplay } from '@/lib/format-config';
-import { useAuth } from '@/contexts/auth/SupabaseAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { logAuditTrail } from '@/services/auditService';
 import { resolveProductVersion, type ResolvedProductVersion } from '@/services/bn/productVersionResolver';
 import {
@@ -75,7 +75,7 @@ import {
   type FormFieldDef,
 } from '@/services/bn/forms/sectionCatalogue';
 import type { PersonSummary, Dependant } from '@/services/bn/integration';
-import { hasPermission as checkPermission } from '@/utils/permissions';
+
 
 type DocStatus = 'PROVIDED' | 'PENDING' | 'WAIVED';
 interface DocState {
