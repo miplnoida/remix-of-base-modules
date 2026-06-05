@@ -1,34 +1,83 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Upload, CheckCircle2, XCircle, ShieldOff, HelpCircle, AlertTriangle, FileText } from 'lucide-react';
-import { useBnClaimEvidence, useBnEvidenceChecklist, useBnIsEvidenceComplete } from '@/hooks/bn/useBnEvidence';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Upload, CheckCircle2, XCircle, ShieldOff, HelpCircle, AlertTriangle, FileText, Clock } from 'lucide-react';
+import {
+  useBnClaimEvidence,
+  useBnEvidenceChecklist,
+  useBnIsEvidenceComplete,
+  useMarkChecklistPending,
+  useWaiveChecklistItem,
+} from '@/hooks/bn/useBnEvidence';
 import { EvidenceStatusBadge } from './EvidenceStatusBadge';
 import { EvidenceUploadDialog } from './EvidenceUploadDialog';
 import { EvidenceActionDialog } from './EvidenceActionDialog';
+import { useUserCode } from '@/hooks/useUserCode';
+import { toast } from 'sonner';
 import type { BnClaimEvidence, BnEvidenceChecklist as ChecklistType } from '@/types/bn';
+
+export type EvidenceMode = 'PUBLIC' | 'INTERNAL';
+export type EvidenceStage = 'INTAKE' | 'EVIDENCE_REVIEW' | 'DECISION' | 'POST_AWARD' | 'PERIODIC_REVIEW';
 
 interface Props {
   claimId: string;
   userRoles?: string[];
+  /** PUBLIC hides verify/reject/waive/mark-pending. */
+  mode?: EvidenceMode;
+  /** When true (from Product Catalog channel config) public users can submit with pending docs. */
+  allowPendingDocuments?: boolean;
+  /** Permission gate for waiver actions in INTERNAL mode. */
+  canWaive?: boolean;
+  /** Permission gate for mark-pending in INTERNAL mode. */
+  canMarkPending?: boolean;
+  /** Optional stage filter — limit checklist rows to these stages. */
+  stages?: EvidenceStage[];
 }
 
-export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
+export function EvidenceChecklist({
+  claimId,
+  userRoles = [],
+  mode = 'INTERNAL',
+  allowPendingDocuments = false,
+  canWaive,
+  canMarkPending,
+  stages,
+}: Props) {
+  const { userCode } = useUserCode();
   const { data: evidence = [], isLoading: loadingEvidence } = useBnClaimEvidence(claimId);
-  const { data: checklist = [], isLoading: loadingChecklist } = useBnEvidenceChecklist(claimId);
+  const { data: rawChecklist = [], isLoading: loadingChecklist } = useBnEvidenceChecklist(claimId);
   const { data: isComplete } = useBnIsEvidenceComplete(claimId);
+
+  const checklist = useMemo(() => {
+    if (!stages || stages.length === 0) return rawChecklist as ChecklistType[];
+    const allowed = new Set(stages);
+    return (rawChecklist as any[]).filter(item => allowed.has(item.bn_doc_requirement?.stage));
+  }, [rawChecklist, stages]);
+
+  const markPending = useMarkChecklistPending();
+  const waiveItem = useWaiveChecklistItem();
 
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadContext, setUploadContext] = useState<{ typeCode?: string; name?: string; requirementId?: string; extensions?: string[]; maxSize?: number }>({});
   const [actionOpen, setActionOpen] = useState(false);
   const [actionType, setActionType] = useState<'VERIFY' | 'REJECT' | 'WAIVE' | 'REQUEST_INFO'>('VERIFY');
   const [selectedEvidence, setSelectedEvidence] = useState<BnClaimEvidence | null>(null);
+  const [reasonDialog, setReasonDialog] = useState<{ open: boolean; kind: 'PENDING' | 'WAIVE'; checklistId: string; docName: string } | null>(null);
+  const [reasonText, setReasonText] = useState('');
 
-  const canVerify = userRoles.some(r => ['Admin', 'SUPERVISOR', 'CLAIMS_OFFICER'].includes(r));
-  const canWaive = userRoles.some(r => ['Admin', 'SUPERVISOR', 'MANAGER'].includes(r));
+  const isInternal = mode === 'INTERNAL';
+  const roleCanVerify = isInternal && userRoles.some(r => ['Admin', 'SUPERVISOR', 'CLAIMS_OFFICER'].includes(r));
+  const roleCanWaive = canWaive ?? (isInternal && userRoles.some(r => ['Admin', 'SUPERVISOR', 'MANAGER'].includes(r)));
+  const roleCanMarkPending = canMarkPending ?? (isInternal && userRoles.some(r => ['Admin', 'SUPERVISOR', 'CLAIMS_OFFICER'].includes(r)));
 
   const blockingCount = checklist.filter((c: ChecklistType) => c.is_blocking).length;
 
@@ -43,7 +92,26 @@ export function EvidenceChecklist({ claimId, userRoles = [] }: Props) {
     setActionOpen(true);
   };
 
+  const submitReason = async () => {
+    if (!reasonDialog) return;
+    if (!reasonText.trim()) { toast.error('A reason is required.'); return; }
+    try {
+      if (reasonDialog.kind === 'PENDING') {
+        await markPending.mutateAsync({ claimId, checklistId: reasonDialog.checklistId, reason: reasonText, userCode: userCode || 'SYSTEM' });
+        toast.success(`${reasonDialog.docName} marked pending.`);
+      } else {
+        await waiveItem.mutateAsync({ claimId, checklistId: reasonDialog.checklistId, reason: reasonText, userCode: userCode || 'SYSTEM' });
+        toast.success(`${reasonDialog.docName} waived.`);
+      }
+      setReasonDialog(null);
+      setReasonText('');
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Action failed.');
+    }
+  };
+
   const isLoading = loadingEvidence || loadingChecklist;
+
 
   return (
     <>
