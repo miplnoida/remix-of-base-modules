@@ -76,7 +76,7 @@ export async function getApplicationFormDefinition(
   const benefitKey =
     normalizeBenefitKey(product.benefit_code) ??
     normalizeBenefitKey((product as any).benefit_type) ??
-    normalizeBenefitKey(product.code) ??
+    normalizeBenefitKey(((product as any).code)) ??
     'SICKNESS';
 
   // Try DB-configured metadata
@@ -156,7 +156,7 @@ export async function getApplicationFormDefinition(
 
   return {
     productId: product.id,
-    productCode: product.benefit_code ?? product.code ?? product.id,
+    productCode: product.benefit_code ?? ((product as any).code) ?? product.id,
     productVersionId: version.id,
     benefitKey,
     channel,
