@@ -294,7 +294,12 @@ export default function ClaimWorkbench() {
           <TabsTrigger value="linked" className="gap-1.5"><GitBranch className="h-3.5 w-3.5" /> Linked</TabsTrigger>
           <TabsTrigger value="history" className="gap-1.5"><History className="h-3.5 w-3.5" /> History</TabsTrigger>
           <TabsTrigger value="workflow" className="gap-1.5"><GitBranch className="h-3.5 w-3.5" /> Workflow</TabsTrigger>
+          <TabsTrigger value="snapshots" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Snapshots</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="snapshots" className="mt-6">
+          <ClaimSnapshotsPanel claimId={claim.id} />
+        </TabsContent>
 
         {/* OVERVIEW — Sections 1, 2, 3 */}
         <TabsContent value="overview" className="mt-6 space-y-4">
