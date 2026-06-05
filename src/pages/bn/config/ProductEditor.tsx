@@ -88,6 +88,8 @@ export default function ProductEditor() {
     }
   };
 
+  const activeVersion = versions.find((v: BnProductVersion) => v.id === selectedVersionId);
+  const isEditableVersion = activeVersion?.status === 'DRAFT';
   const copyRulesMutation = useCopyBnVersionRules();
 
   const handleCreateVersion = async () => {
