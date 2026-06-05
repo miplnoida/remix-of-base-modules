@@ -965,6 +965,7 @@ export const AppRoutes = () => {
       <Route path="/mfa-verify" element={<MFAVerify />} />
       <Route path="/inspector/login" element={<InspectorLogin />} />
       <Route path="/public/api-docs" element={<PublicApiDocs />} />
+      <Route path="/public/benefit/:productCode" element={<PublicBenefitApplication />} />
       
       {/* Inspector Routes */}
       <Route path="/inspector" element={<InspectorLayout />}>
