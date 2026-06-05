@@ -25,7 +25,9 @@ import {
 import { resolveField, type ResolvedValue } from '@/services/bn/eligibility/fieldResolver';
 import { evaluateOperator } from '@/services/bn/eligibility/operatorEvaluator';
 
-interface Props { versionId: string | undefined; }
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
+
+interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
 const emptyRule: Partial<BnEligibilityRule> = {
   rule_code: '', rule_name: '', rule_type: 'CONTRIBUTION', rule_group: 'GENERAL',
@@ -33,7 +35,7 @@ const emptyRule: Partial<BnEligibilityRule> = {
   data_source: '', fail_message: '', fail_action: 'REJECT', sort_order: 0, is_active: true,
 };
 
-export function EligibilityRulesTab({ versionId }: Props) {
+export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: rules = [], isLoading } = useBnEligibilityRules(versionId);
   const { data: ruleGroups = [] } = useBnRuleGroups();
@@ -152,9 +154,10 @@ export function EligibilityRulesTab({ versionId }: Props) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Eligibility Rules</CardTitle><CardDescription>Define checks that must pass before a claim is eligible</CardDescription></div>
-          <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Rule</Button>
+          <Button onClick={openNew} className="gap-2" disabled={isReadOnly}><Plus className="h-4 w-4" /> Add Rule</Button>
         </CardHeader>
         <CardContent>
+          <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
           {isLoading ? <p className="text-muted-foreground py-4">Loading...</p> : rules.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">No eligibility rules configured. Click "Add Rule" to get started.</p>
           ) : (
@@ -190,8 +193,8 @@ export function EligibilityRulesTab({ versionId }: Props) {
                       <TableCell>{rule.is_active ? <Badge variant="default">Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(rule)}><Edit className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(rule.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={() => openEdit(rule)}><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={() => handleDelete(rule.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>

@@ -17,10 +17,13 @@ import {
   useBnDocumentProfiles,
 } from '@/hooks/bn/useBnConfig';
 import type { BnProductChannelConfig, BnChannelCode } from '@/types/bn';
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
 interface Props {
   productId: string | undefined;
   versionId: string | undefined;
+  isReadOnly?: boolean;
+  versionStatus?: string | null;
 }
 
 const CHANNEL_META: Record<BnChannelCode, { label: string; description: string; icon: any; defaultSource: string }> = {
@@ -38,7 +41,7 @@ const CHANNEL_META: Record<BnChannelCode, { label: string; description: string; 
   },
 };
 
-export function ChannelsTab({ productId, versionId }: Props) {
+export function ChannelsTab({ productId, versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: configs = [], isLoading } = useBnChannelConfigs(versionId);
   const upsertMutation = useUpsertBnChannelConfig();
@@ -75,6 +78,7 @@ export function ChannelsTab({ productId, versionId }: Props) {
   }
 
   const save = async (channel: BnChannelCode, patch: Partial<BnProductChannelConfig>) => {
+    if (isReadOnly) return;
     const current = byChannel[channel];
     if (!current && !productId) return;
     try {
@@ -96,6 +100,7 @@ export function ChannelsTab({ productId, versionId }: Props) {
 
   return (
     <div className="space-y-4">
+      <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
       <Card>
         <CardContent className="py-4 text-sm text-muted-foreground">
           Eligibility, calculation, timelines, and benefit interactions are shared for the product version.

@@ -16,8 +16,9 @@ import { useBnProductVersions } from '@/hooks/bn/useBnProduct';
 import { copyDocumentRequirements } from '@/services/bn/configService';
 import { useQueryClient } from '@tanstack/react-query';
 import type { BnDocumentRule } from '@/types/bn';
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-interface Props { productId: string | undefined; versionId?: string | undefined; }
+interface Props { productId: string | undefined; versionId?: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
 const channelBadge = (c?: string) => {
   const v = (c ?? 'BOTH').toUpperCase();
@@ -26,7 +27,7 @@ const channelBadge = (c?: string) => {
   return <Badge variant="outline">Both</Badge>;
 };
 
-export function DocumentRulesTab({ productId, versionId }: Props) {
+export function DocumentRulesTab({ productId, versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: rules = [], isLoading } = useBnDocumentRules(productId, versionId);
@@ -110,14 +111,16 @@ export function DocumentRulesTab({ productId, versionId }: Props) {
           </div>
           <div className="flex gap-2">
             {versionId && otherVersions.length > 0 && (
-              <Button variant="outline" onClick={() => setCopyOpen(true)} className="gap-2">
+              <Button variant="outline" disabled={isReadOnly} onClick={() => setCopyOpen(true)} className="gap-2">
                 <Copy className="h-4 w-4" /> Copy from another version
               </Button>
             )}
-            <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Document</Button>
+            <Button onClick={openNew} disabled={isReadOnly} className="gap-2"><Plus className="h-4 w-4" /> Add Document</Button>
           </div>
         </CardHeader>
         <CardContent>
+          <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
+
           {isLoading ? <p className="text-muted-foreground py-4">Loading...</p> : rules.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">No document rules configured.</p>
           ) : (
@@ -183,10 +186,10 @@ export function DocumentRulesTab({ productId, versionId }: Props) {
                           <TableCell>{hasCondition ? <Badge variant="outline">cond</Badge> : '—'}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => openEdit(r)}>
+                              <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={() => openEdit(r)}>
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon"
+                              <Button variant="ghost" size="icon" disabled={isReadOnly}
                                 onClick={async () => {
                                   for (const g of grp) await deleteMutation.mutateAsync(g.id);
                                 }}>

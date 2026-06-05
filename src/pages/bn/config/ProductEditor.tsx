@@ -318,31 +318,31 @@ export default function ProductEditor() {
         </TabsContent>
 
         <TabsContent value="eligibility" className="mt-6">
-          <EligibilityRulesTab versionId={selectedVersionId} />
+          <EligibilityRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
 
         <TabsContent value="calculation" className="mt-6">
-          <CalculationRulesTab versionId={selectedVersionId} />
+          <CalculationRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
 
         <TabsContent value="timelines" className="mt-6">
-          <TimelineRulesTab versionId={selectedVersionId} />
+          <TimelineRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
 
         <TabsContent value="documents" className="mt-6">
-          <DocumentRulesTab productId={isNew ? undefined : id} versionId={selectedVersionId} />
+          <DocumentRulesTab productId={isNew ? undefined : id} versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
 
         <TabsContent value="workflow" className="mt-6">
-          <WorkflowTab versionId={selectedVersionId} />
+          <WorkflowTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
 
         <TabsContent value="screens" className="mt-6">
-          <ScreenTemplateTab versionId={selectedVersionId} />
+          <ScreenTemplateTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
 
         <TabsContent value="channels" className="mt-6">
-          <ChannelsTab productId={isNew ? undefined : id} versionId={selectedVersionId} />
+          <ChannelsTab productId={isNew ? undefined : id} versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
 
         <TabsContent value="interactions" className="mt-6">

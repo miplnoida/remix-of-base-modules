@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-interface Props { versionId: string | undefined; }
+interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
-export function WorkflowTab({ versionId }: Props) {
+export function WorkflowTab({ versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: version } = useBnProductVersion(versionId);
   const { data: templates = [] } = useBnWorkflowTemplates();
@@ -41,12 +42,13 @@ export function WorkflowTab({ versionId }: Props) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div><CardTitle>Workflow Configuration</CardTitle><CardDescription>Assign workflow templates and processing flags for this version</CardDescription></div>
-        <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2"><Save className="h-4 w-4" /> Save</Button>
+        <Button onClick={handleSave} disabled={updateMutation.isPending || isReadOnly} className="gap-2"><Save className="h-4 w-4" /> Save</Button>
       </CardHeader>
       <CardContent className="space-y-6">
+        <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
         <div className="space-y-2 max-w-md">
           <Label>Workflow Template</Label>
-          <Select value={form.workflow_template_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, workflow_template_id: v === '__none__' ? '' : v }))}>
+          <Select disabled={isReadOnly} value={form.workflow_template_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, workflow_template_id: v === '__none__' ? '' : v }))}>
             <SelectTrigger><SelectValue placeholder="Select workflow template" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">None</SelectItem>
@@ -57,9 +59,9 @@ export function WorkflowTab({ versionId }: Props) {
         </div>
         <div className="space-y-4 rounded-lg border p-4">
           <h4 className="text-sm font-semibold">Processing Flags</h4>
-          <div className="flex items-center justify-between"><Label>Requires Employer Verification</Label><Switch checked={form.requires_employer_verification} onCheckedChange={v => setForm(p => ({ ...p, requires_employer_verification: v }))} /></div>
-          <div className="flex items-center justify-between"><Label>Requires Medical Board Review</Label><Switch checked={form.requires_medical_board_review} onCheckedChange={v => setForm(p => ({ ...p, requires_medical_board_review: v }))} /></div>
-          <div className="flex items-center justify-between"><Label>Requires Means Test</Label><Switch checked={form.requires_means_test} onCheckedChange={v => setForm(p => ({ ...p, requires_means_test: v }))} /></div>
+          <div className="flex items-center justify-between"><Label>Requires Employer Verification</Label><Switch disabled={isReadOnly} checked={form.requires_employer_verification} onCheckedChange={v => setForm(p => ({ ...p, requires_employer_verification: v }))} /></div>
+          <div className="flex items-center justify-between"><Label>Requires Medical Board Review</Label><Switch disabled={isReadOnly} checked={form.requires_medical_board_review} onCheckedChange={v => setForm(p => ({ ...p, requires_medical_board_review: v }))} /></div>
+          <div className="flex items-center justify-between"><Label>Requires Means Test</Label><Switch disabled={isReadOnly} checked={form.requires_means_test} onCheckedChange={v => setForm(p => ({ ...p, requires_means_test: v }))} /></div>
         </div>
       </CardContent>
     </Card>

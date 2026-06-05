@@ -71,6 +71,23 @@ export function useUpdateBnProductVersion() {
   });
 }
 
+export function usePublishBnProductVersion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ versionId, effectiveFrom }: { versionId: string; effectiveFrom: string }) =>
+      productService.publishProductVersion(versionId, effectiveFrom),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bn'] }),
+  });
+}
+
+export function useRetireBnProductVersion() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (versionId: string) => productService.retireProductVersion(versionId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bn'] }),
+  });
+}
+
 // Eligibility Rules
 export function useBnEligibilityRules(versionId: string | undefined) {
   return useQuery({

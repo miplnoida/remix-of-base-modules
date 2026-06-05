@@ -8,10 +8,11 @@ import { Save, Monitor } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-interface Props { versionId: string | undefined; }
+interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
-export function ScreenTemplateTab({ versionId }: Props) {
+export function ScreenTemplateTab({ versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: version } = useBnProductVersion(versionId);
   const { data: templates = [] } = useBnScreenTemplates();
@@ -37,12 +38,13 @@ export function ScreenTemplateTab({ versionId }: Props) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div><CardTitle>Screen Template & Field Metadata</CardTitle><CardDescription>Assign the dynamic intake form template for this benefit version</CardDescription></div>
-        <Button onClick={handleSave} disabled={updateMutation.isPending} className="gap-2"><Save className="h-4 w-4" /> Save</Button>
+        <Button onClick={handleSave} disabled={updateMutation.isPending || isReadOnly} className="gap-2"><Save className="h-4 w-4" /> Save</Button>
       </CardHeader>
       <CardContent className="space-y-6">
+        <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
         <div className="space-y-2 max-w-md">
           <Label>Screen Template</Label>
-          <Select value={selectedId || '__none__'} onValueChange={(v) => setSelectedId(v === '__none__' ? '' : v)}>
+          <Select disabled={isReadOnly} value={selectedId || '__none__'} onValueChange={(v) => setSelectedId(v === '__none__' ? '' : v)}>
             <SelectTrigger><SelectValue placeholder="Select screen template" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">None</SelectItem>
