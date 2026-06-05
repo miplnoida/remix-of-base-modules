@@ -59,9 +59,9 @@ export function WorkflowTab({ versionId, isReadOnly, versionStatus }: Props) {
         </div>
         <div className="space-y-4 rounded-lg border p-4">
           <h4 className="text-sm font-semibold">Processing Flags</h4>
-          <div className="flex items-center justify-between"><Label>Requires Employer Verification</Label><Switch checked={form.requires_employer_verification} onCheckedChange={v => setForm(p => ({ ...p, requires_employer_verification: v }))} /></div>
-          <div className="flex items-center justify-between"><Label>Requires Medical Board Review</Label><Switch checked={form.requires_medical_board_review} onCheckedChange={v => setForm(p => ({ ...p, requires_medical_board_review: v }))} /></div>
-          <div className="flex items-center justify-between"><Label>Requires Means Test</Label><Switch checked={form.requires_means_test} onCheckedChange={v => setForm(p => ({ ...p, requires_means_test: v }))} /></div>
+          <div className="flex items-center justify-between"><Label>Requires Employer Verification</Label><Switch disabled={isReadOnly} checked={form.requires_employer_verification} onCheckedChange={v => setForm(p => ({ ...p, requires_employer_verification: v }))} /></div>
+          <div className="flex items-center justify-between"><Label>Requires Medical Board Review</Label><Switch disabled={isReadOnly} checked={form.requires_medical_board_review} onCheckedChange={v => setForm(p => ({ ...p, requires_medical_board_review: v }))} /></div>
+          <div className="flex items-center justify-between"><Label>Requires Means Test</Label><Switch disabled={isReadOnly} checked={form.requires_means_test} onCheckedChange={v => setForm(p => ({ ...p, requires_means_test: v }))} /></div>
         </div>
       </CardContent>
     </Card>
