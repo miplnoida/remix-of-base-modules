@@ -78,6 +78,7 @@ export function ChannelsTab({ productId, versionId, isReadOnly, versionStatus }:
   }
 
   const save = async (channel: BnChannelCode, patch: Partial<BnProductChannelConfig>) => {
+    if (isReadOnly) return;
     const current = byChannel[channel];
     if (!current && !productId) return;
     try {
