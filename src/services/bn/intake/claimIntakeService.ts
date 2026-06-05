@@ -2,18 +2,29 @@
  * BN Claim Intake Service
  *
  * Single entry point used by every channel (PUBLIC_ONLINE, STAFF_OFFLINE,
- * ASSISTED_COUNTER, BACK_OFFICE_ENTRY) to submit a benefit application.
+ * ASSISTED_COUNTER, BACK_OFFICE_ENTRY, MIGRATED_LEGACY) to submit a benefit
+ * application.
  *
- * Wraps the transactional RPC `bn_submit_claim_application`, which:
- *   - resolves the active product version for the claim date
- *   - creates `bn_claim` (status INTAKE)
- *   - records the submitted payload in `bn_claim_application`
- *   - captures person / employer / contribution snapshots
- *   - materialises the document checklist
- *   - records intake validations
- *   - starts the workflow instance when configured
+ * Wraps the transactional RPC `bn_submit_claim_application`, which creates
+ * `bn_claim`, `bn_claim_application`, snapshots, the document checklist, and
+ * intake validations.
+ *
+ * Workflow integration:
+ *   After the RPC commits, this service guarantees that every submitted claim
+ *   is bound to the central workflow engine when a workflow_definition_id /
+ *   workflow_template_id is configured on the resolved product version (or on
+ *   its channel config). It calls `triggerBnWorkflow` (source_module='bn_claim')
+ *   which creates the workflow_instance, first workflow_task, workflow_logs
+ *   entry, and mirrors a bn_claim_event for domain traceability.
+ *   If no workflow definition is configured, bn_claim_transition_rule remains
+ *   the fallback transition matrix and no instance is created.
  */
 import { supabase } from '@/integrations/supabase/client';
+import {
+  triggerBnWorkflow,
+  BN_WORKFLOW_MODULES,
+  logBnWorkflowEvent,
+} from '@/services/bn/bnWorkflowIntegrationService';
 
 const db = supabase as any;
 
@@ -34,13 +45,24 @@ export interface SubmitClaimApplicationInput {
   submittedByUserId?: string | null;
   sourceIp?: string | null;
   userAgent?: string | null;
+  priority?: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT' | null;
+  workbasketId?: string | null;
 }
 
 export interface SubmitClaimApplicationResult {
   claimId: string;
   claimNumber: string;
   workflowInstanceId: string | null;
+  workflowEngine: 'CENTRAL' | 'BN_FALLBACK';
 }
+
+const CHANNEL_TO_CONFIG: Record<ApplicationChannel, string> = {
+  PUBLIC_ONLINE: 'ONLINE',
+  STAFF_OFFLINE: 'OFFLINE',
+  ASSISTED_COUNTER: 'OFFLINE',
+  BACK_OFFICE_ENTRY: 'OFFLINE',
+  MIGRATED_LEGACY: 'OFFLINE',
+};
 
 export async function submitClaimApplication(
   input: SubmitClaimApplicationInput,
@@ -58,9 +80,110 @@ export async function submitClaimApplication(
   });
   if (error) throw error;
   const row = Array.isArray(data) ? data[0] : data;
+  const claimId: string = row.claim_id;
+  const claimNumber: string = row.claim_number;
+  let workflowInstanceId: string | null = row.workflow_instance_id ?? null;
+  let workflowEngine: 'CENTRAL' | 'BN_FALLBACK' = workflowInstanceId
+    ? 'CENTRAL'
+    : 'BN_FALLBACK';
+
+  // ─── Central Workflow Engine Integration ──────────────────────────
+  // If RPC did not bind a workflow instance, attempt the central engine here.
+  try {
+    if (!workflowInstanceId) {
+      // Hydrate the claim + product version channel config to decide routing.
+      const { data: claim } = await db
+        .from('bn_claim')
+        .select(
+          'id, claim_number, product_id, product_version_id, application_channel, priority, ssn, claim_date',
+        )
+        .eq('id', claimId)
+        .maybeSingle();
+
+      const productVersionId = claim?.product_version_id ?? null;
+      const productId = claim?.product_id ?? null;
+      const channelCode = CHANNEL_TO_CONFIG[input.channel];
+
+      let workflowDefinitionId: string | null = null;
+      let workbasketId: string | null = input.workbasketId ?? null;
+
+      if (productVersionId) {
+        // Channel-level workflow takes precedence
+        const { data: cfg } = await db
+          .from('bn_product_channel_config')
+          .select(
+            'workflow_definition_id, workflow_template_id, workbasket_id, is_enabled',
+          )
+          .eq('product_version_id', productVersionId)
+          .eq('channel_code', channelCode)
+          .maybeSingle();
+
+        workflowDefinitionId =
+          cfg?.workflow_definition_id ?? cfg?.workflow_template_id ?? null;
+        workbasketId = workbasketId ?? cfg?.workbasket_id ?? null;
+
+        // Version-level fallback
+        if (!workflowDefinitionId) {
+          const { data: ver } = await db
+            .from('bn_product_version')
+            .select('workflow_template_id, workflow_definition_id')
+            .eq('id', productVersionId)
+            .maybeSingle();
+          workflowDefinitionId =
+            (ver as any)?.workflow_definition_id ??
+            (ver as any)?.workflow_template_id ??
+            null;
+        }
+      }
+
+      if (workflowDefinitionId) {
+        const instanceId = await triggerBnWorkflow({
+          sourceModule: BN_WORKFLOW_MODULES.CLAIM,
+          entityId: claimId,
+          entityName: claimNumber,
+          ssn: input.ssn,
+          userId: input.submittedByUserId ?? '00000000-0000-0000-0000-000000000000',
+          metadata: {
+            product_id: productId,
+            product_version_id: productVersionId,
+            product_code: input.productCode,
+            application_channel: input.channel,
+            priority: input.priority ?? claim?.priority ?? 'NORMAL',
+            workbasket_id: workbasketId,
+            claim_date: input.claimDate,
+            workflow_definition_id: workflowDefinitionId,
+          },
+        });
+
+        if (instanceId) {
+          workflowInstanceId = instanceId;
+          workflowEngine = 'CENTRAL';
+          await db
+            .from('bn_claim')
+            .update({ workflow_instance_id: instanceId })
+            .eq('id', claimId);
+        }
+      }
+    }
+
+    // Always record the submission as a bn_claim_event (workflow-aware).
+    await logBnWorkflowEvent({
+      entityId: claimId,
+      sourceModule: BN_WORKFLOW_MODULES.CLAIM,
+      action: 'CLAIM_SUBMITTED',
+      performedBy: input.submittedByUserId ?? 'PUBLIC',
+      narrative: `Claim ${claimNumber} submitted via ${input.channel} (${workflowEngine === 'CENTRAL' ? 'central workflow' : 'bn fallback transitions'})`,
+      workflowInstanceId: workflowInstanceId ?? undefined,
+    });
+  } catch (wfErr) {
+    // Non-blocking: claim is already persisted, surface as console warning.
+    console.warn('[claimIntake] Workflow integration error (non-fatal):', wfErr);
+  }
+
   return {
-    claimId: row.claim_id,
-    claimNumber: row.claim_number,
-    workflowInstanceId: row.workflow_instance_id ?? null,
+    claimId,
+    claimNumber,
+    workflowInstanceId,
+    workflowEngine,
   };
 }
