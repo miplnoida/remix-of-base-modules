@@ -100,6 +100,7 @@ export function ChannelsTab({ productId, versionId, isReadOnly, versionStatus }:
 
   return (
     <div className="space-y-4">
+      <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
       <Card>
         <CardContent className="py-4 text-sm text-muted-foreground">
           Eligibility, calculation, timelines, and benefit interactions are shared for the product version.
