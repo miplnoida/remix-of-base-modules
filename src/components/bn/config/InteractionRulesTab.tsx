@@ -47,10 +47,11 @@ export function InteractionRulesTab({ productId, isReadOnly = false, versionStat
 
   return (
     <>
+      <ReadOnlyVersionBanner show={isReadOnly} status={versionStatus} />
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Interaction Rules</CardTitle><CardDescription>Define how this product interacts with other benefit products</CardDescription></div>
-          <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Rule</Button>
+          <Button onClick={openNew} className="gap-2" disabled={isReadOnly}><Plus className="h-4 w-4" /> Add Rule</Button>
         </CardHeader>
         <CardContent>
           {rules.length === 0 ? (
