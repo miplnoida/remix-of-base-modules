@@ -154,9 +154,10 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Pr
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Eligibility Rules</CardTitle><CardDescription>Define checks that must pass before a claim is eligible</CardDescription></div>
-          <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Rule</Button>
+          <Button onClick={openNew} className="gap-2" disabled={isReadOnly}><Plus className="h-4 w-4" /> Add Rule</Button>
         </CardHeader>
         <CardContent>
+          <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
           {isLoading ? <p className="text-muted-foreground py-4">Loading...</p> : rules.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">No eligibility rules configured. Click "Add Rule" to get started.</p>
           ) : (
