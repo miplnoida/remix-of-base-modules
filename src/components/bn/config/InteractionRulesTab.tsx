@@ -69,8 +69,8 @@ export function InteractionRulesTab({ productId, isReadOnly = false, versionStat
                     <TableCell>{r.is_active ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => { setEditing({ ...r }); setDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={async () => { await deleteMutation.mutateAsync(r.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={() => { setEditing({ ...r }); setDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={async () => { await deleteMutation.mutateAsync(r.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>
