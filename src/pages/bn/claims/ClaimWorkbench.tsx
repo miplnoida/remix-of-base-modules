@@ -71,6 +71,9 @@ import { StatusHistorySection } from '@/components/bn/workbench/StatusHistorySec
 import { ClaimActionBar } from '@/components/bn/workbench/ClaimActionBar';
 import LegacyClaim360View from '@/components/bn/claim/LegacyClaim360View';
 import { ClaimSnapshotsPanel } from '@/components/bn/claims/ClaimSnapshotsPanel';
+import { ApplicationDetailsPanel, WorkflowTasksPanel, PaymentsPanel, channelLabel } from '@/components/bn/workbench/ClaimWorkspacePanels';
+import { Badge } from '@/components/ui/badge';
+import { CreditCard, ListChecks, Inbox } from 'lucide-react';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
