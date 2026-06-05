@@ -78,10 +78,14 @@ export const DeveloperInfoModal = ({ open, onOpenChange, currentRoute }: Props) 
   };
 
   const handleAIAnalysis = async () => {
-    if (!devInfo?.screen) return;
     setAnalyzing(true);
     try {
-      await developerInfoService.triggerAIAnalysis(devInfo.screen.id, currentRoute);
+      let screenId = devInfo?.screen?.id;
+      if (!screenId) {
+        const ensured = await developerInfoService.ensureScreenForRoute(currentRoute);
+        screenId = ensured.id;
+      }
+      await developerInfoService.triggerAIAnalysis(screenId, currentRoute);
       toast.success('AI analysis completed. Refreshing...');
       await loadDevInfo();
     } catch (err: any) {
@@ -164,12 +168,10 @@ export const DeveloperInfoModal = ({ open, onOpenChange, currentRoute }: Props) 
             <Button variant="outline" size="sm" onClick={handleExport} disabled={!devInfo}>
               <Download className="h-3.5 w-3.5 mr-1" /> Export
             </Button>
-            {devInfo?.screen && (
-              <Button variant="outline" size="sm" onClick={handleAIAnalysis} disabled={analyzing}>
-                {analyzing ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
-                Re-analyze
-              </Button>
-            )}
+            <Button variant="outline" size="sm" onClick={handleAIAnalysis} disabled={analyzing}>
+              {analyzing ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+              Re-analyze
+            </Button>
           </div>
         </DialogHeader>
 
@@ -183,7 +185,7 @@ export const DeveloperInfoModal = ({ open, onOpenChange, currentRoute }: Props) 
               <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold">No Developer Information</h3>
               <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                This screen has not been documented yet. Run the auto-population process from the Admin Maintenance page to generate documentation.
+                This screen has no documentation yet. Click <strong>Re-analyze</strong> above to auto-generate it.
               </p>
             </div>
           ) : (

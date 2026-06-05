@@ -126,6 +126,28 @@ export const developerInfoService = {
     return data;
   },
 
+  async ensureScreenForRoute(routeUrl: string, fallbackName?: string): Promise<DevInfoScreen> {
+    const existing = await this.getScreenByRoute(routeUrl);
+    if (existing) return existing;
+    const screenCode = `AUTO_${routeUrl.replace(/[^a-zA-Z0-9]+/g, '_').toUpperCase()}`.slice(0, 60);
+    const screenName = fallbackName || routeUrl.split('/').filter(Boolean).join(' › ') || routeUrl;
+    const { data, error } = await supabase
+      .from('dev_info_screens')
+      .insert({
+        screen_code: screenCode,
+        screen_name: screenName,
+        route_url: routeUrl,
+        menu_path: routeUrl,
+        screen_type: 'screen',
+        documentation_status: 'pending',
+        is_active: true,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
   async getFullDevInfo(screenId: string): Promise<FullDevInfo | null> {
     const [screenRes, tablesRes, logicRes, fieldsRes, actionsRes, depsRes, auditRes, docsRes] = await Promise.all([
       supabase.from('dev_info_screens').select('*').eq('id', screenId).single(),
