@@ -23,10 +23,19 @@ export function PreviewTab({ productId, versionId }: Props) {
   const { data: timeRules = [] } = useBnTimelineRules(versionId);
   const { data: docRules = [] } = useBnDocumentRules(productId);
 
+  const [channel, setChannel] = useState<FormChannel>('ASSISTED_OFFLINE');
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: formDef, isLoading: formLoading, error: formError } = useApplicationFormDefinition(
+    product?.benefit_code,
+    today,
+    channel,
+  );
+
   if (!productId || !product) return <Card><CardContent className="py-8 text-center text-muted-foreground">Save the product first to preview configuration.</CardContent></Card>;
 
   return (
     <div className="space-y-4">
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Shield className="h-5 w-5" /> Configuration Summary</CardTitle>
