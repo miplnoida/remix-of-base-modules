@@ -183,23 +183,23 @@ export async function getExistingClaims(
 ): Promise<ExistingClaimRecord[]> {
   if (!ssn) return [];
   const limit = opts.limit ?? 10;
-  let q = db
+  const { data, error } = await db
     .from('bn_claim')
-    .select('id, claim_number, product_code, status, claim_date')
+    .select('id, claim_number, status, claim_date, product:bn_product(benefit_code, code)')
     .eq('ssn', ssn)
     .order('claim_date', { ascending: false })
-    .limit(limit);
-  if (productCode) q = q.eq('product_code', productCode);
-  const { data, error } = await q;
+    .limit(limit * 3);
   if (error || !data) return [];
-  return (data as any[]).map(r => ({
+  const mapped: ExistingClaimRecord[] = (data as any[]).map(r => ({
     id: r.id,
     claim_number: r.claim_number ?? null,
-    product_code: r.product_code ?? null,
+    product_code: r.product?.benefit_code ?? r.product?.code ?? null,
     status: r.status ?? null,
     claim_date: r.claim_date ?? null,
     source: 'bn_claim' as const,
   }));
+  const filtered = productCode ? mapped.filter(m => m.product_code === productCode) : mapped;
+  return filtered.slice(0, limit);
 }
 
 // ───────────────────────── Required Documents ─────────────────────────
@@ -267,17 +267,17 @@ export async function lookupLegacyClaims(
   const limit = opts.limit ?? 25;
   const { data, error } = await db
     .from('cl_head')
-    .select('cl_ref, ssn, benefit_code, status, effective_date')
-    .eq('ssn', ssn)
-    .order('effective_date', { ascending: false })
+    .select('claim_number, claim_seq, insured_ssn, benefit_type, status, effective_start_date')
+    .eq('insured_ssn', ssn)
+    .order('effective_start_date', { ascending: false })
     .limit(limit);
   if (error || !data) return [];
   return (data as any[]).map(r => ({
-    legacy_ref: r.cl_ref,
-    ssn: r.ssn,
-    product_code: r.benefit_code ?? null,
+    legacy_ref: r.claim_seq != null ? `${r.claim_number}/${r.claim_seq}` : String(r.claim_number ?? ''),
+    ssn: r.insured_ssn,
+    product_code: r.benefit_type ?? null,
     status: r.status ?? null,
-    effective_date: r.effective_date ?? null,
+    effective_date: r.effective_start_date ?? null,
     source: 'cl_head' as const,
   }));
 }
