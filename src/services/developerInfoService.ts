@@ -116,6 +116,7 @@ export interface FullDevInfo {
 
 export const developerInfoService = {
   async getScreenByRoute(routeUrl: string): Promise<DevInfoScreen | null> {
+    // 1) Exact match
     const { data, error } = await supabase
       .from('dev_info_screens')
       .select('*')
@@ -123,7 +124,31 @@ export const developerInfoService = {
       .eq('is_active', true)
       .maybeSingle();
     if (error) throw error;
-    return data;
+    if (data) return data;
+
+    // 2) Dynamic/template match (e.g. /compliance/violations/:id)
+    const { data: templates, error: tErr } = await supabase
+      .from('dev_info_screens')
+      .select('*')
+      .like('route_url', '%:%')
+      .eq('is_active', true);
+    if (tErr) throw tErr;
+    if (!templates) return null;
+
+    // Prefer most specific (longest) template first
+    const sorted = [...templates].sort(
+      (a, b) => (b.route_url?.length || 0) - (a.route_url?.length || 0)
+    );
+    for (const t of sorted) {
+      if (!t.route_url) continue;
+      const pattern = '^' + t.route_url.replace(/:[A-Za-z0-9_]+/g, '[^/]+') + '$';
+      try {
+        if (new RegExp(pattern).test(routeUrl)) return t;
+      } catch {
+        // ignore invalid pattern
+      }
+    }
+    return null;
   },
 
   async ensureScreenForRoute(routeUrl: string, fallbackName?: string): Promise<DevInfoScreen> {
