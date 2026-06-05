@@ -254,8 +254,8 @@ export default function ClaimRegistration() {
     async function run() {
       if (!resolvedVersion) return;
       const [rules, docList] = await Promise.all([
-        fetchEligibilityRules(resolvedVersion.versionId).catch(() => []),
-        getRequiredDocuments(resolvedVersion.versionId, 'INTERNAL'),
+        fetchEligibilityRules(resolvedVersion.version.id).catch(() => []),
+        getRequiredDocuments(resolvedVersion.version.id, 'INTERNAL'),
       ]);
       if (cancel) return;
       setEligRules(rules);
@@ -268,7 +268,7 @@ export default function ClaimRegistration() {
       // Contribution context for eligibility display
       const effectiveSsn = person?.ssn ?? (pendingVerification ? ssn : '');
       if (effectiveSsn) {
-        const summary = await getContributionSummary(effectiveSsn, claimDate, resolvedVersion.versionId);
+        const summary = await getContributionSummary(effectiveSsn, claimDate, resolvedVersion.version.id);
         if (!cancel) setContribution(summary);
       }
     }
@@ -627,10 +627,10 @@ export default function ClaimRegistration() {
                   <div className="rounded border bg-muted/30 p-3 text-sm space-y-1">
                     <div className="flex items-center gap-2 font-medium">
                       <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                      v{resolvedVersion.versionNumber} <Badge variant="outline">{resolvedVersion.status}</Badge>
+                      v{resolvedVersion.version.version_number} <Badge variant="outline">{resolvedVersion.version.version.status}</Badge>
                     </div>
-                    <Detail k="Effective From" v={resolvedVersion.effectiveFrom} />
-                    <Detail k="Effective To" v={resolvedVersion.effectiveTo ?? '(open)'} />
+                    <Detail k="Effective From" v={resolvedVersion.version.effective_from} />
+                    <Detail k="Effective To" v={resolvedVersion.version.effective_to ?? '(open)'} />
                   </div>
                 )}
               </StepCard>
@@ -778,7 +778,7 @@ export default function ClaimRegistration() {
                 <ReviewLine k="Claimant" v={person ? `${person.fullName} (${person.ssn})` : pendingVerification ? `${pendingPerson.firstName} ${pendingPerson.lastName} (pending verification)` : '—'} />
                 <ReviewLine k="Benefit" v={selectedProduct ? `${(selectedProduct as any).benefit_name} (${(selectedProduct as any).benefit_code})` : '—'} />
                 <ReviewLine k="Claim Date" v={formatDateForDisplay(claimDate)} />
-                <ReviewLine k="Product Version" v={resolvedVersion ? `v${resolvedVersion.versionNumber} (${resolvedVersion.effectiveFrom} → ${resolvedVersion.effectiveTo ?? 'open'})` : '—'} />
+                <ReviewLine k="Product Version" v={resolvedVersion ? `v${resolvedVersion.version.version_number} (${resolvedVersion.version.effective_from} → ${resolvedVersion.version.effective_to ?? 'open'})` : '—'} />
                 <ReviewLine k="Eligibility Rules Loaded" v={String(eligRules.length)} />
                 <ReviewLine k="Documents" v={`${Object.values(docState).filter(s => s.status === 'PROVIDED').length} provided · ${Object.values(docState).filter(s => s.status === 'PENDING').length} pending · ${Object.values(docState).filter(s => s.status === 'WAIVED').length} waived`} />
                 <ReviewLine k="Priority" v={priority} />
@@ -939,8 +939,8 @@ function ContextPanel({
           <CardHeader className="pb-2"><CardTitle className="text-sm">Benefit / Version</CardTitle></CardHeader>
           <CardContent className="text-xs space-y-1">
             {product && <Detail k="Benefit" v={`${product.benefit_name} (${product.benefit_code})`} />}
-            {version && <Detail k="Version" v={`v${version.versionNumber} (${version.status})`} />}
-            {version && <Detail k="Effective" v={`${version.effectiveFrom} → ${version.effectiveTo ?? 'open'}`} />}
+            {version && <Detail k="Version" v={`v${version.version.version_number} (${version.version.status})`} />}
+            {version && <Detail k="Effective" v={`${version.version.effective_from} → ${version.version.effective_to ?? 'open'}`} />}
           </CardContent>
         </Card>
       )}
