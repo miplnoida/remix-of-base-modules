@@ -71,6 +71,9 @@ import { StatusHistorySection } from '@/components/bn/workbench/StatusHistorySec
 import { ClaimActionBar } from '@/components/bn/workbench/ClaimActionBar';
 import LegacyClaim360View from '@/components/bn/claim/LegacyClaim360View';
 import { ClaimSnapshotsPanel } from '@/components/bn/claims/ClaimSnapshotsPanel';
+import { ApplicationDetailsPanel, WorkflowTasksPanel, PaymentsPanel, channelLabel } from '@/components/bn/workbench/ClaimWorkspacePanels';
+import { Badge } from '@/components/ui/badge';
+import { CreditCard, ListChecks, Inbox } from 'lucide-react';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
@@ -243,8 +246,17 @@ export default function ClaimWorkbench() {
               dot
             />
           </div>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {product?.benefit_name || 'Unknown Benefit'} • SSN: {claim.ssn} • Filed: {formatDateForDisplay(claim.claim_date)}
+          <p className="mt-0.5 text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
+            <span>{product?.benefit_name || 'Unknown Benefit'}</span>
+            <span>•</span><span>SSN: {claim.ssn}</span>
+            <span>•</span><span>Filed: {formatDateForDisplay(claim.claim_date)}</span>
+            <span>•</span>
+            <Badge variant="secondary" className="font-normal">
+              Channel: {channelLabel((claim as any).application_channel ?? (claim as any).source)}
+            </Badge>
+            {claim.legacy_claim_ref && (
+              <Badge variant="outline" className="font-normal">Legacy ref: {claim.legacy_claim_ref}</Badge>
+            )}
           </p>
         </div>
       </div>
@@ -295,8 +307,23 @@ export default function ClaimWorkbench() {
           <TabsTrigger value="linked" className="gap-1.5"><GitBranch className="h-3.5 w-3.5" /> Linked</TabsTrigger>
           <TabsTrigger value="history" className="gap-1.5"><History className="h-3.5 w-3.5" /> History</TabsTrigger>
           <TabsTrigger value="workflow" className="gap-1.5"><GitBranch className="h-3.5 w-3.5" /> Workflow</TabsTrigger>
+          <TabsTrigger value="tasks" className="gap-1.5"><ListChecks className="h-3.5 w-3.5" /> Tasks</TabsTrigger>
+          <TabsTrigger value="application" className="gap-1.5"><Inbox className="h-3.5 w-3.5" /> Application</TabsTrigger>
+          <TabsTrigger value="payments" className="gap-1.5"><CreditCard className="h-3.5 w-3.5" /> Payments</TabsTrigger>
           <TabsTrigger value="snapshots" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Snapshots</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="application" className="mt-6">
+          <ApplicationDetailsPanel claimId={claim.id} productVersionId={(claim as any).product_version_id} />
+        </TabsContent>
+
+        <TabsContent value="tasks" className="mt-6">
+          <WorkflowTasksPanel claimId={claim.id} workflowInstanceId={claim.workflow_instance_id} />
+        </TabsContent>
+
+        <TabsContent value="payments" className="mt-6">
+          <PaymentsPanel claimId={claim.id} />
+        </TabsContent>
 
         <TabsContent value="snapshots" className="mt-6">
           <ClaimSnapshotsPanel claimId={claim.id} />
