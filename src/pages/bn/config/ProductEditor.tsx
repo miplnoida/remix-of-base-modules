@@ -130,7 +130,6 @@ export default function ProductEditor() {
     return <div className="flex min-h-[400px] items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
   }
 
-  const activeVersion = versions.find((v: BnProductVersion) => v.id === selectedVersionId);
 
   return (
     <div className="space-y-6 p-6">
