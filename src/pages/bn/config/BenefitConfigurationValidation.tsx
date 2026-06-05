@@ -28,6 +28,7 @@ import {
 import {
   seedBaselineTestCases,
   runAllProductTests,
+  buildValidationReportCsv,
   type TestRunResult,
 } from '@/services/bn/productTestCaseService';
 import { findBaselineByCode } from '@/services/bn/skn/sknBenefitCatalogueBaseline';
@@ -60,6 +61,9 @@ export default function BenefitConfigurationValidation() {
   const [selected, setSelected] = useState<ProductValidationReport | null>(null);
   const [testResults, setTestResults] = useState<TestRunResult[] | null>(null);
   const [runningTests, setRunningTests] = useState(false);
+  const [showFailedOnly, setShowFailedOnly] = useState(false);
+  const [runningAll, setRunningAll] = useState(false);
+  const [allResults, setAllResults] = useState<TestRunResult[]>([]);
 
   const refresh = async () => {
     setLoading(true);
@@ -117,12 +121,46 @@ export default function BenefitConfigurationValidation() {
     }
   };
 
+  const handleRunAllTests = async () => {
+    setRunningAll(true);
+    try {
+      const all: TestRunResult[] = [];
+      for (const r of reports) {
+        if (!r.product_id) continue;
+        const res = await runAllProductTests(r.product_id);
+        all.push(...res);
+      }
+      setAllResults(all);
+      const failed = all.filter((x) => !x.passed).length;
+      toast.success(`Ran ${all.length} test(s) — ${failed} failed`);
+    } catch (e) {
+      toast.error('Run failed', { description: (e as Error).message });
+    } finally {
+      setRunningAll(false);
+    }
+  };
+
   const exportReport = () => {
     const blob = new Blob([JSON.stringify(reports, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `bn-validation-report-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportTestCsv = () => {
+    if (allResults.length === 0) {
+      toast.error('Run tests first');
+      return;
+    }
+    const csv = buildValidationReportCsv(allResults);
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bn-test-results-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -139,13 +177,20 @@ export default function BenefitConfigurationValidation() {
             or suspicious configuration as <strong>NEEDS_REVIEW</strong> — does not auto-fix.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={exportReport} disabled={reports.length === 0}>
-            <Download className="mr-2 h-4 w-4" /> Export
+            <Download className="mr-2 h-4 w-4" /> Export Config JSON
+          </Button>
+          <Button variant="outline" onClick={exportTestCsv} disabled={allResults.length === 0}>
+            <Download className="mr-2 h-4 w-4" /> Export Validation Report
           </Button>
           <Button variant="outline" onClick={handleSeedTests} disabled={seeding}>
             {seeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FlaskConical className="mr-2 h-4 w-4" />}
             Seed Baseline Tests
+          </Button>
+          <Button variant="outline" onClick={handleRunAllTests} disabled={runningAll || reports.length === 0}>
+            {runningAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FlaskConical className="mr-2 h-4 w-4" />}
+            Run All Tests
           </Button>
           <Button onClick={refresh} disabled={loading}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
@@ -153,6 +198,67 @@ export default function BenefitConfigurationValidation() {
           </Button>
         </div>
       </div>
+
+      {allResults.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>
+              Test Run Summary — {allResults.filter((r) => r.passed).length}/{allResults.length} passed
+            </CardTitle>
+            <Button
+              size="sm"
+              variant={showFailedOnly ? 'default' : 'outline'}
+              onClick={() => setShowFailedOnly((v) => !v)}
+            >
+              {showFailedOnly ? 'Show All' : 'View Failed Tests'}
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Benefit</TableHead>
+                    <TableHead>Scenario</TableHead>
+                    <TableHead>Eligibility</TableHead>
+                    <TableHead>Calc</TableHead>
+                    <TableHead>Docs</TableHead>
+                    <TableHead>Workflow</TableHead>
+                    <TableHead>Acceptance</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Diffs</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allResults
+                    .filter((r) => !showFailedOnly || !r.passed)
+                    .map((r) => (
+                      <TableRow key={r.test_case_id}>
+                        <TableCell className="font-mono text-xs">{r.test_case_code}</TableCell>
+                        <TableCell className="text-xs">{r.benefit_code}</TableCell>
+                        <TableCell><Badge variant="outline">{r.scenario_type}</Badge></TableCell>
+                        <TableCell className="text-xs">{r.checks.eligibility}</TableCell>
+                        <TableCell className="text-xs">{r.checks.calculation}</TableCell>
+                        <TableCell className="text-xs">{r.checks.documents}</TableCell>
+                        <TableCell className="text-xs">{r.checks.workflow_start}</TableCell>
+                        <TableCell className="text-xs">{r.checks.claim_acceptance}</TableCell>
+                        <TableCell>
+                          <Badge variant={r.passed ? 'default' : 'destructive'}>
+                            {r.passed ? 'PASS' : 'FAIL'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-xs text-xs text-muted-foreground">
+                          {r.diffs.join(' | ')}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Alert>
         <Info className="h-4 w-4" />
