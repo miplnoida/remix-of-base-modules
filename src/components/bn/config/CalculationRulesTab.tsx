@@ -16,9 +16,11 @@ import { useBnFormulaTemplates } from '@/hooks/bn/useBnConfig';
 import { BN_CALC_TYPES } from '@/types/bn';
 import type { BnCalculationRule } from '@/types/bn';
 
-interface Props { versionId: string | undefined; }
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-export function CalculationRulesTab({ versionId }: Props) {
+interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
+
+export function CalculationRulesTab({ versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: rules = [], isLoading } = useBnCalculationRules(versionId);
   const { data: templates = [] } = useBnFormulaTemplates();
@@ -49,9 +51,10 @@ export function CalculationRulesTab({ versionId }: Props) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Calculation Rules</CardTitle><CardDescription>Define formulas, rates, and tiers for benefit amount computation</CardDescription></div>
-          <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Rule</Button>
+          <Button onClick={openNew} className="gap-2" disabled={isReadOnly}><Plus className="h-4 w-4" /> Add Rule</Button>
         </CardHeader>
         <CardContent>
+          <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
           {isLoading ? <p className="text-muted-foreground py-4">Loading...</p> : rules.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">No calculation rules configured.</p>
           ) : (
@@ -71,8 +74,8 @@ export function CalculationRulesTab({ versionId }: Props) {
                     <TableCell>{r.is_active ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" onClick={async () => { await deleteMutation.mutateAsync(r.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={() => openEdit(r)}><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={async () => { await deleteMutation.mutateAsync(r.id); }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </TableCell>
                   </TableRow>

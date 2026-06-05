@@ -69,13 +69,30 @@ export async function updateProductVersion(id: string, updates: Partial<BnProduc
 }
 
 /**
- * Copy all rules from a source version to a new version.
- * Copies: eligibility rules, calculation rules, timeline rules.
+ * Copy full configuration from a source version into a target (DRAFT) version.
+ * Copies: eligibility, calculation, timeline rules, document requirements,
+ * workflow & screen template assignments, channel configs, version-level
+ * processing flags, and version-specific override policies.
  */
-export async function copyVersionRules(sourceVersionId: string, targetVersionId: string): Promise<{ eligibility: number; calculation: number; timeline: number; documents: number }> {
-  let counts = { eligibility: 0, calculation: 0, timeline: 0, documents: 0 };
+export async function copyVersionRules(
+  sourceVersionId: string,
+  targetVersionId: string,
+): Promise<{
+  eligibility: number;
+  calculation: number;
+  timeline: number;
+  documents: number;
+  workflow: number;
+  screen_template: number;
+  channels: number;
+  overrides: number;
+}> {
+  const counts = {
+    eligibility: 0, calculation: 0, timeline: 0, documents: 0,
+    workflow: 0, screen_template: 0, channels: 0, overrides: 0,
+  };
 
-  // Copy eligibility rules
+  // Eligibility
   const eligRules = await fetchEligibilityRules(sourceVersionId);
   for (const rule of eligRules) {
     const { id, product_version_id, entered_at, modified_at, ...rest } = rule as any;
@@ -83,7 +100,7 @@ export async function copyVersionRules(sourceVersionId: string, targetVersionId:
     counts.eligibility++;
   }
 
-  // Copy calculation rules
+  // Calculation
   const calcRules = await fetchCalculationRules(sourceVersionId);
   for (const rule of calcRules) {
     const { id, product_version_id, entered_at, modified_at, ...rest } = rule as any;
@@ -91,7 +108,7 @@ export async function copyVersionRules(sourceVersionId: string, targetVersionId:
     counts.calculation++;
   }
 
-  // Copy timeline rules
+  // Timeline
   const timeRules = await fetchTimelineRules(sourceVersionId);
   for (const rule of timeRules) {
     const { id, product_version_id, entered_at, modified_at, ...rest } = rule as any;
@@ -99,11 +116,130 @@ export async function copyVersionRules(sourceVersionId: string, targetVersionId:
     counts.timeline++;
   }
 
-  // Copy document requirements
+  // Documents
   const { copyDocumentRequirements } = await import('./configService');
   counts.documents = await copyDocumentRequirements(sourceVersionId, targetVersionId);
 
+  // Version-level assignments and processing flags
+  const { data: src } = await db.from('bn_product_version').select('*').eq('id', sourceVersionId).maybeSingle();
+  if (src) {
+    const updates: Record<string, unknown> = {
+      workflow_template_id: src.workflow_template_id ?? null,
+      screen_template_id: src.screen_template_id ?? null,
+      requires_employer_verification: src.requires_employer_verification ?? false,
+      requires_medical_board_review: src.requires_medical_board_review ?? false,
+      requires_means_test: src.requires_means_test ?? false,
+    };
+    // copy any version-level JSON config fields if present
+    for (const k of ['configuration', 'settings_json', 'metadata']) {
+      if (src[k] !== undefined) updates[k] = src[k];
+    }
+    await db.from('bn_product_version').update(updates).eq('id', targetVersionId);
+    if (src.workflow_template_id) counts.workflow = 1;
+    if (src.screen_template_id) counts.screen_template = 1;
+  }
+
+  // Channels
+  const { data: srcChannels } = await db
+    .from('bn_product_channel_config')
+    .select('*')
+    .eq('product_version_id', sourceVersionId);
+  if (srcChannels && srcChannels.length > 0) {
+    const rows = srcChannels.map((r: any) => {
+      const { id, entered_at, modified_at, entered_by, modified_by, ...rest } = r;
+      return { ...rest, product_version_id: targetVersionId };
+    });
+    const { error } = await db
+      .from('bn_product_channel_config')
+      .upsert(rows, { onConflict: 'product_version_id,channel_code' });
+    if (!error) counts.channels = rows.length;
+  }
+
+  // Override policies (version-specific only)
+  const { data: srcOverrides } = await db
+    .from('bn_override_policy')
+    .select('*')
+    .eq('product_version_id', sourceVersionId);
+  if (srcOverrides && srcOverrides.length > 0) {
+    const rows = srcOverrides.map((r: any) => {
+      const { id, entered_at, modified_at, entered_by, modified_by, ...rest } = r;
+      return { ...rest, product_version_id: targetVersionId };
+    });
+    const { error } = await db.from('bn_override_policy').insert(rows);
+    if (!error) counts.overrides = rows.length;
+  }
+
   return counts;
+}
+
+/**
+ * Publish a DRAFT/APPROVED version as ACTIVE with effective_from date.
+ * Auto-closes any currently ACTIVE version for the same product by setting
+ * its effective_to = newEffectiveFrom - 1 day when no end date is set.
+ * Throws if overlap cannot be resolved.
+ */
+export async function publishProductVersion(
+  versionId: string,
+  newEffectiveFrom: string,
+): Promise<void> {
+  const version = await fetchVersionById(versionId);
+  if (!version) throw new Error('Version not found');
+
+  const existingActive = (await fetchVersionsByProduct(version.product_id))
+    .filter(v => v.status === 'ACTIVE' && v.id !== versionId);
+
+  for (const ex of existingActive) {
+    if (!ex.effective_from) continue;
+    if (ex.effective_from >= newEffectiveFrom) {
+      throw new Error(
+        `Cannot publish: existing ACTIVE Version ${ex.version_number} starts on ${ex.effective_from}, ` +
+        `which is on/after the new effective date ${newEffectiveFrom}.`,
+      );
+    }
+    if (!ex.effective_to) {
+      const dayBefore = new Date(newEffectiveFrom);
+      dayBefore.setDate(dayBefore.getDate() - 1);
+      const closeDate = dayBefore.toISOString().slice(0, 10);
+      await db.from('bn_product_version').update({
+        effective_to: closeDate,
+        modified_at: new Date().toISOString(),
+      }).eq('id', ex.id);
+    } else if (ex.effective_to >= newEffectiveFrom) {
+      throw new Error(
+        `Cannot publish: ACTIVE Version ${ex.version_number} ends on ${ex.effective_to}, ` +
+        `which overlaps the new effective date ${newEffectiveFrom}. Adjust the prior version first.`,
+      );
+    }
+  }
+
+  await db.from('bn_product_version').update({
+    status: 'ACTIVE',
+    effective_from: newEffectiveFrom,
+    modified_at: new Date().toISOString(),
+  }).eq('id', versionId);
+}
+
+/**
+ * Retire an ACTIVE version. Requires either a replacement ACTIVE version to
+ * exist or effective_to already set on the version being retired.
+ */
+export async function retireProductVersion(versionId: string): Promise<void> {
+  const version = await fetchVersionById(versionId);
+  if (!version) throw new Error('Version not found');
+  if (version.status !== 'ACTIVE') throw new Error('Only ACTIVE versions can be retired');
+
+  const others = (await fetchVersionsByProduct(version.product_id))
+    .filter(v => v.id !== versionId);
+  const replacement = others.find(v => v.status === 'ACTIVE');
+
+  if (!replacement && !version.effective_to) {
+    throw new Error('Cannot retire: set an effective_to date or publish a replacement ACTIVE version first.');
+  }
+
+  await db.from('bn_product_version').update({
+    status: 'ARCHIVED',
+    modified_at: new Date().toISOString(),
+  }).eq('id', versionId);
 }
 
 // ---- Eligibility Rules ----

@@ -1,81 +1,85 @@
-# BN Product Catalogue — Channels (Online + Offline)
+## BN Product Catalogue: Classification & Version Governance
 
-Make every benefit product/version support both online (public self-service) and offline (staff-assisted) applications. Eligibility, calculation, timelines, and interactions stay shared. Screens, documents, validation, and workflows become channel-specific.
+Make Product Catalog the single source of product configuration, with safe version lifecycle, claim-date resolution, and read-only enforcement for non-draft versions.
 
-## 1. Database migration
+### 1. ProductEditor UI changes (`src/pages/bn/config/ProductEditor.tsx`)
+- Rename "Active Version:" → "Selected Version:" with helper text: *"Claims use the version active on the claim date. Draft versions are for future changes."*
+- Compute `isEditableVersion = selectedVersion?.status === 'DRAFT'` and pass to every tab.
+- Add **Version Summary Card** above tabs showing: Status badge, Effective From/To, Editable Yes/No, counts (eligibility, calculation, document), workflow assigned, screen template assigned, public application ready.
+- Add **Version Lifecycle Actions** bar (Submit / Approve / Reject / Publish / Retire) gated by current status.
+- Add **Compare with Active** button → opens dialog using existing `compareVersions` / `useBnCompareVersions`.
 
-New table `bn_product_channel_config`
-- Keys: `product_id`, `product_version_id`, `channel_code` (`ONLINE`|`OFFLINE`), unique on `(product_version_id, channel_code)`
-- Refs: `screen_template_id` → `bn_screen_template`, `workflow_template_id` → `bn_workflow_template`, `workflow_definition_id`, `document_profile_id` → `bn_document_profile`, `confirmation_template_id`
-- Flags: `is_enabled`, `allow_save_draft`, `allow_upload_later`, `requires_identity_verification`, `requires_email_or_phone_otp`, `requires_staff_review_before_acceptance`, `blocks_submission_if_documents_missing`, `blocks_submission_if_precheck_fails`, `correction_allowed`, `correction_deadline_days`, `default_source`, `metadata`
-- Standard audit columns
+### 2. Read-only enforcement across tabs
+Add `isReadOnly` prop (or reuse pattern from `OverridePoliciesTab`) to:
+- `EligibilityRulesTab`, `CalculationRulesTab`, `TimelineRulesTab`, `DocumentRulesTab`, `WorkflowTab`, `ScreenTemplateTab`, `ChannelsTab`, `InteractionRulesTab`, `OverridePoliciesTab`.
 
-Alter `bn_doc_requirement` — add `channel_code` (default `BOTH`), `public_visible`, `internal_visible`, `blocks_submission`, `blocks_decision`, `blocks_payment`, `condition_json`.
+When read-only:
+- Hide Add / Edit / Delete / Save buttons.
+- Show banner: *"This version is read-only. Create a new draft version to make changes."*
 
-Alter `bn_claim` — add `channel_code`, `submitted_via`, `screen_template_id`, `workflow_definition_id`, `channel_config_id`.
+### 3. New Version flow (`VersionHistoryTab.tsx` + `productService.ts`)
+When user clicks **New Version**:
+- Dialog asks: copy from **Selected Version** or **Current Active Version** (or blank).
+- Create DRAFT version, then call extended `copyVersionRules` to copy:
+  - eligibility, calculation, timeline rules (already done)
+  - document requirements (already done)
+  - workflow assignment (`workflow_template_id` on version)
+  - screen template assignment (`screen_template_id`)
+  - channels (`bn_product_channel_config` rows)
+  - version-specific override policies
+  - relevant version-level JSON config fields
 
-All new tables get GRANTs for `authenticated` and `service_role`; RLS stays off per project policy.
+### 4. Version lifecycle service
+Extend / wire existing `src/services/bn/rulesAdminService.ts` actions (submit, approve, reject, publish, retire) into ProductEditor:
+- DRAFT → Submit
+- PENDING_APPROVAL → Approve / Reject
+- APPROVED → Publish (with effective_from date)
+- ACTIVE → Retire (only if replacement exists OR `effective_to` set)
+- ARCHIVED/RETIRED → no actions
 
-## 2. Service layer
+### 5. No overlapping ACTIVE versions on publish
+In publish path (service layer):
+- Query existing ACTIVE versions for same `product_id`.
+- If new `effective_from` > existing active's `effective_from` and existing has no `effective_to`, auto-set existing `effective_to = new.effective_from - 1 day`.
+- If ranges still overlap, throw blocking error.
 
-`src/services/bn/productChannelConfigService.ts` (new)
-- `fetchChannelConfigs(versionId)`, `upsertChannelConfig`, `deleteChannelConfig`
-- `getChannelConfig(productVersionId, channel)`
+### 6. Claim date resolver — new file
+Create `src/services/bn/productVersionResolver.ts`:
+```ts
+resolveProductVersion(productIdOrCode: string, claimDate: string | Date)
+```
+- Resolves product by id or `benefit_code`; product must be ACTIVE.
+- Finds versions where status=ACTIVE, `effective_from <= claimDate`, and (`effective_to IS NULL` OR `claimDate <= effective_to`).
+- 0 rows → `NoActiveVersionError`; >1 rows → `OverlappingVersionsError`.
 
-`src/services/bn/productAcceptanceService.ts` (new)
-- `getProductApplicationConfig(productCode, claimDate, channel, applicantContext)` — resolves active version + channel config + shared rules
-- `getApplicationRequirements(...)` — filters `bn_doc_requirement` by channel + `condition_json` + visibility flags
-- `validateApplicationBeforeCreate(payload)` — runs precheck + blocks_submission_if_documents_missing
-- `createApplicationFromConfig(payload)` — inserts `bn_claim` with channel metadata
-- `generateEvidenceChecklist(claimId, productVersionId, channel)`
-- `startProductWorkflow(claimId, productVersionId, channel)` — central engine if `workflow_definition_id` set, else fallback to `bn_claim_transition_rule`
+Integrate the resolver at these call sites (replace existing "latest active" lookups):
+- Claim intake (BN claim creation entry point)
+- Public application config loader
+- Calculation engine entry
+- Eligibility check entry
+- Document checklist generator
 
-Update `bn_claim` insert paths in existing services to populate channel metadata when called.
+### 7. Classification/menu copy updates
+Update descriptions on these pages/menu entries:
+- **Product Catalog** — "Configure benefit products, versions, eligibility, calculations, documents, workflow, screens, and application requirements."
+- **Rule Group Library** — "Reusable categories for organizing rules. Product-specific rules are configured in Product Catalog."
+- **Formula Templates** — "Reusable formula library. Attach formulas inside Product Catalog → Calculation."
+- **Document Setup** — "Reusable document type library. Required documents for each benefit are configured in Product Catalog → Documents."
+- **Rule Version Governance** — "Approve, publish, retire, and audit product versions. Rules are edited in Product Catalog."
 
-## 3. Validation hook
+### 8. Version comparison view
+Reuse `useBnCompareVersions` in a `VersionCompareDialog` shown from ProductEditor; render diff sections: eligibility, calculation, documents, workflow, screens, timelines.
 
-Extend `src/services/bn/configurationValidationService.ts`:
-- Public-ready check: ONLINE channel enabled + screen + docs + workflow + confirmation
-- Staff-ready check: OFFLINE channel enabled + screen + docs + workflow
-- Surface in Benefit Configuration Validation dashboard
+### Technical notes
+- No new DB tables needed; relies on existing `bn_product_version.status`, `effective_from`, `effective_to`, and `bn_version_approval`.
+- Read-only is enforced in UI; service layer should also reject writes when version status ≠ DRAFT (defense in depth — add status check inside `upsertEligibilityRule`/`upsertCalculationRule`/`upsertTimelineRule`/`upsertDocumentRule` by joining to version).
+- `copyVersionRules` return type expands to include `workflow`, `screen_template`, `channels`, `overrides` counts.
+- Resolver errors surface via existing shielded-error pattern.
 
-## 4. UI — Product Editor
-
-New tab `ChannelsTab` (`src/components/bn/config/ChannelsTab.tsx`)
-- Two cards: Offline Staff Intake, Online Public Portal
-- Per card: enabled toggle, screen template select, document profile select, workflow template/definition selects, all behavior switches, correction deadline input
-- Save/upsert via new hooks `useBnChannelConfigs`, `useUpsertBnChannelConfig`
-
-Update `DocumentRulesTab` to show + edit:
-- `channel_code` select (Online/Offline/Both)
-- `public_visible`, `internal_visible`, `blocks_submission`, `blocks_decision`, `blocks_payment` toggles
-- Optional `condition_json` JSON textarea
-
-Add explanation banner to Product Editor:
-> Eligibility, calculation, timelines, and benefit interactions are shared for the product version. Channel settings control how online and offline applications collect data, require documents, and route workflow.
-
-## 5. Seed SKN channels
-
-Data insert (via insert tool after migration):
-- OFFLINE enabled = true for every active SKN product version
-- ONLINE enabled = true only for: `SKN-SVC-LIFE`, `SKN-SVC-SCH`, `SKN-SVC-EFT`
-- ONLINE disabled (row created but `is_enabled = false`) for everything else
-
-## 6. Types & hooks
-
-- Add types in `src/types/bn.ts`: `BnProductChannelConfig`, channel-related fields on `BnDocRequirement`, `BnClaim`
-- Add React Query hooks in `src/hooks/bn/useBnConfig.ts` for channel config CRUD
-
-## 7. Out of scope this turn
-
-- No new public portal UI built. Service layer + config so portal can consume it.
-- No central workflow engine changes — only wiring `workflow_definition_id` through.
-- No changes to existing eligibility/calculation/timeline tabs.
-
-## Technical notes
-
-- Migration order: CREATE TABLE → GRANT → (no RLS per project rule) → ALTER existing tables.
-- Channel codes uppercase, validated in service layer.
-- `default_source` defaults: `STAFF_ASSISTED` for OFFLINE, `ONLINE` for ONLINE.
-- Use `(supabase as any)` pattern consistent with existing `productService.ts`.
-- All new audit fields populated from `requireUserCode()` like other BN services.
+### Verification
+- Switching to an ACTIVE version hides all mutation controls and shows banner.
+- DRAFT version remains fully editable.
+- Creating a new version offers copy-from choice and produces non-zero counts across all categories.
+- Publish blocks when an overlapping ACTIVE version cannot be auto-closed.
+- `resolveProductVersion(code, date)` returns correct version for a given claim date in unit/manual check.
+- TypeScript build passes.

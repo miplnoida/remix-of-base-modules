@@ -8,9 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save, Plus, History } from 'lucide-react';
+import { ArrowLeft, Save, Plus, History, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useBnProduct, useCreateBnProduct, useUpdateBnProduct, useBnProductVersions, useCreateBnProductVersion } from '@/hooks/bn/useBnProduct';
+import { useBnProduct, useCreateBnProduct, useUpdateBnProduct, useBnProductVersions, useCreateBnProductVersion, useCopyBnVersionRules } from '@/hooks/bn/useBnProduct';
 import { useBnSchemes, useBnBranches } from '@/hooks/bn/useBnConfig';
 import { BN_CATEGORY_LABELS, BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProduct, BnProductVersion, BnProductStatus } from '@/types/bn';
@@ -88,14 +88,37 @@ export default function ProductEditor() {
     }
   };
 
+  const activeVersion = versions.find((v: BnProductVersion) => v.id === selectedVersionId);
+  const isEditableVersion = activeVersion?.status === 'DRAFT';
+  const copyRulesMutation = useCopyBnVersionRules();
+
   const handleCreateVersion = async () => {
     if (!id || isNew) return;
     const nextNum = versions.length > 0 ? Math.max(...versions.map((v: BnProductVersion) => v.version_number)) + 1 : 1;
     try {
       const today = new Date().toISOString().slice(0, 10);
       const created = await createVersionMutation.mutateAsync({ product_id: id, version_number: nextNum, status: 'DRAFT', effective_from: today });
+      // Offer to copy from current selected or active version
+      const sourceId =
+        (activeVersion && window.confirm(
+          `New draft Version ${nextNum} created. Copy full configuration from currently selected V${activeVersion.version_number} [${activeVersion.status}]?\n\nOK = copy from selected, Cancel = leave empty.`,
+        ))
+          ? activeVersion.id
+          : null;
+      if (sourceId) {
+        try {
+          const c = await copyRulesMutation.mutateAsync({ sourceVersionId: sourceId, targetVersionId: created.id });
+          toast({
+            title: `Version ${nextNum} created and populated`,
+            description: `Copied ${c.eligibility} eligibility, ${c.calculation} calculation, ${c.timeline} timeline, ${c.documents} documents, ${c.channels} channels, ${c.overrides} overrides.`,
+          });
+        } catch (copyErr: any) {
+          toast({ title: 'Version created — copy failed', description: copyErr?.message, variant: 'destructive' });
+        }
+      } else {
+        toast({ title: 'Success', description: `Version ${nextNum} created (empty draft).` });
+      }
       setSelectedVersionId(created.id);
-      toast({ title: 'Success', description: `Version ${nextNum} created.` });
     } catch (err: any) {
       toast({ title: 'Error', description: err?.message || 'Failed to create version.', variant: 'destructive' });
     }
@@ -107,7 +130,6 @@ export default function ProductEditor() {
     return <div className="flex min-h-[400px] items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
   }
 
-  const activeVersion = versions.find((v: BnProductVersion) => v.id === selectedVersionId);
 
   return (
     <div className="space-y-6 p-6">
@@ -149,26 +171,45 @@ export default function ProductEditor() {
       {/* Version Selector */}
       {!isNew && versions.length > 0 && (
         <Card>
-          <CardContent className="flex items-center gap-4 py-3">
-            <History className="h-4 w-4 text-muted-foreground" />
-            <Label className="text-sm font-medium">Active Version:</Label>
-            <Select value={selectedVersionId || '__none__'} onValueChange={v => setSelectedVersionId(v === '__none__' ? undefined : v)}>
-              <SelectTrigger className="w-[300px]">
-                <SelectValue placeholder="Select version" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__">Select version</SelectItem>
-                {versions.map((v: BnProductVersion) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    V{v.version_number} — {v.effective_from} {v.effective_to ? `to ${v.effective_to}` : '(open)'} [{v.status}]
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <CardContent className="space-y-3 py-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <History className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-sm font-medium">Selected Version:</Label>
+              <Select value={selectedVersionId || '__none__'} onValueChange={v => setSelectedVersionId(v === '__none__' ? undefined : v)}>
+                <SelectTrigger className="w-[320px]">
+                  <SelectValue placeholder="Select version" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Select version</SelectItem>
+                  {versions.map((v: BnProductVersion) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      V{v.version_number} — {v.effective_from} {v.effective_to ? `to ${v.effective_to}` : '(open)'} [{v.status}]
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {activeVersion && (
+                <Badge variant={statusBadge[activeVersion.status] || 'outline'}>
+                  {BN_PRODUCT_STATUS_LABELS[activeVersion.status as BnProductStatus] || activeVersion.status}
+                </Badge>
+              )}
+              {activeVersion && (
+                <Badge variant={isEditableVersion ? 'default' : 'secondary'}>
+                  {isEditableVersion ? 'Editable' : 'Read-only'}
+                </Badge>
+              )}
+            </div>
+            <p className="flex items-start gap-2 text-xs text-muted-foreground">
+              <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+              Claims use the version active on the claim date. Draft versions are for future changes.
+            </p>
             {activeVersion && (
-              <Badge variant={statusBadge[activeVersion.status] || 'outline'}>
-                {BN_PRODUCT_STATUS_LABELS[activeVersion.status as BnProductStatus] || activeVersion.status}
-              </Badge>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1 rounded-md border bg-muted/30 px-3 py-2 text-xs sm:grid-cols-4">
+                <div><span className="text-muted-foreground">Effective From:</span> <span className="font-medium">{activeVersion.effective_from || '—'}</span></div>
+                <div><span className="text-muted-foreground">Effective To:</span> <span className="font-medium">{activeVersion.effective_to || 'Open-ended'}</span></div>
+                <div><span className="text-muted-foreground">Workflow:</span> <span className="font-medium">{activeVersion.workflow_template_id ? 'Assigned' : 'Not set'}</span></div>
+                <div><span className="text-muted-foreground">Screen Template:</span> <span className="font-medium">{activeVersion.screen_template_id ? 'Assigned' : 'Not set'}</span></div>
+              </div>
             )}
           </CardContent>
         </Card>

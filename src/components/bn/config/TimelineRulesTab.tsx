@@ -14,9 +14,11 @@ import { useBnTimelineRules, useUpsertBnTimelineRule } from '@/hooks/bn/useBnPro
 import { BN_TIMELINE_TYPES } from '@/types/bn';
 import type { BnTimelineRule } from '@/types/bn';
 
-interface Props { versionId: string | undefined; }
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-export function TimelineRulesTab({ versionId }: Props) {
+interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
+
+export function TimelineRulesTab({ versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: rules = [], isLoading } = useBnTimelineRules(versionId);
   const upsertMutation = useUpsertBnTimelineRule();
@@ -50,9 +52,10 @@ export function TimelineRulesTab({ versionId }: Props) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Timeline Rules</CardTitle><CardDescription>Waiting periods, max durations, filing deadlines, and review intervals</CardDescription></div>
-          <Button onClick={openNew} className="gap-2"><Plus className="h-4 w-4" /> Add Rule</Button>
+          <Button onClick={openNew} className="gap-2" disabled={isReadOnly}><Plus className="h-4 w-4" /> Add Rule</Button>
         </CardHeader>
         <CardContent>
+          <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
           {isLoading ? <p className="text-muted-foreground py-4">Loading...</p> : rules.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">No timeline rules configured.</p>
           ) : (
@@ -67,7 +70,7 @@ export function TimelineRulesTab({ versionId }: Props) {
                     <TableCell>{formatDuration(r)}</TableCell>
                     <TableCell>{r.is_active ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => { setEditing({ ...r }); setDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={() => { setEditing({ ...r }); setDialogOpen(true); }}><Edit className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
