@@ -185,7 +185,7 @@ export const DeveloperInfoModal = ({ open, onOpenChange, currentRoute }: Props) 
               <AlertTriangle className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold">No Developer Information</h3>
               <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                This screen has not been documented yet. Run the auto-population process from the Admin Maintenance page to generate documentation.
+                This screen has no documentation yet. Click <strong>Re-analyze</strong> above to auto-generate it.
               </p>
             </div>
           ) : (
