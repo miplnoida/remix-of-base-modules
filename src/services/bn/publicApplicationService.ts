@@ -126,7 +126,7 @@ export async function getAvailableBenefitProducts(
       if (!cfg.channelConfig?.is_enabled) continue;
       results.push({
         productCode: product.benefit_code,
-        productName: product.name,
+        productName: product.benefit_name,
         description: product.description ?? null,
         versionId: cfg.version.id,
         versionNumber: cfg.version.version_number,
@@ -178,7 +178,7 @@ export async function getApplicationRequirements(
   return {
     product: {
       productCode: resolved.product.benefit_code,
-      productName: resolved.product.name,
+      productName: resolved.product.benefit_name,
       description: resolved.product.description ?? null,
       versionId: resolved.version.id,
       versionNumber: resolved.version.version_number,
