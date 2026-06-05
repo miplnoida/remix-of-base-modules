@@ -25,7 +25,9 @@ import {
 import { resolveField, type ResolvedValue } from '@/services/bn/eligibility/fieldResolver';
 import { evaluateOperator } from '@/services/bn/eligibility/operatorEvaluator';
 
-interface Props { versionId: string | undefined; }
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
+
+interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
 const emptyRule: Partial<BnEligibilityRule> = {
   rule_code: '', rule_name: '', rule_type: 'CONTRIBUTION', rule_group: 'GENERAL',
@@ -33,7 +35,7 @@ const emptyRule: Partial<BnEligibilityRule> = {
   data_source: '', fail_message: '', fail_action: 'REJECT', sort_order: 0, is_active: true,
 };
 
-export function EligibilityRulesTab({ versionId }: Props) {
+export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: rules = [], isLoading } = useBnEligibilityRules(versionId);
   const { data: ruleGroups = [] } = useBnRuleGroups();
