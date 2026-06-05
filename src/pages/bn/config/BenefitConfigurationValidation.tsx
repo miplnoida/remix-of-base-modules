@@ -177,13 +177,20 @@ export default function BenefitConfigurationValidation() {
             or suspicious configuration as <strong>NEEDS_REVIEW</strong> — does not auto-fix.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={exportReport} disabled={reports.length === 0}>
-            <Download className="mr-2 h-4 w-4" /> Export
+            <Download className="mr-2 h-4 w-4" /> Export Config JSON
+          </Button>
+          <Button variant="outline" onClick={exportTestCsv} disabled={allResults.length === 0}>
+            <Download className="mr-2 h-4 w-4" /> Export Validation Report
           </Button>
           <Button variant="outline" onClick={handleSeedTests} disabled={seeding}>
             {seeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FlaskConical className="mr-2 h-4 w-4" />}
             Seed Baseline Tests
+          </Button>
+          <Button variant="outline" onClick={handleRunAllTests} disabled={runningAll || reports.length === 0}>
+            {runningAll ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FlaskConical className="mr-2 h-4 w-4" />}
+            Run All Tests
           </Button>
           <Button onClick={refresh} disabled={loading}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
@@ -191,6 +198,67 @@ export default function BenefitConfigurationValidation() {
           </Button>
         </div>
       </div>
+
+      {allResults.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>
+              Test Run Summary — {allResults.filter((r) => r.passed).length}/{allResults.length} passed
+            </CardTitle>
+            <Button
+              size="sm"
+              variant={showFailedOnly ? 'default' : 'outline'}
+              onClick={() => setShowFailedOnly((v) => !v)}
+            >
+              {showFailedOnly ? 'Show All' : 'View Failed Tests'}
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Benefit</TableHead>
+                    <TableHead>Scenario</TableHead>
+                    <TableHead>Eligibility</TableHead>
+                    <TableHead>Calc</TableHead>
+                    <TableHead>Docs</TableHead>
+                    <TableHead>Workflow</TableHead>
+                    <TableHead>Acceptance</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Diffs</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {allResults
+                    .filter((r) => !showFailedOnly || !r.passed)
+                    .map((r) => (
+                      <TableRow key={r.test_case_id}>
+                        <TableCell className="font-mono text-xs">{r.test_case_code}</TableCell>
+                        <TableCell className="text-xs">{r.benefit_code}</TableCell>
+                        <TableCell><Badge variant="outline">{r.scenario_type}</Badge></TableCell>
+                        <TableCell className="text-xs">{r.checks.eligibility}</TableCell>
+                        <TableCell className="text-xs">{r.checks.calculation}</TableCell>
+                        <TableCell className="text-xs">{r.checks.documents}</TableCell>
+                        <TableCell className="text-xs">{r.checks.workflow_start}</TableCell>
+                        <TableCell className="text-xs">{r.checks.claim_acceptance}</TableCell>
+                        <TableCell>
+                          <Badge variant={r.passed ? 'default' : 'destructive'}>
+                            {r.passed ? 'PASS' : 'FAIL'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="max-w-xs text-xs text-muted-foreground">
+                          {r.diffs.join(' | ')}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Alert>
         <Info className="h-4 w-4" />
