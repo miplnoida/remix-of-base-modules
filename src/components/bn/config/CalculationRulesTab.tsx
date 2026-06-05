@@ -16,9 +16,11 @@ import { useBnFormulaTemplates } from '@/hooks/bn/useBnConfig';
 import { BN_CALC_TYPES } from '@/types/bn';
 import type { BnCalculationRule } from '@/types/bn';
 
-interface Props { versionId: string | undefined; }
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-export function CalculationRulesTab({ versionId }: Props) {
+interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
+
+export function CalculationRulesTab({ versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: rules = [], isLoading } = useBnCalculationRules(versionId);
   const { data: templates = [] } = useBnFormulaTemplates();
