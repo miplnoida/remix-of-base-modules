@@ -17,7 +17,7 @@ import { copyDocumentRequirements } from '@/services/bn/configService';
 import { useQueryClient } from '@tanstack/react-query';
 import type { BnDocumentRule } from '@/types/bn';
 
-interface Props { productId: string | undefined; versionId?: string | undefined; }
+interface Props { productId: string | undefined; versionId?: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
 const channelBadge = (c?: string) => {
   const v = (c ?? 'BOTH').toUpperCase();
