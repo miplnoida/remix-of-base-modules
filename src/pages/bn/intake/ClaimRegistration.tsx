@@ -1,22 +1,30 @@
 /**
- * Claim Intake / New Claim Registration — Screen 3 (Enhanced)
+ * Staff-Assisted Smart Intake — /bn/intake/register
  *
- * Business Purpose: Register new benefit claims with full SSN lookup,
- * person profile preview, employment history, contribution summary,
- * auto-loaded evidence checklist, and bank account capture.
+ * Eleven-step flow:
+ *   1. Search SSN
+ *   2. Confirm claimant
+ *   3. Select benefit
+ *   4. Enter claim date
+ *   5. Resolve active product version
+ *   6. Auto-load eligibility pre-checks
+ *   7. Auto-load required documents
+ *   8. Enter benefit-specific facts only
+ *   9. Internal options (priority, basket, notes, escalation)
+ *   10. Submit claim
+ *   11. Workflow auto-started; claim routed to Worklist / Queue / My Tasks
  *
- * Tables READ (via adapters): ip_master, ip_employer, cn_wages_credited, er_master, cl_bank_acct
- * Tables WRITE: bn_claim, bn_claim_detail, bn_claim_event, bn_claim_evidence
- *
- * Enhancements over shell:
- *   - Full person profile with address and dependants count
- *   - Employment history panel from ip_employer adapter
- *   - Contribution summary from contribution adapter
- *   - Auto-populate evidence checklist from bn_doc_requirement
- *   - Duplicate claim check (same SSN + product + active status)
- *   - Initial status: REGISTERED → auto event logged
+ * Internal-only capabilities (channel = STAFF_OFFLINE):
+ *   - Pending verification (when SSN not found)         → audit
+ *   - Legacy lookup (cl_head)
+ *   - Document pending status                           → audit
+ *   - Document waiver request (permission gated)        → audit
+ *   - Internal notes
+ *   - Priority
+ *   - Workflow basket routing (permission gated)        → audit
+ *   - Supervisor escalation                             → audit
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,365 +32,698 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
-  ArrowLeft, Save, Search, User, CheckCircle2, AlertCircle,
-  Briefcase, Building2, DollarSign, FileText, Loader2, AlertTriangle,
-  Calendar,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  ArrowLeft, ArrowRight, Save, Search, ShieldCheck, AlertCircle,
+  AlertTriangle, Loader2, FileText, CheckCircle2, Link2, UserPlus,
+  StickyNote, FlagTriangleRight, Inbox, ListChecks, Stethoscope,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useBnProducts } from '@/hooks/bn/useBnProduct';
-import { useCreateBnClaim, useBnClaims } from '@/hooks/bn/useBnClaim';
-import { useBnClaimIntake } from '@/hooks/bn/useBnClaimIntake';
-import { useBnPersonLookup, useBnContributionSummary, useBnEmployerLookup } from '@/hooks/bn/useBnIntegration';
-import type { BnProduct } from '@/types/bn';
-import { BnDetailRow, BnStatusBadge } from '@/components/bn/shared';
-import { formatDateForDisplay } from '@/lib/format-config';
+
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
+import { useBnProducts } from '@/hooks/bn/useBnProduct';
+import { useBnClaimIntake } from '@/hooks/bn/useBnClaimIntake';
+import type { BnProduct } from '@/types/bn';
+import { formatDateForDisplay } from '@/lib/format-config';
+import { useAuth } from '@/contexts/auth/SupabaseAuthContext';
+import { logAuditTrail } from '@/services/auditService';
+import { resolveProductVersion, type ResolvedProductVersion } from '@/services/bn/productVersionResolver';
+import {
+  lookupPersonBySSN,
+  getDependants,
+  getExistingClaims,
+  getContributionSummary,
+  getRequiredDocuments,
+  lookupLegacyClaims,
+  type ContributionSummaryResult,
+  type RequiredDocumentLite,
+  type ExistingClaimRecord,
+  type LegacyClaimRecord,
+} from '@/services/bn/forms/formLookupService';
+import { fetchEligibilityRules } from '@/services/bn/productService';
+import {
+  getDefaultFieldsForBenefit,
+  normalizeBenefitKey,
+  type FormFieldDef,
+} from '@/services/bn/forms/sectionCatalogue';
+import type { PersonSummary, Dependant } from '@/services/bn/integration';
+import { hasPermission as checkPermission } from '@/utils/permissions';
+
+type DocStatus = 'PROVIDED' | 'PENDING' | 'WAIVED';
+interface DocState {
+  status: DocStatus;
+  pendingReason?: string;
+  waiverReason?: string;
+}
+
+const STEPS = [
+  { key: 'ssn', label: 'Search SSN', icon: Search },
+  { key: 'confirm', label: 'Confirm Claimant', icon: UserPlus },
+  { key: 'benefit', label: 'Select Benefit', icon: ListChecks },
+  { key: 'claim-date', label: 'Claim Date', icon: FileText },
+  { key: 'version', label: 'Product Version', icon: ShieldCheck },
+  { key: 'eligibility', label: 'Eligibility Pre-checks', icon: CheckCircle2 },
+  { key: 'documents', label: 'Required Documents', icon: ListChecks },
+  { key: 'facts', label: 'Benefit Facts', icon: Stethoscope },
+  { key: 'internal', label: 'Internal Options', icon: StickyNote },
+  { key: 'review', label: 'Review & Submit', icon: Save },
+] as const;
+type StepKey = (typeof STEPS)[number]['key'];
 
 export default function ClaimRegistration() {
   const navigate = useNavigate();
+  const { user, userProfile } = useAuth() as any;
+  const userCode: string = userProfile?.user_code ?? user?.email ?? 'STAFF';
+  const userPerms: string[] = userProfile?.permissions ?? [];
+  const can = (perm: string) => checkPermission(userPerms, perm);
+
   const { data: products = [] } = useBnProducts();
-  const createClaim = useCreateBnClaim();
+  const activeProducts = useMemo(
+    () => (products as BnProduct[]).filter(p => p.status === 'ACTIVE'),
+    [products],
+  );
   const intake = useBnClaimIntake();
 
-  const activeProducts = products.filter((p: BnProduct) => p.status === 'ACTIVE');
-
-  const [form, setForm] = useState({
-    ssn: '',
-    product_id: '',
-    employer_regno: '',
-    source: 'WALK_IN',
-    priority: 'NORMAL',
-    contact_phone: '',
-    contact_email: '',
-    bank_account: '',
-    bank_routing_number: '',
-    remarks: '',
-    event_date: '', // date of incident/sickness/etc
-  });
-
+  // ─── Wizard state ────────────────────────────────────────────────
+  const [step, setStep] = useState<StepKey>('ssn');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
 
-  // ── SSN Lookup ─────────────────────────────────
-  const [ssnSearch, setSsnSearch] = useState('');
-  const { data: person, isLoading: personLoading } = useBnPersonLookup(ssnSearch);
+  // Step 1–2: SSN + claimant
+  const [ssn, setSsn] = useState('');
+  const [person, setPerson] = useState<PersonSummary | null>(null);
+  const [personLoading, setPersonLoading] = useState(false);
+  const [personError, setPersonError] = useState<string | null>(null);
+  const [pendingVerification, setPendingVerification] = useState(false);
+  const [pendingPerson, setPendingPerson] = useState({ firstName: '', lastName: '', dob: '', gender: 'N' as 'M' | 'F' | 'N' });
+  const [dependants, setDependants] = useState<Dependant[]>([]);
+  const [existingClaims, setExistingClaims] = useState<ExistingClaimRecord[]>([]);
+  const [legacyMatches, setLegacyMatches] = useState<LegacyClaimRecord[]>([]);
 
-  // ── Employer Lookup ────────────────────────────
-  const [employerSearch, setEmployerSearch] = useState('');
-  const { data: employer, isLoading: employerLoading } = useBnEmployerLookup(employerSearch);
+  // Step 3–4: benefit + date
+  const [productId, setProductId] = useState('');
+  const [claimDate, setClaimDate] = useState(new Date().toISOString().slice(0, 10));
 
-  // ── Contribution Summary ───────────────────────
-  const contribWindowEnd = new Date().toISOString().slice(0, 10);
-  const contribWindowStart = useMemo(() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 3);
-    return d.toISOString().slice(0, 10);
-  }, []);
-  const { data: contributions, isLoading: contribLoading } = useBnContributionSummary(
-    ssnSearch || undefined,
-    ssnSearch ? contribWindowStart : undefined,
-    ssnSearch ? contribWindowEnd : undefined
+  // Step 5: resolved version
+  const [resolvedVersion, setResolvedVersion] = useState<ResolvedProductVersion | null>(null);
+  const [versionError, setVersionError] = useState<string | null>(null);
+  const [resolvingVersion, setResolvingVersion] = useState(false);
+
+  // Step 6: eligibility
+  const [eligRules, setEligRules] = useState<any[]>([]);
+  const [contribution, setContribution] = useState<ContributionSummaryResult | null>(null);
+
+  // Step 7: documents
+  const [docs, setDocs] = useState<RequiredDocumentLite[]>([]);
+  const [docState, setDocState] = useState<Record<string, DocState>>({});
+
+  // Step 8: benefit-specific facts
+  const [factValues, setFactValues] = useState<Record<string, any>>({});
+
+  // Step 9: internal options
+  const [priority, setPriority] = useState<'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'>('NORMAL');
+  const [source, setSource] = useState<'WALK_IN' | 'PAPER' | 'PHONE'>('PAPER');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [bankAccount, setBankAccount] = useState('');
+  const [bankRouting, setBankRouting] = useState('');
+  const [internalNotes, setInternalNotes] = useState('');
+  const [workbasket, setWorkbasket] = useState('');
+  const [escalateSupervisor, setEscalateSupervisor] = useState(false);
+  const [escalationReason, setEscalationReason] = useState('');
+
+  const selectedProduct = useMemo(
+    () => activeProducts.find(p => p.id === productId),
+    [activeProducts, productId],
+  );
+  const benefitKey = useMemo(
+    () => normalizeBenefitKey((selectedProduct as any)?.benefit_code ?? null),
+    [selectedProduct],
   );
 
-  // ── Duplicate Check ────────────────────────────
-  const { data: existingClaims = [] } = useBnClaims({
-    ssn: ssnSearch || undefined,
-    limit: 50,
-  });
+  // ─── Step 1 — SSN lookup ─────────────────────────────────────────
+  async function handleSsnLookup() {
+    const v = ssn.trim();
+    if (!v) {
+      setErrors(e => ({ ...e, ssn: 'SSN is required' }));
+      return;
+    }
+    setErrors(e => { const n = { ...e }; delete n.ssn; return n; });
+    setPersonLoading(true);
+    setPersonError(null);
+    try {
+      const res = await lookupPersonBySSN(v);
+      if (res.found && res.person) {
+        setPerson(res.person);
+        setPendingVerification(false);
+        setContactPhone(prev => prev || res.person!.phone || '');
+        setContactEmail(prev => prev || res.person!.email || '');
+        const [deps, existing] = await Promise.all([
+          getDependants(res.person.ssn),
+          getExistingClaims(res.person.ssn),
+        ]);
+        setDependants(deps);
+        setExistingClaims(existing);
+        setStep('confirm');
+      } else {
+        setPerson(null);
+        setPersonError(res.reason === 'NOT_FOUND' ? `No person found for SSN ${v}.` : (res.error ?? 'Lookup failed.'));
+      }
+    } catch (e: any) {
+      setPersonError(e?.message ?? 'Lookup failed.');
+    } finally {
+      setPersonLoading(false);
+    }
+  }
 
-  const duplicateWarning = useMemo(() => {
-    if (!form.product_id || !ssnSearch) return null;
-    const activeStatuses = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'ELIGIBILITY_CHECK', 'EVIDENCE_REVIEW', 'CALCULATION', 'DECISION', 'APPROVED', 'AWARD_SETUP', 'PAYMENT_QUEUE', 'IN_PAYMENT', 'PENDING_INFO'];
-    const dup = existingClaims.find(
-      (c: any) => c.product_id === form.product_id && activeStatuses.includes(c.status)
-    );
-    if (dup) {
-      return `Active claim ${dup.claim_number || dup.id.slice(0, 8)} already exists for this person and benefit type (Status: ${dup.status})`;
+  async function togglePendingVerification(on: boolean) {
+    setPendingVerification(on);
+    if (on) {
+      await logAuditTrail({
+        action: 'pending_verification_enabled',
+        entityType: 'bn_claim_intake',
+        entityId: ssn || 'unknown',
+        module: 'benefits',
+        userCode,
+        metadata: { ssn, reason: 'SSN not found in ip_master' },
+      });
+    }
+  }
+
+  async function runLegacyLookup() {
+    const key = ssn.trim();
+    if (!key) return;
+    const rows = await lookupLegacyClaims(key);
+    setLegacyMatches(rows);
+    toast.info(rows.length ? `${rows.length} legacy claim(s) found.` : 'No legacy claims found.');
+  }
+
+  // ─── Step 5 — Resolve version when benefit + date set ─────────────
+  useEffect(() => {
+    let cancel = false;
+    async function run() {
+      if (step !== 'version' || !selectedProduct || !claimDate) return;
+      setResolvingVersion(true);
+      setVersionError(null);
+      try {
+        const code = (selectedProduct as any).benefit_code ?? (selectedProduct as any).code;
+        const v = await resolveProductVersion(code, claimDate);
+        if (!cancel) setResolvedVersion(v);
+      } catch (e: any) {
+        if (!cancel) {
+          setResolvedVersion(null);
+          setVersionError(e?.message ?? 'Could not resolve an active product version.');
+        }
+      } finally {
+        if (!cancel) setResolvingVersion(false);
+      }
+    }
+    run();
+    return () => { cancel = true; };
+  }, [step, selectedProduct, claimDate]);
+
+  // ─── Step 6+7 — Load eligibility & documents when version known ──
+  useEffect(() => {
+    let cancel = false;
+    async function run() {
+      if (!resolvedVersion) return;
+      const [rules, docList] = await Promise.all([
+        fetchEligibilityRules(resolvedVersion.versionId).catch(() => []),
+        getRequiredDocuments(resolvedVersion.versionId, 'INTERNAL'),
+      ]);
+      if (cancel) return;
+      setEligRules(rules);
+      setDocs(docList);
+      setDocState(prev => {
+        const n = { ...prev };
+        for (const d of docList) if (!n[d.document_type_code]) n[d.document_type_code] = { status: 'PROVIDED' };
+        return n;
+      });
+      // Contribution context for eligibility display
+      const effectiveSsn = person?.ssn ?? (pendingVerification ? ssn : '');
+      if (effectiveSsn) {
+        const summary = await getContributionSummary(effectiveSsn, claimDate, resolvedVersion.versionId);
+        if (!cancel) setContribution(summary);
+      }
+    }
+    run();
+    return () => { cancel = true; };
+  }, [resolvedVersion, claimDate, person, pendingVerification, ssn]);
+
+  // ─── Document operations (audited) ───────────────────────────────
+  async function markDocPending(code: string, reason: string) {
+    setDocState(prev => ({ ...prev, [code]: { status: 'PENDING', pendingReason: reason } }));
+    await logAuditTrail({
+      action: 'document_marked_pending',
+      entityType: 'bn_claim_intake',
+      entityId: code,
+      module: 'benefits',
+      userCode,
+      metadata: { ssn: person?.ssn ?? ssn, productCode: (selectedProduct as any)?.benefit_code, document: code, reason },
+    });
+  }
+
+  async function requestDocWaiver(code: string, reason: string) {
+    if (!can('benefits.document_waiver')) {
+      toast.error('You do not have permission to waive documents.');
+      return;
+    }
+    setDocState(prev => ({ ...prev, [code]: { status: 'WAIVED', waiverReason: reason } }));
+    await logAuditTrail({
+      action: 'document_waiver_requested',
+      entityType: 'bn_claim_intake',
+      entityId: code,
+      module: 'benefits',
+      userCode,
+      metadata: { ssn: person?.ssn ?? ssn, productCode: (selectedProduct as any)?.benefit_code, document: code, reason },
+    });
+  }
+
+  async function setBasketWithAudit(value: string) {
+    setWorkbasket(value);
+    if (value) {
+      await logAuditTrail({
+        action: 'workflow_basket_override',
+        entityType: 'bn_claim_intake',
+        entityId: person?.ssn ?? ssn,
+        module: 'benefits',
+        userCode,
+        metadata: { workbasket: value, productCode: (selectedProduct as any)?.benefit_code },
+      });
+    }
+  }
+
+  async function toggleEscalation(on: boolean) {
+    setEscalateSupervisor(on);
+    if (on) {
+      await logAuditTrail({
+        action: 'supervisor_escalation_requested',
+        entityType: 'bn_claim_intake',
+        entityId: person?.ssn ?? ssn,
+        module: 'benefits',
+        userCode,
+        metadata: { reason: escalationReason || '(not yet supplied)', productCode: (selectedProduct as any)?.benefit_code },
+      });
+    }
+  }
+
+  // ─── Benefit-specific facts list ─────────────────────────────────
+  const factFields: FormFieldDef[] = useMemo(() => {
+    if (!benefitKey) return [];
+    return getDefaultFieldsForBenefit(benefitKey).filter(f => {
+      const skipSections = new Set([
+        'claimant_details',
+        'insured_person_details',
+        'benefit_selection',
+        'employment_details',
+        'contribution_context',
+        'banking_payee_details',
+        'documents',
+        'declaration_consent',
+        'internal_review',
+      ]);
+      return !skipSections.has(f.section_code);
+    });
+  }, [benefitKey]);
+
+  // ─── Step navigation guards ──────────────────────────────────────
+  function canAdvanceFrom(s: StepKey): string | null {
+    switch (s) {
+      case 'ssn': return person || pendingVerification ? null : 'Look up an SSN or enable pending verification.';
+      case 'confirm':
+        if (pendingVerification && (!pendingPerson.firstName || !pendingPerson.lastName || !pendingPerson.dob))
+          return 'Provide name and DOB for pending verification.';
+        return null;
+      case 'benefit': return productId ? null : 'Select a benefit.';
+      case 'claim-date': return claimDate ? null : 'Enter a claim date.';
+      case 'version': return resolvedVersion ? null : 'Active product version must resolve.';
+      case 'eligibility':
+      case 'documents':
+      case 'facts':
+      case 'internal':
+        return null;
+      case 'review': return null;
     }
     return null;
-  }, [form.product_id, ssnSearch, existingClaims]);
+  }
 
-  // ── Auto-fill from person ──────────────────────
-  useEffect(() => {
-    if (person) {
-      setForm(prev => ({
-        ...prev,
-        contact_phone: prev.contact_phone || person.phone || '',
-        contact_email: prev.contact_email || person.email || '',
-      }));
-    }
-  }, [person]);
+  function nextStep() {
+    const i = STEPS.findIndex(s => s.key === step);
+    if (i < 0 || i === STEPS.length - 1) return;
+    const block = canAdvanceFrom(step);
+    if (block) { toast.error(block); return; }
+    setStep(STEPS[i + 1].key);
+  }
+  function prevStep() {
+    const i = STEPS.findIndex(s => s.key === step);
+    if (i > 0) setStep(STEPS[i - 1].key);
+  }
 
-  const updateField = (field: string, value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
-    }
-  };
+  // ─── Submit ──────────────────────────────────────────────────────
+  async function handleSubmit() {
+    if (!selectedProduct) { toast.error('Select a benefit.'); return; }
+    if (!resolvedVersion) { toast.error('No active product version resolved.'); return; }
+    const effectiveSsn = (person?.ssn ?? ssn).trim();
+    if (!effectiveSsn) { toast.error('SSN is required.'); return; }
 
-  const handleSsnLookup = () => {
-    if (form.ssn.trim()) {
-      setSsnSearch(form.ssn.trim());
-    }
-  };
-
-  const handleEmployerLookup = () => {
-    if (form.employer_regno.trim()) {
-      setEmployerSearch(form.employer_regno.trim());
-    }
-  };
-
-  const validate = (): boolean => {
-    const errs: Record<string, string> = {};
-    if (!form.ssn.trim()) errs.ssn = 'SSN is required';
-    if (!form.product_id) errs.product_id = 'Benefit type is required';
-    if (!person && ssnSearch) errs.ssn = 'Person not found for this SSN';
-    if (!ssnSearch) errs.ssn = 'Please search for the person first';
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
-  };
-
-  const handleSubmit = async () => {
-    setHasAttemptedSubmit(true);
-    if (!validate()) {
-      toast.error('Please check the form for valid information!', {
-        description: Object.values(errors)[0] || 'Validation failed',
-        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
-      });
-      return;
-    }
-
-    if (duplicateWarning) {
-      toast.error('Duplicate claim warning', {
-        description: duplicateWarning,
-        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
-      });
-      return;
-    }
+    const pendingDocs = Object.entries(docState)
+      .filter(([, v]) => v.status === 'PENDING')
+      .map(([code, v]) => ({ document_type_code: code, reason: v.pendingReason ?? '' }));
+    const waivedDocs = Object.entries(docState)
+      .filter(([, v]) => v.status === 'WAIVED')
+      .map(([code, v]) => ({ document_type_code: code, reason: v.waiverReason ?? '' }));
+    const providedDocs = Object.entries(docState)
+      .filter(([, v]) => v.status === 'PROVIDED')
+      .map(([code]) => code);
 
     try {
-      const selectedProduct = activeProducts.find((p: BnProduct) => p.id === form.product_id);
-      const productCode = (selectedProduct as any)?.benefit_code;
-      if (!productCode) throw new Error('Selected benefit has no code.');
-
       const result = await intake.mutateAsync({
-        ssn: form.ssn,
-        productCode,
-        claimDate: form.event_date || new Date().toISOString().slice(0, 10),
+        ssn: effectiveSsn,
+        productCode: (selectedProduct as any).benefit_code,
+        claimDate,
         channel: 'STAFF_OFFLINE',
-        employerRegno: form.employer_regno || null,
+        employerRegno: null,
+        submittedByUserId: user?.id ?? null,
         formPayload: {
-          source: form.source,
-          priority: form.priority,
-          contact_phone: form.contact_phone,
-          contact_email: form.contact_email,
-          bank_account: form.bank_account,
-          bank_routing_number: form.bank_routing_number,
-          remarks: form.remarks,
+          source,
+          priority,
+          contact_phone: contactPhone,
+          contact_email: contactEmail,
+          bank_account: bankAccount,
+          bank_routing_number: bankRouting,
+          internal_notes: internalNotes,
+          workbasket_override: workbasket || null,
+          supervisor_escalation: escalateSupervisor
+            ? { requested: true, reason: escalationReason }
+            : null,
+          pending_verification: pendingVerification
+            ? { ...pendingPerson, reason: 'SSN not found' }
+            : null,
+          legacy_links: legacyMatches.map(l => l.legacy_ref),
+          benefit_facts: factValues,
+          documents: {
+            provided: providedDocs,
+            pending: pendingDocs,
+            waived: waivedDocs,
+          },
           declaration_accepted: true,
         },
       });
-      toast.success(`Claim registered: ${result.claimNumber}`);
+      toast.success(`Claim ${result.claimNumber} registered`);
+      if (result.workflowInstanceId) {
+        toast.info('Workflow started and routed to worklist.');
+      }
       navigate(`/bn/claims/${result.claimId}`);
-    } catch (err: any) {
-      toast.error('Failed to register claim', { description: err?.message });
+    } catch (e: any) {
+      toast.error('Failed to register claim', { description: e?.message });
     }
-  };
+  }
 
-  const errorCount = hasAttemptedSubmit ? Object.keys(errors).length : 0;
-
+  // ─── Render ──────────────────────────────────────────────────────
   return (
     <PermissionWrapper moduleName="bn_claims">
-      <div className="space-y-6 p-6">
-        {/* Header */}
-        <div className="flex items-center gap-4">
+      <div className="p-6 space-y-4">
+        <header className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate('/bn/claims')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Register New Claim</h1>
-            <p className="text-sm text-muted-foreground">Create a new benefit application for an insured person</p>
+            <h1 className="text-2xl font-semibold tracking-tight">Register / Assist Application</h1>
+            <p className="text-sm text-muted-foreground">
+              Staff-assisted smart intake. Identity, employer, and contribution data come from the platform registry.
+            </p>
           </div>
-        </div>
+          <Badge variant="outline">Channel: STAFF_OFFLINE</Badge>
+        </header>
 
-        {/* Validation Summary */}
-        {errorCount > 0 && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-destructive shrink-0" />
-            <span className="text-sm text-destructive">{errorCount} field(s) need attention</span>
-          </div>
-        )}
+        <div className="grid gap-4 lg:grid-cols-[260px_1fr_320px]">
+          {/* Stepper rail */}
+          <Card className="h-fit">
+            <CardHeader className="pb-2"><CardTitle className="text-sm">Intake Steps</CardTitle></CardHeader>
+            <CardContent className="space-y-1 text-sm">
+              {STEPS.map((s, i) => {
+                const Icon = s.icon;
+                const active = s.key === step;
+                const done = STEPS.findIndex(x => x.key === step) > i;
+                return (
+                  <button
+                    key={s.key}
+                    type="button"
+                    onClick={() => setStep(s.key)}
+                    className={`w-full text-left flex items-center gap-2 rounded px-2 py-1.5 ${active ? 'bg-primary/10 text-primary font-medium' : done ? 'text-muted-foreground' : ''}`}
+                  >
+                    {done ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> : <Icon className="h-3.5 w-3.5" />}
+                    <span className="text-[13px]">{i + 1}. {s.label}</span>
+                  </button>
+                );
+              })}
+            </CardContent>
+          </Card>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* ── LEFT COLUMN: Lookup & Person Info ────────── */}
+          {/* Active step panel */}
           <div className="space-y-4">
-            {/* SSN Lookup */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <User className="h-4 w-4" /> Claimant Lookup
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>SSN <span className="text-destructive">*</span></Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={form.ssn}
-                      onChange={(e) => updateField('ssn', e.target.value)}
-                      placeholder="Enter SSN"
-                      maxLength={20}
-                      className={errors.ssn ? 'border-destructive' : ''}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSsnLookup()}
-                    />
-                    <Button variant="outline" size="icon" onClick={handleSsnLookup} disabled={personLoading}>
-                      {personLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            {step === 'ssn' && (
+              <StepCard title="1. Search SSN" desc="Find the insured person by SSN. If no record exists, you may proceed with pending verification.">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter SSN…"
+                    value={ssn}
+                    onChange={e => setSsn(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSsnLookup()}
+                  />
+                  <Button onClick={handleSsnLookup} disabled={personLoading}>
+                    {personLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    <span className="ml-1">Search</span>
+                  </Button>
+                </div>
+                {personError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>{personError}</AlertTitle>
+                    <AlertDescription>
+                      You can enable pending verification and capture basic identity, or look up legacy claims.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {personError && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button variant="outline" onClick={() => togglePendingVerification(true)}>
+                      <UserPlus className="h-4 w-4 mr-1" /> Enable Pending Verification
+                    </Button>
+                    <Button variant="outline" onClick={runLegacyLookup}>
+                      <Link2 className="h-4 w-4 mr-1" /> Search Legacy Claims
                     </Button>
                   </div>
-                  {errors.ssn && <p className="text-xs text-destructive">{errors.ssn}</p>}
-                </div>
+                )}
+                {legacyMatches.length > 0 && (
+                  <div className="rounded border p-2 text-xs space-y-1">
+                    <div className="font-medium">Legacy claims</div>
+                    {legacyMatches.map(l => (
+                      <div key={l.legacy_ref}>
+                        {l.legacy_ref} — {l.product_code ?? '—'} ({l.status ?? '—'}, {l.effective_date ?? '—'})
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </StepCard>
+            )}
 
-                {/* Person Preview */}
-                {person && (
-                  <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-sm">{person.fullName}</span>
-                      <BnStatusBadge status={person.status.toUpperCase()} size="sm" className="ml-auto" />
+            {step === 'confirm' && (
+              <StepCard title="2. Confirm Claimant" desc={pendingVerification ? 'Capture basic identity for pending verification.' : 'Confirm the resolved person.'}>
+                {!pendingVerification && person && (
+                  <div className="rounded border bg-muted/30 p-3 text-sm space-y-1">
+                    <div className="flex items-center gap-2 font-medium">
+                      <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                      {person.fullName}
+                      <Badge variant="outline" className="ml-auto">{person.status}</Badge>
                     </div>
-                    <BnDetailRow label="DOB" value={formatDateForDisplay(person.dateOfBirth)} />
-                    <BnDetailRow label="Gender" value={person.gender === 'M' ? 'Male' : person.gender === 'F' ? 'Female' : 'Not-Specified'} />
-                    {person.phone && <BnDetailRow label="Phone" value={person.phone} />}
-                    {person.email && <BnDetailRow label="Email" value={person.email} />}
-                    {person.address && (
-                      <BnDetailRow label="Address" value={`${person.address.line1}${person.address.line2 ? ', ' + person.address.line2 : ''}`} />
-                    )}
-                    <div className="flex items-center gap-1 pt-1">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                      <span className="text-xs text-emerald-600">Person verified</span>
+                    <Detail k="SSN" v={person.ssn} />
+                    <Detail k="DOB" v={formatDateForDisplay(person.dateOfBirth)} />
+                    <Detail k="Gender" v={person.gender} />
+                    {person.phone && <Detail k="Phone" v={person.phone} />}
+                    {person.email && <Detail k="Email" v={person.email} />}
+                  </div>
+                )}
+                {pendingVerification && (
+                  <div className="space-y-3">
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Pending Verification</AlertTitle>
+                      <AlertDescription>Identity is unverified. An audit event has been recorded.</AlertDescription>
+                    </Alert>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Field label="First Name">
+                        <Input value={pendingPerson.firstName} onChange={e => setPendingPerson(p => ({ ...p, firstName: e.target.value }))} />
+                      </Field>
+                      <Field label="Last Name">
+                        <Input value={pendingPerson.lastName} onChange={e => setPendingPerson(p => ({ ...p, lastName: e.target.value }))} />
+                      </Field>
+                      <Field label="Date of Birth">
+                        <Input type="date" value={pendingPerson.dob} onChange={e => setPendingPerson(p => ({ ...p, dob: e.target.value }))} />
+                      </Field>
+                      <Field label="Gender">
+                        <Select value={pendingPerson.gender} onValueChange={v => setPendingPerson(p => ({ ...p, gender: v as any }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="M">Male</SelectItem>
+                            <SelectItem value="F">Female</SelectItem>
+                            <SelectItem value="N">Not-Specified</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
                     </div>
                   </div>
                 )}
-                {ssnSearch && !personLoading && !person && (
-                  <div className="flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3">
-                    <AlertCircle className="h-4 w-4 text-destructive" />
-                    <span className="text-sm text-destructive">No person found for SSN {ssnSearch}</span>
+                {existingClaims.length > 0 && (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Existing claims for this person</AlertTitle>
+                    <AlertDescription>
+                      <ul className="text-xs mt-1 space-y-0.5">
+                        {existingClaims.slice(0, 5).map(c => (
+                          <li key={c.id}>{c.claim_number ?? c.id} — {c.product_code ?? '—'} ({c.status ?? '—'})</li>
+                        ))}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </StepCard>
+            )}
+
+            {step === 'benefit' && (
+              <StepCard title="3. Select Benefit" desc="Choose which benefit this application is for.">
+                <Select value={productId} onValueChange={setProductId}>
+                  <SelectTrigger><SelectValue placeholder="Select benefit" /></SelectTrigger>
+                  <SelectContent>
+                    {activeProducts.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {(p as any).benefit_name ?? (p as any).name} ({(p as any).benefit_code ?? (p as any).code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </StepCard>
+            )}
+
+            {step === 'claim-date' && (
+              <StepCard title="4. Claim Date" desc="The active product version is resolved by this date.">
+                <Field label="Claim Date">
+                  <Input type="date" value={claimDate} onChange={e => setClaimDate(e.target.value)} />
+                </Field>
+              </StepCard>
+            )}
+
+            {step === 'version' && (
+              <StepCard title="5. Resolve Active Product Version" desc="Versions are date-effective. Only the one active on the claim date is used.">
+                {resolvingVersion && <div className="flex items-center gap-2 text-sm"><Loader2 className="h-4 w-4 animate-spin" /> Resolving…</div>}
+                {versionError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertTitle>{versionError}</AlertTitle></Alert>}
+                {resolvedVersion && (
+                  <div className="rounded border bg-muted/30 p-3 text-sm space-y-1">
+                    <div className="flex items-center gap-2 font-medium">
+                      <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                      v{resolvedVersion.versionNumber} <Badge variant="outline">{resolvedVersion.status}</Badge>
+                    </div>
+                    <Detail k="Effective From" v={resolvedVersion.effectiveFrom} />
+                    <Detail k="Effective To" v={resolvedVersion.effectiveTo ?? '(open)'} />
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </StepCard>
+            )}
 
-            {/* Contribution Summary */}
-            {ssnSearch && person && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <DollarSign className="h-4 w-4" /> Contribution Summary
-                  </CardTitle>
-                  <CardDescription>Last 3 years</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {contribLoading ? (
-                    <div className="flex items-center justify-center py-4">
-                      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                    </div>
-                  ) : contributions ? (
-                    <div className="space-y-2">
-                      <BnDetailRow label="Total Weeks" value={contributions.totalWeeks.toString()} />
-                      <BnDetailRow label="Total Amount" value={`$${contributions.totalAmount.toLocaleString()}`} />
-                      <BnDetailRow label="Avg Weekly Wage" value={`$${contributions.averageWeeklyWage.toFixed(2)}`} />
-                      <BnDetailRow label="Period" value={`${formatDateForDisplay(contributions.windowStart)} – ${formatDateForDisplay(contributions.windowEnd)}`} />
-                      {contributions.totalWeeks < 26 && (
-                        <div className="flex items-center gap-1 pt-1">
-                          <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-                          <span className="text-xs text-amber-600">Below 26-week minimum for most benefits</span>
+            {step === 'eligibility' && (
+              <StepCard title="6. Eligibility Pre-checks" desc="Loaded from the resolved product version. Editable values come later.">
+                {eligRules.length === 0 && <p className="text-sm text-muted-foreground">No eligibility rules configured.</p>}
+                {eligRules.length > 0 && (
+                  <ul className="space-y-1 text-sm">
+                    {eligRules.map((r: any) => (
+                      <li key={r.id} className="flex items-start gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 text-muted-foreground" />
+                        <span>
+                          <span className="font-medium">{r.rule_code ?? r.name}</span>
+                          {r.description ? ` — ${r.description}` : null}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </StepCard>
+            )}
+
+            {step === 'documents' && (
+              <StepCard title="7. Required Documents" desc="Mark each document as Provided, Pending, or request a Waiver (audited).">
+                {docs.length === 0 && <p className="text-sm text-muted-foreground">No documents configured.</p>}
+                {docs.map(d => {
+                  const s = docState[d.document_type_code] ?? { status: 'PROVIDED' };
+                  return (
+                    <div key={d.id} className="rounded border p-2 space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{d.description ?? d.document_type_code}</span>
+                        {(d.requirement_level === 'MANDATORY' || d.blocks_submission) && (
+                          <Badge variant="destructive" className="ml-1">Mandatory</Badge>
+                        )}
+                        <div className="ml-auto flex gap-1">
+                          {(['PROVIDED', 'PENDING', 'WAIVED'] as DocStatus[]).map(opt => (
+                            <Button
+                              key={opt}
+                              size="sm"
+                              variant={s.status === opt ? 'default' : 'outline'}
+                              className="h-7 text-xs"
+                              disabled={opt === 'WAIVED' && !can('benefits.document_waiver')}
+                              onClick={() => {
+                                if (opt === 'PROVIDED') {
+                                  setDocState(prev => ({ ...prev, [d.document_type_code]: { status: 'PROVIDED' } }));
+                                } else if (opt === 'PENDING') {
+                                  const r = window.prompt('Reason for marking pending?') ?? '';
+                                  if (r) markDocPending(d.document_type_code, r);
+                                } else {
+                                  const r = window.prompt('Waiver justification?') ?? '';
+                                  if (r) requestDocWaiver(d.document_type_code, r);
+                                }
+                              }}
+                            >
+                              {opt}
+                            </Button>
+                          ))}
                         </div>
+                      </div>
+                      {s.status === 'PENDING' && s.pendingReason && (
+                        <p className="text-xs text-amber-600">Pending: {s.pendingReason}</p>
+                      )}
+                      {s.status === 'WAIVED' && s.waiverReason && (
+                        <p className="text-xs text-violet-600">Waived: {s.waiverReason}</p>
                       )}
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No contribution data available</p>
-                  )}
-                </CardContent>
-              </Card>
+                  );
+                })}
+              </StepCard>
             )}
 
-            {/* Payment Info */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" /> Payment Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Bank Account</Label>
-                  <Input value={form.bank_account} onChange={(e) => updateField('bank_account', e.target.value)} placeholder="Account number" />
+            {step === 'facts' && (
+              <StepCard title="8. Benefit-Specific Facts" desc="Only event/claim-specific data. Identity, employer, and contribution data are not re-entered.">
+                {factFields.length === 0 && <p className="text-sm text-muted-foreground">No benefit-specific fields configured.</p>}
+                <div className="grid gap-3 md:grid-cols-2">
+                  {factFields.map(f => (
+                    <Field key={f.field_code} label={f.field_label}>
+                      <FactInput field={f} value={factValues[f.field_code]} onChange={v => setFactValues(prev => ({ ...prev, [f.field_code]: v }))} />
+                    </Field>
+                  ))}
                 </div>
-                <div className="space-y-2">
-                  <Label>Routing / Branch Code</Label>
-                  <Input value={form.bank_routing_number} onChange={(e) => updateField('bank_routing_number', e.target.value)} placeholder="Routing number" />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* ── RIGHT COLUMN: Claim Details ──────────────── */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Duplicate Warning */}
-            {duplicateWarning && (
-              <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/20 p-3 flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Duplicate Claim Warning</p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300">{duplicateWarning}</p>
-                </div>
-              </div>
+              </StepCard>
             )}
 
-            {/* Claim Details */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4" /> Claim Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Benefit Type <span className="text-destructive">*</span></Label>
-                    <Select value={form.product_id} onValueChange={(v) => updateField('product_id', v)}>
-                      <SelectTrigger className={errors.product_id ? 'border-destructive' : ''}>
-                        <SelectValue placeholder="Select benefit type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {activeProducts.map((p: BnProduct) => (
-                          <SelectItem key={p.id} value={p.id}>
-                            {p.benefit_name} ({p.benefit_code})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {errors.product_id && <p className="text-xs text-destructive">{errors.product_id}</p>}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Source</Label>
-                    <Select value={form.source} onValueChange={(v) => updateField('source', v)}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="WALK_IN">Walk-in</SelectItem>
-                        <SelectItem value="PAPER">Paper Application</SelectItem>
-                        <SelectItem value="ONLINE">Online</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Priority</Label>
-                    <Select value={form.priority} onValueChange={(v) => updateField('priority', v)}>
+            {step === 'internal' && (
+              <StepCard title="9. Internal Options" desc="Priority, notes, basket routing, and supervisor escalation.">
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Field label="Priority">
+                    <Select value={priority} onValueChange={v => setPriority(v as any)}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="LOW">Low</SelectItem>
@@ -391,109 +732,260 @@ export default function ClaimRegistration() {
                         <SelectItem value="URGENT">Urgent</SelectItem>
                       </SelectContent>
                     </Select>
+                  </Field>
+                  <Field label="Source">
+                    <Select value={source} onValueChange={v => setSource(v as any)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PAPER">Paper</SelectItem>
+                        <SelectItem value="WALK_IN">Walk-in</SelectItem>
+                        <SelectItem value="PHONE">Phone</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Contact Phone"><Input value={contactPhone} onChange={e => setContactPhone(e.target.value)} /></Field>
+                  <Field label="Contact Email"><Input value={contactEmail} onChange={e => setContactEmail(e.target.value)} /></Field>
+                  <Field label="Bank Account"><Input value={bankAccount} onChange={e => setBankAccount(e.target.value)} /></Field>
+                  <Field label="Bank Routing"><Input value={bankRouting} onChange={e => setBankRouting(e.target.value)} /></Field>
+                </div>
+                <Field label="Internal Notes">
+                  <Textarea value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={3} maxLength={500} />
+                </Field>
+                {can('benefits.workflow_routing') && (
+                  <Field label="Workflow Basket Override">
+                    <Input value={workbasket} onChange={e => setBasketWithAudit(e.target.value)} placeholder="basket code" />
+                  </Field>
+                )}
+                <div className="rounded border p-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Checkbox checked={escalateSupervisor} onCheckedChange={v => toggleEscalation(!!v)} />
+                    <Label className="text-sm font-medium">Escalate to supervisor</Label>
+                    <FlagTriangleRight className="h-4 w-4 ml-auto text-amber-600" />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label>Event / Incident Date</Label>
-                    <Input
-                      type="date"
-                      value={form.event_date}
-                      onChange={(e) => updateField('event_date', e.target.value)}
+                  {escalateSupervisor && (
+                    <Textarea
+                      placeholder="Escalation reason…"
+                      value={escalationReason}
+                      onChange={e => setEscalationReason(e.target.value)}
+                      rows={2}
                     />
-                  </div>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
+              </StepCard>
+            )}
 
-            {/* Employer Context */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Building2 className="h-4 w-4" /> Employer Context
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                  <div className="flex-1 space-y-2">
-                    <Label>Employer Registration No.</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={form.employer_regno}
-                        onChange={(e) => updateField('employer_regno', e.target.value)}
-                        placeholder="e.g. ER-001"
-                        onKeyDown={(e) => e.key === 'Enter' && handleEmployerLookup()}
-                      />
-                      <Button variant="outline" size="icon" onClick={handleEmployerLookup} disabled={employerLoading}>
-                        {employerLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </div>
+            {step === 'review' && (
+              <StepCard title="10. Review & Submit" desc="Submitting creates the claim, captures snapshots, and starts the workflow.">
+                <ReviewLine k="Claimant" v={person ? `${person.fullName} (${person.ssn})` : pendingVerification ? `${pendingPerson.firstName} ${pendingPerson.lastName} (pending verification)` : '—'} />
+                <ReviewLine k="Benefit" v={selectedProduct ? `${(selectedProduct as any).benefit_name} (${(selectedProduct as any).benefit_code})` : '—'} />
+                <ReviewLine k="Claim Date" v={formatDateForDisplay(claimDate)} />
+                <ReviewLine k="Product Version" v={resolvedVersion ? `v${resolvedVersion.versionNumber} (${resolvedVersion.effectiveFrom} → ${resolvedVersion.effectiveTo ?? 'open'})` : '—'} />
+                <ReviewLine k="Eligibility Rules Loaded" v={String(eligRules.length)} />
+                <ReviewLine k="Documents" v={`${Object.values(docState).filter(s => s.status === 'PROVIDED').length} provided · ${Object.values(docState).filter(s => s.status === 'PENDING').length} pending · ${Object.values(docState).filter(s => s.status === 'WAIVED').length} waived`} />
+                <ReviewLine k="Priority" v={priority} />
+                {workbasket && <ReviewLine k="Workbasket" v={workbasket} />}
+                {escalateSupervisor && <ReviewLine k="Escalation" v={escalationReason || '(reason missing)'} />}
+                <div className="flex justify-end pt-2">
+                  <Button onClick={handleSubmit} disabled={intake.isPending}>
+                    {intake.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+                    Submit Claim
+                  </Button>
                 </div>
-                {employer && (
-                  <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-sm">{employer.name}</span>
-                      <Badge variant="outline" className="ml-auto text-xs">{employer.status}</Badge>
-                    </div>
-                    {employer.industry && <BnDetailRow label="Industry" value={employer.industry} />}
-                    {employer.address && <BnDetailRow label="Address" value={employer.address} />}
-                  </div>
-                )}
-                {employerSearch && !employerLoading && !employer && (
-                  <p className="text-xs text-muted-foreground">No employer found for {employerSearch}</p>
-                )}
-              </CardContent>
-            </Card>
+              </StepCard>
+            )}
 
-            {/* Contact Info */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Contact Information</CardTitle>
-                <CardDescription>Auto-filled from person record if available</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Contact Phone</Label>
-                    <Input value={form.contact_phone} onChange={(e) => updateField('contact_phone', e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Contact Email</Label>
-                    <Input value={form.contact_email} onChange={(e) => updateField('contact_email', e.target.value)} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Remarks */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Remarks</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={form.remarks}
-                  onChange={(e) => updateField('remarks', e.target.value)}
-                  rows={3}
-                  placeholder="Any additional notes about this claim..."
-                  maxLength={250}
-                />
-                <p className="text-xs text-muted-foreground mt-1 text-right">{form.remarks.length}/250</p>
-              </CardContent>
-            </Card>
-
-            {/* Action Bar */}
-            <div className="flex justify-end gap-3 rounded-lg border bg-card p-4 sticky bottom-0">
-              <Button variant="outline" onClick={() => navigate('/bn/claims')}>Cancel</Button>
-              <Button onClick={handleSubmit} disabled={intake.isPending} className="gap-2">
-                {intake.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {intake.isPending ? 'Registering...' : 'Register Claim'}
+            {/* Step nav */}
+            <div className="flex justify-between">
+              <Button variant="ghost" onClick={prevStep} disabled={step === 'ssn'}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
               </Button>
+              {step !== 'review' && (
+                <Button onClick={nextStep}>Next <ArrowRight className="h-4 w-4 ml-1" /></Button>
+              )}
             </div>
           </div>
+
+          {/* Sticky context panel */}
+          <ContextPanel
+            person={person}
+            pending={pendingVerification ? pendingPerson : null}
+            product={selectedProduct as any}
+            version={resolvedVersion}
+            contribution={contribution}
+            dependants={dependants}
+            existingClaims={existingClaims}
+          />
         </div>
       </div>
     </PermissionWrapper>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────
+// Small helpers
+// ────────────────────────────────────────────────────────────────────
+
+function StepCard({ title, desc, children }: { title: string; desc?: string; children: React.ReactNode }) {
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">{title}</CardTitle>
+        {desc && <CardDescription>{desc}</CardDescription>}
+      </CardHeader>
+      <CardContent className="space-y-3">{children}</CardContent>
+    </Card>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs">{label}</Label>
+      {children}
+    </div>
+  );
+}
+
+function Detail({ k, v }: { k: string; v: any }) {
+  return (
+    <div className="flex justify-between text-xs">
+      <span className="text-muted-foreground">{k}</span>
+      <span className="font-medium">{String(v ?? '—')}</span>
+    </div>
+  );
+}
+
+function ReviewLine({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex justify-between text-sm border-b py-1 last:border-0">
+      <span className="text-muted-foreground">{k}</span>
+      <span className="font-medium text-right">{v}</span>
+    </div>
+  );
+}
+
+function FactInput({
+  field,
+  value,
+  onChange,
+}: { field: FormFieldDef; value: any; onChange: (v: any) => void }) {
+  switch (field.field_type) {
+    case 'TEXTAREA':
+      return <Textarea value={value ?? ''} onChange={e => onChange(e.target.value)} />;
+    case 'NUMBER':
+      return <Input type="number" value={value ?? ''} onChange={e => onChange(e.target.value === '' ? '' : Number(e.target.value))} />;
+    case 'DATE':
+      return <Input type="date" value={value ?? ''} onChange={e => onChange(e.target.value)} />;
+    case 'CHECKBOX':
+      return (
+        <div className="flex items-center gap-2 pt-1">
+          <Checkbox checked={!!value} onCheckedChange={v => onChange(!!v)} />
+          <span className="text-xs text-muted-foreground">{field.help_text}</span>
+        </div>
+      );
+    case 'SELECT': {
+      const opts: string[] = field.validation_rules?.options ?? [];
+      return (
+        <Select value={value ?? ''} onValueChange={onChange}>
+          <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+          <SelectContent>{opts.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+        </Select>
+      );
+    }
+    default:
+      return <Input value={value ?? ''} onChange={e => onChange(e.target.value)} />;
+  }
+}
+
+function ContextPanel({
+  person, pending, product, version, contribution, dependants, existingClaims,
+}: {
+  person: PersonSummary | null;
+  pending: { firstName: string; lastName: string; dob: string; gender: string } | null;
+  product: any;
+  version: ResolvedProductVersion | null;
+  contribution: ContributionSummaryResult | null;
+  dependants: Dependant[];
+  existingClaims: ExistingClaimRecord[];
+}) {
+  return (
+    <div className="space-y-3 lg:sticky lg:top-4 h-fit">
+      <Card>
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Claimant</CardTitle></CardHeader>
+        <CardContent className="text-xs space-y-1">
+          {person && (
+            <>
+              <div className="font-medium text-sm flex items-center gap-1">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> {person.fullName}
+              </div>
+              <Detail k="SSN" v={person.ssn} />
+              <Detail k="DOB" v={person.dateOfBirth} />
+              <Detail k="Status" v={person.status} />
+            </>
+          )}
+          {!person && pending && (
+            <>
+              <Badge variant="outline">Pending Verification</Badge>
+              <Detail k="Name" v={`${pending.firstName} ${pending.lastName}`} />
+              <Detail k="DOB" v={pending.dob} />
+              <Detail k="Gender" v={pending.gender} />
+            </>
+          )}
+          {!person && !pending && <p className="text-muted-foreground">No claimant yet.</p>}
+        </CardContent>
+      </Card>
+
+      {(product || version) && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Benefit / Version</CardTitle></CardHeader>
+          <CardContent className="text-xs space-y-1">
+            {product && <Detail k="Benefit" v={`${product.benefit_name} (${product.benefit_code})`} />}
+            {version && <Detail k="Version" v={`v${version.versionNumber} (${version.status})`} />}
+            {version && <Detail k="Effective" v={`${version.effectiveFrom} → ${version.effectiveTo ?? 'open'}`} />}
+          </CardContent>
+        </Card>
+      )}
+
+      {contribution && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Contribution Window</CardTitle></CardHeader>
+          <CardContent className="text-xs space-y-1">
+            <Detail k="Window" v={`${contribution.windowStart} → ${contribution.windowEnd}`} />
+            <Detail k="Total Weeks" v={contribution.totalWeeks} />
+            <Detail k="Paid" v={contribution.paidWeeks} />
+            <Detail k="Credited" v={contribution.creditedWeeks} />
+            <Detail k="Avg Weekly Wage" v={contribution.averageWeeklyWage.toFixed(2)} />
+          </CardContent>
+        </Card>
+      )}
+
+      {dependants.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Dependants ({dependants.length})</CardTitle></CardHeader>
+          <CardContent className="text-xs space-y-1">
+            {dependants.slice(0, 5).map((d, i) => (
+              <div key={i} className="flex justify-between">
+                <span>{d.fullName}</span>
+                <span className="text-muted-foreground">{d.relationship}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {existingClaims.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1"><Inbox className="h-3.5 w-3.5" />Existing Claims</CardTitle></CardHeader>
+          <CardContent className="text-xs space-y-1">
+            {existingClaims.slice(0, 5).map(c => (
+              <div key={c.id} className="flex justify-between">
+                <span>{c.claim_number ?? c.id.slice(0, 8)}</span>
+                <span className="text-muted-foreground">{c.status ?? '—'}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
