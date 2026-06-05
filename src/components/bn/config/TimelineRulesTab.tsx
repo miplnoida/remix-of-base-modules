@@ -14,9 +14,11 @@ import { useBnTimelineRules, useUpsertBnTimelineRule } from '@/hooks/bn/useBnPro
 import { BN_TIMELINE_TYPES } from '@/types/bn';
 import type { BnTimelineRule } from '@/types/bn';
 
-interface Props { versionId: string | undefined; }
+import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-export function TimelineRulesTab({ versionId }: Props) {
+interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
+
+export function TimelineRulesTab({ versionId, isReadOnly, versionStatus }: Props) {
   const { toast } = useToast();
   const { data: rules = [], isLoading } = useBnTimelineRules(versionId);
   const upsertMutation = useUpsertBnTimelineRule();
