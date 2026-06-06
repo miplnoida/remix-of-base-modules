@@ -10,8 +10,8 @@ export const bnContributionAdapter: IBnContributionAdapter = {
   async getContributionSummary(ssn, windowStart, windowEnd): Promise<ContributionSummary> {
     const { data, error } = await db.rpc('bn_get_contribution_summary', {
       p_ssn: ssn.trim(),
-      p_window_start: windowStart,
-      p_window_end: windowEnd,
+      p_from_date: windowStart,
+      p_to_date: windowEnd,
     });
 
     if (error) throw error;
@@ -20,9 +20,9 @@ export const bnContributionAdapter: IBnContributionAdapter = {
     const row = Array.isArray(data) ? data[0] : data;
     return {
       ssn,
-      totalWeeks: row?.total_weeks ?? 0,
-      totalAmount: row?.total_amount ?? 0,
-      averageWeeklyWage: row?.avg_weekly_wage ?? 0,
+      totalWeeks: Number(row?.total_weeks ?? 0),
+      totalAmount: Number(row?.total_wages ?? 0),
+      averageWeeklyWage: Number(row?.avg_weekly_wages ?? 0),
       windowStart,
       windowEnd,
     };
