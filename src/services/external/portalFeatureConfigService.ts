@@ -87,13 +87,14 @@ export async function updateFeatureToggle(
   try {
     await supabase.from('system_audit_trail' as any).insert({
       action: enabled ? 'PORTAL_FEATURE_ENABLED' : 'PORTAL_FEATURE_DISABLED',
+      module: 'EXTERNAL_PORTAL',
       entity_type: 'external_portal_feature_config',
       entity_id: featureKey,
-      description: `${featureName}: ${oldValue} → ${enabled}`,
-      old_value: { enabled: oldValue },
-      new_value: { enabled },
-      performed_by: performedBy,
-      performed_at: new Date().toISOString(),
+      before_value: { enabled: oldValue, feature_name: featureName },
+      after_value: { enabled, feature_name: featureName },
+      user_name: performedBy,
+      severity: 'INFO',
+      timestamp: new Date().toISOString(),
     } as any);
   } catch {
     /* non-blocking */
