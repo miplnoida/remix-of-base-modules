@@ -178,9 +178,10 @@ function PersonaHeader() {
 
 export default function ClaimantPortal() {
   const { persona } = useClaimantPersona();
+  const { data: features } = usePortalFeatureConfig();
   const groups = useMemo(
-    () => buildNavGroups(persona?.flags, persona?.personas ?? []),
-    [persona],
+    () => buildNavGroups(persona?.flags, persona?.personas ?? [], features),
+    [persona, features],
   );
   return (
     <Routes>
