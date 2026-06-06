@@ -22,6 +22,7 @@ const db = supabase as any;
 
 export default function EscalationConfig() {
   const { userCode } = useUserCode();
+  const { log } = useBnConfigAudit();
   const qc = useQueryClient();
   const [editItem, setEditItem] = useState<BnEscalationPolicy | null>(null);
   const [isNew, setIsNew] = useState(false);
