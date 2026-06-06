@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useParams, Link } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ExternalPortalShell, type NavItem } from '@/portals/_shared/ExternalPortalShell';
 import { NotificationBell } from '@/portals/_shared/NotificationBell';
 import { HelpButton } from '@/portals/_shared/HelpButton';
