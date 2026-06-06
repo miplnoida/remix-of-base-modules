@@ -3,6 +3,7 @@ import { ExternalPortalShell } from '@/portals/_shared/ExternalPortalShell';
 import { ExternalTaskList } from '@/portals/_shared/ExternalTaskList';
 import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
 import { PortalModulePlaceholder } from '@/portals/_shared/PortalModulePlaceholder';
+import { PortalFormRenderer } from '@/components/external/PortalFormRenderer';
 import ClaimantLanding from '@/portals/claimant/ClaimantLanding';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { publicBenefitApi } from '@/portals/_shared/publicBenefitApiClient';
 import {
   useExternalProducts, useExternalClaimStatus, useExternalFormDefinition, useExternalMessages,
-  useExternalClaims, useExternalAwards, useExternalPayments, useExternalContributions,
+  useExternalClaims, useExternalClaimBuckets, useExternalAwards, useExternalPayments, useExternalContributions,
   useExternalEmploymentHistory, useExternalProfile,
 } from '@/portals/_shared/externalHooks';
 import { useState } from 'react';
@@ -81,13 +82,40 @@ function Dashboard() {
     { to: '/claimant/messages', title: 'Messages & Letters', desc: 'Official communications from SSB.' },
   ];
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-6">
+      <ClaimBuckets />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {cards.map(c => (
+          <Link key={c.to} to={c.to}>
+            <Card className="hover:shadow-md transition-shadow h-full">
+              <CardHeader><CardTitle className="text-base">{c.title}</CardTitle><CardDescription>{c.desc}</CardDescription></CardHeader>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ClaimBuckets() {
+  const { data, isLoading } = useExternalClaimBuckets();
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  const b = data ?? { own: [], submittedForOthers: [], asBeneficiary: [], asGuardianOrPayee: [] };
+  const cards = [
+    { title: 'My own claims', items: b.own },
+    { title: 'Submitted for someone else', items: b.submittedForOthers },
+    { title: 'As beneficiary', items: b.asBeneficiary },
+    { title: 'As guardian / payee', items: b.asGuardianOrPayee },
+  ];
+  return (
+    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
       {cards.map(c => (
-        <Link key={c.to} to={c.to}>
-          <Card className="hover:shadow-md transition-shadow h-full">
-            <CardHeader><CardTitle className="text-base">{c.title}</CardTitle><CardDescription>{c.desc}</CardDescription></CardHeader>
-          </Card>
-        </Link>
+        <Card key={c.title}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">{c.title}</CardTitle>
+            <CardDescription className="text-2xl font-bold text-foreground">{c.items.length}</CardDescription>
+          </CardHeader>
+        </Card>
       ))}
     </div>
   );
@@ -184,37 +212,8 @@ function ApplyList() {
 
 function ApplyForm() {
   const { productCode } = useParams<{ productCode: string }>();
-  const { data, isLoading, error } = useExternalFormDefinition(productCode, 'CLAIMANT');
-  const [values, setValues] = useState<Record<string, any>>({});
-  const [declaration, setDeclaration] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  if (isLoading) return <Skeleton className="h-64 w-full" />;
-  if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
-  const fields: any[] = data?.fields ?? [];
-  const submit = async () => {
-    setSubmitting(true);
-    try {
-      const res = await publicBenefitApi.submitApplication({ productCode: productCode!, values, declarationAccepted: declaration });
-      toast.success(`Application submitted. Reference ${res.claimNumber}`);
-    } catch (e: any) { toast.error(e?.message ?? 'Submission failed'); } finally { setSubmitting(false); }
-  };
-  return (
-    <Card>
-      <CardHeader><CardTitle>{data?.product?.productName}</CardTitle><CardDescription>Reference templates from Product Catalog · v{data?.version?.number}</CardDescription></CardHeader>
-      <CardContent className="space-y-4">
-        {fields.length === 0 && <p className="text-sm text-muted-foreground">No public fields configured for this product.</p>}
-        {fields.map((f: any) => (
-          <div key={f.id ?? f.field_code} className="space-y-1">
-            <label className="text-xs">{f.field_label}{f.is_required && <span className="text-destructive"> *</span>}</label>
-            <input className="w-full rounded-md border bg-background px-3 py-2 text-sm" value={values[f.field_code] ?? ''} onChange={e => setValues(p => ({ ...p, [f.field_code]: e.target.value }))} />
-            {f.help_text && <p className="text-[10px] text-muted-foreground">{f.help_text}</p>}
-          </div>
-        ))}
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={declaration} onChange={e => setDeclaration(e.target.checked)} /> I declare the above is true and complete.</label>
-        <div className="flex justify-end"><Button onClick={submit} disabled={submitting || !declaration}>{submitting ? 'Submitting…' : 'Submit Application'}</Button></div>
-      </CardContent>
-    </Card>
-  );
+  if (!productCode) return <p className="text-sm text-destructive">Missing product.</p>;
+  return <PortalFormRenderer productCode={productCode} />;
 }
 
 function Claims() {

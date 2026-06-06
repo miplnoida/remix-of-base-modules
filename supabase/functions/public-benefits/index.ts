@@ -266,14 +266,45 @@ async function handle(req: Request, url: URL): Promise<Response> {
     return json(def);
   }
 
-  // Submit a new application (claimant only).
+  // Participant / public-form rules for the active version of a product.
+  const ppc = path.match(/^\/benefits\/products\/([^/]+)\/participant-config$/);
+  if (method === 'GET' && ppc) {
+    const code = decodeURIComponent(ppc[1]);
+    const { data: product } = await admin.from('bn_product')
+      .select('id, benefit_code, benefit_name, category')
+      .eq('benefit_code', code).maybeSingle();
+    if (!product) return err(404, 'not_found', 'Product not found');
+    const { data: versions } = await admin.from('bn_product_version')
+      .select('id, version_number, status, screen_template_id')
+      .eq('product_id', product.id).eq('status', 'ACTIVE')
+      .order('version_number', { ascending: false }).limit(1);
+    const version = versions?.[0];
+    if (!version) return err(409, 'no_active_version', 'Product has no active version');
+    const { data: config } = await admin.from('bn_product_participant_config')
+      .select('*').eq('product_version_id', version.id).maybeSingle();
+    const { data: docs } = await admin.from('bn_doc_requirement')
+      .select('id, document_code, document_label, is_mandatory, applies_to_role, notes')
+      .eq('product_version_id', version.id).order('document_label', { ascending: true });
+    return json({ product, version, config: config ?? null, documents: docs ?? [] });
+  }
+
+  // Submit a new application — structured participant-aware payload.
+  // Accepts both legacy { values } and new structured shape:
+  //   { productCode, applicant, insuredPerson, deceasedInsuredPerson,
+  //     beneficiaries[], payee, guardian, employer, doctorProvider,
+  //     benefitFacts, documents[], declaration, claimDate }
   if (method === 'POST' && path === '/benefits/applications') {
     const caller = await resolveCaller(req);
     if (caller instanceof Response) return caller;
-    if (caller.role !== 'CLAIMANT') return err(403, 'forbidden', 'Only claimants can submit new applications');
+    if (caller.role !== 'CLAIMANT') return err(403, 'forbidden', 'Only signed-in claimants can submit new applications');
     const body = await req.json().catch(() => ({}));
-    const { productCode, values, claimDate, declarationAccepted } = body ?? {};
-    if (!productCode || !values) return err(400, 'invalid_body', 'productCode and values are required');
+    const {
+      productCode, claimDate, declaration, declarationAccepted,
+      applicant, insuredPerson, deceasedInsuredPerson,
+      beneficiaries, payee, guardian, employer, doctorProvider,
+      benefitFacts, documents, values,
+    } = body ?? {};
+    if (!productCode) return err(400, 'invalid_body', 'productCode is required');
 
     const { data: product } = await admin.from('bn_product').select('id, benefit_code').eq('benefit_code', productCode).maybeSingle();
     if (!product) return err(404, 'not_found', 'Product not found');
@@ -281,10 +312,33 @@ async function handle(req: Request, url: URL): Promise<Response> {
     const version = versions?.[0];
     if (!version) return err(409, 'no_active_version', 'Product has no active version');
 
+    // Load participant config so we can enforce minimums.
+    const { data: cfg } = await admin.from('bn_product_participant_config')
+      .select('*').eq('product_version_id', version.id).maybeSingle();
+    if (cfg) {
+      if (cfg.requires_deceased && !deceasedInsuredPerson?.ssn) {
+        return err(400, 'missing_deceased', 'Deceased insured person details are required for this benefit');
+      }
+      if (cfg.requires_beneficiaries && !(Array.isArray(beneficiaries) && beneficiaries.length)) {
+        return err(400, 'missing_beneficiaries', 'At least one beneficiary is required for this benefit');
+      }
+      if (cfg.applicant_must_equal_insured) {
+        const aSsn = applicant?.ssn ?? caller.ssn;
+        const iSsn = insuredPerson?.ssn ?? caller.ssn;
+        if (aSsn && iSsn && aSsn !== iSsn) {
+          return err(400, 'applicant_must_equal_insured', 'You can only apply for this benefit for yourself');
+        }
+      }
+    }
+    const accepted = !!(declarationAccepted ?? declaration?.accepted);
+    if (!accepted) return err(400, 'declaration_required', 'You must accept the declaration to submit');
+
+    const insuredSsn = insuredPerson?.ssn ?? deceasedInsuredPerson?.ssn ?? caller.ssn ?? values?.ssn ?? null;
+
     const claimNumber = `BN-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 1e4).toString().padStart(4, '0')}`;
     const { data: claim, error: claimErr } = await admin.from('bn_claim').insert({
       claim_number: claimNumber,
-      ssn: caller.ssn ?? values.ssn ?? null,
+      ssn: insuredSsn,
       product_id: product.id,
       product_version_id: version.id,
       status: 'SUBMITTED',
@@ -294,11 +348,16 @@ async function handle(req: Request, url: URL): Promise<Response> {
       channel_code: 'PUBLIC_ONLINE',
       submitted_via: 'CLAIMANT_PORTAL',
       screen_template_id: version.screen_template_id,
-      declaration: !!declarationAccepted,
+      declaration: accepted,
       entered_by: caller.userCode,
     }).select('id, claim_number').single();
     if (claimErr) return err(500, 'insert_failed', claimErr.message);
 
+    const rawJson = values ?? {
+      applicant, insuredPerson, deceasedInsuredPerson,
+      beneficiaries, payee, guardian, employer, doctorProvider,
+      benefitFacts, documents,
+    };
     await admin.from('bn_claim_application').insert({
       claim_id: claim.id,
       product_id: product.id,
@@ -308,22 +367,59 @@ async function handle(req: Request, url: URL): Promise<Response> {
       submitted_by_user_id: caller.userCode,
       submitted_at: new Date().toISOString(),
       form_template_id: version.screen_template_id,
-      declaration_accepted: !!declarationAccepted,
-      raw_application_json: values,
+      declaration_accepted: accepted,
+      raw_application_json: rawJson,
       entered_by: caller.userCode,
     });
-    await admin.from('bn_claim_participant').insert({
-      claim_id: claim.id,
-      kind: 'CLAIMANT',
-      display_name: caller.userCode,
-      ssn: caller.ssn ?? null,
-      email: caller.email ?? null,
-      status: 'ACTIVE',
-      created_by: caller.userCode,
-    });
-    await audit(null, claim.id, 'CLAIM_SUBMITTED', caller, { productCode, claimNumber: claim.claim_number });
+
+    // Insert one participant row per non-empty role from the payload.
+    const partRows: any[] = [];
+    const pushPart = (role: string, src: any, opts: Partial<{ isPrimary: boolean; relationship: string }> = {}) => {
+      if (!src) return;
+      const ssn = src.ssn ?? null;
+      const display = (src.display_name ?? ([src.first_name, src.last_name].filter(Boolean).join(' ') || src.name)) || null;
+      if (!ssn && !display && !src.email && !src.employer_regno && !src.provider_code) return;
+      partRows.push({
+        claim_id: claim.id,
+        kind: ['EMPLOYER', 'DOCTOR'].includes(role) ? role : (role === 'INSURED_PERSON' || role === 'DECEASED_INSURED_PERSON' ? 'CLAIMANT' : (role === 'APPLICANT' ? 'CLAIMANT' : 'OTHER')),
+        participant_role: role,
+        display_name: display,
+        ssn,
+        employer_regno: src.employer_regno ?? null,
+        provider_code: src.provider_code ?? null,
+        email: src.email ?? null,
+        phone: src.phone ?? null,
+        status: 'ACTIVE',
+        relationship_to_insured: opts.relationship ?? src.relationship ?? null,
+        is_primary_applicant: !!opts.isPrimary,
+        payload: src,
+        created_by: caller.userCode,
+      });
+    };
+
+    pushPart('APPLICANT', applicant ?? { ssn: caller.ssn, email: caller.email, display_name: caller.userCode }, { isPrimary: true });
+    pushPart('INSURED_PERSON', insuredPerson);
+    pushPart('DECEASED_INSURED_PERSON', deceasedInsuredPerson);
+    if (Array.isArray(beneficiaries)) {
+      for (const b of beneficiaries) pushPart('BENEFICIARY', b, { relationship: b?.relationship });
+    }
+    pushPart('PAYEE', payee);
+    pushPart('GUARDIAN', guardian);
+    pushPart('EMPLOYER', employer);
+    pushPart('DOCTOR', doctorProvider);
+
+    if (partRows.length) {
+      const { error: pErr } = await admin.from('bn_claim_participant').insert(partRows);
+      if (pErr) console.error('participant insert failed', pErr);
+    }
+
+    // Materialise external tasks (best-effort)
+    try { await admin.rpc('bn_materialize_external_tasks', { p_claim_id: claim.id }); } catch (e) { console.warn('materialize tasks skipped', e); }
+
+    await audit(null, claim.id, 'CLAIM_SUBMITTED', caller, { productCode, claimNumber: claim.claim_number, roles: partRows.map(r => r.participant_role) });
     return json({ claimId: claim.id, claimNumber: claim.claim_number }, 201);
   }
+
 
   // Claim status — claimant-only own claims.
   const cs = path.match(/^\/claims\/([^/]+)\/status$/);
@@ -482,8 +578,55 @@ async function handle(req: Request, url: URL): Promise<Response> {
     const caller = await resolveCaller(req);
     if (caller instanceof Response) return caller;
     if (caller.role !== 'CLAIMANT' || !caller.ssn) return json({ claims: [] });
-    const { data } = await admin.from('bn_claim').select('id, claim_number, status, claim_date, submission_date, decision_date, product_id').eq('ssn', caller.ssn).order('submission_date', { ascending: false }).limit(100);
+    // Claims where caller is the insured person OR any registered participant.
+    const { data: parts } = await admin.from('bn_claim_participant')
+      .select('claim_id').eq('ssn', caller.ssn);
+    const idsFromParts = (parts ?? []).map((p: any) => p.claim_id).filter(Boolean);
+    let q = admin.from('bn_claim').select('id, claim_number, status, claim_date, submission_date, decision_date, product_id, ssn');
+    if (idsFromParts.length) {
+      q = q.or(`ssn.eq.${caller.ssn},id.in.(${idsFromParts.join(',')})`);
+    } else {
+      q = q.eq('ssn', caller.ssn);
+    }
+    const { data } = await q.order('submission_date', { ascending: false }).limit(200);
     return json({ claims: data ?? [] });
+  }
+
+  // Categorised buckets for the claimant dashboard.
+  if (method === 'GET' && path === '/me/claim-buckets') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'CLAIMANT' || !caller.ssn) {
+      return json({ own: [], submittedForOthers: [], asBeneficiary: [], asGuardianOrPayee: [] });
+    }
+    const { data: parts } = await admin.from('bn_claim_participant')
+      .select('claim_id, participant_role, ssn, is_primary_applicant')
+      .eq('ssn', caller.ssn);
+    const claimIds = Array.from(new Set((parts ?? []).map((p: any) => p.claim_id)));
+    const { data: claims } = claimIds.length
+      ? await admin.from('bn_claim')
+          .select('id, claim_number, status, claim_date, submission_date, ssn, product_id')
+          .in('id', claimIds)
+      : { data: [] as any[] };
+    const byId: Record<string, any> = {};
+    for (const c of claims ?? []) byId[c.id] = c;
+    const own: any[] = []; const submittedForOthers: any[] = [];
+    const asBeneficiary: any[] = []; const asGuardianOrPayee: any[] = [];
+    for (const p of parts ?? []) {
+      const c = byId[p.claim_id]; if (!c) continue;
+      const isInsured = c.ssn && c.ssn === caller.ssn;
+      if (p.participant_role === 'BENEFICIARY') asBeneficiary.push(c);
+      else if (p.participant_role === 'GUARDIAN' || p.participant_role === 'PAYEE') asGuardianOrPayee.push(c);
+      else if (isInsured) own.push(c);
+      else if (p.is_primary_applicant) submittedForOthers.push(c);
+    }
+    // Also include claims where ssn matches as primary insured but no participant row recorded
+    const { data: ownDirect } = await admin.from('bn_claim')
+      .select('id, claim_number, status, claim_date, submission_date, ssn, product_id')
+      .eq('ssn', caller.ssn).order('submission_date', { ascending: false }).limit(100);
+    const seen = new Set(own.map(c => c.id));
+    for (const c of ownDirect ?? []) if (!seen.has(c.id)) own.push(c);
+    return json({ own, submittedForOthers, asBeneficiary, asGuardianOrPayee });
   }
   if (method === 'GET' && path === '/me/awards') {
     const caller = await resolveCaller(req);

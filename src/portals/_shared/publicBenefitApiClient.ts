@@ -49,11 +49,14 @@ export const publicBenefitApi = {
   listProducts: () => request<{ products: any[] }>('/benefits/products'),
   getFormDefinition: (productCode: string, portalRole: PortalRole, opts?: ApiOptions) =>
     request<any>(`/benefits/products/${encodeURIComponent(productCode)}/form-definition?portalRole=${portalRole}`, { method: 'GET' }, opts),
-  submitApplication: (body: { productCode: string; values: Record<string, any>; claimDate?: string; declarationAccepted?: boolean }) =>
+  getParticipantConfig: (productCode: string) =>
+    request<{ product: any; version: any; config: any; documents: any[] }>(`/benefits/products/${encodeURIComponent(productCode)}/participant-config`),
+  submitApplication: (body: Record<string, any>) =>
     request<{ claimId: string; claimNumber: string }>('/benefits/applications', { method: 'POST', body: JSON.stringify(body) }),
 
   // Claims / awards / payments (claimant)
   listClaims: () => request<{ claims: any[] }>('/me/claims'),
+  listClaimBuckets: () => request<{ own: any[]; submittedForOthers: any[]; asBeneficiary: any[]; asGuardianOrPayee: any[] }>('/me/claim-buckets'),
   getClaimStatus: (claimNumber: string) =>
     request<any>(`/claims/${encodeURIComponent(claimNumber)}/status`),
   listAwards: () => request<{ awards: any[] }>('/me/awards'),

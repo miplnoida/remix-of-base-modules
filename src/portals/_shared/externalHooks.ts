@@ -38,6 +38,16 @@ export const useExternalClaimStatus = (claimNumber: string | undefined) =>
 export const useExternalClaims = () =>
   useQuery({ queryKey: ['external', 'me', 'claims'], queryFn: () => publicBenefitApi.listClaims() });
 
+export const useExternalClaimBuckets = () =>
+  useQuery({ queryKey: ['external', 'me', 'claim-buckets'], queryFn: () => publicBenefitApi.listClaimBuckets() });
+
+export const useExternalParticipantConfig = (productCode: string | undefined) =>
+  useQuery({
+    queryKey: ['external', 'participant-config', productCode],
+    enabled: !!productCode,
+    queryFn: () => publicBenefitApi.getParticipantConfig(productCode!),
+  });
+
 export const useExternalAwards = () =>
   useQuery({ queryKey: ['external', 'me', 'awards'], queryFn: () => publicBenefitApi.listAwards() });
 
