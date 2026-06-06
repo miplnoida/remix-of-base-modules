@@ -32865,6 +32865,45 @@ export type Database = {
         }
         Relationships: []
       }
+      external_portal_feature_config: {
+        Row: {
+          affected_menus: string[]
+          affected_personas: string[]
+          created_at: string
+          description: string | null
+          enabled: boolean
+          feature_key: string
+          feature_name: string
+          id: string
+          last_updated_at: string
+          last_updated_by: string | null
+        }
+        Insert: {
+          affected_menus?: string[]
+          affected_personas?: string[]
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          feature_key: string
+          feature_name: string
+          id?: string
+          last_updated_at?: string
+          last_updated_by?: string | null
+        }
+        Update: {
+          affected_menus?: string[]
+          affected_personas?: string[]
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          feature_key?: string
+          feature_name?: string
+          id?: string
+          last_updated_at?: string
+          last_updated_by?: string | null
+        }
+        Relationships: []
+      }
       external_user_person_link: {
         Row: {
           created_at: string
