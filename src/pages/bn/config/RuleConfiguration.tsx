@@ -51,11 +51,16 @@ export default function RuleConfiguration() {
   const { data: ruleGroups = [], isLoading } = useBnRuleGroups();
   const upsert = useUpsertBnRuleGroup();
   const { userCode } = useUserCode();
+  const audit = useBnConfigAudit();
 
   const filtered = ruleGroups.filter((rg: BnRuleGroup) =>
     !search || rg.group_name?.toLowerCase().includes(search.toLowerCase()) ||
     rg.group_code?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const otherCodes = ruleGroups
+    .filter((rg: BnRuleGroup) => rg.id !== form.id)
+    .map((rg: BnRuleGroup) => rg.group_code);
 
   const openAdd = () => { setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (rg: BnRuleGroup) => {
@@ -78,8 +83,13 @@ export default function RuleConfiguration() {
       });
       return;
     }
+    if (otherCodes.map(c => c.toUpperCase()).includes(form.group_code.trim().toUpperCase())) {
+      toast.error('Duplicate code', { description: 'Another rule group already uses this code.' });
+      return;
+    }
     try {
-      await upsert.mutateAsync({
+      const before = form.id ? ruleGroups.find((rg: BnRuleGroup) => rg.id === form.id) ?? null : null;
+      const saved = await upsert.mutateAsync({
         ...(form.id ? { id: form.id } : {}),
         group_code: form.group_code.trim(),
         group_name: form.group_name.trim(),
@@ -89,6 +99,12 @@ export default function RuleConfiguration() {
         is_active: form.is_active,
         entered_by: userCode ?? null,
       } as Partial<BnRuleGroup>);
+      audit.log({
+        entityType: 'bn_rule_group',
+        entityId: (saved as any)?.id ?? form.id ?? 'new',
+        action: form.id ? 'UPDATE' : 'CREATE',
+        before, after: form,
+      });
       toast.success(form.id ? 'Rule group updated' : 'Rule group created');
       setDialogOpen(false);
     } catch (e: any) {
