@@ -70,7 +70,7 @@ export function CommunicationsTab({ versionId, isReadOnly, versionStatus }: Prop
 
   const addMapping = async (event_code: string) => {
     const { error } = await (supabase as any).from('bn_comm_mapping').insert({
-      event_code, bn_product_version_id: versionId, channel: 'EMAIL', recipient_type: 'CLAIMANT',
+      event_code, bn_product_version_id: versionId, delivery_method: 'EMAIL', channel: 'EMAIL', recipient_type: 'CLAIMANT',
       is_required: false, fallback_priority: 100, active: true,
     });
     if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
