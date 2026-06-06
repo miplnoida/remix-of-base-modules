@@ -69,7 +69,9 @@ function SecurityTab() {
   );
 }
 
-export default function AccountProfilePage() {
+type TabKey = 'personal' | 'contacts' | 'preferences' | 'security';
+
+export default function AccountProfilePage({ initialTab = 'personal' }: { initialTab?: TabKey }) {
   return (
     <Card>
       <CardHeader>
@@ -77,7 +79,7 @@ export default function AccountProfilePage() {
         <CardDescription>Personal, contact, preferences and security.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="personal">
+        <Tabs defaultValue={initialTab}>
           <TabsList>
             <TabsTrigger value="personal">Personal</TabsTrigger>
             <TabsTrigger value="contacts">Contacts</TabsTrigger>
