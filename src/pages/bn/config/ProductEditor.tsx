@@ -26,6 +26,7 @@ import { VersionHistoryTab } from '@/components/bn/config/VersionHistoryTab';
 import { PreviewTab } from '@/components/bn/config/PreviewTab';
 import { ChannelsTab } from '@/components/bn/config/ChannelsTab';
 import { CommunicationsTab } from '@/components/bn/config/CommunicationsTab';
+import { ReadOnlyVersionBanner } from '@/components/bn/smart';
 
 const statusBadge: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'secondary', PENDING_APPROVAL: 'outline', ACTIVE: 'default', SUSPENDED: 'destructive', ARCHIVED: 'outline',
