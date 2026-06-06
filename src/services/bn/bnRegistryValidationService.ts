@@ -1,16 +1,19 @@
 /**
- * bnRegistryValidationService — client-side conformance checks that compare
- * live BN configuration tables against the typed registries. Surfaces:
- *   - transition matrix rows that violate ALLOWED_TRANSITIONS
- *   - calculation formulas that reference unknown variables
- *   - eligibility configs that reference unknown field keys
- *   - smart field metadata rows with unknown field types
- *   - workbaskets / escalation policies that reference unknown workflow roles
- *   - orphan product-specific configuration outside Product Catalog (active
- *     references to inactive library records)
+ * bnRegistryValidationService — drift-aware conformance checks.
+ *
+ * Behavior (per Option B):
+ *   - bn_claim_transition_rule is the RUNTIME SOURCE OF TRUTH.
+ *   - transitionRegistry.ts is only for editor suggestions / icons / labels.
+ *   - Transition drift surfaces as WARNING, never ERROR.
+ *   - True ERRORS are reserved for structural issues:
+ *        null from/to/action, duplicate rules, missing/inactive role refs.
+ *   - A separate drift report enumerates statuses/actions present in DB but
+ *     missing from the registry (and vice versa).
+ *   - generateRegistrySuggestions() emits a JSON preview for devs — it does
+ *     NOT modify source code.
  */
 import { supabase } from '@/integrations/supabase/client';
-import { ALLOWED_TRANSITIONS } from './registries/transitionRegistry';
+import { ALLOWED_TRANSITIONS, CLAIM_STATUSES, CLAIM_ACTIONS } from './registries/transitionRegistry';
 import { FORMULA_VARIABLES } from './registries/formulaVariableRegistry';
 import { ELIGIBILITY_FIELDS } from './registries/eligibilityFieldRegistry';
 import { SMART_FIELD_TYPES } from './registries/smartFieldRegistry';
@@ -33,12 +36,20 @@ export interface RegistryFinding {
   message: string;
 }
 
+export interface RegistryDrift {
+  statusesInDbMissingFromRegistry: string[];
+  actionsInDbMissingFromRegistry: string[];
+  statusesInRegistryUnusedInDb: string[];
+  actionsInRegistryUnusedInDb: string[];
+}
+
 export interface RegistryValidationReport {
   ranAt: string;
   total: number;
   errors: number;
   warnings: number;
   findings: RegistryFinding[];
+  drift: RegistryDrift;
 }
 
 async function safeFetch<T = any>(table: string, select = '*'): Promise<T[]> {
@@ -54,22 +65,59 @@ async function safeFetch<T = any>(table: string, select = '*'): Promise<T[]> {
 export async function runRegistryValidation(): Promise<RegistryValidationReport> {
   const findings: RegistryFinding[] = [];
 
-  // ---------- 1. Transition Matrix conformance ----------
+  // ---------- 1. Transition matrix — structural checks + drift ----------
   const transitionRules = await safeFetch('bn_claim_transition_rule');
-  for (const r of transitionRules) {
-    if (!r.is_active) continue;
-    const ok = ALLOWED_TRANSITIONS.some(
-      (t) => t.from === r.from_status && t.action === r.action_code && t.to === r.to_status,
-    );
-    if (!ok) {
+  const activeRules = transitionRules.filter((r) => r.is_active !== false);
+
+  // 1a. Structural ERRORS
+  const seenKey = new Map<string, string>(); // key -> first id
+  for (const r of activeRules) {
+    if (!r.from_status || !r.to_status || !r.action_code) {
       findings.push({
         category: 'TRANSITION',
         severity: 'ERROR',
         entity: 'bn_claim_transition_rule',
         entityId: r.id,
-        message: `Invalid transition: ${r.from_status} —[${r.action_code}]→ ${r.to_status}`,
+        message: `Transition rule has null field(s): from=${r.from_status ?? 'NULL'} action=${r.action_code ?? 'NULL'} to=${r.to_status ?? 'NULL'}`,
       });
+      continue;
     }
+    const key = `${r.from_status}|${r.action_code}|${r.to_status}`;
+    if (seenKey.has(key)) {
+      findings.push({
+        category: 'TRANSITION',
+        severity: 'ERROR',
+        entity: 'bn_claim_transition_rule',
+        entityId: r.id,
+        message: `Duplicate transition: ${r.from_status} —[${r.action_code}]→ ${r.to_status} (already defined by ${seenKey.get(key)})`,
+      });
+    } else {
+      seenKey.set(key, r.id);
+    }
+  }
+
+  // 1b. Drift WARNINGS — show how DB diverges from registry, but never fail valid rows
+  const registryStatuses = new Set<string>(CLAIM_STATUSES as readonly string[]);
+  const registryActions = new Set<string>(CLAIM_ACTIONS as readonly string[]);
+  const dbStatuses = new Set<string>();
+  const dbActions = new Set<string>();
+  for (const r of activeRules) {
+    if (r.from_status) dbStatuses.add(r.from_status);
+    if (r.to_status) dbStatuses.add(r.to_status);
+    if (r.action_code) dbActions.add(r.action_code);
+  }
+  const driftStatusesDbOnly = [...dbStatuses].filter((s) => !registryStatuses.has(s)).sort();
+  const driftActionsDbOnly = [...dbActions].filter((a) => !registryActions.has(a)).sort();
+  const driftStatusesRegOnly = [...registryStatuses].filter((s) => !dbStatuses.has(s)).sort();
+  const driftActionsRegOnly = [...registryActions].filter((a) => !dbActions.has(a)).sort();
+
+  if (driftStatusesDbOnly.length || driftActionsDbOnly.length) {
+    findings.push({
+      category: 'TRANSITION',
+      severity: 'WARNING',
+      entity: 'transitionRegistry.ts',
+      message: `Registry drift: DB uses statuses/actions not in registry. Run "Generate Registry Suggestions" to refresh.`,
+    });
   }
 
   // ---------- 2. Formula variable conformance ----------
@@ -95,10 +143,10 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
       if (unknown.length > 0) {
         findings.push({
           category: 'FORMULA_VARIABLE',
-          severity: 'ERROR',
+          severity: 'WARNING',
           entity: 'bn_formula_template',
           entityId: f.id,
-          message: `${f.template_code}: unknown variables [${unknown.join(', ')}]`,
+          message: `${f.template_code}: variables not in registry [${unknown.join(', ')}]`,
         });
       }
     } catch (e: any) {
@@ -112,7 +160,7 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
     }
   }
 
-  // ---------- 3. Eligibility field key conformance (JSON walker on bn_product_version.eligibility_config) ----------
+  // ---------- 3. Eligibility field key drift (WARNING) ----------
   const allowedFields = new Set(ELIGIBILITY_FIELDS.map((f) => f.key));
   const collectFieldKeys = (node: any, acc: Set<string>): void => {
     if (!node) return;
@@ -133,16 +181,16 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
       if (!allowedFields.has(key)) {
         findings.push({
           category: 'ELIGIBILITY_KEY',
-          severity: 'ERROR',
+          severity: 'WARNING',
           entity: 'bn_product_version',
           entityId: v.id,
-          message: `V${v.version_number ?? '?'}: unknown eligibility field key "${key}"`,
+          message: `V${v.version_number ?? '?'}: eligibility field key "${key}" not in registry`,
         });
       }
     }
   }
 
-  // ---------- 4. Smart field type conformance ----------
+  // ---------- 4. Smart field type drift ----------
   const allowedTypes = new Set(SMART_FIELD_TYPES.map((t) => t.key as string));
   const fieldMeta = await safeFetch('bn_field_metadata');
   for (const f of fieldMeta) {
@@ -153,20 +201,22 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
         severity: 'WARNING',
         entity: 'bn_field_metadata',
         entityId: f.id,
-        message: `${f.field_name}: unknown smart-field type "${t}"`,
+        message: `${f.field_name}: smart-field type "${t}" not in registry`,
       });
     }
   }
 
-  // ---------- 5. Workflow role conformance ----------
+  // ---------- 5. Workflow role checks (ERROR — these break routing) ----------
   const allowedRoles = new Set<string>(BN_WORKFLOW_ROLES as readonly string[]);
   const workbaskets = await safeFetch('bn_workbasket');
+  const workbasketByCode = new Map<string, any>();
   for (const w of workbaskets) {
+    if (w.basket_code) workbasketByCode.set(w.basket_code, w);
     if (w.is_active === false) continue;
     if (w.assigned_role && !allowedRoles.has(w.assigned_role)) {
       findings.push({
         category: 'WORKFLOW_ROLE',
-        severity: 'WARNING',
+        severity: 'ERROR',
         entity: 'bn_workbasket',
         entityId: w.id,
         message: `${w.basket_code}: role "${w.assigned_role}" not in workflow role registry`,
@@ -179,7 +229,7 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
     if (p.escalation_target_role && !allowedRoles.has(p.escalation_target_role)) {
       findings.push({
         category: 'WORKFLOW_ROLE',
-        severity: 'WARNING',
+        severity: 'ERROR',
         entity: 'bn_escalation_policy',
         entityId: p.id,
         message: `${p.policy_code}: target role "${p.escalation_target_role}" not in workflow role registry`,
@@ -204,31 +254,21 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
     const label = `V${v.version_number ?? '?'} (${v.id?.slice(0, 8)})`;
     if (v.workflow_template_id) {
       const wf = wfById.get(v.workflow_template_id);
-      if (!wf) {
-        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: workflow_template_id references missing record` });
-      } else if (wf.is_active === false) {
-        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: references inactive workflow template "${wf.template_code}"` });
-      }
+      if (!wf) findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: workflow_template_id references missing record` });
+      else if (wf.is_active === false) findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: references inactive workflow template "${wf.template_code}"` });
     }
     if (v.screen_template_id) {
       const sc = scrById.get(v.screen_template_id);
-      if (!sc) {
-        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: screen_template_id references missing record` });
-      } else if (sc.is_active === false) {
-        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'WARNING', entity: 'bn_product_version', entityId: v.id, message: `${label}: references inactive screen template "${sc.template_code}"` });
-      }
+      if (!sc) findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: screen_template_id references missing record` });
+      else if (sc.is_active === false) findings.push({ category: 'ORPHAN_REFERENCE', severity: 'WARNING', entity: 'bn_product_version', entityId: v.id, message: `${label}: references inactive screen template "${sc.template_code}"` });
     }
     if (v.document_profile_id) {
       const dp = dpById.get(v.document_profile_id);
-      if (!dp) {
-        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: document_profile_id references missing record` });
-      } else if (dp.is_active === false) {
-        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'WARNING', entity: 'bn_product_version', entityId: v.id, message: `${label}: references inactive document profile "${dp.profile_code}"` });
-      }
+      if (!dp) findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: document_profile_id references missing record` });
+      else if (dp.is_active === false) findings.push({ category: 'ORPHAN_REFERENCE', severity: 'WARNING', entity: 'bn_product_version', entityId: v.id, message: `${label}: references inactive document profile "${dp.profile_code}"` });
     }
   }
 
-  // Communication mappings → comm events: active mappings must reference active events
   const commEvents = await safeFetch('bn_comm_event');
   const inactiveEventCodes = new Set(
     commEvents.filter((e) => e.is_active === false).map((e) => e.event_code),
@@ -256,5 +296,46 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
     errors,
     warnings,
     findings,
+    drift: {
+      statusesInDbMissingFromRegistry: driftStatusesDbOnly,
+      actionsInDbMissingFromRegistry: driftActionsDbOnly,
+      statusesInRegistryUnusedInDb: driftStatusesRegOnly,
+      actionsInRegistryUnusedInDb: driftActionsRegOnly,
+    },
+  };
+}
+
+/**
+ * Generate a developer preview of what transitionRegistry.ts would look like
+ * if regenerated from the live bn_claim_transition_rule table. Returns JSON;
+ * does NOT modify source files.
+ */
+export async function generateRegistrySuggestions(): Promise<{
+  generatedAt: string;
+  source: 'bn_claim_transition_rule';
+  statuses: string[];
+  actions: string[];
+  allowedTransitions: { from: string; action: string; to: string }[];
+}> {
+  const rules = await safeFetch('bn_claim_transition_rule');
+  const active = rules.filter((r) => r.is_active !== false && r.from_status && r.to_status && r.action_code);
+  const statuses = new Set<string>();
+  const actions = new Set<string>();
+  const transitions = new Map<string, { from: string; action: string; to: string }>();
+  for (const r of active) {
+    statuses.add(r.from_status);
+    statuses.add(r.to_status);
+    actions.add(r.action_code);
+    const key = `${r.from_status}|${r.action_code}|${r.to_status}`;
+    if (!transitions.has(key)) transitions.set(key, { from: r.from_status, action: r.action_code, to: r.to_status });
+  }
+  return {
+    generatedAt: new Date().toISOString(),
+    source: 'bn_claim_transition_rule',
+    statuses: [...statuses].sort(),
+    actions: [...actions].sort(),
+    allowedTransitions: [...transitions.values()].sort(
+      (a, b) => a.from.localeCompare(b.from) || a.action.localeCompare(b.action),
+    ),
   };
 }
