@@ -3,6 +3,7 @@ import { ExternalPortalShell } from '@/portals/_shared/ExternalPortalShell';
 import { ExternalTaskList } from '@/portals/_shared/ExternalTaskList';
 import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
 import { PortalModulePlaceholder } from '@/portals/_shared/PortalModulePlaceholder';
+import DoctorLanding from '@/portals/doctor/DoctorLanding';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -27,25 +28,34 @@ const NAV = [
 
 export default function DoctorPortal() {
   return (
-    <ExternalPortalShell role="DOCTOR" brand="Medical Provider Portal" nav={NAV}>
-      <Routes>
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="users" element={<PortalModulePlaceholder title="Provider Users" description="Manage clinicians authorised to submit on behalf of this facility." internalSource="user_roles + provider link" />} />
-        <Route path="tasks" element={<ExternalTaskList basePath="/doctor/tasks" />} />
-        <Route path="tasks/:taskId" element={<TaskDetail />} />
-        <Route path="certificates" element={<Reports title="Submitted Certificates" description="All certificates you have submitted." />} />
-        <Route path="sickness-certificates" element={<PortalModulePlaceholder title="Sickness Certificates" description="Certify periods of sickness for Sickness Benefit claims." internalSource="bn_medical_recommendation" />} />
-        <Route path="maternity-certificates" element={<PortalModulePlaceholder title="Maternity Certificates" description="Certify expected/actual delivery for Maternity Benefit." internalSource="bn_medical_recommendation" />} />
-        <Route path="ei-medical-reports" element={<PortalModulePlaceholder title="Employment Injury Medical Reports" description="Initial and follow-up EI medical reports." internalSource="bn_medical_recommendation" />} />
-        <Route path="invalidity-reports" element={<PortalModulePlaceholder title="Invalidity Reports" description="Medical evidence for Invalidity Benefit." internalSource="bn_medical_recommendation" />} />
-        <Route path="disablement-assessments" element={<PortalModulePlaceholder title="Disablement Assessments" description="Loss-of-faculty assessments for Disablement Benefit." internalSource="bn_medical_recommendation" />} />
-        <Route path="reviews" element={<PortalModulePlaceholder title="Medical Review Requests" description="Periodic medical reviews of existing awards." internalSource="bn_medical_review_schedule" />} />
-        <Route path="documents" element={<PortalModulePlaceholder title="Provider Documents" description="Documents you uploaded with reports and certificates." internalSource="bn_external_task_document" />} />
-        <Route path="messages" element={<Messages />} />
-      </Routes>
-    </ExternalPortalShell>
+    <Routes>
+      <Route index element={<DoctorLanding />} />
+      <Route path="*" element={
+        <ExternalPortalShell role="DOCTOR" brand="Medical Provider Portal" nav={NAV}>
+          <Routes>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="users" element={<PortalModulePlaceholder title="Provider Users" description="Manage clinicians authorised to submit on behalf of this facility." internalSource="user_roles + provider link" />} />
+            <Route path="tasks" element={<ExternalTaskList basePath="/doctor/tasks" />} />
+            <Route path="tasks/:taskId" element={<TaskDetail />} />
+            <Route path="medical-tasks" element={<ExternalTaskList basePath="/doctor/tasks" />} />
+            <Route path="certificates" element={<Reports title="Submitted Certificates" description="All certificates you have submitted." />} />
+            <Route path="sickness-certificates" element={<PortalModulePlaceholder title="Sickness Certificates" description="Certify periods of sickness for Sickness Benefit claims." internalSource="bn_medical_recommendation" />} />
+            <Route path="maternity-certificates" element={<PortalModulePlaceholder title="Maternity Certificates" description="Certify expected/actual delivery for Maternity Benefit." internalSource="bn_medical_recommendation" />} />
+            <Route path="ei-reports" element={<PortalModulePlaceholder title="Employment Injury Medical Reports" description="Initial and follow-up EI medical reports." internalSource="bn_medical_recommendation" />} />
+            <Route path="ei-medical-reports" element={<PortalModulePlaceholder title="Employment Injury Medical Reports" description="Initial and follow-up EI medical reports." internalSource="bn_medical_recommendation" />} />
+            <Route path="invalidity-reports" element={<PortalModulePlaceholder title="Invalidity Reports" description="Medical evidence for Invalidity Benefit." internalSource="bn_medical_recommendation" />} />
+            <Route path="disablement" element={<PortalModulePlaceholder title="Disablement Assessments" description="Loss-of-faculty assessments for Disablement Benefit." internalSource="bn_medical_recommendation" />} />
+            <Route path="disablement-assessments" element={<PortalModulePlaceholder title="Disablement Assessments" description="Loss-of-faculty assessments for Disablement Benefit." internalSource="bn_medical_recommendation" />} />
+            <Route path="submitted" element={<Reports title="Submitted Reports" description="All medical reports you have submitted." />} />
+            <Route path="reviews" element={<PortalModulePlaceholder title="Medical Review Requests" description="Periodic medical reviews of existing awards." internalSource="bn_medical_review_schedule" />} />
+            <Route path="documents" element={<PortalModulePlaceholder title="Provider Documents" description="Documents you uploaded with reports and certificates." internalSource="bn_external_task_document" />} />
+            <Route path="messages" element={<Messages />} />
+            <Route path="*" element={<Navigate to="/doctor/dashboard" replace />} />
+          </Routes>
+        </ExternalPortalShell>
+      } />
+    </Routes>
   );
 }
 
