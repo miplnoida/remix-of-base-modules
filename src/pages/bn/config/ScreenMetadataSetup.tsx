@@ -49,6 +49,19 @@ export default function ScreenMetadataSetup() {
           description="Reusable screen templates and smart field blocks (SSN lookup, Employer lookup, Contribution summary, Survivor beneficiary grid, Medical certificate, Bank details). Product Catalog → Screens tab assembles them for each product version."
         />
 
+        <Card>
+          <CardHeader className="pb-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Smart Field Type Registry</p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex flex-wrap gap-1.5">
+              {SMART_FIELD_TYPES.map(t => (
+                <Badge key={t.key} variant="outline" className="text-xs">{t.label}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
 
         <Tabs defaultValue="screens" className="w-full">
           <TabsList>
