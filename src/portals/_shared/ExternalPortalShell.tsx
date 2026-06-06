@@ -41,6 +41,10 @@ interface Props {
   userMenuHeader?: ReactNode;
   /** Items shown in the mobile bottom navigation bar. */
   mobileNavItems?: NavItem[];
+  /** Optional notification bell rendered to the left of the avatar. */
+  notificationBell?: ReactNode;
+  /** Optional help button rendered to the left of the avatar. */
+  helpButton?: ReactNode;
   children: ReactNode;
 }
 
@@ -80,7 +84,8 @@ const SIDEBAR_STATE_KEY = 'lov.portalSidebar.collapsed';
 
 export function ExternalPortalShell({
   role, brand, nav, subHeader, homeHref,
-  userMenuItems, userMenuHeader, mobileNavItems, children,
+  userMenuItems, userMenuHeader, mobileNavItems,
+  notificationBell, helpButton, children,
 }: Props) {
   const [session, setSession] = useState<PortalSession | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -127,6 +132,8 @@ export function ExternalPortalShell({
             <Badge variant="outline" className="ml-2 border-white/40 bg-white/10 text-xs text-primary-foreground">{role}</Badge>
           </Link>
           <div className="flex items-center gap-2 text-sm">
+            {helpButton}
+            {notificationBell}
             {session ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
