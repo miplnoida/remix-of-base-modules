@@ -229,7 +229,19 @@ export default function ClaimWorkbench() {
   if (!claim) return <BnEmptyState type="error" title="Claim not found" description="The requested claim does not exist." />;
 
   const mergedClaim = { ...claim, ...localUpdates };
-  const mergedDetail = localDetail || detailJson || {};
+  // Merge precedence: local edits > saved detail_json > benefit_facts captured at intake
+  const facts = (workspaceBundle?.application?.raw_application_json as any)?.benefit_facts ?? {};
+  // Map intake form keys → workbench field keys so values entered during intake show up
+  const factsAliased: Record<string, any> = {
+    ...facts,
+    incapacity_date: facts.incapacity_date ?? facts.illness_start_date ?? facts.injury_date ?? facts.onset_date,
+    expected_return_date: facts.expected_return_date,
+    retirement_date: facts.retirement_date ?? facts.last_worked_date,
+    injury_date: facts.injury_date ?? facts.accident_date,
+    date_of_death: facts.date_of_death ?? facts.deceased_date,
+  };
+  const mergedDetail = { ...factsAliased, ...(detailJson || {}), ...(localDetail || {}) };
+
 
   return (
     <div className="space-y-4 p-6">
