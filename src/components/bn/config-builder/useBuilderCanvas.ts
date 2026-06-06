@@ -18,7 +18,7 @@ export function useBuilderCanvas(versionId?: string) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { logChange } = useBnConfigAudit();
+  const { log } = useBnConfigAudit();
 
   useEffect(() => {
     let cancelled = false;
@@ -58,14 +58,14 @@ export function useBuilderCanvas(versionId?: string) {
       const { error } = await db.from('bn_product_version').update({ eligibility_config: after }).eq('id', versionId);
       if (error) throw error;
       setCanvas(after[CANVAS_KEY]);
-      logChange?.({
-        entity_type: 'bn_product_version',
-        entity_id: versionId,
+      log({
+        entityType: 'bn_product_version',
+        entityId: versionId,
         action: 'UPDATE',
         before: before[CANVAS_KEY] ?? null,
         after: after[CANVAS_KEY],
-        note: 'Builder canvas updated',
-      } as any);
+        notes: 'Builder canvas updated',
+      });
       setError(null);
     } catch (e: any) {
       setError(e?.message ?? 'Save failed');
@@ -73,7 +73,7 @@ export function useBuilderCanvas(versionId?: string) {
     } finally {
       setSaving(false);
     }
-  }, [versionId, logChange]);
+  }, [versionId, log]);
 
   return { canvas, setCanvas, save, loading, saving, error };
 }
