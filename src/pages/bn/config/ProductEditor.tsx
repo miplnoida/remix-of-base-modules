@@ -27,6 +27,7 @@ import { PreviewTab } from '@/components/bn/config/PreviewTab';
 import { ChannelsTab } from '@/components/bn/config/ChannelsTab';
 import { CommunicationsTab } from '@/components/bn/config/CommunicationsTab';
 import { ReadOnlyVersionBanner } from '@/components/bn/smart';
+import { VisualBuilderTab } from '@/components/bn/config/VisualBuilderTab';
 
 const statusBadge: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'secondary', PENDING_APPROVAL: 'outline', ACTIVE: 'default', SUSPENDED: 'destructive', ARCHIVED: 'outline',
@@ -228,6 +229,7 @@ export default function ProductEditor() {
       <Tabs defaultValue="definition" className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1">
           <TabsTrigger value="definition">Definition</TabsTrigger>
+          <TabsTrigger value="builder" disabled={isNew}>Visual Builder</TabsTrigger>
           <TabsTrigger value="versions">Versions</TabsTrigger>
           <TabsTrigger value="eligibility" disabled={isNew}>Eligibility</TabsTrigger>
           <TabsTrigger value="calculation" disabled={isNew}>Calculation</TabsTrigger>
@@ -323,9 +325,14 @@ export default function ProductEditor() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="builder" className="mt-6">
+          <VisualBuilderTab versionId={selectedVersionId} versionStatus={activeVersion?.status} />
+        </TabsContent>
+
         <TabsContent value="versions" className="mt-6">
           <VersionHistoryTab productId={isNew ? undefined : id} versions={versions} onCreateVersion={handleCreateVersion} />
         </TabsContent>
+
 
         <TabsContent value="eligibility" className="mt-6">
           <EligibilityRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
