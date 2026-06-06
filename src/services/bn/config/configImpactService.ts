@@ -98,17 +98,14 @@ export async function getDocumentUsage(documentTypeCode: string): Promise<Impact
   return summarize(refs);
 }
 
-/** Reason code usage across decisions and transition rules */
+/** Reason code usage on live claim decisions (no version-scoped link in current schema). */
 export async function getReasonCodeUsage(reasonCodeId: string): Promise<ImpactReport> {
-  const [{ data: trans }, { data: decisions }] = await Promise.all([
-    db.from('bn_claim_transition_rule').select('product_version_id').eq('reason_code_id', reasonCodeId),
-    db.from('bn_claim_decision').select('claim_id').eq('reason_code_id', reasonCodeId).limit(1),
-  ]);
-  const refs = await enrichWithVersions(
-    (trans ?? []).map((r: any) => r.product_version_id),
-    'transition_rule',
-  );
-  // Decisions on live claims => critical, treat as ACTIVE block
+  const { data: decisions } = await db
+    .from('bn_claim_decision')
+    .select('claim_id')
+    .eq('reason_code_id', reasonCodeId)
+    .limit(1);
+  const refs: ImpactReference[] = [];
   if ((decisions ?? []).length > 0) {
     refs.push({
       product_version_id: '(live-claim-decisions)',
@@ -119,16 +116,14 @@ export async function getReasonCodeUsage(reasonCodeId: string): Promise<ImpactRe
   return summarize(refs);
 }
 
-/** Workbasket usage in queue assignments and transition routing */
+/** Workbasket usage in open queue assignments. */
 export async function getWorkbasketUsage(workbasketId: string): Promise<ImpactReport> {
-  const [{ data: assignments }, { data: trans }] = await Promise.all([
-    db.from('bn_claim_queue_assignment').select('claim_id').eq('workbasket_id', workbasketId).limit(1),
-    db.from('bn_claim_transition_rule').select('product_version_id').eq('target_workbasket_id', workbasketId),
-  ]);
-  const refs = await enrichWithVersions(
-    (trans ?? []).map((r: any) => r.product_version_id),
-    'transition_rule',
-  );
+  const { data: assignments } = await db
+    .from('bn_claim_queue_assignment')
+    .select('claim_id')
+    .eq('workbasket_id', workbasketId)
+    .limit(1);
+  const refs: ImpactReference[] = [];
   if ((assignments ?? []).length > 0) {
     refs.push({
       product_version_id: '(open-queue-assignments)',
@@ -139,15 +134,21 @@ export async function getWorkbasketUsage(workbasketId: string): Promise<ImpactRe
   return summarize(refs);
 }
 
-/** Escalation policy usage */
+/** Escalation policy usage — policy is category-scoped; flag if active. */
 export async function getEscalationPolicyUsage(policyId: string): Promise<ImpactReport> {
   const { data } = await db
     .from('bn_escalation_policy')
-    .select('id, product_version_id')
+    .select('id, is_active, product_category')
     .eq('id', policyId)
     .maybeSingle();
-  if (!data || !data.product_version_id) return summarize([]);
-  const refs = await enrichWithVersions([data.product_version_id], 'escalation_policy');
+  const refs: ImpactReference[] = [];
+  if (data?.is_active) {
+    refs.push({
+      product_version_id: `(category:${data.product_category ?? 'ALL'})`,
+      status: 'ACTIVE',
+      context: 'escalation_policy_active',
+    });
+  }
   return summarize(refs);
 }
 
