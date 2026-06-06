@@ -32,17 +32,53 @@ export interface ClaimContext {
   product_id: string | null;
   product_version_id: string | null;
   employer_regno: string | null;
+  status: string | null;
 }
 
 async function loadClaimContext(claimId: string): Promise<ClaimContext> {
   const { data, error } = await db
     .from('bn_claim')
-    .select('id, ssn, claim_date, product_id, product_version_id, employer_regno')
+    .select('id, ssn, claim_date, product_id, product_version_id, employer_regno, status')
     .eq('id', claimId)
     .single();
   if (error) throw error;
   if (!data) throw new Error('Claim not found');
   return data as ClaimContext;
+}
+
+/**
+ * For pre-decision claims, auto-rebind to the currently ACTIVE product version
+ * so newly added rules take effect. Decided claims stay pinned for audit.
+ */
+const PRE_DECISION_STATUSES = new Set([
+  'DRAFT', 'INTAKE', 'SUBMITTED', 'UNDER_REVIEW', 'PENDING_DOCS', 'PENDING_REVIEW',
+]);
+
+async function resolveEvaluationVersionId(claim: ClaimContext): Promise<string> {
+  if (!claim.product_id) {
+    if (!claim.product_version_id) throw new Error('Claim has no product/version.');
+    return claim.product_version_id;
+  }
+  const isPreDecision = !claim.status || PRE_DECISION_STATUSES.has(String(claim.status).toUpperCase());
+  if (!isPreDecision) {
+    if (!claim.product_version_id) throw new Error('Decided claim missing product_version_id.');
+    return claim.product_version_id;
+  }
+  const { data: active } = await db
+    .from('bn_product_version')
+    .select('id')
+    .eq('product_id', claim.product_id)
+    .eq('status', 'ACTIVE')
+    .order('version_number', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const targetId = active?.id || claim.product_version_id;
+  if (!targetId) throw new Error('No ACTIVE product version found for this product.');
+  if (targetId !== claim.product_version_id) {
+    await db.from('bn_claim').update({ product_version_id: targetId }).eq('id', claim.id);
+    claim.product_version_id = targetId;
+  }
+  return targetId;
 }
 
 // ─── Eligibility ────────────────────────────────────────────────────
