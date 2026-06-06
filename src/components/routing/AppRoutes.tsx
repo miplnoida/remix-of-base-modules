@@ -1611,6 +1611,7 @@ export const AppRoutes = () => {
       <Route path="/admin/users/:userId/roles" element={<UserRoles />} />
       <Route path="/admin/seed-test-users" element={<SeedTestUsers />} />
       <Route path="/admin/external-portal-settings" element={<ExternalPortalSettings />} />
+      <Route path="/admin/external-portal-approvals" element={<ExternalPortalApprovals />} />
       <Route path="/admin/web-users" element={<WebUsers />} />
       <Route path="/admin/audit-log" element={<Navigate to="/system-logs/audit" replace />} />
       <Route path="/admin/audit-logs" element={<Navigate to="/system-logs/audit" replace />} />
