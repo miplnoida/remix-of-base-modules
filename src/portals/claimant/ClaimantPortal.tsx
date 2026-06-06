@@ -27,11 +27,34 @@ import type { PortalFeatureConfig } from '@/services/external/portalFeatureConfi
 
 const BRAND = 'Social Security Self-Service Portal';
 
-function buildNavGroups(flags: PersonaFlags | undefined, personas: Persona[]): NavGroup[] {
+function buildNavGroups(
+  flags: PersonaFlags | undefined,
+  personas: Persona[],
+  features: PortalFeatureConfig | undefined,
+): NavGroup[] {
   const f = flags ?? ({} as PersonaFlags);
+  const ft: PortalFeatureConfig = features ?? ({
+    peopleIMangeEnabled: true,
+    guardianPayeeEnabled: true,
+    representativeAccessEnabled: true,
+    beneficiarySelfServiceEnabled: true,
+    contributionHistoryEnabled: true,
+    employmentHistoryEnabled: true,
+    paymentHistoryEnabled: true,
+    lifeCertificateEnabled: true,
+    schoolCertificateEnabled: true,
+    bankUpdateEnabled: true,
+    appealsEnabled: true,
+    eligibilityEstimatorEnabled: true,
+  } as PortalFeatureConfig);
+
   const isInsured = personas.includes('INSURED_PERSON');
-  const isManager =
-    personas.includes('GUARDIAN') || personas.includes('PAYEE') || personas.includes('REPRESENTATIVE');
+  const isGuardianOrPayee = personas.includes('GUARDIAN') || personas.includes('PAYEE');
+  const isRepresentative = personas.includes('REPRESENTATIVE');
+  const managerEnabled =
+    ft.peopleIMangeEnabled &&
+    ((isGuardianOrPayee && ft.guardianPayeeEnabled) ||
+      (isRepresentative && ft.representativeAccessEnabled));
 
   const groups: NavGroup[] = [
     {
@@ -47,29 +70,26 @@ function buildNavGroups(flags: PersonaFlags | undefined, personas: Persona[]): N
   ];
 
   if (isInsured) {
-    groups.push({
-      label: 'My Social Security',
-      items: [
-        { to: '/claimant/contributions', label: 'Contribution History' },
-        { to: '/claimant/employment-history', label: 'Employment History' },
-        { to: '/claimant/statements', label: 'Contribution Statements' },
-        { to: '/claimant/insurable-earnings', label: 'Insurable Earnings' },
-      ],
-    });
+    const items = [] as NavGroup['items'];
+    if (ft.contributionHistoryEnabled) items.push({ to: '/claimant/contributions', label: 'Contribution History' });
+    if (ft.employmentHistoryEnabled) items.push({ to: '/claimant/employment-history', label: 'Employment History' });
+    if (ft.contributionHistoryEnabled) {
+      items.push({ to: '/claimant/statements', label: 'Contribution Statements' });
+      items.push({ to: '/claimant/insurable-earnings', label: 'Insurable Earnings' });
+    }
+    if (items.length) groups.push({ label: 'My Social Security', items });
   }
 
-  groups.push({
-    label: 'Benefits',
-    items: [
-      { to: '/claimant/apply', label: 'Apply for Benefits' },
-      { to: '/claimant/estimator', label: 'Eligibility Estimator' },
-      { to: '/claimant/claims', label: 'Claims' },
-      { to: '/claimant/entitlements', label: 'Entitlements' },
-      { to: '/claimant/payments', label: 'Payments' },
-    ],
-  });
+  const benefits = [] as NavGroup['items'];
+  benefits.push({ to: '/claimant/apply', label: 'Apply for Benefits' });
+  if (ft.eligibilityEstimatorEnabled) benefits.push({ to: '/claimant/estimator', label: 'Eligibility Estimator' });
+  benefits.push({ to: '/claimant/claims', label: 'Claims' });
+  benefits.push({ to: '/claimant/entitlements', label: 'Entitlements' });
+  if (ft.paymentHistoryEnabled) benefits.push({ to: '/claimant/payments', label: 'Payments' });
+  if (ft.bankUpdateEnabled) benefits.push({ to: '/claimant/bank-details', label: 'Bank Update' });
+  groups.push({ label: 'Benefits', items: benefits });
 
-  if (isManager) {
+  if (managerEnabled) {
     groups.push({
       label: 'People I Manage',
       items: [
@@ -80,15 +100,12 @@ function buildNavGroups(flags: PersonaFlags | undefined, personas: Persona[]): N
     });
   }
 
-  groups.push({
-    label: 'Compliance',
-    items: [
-      { to: '/claimant/compliance/life', label: 'Life Certificates' },
-      { to: '/claimant/compliance/school', label: 'School Certificates' },
-      { to: '/claimant/compliance/verification', label: 'Verification Tasks' },
-      { to: '/claimant/compliance/outstanding', label: 'Outstanding Requirements' },
-    ],
-  });
+  const compliance = [] as NavGroup['items'];
+  if (ft.lifeCertificateEnabled) compliance.push({ to: '/claimant/compliance/life', label: 'Life Certificates' });
+  if (ft.schoolCertificateEnabled) compliance.push({ to: '/claimant/compliance/school', label: 'School Certificates' });
+  compliance.push({ to: '/claimant/compliance/verification', label: 'Verification Tasks' });
+  compliance.push({ to: '/claimant/compliance/outstanding', label: 'Outstanding Requirements' });
+  groups.push({ label: 'Compliance', items: compliance });
 
   groups.push({
     label: 'Communications',
@@ -105,15 +122,16 @@ function buildNavGroups(flags: PersonaFlags | undefined, personas: Persona[]): N
     items: [{ to: '/claimant/documents', label: 'Document Center' }],
   });
 
-  groups.push({
-    label: 'Appeals',
-    items: [
-      { to: '/claimant/appeals', label: 'Appeals' },
-      { to: '/claimant/appeals/reconsideration', label: 'Reconsiderations' },
-    ],
-  });
+  if (ft.appealsEnabled) {
+    groups.push({
+      label: 'Appeals',
+      items: [
+        { to: '/claimant/appeals', label: 'Appeals' },
+        { to: '/claimant/appeals/reconsideration', label: 'Reconsiderations' },
+      ],
+    });
+  }
 
-  // Suppress unused warning for `f` (kept for future per-item gating)
   void f;
   return groups;
 }
