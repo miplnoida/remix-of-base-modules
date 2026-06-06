@@ -41,6 +41,10 @@ interface Props {
   userMenuHeader?: ReactNode;
   /** Items shown in the mobile bottom navigation bar. */
   mobileNavItems?: NavItem[];
+  /** Optional notification bell rendered to the left of the avatar. */
+  notificationBell?: ReactNode;
+  /** Optional help button rendered to the left of the avatar. */
+  helpButton?: ReactNode;
   children: ReactNode;
 }
 
