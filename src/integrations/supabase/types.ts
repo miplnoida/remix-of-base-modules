@@ -8969,6 +8969,9 @@ export type Database = {
         Row: {
           award_creation_rule: string
           benefit_duration_type: string
+          builder_canvas: Json
+          builder_canvas_updated_at: string | null
+          builder_canvas_updated_by: string | null
           calculation_config: Json
           description: string | null
           document_profile_id: string | null
@@ -9000,6 +9003,9 @@ export type Database = {
         Insert: {
           award_creation_rule?: string
           benefit_duration_type?: string
+          builder_canvas?: Json
+          builder_canvas_updated_at?: string | null
+          builder_canvas_updated_by?: string | null
           calculation_config?: Json
           description?: string | null
           document_profile_id?: string | null
@@ -9031,6 +9037,9 @@ export type Database = {
         Update: {
           award_creation_rule?: string
           benefit_duration_type?: string
+          builder_canvas?: Json
+          builder_canvas_updated_at?: string | null
+          builder_canvas_updated_by?: string | null
           calculation_config?: Json
           description?: string | null
           document_profile_id?: string | null
@@ -54785,6 +54794,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      bn_clone_product_version_to_draft: {
+        Args: { p_source_id: string; p_user_code: string }
+        Returns: string
       }
       bn_get_contribution_summary: {
         Args: { p_from_date?: string; p_ssn: string; p_to_date?: string }
