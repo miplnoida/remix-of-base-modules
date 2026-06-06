@@ -174,22 +174,62 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
     }
   }
 
-  // ---------- 6. Orphan / inactive-library references ----------
-  // Active product version configs should not reference inactive library records.
-  const documents = await safeFetch('bn_document');
-  const inactiveDocCodes = new Set(
-    documents.filter((d) => d.is_active === false).map((d) => d.document_code),
+  // ---------- 6. Orphan / inactive-library references on active product versions ----------
+  const productVersions = await safeFetch('bn_product_version');
+  const liveVersions = productVersions.filter(
+    (v) => ['ACTIVE', 'PUBLISHED', 'APPROVED'].includes(String(v.status || '').toUpperCase()),
   );
-  const productDocs = await safeFetch('bn_product_document');
-  for (const pd of productDocs) {
-    if (pd.is_active === false) continue;
-    if (pd.document_code && inactiveDocCodes.has(pd.document_code)) {
+
+  const workflowTemplates = await safeFetch('bn_workflow_template');
+  const wfById = new Map(workflowTemplates.map((t) => [t.id, t]));
+  const screenTemplates = await safeFetch('bn_screen_template');
+  const scrById = new Map(screenTemplates.map((t) => [t.id, t]));
+  const docProfiles = await safeFetch('bn_document_profile');
+  const dpById = new Map(docProfiles.map((t) => [t.id, t]));
+
+  for (const v of liveVersions) {
+    const label = `V${v.version_number ?? '?'} (${v.id?.slice(0, 8)})`;
+    if (v.workflow_template_id) {
+      const wf = wfById.get(v.workflow_template_id);
+      if (!wf) {
+        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: workflow_template_id references missing record` });
+      } else if (wf.is_active === false) {
+        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: references inactive workflow template "${wf.template_code}"` });
+      }
+    }
+    if (v.screen_template_id) {
+      const sc = scrById.get(v.screen_template_id);
+      if (!sc) {
+        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: screen_template_id references missing record` });
+      } else if (sc.is_active === false) {
+        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'WARNING', entity: 'bn_product_version', entityId: v.id, message: `${label}: references inactive screen template "${sc.template_code}"` });
+      }
+    }
+    if (v.document_profile_id) {
+      const dp = dpById.get(v.document_profile_id);
+      if (!dp) {
+        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: document_profile_id references missing record` });
+      } else if (dp.is_active === false) {
+        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'WARNING', entity: 'bn_product_version', entityId: v.id, message: `${label}: references inactive document profile "${dp.profile_code}"` });
+      }
+    }
+  }
+
+  // Communication mappings → comm events: active mappings must reference active events
+  const commEvents = await safeFetch('bn_comm_event');
+  const inactiveEventCodes = new Set(
+    commEvents.filter((e) => e.is_active === false).map((e) => e.event_code),
+  );
+  const commMappings = await safeFetch('bn_comm_mapping');
+  for (const m of commMappings) {
+    if (m.is_active === false) continue;
+    if (m.event_code && inactiveEventCodes.has(m.event_code)) {
       findings.push({
         category: 'ORPHAN_REFERENCE',
-        severity: 'ERROR',
-        entity: 'bn_product_document',
-        entityId: pd.id,
-        message: `Active product references inactive document "${pd.document_code}"`,
+        severity: 'WARNING',
+        entity: 'bn_comm_mapping',
+        entityId: m.id,
+        message: `Active mapping references inactive communication event "${m.event_code}"`,
       });
     }
   }
