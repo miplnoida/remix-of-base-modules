@@ -76,6 +76,7 @@ import { ApplicationDetailsPanel, WorkflowTasksPanel, PaymentsPanel, channelLabe
 import { ClaimWorkbenchTabBoundary } from '@/components/bn/workbench/ClaimWorkbenchTabBoundary';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, ListChecks, Inbox } from 'lucide-react';
+import { filterEditablePayload } from '@/lib/bn/fieldOwnership';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
@@ -171,11 +172,24 @@ export default function ClaimWorkbench() {
         });
       }
       if (localDetail && id) {
-        await upsertDetail.mutateAsync({
-          claimId: id,
-          detailJson: localDetail,
-          userCode,
-        });
+        // Filter so only STAFF_REVIEW / SUPERVISOR_DECISION fields the user
+        // is allowed to write reach the DB. Citizen-submitted and
+        // system-derived fields are dropped silently.
+        const editable = filterEditablePayload(
+          product?.category || 'SHORT_TERM',
+          localDetail,
+          claim?.status || '',
+          userRoles,
+        );
+        // Merge into existing detailJson so we don't blow away prior staff edits.
+        const persistJson = { ...(detailJson || {}), ...editable };
+        if (Object.keys(editable).length > 0) {
+          await upsertDetail.mutateAsync({
+            claimId: id,
+            detailJson: persistJson,
+            userCode,
+          });
+        }
       }
       setLocalUpdates({});
       setLocalDetail(null);
@@ -404,7 +418,8 @@ export default function ClaimWorkbench() {
             <BenefitDetailSection
               category={product?.category || 'SHORT_TERM'}
               detailJson={mergedDetail}
-              isEditable={isEditable}
+              claimStatus={claim.status}
+              roles={userRoles}
               onDetailChange={handleDetailChange}
             />
           </ClaimWorkbenchTabBoundary>

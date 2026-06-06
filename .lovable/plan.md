@@ -1,61 +1,37 @@
+## Claim Workbench → Active Processing Cockpit
 
-## Goal
+This is a large redesign touching field-edit rules, business actions, multiple tabs, workflow integration, and permissions. To keep it shippable and verifiable, I'll split it into 4 phases. Each phase is independently testable and leaves the workbench in a working state.
 
-Make the floating Developer Information (`</>`) panel — Overview, Tables, Logic, Fields, Actions, Dependencies, Audit, Re-analyze, Copy, Export — work on **every Compliance & Enforcement page and sub-menu**, not just the few that already have a row in `dev_info_screens`.
+### Phase 1 — Foundation: field ownership, Save behavior, Benefit Details fallback (items 1, 2, 12)
+- Add a field-ownership registry (`src/lib/bn/fieldOwnership.ts`) with four classes: `CITIZEN_SUBMITTED`, `STAFF_REVIEW`, `SUPERVISOR_DECISION`, `SYSTEM_DERIVED`, plus an `isFieldEditable(field, status, roles)` resolver.
+- Tag Sickness Benefit fields per spec (citizen vs staff). Drive `BenefitDetailSection` field rendering from the registry (read-only chip vs editable input, with reason on hover).
+- Confirm merge precedence in workbench: `raw_application_json.benefit_facts` (aliased) → `bn_claim_detail.detail_json` → local edits. Aliases: `incapacity_date ↔ illness_start_date`, `return_date ↔ expected_return_date`.
+- Save only writes staff fields to `bn_claim_detail.detail_json`; never overwrites `raw_application_json`.
 
-## Findings
+### Phase 2 — Active business actions (item 3) + Eligibility & Calculation tabs (items 4, 5)
+- Rewrite `executeClaimAction` so each action calls real services, not just a status update:
+  - `CHECK_ELIGIBILITY` → run engine, persist `bn_claim_eligibility` + rule trace (rule_code, field_key, actual, expected, operator, passed, source, message).
+  - `RUN_CALCULATION` → require passing eligibility (or override), run calc engine, persist `bn_claim_calculation` + formula trace.
+  - `REQUEST_EVIDENCE`, `SUBMIT_DECISION`, `APPROVE`, `DENY`, `REQUEST_INFO`, `SUSPEND`, `REOPEN`, `WITHDRAW`, `CLOSE` get real preconditions and side-effects (decision row, award/payment scaffolding for APPROVE).
+- Eligibility tab: empty state with "Run Eligibility" CTA; result state with rule trace table; buttons Run / Re-run / Request Evidence / Override (gated) / Deny for Ineligibility (supervisor).
+- Calculation tab: empty state with "Run Calculation" CTA; result state with formula, inputs, AWW, caps, periodicity, trace lines; buttons Run / Re-run / Override (gated) / Submit for Decision.
 
-- `src/components/routing/AppRoutes.tsx` + `src/pages/compliance/Routes.tsx` register ~190 routes under `/compliance/*`.
-- Only ~62 of those routes currently have a row in `dev_info_screens`, so on most Compliance pages the modal shows "No Developer Information".
-- Re-analyze already works for any route since the last change (the modal auto-bootstraps a stub `dev_info_screens` row when missing). What's still missing for parity with C3 Dashboard is a curated, named seed entry per route so:
-  - The screen has a stable `screen_code`, `screen_name`, `module_name`, `submodule_name`, and `menu_path`.
-  - The Overview section shows meaningful labels even before the first AI run.
-  - Admin maintenance lists/filters by module work correctly.
-- Concrete-id routes (e.g. `/compliance/violations/:id`) cannot be matched verbatim by the modal at runtime because it looks up `route_url` against `location.pathname`. Those need a runtime fix in the lookup, not just data.
+### Phase 3 — Documents, Decisions, Overview blockers, per-tab boundaries (items 6, 7, 8, 11)
+- Documents tab: required-by-product checklist + uploaded list + verification status + blocking flag. Actions: Upload, Verify, Reject, Request Replacement, Mark Pending, Waive (gated). Mandatory unverified blocks APPROVE.
+- Decisions tab: recommendation panel + supervisor decision panel + timeline + buttons (Recommend Approve/Deny, Supervisor Approve/Deny, Send Back).
+- Overview tab: processing checklist (identity, docs, staff fields, eligibility run/passed, calc, decision, workflow task) + warnings + next-best-action.
+- Confirm every `TabsContent` is wrapped in `ClaimWorkbenchTabBoundary` (already exists from prior work); add consistent loading/empty/error/retry shells in each panel.
 
-## Plan
+### Phase 4 — Workflow integration & real permissions (items 9, 10) + cross-status testing (item 13)
+- If `bn_claim.workflow_instance_id` is present: load active task + allowed actions from `workflow_tasks`/`workflow_step_actions`; completion calls workflow step → BN status sync via mapping table. Else fall back to `CLAIM_TRANSITIONS`. Never both at once.
+- Replace `userRoles = ['Admin']` hardcodes with `useSupabaseAuth().roles` + a new `useHasBnPermission(permission)` hook backed by `role_permissions`. Wire the 10 BN permissions across action bar, override buttons, doc waiver, supervisor decision.
+- Test pass: walk one claim through SUBMITTED → INTAKE_REVIEW → EVIDENCE_REVIEW → ELIGIBILITY_CHECK → CALCULATION → DECISION → APPROVED, plus DENIED / PENDING_INFO / SUSPENDED branches. Verify edit rules, action visibility, real engine execution, doc blocking, decision/award creation, and TypeScript build.
 
-### 1. Bulk-seed missing Compliance routes in `dev_info_screens`
+### Technical notes
+- New files: `src/lib/bn/fieldOwnership.ts`, `src/services/bn/eligibilityEngine.ts`, `src/services/bn/calculationEngine.ts`, `src/services/bn/decisionService.ts`, `src/hooks/bn/useHasBnPermission.ts`, `src/components/bn/workbench/panels/EligibilityPanel.tsx` (rewrite), `CalculationPanel.tsx` (rewrite), `DocumentsPanel.tsx` (rewrite), `DecisionsPanel.tsx` (new), `OverviewChecklist.tsx` (new).
+- Heavy edits: `claimWorkbenchService.executeClaimAction`, `ClaimActionBar` (preconditions + permission gates), `BenefitDetailSection` (field registry), `ClaimWorkbench.tsx` (wire new panels).
+- DB: no new tables required; uses existing `bn_claim_eligibility`, `bn_claim_calculation`, `bn_claim_decision`, `bn_award`, `bn_claim_evidence`, `bn_claim_event`, `bn_claim_document`, `workflow_instances/tasks`.
+- Risk: eligibility/calculation engines are non-trivial. Phase 2 will ship a working engine for **Sickness Benefit** end-to-end and a generic rule-evaluator skeleton for other products, then expand product coverage incrementally.
 
-One `INSERT … SELECT … WHERE NOT EXISTS` batch (via the data tool) for every `/compliance/*` route registered in the router. For each row:
-
-- `screen_code` — derived from the path, e.g. `CE_<UPPER_SNAKE>` (capped to 60 chars, unique).
-- `screen_name` — human title derived from the leaf segment (e.g. "Compliance Manager Dashboard").
-- `module_name` — `Compliance & Enforcement`.
-- `submodule_name` — second segment mapped to a friendly label: `workbench → Workbench`, `cases → Cases`, `violations → Violations`, `notices → Notices`, `arrangements → Arrangements`, `enforcement → Enforcement`, `legal → Legal`, `audit-planning → Audit Planning`, `field → Field Operations`, `reports → Reports`, `risk → Risk`, `sampling → Sampling`, `monitoring → Monitoring`, `admin → Administration`, `staff → Staff`, `settings → Settings`, `tools → Tools`, `automation → Automation`, `geography → Geography`, `dashboard → Dashboards`, `operations → Operations`, `employers → Employers`, `inspections → Inspections`.
-- `menu_path` — `Compliance & Enforcement › <Submodule> › <Screen Name>`.
-- `screen_type` — `dashboard` / `report` / `settings` / `list` / `detail` inferred from segments (dashboards under `/dashboard|/workbench`, reports under `/reports`, settings under `/settings|/admin`, dynamic-id paths → `detail`).
-- `documentation_status` — `pending`, `is_active = true`.
-- `ON CONFLICT (screen_code) DO NOTHING` so reruns and prior rows are preserved.
-
-This is data only — no schema change, no migration.
-
-### 2. Match dynamic routes (`:id`, `:employerId`, etc.) at runtime
-
-Update `developerInfoService.getScreenByRoute` so dynamic routes resolve to their template row:
-
-- Try exact `route_url = pathname` first (current behavior).
-- If no row, list `route_url` containing `:` and match by converting each template (`/compliance/violations/:id`) into a regex (`/compliance/violations/[^/]+`) and testing against the pathname.
-- Return the first match, or `null` if none.
-
-No change to `DeveloperInfoFAB` or `DeveloperInfoModal` is needed because the bootstrap-on-Reanalyze path added previously still covers any future or unknown route.
-
-### 3. Verification
-
-- Visit a representative sample after seeding: `/compliance/cases/intake`, `/compliance/workbench/queues`, `/compliance/enforcement/notices`, `/compliance/reports/violations/zone`, `/compliance/admin/settings/sampling`, `/compliance/violations/<real-id>`. In each:
-  - `</>` FAB opens the panel with the correct Route, screen name, module, and submodule shown in Overview.
-  - Re-analyze populates Tables/Logic/Actions/etc., changes badge to `auto extracted`.
-  - Copy and Export produce the same JSON shape as on C3 Dashboard.
-- Query: `SELECT count(*) FROM dev_info_screens WHERE module_name = 'Compliance & Enforcement'` should rise from ~62 to ~190.
-
-## Files to change
-
-- `src/services/developerInfoService.ts` — add dynamic-route fallback inside `getScreenByRoute`.
-- Data change (no migration): bulk `INSERT … WHERE NOT EXISTS` into `dev_info_screens` for missing `/compliance/*` routes.
-
-No changes to the FAB, modal, edge function, or routing.
-
-## What this plan does NOT do
-
-- It does not pre-run AI extraction for each new row (avoids ~130 LLM calls). Each page is one click away from full documentation via Re-analyze.
-- It does not touch other modules (C3, Benefits, Finance, Legal, Audit, etc.). If you want the same sweep there, we can repeat steps 1–2 per module afterward.
+### Suggested approval flow
+Confirm this phased approach and I'll start Phase 1 immediately. If you'd rather I attempt all four phases in one shot, say so — it will be a much larger single change with higher regression risk.
