@@ -13,6 +13,7 @@ import { useBnScreenTemplates, useBnFieldMetadata } from '@/hooks/bn/useBnConfig
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
+import { SMART_FIELD_TYPES } from '@/services/bn/registries';
 
 export default function ScreenMetadataSetup() {
   const [search, setSearch] = useState('');
