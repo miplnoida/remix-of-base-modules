@@ -208,7 +208,7 @@ export default function ClaimantPortal() {
           subHeader={<PersonaHeader />}
         >
           <Routes>
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="dashboard" element={<SelfServiceDashboard />} />
             <Route path="link-ssn" element={<LinkSsnPage />} />
 
             {/* MY ACCOUNT */}
