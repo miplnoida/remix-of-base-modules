@@ -7098,6 +7098,151 @@ export type Database = {
           },
         ]
       }
+      bn_entitlement: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          calculation_id: string | null
+          cl_head_claim_no: string | null
+          claim_id: string
+          claim_number: string | null
+          duration_weeks: number | null
+          effective_from: string
+          effective_to: string | null
+          entered_at: string
+          entered_by: string | null
+          entitlement_type: string
+          id: string
+          legacy_award_id: string | null
+          lump_sum_amount: number | null
+          modified_at: string | null
+          modified_by: string | null
+          monthly_rate: number | null
+          next_review_date: string | null
+          override_applied: boolean
+          override_reason: string | null
+          payment_frequency: string
+          product_id: string | null
+          product_version_id: string | null
+          remaining_amount: number
+          ssn: string
+          status: string
+          suspended_at: string | null
+          suspended_by: string | null
+          suspension_reason: string | null
+          suspension_reason_code_id: string | null
+          terminated_at: string | null
+          terminated_by: string | null
+          termination_reason: string | null
+          termination_reason_code_id: string | null
+          total_entitlement: number
+          weekly_rate: number
+          weeks_paid: number
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          calculation_id?: string | null
+          cl_head_claim_no?: string | null
+          claim_id: string
+          claim_number?: string | null
+          duration_weeks?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          entitlement_type?: string
+          id?: string
+          legacy_award_id?: string | null
+          lump_sum_amount?: number | null
+          modified_at?: string | null
+          modified_by?: string | null
+          monthly_rate?: number | null
+          next_review_date?: string | null
+          override_applied?: boolean
+          override_reason?: string | null
+          payment_frequency?: string
+          product_id?: string | null
+          product_version_id?: string | null
+          remaining_amount?: number
+          ssn: string
+          status?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
+          suspension_reason_code_id?: string | null
+          terminated_at?: string | null
+          terminated_by?: string | null
+          termination_reason?: string | null
+          termination_reason_code_id?: string | null
+          total_entitlement?: number
+          weekly_rate?: number
+          weeks_paid?: number
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          calculation_id?: string | null
+          cl_head_claim_no?: string | null
+          claim_id?: string
+          claim_number?: string | null
+          duration_weeks?: number | null
+          effective_from?: string
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          entitlement_type?: string
+          id?: string
+          legacy_award_id?: string | null
+          lump_sum_amount?: number | null
+          modified_at?: string | null
+          modified_by?: string | null
+          monthly_rate?: number | null
+          next_review_date?: string | null
+          override_applied?: boolean
+          override_reason?: string | null
+          payment_frequency?: string
+          product_id?: string | null
+          product_version_id?: string | null
+          remaining_amount?: number
+          ssn?: string
+          status?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspension_reason?: string | null
+          suspension_reason_code_id?: string | null
+          terminated_at?: string | null
+          terminated_by?: string | null
+          termination_reason?: string | null
+          termination_reason_code_id?: string | null
+          total_entitlement?: number
+          weekly_rate?: number
+          weeks_paid?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_entitlement_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_entitlement_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_entitlement_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_escalation_event: {
         Row: {
           claim_id: string
@@ -8443,6 +8588,7 @@ export type Database = {
           currency: string
           description: string | null
           due_date: string
+          entitlement_id: string | null
           frequency: string
           id: string
           paid_date: string | null
@@ -8463,6 +8609,7 @@ export type Database = {
           currency?: string
           description?: string | null
           due_date: string
+          entitlement_id?: string | null
           frequency?: string
           id?: string
           paid_date?: string | null
@@ -8483,6 +8630,7 @@ export type Database = {
           currency?: string
           description?: string | null
           due_date?: string
+          entitlement_id?: string | null
           frequency?: string
           id?: string
           paid_date?: string | null
@@ -8492,7 +8640,15 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bn_payment_instruction_entitlement_id_fkey"
+            columns: ["entitlement_id"]
+            isOneToOne: false
+            referencedRelation: "bn_entitlement"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_payment_schedule: {
         Row: {
