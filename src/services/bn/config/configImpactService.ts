@@ -85,12 +85,12 @@ export async function getFormulaUsage(formulaTemplateId: string): Promise<Impact
   return summarize(refs);
 }
 
-/** Document profile / requirement usage */
-export async function getDocumentUsage(docProfileId: string): Promise<ImpactReport> {
+/** Document profile / requirement usage (by document_type_code) */
+export async function getDocumentUsage(documentTypeCode: string): Promise<ImpactReport> {
   const { data } = await db
     .from('bn_doc_requirement')
     .select('product_version_id')
-    .eq('document_profile_id', docProfileId);
+    .eq('document_type_code', documentTypeCode);
   const refs = await enrichWithVersions(
     (data ?? []).map((r: any) => r.product_version_id),
     'doc_requirement',
