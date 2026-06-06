@@ -36,7 +36,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, FileText, Calculator, CheckCircle2,
   User, Building2, Stethoscope, MessageSquare,
-  GitBranch, History, Shield, BarChart3,
+  GitBranch, History, Shield, BarChart3, Users,
 } from 'lucide-react';
 
 // Existing hooks
@@ -71,6 +71,7 @@ import { NotesWorklogSection } from '@/components/bn/workbench/NotesWorklogSecti
 import { LinkedClaimsPanel } from '@/components/bn/workbench/LinkedClaimsPanel';
 import { StatusHistorySection } from '@/components/bn/workbench/StatusHistorySection';
 import { ClaimActionBar } from '@/components/bn/workbench/ClaimActionBar';
+import { ClaimParticipantsTab } from '@/components/bn/workbench/ClaimParticipantsTab';
 import LegacyClaim360View from '@/components/bn/claim/LegacyClaim360View';
 import { ClaimSnapshotsPanel } from '@/components/bn/claims/ClaimSnapshotsPanel';
 import { ApplicationDetailsPanel, WorkflowTasksPanel, PaymentsPanel, channelLabel } from '@/components/bn/workbench/ClaimWorkspacePanels';
@@ -371,11 +372,18 @@ export default function ClaimWorkbench() {
           <TabsTrigger value="payments" className="gap-1.5"><CreditCard className="h-3.5 w-3.5" /> Payments</TabsTrigger>
           <TabsTrigger value="snapshots" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Snapshots</TabsTrigger>
           <TabsTrigger value="communications" className="gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> Communications</TabsTrigger>
+          <TabsTrigger value="participants" className="gap-1.5"><Users className="h-3.5 w-3.5" /> Participants</TabsTrigger>
         </TabsList>
 
         <TabsContent value="communications" className="mt-6">
           <ClaimWorkbenchTabBoundary tabName="Communications">
             <CommunicationTab claimId={claim.id} productVersionId={(claim as any).product_version_id} />
+          </ClaimWorkbenchTabBoundary>
+        </TabsContent>
+
+        <TabsContent value="participants" className="mt-6">
+          <ClaimWorkbenchTabBoundary tabName="Participants">
+            <ClaimParticipantsTab claimId={claim.id} />
           </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
