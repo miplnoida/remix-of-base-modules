@@ -6071,16 +6071,25 @@ export type Database = {
           display_name: string | null
           email: string | null
           employer_regno: string | null
+          external_ref: string | null
           id: string
           invite_sent_at: string | null
           invite_token_hash: string | null
+          is_primary_applicant: boolean
           kind: string
           metadata: Json
+          participant_role:
+            | Database["public"]["Enums"]["bn_participant_role"]
+            | null
+          participant_type: string | null
+          payload: Json
           phone: string | null
           provider_code: string | null
+          relationship_to_insured: string | null
           ssn: string | null
           status: string
           updated_at: string
+          verification_status: Database["public"]["Enums"]["bn_participant_verification_status"]
         }
         Insert: {
           claim_id: string
@@ -6090,16 +6099,25 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           employer_regno?: string | null
+          external_ref?: string | null
           id?: string
           invite_sent_at?: string | null
           invite_token_hash?: string | null
+          is_primary_applicant?: boolean
           kind: string
           metadata?: Json
+          participant_role?:
+            | Database["public"]["Enums"]["bn_participant_role"]
+            | null
+          participant_type?: string | null
+          payload?: Json
           phone?: string | null
           provider_code?: string | null
+          relationship_to_insured?: string | null
           ssn?: string | null
           status?: string
           updated_at?: string
+          verification_status?: Database["public"]["Enums"]["bn_participant_verification_status"]
         }
         Update: {
           claim_id?: string
@@ -6109,16 +6127,25 @@ export type Database = {
           display_name?: string | null
           email?: string | null
           employer_regno?: string | null
+          external_ref?: string | null
           id?: string
           invite_sent_at?: string | null
           invite_token_hash?: string | null
+          is_primary_applicant?: boolean
           kind?: string
           metadata?: Json
+          participant_role?:
+            | Database["public"]["Enums"]["bn_participant_role"]
+            | null
+          participant_type?: string | null
+          payload?: Json
           phone?: string | null
           provider_code?: string | null
+          relationship_to_insured?: string | null
           ssn?: string | null
           status?: string
           updated_at?: string
+          verification_status?: Database["public"]["Enums"]["bn_participant_verification_status"]
         }
         Relationships: []
       }
@@ -9165,6 +9192,71 @@ export type Database = {
             columns: ["workflow_template_id"]
             isOneToOne: false
             referencedRelation: "bn_workflow_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_product_participant_config: {
+        Row: {
+          allowed_applicant_kinds: Database["public"]["Enums"]["bn_participant_role"][]
+          applicant_must_equal_insured: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          optional_roles: Database["public"]["Enums"]["bn_participant_role"][]
+          product_version_id: string
+          required_roles: Database["public"]["Enums"]["bn_participant_role"][]
+          requires_beneficiaries: boolean
+          requires_deceased: boolean
+          requires_doctor_task: boolean
+          requires_employer_task: boolean
+          requires_guardian_or_payee: boolean
+          requires_school_task_when: Json
+          updated_at: string
+        }
+        Insert: {
+          allowed_applicant_kinds?: Database["public"]["Enums"]["bn_participant_role"][]
+          applicant_must_equal_insured?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          optional_roles?: Database["public"]["Enums"]["bn_participant_role"][]
+          product_version_id: string
+          required_roles?: Database["public"]["Enums"]["bn_participant_role"][]
+          requires_beneficiaries?: boolean
+          requires_deceased?: boolean
+          requires_doctor_task?: boolean
+          requires_employer_task?: boolean
+          requires_guardian_or_payee?: boolean
+          requires_school_task_when?: Json
+          updated_at?: string
+        }
+        Update: {
+          allowed_applicant_kinds?: Database["public"]["Enums"]["bn_participant_role"][]
+          applicant_must_equal_insured?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          optional_roles?: Database["public"]["Enums"]["bn_participant_role"][]
+          product_version_id?: string
+          required_roles?: Database["public"]["Enums"]["bn_participant_role"][]
+          requires_beneficiaries?: boolean
+          requires_deceased?: boolean
+          requires_doctor_task?: boolean
+          requires_employer_task?: boolean
+          requires_guardian_or_payee?: boolean
+          requires_school_task_when?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_product_participant_config_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: true
+            referencedRelation: "bn_product_version"
             referencedColumns: ["id"]
           },
         ]
@@ -57695,6 +57787,21 @@ export type Database = {
         | "suspended"
       bema_registration_type: "employer" | "self_employed" | "voluntary"
       bema_waiver_status: "pending" | "approved" | "rejected"
+      bn_participant_role:
+        | "APPLICANT"
+        | "CLAIMANT"
+        | "INSURED_PERSON"
+        | "DECEASED_INSURED_PERSON"
+        | "BENEFICIARY"
+        | "PAYEE"
+        | "GUARDIAN"
+        | "REPRESENTATIVE"
+        | "EMPLOYER"
+        | "DOCTOR"
+        | "MEDICAL_PROVIDER"
+        | "SCHOOL"
+        | "FUNERAL_HOME"
+      bn_participant_verification_status: "UNVERIFIED" | "VERIFIED" | "REJECTED"
       c3_filing_status:
         | "draft"
         | "submitted"
@@ -58156,6 +58263,26 @@ export const Constants = {
       ],
       bema_registration_type: ["employer", "self_employed", "voluntary"],
       bema_waiver_status: ["pending", "approved", "rejected"],
+      bn_participant_role: [
+        "APPLICANT",
+        "CLAIMANT",
+        "INSURED_PERSON",
+        "DECEASED_INSURED_PERSON",
+        "BENEFICIARY",
+        "PAYEE",
+        "GUARDIAN",
+        "REPRESENTATIVE",
+        "EMPLOYER",
+        "DOCTOR",
+        "MEDICAL_PROVIDER",
+        "SCHOOL",
+        "FUNERAL_HOME",
+      ],
+      bn_participant_verification_status: [
+        "UNVERIFIED",
+        "VERIFIED",
+        "REJECTED",
+      ],
       c3_filing_status: [
         "draft",
         "submitted",
