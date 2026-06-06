@@ -188,14 +188,19 @@ export default function DocumentSetup() {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="dp_code">Code *</Label>
-                  <Input id="dp_code" value={form.profile_code} maxLength={50}
-                    onChange={(e) => setForm({ ...form, profile_code: e.target.value.toUpperCase() })} />
-                </div>
+                <CodeFieldWithAutoGenerate
+                  label="Code"
+                  required
+                  prefix="DOC"
+                  value={form.profile_code}
+                  onChange={(v) => setForm({ ...form, profile_code: v })}
+                  existingCodes={otherCodes}
+                  disabled={!!form.id}
+                  helpText="Unique profile code. Cannot be changed after creation."
+                />
                 <div className="space-y-1.5">
                   <Label htmlFor="dp_country">Country code</Label>
-                  <Input id="dp_country" value={form.country_code} maxLength={3} placeholder="e.g. KN"
+                  <Input id="dp_country" value={form.country_code} maxLength={3} placeholder="Leave blank for global"
                     onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
                 </div>
               </div>
