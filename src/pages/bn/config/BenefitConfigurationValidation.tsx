@@ -32,6 +32,7 @@ import {
   type TestRunResult,
 } from '@/services/bn/productTestCaseService';
 import { findBaselineByCode } from '@/services/bn/skn/sknBenefitCatalogueBaseline';
+import { RegistryConformanceCard } from '@/components/bn/validation/RegistryConformanceCard';
 
 const STATUS_VARIANT: Record<ValidationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   PASS: 'default',
