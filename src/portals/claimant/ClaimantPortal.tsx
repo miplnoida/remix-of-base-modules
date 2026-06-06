@@ -24,6 +24,10 @@ import LifeCertificatePage from '@/portals/claimant/compliance/LifeCertificatePa
 import LettersPage from '@/portals/claimant/comms/LettersPage';
 import NotificationsPage from '@/portals/claimant/comms/NotificationsPage';
 import HelpCenterPage from '@/portals/claimant/help/HelpCenterPage';
+import FaqsPage from '@/portals/claimant/help/FaqsPage';
+import ContactSsbPage from '@/portals/claimant/help/ContactSsbPage';
+import OfficeLocationsPage from '@/portals/claimant/help/OfficeLocationsPage';
+import TechnicalSupportPage from '@/portals/claimant/help/TechnicalSupportPage';
 import MorePage from '@/portals/claimant/MorePage';
 import DocumentCenterPage from '@/portals/claimant/documents/DocumentCenterPage';
 import SelfServiceDashboard from '@/portals/claimant/dashboard/SelfServiceDashboard';
@@ -338,6 +342,10 @@ export default function ClaimantPortal() {
 
             {/* HELP & MORE */}
             <Route path="help" element={<HelpCenterPage />} />
+            <Route path="help/faqs" element={<FaqsPage />} />
+            <Route path="help/contact" element={<ContactSsbPage />} />
+            <Route path="help/offices" element={<OfficeLocationsPage />} />
+            <Route path="help/technical" element={<TechnicalSupportPage />} />
             <Route path="help/*" element={<HelpCenterPage />} />
             <Route path="more" element={<MorePage />} />
 
