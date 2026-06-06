@@ -270,6 +270,8 @@ export default function BenefitConfigurationValidation() {
         </AlertDescription>
       </Alert>
 
+      <RegistryConformanceCard />
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {(Object.keys(summary) as ValidationStatus[]).map((s) => (
           <Card key={s}>
