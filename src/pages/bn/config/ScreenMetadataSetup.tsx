@@ -144,7 +144,7 @@ export default function ScreenMetadataSetup() {
                         <TableRow key={f.id}>
                           <TableCell className="font-mono text-sm">{f.field_name}</TableCell>
                           <TableCell className="text-sm">{f.field_label}</TableCell>
-                          <TableCell><Badge variant="outline">{f.field_type || 'text'}</Badge></TableCell>
+                          <TableCell><Badge variant="outline">{SMART_FIELD_TYPES.find(t => t.key === f.field_type)?.label || f.field_type || 'text'}</Badge></TableCell>
                           <TableCell><Switch checked={f.is_required} disabled /></TableCell>
                           <TableCell><Switch checked={f.is_visible !== false} disabled /></TableCell>
                           <TableCell>
