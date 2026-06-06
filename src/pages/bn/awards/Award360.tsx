@@ -52,7 +52,7 @@ export default function Award360() {
   if (error || !data) return <div className="p-8 text-center text-destructive">Unable to load award</div>;
 
   const a = data.award;
-  const pName = data.pensioner ? [data.pensioner.first_name, data.pensioner.last_name].filter(Boolean).join(' ') : '—';
+  const pName = data.pensioner ? [data.pensioner.firstname, data.pensioner.middle_name, data.pensioner.surname].filter(Boolean).join(' ') : '—';
 
   return (
     <div className="space-y-4 p-6">
