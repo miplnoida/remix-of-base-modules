@@ -184,37 +184,8 @@ function ApplyList() {
 
 function ApplyForm() {
   const { productCode } = useParams<{ productCode: string }>();
-  const { data, isLoading, error } = useExternalFormDefinition(productCode, 'CLAIMANT');
-  const [values, setValues] = useState<Record<string, any>>({});
-  const [declaration, setDeclaration] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  if (isLoading) return <Skeleton className="h-64 w-full" />;
-  if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
-  const fields: any[] = data?.fields ?? [];
-  const submit = async () => {
-    setSubmitting(true);
-    try {
-      const res = await publicBenefitApi.submitApplication({ productCode: productCode!, values, declarationAccepted: declaration });
-      toast.success(`Application submitted. Reference ${res.claimNumber}`);
-    } catch (e: any) { toast.error(e?.message ?? 'Submission failed'); } finally { setSubmitting(false); }
-  };
-  return (
-    <Card>
-      <CardHeader><CardTitle>{data?.product?.productName}</CardTitle><CardDescription>Reference templates from Product Catalog · v{data?.version?.number}</CardDescription></CardHeader>
-      <CardContent className="space-y-4">
-        {fields.length === 0 && <p className="text-sm text-muted-foreground">No public fields configured for this product.</p>}
-        {fields.map((f: any) => (
-          <div key={f.id ?? f.field_code} className="space-y-1">
-            <label className="text-xs">{f.field_label}{f.is_required && <span className="text-destructive"> *</span>}</label>
-            <input className="w-full rounded-md border bg-background px-3 py-2 text-sm" value={values[f.field_code] ?? ''} onChange={e => setValues(p => ({ ...p, [f.field_code]: e.target.value }))} />
-            {f.help_text && <p className="text-[10px] text-muted-foreground">{f.help_text}</p>}
-          </div>
-        ))}
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={declaration} onChange={e => setDeclaration(e.target.checked)} /> I declare the above is true and complete.</label>
-        <div className="flex justify-end"><Button onClick={submit} disabled={submitting || !declaration}>{submitting ? 'Submitting…' : 'Submit Application'}</Button></div>
-      </CardContent>
-    </Card>
-  );
+  if (!productCode) return <p className="text-sm text-destructive">Missing product.</p>;
+  return <PortalFormRenderer productCode={productCode} />;
 }
 
 function Claims() {
