@@ -206,7 +206,8 @@ async function writeCommLog(row: {
   const { data, error } = await db.from('bn_communication_log').insert({
     claim_id: row.claimId,
     event_code: row.eventCode,
-    channel: row.channel,
+    channel: row.channel, // legacy
+    delivery_method: row.channel,
     recipient_type: row.recipientType,
     recipient_address: row.recipientAddress,
     template_id: row.templateId || null,
@@ -237,7 +238,12 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
   // 2. Resolve mappings (product-scoped first, then global)
   let mappingQuery = db.from('bn_comm_mapping').select('*').eq('event_code', eventCode).eq('active', true);
   const { data: allMappings } = await mappingQuery;
-  let mappings: any[] = allMappings || [];
+  let mappings: any[] = (allMappings || []).map((m: any) => ({
+    ...m,
+    // Normalize: prefer delivery_method, fall back to legacy channel
+    channel: m.delivery_method || m.channel,
+    delivery_method: m.delivery_method || m.channel,
+  }));
   if (ctx?.productVersionId) {
     const scoped = mappings.filter(m => m.bn_product_version_id === ctx.productVersionId);
     if (scoped.length > 0) mappings = scoped;
@@ -260,6 +266,7 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
     mappings.push({
       event_code: eventCode,
       channel: 'LETTER',
+      delivery_method: 'LETTER',
       recipient_type: 'CLAIMANT',
       template_id: null,
       is_required: true,

@@ -15,10 +15,10 @@ interface Props {
   versionStatus?: string;
 }
 
-const CHANNELS = ['EMAIL', 'SMS', 'LETTER', 'IN_APP', 'INTERNAL_EMAIL'] as const;
+const DELIVERY_METHODS = ['EMAIL', 'SMS', 'LETTER', 'IN_APP', 'INTERNAL_EMAIL'] as const;
 const RECIPIENTS = ['CLAIMANT', 'PAYEE', 'EMPLOYER', 'ASSIGNED_OFFICER', 'SUPERVISOR', 'FINANCE', 'MEDICAL_BOARD', 'AUDITOR'] as const;
 
-const channelIcon: Record<string, any> = { EMAIL: Mail, INTERNAL_EMAIL: Mail, SMS: MessageSquare, LETTER: FileText, IN_APP: Bell };
+const deliveryMethodIcon: Record<string, any> = { EMAIL: Mail, INTERNAL_EMAIL: Mail, SMS: MessageSquare, LETTER: FileText, IN_APP: Bell };
 
 interface Event {
   event_code: string;
@@ -30,7 +30,8 @@ interface Event {
 interface Mapping {
   id: string;
   event_code: string;
-  channel: string;
+  delivery_method: string;
+  channel?: string | null; // legacy fallback
   recipient_type: string;
   template_id: string | null;
   is_required: boolean;
@@ -69,7 +70,7 @@ export function CommunicationsTab({ versionId, isReadOnly, versionStatus }: Prop
 
   const addMapping = async (event_code: string) => {
     const { error } = await (supabase as any).from('bn_comm_mapping').insert({
-      event_code, bn_product_version_id: versionId, channel: 'EMAIL', recipient_type: 'CLAIMANT',
+      event_code, bn_product_version_id: versionId, delivery_method: 'EMAIL', channel: 'EMAIL', recipient_type: 'CLAIMANT',
       is_required: false, fallback_priority: 100, active: true,
     });
     if (error) toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -149,18 +150,19 @@ export function CommunicationsTab({ versionId, isReadOnly, versionStatus }: Prop
                       </TableHeader>
                       <TableBody>
                         {rows.map(m => {
-                          const Icon = channelIcon[m.channel] || Mail;
+                          const dm = m.delivery_method || m.channel || 'EMAIL';
+                          const Icon = deliveryMethodIcon[dm] || Mail;
                           const filteredTpls = templates.filter(t =>
-                            !t.channel || t.channel.toLowerCase() === m.channel.toLowerCase() ||
-                            (m.channel === 'INTERNAL_EMAIL' && t.channel.toLowerCase() === 'email')
+                            !t.channel || t.channel.toLowerCase() === dm.toLowerCase() ||
+                            (dm === 'INTERNAL_EMAIL' && t.channel.toLowerCase() === 'email')
                           );
                           return (
                             <TableRow key={m.id}>
                               <TableCell>
-                                <Select value={m.channel} onValueChange={v => updateMapping(m.id, { channel: v, template_id: null })} disabled={isReadOnly}>
+                                <Select value={dm} onValueChange={v => updateMapping(m.id, { delivery_method: v, channel: v, template_id: null })} disabled={isReadOnly}>
                                   <SelectTrigger><SelectValue /></SelectTrigger>
                                   <SelectContent>
-                                    {CHANNELS.map(c => <SelectItem key={c} value={c}><span className="flex items-center gap-2"><Icon className="h-3.5 w-3.5" />{c}</span></SelectItem>)}
+                                    {DELIVERY_METHODS.map(c => <SelectItem key={c} value={c}><span className="flex items-center gap-2"><Icon className="h-3.5 w-3.5" />{c}</span></SelectItem>)}
                                   </SelectContent>
                                 </Select>
                               </TableCell>
