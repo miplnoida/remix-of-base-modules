@@ -153,19 +153,18 @@ export default function WorkbasketConfig() {
           <DialogContent>
             <DialogHeader><DialogTitle>{isNew ? 'Add Workbasket' : 'Edit Workbasket'}</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Code</label>
-                {isNew ? (
-                  <CodeFieldWithAutoGenerate
-                    value={form.basket_code}
-                    onChange={(v) => setForm(p => ({ ...p, basket_code: v }))}
-                    existingCodes={workbaskets.map(w => w.basket_code)}
-                    prefix="WB"
-                  />
-                ) : (
-                  <Input value={form.basket_code} disabled />
-                )}
-              </div>
+              {isNew ? (
+                <CodeFieldWithAutoGenerate
+                  label="Code"
+                  value={form.basket_code}
+                  onChange={(v) => setForm(p => ({ ...p, basket_code: v }))}
+                  existingCodes={workbaskets.map(w => w.basket_code)}
+                  prefix="WB"
+                  required
+                />
+              ) : (
+                <div className="space-y-1"><label className="text-sm font-medium">Code</label><Input value={form.basket_code} disabled /></div>
+              )}
               <div className="space-y-1"><label className="text-sm font-medium">Name</label><Input value={form.basket_name} onChange={e => setForm(p => ({ ...p, basket_name: e.target.value }))} /></div>
               <div className="space-y-1"><label className="text-sm font-medium">Description</label><Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2} /></div>
               <div className="space-y-1">
