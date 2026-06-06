@@ -986,6 +986,21 @@ export const AppRoutes = () => {
       <Route path="/inspector/login" element={<InspectorLogin />} />
       <Route path="/public/api-docs" element={<PublicApiDocs />} />
       <Route path="/public/benefit/:productCode" element={<PublicBenefitApplication />} />
+
+      {/* Public website */}
+      <Route path="/public" element={<PublicLayout />}>
+        <Route index element={<PublicHome />} />
+        <Route path="services" element={<PublicServices />} />
+        <Route path="benefits" element={<PublicBenefits />} />
+        <Route path="contributions" element={<PublicContributions />} />
+        <Route path="employers" element={<PublicEmployers />} />
+        <Route path="medical-providers" element={<PublicMedicalProviders />} />
+        <Route path="contact" element={<PublicContact />} />
+        <Route path="help" element={<PublicHelp />} />
+        <Route path="login" element={<PublicLogin />} />
+      </Route>
+      <Route path="/public/register" element={<RegisterWizard />} />
+
       
       {/* Inspector Routes */}
       <Route path="/inspector" element={<InspectorLayout />}>
