@@ -21,6 +21,7 @@ import { DocumentRulesTab } from '@/components/bn/config/DocumentRulesTab';
 import { WorkflowTab } from '@/components/bn/config/WorkflowTab';
 import { ScreenTemplateTab } from '@/components/bn/config/ScreenTemplateTab';
 import ParticipantWorkflowTab from '@/components/bn/config/ParticipantWorkflowTab';
+import PublicFormRulesTab from '@/components/bn/config/PublicFormRulesTab';
 import { InteractionRulesTab } from '@/components/bn/config/InteractionRulesTab';
 import { OverridePoliciesTab } from '@/components/bn/config/OverridePoliciesTab';
 import { VersionHistoryTab } from '@/components/bn/config/VersionHistoryTab';
