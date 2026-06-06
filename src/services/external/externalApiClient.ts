@@ -8,8 +8,8 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { auditPortalAction } from "./auditPortalAction";
-import { portalPersonaService, type Persona } from "./portalPersonaService";
-import { portalFeatureConfigService } from "./portalFeatureConfigService";
+import { resolvePortalPersonas, type Persona } from "./portalPersonaService";
+import { getPortalFeatureConfig } from "./portalFeatureConfigService";
 
 const db = supabase as any;
 
