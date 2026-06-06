@@ -57397,7 +57397,7 @@ export type Database = {
         | "end_workflow"
         | "send_back_to_applicant"
         | "pause_workflow"
-      notification_channel: "email" | "sms" | "push" | "in_app"
+      notification_channel: "email" | "sms" | "push" | "in_app" | "letter"
       notification_status:
         | "queued"
         | "sending"
@@ -57884,7 +57884,7 @@ export const Constants = {
         "send_back_to_applicant",
         "pause_workflow",
       ],
-      notification_channel: ["email", "sms", "push", "in_app"],
+      notification_channel: ["email", "sms", "push", "in_app", "letter"],
       notification_status: ["queued", "sending", "sent", "failed", "cancelled"],
       order_status: ["Draft", "Under Review", "Approved", "Published"],
       party_role: [
