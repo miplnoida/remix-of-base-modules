@@ -484,6 +484,7 @@ export default function SelfServiceDashboard() {
 
   return (
     <div className="space-y-6">
+      <SelfLinkBanner />
       {/* Welcome strip */}
       <div className="rounded-xl border bg-gradient-to-br from-primary/5 via-background to-background p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
