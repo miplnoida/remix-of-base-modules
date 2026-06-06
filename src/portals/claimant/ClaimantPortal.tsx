@@ -126,8 +126,26 @@ function maskSsn(ssn: string | null | undefined): string {
 
 function PersonaHeader() {
   const { persona, isLoading } = useClaimantPersona();
-  if (isLoading || !persona) {
-    return <div className="h-7" />;
+  if (import.meta.env.DEV) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useEffect(() => { console.debug('[shell] persona', { isLoading, persona }); }, [isLoading, persona]);
+  }
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-primary-foreground/80 text-sm">
+        <span className="inline-block h-3 w-32 animate-pulse rounded bg-white/20" />
+      </div>
+    );
+  }
+  if (!persona) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 text-primary-foreground/95 text-sm">
+        <span>Welcome</span>
+        <Button asChild size="sm" variant="secondary" className="h-7">
+          <Link to="/claimant/link-ssn">Link my SSN</Link>
+        </Button>
+      </div>
+    );
   }
   return (
     <div className="flex flex-wrap items-center gap-2 text-primary-foreground/95">
