@@ -157,16 +157,17 @@ export function PreviewTab({ productId, versionId }: Props) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Eye className="h-5 w-5" /> Application Form Preview</CardTitle>
-          <CardDescription>Renders the live form engine for this product version. Switch channel to see how Internal, Assisted Offline, and Public applicants experience the form.</CardDescription>
+          <CardDescription>Renders the live form engine for the assigned screen template. Switch channel to compare Public Online, Staff Offline, Assisted Counter and Back Office Entry experiences.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={channel} onValueChange={(v) => setChannel(v as FormChannel)}>
+          <Tabs value={previewChannel} onValueChange={(v) => setPreviewChannel(v as PreviewChannel)}>
             <TabsList>
-              <TabsTrigger value="INTERNAL">Internal</TabsTrigger>
-              <TabsTrigger value="ASSISTED_OFFLINE">Assisted Offline</TabsTrigger>
-              <TabsTrigger value="PUBLIC">Public Online</TabsTrigger>
+              <TabsTrigger value="PUBLIC_ONLINE">Public Online</TabsTrigger>
+              <TabsTrigger value="STAFF_OFFLINE">Staff Offline</TabsTrigger>
+              <TabsTrigger value="ASSISTED_COUNTER">Assisted Counter</TabsTrigger>
+              <TabsTrigger value="BACK_OFFICE_ENTRY">Back Office Entry</TabsTrigger>
             </TabsList>
-            <TabsContent value={channel} className="pt-4">
+            <TabsContent value={previewChannel} className="pt-4">
               {formLoading && <Skeleton className="h-64 w-full" />}
               {formError && (
                 <Alert variant="destructive">
