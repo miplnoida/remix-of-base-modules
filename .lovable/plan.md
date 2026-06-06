@@ -1,51 +1,86 @@
-## Social Security Self-Service Portal — Persona-Based Redesign
+# Public Website + External Portal Registration — Plan
 
-The current `/claimant/*` shell is a flat list of pages. We will keep the existing theme (cards, badges, tables, side nav, status chips, timelines — no new design language) but rebuild it as a persona-driven self-service portal grouped into 8 menu sections. The route prefix stays `/claimant/*`; every user-visible label changes to **Social Security Self-Service Portal**.
+## What already exists (do not duplicate)
 
-Foundation from the prior turn is reused: `external_user_person_link`, `external_persona_audit`, `portalPersonaService.resolvePortalPersonas`, `useClaimantPersona`, `useProductApplicability`, `RequirePersonaFlag`, `seedSelfLinkIfMissing`, `LinkSsnPage`.
+- **Auth**: Supabase auth, `/login`, `/forgot-password`, `/reset-password`, `/mfa-verify`, `externalAuthService` wraps `supabase.auth` and reads `user_metadata.portal_role`.
+- **Portals**: `/claimant/*` (rebuilt), `/employer/*`, `/doctor/*`, `/external/tasks/:token` (SecureTaskPage), `/portals` hub.
+- **Services**: `portalPersonaService`, `portalFeatureConfigService` (Super Admin flags), `auditPortalAction` (`external_persona_audit`), `seedSelfLink`, `publicBenefitApiClient`.
+- **DB**: `external_user_person_link`, `external_persona_audit`, `external_portal_feature_config`, `ip_master`, `er_master`, `system_audit_trail`, `auth.users`. No public sign-up route exists today.
+- **Public**: only `/public/api-docs` and `/public/benefit/:productCode` exist — no marketing site.
 
-### Delivery plan (4 PRs)
+## Scope (delivered in 4 PRs)
 
-**PR-1 · Shell, header, menu groups, dashboard rewrite**
-- Rename brand → "Social Security Self-Service Portal" everywhere (`ExternalPortalShell` prop, landing page, page titles, breadcrumbs).
-- New header block: person name · primary SSN (masked) · persona badges (`INSURED PERSON`, `CLAIMANT`, `BENEFICIARY`, `PENSIONER`, `GUARDIAN`, `PAYEE`, `REPRESENTATIVE`).
-- Replace flat `NAV` array with grouped nav model `{ group, items[], visibleIf(flags) }` rendered via existing side-nav.
-- Groups: My Account, My Social Security (insured only), Benefits, People I Manage (guardian/payee/rep only), Compliance, Communications, Documents, Appeals.
-- Dashboard sections: Claim Activity · Benefits · Payments · Compliance · Communications · Social Security Summary (insured only). Every card hyperlinks into the new module.
+### PR-A — Public Website shell (marketing, no business logic)
+- `src/pages/public/PublicLayout.tsx` — top nav (Services, Benefits, Contributions, Employers, Medical Providers, Help, Contact) + sign-in / register CTAs, public footer.
+- Routes (all public, unauthenticated):
+  - `/public` Home
+  - `/public/services`, `/public/benefits`, `/public/contributions`, `/public/employers`, `/public/medical-providers`
+  - `/public/contact`, `/public/help`
+  - `/public/register`, `/public/login` (login is a thin wrapper that delegates to the existing Supabase sign-in; no second auth stack)
+- Plain content pages — every CTA links into a portal route (`/claimant/apply`, `/employer/c3`, `/doctor/tasks`, `/external/tasks/:token`). The public website never executes business logic itself.
 
-**PR-2 · Persona resolver completion + My Account + Relationships**
-- Extend `portalPersonaService` so PAYEE, REPRESENTATIVE, PENSIONER, BENEFICIARY are also driven by data signals (not only links): `bn_award.payee_ssn`, `bn_award.payee_user_id`, `bn_award_beneficiary.beneficiary_ssn`, active award status. Output stays the same `PortalPersonaContext` shape.
-- My Account tabs: Personal Profile · Addresses · Contacts · Identity Documents · Relationships · Authorized Representatives · Communication Preferences. Source from `ip_master`, `ip_documents`, `ip_depend`, `external_user_person_link`, `user_notification_preferences`. Read-only first; edit screens come later.
-- Relationships page: Spouse / Children / Dependants / Guardian-of / Beneficiary-of / Payee-of. Each row shows the role, since-date, and a "history" drawer using `external_persona_audit` + `ip_depend` history.
+### PR-B — Unified Registration Wizard
+- `src/pages/public/register/RegisterWizard.tsx` with 6 steps:
+  1. **Account type** — Insured/Claimant · Employer · Doctor · "I have a secure task link" (redirects to `/external/tasks/:token` input).
+  2. **Email and/or mobile** — at least one required.
+  3. **Verification** — Supabase email OTP (`signInWithOtp`) **or** phone OTP (`signInWithOtp({phone})`); succeed if either is verified. Audit `REGISTRATION_VERIFY_EMAIL` / `_PHONE`.
+  4. **Basic profile** — display name, preferred language; writes `auth.user_metadata` (`display_name`, `portal_role`, `phone_verified`, `email_verified`).
+  5. **Link to Social Security record** — type-specific (see PR-C/D).
+  6. **Dashboard redirect** — by `portal_role` (`/claimant/dashboard`, `/employer/dashboard`, `/doctor/dashboard`).
+- Progress bar with friendly copy ("Create your online account", "You can still apply even if we can't link your SSN now"). All language plain — no "participant", "product version", etc.
+- New shared service: `src/services/external/externalApiClient.ts` exporting the contract listed in the brief (`registerExternalUser`, `verifyEmailOtp`, `verifyPhoneOtp`, `linkInsuredPerson`, `registerEmployerUser`, `registerMedicalProviderUser`, `getPortalPersonas`, `getPortalFeatureFlags`, `getDashboardSummary`, `getAvailableServices`). Internally delegates to Supabase auth + existing services so we don't fork data paths.
 
-**PR-3 · Benefits stack: Claims · Entitlements · Payments · Eligibility Estimator · Apply**
-- **Claims** module with tabs My Own / Submitted By Me / Managed Claims / As Beneficiary. Bound to `bn_claim` + `bn_claim_participant` filtered by persona context. Columns: claim# · product · status · role · submitted · current stage.
-- **Entitlements** (rename of Awards/Pensions) tabs Active / Pending / Suspended / Historical from `bn_award` + `bn_award_status_event`. Shows benefit type, start date, amount, status, payee, frequency.
-- **Payments** tabs Upcoming / History / Returned / Statements / Tax Certificates from `bn_payment_instruction` + `bn_payment_schedule`.
-- **Apply for Benefits** already split (self / for others) — keep, just regroup under "Benefits".
-- **Eligibility Estimator** new page: pick product → runs the existing `eligibilityEngine` in dry-run mode against the persona's snapshot → returns Likely / Potentially / Insufficient Data. Never creates a claim.
+### PR-C — Insured Person / Claimant linking
+- Step 5 prompts SSN + date of birth + one extra field (mother's maiden name or last employer regno when present in `ip_master`).
+- On match: insert verified row into `external_user_person_link` (relationship `SELF`, status `VERIFIED`) — reuses `seedSelfLink` style helper but driven by user input. Audit `SSN_LINK_SUCCESS`.
+- On miss: persona becomes `CLAIMANT` only — dashboard hides contribution/employment/earnings tiles via existing `RequirePersonaFlag` + `usePortalFeatureConfig`. Show banner: "We couldn't verify your record yet. You can still apply for benefits." Audit `SSN_LINK_FAIL`.
+- Funeral applicant flow: a flag `applyingForDeceased` skips linking but allows `Funeral Grant` product (already enforced by `useProductApplicability.allowsOthers`).
 
-**PR-4 · Compliance · Document Center · Communications · Appeals · Contribution Statements · Audit**
-- **Compliance** module merging Life Certificates · School Certificates · Verification Requests · Outstanding Requirements (from `bn_life_certificate`, `bn_external_task`, `bn_claim_evidence`).
-- **Document Center** tabs Uploaded By Me / Requested / Claim Docs / Benefit Docs / Official Letters / Generated Forms — uses the existing document-proxy edge function for preview.
-- **Communications** tabs Inbox / Letters / Notifications / Tasks / Archive from `bn_letter`, `bn_communication_log`, `in_app_notifications`, `bn_external_task` with PDF viewing via document-proxy.
-- **Appeals / Reconsideration** wired to `bn_claim_decision` reopen flow.
-- **Contribution Statements** generator (insured only): Annual Statement, Contribution Certificate, Insurable Earnings — branded PDFs (Misha Infotech, India, per project rule). Each generation logs to `external_persona_audit` + `system_audit_trail`.
-- **Audit wiring**: every view/edit/upload/download/generate emits a `system_audit_trail` row and a `external_persona_audit` row. Add a thin `auditPortalAction(eventType, payload)` helper used across modules.
+### PR-D — Employer + Doctor + admin approval
+- Employer step 5: regno lookup against `er_master`; show employer name to confirm; optional authorization-letter upload to `ip_documents` style storage; create a pending row in a new `external_user_employer_link` table with `status = 'PENDING_APPROVAL'` and role (`EMPLOYER_ADMIN` / `PAYROLL_OFFICER` / `HR_OFFICER` / `BENEFIT_CONFIRMATION`). Audit `EMPLOYER_LINK_REQUESTED`.
+- Doctor step 5: similar — license lookup, optional document, `external_user_provider_link` with role `MEDICAL_OFFICER`. Audit `PROVIDER_LINK_REQUESTED`.
+- New admin page at `/admin/external-portal-approvals` (super admin only) listing pending employer + provider requests with Approve/Reject + reason, writing to `system_audit_trail`.
+- Until approved, employer/doctor portal shows the existing `RequireFeature` "awaiting approval" empty state.
 
-### Security model (cross-PR, enforced from PR-1)
-- Insured-person data (`Contributions`, `Employment History`, `Insurable Earnings`, `Contribution Statements`, `Social Security Summary` dashboard card) is wrapped in `<RequirePersonaFlag flag="canViewContributions">` and the matching server hooks reject without a verified SELF link.
-- Guardians, funeral applicants, beneficiary-only users never see contribution sections — denials emit `CONTRIB_VIEW_DENIED` audit rows.
-- "People I Manage" group only renders for GUARDIAN/PAYEE/REPRESENTATIVE personas.
-- Server side: extend `useExternalContributions` / `useExternalEmploymentHistory` hooks to early-return when `flags.canViewContributions === false` and to call edge functions with the SSN being requested for cross-check.
+## Security & UX rules (applied across all PRs)
 
-### Test matrix (PR-4 closing)
-Insured Person · Claimant-only · Beneficiary-only · Guardian · Pensioner · Insured+Guardian · Insured+Beneficiary — each scenario verifies menu groups visible, dashboard cards shown, contribution gating, audit events written. Drive by creating seven distinct `external_user_person_link` configurations against existing seed SSNs; no hardcoded personas in code.
+- Email **or** phone verification is the minimum bar for portal entry.
+- "Sensitive" tiles (contributions, bank update, payments) remain gated by `personaFlags` set only via verified `external_user_person_link`.
+- OTP attempts rate-limited via existing Supabase auth throttling (no custom backend limiter — per project memory).
+- Every flow step writes to `external_persona_audit` via `auditPortalAction` and high-impact events also to `system_audit_trail`.
+- Secure task tokens already implemented in `SecureTaskPage`; PR-A only adds a "I have a link" entry tile pointing to it.
+- No internal LAN routes exposed: public layout only links to `/public/*` and external portal entry points.
 
-### Technical notes
-- Route prefix `/claimant/*` is preserved internally to avoid breaking existing deep links; the visible brand becomes "Social Security Self-Service Portal".
-- All new pages use existing primitives: `Card`, `Tabs`, `Table`, `Badge`, `Timeline`, `SearchableSelect`, `ExternalPortalShell`. No new design tokens.
-- No mock data — all reads use Supabase tables already in the schema. Any seed rows tagged `SEED-`.
-- Type-check + the seven-scenario manual test gate at the end of PR-4.
+## Tech notes (for the technical reader)
 
-Approve and I will start with PR-1 (shell, header, menu groups, dashboard).
+```text
+src/
+├── pages/public/
+│   ├── PublicLayout.tsx           (PR-A)
+│   ├── Home.tsx, Services.tsx, …  (PR-A)
+│   └── register/
+│       ├── RegisterWizard.tsx     (PR-B)
+│       ├── steps/                 (PR-B/C/D)
+│       └── LinkInsuredStep.tsx    (PR-C)
+├── services/external/
+│   ├── externalApiClient.ts       (PR-B, façade over existing services)
+│   └── linkAccountService.ts      (PR-C/D)
+└── pages/admin/
+    └── ExternalPortalApprovals.tsx (PR-D)
+```
+
+New tables (PR-D only):
+- `external_user_employer_link(user_id, regno, role, status, requested_at, approved_at, approved_by, …)`
+- `external_user_provider_link(user_id, license_no, role, status, requested_at, …)`
+
+Both will follow the public-schema GRANT contract (authenticated SELECT/INSERT/UPDATE on own row, service_role full). RLS stays mostly off per project memory; column-level checks live in service-layer code.
+
+## Out of scope for this plan
+
+- Replacing Supabase auth with a custom provider.
+- Public knowledge-base content (uses existing `kb_articles` later).
+- Internal admin workflow redesign — only the new approvals page is added.
+
+## Suggested order
+
+PR-A → PR-B → PR-C → PR-D, each ending in a TypeScript build check. Approve this plan and I'll start with PR-A.

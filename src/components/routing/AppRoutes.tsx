@@ -17,6 +17,16 @@ const DoctorPortal = lazy(() => import('@/portals/doctor/DoctorPortal'));
 const PortalHub = lazy(() => import('@/portals/PortalHub'));
 const ExternalTaskLanding = lazy(() => import('@/portals/ExternalTaskLanding'));
 
+// Public website
+const PublicLayout = lazy(() => import('@/pages/public/PublicLayout'));
+const PublicHome = lazy(() => import('@/pages/public/Home'));
+const RegisterWizard = lazy(() => import('@/pages/public/register/RegisterWizard'));
+const ExternalPortalApprovals = lazy(() => import('@/pages/admin/ExternalPortalApprovals'));
+import {
+  PublicServices, PublicBenefits, PublicContributions, PublicEmployers,
+  PublicMedicalProviders, PublicContact, PublicHelp, PublicLogin,
+} from '@/pages/public/ContentPages';
+
 const InspectorLogin = lazy(() => import('@/pages/inspector/InspectorLogin').then((m) => ({ default: m.InspectorLogin })));
 const InspectorDashboard = lazy(() => import('@/pages/inspector/InspectorDashboard').then((m) => ({ default: m.InspectorDashboard })));
 const InspectorWeeklyPlan = lazy(() => import('@/pages/inspector/InspectorWeeklyPlan').then((m) => ({ default: m.InspectorWeeklyPlan })));
@@ -976,6 +986,21 @@ export const AppRoutes = () => {
       <Route path="/inspector/login" element={<InspectorLogin />} />
       <Route path="/public/api-docs" element={<PublicApiDocs />} />
       <Route path="/public/benefit/:productCode" element={<PublicBenefitApplication />} />
+
+      {/* Public website */}
+      <Route path="/public" element={<PublicLayout />}>
+        <Route index element={<PublicHome />} />
+        <Route path="services" element={<PublicServices />} />
+        <Route path="benefits" element={<PublicBenefits />} />
+        <Route path="contributions" element={<PublicContributions />} />
+        <Route path="employers" element={<PublicEmployers />} />
+        <Route path="medical-providers" element={<PublicMedicalProviders />} />
+        <Route path="contact" element={<PublicContact />} />
+        <Route path="help" element={<PublicHelp />} />
+        <Route path="login" element={<PublicLogin />} />
+      </Route>
+      <Route path="/public/register" element={<RegisterWizard />} />
+
       
       {/* Inspector Routes */}
       <Route path="/inspector" element={<InspectorLayout />}>
@@ -1586,6 +1611,7 @@ export const AppRoutes = () => {
       <Route path="/admin/users/:userId/roles" element={<UserRoles />} />
       <Route path="/admin/seed-test-users" element={<SeedTestUsers />} />
       <Route path="/admin/external-portal-settings" element={<ExternalPortalSettings />} />
+      <Route path="/admin/external-portal-approvals" element={<ExternalPortalApprovals />} />
       <Route path="/admin/web-users" element={<WebUsers />} />
       <Route path="/admin/audit-log" element={<Navigate to="/system-logs/audit" replace />} />
       <Route path="/admin/audit-logs" element={<Navigate to="/system-logs/audit" replace />} />
