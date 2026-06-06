@@ -4,56 +4,81 @@ import { ExternalTaskList } from '@/portals/_shared/ExternalTaskList';
 import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
 import { PortalModulePlaceholder } from '@/portals/_shared/PortalModulePlaceholder';
 import { PortalFormRenderer } from '@/components/external/PortalFormRenderer';
+import { RequirePersonaFlag } from '@/components/external/RequirePersonaFlag';
 import ClaimantLanding from '@/portals/claimant/ClaimantLanding';
+import LinkSsnPage from '@/portals/claimant/LinkSsnPage';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { publicBenefitApi } from '@/portals/_shared/publicBenefitApiClient';
 import {
-  useExternalProducts, useExternalClaimStatus, useExternalFormDefinition, useExternalMessages,
+  useExternalClaimStatus, useExternalMessages,
   useExternalClaims, useExternalClaimBuckets, useExternalAwards, useExternalPayments, useExternalContributions,
   useExternalEmploymentHistory, useExternalProfile,
 } from '@/portals/_shared/externalHooks';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useClaimantPersona } from '@/hooks/external/useClaimantPersona';
+import { useProductApplicability, type ApplicableProduct } from '@/hooks/external/useProductApplicability';
+import { useMemo } from 'react';
 
-const NAV = [
-  { to: '/claimant/dashboard', label: 'Dashboard' },
-  { to: '/claimant/profile', label: 'My Profile' },
-  { to: '/claimant/contributions', label: 'Contribution History' },
-  { to: '/claimant/employment-history', label: 'Employment History' },
-  { to: '/claimant/apply', label: 'Apply for Benefits' },
-  { to: '/claimant/claims', label: 'My Claims' },
-  { to: '/claimant/awards', label: 'My Awards / Pensions' },
-  { to: '/claimant/payments', label: 'Payment History' },
-  { to: '/claimant/life-certificates', label: 'Life Certificates' },
-  { to: '/claimant/school-certificates', label: 'School Certificates' },
-  { to: '/claimant/bank-details', label: 'EFT / Bank Update' },
-  { to: '/claimant/documents', label: 'Documents' },
-  { to: '/claimant/messages', label: 'Messages / Letters' },
-  { to: '/claimant/appeals', label: 'Appeals / Reconsideration' },
-  { to: '/claimant/tasks', label: 'Pending Tasks' },
-];
+interface NavItem { to: string; label: string }
+
+function buildNav(flags: Record<string, boolean> | undefined): NavItem[] {
+  const f = flags ?? {};
+  const items: NavItem[] = [
+    { to: '/claimant/dashboard', label: 'Dashboard' },
+    { to: '/claimant/profile', label: 'My Profile' },
+  ];
+  if (f.canViewContributions) items.push({ to: '/claimant/contributions', label: 'Contribution History' });
+  if (f.canViewEmploymentHistory) items.push({ to: '/claimant/employment-history', label: 'Employment History' });
+  items.push({ to: '/claimant/apply', label: 'Apply for Benefits' });
+  items.push({ to: '/claimant/claims', label: 'My Claims' });
+  items.push({ to: '/claimant/awards', label: 'My Awards / Pensions' });
+  if (f.canViewPayments) items.push({ to: '/claimant/payments', label: 'Payment History' });
+  items.push(
+    { to: '/claimant/life-certificates', label: 'Life Certificates' },
+    { to: '/claimant/school-certificates', label: 'School Certificates' },
+    { to: '/claimant/bank-details', label: 'EFT / Bank Update' },
+    { to: '/claimant/documents', label: 'Documents' },
+    { to: '/claimant/messages', label: 'Messages / Letters' },
+    { to: '/claimant/appeals', label: 'Appeals / Reconsideration' },
+    { to: '/claimant/tasks', label: 'Pending Tasks' },
+  );
+  return items;
+}
 
 export default function ClaimantPortal() {
+  const { persona } = useClaimantPersona();
+  const nav = useMemo(() => buildNav(persona?.flags as any), [persona]);
   return (
     <Routes>
       <Route index element={<ClaimantLanding />} />
       <Route path="*" element={
-        <ExternalPortalShell role="CLAIMANT" brand="Insured Person Portal" nav={NAV}>
+        <ExternalPortalShell role="CLAIMANT" brand="Insured Person Portal" nav={nav}>
           <Routes>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="profile" element={<Profile />} />
-            <Route path="contributions" element={<Contributions />} />
-            <Route path="employment-history" element={<Employment />} />
+            <Route path="link-ssn" element={<LinkSsnPage />} />
+            <Route path="contributions" element={
+              <RequirePersonaFlag flag="canViewContributions" title="Contribution history is private">
+                <Contributions />
+              </RequirePersonaFlag>
+            } />
+            <Route path="employment-history" element={
+              <RequirePersonaFlag flag="canViewEmploymentHistory" title="Employment history is private">
+                <Employment />
+              </RequirePersonaFlag>
+            } />
             <Route path="apply" element={<ApplyList />} />
             <Route path="apply/:productCode" element={<ApplyForm />} />
             <Route path="claims" element={<Claims />} />
             <Route path="claims/:claimNumber" element={<ClaimDetail />} />
             <Route path="awards" element={<Awards />} />
-            <Route path="payments" element={<Payments />} />
+            <Route path="payments" element={
+              <RequirePersonaFlag flag="canViewPayments" title="No payments visible to this account">
+                <Payments />
+              </RequirePersonaFlag>
+            } />
             <Route path="life-certificates" element={<PortalModulePlaceholder title="Life Certificates" description="Annual proof-of-life submissions for pensioners." internalSource="bn_life_certificate" />} />
             <Route path="school-certificates" element={<PortalModulePlaceholder title="School / College Certificates" description="Enrolment proofs for survivor / orphan beneficiaries." internalSource="bn_external_task" />} />
             <Route path="bank-details" element={<PortalModulePlaceholder title="EFT / Bank Account Update" description="Submit or update your bank account for benefit payments." internalSource="cl_bank_acct" />} />
@@ -67,6 +92,35 @@ export default function ClaimantPortal() {
         </ExternalPortalShell>
       } />
     </Routes>
+  );
+}
+
+function PersonaSummary() {
+  const { persona, isLoading } = useClaimantPersona();
+  if (isLoading || !persona) return null;
+  const hasSelf = !!persona.personSsn;
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">{persona.displayName}</CardTitle>
+        <CardDescription className="flex flex-wrap gap-1">
+          {persona.personas.length === 0
+            ? <span>No persona detected yet.</span>
+            : persona.personas.map(p => <Badge key={p} variant="secondary">{p.replace('_',' ')}</Badge>)}
+        </CardDescription>
+      </CardHeader>
+      {!hasSelf && (
+        <CardContent>
+          <div className="flex items-center justify-between gap-3 rounded-md border border-dashed p-3 text-sm">
+            <div>
+              <div className="font-medium">Are you the insured person?</div>
+              <div className="text-muted-foreground">Link your SSN to unlock contribution and employment history.</div>
+            </div>
+            <Button asChild size="sm"><Link to="/claimant/link-ssn">Link my SSN</Link></Button>
+          </div>
+        </CardContent>
+      )}
+    </Card>
   );
 }
 
