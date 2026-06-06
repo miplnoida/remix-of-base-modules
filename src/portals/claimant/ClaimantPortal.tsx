@@ -4,56 +4,81 @@ import { ExternalTaskList } from '@/portals/_shared/ExternalTaskList';
 import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
 import { PortalModulePlaceholder } from '@/portals/_shared/PortalModulePlaceholder';
 import { PortalFormRenderer } from '@/components/external/PortalFormRenderer';
+import { RequirePersonaFlag } from '@/components/external/RequirePersonaFlag';
 import ClaimantLanding from '@/portals/claimant/ClaimantLanding';
+import LinkSsnPage from '@/portals/claimant/LinkSsnPage';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { publicBenefitApi } from '@/portals/_shared/publicBenefitApiClient';
 import {
-  useExternalProducts, useExternalClaimStatus, useExternalFormDefinition, useExternalMessages,
+  useExternalClaimStatus, useExternalMessages,
   useExternalClaims, useExternalClaimBuckets, useExternalAwards, useExternalPayments, useExternalContributions,
   useExternalEmploymentHistory, useExternalProfile,
 } from '@/portals/_shared/externalHooks';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useClaimantPersona } from '@/hooks/external/useClaimantPersona';
+import { useProductApplicability, type ApplicableProduct } from '@/hooks/external/useProductApplicability';
+import { useMemo } from 'react';
 
-const NAV = [
-  { to: '/claimant/dashboard', label: 'Dashboard' },
-  { to: '/claimant/profile', label: 'My Profile' },
-  { to: '/claimant/contributions', label: 'Contribution History' },
-  { to: '/claimant/employment-history', label: 'Employment History' },
-  { to: '/claimant/apply', label: 'Apply for Benefits' },
-  { to: '/claimant/claims', label: 'My Claims' },
-  { to: '/claimant/awards', label: 'My Awards / Pensions' },
-  { to: '/claimant/payments', label: 'Payment History' },
-  { to: '/claimant/life-certificates', label: 'Life Certificates' },
-  { to: '/claimant/school-certificates', label: 'School Certificates' },
-  { to: '/claimant/bank-details', label: 'EFT / Bank Update' },
-  { to: '/claimant/documents', label: 'Documents' },
-  { to: '/claimant/messages', label: 'Messages / Letters' },
-  { to: '/claimant/appeals', label: 'Appeals / Reconsideration' },
-  { to: '/claimant/tasks', label: 'Pending Tasks' },
-];
+interface NavItem { to: string; label: string }
+
+function buildNav(flags: Record<string, boolean> | undefined): NavItem[] {
+  const f = flags ?? {};
+  const items: NavItem[] = [
+    { to: '/claimant/dashboard', label: 'Dashboard' },
+    { to: '/claimant/profile', label: 'My Profile' },
+  ];
+  if (f.canViewContributions) items.push({ to: '/claimant/contributions', label: 'Contribution History' });
+  if (f.canViewEmploymentHistory) items.push({ to: '/claimant/employment-history', label: 'Employment History' });
+  items.push({ to: '/claimant/apply', label: 'Apply for Benefits' });
+  items.push({ to: '/claimant/claims', label: 'My Claims' });
+  items.push({ to: '/claimant/awards', label: 'My Awards / Pensions' });
+  if (f.canViewPayments) items.push({ to: '/claimant/payments', label: 'Payment History' });
+  items.push(
+    { to: '/claimant/life-certificates', label: 'Life Certificates' },
+    { to: '/claimant/school-certificates', label: 'School Certificates' },
+    { to: '/claimant/bank-details', label: 'EFT / Bank Update' },
+    { to: '/claimant/documents', label: 'Documents' },
+    { to: '/claimant/messages', label: 'Messages / Letters' },
+    { to: '/claimant/appeals', label: 'Appeals / Reconsideration' },
+    { to: '/claimant/tasks', label: 'Pending Tasks' },
+  );
+  return items;
+}
 
 export default function ClaimantPortal() {
+  const { persona } = useClaimantPersona();
+  const nav = useMemo(() => buildNav(persona?.flags as any), [persona]);
   return (
     <Routes>
       <Route index element={<ClaimantLanding />} />
       <Route path="*" element={
-        <ExternalPortalShell role="CLAIMANT" brand="Insured Person Portal" nav={NAV}>
+        <ExternalPortalShell role="CLAIMANT" brand="Insured Person Portal" nav={nav}>
           <Routes>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="profile" element={<Profile />} />
-            <Route path="contributions" element={<Contributions />} />
-            <Route path="employment-history" element={<Employment />} />
+            <Route path="link-ssn" element={<LinkSsnPage />} />
+            <Route path="contributions" element={
+              <RequirePersonaFlag flag="canViewContributions" title="Contribution history is private">
+                <Contributions />
+              </RequirePersonaFlag>
+            } />
+            <Route path="employment-history" element={
+              <RequirePersonaFlag flag="canViewEmploymentHistory" title="Employment history is private">
+                <Employment />
+              </RequirePersonaFlag>
+            } />
             <Route path="apply" element={<ApplyList />} />
             <Route path="apply/:productCode" element={<ApplyForm />} />
             <Route path="claims" element={<Claims />} />
             <Route path="claims/:claimNumber" element={<ClaimDetail />} />
             <Route path="awards" element={<Awards />} />
-            <Route path="payments" element={<Payments />} />
+            <Route path="payments" element={
+              <RequirePersonaFlag flag="canViewPayments" title="No payments visible to this account">
+                <Payments />
+              </RequirePersonaFlag>
+            } />
             <Route path="life-certificates" element={<PortalModulePlaceholder title="Life Certificates" description="Annual proof-of-life submissions for pensioners." internalSource="bn_life_certificate" />} />
             <Route path="school-certificates" element={<PortalModulePlaceholder title="School / College Certificates" description="Enrolment proofs for survivor / orphan beneficiaries." internalSource="bn_external_task" />} />
             <Route path="bank-details" element={<PortalModulePlaceholder title="EFT / Bank Account Update" description="Submit or update your bank account for benefit payments." internalSource="cl_bank_acct" />} />
@@ -70,19 +95,52 @@ export default function ClaimantPortal() {
   );
 }
 
+function PersonaSummary() {
+  const { persona, isLoading } = useClaimantPersona();
+  if (isLoading || !persona) return null;
+  const hasSelf = !!persona.personSsn;
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">{persona.displayName}</CardTitle>
+        <CardDescription className="flex flex-wrap gap-1">
+          {persona.personas.length === 0
+            ? <span>No persona detected yet.</span>
+            : persona.personas.map(p => <Badge key={p} variant="secondary">{p.replace('_',' ')}</Badge>)}
+        </CardDescription>
+      </CardHeader>
+      {!hasSelf && (
+        <CardContent>
+          <div className="flex items-center justify-between gap-3 rounded-md border border-dashed p-3 text-sm">
+            <div>
+              <div className="font-medium">Are you the insured person?</div>
+              <div className="text-muted-foreground">Link your SSN to unlock contribution and employment history.</div>
+            </div>
+            <Button asChild size="sm"><Link to="/claimant/link-ssn">Link my SSN</Link></Button>
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
 function Dashboard() {
-  const cards = [
-    { to: '/claimant/apply', title: 'Apply for a Benefit', desc: 'Sickness, Maternity, Funeral, Survivors and more.' },
-    { to: '/claimant/claims', title: 'My Claims', desc: 'Track submitted claims and decisions.' },
-    { to: '/claimant/awards', title: 'My Awards / Pensions', desc: 'Active awards and entitlements.' },
-    { to: '/claimant/payments', title: 'Payment History', desc: 'Past benefit payments and EFTs.' },
-    { to: '/claimant/contributions', title: 'Contribution History', desc: 'Your annual contribution summary.' },
-    { to: '/claimant/employment-history', title: 'Employment History', desc: 'Employers you contributed under.' },
-    { to: '/claimant/tasks', title: 'Pending Tasks', desc: 'Actions you need to complete.' },
-    { to: '/claimant/messages', title: 'Messages & Letters', desc: 'Official communications from SSB.' },
+  const { persona } = useClaimantPersona();
+  const f = persona?.flags;
+  const allCards = [
+    { to: '/claimant/apply', title: 'Apply for a Benefit', desc: 'Sickness, Maternity, Funeral, Survivors and more.', show: true },
+    { to: '/claimant/claims', title: 'My Claims', desc: 'Track submitted claims and decisions.', show: true },
+    { to: '/claimant/awards', title: 'My Awards / Pensions', desc: 'Active awards and entitlements.', show: true },
+    { to: '/claimant/payments', title: 'Payment History', desc: 'Past benefit payments and EFTs.', show: !!f?.canViewPayments },
+    { to: '/claimant/contributions', title: 'Contribution History', desc: 'Your annual contribution summary.', show: !!f?.canViewContributions },
+    { to: '/claimant/employment-history', title: 'Employment History', desc: 'Employers you contributed under.', show: !!f?.canViewEmploymentHistory },
+    { to: '/claimant/tasks', title: 'Pending Tasks', desc: 'Actions you need to complete.', show: true },
+    { to: '/claimant/messages', title: 'Messages & Letters', desc: 'Official communications from SSB.', show: true },
   ];
+  const cards = allCards.filter(c => c.show);
   return (
     <div className="space-y-6">
+      <PersonaSummary />
       <ClaimBuckets />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {cards.map(c => (
@@ -187,25 +245,76 @@ function Employment() {
 }
 
 function ApplyList() {
-  const { data, isLoading, error } = useExternalProducts();
+  const { data, isLoading, error } = useProductApplicability();
+  const { persona } = useClaimantPersona();
   if (isLoading) return <Skeleton className="h-32 w-full" />;
   if (error) return <Card><CardContent className="py-6 text-sm text-destructive">{(error as Error).message}</CardContent></Card>;
-  const products = data?.products ?? [];
+  const products = data ?? [];
   if (products.length === 0) {
     return (
       <Card><CardHeader>
         <CardTitle className="text-base">No benefits available online</CardTitle>
-        <CardDescription>Admin must enable the <b>Online</b> channel on a product version and attach a CLAIMANT screen template.</CardDescription>
+        <CardDescription>Admin must publish a product version with a participant config.</CardDescription>
       </CardHeader></Card>
     );
   }
+  const canApplyForSelf = !!persona?.flags?.canApplyForSelf;
+  const canApplyForOthers = !!persona?.flags?.canApplyForOthers;
+  const forSelf = products.filter(p => p.allowsSelf);
+  // "Apply for others" — only the products whose participant config permits a non-SELF applicant.
+  const forOthers = products.filter(p => p.allowsOthers);
+
+  return (
+    <div className="space-y-6">
+      <PersonaSummary />
+      <section>
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold">Apply for myself</h2>
+          <p className="text-sm text-muted-foreground">
+            {canApplyForSelf
+              ? 'Benefits you can apply for as the insured person.'
+              : 'Link your SSN to apply for benefits as the insured person.'}
+          </p>
+        </div>
+        <ProductGrid products={forSelf} disabled={!canApplyForSelf} disabledHint="Link your SSN to enable" />
+      </section>
+      <section>
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold">Apply for someone else</h2>
+          <p className="text-sm text-muted-foreground">
+            Only products whose configuration allows a guardian, payee, representative or next-of-kin to file are listed here.
+          </p>
+        </div>
+        {forOthers.length === 0 ? (
+          <Card><CardContent className="py-6 text-sm text-muted-foreground">No products currently permit a non-self applicant.</CardContent></Card>
+        ) : (
+          <ProductGrid products={forOthers} disabled={!canApplyForOthers} disabledHint="You need a verified guardian / payee / representative link to file for others" />
+        )}
+      </section>
+    </div>
+  );
+}
+
+function ProductGrid({ products, disabled, disabledHint }: { products: ApplicableProduct[]; disabled: boolean; disabledHint: string }) {
   return (
     <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-      {products.map((p: any) => (
-        <Link key={p.id} to={`/claimant/apply/${p.benefit_code}`}>
-          <Card className="hover:shadow-md h-full"><CardHeader><CardTitle className="text-base">{p.benefit_name}</CardTitle><CardDescription>{p.category} · {p.payment_type}</CardDescription></CardHeader></Card>
-        </Link>
-      ))}
+      {products.map(p => {
+        const card = (
+          <Card className={`h-full ${disabled ? 'opacity-60' : 'hover:shadow-md'}`}>
+            <CardHeader>
+              <CardTitle className="text-base">{p.benefit_name}</CardTitle>
+              <CardDescription>
+                {p.category} · {p.payment_type}
+                {p.requiresDeceased && <> · <Badge variant="secondary">requires deceased</Badge></>}
+              </CardDescription>
+            </CardHeader>
+            {disabled && <CardContent className="text-xs text-muted-foreground">{disabledHint}</CardContent>}
+          </Card>
+        );
+        return disabled
+          ? <div key={p.id}>{card}</div>
+          : <Link key={p.id} to={`/claimant/apply/${p.benefit_code}`}>{card}</Link>;
+      })}
     </div>
   );
 }

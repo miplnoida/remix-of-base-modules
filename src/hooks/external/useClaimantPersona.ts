@@ -11,6 +11,7 @@ import {
   resolvePortalPersonas,
   type PortalPersonaContext,
 } from '@/services/external/portalPersonaService';
+import { seedSelfLinkIfMissing } from '@/services/external/seedSelfLink';
 
 interface AuthSnapshot {
   userId: string | null;
@@ -49,9 +50,13 @@ export function useClaimantPersona() {
     queryKey: ['portalPersona', snap.userId],
     enabled: authReady && !!snap.userId,
     staleTime: 60_000,
-    queryFn: () => resolvePortalPersonas(snap.userId as string, {
-      displayNameFallback: snap.displayName,
-    }),
+    queryFn: async () => {
+      // PR-B #1: auto-seed a VERIFIED SELF link from user_metadata.ssn if missing.
+      await seedSelfLinkIfMissing(snap.userId as string);
+      return resolvePortalPersonas(snap.userId as string, {
+        displayNameFallback: snap.displayName,
+      });
+    },
   });
 
   return {
