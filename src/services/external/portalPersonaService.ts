@@ -241,10 +241,13 @@ export async function resolvePortalPersonas(
   const applicantForLinks = links.filter(l => l.relationship_type === 'APPLICANT_FOR');
 
   // 2. Claims & awards
+  const userCode = await fetchUserCode(userId);
+  const selfSsns = selfLink ? [selfLink.ssn] : [];
   const [submittedClaims, beneficiaryAwards] = await Promise.all([
-    fetchClaimsSubmittedBy(userId),
-    fetchBeneficiaryAwards(userId),
+    fetchClaimsSubmittedBy(userCode),
+    fetchBeneficiaryAwardsForSsns(selfSsns),
   ]);
+
 
   // Pensioner = active award where user has a verified SELF link.
   let pensionerAwards: ManagedAwardRef[] = [];
