@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Edit } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,10 +14,11 @@ import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { toast } from 'sonner';
 import type { BnEscalationPolicy } from '@/types/bn';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
+import { SmartSelect, CodeFieldWithAutoGenerate } from '@/components/bn/smart';
+import { BN_WORKFLOW_ROLES, BN_ESCALATION_TRIGGERS, BN_ESCALATION_SEVERITIES } from '@/services/bn/registries';
+import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 
 const db = supabase as any;
-const TRIGGER_TYPES = ['SLA_BREACH', 'MANUAL', 'THRESHOLD', 'EXCEPTION'];
-const SEVERITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
 export default function EscalationConfig() {
   const { userCode } = useUserCode();
