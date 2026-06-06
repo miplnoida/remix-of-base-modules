@@ -599,6 +599,33 @@ async function handle(req: Request, url: URL): Promise<Response> {
   }
 
   // ─── Claimant self-service (read-only views of Internal LAN data) ──
+  if (method === 'GET' && path === '/me/apply-context') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    const { data: flag } = await admin
+      .from('external_portal_feature_config')
+      .select('enabled')
+      .eq('feature_key', 'people_i_manage_enabled')
+      .maybeSingle();
+    let selfVerified = false;
+    if (caller.role === 'CLAIMANT' && caller.ssn) {
+      const { data: link } = await admin
+        .from('external_user_person_link')
+        .select('id')
+        .eq('ssn', caller.ssn)
+        .eq('relationship_type', 'SELF')
+        .eq('verification_status', 'VERIFIED')
+        .limit(1)
+        .maybeSingle();
+      selfVerified = !!link?.id;
+    }
+    return json({
+      role: caller.role,
+      ssn: caller.ssn,
+      subjectIsSelfVerified: selfVerified,
+      peopleIManageEnabled: !!flag?.enabled,
+    });
+  }
   if (method === 'GET' && path === '/me/profile') {
     const caller = await resolveCaller(req);
     if (caller instanceof Response) return caller;
