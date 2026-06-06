@@ -1,36 +1,100 @@
-# BN Long-Term Benefits / Pensioner Register
 
-This is a large feature (menu group, 7 pages, award-creation hook, product config, communications, validation). I'll deliver it in 4 focused phases so each is reviewable. Existing tables (`bn_award`, `bn_award_beneficiary`, `bn_payment_schedule`, `bn_life_certificate`, `bn_medical_review_schedule`, `bn_award_suspension_event`, `bn_overpayment`) are already in the database — no schema changes needed for core data. Only small additive columns for product classification.
+# Smart BN Configuration Screens — Phased Rollout
 
-## Phase 1 — Navigation, Pensioner Register list, Award 360 shell
-- Add **Long-Term Benefits** group in `bnMenuItems` with 7 routes.
-- Register routes in the BN router (`/bn/awards`, `/bn/awards/:id`, `/bn/awards/survivors`, `/bn/life-certificates`, `/bn/medical-reviews`, `/bn/award-suspension`, `/bn/overpayments`, `/bn/awards/adjustments`).
-- Build `PensionerRegister.tsx` reading `bn_award` joined to `ip_master` (name/ssn) and `bn_product` (benefit code/type). Filters: benefit type, status, award type, life-cert due/overdue, medical review due, survivors only, payment hold, SSN/name. Range pagination (1k chunks per memory rules).
-- Build `Award360.tsx` shell with all 13 tabs scaffolded; load `bn_award` + related rows in parallel.
+This is a large, cross-cutting refactor across 15 configuration screens. Doing it all in a single pass would be risky (regressions, TypeScript breakage, hard to review). I propose a **4-phase rollout** that builds shared foundations first, then upgrades each screen incrementally.
 
-## Phase 2 — Award-level data tabs + Survivor Awards
-- Award 360 tabs hydrated: Header, Pensioner, Claim Link, Product Version, Beneficiaries (CRUD on `bn_award_beneficiary`), Payment Schedule (`bn_payment_schedule`), Payment History (`bn_payment_instruction`), Life Certificates, Medical Reviews, Suspensions, Overpayments, Communications (existing `bn_communication_log`), Audit (`system_audit_trail`).
-- Dedicated **Survivor Awards** page filtering bn_award by survivor benefit codes; shows beneficiaries with share %/amount, guardian, payment details. Actions: add, end, adjust share, suspend, resume.
+Please confirm the phase order (or tell me to start with a specific screen, e.g. Product Catalog or Formula Library first).
 
-## Phase 3 — Servicing screens + Award creation hook
-- `LifeCertificates.tsx`, `MedicalReviews.tsx`, `AwardSuspensions.tsx`, `Overpayments.tsx`, `AwardAdjustments.tsx` — list+filter+actions wired to the existing tables.
-- Service `awardCreationService.ts`: on claim approval (called from `claimWorkbenchService.approveClaim`), if product is LONG_TERM: insert `bn_award`, `bn_award_beneficiary` (survivor), `bn_payment_schedule`, life-cert and medical-review schedules per product policy, fire `bn.claim.approved` via `workflowCommunicationBridge`, link `bn_claim.award_id`.
-- Claim Workbench: show "Linked Award" panel + **Open Award 360** button.
+---
 
-## Phase 4 — Product config + Validation + Communication events
-- Migration: add columns to `bn_product_version`: `benefit_duration_type` (SHORT_TERM/LONG_TERM/ONE_TIME_GRANT), `award_creation_rule`, `payment_frequency`, `review_policy`, `life_certificate_policy`, `medical_review_policy`, `survivor_beneficiary_policy` (jsonb where appropriate).
-- Product Editor: new **Servicing** tab with these fields, conditionally required for LONG_TERM.
-- BN Configuration Validation: per-product checks for award rule, payment schedule, life-cert/medical-review when required, comm templates, survivor policy for Survivors benefit.
-- Seed `bn_comm_event` codes for the 7 servicing events; ensure templates exist in `notification_templates`.
+## Phase 1 — Shared foundations (build once, reuse everywhere)
+
+Create the reusable building blocks every screen will depend on.
+
+**Smart components** (`src/components/bn/smart/`):
+- `SmartSelect` — searchable dropdown wrapper around `SearchableSelect` with async loading
+- `ReferenceLookup` — picks a record from a library (formula, document, workbasket, etc.) with preview chip
+- `CodeFieldWithAutoGenerate` — auto-suggests codes from prefix + sequence, blocks duplicates (server-checked)
+- `RuleBuilder` — condition rows: field → operator (filtered by field type) → value control (filtered by field type)
+- `FormulaBuilder` — token-based formula editor with variable picker, operator toolbar, live parser, output type
+- `ConditionBuilder` — used by escalation/transition preconditions
+- `ValidationSummary` — re-used (already exists; extend for config context)
+- `ConfigPreviewPanel` — right-side panel showing live preview / test result / trace
+- `ReadOnlyVersionBanner` — enforced when status ∈ {ACTIVE, PENDING_APPROVAL, RETIRED}
+
+**Registries & services** (`src/services/bn/registries/`):
+- `eligibilityFieldRegistry.ts` — typed catalogue (person.age_at_claim_date, contribution.paid_weeks, …) with `{ key, label, type, sourceTable, sourceColumn, sampleValue }`
+- `formulaVariableRegistry.ts` — allowed variables (avg_weekly_wage, paid_weeks, rate_pct, …) with type + sample
+- `smartFieldRegistry.ts` — UI field types (SSN_LOOKUP, MONEY, DECLARATION_CHECKBOX, …)
+- `transitionRegistry.ts` — allowed (fromStatus, action, toStatus) tuples per benefit branch
+- `communicationEventRegistry.ts` — fires on which workflow events
+- `operatorRegistry.ts` — operators per data type (number/string/boolean/date/list)
+- `configLookupService.ts` — fetches library records (formulas, documents, workbaskets, escalation policies, reason codes, screens, workflows, comm templates) and caches with react-query
+
+**Formula parser** (`src/lib/bn/formulaParser.ts`):
+- Tokenize, validate variables against registry, return AST + output type + errors
+- `evaluateFormula(ast, inputs)` for the test/trace button
+
+**Audit hook**:
+- `useBnConfigAudit` — writes to `system_audit_trail` on every save, capturing before/after JSON
+
+---
+
+## Phase 2 — High-impact screens (Product Catalog + Libraries)
+
+Upgrade screens where uncontrolled text is most dangerous.
+
+1. **Product Catalog** + version detail
+   - All metadata fields → dropdowns (country, scheme, branch, category, payment type, duration type)
+   - Version assembly tabs: each picker uses `ReferenceLookup` against the corresponding library
+   - Status gating: DRAFT editable, others read-only
+2. **Formula Library** — `FormulaBuilder` + validate/test/trace buttons
+3. **Document Library** + **Service Document Types** — controlled category/stage/file-type fields, duplicate-code block
+4. **Reason Codes** — category, applies-to multi-select, toggles
+5. **Rule Group Library** — auto-generated code, category dropdown, sort order
+
+---
+
+## Phase 3 — Workflow & medical screens
+
+6. **Workbaskets** — owning role / queue type / assignment strategy / SLA dropdowns
+7. **Escalation Policies** — `ConditionBuilder` + numeric+unit + target role
+8. **Transition Matrix** — from/action/to builder, blocks invalid transitions via `transitionRegistry`
+9. **Medical Policy Library** — review type/interval/board-required/outcome controls
+10. **Screen & Field Library** — field-type dropdown driven by `smartFieldRegistry`; per-field channels/roles/source adapter/validation
+
+---
+
+## Phase 4 — Governance, simulation, validation
+
+11. **Rule Version Governance** — actions-only UI (compare/submit/approve/reject/publish/retire/rollback) + diff view; remove any inline rule editing
+12. **Calculation Simulator** — pick product + version → auto-load formula inputs from registry → run → trace + expected-vs-actual
+13. **Configuration Validation Dashboard** — new checks:
+    - missing required references
+    - invalid formula variables (parser-checked)
+    - invalid eligibility field keys (registry-checked)
+    - missing required documents / workflow / comm templates
+    - overlapping active versions
+    - duplicate codes
+    - orphan records
+    - active references to inactive library records
+14. **Country Pack** — country/locale/calendar/currency dropdowns; no free-text where a list exists
+
+---
 
 ## Technical notes
-- Follow existing patterns: `useBlockingMutation`, `SearchableSelect`, `BnActionToolbar`, `submittingId` for multi-row, `isAuthReady && isAuthenticated` gates, `formatDateForDisplay`, `user_code` for createdby fields.
-- No RLS (per project rule). No mock data — read from Supabase only. PII masking honored on SSN/name.
-- Pagination via `.range()` for UI; chunked while-loop only if processing.
 
-## Out of scope (will not change)
-- No edits to `src/integrations/supabase/client.ts` or auto-gen types beyond what the migration regenerates.
-- No changes to short-term claim flow except the approval branch that decides award vs. payment instruction.
+- **No new database schema** is strictly required for Phase 1–3 (the existing `bn_*` tables already cover this). Phase 4 may add a `bn_config_validation_findings` cache table — I'll surface a migration only if you confirm Phase 4.
+- All dropdowns load via react-query with 60s staleTime; cached in `configLookupService`.
+- All writes go through a single `saveWithAudit()` wrapper to guarantee `system_audit_trail` entries with `user_code`.
+- Read-only enforcement is centralized in a `useVersionEditability(versionId)` hook so every screen behaves identically.
+- TypeScript: every registry is exported as a `const` tuple + derived union type so the compiler catches typos at call sites.
 
-## Deliverable size
-~25–30 new/edited files across the 4 phases. I'll start Phase 1 immediately upon approval and check in after each phase so you can validate before the next.
+---
+
+## What I need from you
+
+Pick one:
+- **(A)** Proceed in order: Phase 1 → 2 → 3 → 4 (recommended). I'll deliver Phase 1 first, then pause for review.
+- **(B)** Start with a specific screen (e.g. Product Catalog or Formula Library) end-to-end, foundations built only as needed.
+- **(C)** Different ordering — tell me which screens are highest priority.
