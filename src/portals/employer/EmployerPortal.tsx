@@ -38,33 +38,38 @@ const NAV = [
 
 export default function EmployerPortal() {
   return (
-    <ExternalPortalShell role="EMPLOYER" brand="Employer Portal" nav={NAV}>
-      <Routes>
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="users" element={<PortalModulePlaceholder title="Employer Users & Roles" description="Manage payroll, HR, compliance and benefit-confirmation users." internalSource="user_roles + employer link" />} />
-        <Route path="employees" element={<Employees />} />
-        <Route path="employees/add" element={<PortalModulePlaceholder title="Add Employee" description="Register a new employee under this employer." internalSource="ip_employer" />} />
-        <Route path="c3" element={<C3History />} />
-        <Route path="c3/new" element={<PortalModulePlaceholder title="New C3 Submission" description="Submit monthly C3 contributions interactively." internalSource="cn_c3_reported" />} />
-        <Route path="c3/upload" element={<PortalModulePlaceholder title="Upload C3 File" description="Upload a C3 file for validation and submission." internalSource="electronic_c3_uploads" />} />
-        <Route path="c3/errors" element={<PortalModulePlaceholder title="C3 Validation Errors" description="Errors returned by Internal C3 validation for correction." internalSource="c3_import_err" />} />
-        <Route path="c3/:period" element={<C3PeriodDetail />} />
-        <Route path="contributions" element={<Contributions />} />
-        <Route path="payments" element={<Payments />} />
-        <Route path="balances" element={<Balances />} />
-        <Route path="penalties" element={<PortalModulePlaceholder title="Penalties / Arrears" description="Outstanding penalties and arrears notices." internalSource="cn_arrears_liab + tb_penalty" />} />
-        <Route path="compliance" element={<Compliance />} />
-        <Route path="benefit-tasks" element={<ExternalTaskList basePath="/employer/benefit-tasks" />} />
-        <Route path="benefit-tasks/:taskId" element={<TaskDetail />} />
-        <Route path="confirmations" element={<PortalModulePlaceholder title="Employment Confirmations" description="Confirm last worked date and employment status for benefit claims." internalSource="bn_external_task" />} />
-        <Route path="wage-confirmations" element={<PortalModulePlaceholder title="Wage Confirmations" description="Confirm wages paid for benefit calculation." internalSource="bn_claim_employer_snapshot" />} />
-        <Route path="accident-reports" element={<PortalModulePlaceholder title="Employment Injury Accident Reports" description="Submit and track accident reports for Employment Injury benefit." internalSource="bn_external_task" />} />
-        <Route path="documents" element={<PortalModulePlaceholder title="Employer Documents" description="Documents uploaded by this employer." internalSource="er_documents" />} />
-        <Route path="messages" element={<Messages />} />
-      </Routes>
-    </ExternalPortalShell>
+    <Routes>
+      <Route index element={<EmployerLanding />} />
+      <Route path="*" element={
+        <ExternalPortalShell role="EMPLOYER" brand="Employer Portal" nav={NAV}>
+          <Routes>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="users" element={<PortalModulePlaceholder title="Employer Users & Roles" description="Manage payroll, HR, compliance and benefit-confirmation users." internalSource="user_roles + employer link" />} />
+            <Route path="employees" element={<Employees />} />
+            <Route path="employees/add" element={<PortalModulePlaceholder title="Add Employee" description="Register a new employee under this employer." internalSource="ip_employer" />} />
+            <Route path="c3" element={<C3History />} />
+            <Route path="c3/new" element={<PortalModulePlaceholder title="New C3 Submission" description="Submit monthly C3 contributions interactively." internalSource="cn_c3_reported" />} />
+            <Route path="c3/upload" element={<PortalModulePlaceholder title="Upload C3 File" description="Upload a C3 file for validation and submission." internalSource="electronic_c3_uploads" />} />
+            <Route path="c3/errors" element={<PortalModulePlaceholder title="C3 Validation Errors" description="Errors returned by Internal C3 validation for correction." internalSource="c3_import_err" />} />
+            <Route path="c3/:period" element={<C3PeriodDetail />} />
+            <Route path="contributions" element={<Contributions />} />
+            <Route path="payments" element={<Payments />} />
+            <Route path="balances" element={<Balances />} />
+            <Route path="penalties" element={<PortalModulePlaceholder title="Penalties / Arrears" description="Outstanding penalties and arrears notices." internalSource="cn_arrears_liab + tb_penalty" />} />
+            <Route path="compliance" element={<Compliance />} />
+            <Route path="benefit-tasks" element={<ExternalTaskList basePath="/employer/benefit-tasks" />} />
+            <Route path="benefit-tasks/:taskId" element={<TaskDetail />} />
+            <Route path="confirmations" element={<PortalModulePlaceholder title="Employment Confirmations" description="Confirm last worked date and employment status for benefit claims." internalSource="bn_external_task" />} />
+            <Route path="wage-confirmations" element={<PortalModulePlaceholder title="Wage Confirmations" description="Confirm wages paid for benefit calculation." internalSource="bn_claim_employer_snapshot" />} />
+            <Route path="accident-reports" element={<PortalModulePlaceholder title="Employment Injury Accident Reports" description="Submit and track accident reports for Employment Injury benefit." internalSource="bn_external_task" />} />
+            <Route path="documents" element={<PortalModulePlaceholder title="Employer Documents" description="Documents uploaded by this employer." internalSource="er_documents" />} />
+            <Route path="messages" element={<Messages />} />
+            <Route path="*" element={<Navigate to="/employer/dashboard" replace />} />
+          </Routes>
+        </ExternalPortalShell>
+      } />
+    </Routes>
   );
 }
 
