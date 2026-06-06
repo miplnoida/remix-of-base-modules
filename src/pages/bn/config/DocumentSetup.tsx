@@ -12,14 +12,15 @@ import { Switch } from '@/components/ui/switch';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Plus, Edit, FileCheck, Info } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Plus, Edit, FileCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBnDocumentProfiles, useUpsertBnDocumentProfile } from '@/hooks/bn/useBnConfig';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
+import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
+import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import type { BnDocumentProfile } from '@/types/bn';
 
 type ProfileForm = {
@@ -46,11 +47,16 @@ export default function DocumentSetup() {
   const { data: profiles = [], isLoading } = useBnDocumentProfiles();
   const upsert = useUpsertBnDocumentProfile();
   const { userCode } = useUserCode();
+  const audit = useBnConfigAudit();
 
   const filtered = profiles.filter((p: BnDocumentProfile) =>
     !search || p.profile_name?.toLowerCase().includes(search.toLowerCase()) ||
     p.profile_code?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const otherCodes = profiles
+    .filter((p: BnDocumentProfile) => p.id !== form.id)
+    .map((p: BnDocumentProfile) => p.profile_code);
 
   const openAdd = () => { setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (p: BnDocumentProfile) => {
@@ -72,8 +78,13 @@ export default function DocumentSetup() {
       });
       return;
     }
+    if (otherCodes.map(c => c.toUpperCase()).includes(form.profile_code.trim().toUpperCase())) {
+      toast.error('Duplicate code', { description: 'Another profile already uses this code.' });
+      return;
+    }
     try {
-      await upsert.mutateAsync({
+      const before = form.id ? profiles.find((p: BnDocumentProfile) => p.id === form.id) ?? null : null;
+      const saved = await upsert.mutateAsync({
         ...(form.id ? { id: form.id } : {}),
         profile_code: form.profile_code.trim(),
         profile_name: form.profile_name.trim(),
@@ -82,6 +93,12 @@ export default function DocumentSetup() {
         is_active: form.is_active,
         entered_by: userCode ?? null,
       } as Partial<BnDocumentProfile>);
+      audit.log({
+        entityType: 'bn_document_profile',
+        entityId: (saved as any)?.id ?? form.id ?? 'new',
+        action: form.id ? 'UPDATE' : 'CREATE',
+        before, after: form,
+      });
       toast.success(form.id ? 'Profile updated' : 'Profile created');
       setDialogOpen(false);
     } catch (e: any) {
@@ -171,14 +188,19 @@ export default function DocumentSetup() {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="dp_code">Code *</Label>
-                  <Input id="dp_code" value={form.profile_code} maxLength={50}
-                    onChange={(e) => setForm({ ...form, profile_code: e.target.value.toUpperCase() })} />
-                </div>
+                <CodeFieldWithAutoGenerate
+                  label="Code"
+                  required
+                  prefix="DOC"
+                  value={form.profile_code}
+                  onChange={(v) => setForm({ ...form, profile_code: v })}
+                  existingCodes={otherCodes}
+                  disabled={!!form.id}
+                  helpText="Unique profile code. Cannot be changed after creation."
+                />
                 <div className="space-y-1.5">
                   <Label htmlFor="dp_country">Country code</Label>
-                  <Input id="dp_country" value={form.country_code} maxLength={3} placeholder="e.g. KN"
+                  <Input id="dp_country" value={form.country_code} maxLength={3} placeholder="Leave blank for global"
                     onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
                 </div>
               </div>

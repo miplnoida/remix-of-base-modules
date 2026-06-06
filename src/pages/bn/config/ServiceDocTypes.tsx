@@ -15,17 +15,24 @@ import { useBnServiceDocTypes, useUpsertServiceDocType, useDeleteServiceDocType 
 import type { BnServiceDocType } from '@/types/bn';
 import { useUserCode } from '@/hooks/useUserCode';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
+import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
+import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 
 const CATEGORIES = ['IDENTITY', 'FINANCIAL', 'MEDICAL', 'RELATIONSHIP', 'EMPLOYMENT', 'PERIODIC'];
 
 export default function ServiceDocTypes() {
   const { toast } = useToast();
   const { userCode } = useUserCode();
+  const audit = useBnConfigAudit();
   const { data: types = [], isLoading } = useBnServiceDocTypes();
   const upsertMutation = useUpsertServiceDocType();
   const deleteMutation = useDeleteServiceDocType();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<BnServiceDocType>>({});
+
+  const otherCodes = (types as BnServiceDocType[])
+    .filter(t => t.id !== editing.id)
+    .map(t => t.type_code);
 
   const openNew = () => {
     setEditing({ type_code: '', type_name: '', category: 'IDENTITY', default_expiry_days: undefined, requires_witness: false, description: '', is_active: true });
@@ -39,9 +46,20 @@ export default function ServiceDocTypes() {
       toast({ title: 'Validation', description: 'Type code and name are required.', variant: 'destructive' });
       return;
     }
+    if (!editing.id && otherCodes.map(c => c.toUpperCase()).includes(editing.type_code.trim().toUpperCase())) {
+      toast({ title: 'Duplicate code', description: 'Another document type already uses this code.', variant: 'destructive' });
+      return;
+    }
     try {
+      const before = editing.id ? (types as BnServiceDocType[]).find(t => t.id === editing.id) ?? null : null;
       const record = { ...editing, entered_by: editing.id ? undefined : userCode, modified_by: userCode };
-      await upsertMutation.mutateAsync(record);
+      const saved = await upsertMutation.mutateAsync(record);
+      audit.log({
+        entityType: 'bn_service_doc_type',
+        entityId: (saved as any)?.id ?? editing.id ?? 'new',
+        action: editing.id ? 'UPDATE' : 'CREATE',
+        before, after: editing,
+      });
       toast({ title: 'Saved' });
       setDialogOpen(false);
     } catch (err: any) {
@@ -113,7 +131,18 @@ export default function ServiceDocTypes() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editing.id ? 'Edit' : 'Add'} Service Document Type</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Type Code *</Label><Input value={editing.type_code || ''} onChange={e => update('type_code', e.target.value.toUpperCase())} /></div>
+            <div className="space-y-2">
+              <CodeFieldWithAutoGenerate
+                label="Type Code"
+                required
+                prefix="SDT"
+                value={editing.type_code || ''}
+                onChange={(v) => update('type_code', v)}
+                existingCodes={otherCodes}
+                disabled={!!editing.id}
+                helpText="Unique service-doc type code."
+              />
+            </div>
             <div className="space-y-2"><Label>Type Name *</Label><Input value={editing.type_name || ''} onChange={e => update('type_name', e.target.value)} /></div>
             <div className="space-y-2">
               <Label>Category</Label>

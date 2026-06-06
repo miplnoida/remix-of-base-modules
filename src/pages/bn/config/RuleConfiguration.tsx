@@ -14,14 +14,15 @@ import { Switch } from '@/components/ui/switch';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Plus, Edit, BookOpen, Calculator, Clock, Info } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Plus, Edit, BookOpen, Calculator, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBnRuleGroups, useUpsertBnRuleGroup } from '@/hooks/bn/useBnConfig';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
+import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
+import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import type { BnRuleGroup } from '@/types/bn';
 
 type RuleGroupForm = {
@@ -50,11 +51,16 @@ export default function RuleConfiguration() {
   const { data: ruleGroups = [], isLoading } = useBnRuleGroups();
   const upsert = useUpsertBnRuleGroup();
   const { userCode } = useUserCode();
+  const audit = useBnConfigAudit();
 
   const filtered = ruleGroups.filter((rg: BnRuleGroup) =>
     !search || rg.group_name?.toLowerCase().includes(search.toLowerCase()) ||
     rg.group_code?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const otherCodes = ruleGroups
+    .filter((rg: BnRuleGroup) => rg.id !== form.id)
+    .map((rg: BnRuleGroup) => rg.group_code);
 
   const openAdd = () => { setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (rg: BnRuleGroup) => {
@@ -77,8 +83,13 @@ export default function RuleConfiguration() {
       });
       return;
     }
+    if (otherCodes.map(c => c.toUpperCase()).includes(form.group_code.trim().toUpperCase())) {
+      toast.error('Duplicate code', { description: 'Another rule group already uses this code.' });
+      return;
+    }
     try {
-      await upsert.mutateAsync({
+      const before = form.id ? ruleGroups.find((rg: BnRuleGroup) => rg.id === form.id) ?? null : null;
+      const saved = await upsert.mutateAsync({
         ...(form.id ? { id: form.id } : {}),
         group_code: form.group_code.trim(),
         group_name: form.group_name.trim(),
@@ -88,6 +99,12 @@ export default function RuleConfiguration() {
         is_active: form.is_active,
         entered_by: userCode ?? null,
       } as Partial<BnRuleGroup>);
+      audit.log({
+        entityType: 'bn_rule_group',
+        entityId: (saved as any)?.id ?? form.id ?? 'new',
+        action: form.id ? 'UPDATE' : 'CREATE',
+        before, after: form,
+      });
       toast.success(form.id ? 'Rule group updated' : 'Rule group created');
       setDialogOpen(false);
     } catch (e: any) {
@@ -226,14 +243,19 @@ export default function RuleConfiguration() {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="rg_code">Code *</Label>
-                  <Input id="rg_code" value={form.group_code} maxLength={50}
-                    onChange={(e) => setForm({ ...form, group_code: e.target.value.toUpperCase() })} />
-                </div>
+                <CodeFieldWithAutoGenerate
+                  label="Code"
+                  required
+                  prefix="RG"
+                  value={form.group_code}
+                  onChange={(v) => setForm({ ...form, group_code: v })}
+                  existingCodes={otherCodes}
+                  disabled={!!form.id}
+                  helpText="Unique rule group code. Cannot be changed after creation."
+                />
                 <div className="space-y-1.5">
                   <Label htmlFor="rg_country">Country code</Label>
-                  <Input id="rg_country" value={form.country_code} maxLength={3} placeholder="e.g. KN"
+                  <Input id="rg_country" value={form.country_code} maxLength={3} placeholder="Leave blank for global"
                     onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
                 </div>
               </div>

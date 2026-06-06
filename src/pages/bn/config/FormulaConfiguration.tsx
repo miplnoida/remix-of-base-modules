@@ -13,14 +13,16 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Plus, Edit, Info } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Plus, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBnFormulaTemplates, useUpsertBnFormulaTemplate } from '@/hooks/bn/useBnConfig';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
+import { CodeFieldWithAutoGenerate, FormulaBuilder, SmartSelect } from '@/components/bn/smart';
+import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
+import { parseFormula } from '@/lib/bn/formulaParser';
 import type { BnFormulaTemplate } from '@/types/bn';
 
 type FormulaForm = {
@@ -44,6 +46,12 @@ const emptyForm: FormulaForm = {
   is_active: true,
 };
 
+const OUTPUT_TYPES = [
+  { value: 'NUMBER', label: 'Number' },
+  { value: 'MONEY', label: 'Money' },
+  { value: 'PERCENT', label: 'Percent' },
+];
+
 export default function FormulaConfiguration() {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -51,11 +59,16 @@ export default function FormulaConfiguration() {
   const { data: formulas = [], isLoading } = useBnFormulaTemplates();
   const upsert = useUpsertBnFormulaTemplate();
   const { userCode } = useUserCode();
+  const audit = useBnConfigAudit();
 
   const filtered = formulas.filter((f: BnFormulaTemplate) =>
     !search || f.template_name?.toLowerCase().includes(search.toLowerCase()) ||
     f.template_code?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const otherCodes = formulas
+    .filter((f: BnFormulaTemplate) => f.id !== form.id)
+    .map((f: BnFormulaTemplate) => f.template_code);
 
   const openAdd = () => { setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (f: BnFormulaTemplate) => {
@@ -79,8 +92,20 @@ export default function FormulaConfiguration() {
       });
       return;
     }
+    // Block duplicate codes
+    if (otherCodes.map(c => c.toUpperCase()).includes(form.template_code.trim().toUpperCase())) {
+      toast.error('Duplicate code', { description: 'Another formula already uses this code.' });
+      return;
+    }
+    // Validate formula against the registry
+    const parsed = parseFormula(form.formula_expression);
+    if (!parsed.valid) {
+      toast.error('Formula is invalid', { description: parsed.errors.join('; ') });
+      return;
+    }
     try {
-      await upsert.mutateAsync({
+      const before = form.id ? formulas.find((f: BnFormulaTemplate) => f.id === form.id) ?? null : null;
+      const saved = await upsert.mutateAsync({
         ...(form.id ? { id: form.id } : {}),
         template_code: form.template_code.trim(),
         template_name: form.template_name.trim(),
@@ -91,6 +116,13 @@ export default function FormulaConfiguration() {
         is_active: form.is_active,
         entered_by: userCode ?? null,
       } as Partial<BnFormulaTemplate>);
+      audit.log({
+        entityType: 'bn_formula_template',
+        entityId: (saved as any)?.id ?? form.id ?? 'new',
+        action: form.id ? 'UPDATE' : 'CREATE',
+        before,
+        after: { ...form, variables_used: parsed.variablesUsed },
+      });
       toast.success(form.id ? 'Formula updated' : 'Formula created');
       setDialogOpen(false);
     } catch (e: any) {
@@ -168,23 +200,28 @@ export default function FormulaConfiguration() {
         </Card>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-xl">
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{form.id ? 'Edit Formula Template' : 'Add Formula Template'}</DialogTitle>
               <DialogDescription>
-                Reusable calculation block. Assign to products inside Product Catalog → Calculation.
+                Reusable calculation block. Pick variables from the registry — unknown variable names are rejected.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="fm_code">Code *</Label>
-                  <Input id="fm_code" value={form.template_code} maxLength={50}
-                    onChange={(e) => setForm({ ...form, template_code: e.target.value.toUpperCase() })} />
-                </div>
+                <CodeFieldWithAutoGenerate
+                  label="Code"
+                  required
+                  prefix="FRM"
+                  value={form.template_code}
+                  onChange={(v) => setForm({ ...form, template_code: v })}
+                  existingCodes={otherCodes}
+                  disabled={!!form.id}
+                  helpText="Unique formula code. Cannot be changed after creation."
+                />
                 <div className="space-y-1.5">
                   <Label htmlFor="fm_country">Country code</Label>
-                  <Input id="fm_country" value={form.country_code} maxLength={3} placeholder="e.g. KN"
+                  <Input id="fm_country" value={form.country_code} maxLength={3} placeholder="Leave blank for global"
                     onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
                 </div>
               </div>
@@ -198,19 +235,20 @@ export default function FormulaConfiguration() {
                 <Textarea id="fm_desc" value={form.description} maxLength={500} rows={2}
                   onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="fm_expr">Expression *</Label>
-                <Textarea id="fm_expr" value={form.formula_expression} rows={3} className="font-mono text-xs"
-                  placeholder="e.g. avg_wage * 0.6 * weeks"
-                  onChange={(e) => setForm({ ...form, formula_expression: e.target.value })} />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="space-y-1.5">
-                  <Label htmlFor="fm_out">Output type</Label>
-                  <Input id="fm_out" value={form.output_type} className="w-40"
-                    onChange={(e) => setForm({ ...form, output_type: e.target.value.toUpperCase() })} />
+              <FormulaBuilder
+                value={form.formula_expression}
+                onChange={(v) => setForm({ ...form, formula_expression: v })}
+              />
+              <div className="flex items-end justify-between gap-4">
+                <div className="w-48">
+                  <SmartSelect
+                    label="Output type"
+                    options={OUTPUT_TYPES}
+                    value={form.output_type}
+                    onValueChange={(v) => setForm({ ...form, output_type: v })}
+                  />
                 </div>
-                <div className="flex items-center gap-2 pt-6">
+                <div className="flex items-center gap-2 pb-2">
                   <Switch id="fm_active" checked={form.is_active}
                     onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
                   <Label htmlFor="fm_active">Active</Label>
