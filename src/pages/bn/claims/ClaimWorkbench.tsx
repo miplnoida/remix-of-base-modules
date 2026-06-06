@@ -76,6 +76,7 @@ import { ApplicationDetailsPanel, WorkflowTasksPanel, PaymentsPanel, channelLabe
 import { ClaimWorkbenchTabBoundary } from '@/components/bn/workbench/ClaimWorkbenchTabBoundary';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, ListChecks, Inbox } from 'lucide-react';
+import { filterEditablePayload } from '@/lib/bn/fieldOwnership';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
