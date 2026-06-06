@@ -20,15 +20,41 @@ import {
 } from '@/portals/_shared/externalHooks';
 import { useClaimantPersona } from '@/hooks/external/useClaimantPersona';
 import { useProductApplicability, type ApplicableProduct } from '@/hooks/external/useProductApplicability';
+import { usePortalFeatureConfig } from '@/hooks/external/usePortalFeatureConfig';
+import { RequireFeature } from '@/components/external/RequireFeature';
 import type { PersonaFlags, Persona } from '@/services/external/portalPersonaService';
+import type { PortalFeatureConfig } from '@/services/external/portalFeatureConfigService';
 
 const BRAND = 'Social Security Self-Service Portal';
 
-function buildNavGroups(flags: PersonaFlags | undefined, personas: Persona[]): NavGroup[] {
+function buildNavGroups(
+  flags: PersonaFlags | undefined,
+  personas: Persona[],
+  features: PortalFeatureConfig | undefined,
+): NavGroup[] {
   const f = flags ?? ({} as PersonaFlags);
+  const ft: PortalFeatureConfig = features ?? ({
+    peopleIMangeEnabled: true,
+    guardianPayeeEnabled: true,
+    representativeAccessEnabled: true,
+    beneficiarySelfServiceEnabled: true,
+    contributionHistoryEnabled: true,
+    employmentHistoryEnabled: true,
+    paymentHistoryEnabled: true,
+    lifeCertificateEnabled: true,
+    schoolCertificateEnabled: true,
+    bankUpdateEnabled: true,
+    appealsEnabled: true,
+    eligibilityEstimatorEnabled: true,
+  } as PortalFeatureConfig);
+
   const isInsured = personas.includes('INSURED_PERSON');
-  const isManager =
-    personas.includes('GUARDIAN') || personas.includes('PAYEE') || personas.includes('REPRESENTATIVE');
+  const isGuardianOrPayee = personas.includes('GUARDIAN') || personas.includes('PAYEE');
+  const isRepresentative = personas.includes('REPRESENTATIVE');
+  const managerEnabled =
+    ft.peopleIMangeEnabled &&
+    ((isGuardianOrPayee && ft.guardianPayeeEnabled) ||
+      (isRepresentative && ft.representativeAccessEnabled));
 
   const groups: NavGroup[] = [
     {
@@ -44,29 +70,26 @@ function buildNavGroups(flags: PersonaFlags | undefined, personas: Persona[]): N
   ];
 
   if (isInsured) {
-    groups.push({
-      label: 'My Social Security',
-      items: [
-        { to: '/claimant/contributions', label: 'Contribution History' },
-        { to: '/claimant/employment-history', label: 'Employment History' },
-        { to: '/claimant/statements', label: 'Contribution Statements' },
-        { to: '/claimant/insurable-earnings', label: 'Insurable Earnings' },
-      ],
-    });
+    const items = [] as NavGroup['items'];
+    if (ft.contributionHistoryEnabled) items.push({ to: '/claimant/contributions', label: 'Contribution History' });
+    if (ft.employmentHistoryEnabled) items.push({ to: '/claimant/employment-history', label: 'Employment History' });
+    if (ft.contributionHistoryEnabled) {
+      items.push({ to: '/claimant/statements', label: 'Contribution Statements' });
+      items.push({ to: '/claimant/insurable-earnings', label: 'Insurable Earnings' });
+    }
+    if (items.length) groups.push({ label: 'My Social Security', items });
   }
 
-  groups.push({
-    label: 'Benefits',
-    items: [
-      { to: '/claimant/apply', label: 'Apply for Benefits' },
-      { to: '/claimant/estimator', label: 'Eligibility Estimator' },
-      { to: '/claimant/claims', label: 'Claims' },
-      { to: '/claimant/entitlements', label: 'Entitlements' },
-      { to: '/claimant/payments', label: 'Payments' },
-    ],
-  });
+  const benefits = [] as NavGroup['items'];
+  benefits.push({ to: '/claimant/apply', label: 'Apply for Benefits' });
+  if (ft.eligibilityEstimatorEnabled) benefits.push({ to: '/claimant/estimator', label: 'Eligibility Estimator' });
+  benefits.push({ to: '/claimant/claims', label: 'Claims' });
+  benefits.push({ to: '/claimant/entitlements', label: 'Entitlements' });
+  if (ft.paymentHistoryEnabled) benefits.push({ to: '/claimant/payments', label: 'Payments' });
+  if (ft.bankUpdateEnabled) benefits.push({ to: '/claimant/bank-details', label: 'Bank Update' });
+  groups.push({ label: 'Benefits', items: benefits });
 
-  if (isManager) {
+  if (managerEnabled) {
     groups.push({
       label: 'People I Manage',
       items: [
@@ -77,15 +100,12 @@ function buildNavGroups(flags: PersonaFlags | undefined, personas: Persona[]): N
     });
   }
 
-  groups.push({
-    label: 'Compliance',
-    items: [
-      { to: '/claimant/compliance/life', label: 'Life Certificates' },
-      { to: '/claimant/compliance/school', label: 'School Certificates' },
-      { to: '/claimant/compliance/verification', label: 'Verification Tasks' },
-      { to: '/claimant/compliance/outstanding', label: 'Outstanding Requirements' },
-    ],
-  });
+  const compliance = [] as NavGroup['items'];
+  if (ft.lifeCertificateEnabled) compliance.push({ to: '/claimant/compliance/life', label: 'Life Certificates' });
+  if (ft.schoolCertificateEnabled) compliance.push({ to: '/claimant/compliance/school', label: 'School Certificates' });
+  compliance.push({ to: '/claimant/compliance/verification', label: 'Verification Tasks' });
+  compliance.push({ to: '/claimant/compliance/outstanding', label: 'Outstanding Requirements' });
+  groups.push({ label: 'Compliance', items: compliance });
 
   groups.push({
     label: 'Communications',
@@ -102,15 +122,16 @@ function buildNavGroups(flags: PersonaFlags | undefined, personas: Persona[]): N
     items: [{ to: '/claimant/documents', label: 'Document Center' }],
   });
 
-  groups.push({
-    label: 'Appeals',
-    items: [
-      { to: '/claimant/appeals', label: 'Appeals' },
-      { to: '/claimant/appeals/reconsideration', label: 'Reconsiderations' },
-    ],
-  });
+  if (ft.appealsEnabled) {
+    groups.push({
+      label: 'Appeals',
+      items: [
+        { to: '/claimant/appeals', label: 'Appeals' },
+        { to: '/claimant/appeals/reconsideration', label: 'Reconsiderations' },
+      ],
+    });
+  }
 
-  // Suppress unused warning for `f` (kept for future per-item gating)
   void f;
   return groups;
 }
@@ -157,9 +178,10 @@ function PersonaHeader() {
 
 export default function ClaimantPortal() {
   const { persona } = useClaimantPersona();
+  const { data: features } = usePortalFeatureConfig();
   const groups = useMemo(
-    () => buildNavGroups(persona?.flags, persona?.personas ?? []),
-    [persona],
+    () => buildNavGroups(persona?.flags, persona?.personas ?? [], features),
+    [persona, features],
   );
   return (
     <Routes>
@@ -183,47 +205,81 @@ export default function ClaimantPortal() {
 
             {/* MY SOCIAL SECURITY (insured only) */}
             <Route path="contributions" element={
-              <RequirePersonaFlag flag="canViewContributions" title="Contribution history is private">
-                <Contributions />
-              </RequirePersonaFlag>
+              <RequireFeature feature="contributionHistoryEnabled" title="Contribution History unavailable">
+                <RequirePersonaFlag flag="canViewContributions" title="Contribution history is private">
+                  <Contributions />
+                </RequirePersonaFlag>
+              </RequireFeature>
             } />
             <Route path="employment-history" element={
-              <RequirePersonaFlag flag="canViewEmploymentHistory" title="Employment history is private">
-                <Employment />
-              </RequirePersonaFlag>
+              <RequireFeature feature="employmentHistoryEnabled" title="Employment History unavailable">
+                <RequirePersonaFlag flag="canViewEmploymentHistory" title="Employment history is private">
+                  <Employment />
+                </RequirePersonaFlag>
+              </RequireFeature>
             } />
             <Route path="statements" element={
-              <RequirePersonaFlag flag="canViewContributions" title="Contribution statements are private">
-                <PortalModulePlaceholder title="Contribution Statements" description="Annual statement, contribution certificate, insurable earnings — generated PDFs." internalSource="ip_wages_ann_sum" />
-              </RequirePersonaFlag>
+              <RequireFeature feature="contributionHistoryEnabled" title="Statements unavailable">
+                <RequirePersonaFlag flag="canViewContributions" title="Contribution statements are private">
+                  <PortalModulePlaceholder title="Contribution Statements" description="Annual statement, contribution certificate, insurable earnings — generated PDFs." internalSource="ip_wages_ann_sum" />
+                </RequirePersonaFlag>
+              </RequireFeature>
             } />
             <Route path="insurable-earnings" element={
-              <RequirePersonaFlag flag="canViewContributions" title="Insurable earnings are private">
-                <PortalModulePlaceholder title="Insurable Earnings" description="Year-by-year insurable wages used in benefit calculations." internalSource="ip_wages_ann_sum" />
-              </RequirePersonaFlag>
+              <RequireFeature feature="contributionHistoryEnabled" title="Insurable Earnings unavailable">
+                <RequirePersonaFlag flag="canViewContributions" title="Insurable earnings are private">
+                  <PortalModulePlaceholder title="Insurable Earnings" description="Year-by-year insurable wages used in benefit calculations." internalSource="ip_wages_ann_sum" />
+                </RequirePersonaFlag>
+              </RequireFeature>
             } />
 
             {/* BENEFITS */}
             <Route path="apply" element={<ApplyList />} />
             <Route path="apply/:productCode" element={<ApplyForm />} />
-            <Route path="estimator" element={<PortalModulePlaceholder title="Eligibility Estimator" description="Read-only simulation against the Product Catalog rules. Does not create a claim." internalSource="bn_eligibility_rule" />} />
+            <Route path="estimator" element={
+              <RequireFeature feature="eligibilityEstimatorEnabled" title="Eligibility Estimator unavailable">
+                <PortalModulePlaceholder title="Eligibility Estimator" description="Read-only simulation against the Product Catalog rules. Does not create a claim." internalSource="bn_eligibility_rule" />
+              </RequireFeature>
+            } />
             <Route path="claims" element={<Claims />} />
             <Route path="claims/:claimNumber" element={<ClaimDetail />} />
             <Route path="entitlements" element={<Entitlements />} />
             <Route path="payments" element={
-              <RequirePersonaFlag flag="canViewPayments" title="No payments visible to this account">
-                <Payments />
-              </RequirePersonaFlag>
+              <RequireFeature feature="paymentHistoryEnabled" title="Payment History unavailable">
+                <RequirePersonaFlag flag="canViewPayments" title="No payments visible to this account">
+                  <Payments />
+                </RequirePersonaFlag>
+              </RequireFeature>
             } />
 
             {/* PEOPLE I MANAGE */}
-            <Route path="managed/people" element={<PortalModulePlaceholder title="People I Manage" description="Insured persons you act for as guardian, payee or representative." internalSource="external_user_person_link" />} />
-            <Route path="managed/claims" element={<PortalModulePlaceholder title="Managed Claims" description="Claims you have filed on behalf of someone else." internalSource="bn_claim" />} />
-            <Route path="managed/benefits" element={<PortalModulePlaceholder title="Managed Benefits" description="Awards / pensions you receive on behalf of someone else." internalSource="bn_award" />} />
+            <Route path="managed/people" element={
+              <RequireFeature feature="peopleIMangeEnabled" title="People I Manage is disabled">
+                <PortalModulePlaceholder title="People I Manage" description="Insured persons you act for as guardian, payee or representative." internalSource="external_user_person_link" />
+              </RequireFeature>
+            } />
+            <Route path="managed/claims" element={
+              <RequireFeature feature="peopleIMangeEnabled" title="Managed Claims is disabled">
+                <PortalModulePlaceholder title="Managed Claims" description="Claims you have filed on behalf of someone else." internalSource="bn_claim" />
+              </RequireFeature>
+            } />
+            <Route path="managed/benefits" element={
+              <RequireFeature feature="peopleIMangeEnabled" title="Managed Benefits is disabled">
+                <PortalModulePlaceholder title="Managed Benefits" description="Awards / pensions you receive on behalf of someone else." internalSource="bn_award" />
+              </RequireFeature>
+            } />
 
             {/* COMPLIANCE */}
-            <Route path="compliance/life" element={<PortalModulePlaceholder title="Life Certificates" description="Annual proof-of-life for pensioners." internalSource="bn_life_certificate" />} />
-            <Route path="compliance/school" element={<PortalModulePlaceholder title="School / College Certificates" description="Enrolment proofs for survivor / orphan beneficiaries." internalSource="bn_external_task" />} />
+            <Route path="compliance/life" element={
+              <RequireFeature feature="lifeCertificateEnabled" title="Life Certificates unavailable">
+                <PortalModulePlaceholder title="Life Certificates" description="Annual proof-of-life for pensioners." internalSource="bn_life_certificate" />
+              </RequireFeature>
+            } />
+            <Route path="compliance/school" element={
+              <RequireFeature feature="schoolCertificateEnabled" title="School Certificates unavailable">
+                <PortalModulePlaceholder title="School / College Certificates" description="Enrolment proofs for survivor / orphan beneficiaries." internalSource="bn_external_task" />
+              </RequireFeature>
+            } />
             <Route path="compliance/verification" element={<PortalModulePlaceholder title="Verification Tasks" description="Requests for additional information from the Board." internalSource="bn_external_task" />} />
             <Route path="compliance/outstanding" element={<PortalModulePlaceholder title="Outstanding Requirements" description="Open items blocking your claims or awards." internalSource="bn_claim_evidence" />} />
 
@@ -238,11 +294,23 @@ export default function ClaimantPortal() {
             <Route path="documents" element={<PortalModulePlaceholder title="Document Center" description="Uploaded documents, requested documents, official letters and generated forms." internalSource="ip_documents" />} />
 
             {/* APPEALS */}
-            <Route path="appeals" element={<PortalModulePlaceholder title="Appeals" description="Request review of a benefit decision." internalSource="bn_claim_decision" />} />
-            <Route path="appeals/reconsideration" element={<PortalModulePlaceholder title="Reconsiderations" description="Reconsideration of a recent decision." internalSource="bn_claim_decision" />} />
+            <Route path="appeals" element={
+              <RequireFeature feature="appealsEnabled" title="Appeals unavailable">
+                <PortalModulePlaceholder title="Appeals" description="Request review of a benefit decision." internalSource="bn_claim_decision" />
+              </RequireFeature>
+            } />
+            <Route path="appeals/reconsideration" element={
+              <RequireFeature feature="appealsEnabled" title="Reconsiderations unavailable">
+                <PortalModulePlaceholder title="Reconsiderations" description="Reconsideration of a recent decision." internalSource="bn_claim_decision" />
+              </RequireFeature>
+            } />
 
             {/* Legacy / fallback */}
-            <Route path="bank-details" element={<PortalModulePlaceholder title="EFT / Bank Account Update" description="Submit or update your bank account for benefit payments." internalSource="cl_bank_acct" />} />
+            <Route path="bank-details" element={
+              <RequireFeature feature="bankUpdateEnabled" title="Bank Update unavailable">
+                <PortalModulePlaceholder title="EFT / Bank Account Update" description="Submit or update your bank account for benefit payments." internalSource="cl_bank_acct" />
+              </RequireFeature>
+            } />
             <Route path="awards" element={<Navigate to="/claimant/entitlements" replace />} />
             <Route path="messages" element={<Navigate to="/claimant/comms/inbox" replace />} />
             <Route path="life-certificates" element={<Navigate to="/claimant/compliance/life" replace />} />
@@ -259,15 +327,18 @@ export default function ClaimantPortal() {
 
 function Dashboard() {
   const { persona } = useClaimantPersona();
+  const { data: features } = usePortalFeatureConfig();
   const f = persona?.flags;
+  const showPayments = !!f?.canViewPayments && features?.paymentHistoryEnabled !== false;
+  const showSocialSecurity = !!f?.canViewContributions && features?.contributionHistoryEnabled !== false;
   return (
     <div className="space-y-6">
       <SectionClaimActivity />
       <SectionBenefits />
-      {f?.canViewPayments && <SectionPayments />}
+      {showPayments && <SectionPayments />}
       <SectionCompliance />
       <SectionCommunications />
-      {f?.canViewContributions && <SectionSocialSecuritySummary />}
+      {showSocialSecurity && <SectionSocialSecuritySummary />}
     </div>
   );
 }

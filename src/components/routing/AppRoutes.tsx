@@ -387,6 +387,7 @@ const ReleaseManagement = lazy(() => import('@/pages/admin/ReleaseManagement'));
 const UpdateUserPassword = lazy(() => import('@/pages/admin/users/UpdateUserPassword'));
 const ModuleButtonBindings = lazy(() => import('@/pages/admin/ModuleButtonBindings'));
 const ApiKeysManagement = lazy(() => import('@/pages/admin/ApiKeysManagement'));
+const ExternalPortalSettings = lazy(() => import('@/pages/admin/ExternalPortalSettings'));
 const ApiTestDashboard = lazy(() => import('@/pages/admin/api-test-console/ApiTestDashboard'));
 const ApiKeysConsole = lazy(() => import('@/pages/admin/api-test-console/ApiKeysConsole'));
 const EnvironmentsConsole = lazy(() => import('@/pages/admin/api-test-console/EnvironmentsConsole'));
@@ -1584,6 +1585,7 @@ export const AppRoutes = () => {
       <Route path="/admin/users/:userId/edit" element={<UserEdit />} />
       <Route path="/admin/users/:userId/roles" element={<UserRoles />} />
       <Route path="/admin/seed-test-users" element={<SeedTestUsers />} />
+      <Route path="/admin/external-portal-settings" element={<ExternalPortalSettings />} />
       <Route path="/admin/web-users" element={<WebUsers />} />
       <Route path="/admin/audit-log" element={<Navigate to="/system-logs/audit" replace />} />
       <Route path="/admin/audit-logs" element={<Navigate to="/system-logs/audit" replace />} />
