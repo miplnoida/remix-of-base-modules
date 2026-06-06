@@ -73,7 +73,7 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
   }
 
   // ---------- 2. Formula variable conformance ----------
-  const allowedVars = new Set(ALLOWED_FORMULA_VARIABLES.map((v) => v.key));
+  const allowedVars = new Set(FORMULA_VARIABLES.map((v) => v.key));
   const formulas = await safeFetch('bn_formula');
   for (const f of formulas) {
     if (f.is_active === false) continue;
