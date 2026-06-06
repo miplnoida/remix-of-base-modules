@@ -4,8 +4,20 @@ import type {
   BnDocumentProfile, BnWorkflowTemplate, BnScreenTemplate, BnFieldMetadata,
   BnInteractionRule, BnOverridePolicy, BnVersionApproval, BnDocumentRule,
 } from '@/types/bn';
+import { auditConfigChange } from './audit/bnAuditService';
+import { getCurrentUserCode } from './audit/getCurrentUserCode';
+import {
+  assertSafeToRemove,
+  getFormulaUsage,
+  getDocumentUsage,
+  getScreenTemplateUsage,
+  getWorkflowTemplateUsage,
+} from './config/configImpactService';
 
 const db = supabase as any;
+
+const actor = async () => (await getCurrentUserCode()) ?? 'system';
+
 
 // ---- Country ----
 export const fetchCountries = async (): Promise<BnCountry[]> => {
