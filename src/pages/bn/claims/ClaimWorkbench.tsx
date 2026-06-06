@@ -45,6 +45,7 @@ import { useBnPersonLookup, useBnEmployerLookup } from '@/hooks/bn/useBnIntegrat
 
 // New workbench hooks
 import { useBnLinkedClaims, useBnClaimStatusHistory, useBnClaimDetailJson, useUpsertBnClaimDetail, useExecuteClaimAction } from '@/hooks/bn/useBnClaimWorkbench';
+import { useBnClaimWorkspace } from '@/hooks/bn/useBnClaimIntake';
 import { getAvailableTransitions } from '@/services/bn/claimWorkbenchService';
 import type { ClaimTransition } from '@/services/bn/claimWorkbenchService';
 
