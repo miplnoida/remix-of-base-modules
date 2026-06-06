@@ -48,6 +48,7 @@ import { useBnLinkedClaims, useBnClaimStatusHistory, useBnClaimDetailJson, useUp
 import { useBnClaimWorkspace } from '@/hooks/bn/useBnClaimIntake';
 import { getAvailableTransitions } from '@/services/bn/claimWorkbenchService';
 import type { ClaimTransition } from '@/services/bn/claimWorkbenchService';
+import { CommunicationTab } from '@/components/bn/workbench/CommunicationTab';
 
 // Existing components
 import { BnStatusBadge, BnStatCard, BnEmptyState } from '@/components/bn/shared';
