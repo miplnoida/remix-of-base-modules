@@ -15,6 +15,8 @@ import { useBnServiceDocTypes, useUpsertServiceDocType, useDeleteServiceDocType 
 import type { BnServiceDocType } from '@/types/bn';
 import { useUserCode } from '@/hooks/useUserCode';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
+import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
+import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 
 const CATEGORIES = ['IDENTITY', 'FINANCIAL', 'MEDICAL', 'RELATIONSHIP', 'EMPLOYMENT', 'PERIODIC'];
 
