@@ -296,7 +296,8 @@ async function handle(req: Request, url: URL): Promise<Response> {
   if (method === 'POST' && path === '/benefits/applications') {
     const caller = await resolveCaller(req);
     if (caller instanceof Response) return caller;
-    if (caller.role !== 'CLAIMANT') return err(403, 'forbidden', 'Only signed-in claimants can submit new applications');
+    const isClaimantPortalSubmitter = caller.role === 'CLAIMANT' || caller.role === null;
+    if (!isClaimantPortalSubmitter) return err(403, 'forbidden', 'Only signed-in claimants can submit new applications');
     const body = await req.json().catch(() => ({}));
     const {
       productCode, claimDate, declaration, declarationAccepted,
