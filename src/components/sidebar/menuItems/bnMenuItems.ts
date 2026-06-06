@@ -31,6 +31,7 @@ import {
   BadgeCheck,
   PauseCircle,
   Wrench,
+  FlaskConical,
 } from "lucide-react";
 import { filterMenuByFeatures } from "@/lib/bn/featureToggles";
 
