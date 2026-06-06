@@ -117,29 +117,46 @@ async function fetchLinks(userId: string) {
   }>;
 }
 
+async function fetchUserCode(userId: string): Promise<string | null> {
+  try {
+    const { data } = await db
+      .from('profiles')
+      .select('user_code')
+      .eq('id', userId)
+      .maybeSingle();
+    return data?.user_code ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchDisplayNameForSsn(ssn: string | null): Promise<string | null> {
   if (!ssn) return null;
   const { data } = await db
     .from('ip_master')
-    .select('first_name, last_name')
+    .select('firstname, middle_name, surname')
     .eq('ssn', ssn)
     .maybeSingle();
   if (!data) return null;
-  return [data.first_name, data.last_name].filter(Boolean).join(' ').trim() || null;
+  return [data.firstname, data.middle_name, data.surname]
+    .filter(Boolean)
+    .join(' ')
+    .trim() || null;
 }
 
-async function fetchClaimsSubmittedBy(userId: string): Promise<ManagedClaimRef[]> {
+async function fetchClaimsSubmittedBy(userCode: string | null): Promise<ManagedClaimRef[]> {
+  if (!userCode) return [];
   const { data, error } = await db
     .from('bn_claim')
-    .select('id, claim_number, benefit_type, status, submitted_by_user_id')
-    .eq('submitted_by_user_id', userId)
-    .order('created_at', { ascending: false })
+    .select('id, claim_number, legacy_benefit_type, status, entered_by, entered_at')
+    .eq('entered_by', userCode)
+    .order('entered_at', { ascending: false })
     .limit(200);
   if (error) return [];
   return (data ?? []).map((r: any) => ({
     id: r.id,
     claimNumber: r.claim_number ?? null,
-    benefitType: r.benefit_type ?? null,
+    benefitType: r.legacy_benefit_type ?? null,
     status: r.status ?? null,
     role: 'SUBMITTED_BY' as const,
   }));
@@ -148,32 +165,39 @@ async function fetchClaimsSubmittedBy(userId: string): Promise<ManagedClaimRef[]
 async function fetchAwardsForSsn(ssn: string): Promise<ManagedAwardRef[]> {
   const { data, error } = await db
     .from('bn_award')
-    .select('id, award_number, benefit_type, status, ssn')
+    .select('id, award_number, benefit_code, status, ssn')
     .eq('ssn', ssn);
   if (error) return [];
   return (data ?? []).map((r: any) => ({
     id: r.id,
     awardNumber: r.award_number ?? null,
-    benefitType: r.benefit_type ?? null,
+    benefitType: r.benefit_code ?? null,
     status: r.status ?? null,
     role: 'HOLDER' as const,
   }));
 }
 
-async function fetchBeneficiaryAwards(userId: string): Promise<ManagedAwardRef[]> {
-  // bn_award_beneficiary may or may not have user_id column populated; tolerate either.
+/**
+ * Beneficiary detection: bn_award_beneficiary has no user_id today,
+ * so we match by SSN — any verified SELF-linked SSN of the user that
+ * appears in bn_award_beneficiary.beneficiary_ssn → user is a beneficiary
+ * of that award.
+ */
+async function fetchBeneficiaryAwardsForSsns(ssns: string[]): Promise<ManagedAwardRef[]> {
+  if (ssns.length === 0) return [];
   try {
     const { data } = await db
       .from('bn_award_beneficiary')
-      .select('award_id, bn_award:award_id(id, award_number, benefit_type, status)')
-      .eq('user_id', userId);
+      .select('bn_award_id, beneficiary_ssn, status, bn_award:bn_award_id(id, award_number, benefit_code, status)')
+      .in('beneficiary_ssn', ssns)
+      .neq('status', 'TERMINATED');
     return (data ?? [])
       .map((r: any) => r.bn_award)
       .filter(Boolean)
       .map((a: any) => ({
         id: a.id,
         awardNumber: a.award_number ?? null,
-        benefitType: a.benefit_type ?? null,
+        benefitType: a.benefit_code ?? null,
         status: a.status ?? null,
         role: 'BENEFICIARY' as const,
       }));
@@ -181,6 +205,7 @@ async function fetchBeneficiaryAwards(userId: string): Promise<ManagedAwardRef[]
     return [];
   }
 }
+
 
 /**
  * Resolve all personas for a logged-in user.
