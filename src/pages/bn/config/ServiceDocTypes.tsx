@@ -131,7 +131,18 @@ export default function ServiceDocTypes() {
         <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editing.id ? 'Edit' : 'Add'} Service Document Type</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label>Type Code *</Label><Input value={editing.type_code || ''} onChange={e => update('type_code', e.target.value.toUpperCase())} /></div>
+            <div className="space-y-2">
+              <CodeFieldWithAutoGenerate
+                label="Type Code"
+                required
+                prefix="SDT"
+                value={editing.type_code || ''}
+                onChange={(v) => update('type_code', v)}
+                existingCodes={otherCodes}
+                disabled={!!editing.id}
+                helpText="Unique service-doc type code."
+              />
+            </div>
             <div className="space-y-2"><Label>Type Name *</Label><Input value={editing.type_name || ''} onChange={e => update('type_name', e.target.value)} /></div>
             <div className="space-y-2">
               <Label>Category</Label>
