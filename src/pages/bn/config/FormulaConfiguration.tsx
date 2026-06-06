@@ -102,23 +102,20 @@ export default function FormulaConfiguration() {
     <PermissionWrapper moduleName="bn_configuration">
       <div className="space-y-6 p-6">
         <PageHeader
-          title="Formula Templates"
+          title="Formula Library"
           subtitle="Reusable calculation formula library"
           breadcrumbs={[
             { label: 'Benefit Management', href: '/bn/claims' },
             { label: 'Configuration' },
-            { label: 'Formula Templates' },
+            { label: 'Formula Library' },
           ]}
         />
 
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertTitle>Library screen — formulas are attached inside Product Catalog</AlertTitle>
-          <AlertDescription>
-            Formula Templates are reusable calculation building blocks. To assign a formula to a benefit
-            product, open Product Catalog → select the product version → Calculation tab.
-          </AlertDescription>
-        </Alert>
+        <BnScreenRoleBanner
+          role="library"
+          productAssemblyHint
+          description="Reusable calculation building blocks. To assign a formula to a benefit product, open Product Catalog → select the product version → Calculation tab."
+        />
 
         <Card>
           <CardHeader className="pb-3">

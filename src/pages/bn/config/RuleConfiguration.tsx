@@ -108,15 +108,11 @@ export default function RuleConfiguration() {
           ]}
         />
 
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertTitle>Library screen — not a rule editor</AlertTitle>
-          <AlertDescription>
-            Rule Groups are classification labels used to organize rules inside Product Catalog.
-            Actual benefit rules (eligibility, calculation, timeline) are defined inside Product Catalog
-            against a specific product version.
-          </AlertDescription>
-        </Alert>
+        <BnScreenRoleBanner
+          role="library"
+          productAssemblyHint
+          description="Rule Groups are classification labels for organizing rules inside Product Catalog. Actual benefit rules (eligibility, calculation, timeline) are defined in Product Catalog against a specific product version."
+        />
 
         <Tabs defaultValue="groups" className="w-full">
           <TabsList>

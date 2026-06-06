@@ -93,23 +93,20 @@ export default function DocumentSetup() {
     <PermissionWrapper moduleName="bn_configuration">
       <div className="space-y-6 p-6">
         <PageHeader
-          title="Document Setup"
+          title="Document Library"
           subtitle="Reusable document type and profile library"
           breadcrumbs={[
             { label: 'Benefit Management', href: '/bn/claims' },
             { label: 'Configuration' },
-            { label: 'Document Setup' },
+            { label: 'Document Library' },
           ]}
         />
 
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertTitle>Library screen — required documents are set inside Product Catalog</AlertTitle>
-          <AlertDescription>
-            Document Setup defines reusable document types and profiles. Product-specific document
-            requirements are configured in Product Catalog → select the product version → Documents tab.
-          </AlertDescription>
-        </Alert>
+        <BnScreenRoleBanner
+          role="library"
+          productAssemblyHint
+          description="Reusable document types and profiles. Product-specific required documents are assigned in Product Catalog → select the product version → Documents tab."
+        />
 
         <Card>
           <CardHeader className="pb-3">
