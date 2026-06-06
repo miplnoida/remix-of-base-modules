@@ -74,10 +74,8 @@ export function FormulaBuilder({ value, onChange, disabled }: Props) {
     }, 0);
   };
 
-  const runTest = () => {
-    const result = testFormula(value);
-    setTestResult(result);
-  };
+  const resetSamples = () => setOverrides({});
+
 
   return (
     <div className="space-y-3">
