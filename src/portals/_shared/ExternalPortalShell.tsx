@@ -31,7 +31,7 @@ function firstHref(n: NavInput): string {
  * ExternalPortalShell — top bar + side nav for Claimant / Employer / Doctor
  * portals. Pure presentation; never embeds Internal BN UI.
  */
-export function ExternalPortalShell({ role, brand, nav, children }: Props) {
+export function ExternalPortalShell({ role, brand, nav, subHeader, children }: Props) {
   const [session, setSession] = useState<PortalSession | null>(null);
   const navigate = useNavigate();
   useEffect(() => {
