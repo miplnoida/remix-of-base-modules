@@ -74,10 +74,10 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
 
   // ---------- 2. Formula variable conformance ----------
   const allowedVars = new Set(FORMULA_VARIABLES.map((v) => v.key));
-  const formulas = await safeFetch('bn_formula');
+  const formulas = await safeFetch('bn_formula_template');
   for (const f of formulas) {
     if (f.is_active === false) continue;
-    const expr: string = f.formula_expression || f.expression || '';
+    const expr: string = f.formula_expression || '';
     if (!expr) continue;
     try {
       const result = parseFormula(expr);
@@ -85,9 +85,9 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
         findings.push({
           category: 'FORMULA_VARIABLE',
           severity: 'WARNING',
-          entity: 'bn_formula',
+          entity: 'bn_formula_template',
           entityId: f.id,
-          message: `${f.formula_code || f.code}: ${result.errors.join('; ') || 'parse error'}`,
+          message: `${f.template_code}: ${result.errors.join('; ') || 'parse error'}`,
         });
         continue;
       }
@@ -96,18 +96,18 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
         findings.push({
           category: 'FORMULA_VARIABLE',
           severity: 'ERROR',
-          entity: 'bn_formula',
+          entity: 'bn_formula_template',
           entityId: f.id,
-          message: `${f.formula_code || f.code}: unknown variables [${unknown.join(', ')}]`,
+          message: `${f.template_code}: unknown variables [${unknown.join(', ')}]`,
         });
       }
     } catch (e: any) {
       findings.push({
         category: 'FORMULA_VARIABLE',
         severity: 'WARNING',
-        entity: 'bn_formula',
+        entity: 'bn_formula_template',
         entityId: f.id,
-        message: `${f.formula_code || f.code}: parse error — ${e?.message ?? 'invalid'}`,
+        message: `${f.template_code}: parse error — ${e?.message ?? 'invalid'}`,
       });
     }
   }
