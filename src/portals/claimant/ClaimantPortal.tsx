@@ -23,6 +23,7 @@ import LettersPage from '@/portals/claimant/comms/LettersPage';
 import DocumentCenterPage from '@/portals/claimant/documents/DocumentCenterPage';
 import SelfServiceDashboard from '@/portals/claimant/dashboard/SelfServiceDashboard';
 import AppealsPage from '@/portals/claimant/appeals/AppealsPage';
+import ApplyWizard from '@/portals/claimant/apply/ApplyWizard';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
