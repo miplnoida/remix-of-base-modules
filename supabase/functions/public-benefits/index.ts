@@ -377,7 +377,7 @@ async function handle(req: Request, url: URL): Promise<Response> {
     const pushPart = (role: string, src: any, opts: Partial<{ isPrimary: boolean; relationship: string }> = {}) => {
       if (!src) return;
       const ssn = src.ssn ?? null;
-      const display = src.display_name ?? [src.first_name, src.last_name].filter(Boolean).join(' ') || src.name || null;
+      const display = (src.display_name ?? ([src.first_name, src.last_name].filter(Boolean).join(' ') || src.name)) || null;
       if (!ssn && !display && !src.email && !src.employer_regno && !src.provider_code) return;
       partRows.push({
         claim_id: claim.id,
