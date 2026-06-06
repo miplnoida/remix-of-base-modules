@@ -72,6 +72,7 @@ import { ClaimActionBar } from '@/components/bn/workbench/ClaimActionBar';
 import LegacyClaim360View from '@/components/bn/claim/LegacyClaim360View';
 import { ClaimSnapshotsPanel } from '@/components/bn/claims/ClaimSnapshotsPanel';
 import { ApplicationDetailsPanel, WorkflowTasksPanel, PaymentsPanel, channelLabel } from '@/components/bn/workbench/ClaimWorkspacePanels';
+import { ClaimWorkbenchTabBoundary } from '@/components/bn/workbench/ClaimWorkbenchTabBoundary';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, ListChecks, Inbox } from 'lucide-react';
 
