@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
-import { BnStatusBadge, BnEmptyState } from '@/components/bn/shared';
+import { BnStatusBadge, BnEmptyState, BnScreenRoleBanner } from '@/components/bn/shared';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useBnProducts } from '@/hooks/bn/useBnProduct';
 import {
@@ -126,15 +126,10 @@ export default function RulesAdministration() {
           ]}
         />
 
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Governance screen — rules are edited in Product Catalog</AlertTitle>
-          <AlertDescription>
-            Use this screen to review, compare, approve, publish, retire, or roll back product
-            rule versions. To edit eligibility, calculation, documents, workflow, or timelines,
-            open the draft version inside Product Catalog.
-          </AlertDescription>
-        </Alert>
+        <BnScreenRoleBanner
+          role="governance"
+          description="Governance only — review, compare, approve, publish, retire and roll back product rule versions. Eligibility, calculation, documents, workflow and timelines are edited inside Product Catalog against a specific draft version."
+        />
 
         <Tabs defaultValue="versions" className="w-full">
           <TabsList>

@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useBnServiceDocTypes, useUpsertServiceDocType, useDeleteServiceDocType } from '@/hooks/bn/useBnEvidence';
 import type { BnServiceDocType } from '@/types/bn';
 import { useUserCode } from '@/hooks/useUserCode';
+import { BnScreenRoleBanner } from '@/components/bn/shared';
 
 const CATEGORIES = ['IDENTITY', 'FINANCIAL', 'MEDICAL', 'RELATIONSHIP', 'EMPLOYMENT', 'PERIODIC'];
 
@@ -57,6 +58,12 @@ export default function ServiceDocTypes() {
           <p className="text-sm text-muted-foreground">Registry of special document types used across benefit claims</p>
         </div>
       </div>
+
+      <BnScreenRoleBanner
+        role="library"
+        productAssemblyHint
+        description="Reusable master of service-case document types (life certificate, school certificate, EFT/bank update, medical certificate, death certificate). These are referenced by products and service workflows."
+      />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

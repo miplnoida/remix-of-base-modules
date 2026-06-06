@@ -12,7 +12,7 @@ import { Plus, Edit, Monitor, Type } from 'lucide-react';
 import { useBnScreenTemplates, useBnFieldMetadata } from '@/hooks/bn/useBnConfig';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
-import { BnEmptyState, BnFilterBar } from '@/components/bn/shared';
+import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
 
 export default function ScreenMetadataSetup() {
   const [search, setSearch] = useState('');
@@ -33,14 +33,21 @@ export default function ScreenMetadataSetup() {
     <PermissionWrapper moduleName="bn_configuration">
       <div className="space-y-6 p-6">
         <PageHeader
-          title="Screen & Field Metadata"
-          subtitle="Configure dynamic intake screens and field definitions per product"
+          title="Screen & Field Library"
+          subtitle="Reusable screen templates and smart field blocks"
           breadcrumbs={[
             { label: 'Benefit Management', href: '/bn/claims' },
             { label: 'Configuration' },
-            { label: 'Screen Setup' },
+            { label: 'Screen & Field Library' },
           ]}
         />
+
+        <BnScreenRoleBanner
+          role="library"
+          productAssemblyHint
+          description="Reusable screen templates and smart field blocks (SSN lookup, Employer lookup, Contribution summary, Survivor beneficiary grid, Medical certificate, Bank details). Product Catalog → Screens tab assembles them for each product version."
+        />
+
 
         <Tabs defaultValue="screens" className="w-full">
           <TabsList>

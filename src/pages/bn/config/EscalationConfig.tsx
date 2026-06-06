@@ -14,6 +14,7 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { toast } from 'sonner';
 import type { BnEscalationPolicy } from '@/types/bn';
+import { BnScreenRoleBanner } from '@/components/bn/shared';
 
 const db = supabase as any;
 const TRIGGER_TYPES = ['SLA_BREACH', 'MANUAL', 'THRESHOLD', 'EXCEPTION'];
@@ -103,6 +104,14 @@ export default function EscalationConfig() {
           <h1 className="text-2xl font-semibold text-foreground">Escalation Policies</h1>
           <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Add Policy</Button>
         </div>
+
+        <BnScreenRoleBanner
+          role="library"
+          productAssemblyHint
+          description="Reusable SLA / escalation rules. Workflow steps and workbaskets reference these policies; they are not product-specific."
+        />
+
+
 
         <Card>
           <CardContent className="pt-6">

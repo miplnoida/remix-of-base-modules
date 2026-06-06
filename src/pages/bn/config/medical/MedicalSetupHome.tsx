@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Stethoscope, ClipboardList, Building2, GitBranch, Coins, Receipt, ShieldCheck, FileText, ArrowRight } from 'lucide-react';
+import { BnScreenRoleBanner } from '@/components/bn/shared';
 
 const SECTIONS = [
   { to: '/bn/config/medical/procedures', icon: ClipboardList, title: 'Medical Procedures Catalog', desc: 'Code, name, category, specialty, pre-auth and board flags.' },
@@ -18,10 +19,17 @@ export default function MedicalSetupHome() {
       <div className="flex items-center gap-3">
         <Stethoscope className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">Medical Benefit Setup</h1>
-          <p className="text-sm text-muted-foreground">Configure procedures, providers, referral logic, expense caps and reimbursement rules.</p>
+          <h1 className="text-3xl font-semibold text-foreground">Medical Policy Library</h1>
+          <p className="text-sm text-muted-foreground">Reusable medical board rules, certificate categories, disablement % rules, invalidity review intervals and provider rules.</p>
         </div>
       </div>
+
+      <BnScreenRoleBanner
+        role="library"
+        productAssemblyHint
+        description="Reusable medical policy library. Products like Invalidity, Disablement, Sickness and EI Medical link to this policy inside Product Catalog → Medical tab."
+      />
+
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {SECTIONS.map((s) => (
