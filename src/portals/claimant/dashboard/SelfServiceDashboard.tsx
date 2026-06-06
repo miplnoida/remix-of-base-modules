@@ -590,25 +590,6 @@ export default function SelfServiceDashboard() {
         </div>
       </div>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-background/95 backdrop-blur md:hidden">
-        {[
-          { to: '/claimant/dashboard', icon: ShieldCheck, label: 'Home' },
-          { to: '/claimant/apply', icon: FileText, label: 'Apply' },
-          { to: '/claimant/tasks', icon: Clock, label: 'Tasks' },
-          { to: '/claimant/claims', icon: Search, label: 'Claims' },
-          { to: '/claimant/comms/inbox', icon: MessageSquare, label: 'Messages' },
-        ].map(i => {
-          const I = i.icon;
-          return (
-            <Link key={i.to} to={i.to} className="flex flex-col items-center gap-0.5 py-2 text-[10px] text-muted-foreground hover:text-primary">
-              <I className="h-4 w-4" />
-              {i.label}
-            </Link>
-          );
-        })}
-      </nav>
-      <div className="h-14 md:hidden" />
     </div>
   );
 }
