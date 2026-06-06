@@ -161,57 +161,49 @@ export async function fetchAwardDetail(id: string): Promise<AwardDetail> {
   if (error) throw error;
   if (!award) throw new Error('Award not found');
 
-  const [
-    beneficiaries,
-    rateHistory,
-    statusEvents,
-    suspensions,
-    lifeCerts,
-    medicalReviews,
-    overpayments,
-    schedules,
-    payments,
-    communications,
-    claim,
-    pensioner,
-    product,
-  ] = await Promise.all([
-    supabase.from('bn_award_beneficiary').select('*').eq('bn_award_id', id).order('start_date', { ascending: false }),
-    supabase.from('bn_award_rate_history').select('*').eq('bn_award_id', id).order('effective_from', { ascending: false }),
-    supabase.from('bn_award_status_event').select('*').eq('bn_award_id', id).order('event_date', { ascending: false }),
-    supabase.from('bn_award_suspension_event').select('*').eq('bn_award_id', id).order('entered_at', { ascending: false }),
-    supabase.from('bn_life_certificate').select('*').eq('bn_award_id', id).order('due_date', { ascending: false }),
-    supabase.from('bn_medical_review_schedule').select('*').eq('bn_award_id', id).order('scheduled_date', { ascending: false }),
-    supabase.from('bn_overpayment').select('*').eq('bn_award_id', id).order('entered_at', { ascending: false }),
-    supabase.from('bn_payment_schedule').select('*').eq('bn_award_id', id) as any,
-    supabase.from('bn_payment_instruction').select('*').eq('bn_award_id', id).order('scheduled_date', { ascending: false }).range(0, 199) as any,
-    supabase.from('bn_communication_log').select('*').eq('bn_award_id', id).order('created_at', { ascending: false }).range(0, 199) as any,
-    award.bn_claim_id ? (supabase.from('bn_claim').select('*').eq('id', award.bn_claim_id).maybeSingle() as any) : Promise.resolve({ data: null }),
-    award.ssn ? (supabase.from('ip_master').select('ssn, first_name, last_name, dob, sex, address1, address2, mobile_no, email_id').eq('ssn', award.ssn).maybeSingle() as any) : Promise.resolve({ data: null }),
-    award.bn_product_id ? (supabase.from('bn_product').select('*').eq('id', award.bn_product_id).maybeSingle() as any) : Promise.resolve({ data: null }),
-  ]);
+  const run = async (p: any): Promise<any> => { const r = await p; return r; };
 
-  let productVersion = null;
-  if ((claim as any)?.data?.bn_product_version_id) {
-    const { data: pv } = await supabase.from('bn_product_version').select('*').eq('id', (claim as any).data.bn_product_version_id).maybeSingle();
+  const beneficiaries = await run(supabase.from('bn_award_beneficiary').select('*').eq('bn_award_id', id).order('start_date', { ascending: false }));
+  const rateHistory = await run(supabase.from('bn_award_rate_history').select('*').eq('bn_award_id', id).order('effective_from', { ascending: false }));
+  const statusEvents = await run(supabase.from('bn_award_status_event').select('*').eq('bn_award_id', id).order('event_date', { ascending: false }));
+  const suspensions = await run(supabase.from('bn_award_suspension_event').select('*').eq('bn_award_id', id).order('entered_at', { ascending: false }));
+  const lifeCerts = await run(supabase.from('bn_life_certificate').select('*').eq('bn_award_id', id).order('due_date', { ascending: false }));
+  const medicalReviews = await run(supabase.from('bn_medical_review_schedule').select('*').eq('bn_award_id', id).order('scheduled_date', { ascending: false }));
+  const overpayments = await run(supabase.from('bn_overpayment').select('*').eq('bn_award_id', id).order('entered_at', { ascending: false }));
+  const schedules = await run(supabase.from('bn_payment_schedule').select('*').eq('bn_award_id', id));
+  const payments = await run((supabase.from('bn_payment_instruction') as any).select('*').eq('bn_award_id', id).order('scheduled_date', { ascending: false }).range(0, 199));
+  const communications = await run((supabase.from('bn_communication_log') as any).select('*').eq('bn_award_id', id).order('created_at', { ascending: false }).range(0, 199));
+  const claim = (award as any).bn_claim_id
+    ? await run(supabase.from('bn_claim').select('*').eq('id', (award as any).bn_claim_id).maybeSingle())
+    : { data: null };
+  const pensioner = (award as any).ssn
+    ? await run(supabase.from('ip_master').select('ssn, first_name, last_name, dob, sex, address1, address2, mobile_no, email_id').eq('ssn', (award as any).ssn).maybeSingle())
+    : { data: null };
+  const product = (award as any).bn_product_id
+    ? await run(supabase.from('bn_product').select('*').eq('id', (award as any).bn_product_id).maybeSingle())
+    : { data: null };
+
+  let productVersion: any = null;
+  if (claim?.data?.bn_product_version_id) {
+    const { data: pv } = await supabase.from('bn_product_version').select('*').eq('id', claim.data.bn_product_version_id).maybeSingle();
     productVersion = pv;
   }
 
   return {
     award,
-    beneficiaries: (beneficiaries as any).data ?? [],
-    rateHistory: (rateHistory as any).data ?? [],
-    statusEvents: (statusEvents as any).data ?? [],
-    suspensions: (suspensions as any).data ?? [],
-    lifeCertificates: (lifeCerts as any).data ?? [],
-    medicalReviews: (medicalReviews as any).data ?? [],
-    overpayments: (overpayments as any).data ?? [],
-    schedules: (schedules as any).data ?? [],
-    payments: (payments as any).data ?? [],
-    communications: (communications as any).data ?? [],
-    claim: (claim as any).data ?? null,
-    pensioner: (pensioner as any).data ?? null,
-    product: (product as any).data ?? null,
+    beneficiaries: beneficiaries.data ?? [],
+    rateHistory: rateHistory.data ?? [],
+    statusEvents: statusEvents.data ?? [],
+    suspensions: suspensions.data ?? [],
+    lifeCertificates: lifeCerts.data ?? [],
+    medicalReviews: medicalReviews.data ?? [],
+    overpayments: overpayments.data ?? [],
+    schedules: schedules.data ?? [],
+    payments: payments.data ?? [],
+    communications: communications.data ?? [],
+    claim: claim.data ?? null,
+    pensioner: pensioner.data ?? null,
+    product: product.data ?? null,
     productVersion,
   };
 }
