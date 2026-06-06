@@ -207,6 +207,7 @@ export default function ClaimantPortal() {
           brand={BRAND}
           nav={groups}
           subHeader={<PersonaHeader />}
+          homeHref="/claimant/dashboard"
         >
           <Routes>
             <Route path="dashboard" element={<SelfServiceDashboard />} />
