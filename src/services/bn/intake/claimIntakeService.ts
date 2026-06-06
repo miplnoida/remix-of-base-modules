@@ -67,6 +67,29 @@ const CHANNEL_TO_CONFIG: Record<ApplicationChannel, string> = {
 export async function submitClaimApplication(
   input: SubmitClaimApplicationInput,
 ): Promise<SubmitClaimApplicationResult> {
+  // ─── Pre-RPC Readiness Gate ───────────────────────────────────────
+  // No DB row is created if the channel is not allowed or required
+  // identity / OTP / documents are missing.
+  const { validateReadiness, ClaimIntakeReadinessError } = await import(
+    './intakeReadinessService'
+  );
+  const readiness = await validateReadiness(
+    { productCode: input.productCode, claimDate: input.claimDate, channel: input.channel },
+    {
+      ssn: input.ssn,
+      contact_email: (input.formPayload as any)?.contact_email ?? null,
+      contact_phone: (input.formPayload as any)?.contact_phone ?? null,
+      identity_verified: (input.formPayload as any)?.identity_verified === true,
+      otp_verified: (input.formPayload as any)?.otp_verified === true,
+      uploaded_document_codes:
+        (input.formPayload as any)?.uploaded_document_codes ?? [],
+      employerRegno: input.employerRegno ?? null,
+    },
+  );
+  if (!readiness.ok) {
+    throw new ClaimIntakeReadinessError(readiness);
+  }
+
   const { data, error } = await db.rpc('bn_submit_claim_application', {
     p_ssn: input.ssn,
     p_product_code: input.productCode,
