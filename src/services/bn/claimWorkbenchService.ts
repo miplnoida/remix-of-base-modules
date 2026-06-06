@@ -188,6 +188,18 @@ export async function executeClaimAction(
         break;
       }
       case 'APPROVE': {
+        // Block approval when mandatory blocking evidence is still outstanding.
+        const { data: blocking } = await db
+          .from('bn_evidence_checklist')
+          .select('id, status')
+          .eq('claim_id', claimId)
+          .eq('is_blocking', true);
+        const unmet = (blocking || []).filter((r: any) =>
+          !['VERIFIED', 'WAIVED'].includes((r.status || '').toUpperCase())
+        );
+        if (unmet.length > 0) {
+          throw new Error(`Cannot approve — ${unmet.length} mandatory document(s) still unverified.`);
+        }
         const { createClaimDecision } = await import('./claimActionRunner');
         const dec = await createClaimDecision({
           claimId,
