@@ -341,5 +341,28 @@ export async function createClaimDecision(args: {
     .select('id')
     .single();
   if (error) throw error;
+
+  // Mandatory audit: decision creation is a critical claim action.
+  const { auditClaimAction } = await import('@/services/bn/audit/bnAuditService');
+  await auditClaimAction({
+    action:
+      args.decisionType === 'APPROVED'
+        ? 'APPROVE_CLAIM'
+        : args.decisionType === 'DENIED'
+          ? 'DENY_CLAIM'
+          : 'SUBMIT_DECISION',
+    entityType: 'bn_claim_decision',
+    entityId: data.id,
+    performedBy: args.userCode,
+    afterValue: {
+      claim_id: args.claimId,
+      decision_type: args.decisionType,
+      reason_code: args.reasonCode ?? null,
+      calculation_id: latestCalc?.id ?? null,
+    },
+    notes: args.narrative ?? null,
+    critical: true,
+  });
+
   return { id: data.id };
 }
