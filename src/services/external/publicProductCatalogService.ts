@@ -148,7 +148,8 @@ export async function getPublicAvailableProducts(
       requires_self_verified_ssn, requires_deceased_person, requires_active_award,
       requires_existing_ei_claim, requires_employer_task, requires_doctor_task, requires_school_task,
       public_card_message, public_disabled_reason,
-      bn_product:product_id ( id, benefit_code, benefit_name, category, description, status )
+      bn_product:product_id ( id, benefit_code, benefit_name, category, description, status ),
+      bn_product_version:product_version_id ( id, status, version_number, effective_from )
     `)
     .eq('channel_code', CHANNEL_PUBLIC)
     .eq('public_online_enabled', true);
@@ -158,9 +159,28 @@ export async function getPublicAvailableProducts(
   const wantedApplicant = resolveApplicantType(ctx);
 
   const rows = (data ?? []) as any[];
+
+  // Dedupe: a product may have multiple channel configs (one per version).
+  // Keep only the row tied to the ACTIVE version; fall back to the highest
+  // version_number if no active row is present.
+  const byProduct = new Map<string, any>();
+  for (const row of rows) {
+    const v = row.bn_product_version;
+    if (!v) continue;
+    const existing = byProduct.get(row.product_id);
+    const isActive = v.status === 'ACTIVE';
+    const existingActive = existing?.bn_product_version?.status === 'ACTIVE';
+    if (!existing) { byProduct.set(row.product_id, row); continue; }
+    if (isActive && !existingActive) { byProduct.set(row.product_id, row); continue; }
+    if (isActive === existingActive &&
+        (v.version_number ?? 0) > (existing.bn_product_version?.version_number ?? 0)) {
+      byProduct.set(row.product_id, row);
+    }
+  }
+
   const results: PublicProductSummary[] = [];
 
-  for (const row of rows) {
+  for (const row of byProduct.values()) {
     const product = row.bn_product;
     if (!product || product.status === 'INACTIVE') continue;
 
@@ -247,14 +267,21 @@ export async function getPublicApplicationDefinition(
   if (productErr) throw productErr;
   if (!productRow) throw new Error(`Benefit ${benefitCode} not found`);
 
-  const { data: cfgRow, error: cfgErr } = await supabase
+  const { data: cfgRows, error: cfgErr } = await supabase
     .from('bn_product_channel_config')
-    .select('*')
+    .select('*, bn_product_version:product_version_id ( id, status, version_number )')
     .eq('product_id', productRow.id)
     .eq('channel_code', CHANNEL_PUBLIC)
-    .eq('public_online_enabled', true)
-    .maybeSingle();
+    .eq('public_online_enabled', true);
   if (cfgErr) throw cfgErr;
+  const cfgList = (cfgRows ?? []) as any[];
+  // Pick ACTIVE version row; fall back to highest version_number.
+  const cfgRow = cfgList.sort((a, b) => {
+    const aActive = a.bn_product_version?.status === 'ACTIVE' ? 1 : 0;
+    const bActive = b.bn_product_version?.status === 'ACTIVE' ? 1 : 0;
+    if (aActive !== bActive) return bActive - aActive;
+    return (b.bn_product_version?.version_number ?? 0) - (a.bn_product_version?.version_number ?? 0);
+  })[0];
   if (!cfgRow) throw new Error(`Benefit ${benefitCode} is not enabled for public application.`);
 
   const productVersionId: string | null = (cfgRow as any).product_version_id ?? null;
