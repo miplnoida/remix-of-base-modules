@@ -643,8 +643,22 @@ function ProductGrid({ products, disabled, disabledHint }: { products: Applicabl
 
 function ApplyForm() {
   const { productCode } = useParams<{ productCode: string }>();
+  const { persona } = useClaimantPersona();
   if (!productCode) return <p className="text-sm text-destructive">Missing product.</p>;
-  return <PortalFormRenderer productCode={productCode} />;
+  const selfVerified = !!persona?.flags?.canApplyForSelf;
+  return (
+    <div className="space-y-3">
+      {!selfVerified && (
+        <Card className="border-amber-300 bg-amber-50 dark:bg-amber-950/20">
+          <CardContent className="py-3 px-4 text-sm">
+            We could not verify your Social Security record yet. You can submit this application, but
+            contribution prechecks will be unavailable until your record is linked.
+          </CardContent>
+        </Card>
+      )}
+      <PortalFormRenderer productCode={productCode} />
+    </div>
+  );
 }
 
 function Claims() {
