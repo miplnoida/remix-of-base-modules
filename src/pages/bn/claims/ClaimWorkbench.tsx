@@ -373,6 +373,13 @@ export default function ClaimWorkbench() {
 
         {/* OVERVIEW — Sections 1, 2, 3 */}
         <TabsContent value="overview" className="mt-6 space-y-4">
+          <OverviewChecklist
+            claimId={claim.id}
+            status={currentStatus}
+            ssn={claim.ssn}
+            productId={(claim as any).product_id}
+            onJumpTab={setActiveTab}
+          />
           <ClaimHeaderSection
             claim={mergedClaim}
             isEditable={isEditable}
