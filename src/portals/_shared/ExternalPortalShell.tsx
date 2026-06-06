@@ -49,7 +49,7 @@ export function ExternalPortalShell({ role, brand, nav, children }: Props) {
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-gradient-to-r from-[hsl(var(--ssb-green-primary))] to-[hsl(var(--primary))] text-primary-foreground shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-          <Link to={nav[0]?.to ?? '/'} className="flex items-center gap-3">
+          <Link to={firstHref(nav)} className="flex items-center gap-3">
             <img
               src="/images/ssb-logo.png"
               alt="Social Security Board"
@@ -69,27 +69,48 @@ export function ExternalPortalShell({ role, brand, nav, children }: Props) {
             ) : null}
           </div>
         </div>
+        {subHeader ? (
+          <div className="mx-auto max-w-7xl px-4 pb-3">{subHeader}</div>
+        ) : null}
       </header>
       <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6">
-        <aside className="w-56 shrink-0">
-          <nav className="space-y-1">
-            {nav.map(item => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end
-                className={({ isActive }) => cn(
-                  'block rounded-md px-3 py-2 text-sm transition-colors',
-                  isActive ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                {item.label}
-              </NavLink>
-            ))}
+        <aside className="w-60 shrink-0">
+          <nav className="space-y-4">
+            {isGrouped(nav) ? (
+              nav.map(group => (
+                <div key={group.label}>
+                  <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                    {group.label}
+                  </div>
+                  <div className="space-y-1">
+                    {group.items.map(item => <SideLink key={item.to} item={item} />)}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="space-y-1">
+                {nav.map(item => <SideLink key={item.to} item={item} />)}
+              </div>
+            )}
           </nav>
         </aside>
         <main className="min-w-0 flex-1">{children}</main>
       </div>
     </div>
+  );
+}
+
+function SideLink({ item }: { item: NavItem }) {
+  return (
+    <NavLink
+      to={item.to}
+      end
+      className={({ isActive }) => cn(
+        'block rounded-md px-3 py-2 text-sm transition-colors',
+        isActive ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+      )}
+    >
+      {item.label}
+    </NavLink>
   );
 }
