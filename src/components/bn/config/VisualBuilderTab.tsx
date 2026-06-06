@@ -13,7 +13,7 @@ import { Loader2, Save, RefreshCw, Copy, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import {
-  BlockPalette, ConfigBuilderCanvas, BlockInspector, ValidationPanel, PreviewPanel,
+  BlockPalette, ConfigBuilderCanvas, BlockInspector, ValidationPanel, PreviewPanel, FormulaExpression,
   useBuilderCanvas, newBlock, validateCanvas,
   type BuilderBlock, type BuilderSectionKey, type BuilderBlockKind,
 } from '@/components/bn/config-builder';
@@ -176,7 +176,8 @@ export function VisualBuilderTab({ versionId, versionStatus }: Props) {
             <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
                 <div className="lg:col-span-3"><BlockPalette section={section} disabled={readOnly} /></div>
-                <div className="lg:col-span-6">
+                <div className="lg:col-span-6 space-y-2">
+                  {section === 'calculation' && <FormulaExpression canvas={canvas} compact />}
                   <ConfigBuilderCanvas
                     section={section}
                     blocks={blocks}
