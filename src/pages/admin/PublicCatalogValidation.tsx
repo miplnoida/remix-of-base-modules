@@ -22,7 +22,7 @@ export default function PublicCatalogValidation() {
         .from('v_bn_product_public_config_issues' as any)
         .select('*');
       if (error) throw error;
-      return (data ?? []) as Issue[];
+      return ((data ?? []) as unknown) as Issue[];
     },
   });
 
