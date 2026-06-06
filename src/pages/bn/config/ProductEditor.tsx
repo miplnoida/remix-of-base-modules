@@ -347,6 +347,10 @@ export default function ProductEditor() {
           <ChannelsTab productId={isNew ? undefined : id} versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
 
+        <TabsContent value="communications" className="mt-6">
+          <CommunicationsTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
+        </TabsContent>
+
         <TabsContent value="interactions" className="mt-6">
           <InteractionRulesTab productId={isNew ? undefined : id} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
