@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { ExternalPortalShell, type NavGroup } from '@/portals/_shared/ExternalPortalShell';
 import { ExternalTaskList } from '@/portals/_shared/ExternalTaskList';
 import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
-import { PortalModulePlaceholder } from '@/portals/_shared/PortalModulePlaceholder';
+
 import { PortalFormRenderer } from '@/components/external/PortalFormRenderer';
 import { RequirePersonaFlag } from '@/components/external/RequirePersonaFlag';
 import ClaimantLanding from '@/portals/claimant/ClaimantLanding';
@@ -212,10 +212,11 @@ export default function ClaimantPortal() {
             <Route path="link-ssn" element={<LinkSsnPage />} />
 
             {/* MY ACCOUNT */}
-            <Route path="profile" element={<Profile />} />
-            <Route path="profile/contacts" element={<PortalModulePlaceholder title="Contact Information" description="Phone, email, mailing addresses." internalSource="ip_master" />} />
-            <Route path="profile/preferences" element={<PortalModulePlaceholder title="Communication Preferences" description="Channel preferences for letters, SMS, email." internalSource="user_notification_preferences" />} />
-            <Route path="profile/security" element={<PortalModulePlaceholder title="Security Settings" description="Password, MFA, sessions." internalSource="mfa_config" />} />
+            <Route path="profile" element={<AccountProfilePage />} />
+            <Route path="profile/contacts" element={<AccountProfilePage initialTab="contacts" />} />
+            <Route path="profile/preferences" element={<AccountProfilePage initialTab="preferences" />} />
+            <Route path="profile/security" element={<AccountProfilePage initialTab="security" />} />
+            <Route path="relationships" element={<RelationshipsPage />} />
 
             {/* MY SOCIAL SECURITY (insured only) */}
             <Route path="contributions" element={
@@ -235,14 +236,14 @@ export default function ClaimantPortal() {
             <Route path="statements" element={
               <RequireFeature feature="contributionHistoryEnabled" title="Statements unavailable">
                 <RequirePersonaFlag flag="canViewContributions" title="Contribution statements are private">
-                  <PortalModulePlaceholder title="Contribution Statements" description="Annual statement, contribution certificate, insurable earnings — generated PDFs." internalSource="ip_wages_ann_sum" />
+                  <ContributionStatementsPage />
                 </RequirePersonaFlag>
               </RequireFeature>
             } />
             <Route path="insurable-earnings" element={
               <RequireFeature feature="contributionHistoryEnabled" title="Insurable Earnings unavailable">
                 <RequirePersonaFlag flag="canViewContributions" title="Insurable earnings are private">
-                  <PortalModulePlaceholder title="Insurable Earnings" description="Year-by-year insurable wages used in benefit calculations." internalSource="ip_wages_ann_sum" />
+                  <ContributionStatementsPage />
                 </RequirePersonaFlag>
               </RequireFeature>
             } />
@@ -252,16 +253,16 @@ export default function ClaimantPortal() {
             <Route path="apply/:productCode" element={<ApplyForm />} />
             <Route path="estimator" element={
               <RequireFeature feature="eligibilityEstimatorEnabled" title="Eligibility Estimator unavailable">
-                <PortalModulePlaceholder title="Eligibility Estimator" description="Read-only simulation against the Product Catalog rules. Does not create a claim." internalSource="bn_eligibility_rule" />
+                <EligibilityEstimatorPage />
               </RequireFeature>
             } />
-            <Route path="claims" element={<Claims />} />
+            <Route path="claims" element={<ClaimsPage />} />
             <Route path="claims/:claimNumber" element={<ClaimDetail />} />
-            <Route path="entitlements" element={<Entitlements />} />
+            <Route path="entitlements" element={<EntitlementsPage />} />
             <Route path="payments" element={
               <RequireFeature feature="paymentHistoryEnabled" title="Payment History unavailable">
                 <RequirePersonaFlag flag="canViewPayments" title="No payments visible to this account">
-                  <Payments />
+                  <PaymentsPage />
                 </RequirePersonaFlag>
               </RequireFeature>
             } />
@@ -269,60 +270,65 @@ export default function ClaimantPortal() {
             {/* PEOPLE I MANAGE */}
             <Route path="managed/people" element={
               <RequireFeature feature="peopleIMangeEnabled" title="People I Manage is disabled">
-                <PortalModulePlaceholder title="People I Manage" description="Insured persons you act for as guardian, payee or representative." internalSource="external_user_person_link" />
+                <ManagedPeoplePage />
+              </RequireFeature>
+            } />
+            <Route path="managed/people/:ssn" element={
+              <RequireFeature feature="peopleIMangeEnabled" title="People I Manage is disabled">
+                <ManagedPersonDetailPage />
               </RequireFeature>
             } />
             <Route path="managed/claims" element={
               <RequireFeature feature="peopleIMangeEnabled" title="Managed Claims is disabled">
-                <PortalModulePlaceholder title="Managed Claims" description="Claims you have filed on behalf of someone else." internalSource="bn_claim" />
+                <ManagedPeoplePage />
               </RequireFeature>
             } />
             <Route path="managed/benefits" element={
               <RequireFeature feature="peopleIMangeEnabled" title="Managed Benefits is disabled">
-                <PortalModulePlaceholder title="Managed Benefits" description="Awards / pensions you receive on behalf of someone else." internalSource="bn_award" />
+                <ManagedPeoplePage />
               </RequireFeature>
             } />
 
             {/* COMPLIANCE */}
             <Route path="compliance/life" element={
               <RequireFeature feature="lifeCertificateEnabled" title="Life Certificates unavailable">
-                <PortalModulePlaceholder title="Life Certificates" description="Annual proof-of-life for pensioners." internalSource="bn_life_certificate" />
+                <LifeCertificatePage />
               </RequireFeature>
             } />
             <Route path="compliance/school" element={
               <RequireFeature feature="schoolCertificateEnabled" title="School Certificates unavailable">
-                <PortalModulePlaceholder title="School / College Certificates" description="Enrolment proofs for survivor / orphan beneficiaries." internalSource="bn_external_task" />
+                <LifeCertificatePage />
               </RequireFeature>
             } />
-            <Route path="compliance/verification" element={<PortalModulePlaceholder title="Verification Tasks" description="Requests for additional information from the Board." internalSource="bn_external_task" />} />
-            <Route path="compliance/outstanding" element={<PortalModulePlaceholder title="Outstanding Requirements" description="Open items blocking your claims or awards." internalSource="bn_claim_evidence" />} />
+            <Route path="compliance/verification" element={<ExternalTaskList basePath="/claimant/tasks" />} />
+            <Route path="compliance/outstanding" element={<ExternalTaskList basePath="/claimant/tasks" />} />
 
             {/* COMMUNICATIONS */}
             <Route path="comms/inbox" element={<Messages />} />
-            <Route path="comms/letters" element={<PortalModulePlaceholder title="Letters" description="Official correspondence issued to you." internalSource="bn_letter" />} />
-            <Route path="comms/notifications" element={<PortalModulePlaceholder title="Notifications" description="In-app and email notifications." internalSource="in_app_notifications" />} />
+            <Route path="comms/letters" element={<LettersPage />} />
+            <Route path="comms/notifications" element={<LettersPage />} />
             <Route path="tasks" element={<ExternalTaskList basePath="/claimant/tasks" />} />
             <Route path="tasks/:taskId" element={<TaskDetail />} />
 
             {/* DOCUMENTS */}
-            <Route path="documents" element={<PortalModulePlaceholder title="Document Center" description="Uploaded documents, requested documents, official letters and generated forms." internalSource="ip_documents" />} />
+            <Route path="documents" element={<DocumentCenterPage />} />
 
             {/* APPEALS */}
             <Route path="appeals" element={
               <RequireFeature feature="appealsEnabled" title="Appeals unavailable">
-                <PortalModulePlaceholder title="Appeals" description="Request review of a benefit decision." internalSource="bn_claim_decision" />
+                <AppealsPage />
               </RequireFeature>
             } />
             <Route path="appeals/reconsideration" element={
               <RequireFeature feature="appealsEnabled" title="Reconsiderations unavailable">
-                <PortalModulePlaceholder title="Reconsiderations" description="Reconsideration of a recent decision." internalSource="bn_claim_decision" />
+                <AppealsPage />
               </RequireFeature>
             } />
 
             {/* Legacy / fallback */}
             <Route path="bank-details" element={
               <RequireFeature feature="bankUpdateEnabled" title="Bank Update unavailable">
-                <PortalModulePlaceholder title="EFT / Bank Account Update" description="Submit or update your bank account for benefit payments." internalSource="cl_bank_acct" />
+                <BankUpdatePage />
               </RequireFeature>
             } />
             <Route path="awards" element={<Navigate to="/claimant/entitlements" replace />} />
