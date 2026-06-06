@@ -47,11 +47,11 @@ export default function PensionerRegister() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <BnStatCard label="Total" value={stats.total} icon={Shield} />
-        <BnStatCard label="Active" value={stats.active} icon={Shield} tone="success" />
-        <BnStatCard label="Suspended / Hold" value={stats.suspended} icon={PauseCircle} tone="warning" />
-        <BnStatCard label="Life Cert Pending" value={stats.lifeCertDue} icon={AlertTriangle} tone="warning" />
-        <BnStatCard label="Survivor Awards" value={stats.survivors} icon={Heart} />
+        <BnStatCard title="Total" value={stats.total} icon={Shield} />
+        <BnStatCard title="Active" value={stats.active} icon={Shield} />
+        <BnStatCard title="Suspended / Hold" value={stats.suspended} icon={PauseCircle} />
+        <BnStatCard title="Life Cert Pending" value={stats.lifeCertDue} icon={AlertTriangle} />
+        <BnStatCard title="Survivor Awards" value={stats.survivors} icon={Heart} />
       </div>
 
       <Card>
