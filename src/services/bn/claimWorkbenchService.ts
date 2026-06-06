@@ -273,6 +273,14 @@ export async function executeClaimAction(
       metadata: { reason_code: reasonCode ?? null, ...sideEffect },
     });
 
+    // ── 4. Fire configured communications via bridge (non-blocking) ──
+    try {
+      const { onWorkflowActionExecuted } = await import('./communication/workflowCommunicationBridge');
+      await onWorkflowActionExecuted({
+        claimId, actionCode: action, userCode, reasonCode, narrative, sideEffect,
+      });
+    } catch (e) { /* non-blocking */ }
+
     const friendly =
       action === 'CHECK_ELIGIBILITY'
         ? `Eligibility evaluated — ${sideEffect.overallResult ? 'PASS' : 'FAIL'} (${sideEffect.ruleCount ?? 0} rules)`

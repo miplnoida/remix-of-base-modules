@@ -48,6 +48,7 @@ import { useBnLinkedClaims, useBnClaimStatusHistory, useBnClaimDetailJson, useUp
 import { useBnClaimWorkspace } from '@/hooks/bn/useBnClaimIntake';
 import { getAvailableTransitions } from '@/services/bn/claimWorkbenchService';
 import type { ClaimTransition } from '@/services/bn/claimWorkbenchService';
+import { CommunicationTab } from '@/components/bn/workbench/CommunicationTab';
 
 // Existing components
 import { BnStatusBadge, BnStatCard, BnEmptyState } from '@/components/bn/shared';
@@ -369,7 +370,14 @@ export default function ClaimWorkbench() {
           <TabsTrigger value="application" className="gap-1.5"><Inbox className="h-3.5 w-3.5" /> Application</TabsTrigger>
           <TabsTrigger value="payments" className="gap-1.5"><CreditCard className="h-3.5 w-3.5" /> Payments</TabsTrigger>
           <TabsTrigger value="snapshots" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Snapshots</TabsTrigger>
+          <TabsTrigger value="communications" className="gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> Communications</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="communications" className="mt-6">
+          <ClaimWorkbenchTabBoundary tabName="Communications">
+            <CommunicationTab claimId={claim.id} productVersionId={(claim as any).product_version_id} />
+          </ClaimWorkbenchTabBoundary>
+        </TabsContent>
 
         <TabsContent value="application" className="mt-6">
           <ClaimWorkbenchTabBoundary tabName="Application">
