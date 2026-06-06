@@ -1,34 +1,29 @@
 project_id = "xynceskeiiisiefqlgxo"
 
-[functions.process-email-queue]
-verify_jwt = true
-
-[functions.send-transactional-email]
-verify_jwt = true
-
-[functions.preview-transactional-email]
-verify_jwt = false
-
-[functions.handle-email-unsubscribe]
-verify_jwt = false
-
-[functions.handle-email-suppression]
-verify_jwt = false
-
-[functions.planner-approval-decide]
-verify_jwt = false
-
-[functions.planner-approval-sla-cron]
-verify_jwt = true
-
-[functions.auth-issue-exchange-code]
-verify_jwt = true
-
-[functions.auth-redeem-exchange-code]
-verify_jwt = false
-
-[functions.auth-refresh]
-verify_jwt = false
-
-[functions.auth-logout]
-verify_jwt = false
+[functions]
+  [functions.auth-email-hook]
+    verify_jwt = false
+  [functions.auth-issue-exchange-code]
+    verify_jwt = true
+  [functions.auth-logout]
+    verify_jwt = false
+  [functions.auth-redeem-exchange-code]
+    verify_jwt = false
+  [functions.auth-refresh]
+    verify_jwt = false
+  [functions.handle-email-suppression]
+    verify_jwt = false
+  [functions.handle-email-unsubscribe]
+    verify_jwt = false
+  [functions.planner-approval-decide]
+    verify_jwt = false
+  [functions.planner-approval-sla-cron]
+    verify_jwt = true
+  [functions.preview-transactional-email]
+    verify_jwt = false
+  [functions.process-email-queue]
+    verify_jwt = true
+  [functions.public-registration-otp]
+    verify_jwt = true
+  [functions.send-transactional-email]
+    verify_jwt = true
