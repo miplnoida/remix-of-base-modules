@@ -63,6 +63,10 @@ export const useUpsertBnScreenTemplate = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: configService.upsertScreenTemplate, onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'screen-templates'] }) });
 };
+export const useDeleteBnScreenTemplate = () => {
+  const qc = useQueryClient();
+  return useMutation({ mutationFn: configService.deleteScreenTemplate, onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'screen-templates'] }) });
+};
 
 // Field Metadata
 export const useBnFieldMetadata = (templateId: string | undefined) => useQuery({
@@ -70,6 +74,20 @@ export const useBnFieldMetadata = (templateId: string | undefined) => useQuery({
   queryFn: () => configService.fetchFieldMetadata(templateId!),
   enabled: !!templateId,
 });
+export const useUpsertBnFieldMetadata = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: configService.upsertFieldMetadata,
+    onSuccess: (_d, vars: any) => qc.invalidateQueries({ queryKey: ['bn', 'field-metadata', vars?.screen_template_id] }),
+  });
+};
+export const useDeleteBnFieldMetadata = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id }: { id: string; templateId?: string }) => configService.deleteFieldMetadata(id),
+    onSuccess: (_d, vars: any) => qc.invalidateQueries({ queryKey: ['bn', 'field-metadata', vars?.templateId] }),
+  });
+};
 
 // Interaction Rules
 export const useBnInteractionRules = () => useQuery({ queryKey: ['bn', 'interaction-rules'], queryFn: configService.fetchInteractionRules });
