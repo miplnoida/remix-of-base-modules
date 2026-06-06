@@ -11,9 +11,9 @@ export default function ClaimantLanding() {
         subtitle: 'Apply for benefits, track claims, view your contribution history, manage payments and submit life certificates — securely, anytime.',
       }}
       ctas={[
-        { label: 'Sign in as Claimant', to: '/claimant/dashboard' },
+        { label: 'Create an account', to: '/claimant/register' },
+        { label: 'Sign in', to: '/login', variant: 'outline' },
         { label: 'Apply for a Benefit', to: '/claimant/apply', variant: 'outline' },
-        { label: 'Track Existing Claim', to: '/claimant/claims', variant: 'outline' },
       ]}
       cards={[
         { title: 'Apply for Benefits', desc: 'Sickness, Maternity, Funeral, Survivors and more.', icon: FileText, to: '/claimant/apply' },

@@ -9,7 +9,6 @@ import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
 import { PortalFormRenderer } from '@/components/external/PortalFormRenderer';
 import { RequirePersonaFlag } from '@/components/external/RequirePersonaFlag';
 import ClaimantLanding from '@/portals/claimant/ClaimantLanding';
-import LinkSsnPage from '@/portals/claimant/LinkSsnPage';
 import RegistrationWizard from '@/portals/claimant/register/RegistrationWizard';
 import AccountProfilePage from '@/portals/claimant/account/AccountProfilePage';
 import RelationshipsPage from '@/portals/claimant/account/RelationshipsPage';
