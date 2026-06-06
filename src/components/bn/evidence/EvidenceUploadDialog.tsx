@@ -129,9 +129,25 @@ export function EvidenceUploadDialog({
 
         <div className="space-y-4">
           <div className="space-y-2">
+            <Label>Document Type *</Label>
+            <Select value={documentTypeCode} onValueChange={setDocumentTypeCode}>
+              <SelectTrigger><SelectValue placeholder="Select document type" /></SelectTrigger>
+              <SelectContent className="max-h-72">
+                {docTypes.map(code => (
+                  <SelectItem key={code} value={code}>{code.replace(/_/g, ' ')}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Choose the specific document type — eligibility rules (e.g. Death Certificate) match on this.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label>Document Name *</Label>
             <Input value={documentName} onChange={e => setDocumentName(e.target.value)} placeholder="e.g. Birth Certificate" />
           </div>
+
 
           <div className="space-y-2">
             <Label>Source</Label>
