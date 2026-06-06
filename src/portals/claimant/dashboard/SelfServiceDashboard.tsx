@@ -25,6 +25,7 @@ import {
 } from '@/portals/_shared/externalHooks';
 import { useState } from 'react';
 import type { Persona } from '@/services/external/portalPersonaService';
+import { SelfLinkBanner } from '@/portals/claimant/register/SelfLinkBanner';
 
 /* ─── Persona badges ─────────────────────────────────────────── */
 
