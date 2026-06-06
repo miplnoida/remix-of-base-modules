@@ -32826,6 +32826,87 @@ export type Database = {
           },
         ]
       }
+      external_persona_audit: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip: string | null
+          payload: Json | null
+          target_award_id: string | null
+          target_claim_id: string | null
+          target_ssn: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip?: string | null
+          payload?: Json | null
+          target_award_id?: string | null
+          target_claim_id?: string | null
+          target_ssn?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip?: string | null
+          payload?: Json | null
+          target_award_id?: string | null
+          target_claim_id?: string | null
+          target_ssn?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      external_user_person_link: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          notes: string | null
+          relationship_type: string
+          ssn: string
+          updated_at: string
+          user_id: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          relationship_type: string
+          ssn: string
+          updated_at?: string
+          user_id: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          relationship_type?: string
+          ssn?: string
+          updated_at?: string
+          user_id?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
       feature_flags: {
         Row: {
           created_at: string
