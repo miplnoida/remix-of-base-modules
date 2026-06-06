@@ -62,6 +62,31 @@ export default function TransitionMatrix() {
         />
 
 
+        {!isLoading && (
+          invalidRules.length > 0 ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>{invalidRules.length} active rule(s) violate the transition registry</AlertTitle>
+              <AlertDescription>
+                The following (from → action → to) tuples are not in the allowed registry and may produce broken claim flows:
+                <ul className="mt-2 list-disc pl-5 text-xs">
+                  {invalidRules.slice(0, 10).map(r => (
+                    <li key={r.id}>
+                      <code>{r.from_status}</code> — <code>{r.action_code}</code> → <code>{r.to_status}</code>
+                    </li>
+                  ))}
+                  {invalidRules.length > 10 && <li>… and {invalidRules.length - 10} more</li>}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert>
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertTitle>All active rules conform to the transition registry</AlertTitle>
+            </Alert>
+          )
+        )}
+
         {isLoading ? (
           <p className="text-muted-foreground">Loading...</p>
         ) : (
