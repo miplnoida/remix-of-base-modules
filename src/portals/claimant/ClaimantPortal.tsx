@@ -125,18 +125,22 @@ function PersonaSummary() {
 }
 
 function Dashboard() {
-  const cards = [
-    { to: '/claimant/apply', title: 'Apply for a Benefit', desc: 'Sickness, Maternity, Funeral, Survivors and more.' },
-    { to: '/claimant/claims', title: 'My Claims', desc: 'Track submitted claims and decisions.' },
-    { to: '/claimant/awards', title: 'My Awards / Pensions', desc: 'Active awards and entitlements.' },
-    { to: '/claimant/payments', title: 'Payment History', desc: 'Past benefit payments and EFTs.' },
-    { to: '/claimant/contributions', title: 'Contribution History', desc: 'Your annual contribution summary.' },
-    { to: '/claimant/employment-history', title: 'Employment History', desc: 'Employers you contributed under.' },
-    { to: '/claimant/tasks', title: 'Pending Tasks', desc: 'Actions you need to complete.' },
-    { to: '/claimant/messages', title: 'Messages & Letters', desc: 'Official communications from SSB.' },
+  const { persona } = useClaimantPersona();
+  const f = persona?.flags;
+  const allCards = [
+    { to: '/claimant/apply', title: 'Apply for a Benefit', desc: 'Sickness, Maternity, Funeral, Survivors and more.', show: true },
+    { to: '/claimant/claims', title: 'My Claims', desc: 'Track submitted claims and decisions.', show: true },
+    { to: '/claimant/awards', title: 'My Awards / Pensions', desc: 'Active awards and entitlements.', show: true },
+    { to: '/claimant/payments', title: 'Payment History', desc: 'Past benefit payments and EFTs.', show: !!f?.canViewPayments },
+    { to: '/claimant/contributions', title: 'Contribution History', desc: 'Your annual contribution summary.', show: !!f?.canViewContributions },
+    { to: '/claimant/employment-history', title: 'Employment History', desc: 'Employers you contributed under.', show: !!f?.canViewEmploymentHistory },
+    { to: '/claimant/tasks', title: 'Pending Tasks', desc: 'Actions you need to complete.', show: true },
+    { to: '/claimant/messages', title: 'Messages & Letters', desc: 'Official communications from SSB.', show: true },
   ];
+  const cards = allCards.filter(c => c.show);
   return (
     <div className="space-y-6">
+      <PersonaSummary />
       <ClaimBuckets />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {cards.map(c => (
@@ -241,25 +245,76 @@ function Employment() {
 }
 
 function ApplyList() {
-  const { data, isLoading, error } = useExternalProducts();
+  const { data, isLoading, error } = useProductApplicability();
+  const { persona } = useClaimantPersona();
   if (isLoading) return <Skeleton className="h-32 w-full" />;
   if (error) return <Card><CardContent className="py-6 text-sm text-destructive">{(error as Error).message}</CardContent></Card>;
-  const products = data?.products ?? [];
+  const products = data ?? [];
   if (products.length === 0) {
     return (
       <Card><CardHeader>
         <CardTitle className="text-base">No benefits available online</CardTitle>
-        <CardDescription>Admin must enable the <b>Online</b> channel on a product version and attach a CLAIMANT screen template.</CardDescription>
+        <CardDescription>Admin must publish a product version with a participant config.</CardDescription>
       </CardHeader></Card>
     );
   }
+  const canApplyForSelf = !!persona?.flags?.canApplyForSelf;
+  const canApplyForOthers = !!persona?.flags?.canApplyForOthers;
+  const forSelf = products.filter(p => p.allowsSelf);
+  // "Apply for others" — only the products whose participant config permits a non-SELF applicant.
+  const forOthers = products.filter(p => p.allowsOthers);
+
+  return (
+    <div className="space-y-6">
+      <PersonaSummary />
+      <section>
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold">Apply for myself</h2>
+          <p className="text-sm text-muted-foreground">
+            {canApplyForSelf
+              ? 'Benefits you can apply for as the insured person.'
+              : 'Link your SSN to apply for benefits as the insured person.'}
+          </p>
+        </div>
+        <ProductGrid products={forSelf} disabled={!canApplyForSelf} disabledHint="Link your SSN to enable" />
+      </section>
+      <section>
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold">Apply for someone else</h2>
+          <p className="text-sm text-muted-foreground">
+            Only products whose configuration allows a guardian, payee, representative or next-of-kin to file are listed here.
+          </p>
+        </div>
+        {forOthers.length === 0 ? (
+          <Card><CardContent className="py-6 text-sm text-muted-foreground">No products currently permit a non-self applicant.</CardContent></Card>
+        ) : (
+          <ProductGrid products={forOthers} disabled={!canApplyForOthers} disabledHint="You need a verified guardian / payee / representative link to file for others" />
+        )}
+      </section>
+    </div>
+  );
+}
+
+function ProductGrid({ products, disabled, disabledHint }: { products: ApplicableProduct[]; disabled: boolean; disabledHint: string }) {
   return (
     <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-      {products.map((p: any) => (
-        <Link key={p.id} to={`/claimant/apply/${p.benefit_code}`}>
-          <Card className="hover:shadow-md h-full"><CardHeader><CardTitle className="text-base">{p.benefit_name}</CardTitle><CardDescription>{p.category} · {p.payment_type}</CardDescription></CardHeader></Card>
-        </Link>
-      ))}
+      {products.map(p => {
+        const card = (
+          <Card className={`h-full ${disabled ? 'opacity-60' : 'hover:shadow-md'}`}>
+            <CardHeader>
+              <CardTitle className="text-base">{p.benefit_name}</CardTitle>
+              <CardDescription>
+                {p.category} · {p.payment_type}
+                {p.requiresDeceased && <> · <Badge variant="secondary">requires deceased</Badge></>}
+              </CardDescription>
+            </CardHeader>
+            {disabled && <CardContent className="text-xs text-muted-foreground">{disabledHint}</CardContent>}
+          </Card>
+        );
+        return disabled
+          ? <div key={p.id}>{card}</div>
+          : <Link key={p.id} to={`/claimant/apply/${p.benefit_code}`}>{card}</Link>;
+      })}
     </div>
   );
 }
