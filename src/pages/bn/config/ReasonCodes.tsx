@@ -189,10 +189,16 @@ export default function ReasonCodes() {
               <DialogTitle>{isNew ? 'Add Reason Code' : 'Edit Reason Code'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Code</label>
-                <Input value={form.reason_code} onChange={e => setForm(p => ({ ...p, reason_code: e.target.value.toUpperCase() }))} disabled={!isNew} />
-              </div>
+              <CodeFieldWithAutoGenerate
+                label="Code"
+                required
+                prefix="RC"
+                value={form.reason_code}
+                onChange={(v) => setForm(p => ({ ...p, reason_code: v }))}
+                existingCodes={otherCodes}
+                disabled={!isNew}
+                helpText="Unique reason code. Cannot be changed after creation."
+              />
               <div className="space-y-1">
                 <label className="text-sm font-medium">Label</label>
                 <Input value={form.reason_label} onChange={e => setForm(p => ({ ...p, reason_label: e.target.value }))} />
