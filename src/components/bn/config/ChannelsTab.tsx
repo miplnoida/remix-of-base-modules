@@ -102,7 +102,15 @@ export function ChannelsTab({ productId, versionId, isReadOnly, versionStatus }:
     <div className="space-y-4">
       <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
       <Card>
-        <CardContent className="py-4 text-sm text-muted-foreground">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Application Channels</CardTitle>
+          <CardDescription>
+            Controls how applications can be submitted for this product version — public online, staff offline,
+            assisted counter, or back-office entry. (For outbound messages like email/SMS/letters, use the
+            <strong> Communications</strong> tab.)
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="py-2 text-sm text-muted-foreground">
           Eligibility, calculation, timelines, and benefit interactions are shared for the product version.
           Application channel settings control how online and offline applications collect data, require documents,
           and route workflow.
