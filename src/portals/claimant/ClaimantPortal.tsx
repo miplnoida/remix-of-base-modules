@@ -212,10 +212,11 @@ export default function ClaimantPortal() {
             <Route path="link-ssn" element={<LinkSsnPage />} />
 
             {/* MY ACCOUNT */}
-            <Route path="profile" element={<Profile />} />
-            <Route path="profile/contacts" element={<PortalModulePlaceholder title="Contact Information" description="Phone, email, mailing addresses." internalSource="ip_master" />} />
-            <Route path="profile/preferences" element={<PortalModulePlaceholder title="Communication Preferences" description="Channel preferences for letters, SMS, email." internalSource="user_notification_preferences" />} />
-            <Route path="profile/security" element={<PortalModulePlaceholder title="Security Settings" description="Password, MFA, sessions." internalSource="mfa_config" />} />
+            <Route path="profile" element={<AccountProfilePage />} />
+            <Route path="profile/contacts" element={<AccountProfilePage initialTab="contacts" />} />
+            <Route path="profile/preferences" element={<AccountProfilePage initialTab="preferences" />} />
+            <Route path="profile/security" element={<AccountProfilePage initialTab="security" />} />
+            <Route path="relationships" element={<RelationshipsPage />} />
 
             {/* MY SOCIAL SECURITY (insured only) */}
             <Route path="contributions" element={
