@@ -342,6 +342,23 @@ export default function ClaimWorkbench() {
         />
       )}
 
+      {/* Channel-aware editability banner + correction-request entry point */}
+      <EditabilityBanner
+        editability={editability}
+        onRequestCorrection={() => setShowCorrection(true)}
+        onViewHistory={() => setShowHistory(true)}
+      />
+
+      {/* Stale flags after amendments */}
+      <ClaimStaleBanner
+        eligibilityStale={(claim as any).eligibility_stale}
+        calculationStale={(claim as any).calculation_stale}
+        onRerunEligibility={() => setActiveTab('eligibility')}
+        onRerunCalculation={() => setActiveTab('calculation')}
+      />
+
+
+
       {/* Decision Panel */}
       <ClaimDecisionPanel claimId={claim.id} userRoles={userRoles} productCategory={product?.category} />
 
