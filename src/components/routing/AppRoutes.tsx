@@ -387,6 +387,7 @@ const ReleaseManagement = lazy(() => import('@/pages/admin/ReleaseManagement'));
 const UpdateUserPassword = lazy(() => import('@/pages/admin/users/UpdateUserPassword'));
 const ModuleButtonBindings = lazy(() => import('@/pages/admin/ModuleButtonBindings'));
 const ApiKeysManagement = lazy(() => import('@/pages/admin/ApiKeysManagement'));
+const ExternalPortalSettings = lazy(() => import('@/pages/admin/ExternalPortalSettings'));
 const ApiTestDashboard = lazy(() => import('@/pages/admin/api-test-console/ApiTestDashboard'));
 const ApiKeysConsole = lazy(() => import('@/pages/admin/api-test-console/ApiKeysConsole'));
 const EnvironmentsConsole = lazy(() => import('@/pages/admin/api-test-console/EnvironmentsConsole'));
