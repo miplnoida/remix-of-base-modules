@@ -236,14 +236,14 @@ export default function ClaimantPortal() {
             <Route path="statements" element={
               <RequireFeature feature="contributionHistoryEnabled" title="Statements unavailable">
                 <RequirePersonaFlag flag="canViewContributions" title="Contribution statements are private">
-                  <PortalModulePlaceholder title="Contribution Statements" description="Annual statement, contribution certificate, insurable earnings — generated PDFs." internalSource="ip_wages_ann_sum" />
+                  <ContributionStatementsPage />
                 </RequirePersonaFlag>
               </RequireFeature>
             } />
             <Route path="insurable-earnings" element={
               <RequireFeature feature="contributionHistoryEnabled" title="Insurable Earnings unavailable">
                 <RequirePersonaFlag flag="canViewContributions" title="Insurable earnings are private">
-                  <PortalModulePlaceholder title="Insurable Earnings" description="Year-by-year insurable wages used in benefit calculations." internalSource="ip_wages_ann_sum" />
+                  <ContributionStatementsPage />
                 </RequirePersonaFlag>
               </RequireFeature>
             } />
