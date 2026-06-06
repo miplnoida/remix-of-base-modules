@@ -253,16 +253,16 @@ export default function ClaimantPortal() {
             <Route path="apply/:productCode" element={<ApplyForm />} />
             <Route path="estimator" element={
               <RequireFeature feature="eligibilityEstimatorEnabled" title="Eligibility Estimator unavailable">
-                <PortalModulePlaceholder title="Eligibility Estimator" description="Read-only simulation against the Product Catalog rules. Does not create a claim." internalSource="bn_eligibility_rule" />
+                <EligibilityEstimatorPage />
               </RequireFeature>
             } />
-            <Route path="claims" element={<Claims />} />
+            <Route path="claims" element={<ClaimsPage />} />
             <Route path="claims/:claimNumber" element={<ClaimDetail />} />
-            <Route path="entitlements" element={<Entitlements />} />
+            <Route path="entitlements" element={<EntitlementsPage />} />
             <Route path="payments" element={
               <RequireFeature feature="paymentHistoryEnabled" title="Payment History unavailable">
                 <RequirePersonaFlag flag="canViewPayments" title="No payments visible to this account">
-                  <Payments />
+                  <PaymentsPage />
                 </RequirePersonaFlag>
               </RequireFeature>
             } />
