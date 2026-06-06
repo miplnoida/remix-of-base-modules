@@ -4,7 +4,10 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Lock } from 'lucide-react';
 
-const READ_ONLY_STATUSES = ['ACTIVE', 'PENDING_APPROVAL', 'RETIRED', 'ARCHIVED', 'SUSPENDED'];
+const READ_ONLY_STATUSES = [
+  'ACTIVE', 'APPROVED', 'PUBLISHED', 'PENDING_APPROVAL', 'PENDING_REVIEW',
+  'RETIRED', 'ARCHIVED', 'SUSPENDED', 'REJECTED',
+];
 
 export function isVersionReadOnly(status: string | null | undefined): boolean {
   if (!status) return false;

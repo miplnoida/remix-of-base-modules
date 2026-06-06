@@ -74,10 +74,10 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
 
   // ---------- 2. Formula variable conformance ----------
   const allowedVars = new Set(FORMULA_VARIABLES.map((v) => v.key));
-  const formulas = await safeFetch('bn_formula');
+  const formulas = await safeFetch('bn_formula_template');
   for (const f of formulas) {
     if (f.is_active === false) continue;
-    const expr: string = f.formula_expression || f.expression || '';
+    const expr: string = f.formula_expression || '';
     if (!expr) continue;
     try {
       const result = parseFormula(expr);
@@ -85,9 +85,9 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
         findings.push({
           category: 'FORMULA_VARIABLE',
           severity: 'WARNING',
-          entity: 'bn_formula',
+          entity: 'bn_formula_template',
           entityId: f.id,
-          message: `${f.formula_code || f.code}: ${result.errors.join('; ') || 'parse error'}`,
+          message: `${f.template_code}: ${result.errors.join('; ') || 'parse error'}`,
         });
         continue;
       }
@@ -96,36 +96,49 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
         findings.push({
           category: 'FORMULA_VARIABLE',
           severity: 'ERROR',
-          entity: 'bn_formula',
+          entity: 'bn_formula_template',
           entityId: f.id,
-          message: `${f.formula_code || f.code}: unknown variables [${unknown.join(', ')}]`,
+          message: `${f.template_code}: unknown variables [${unknown.join(', ')}]`,
         });
       }
     } catch (e: any) {
       findings.push({
         category: 'FORMULA_VARIABLE',
         severity: 'WARNING',
-        entity: 'bn_formula',
+        entity: 'bn_formula_template',
         entityId: f.id,
-        message: `${f.formula_code || f.code}: parse error — ${e?.message ?? 'invalid'}`,
+        message: `${f.template_code}: parse error — ${e?.message ?? 'invalid'}`,
       });
     }
   }
 
-  // ---------- 3. Eligibility field key conformance ----------
+  // ---------- 3. Eligibility field key conformance (JSON walker on bn_product_version.eligibility_config) ----------
   const allowedFields = new Set(ELIGIBILITY_FIELDS.map((f) => f.key));
-  const eligibilityRules = await safeFetch('bn_eligibility_rule');
-  for (const r of eligibilityRules) {
-    if (r.is_active === false) continue;
-    const key = r.field_key || r.left_operand || r.field;
-    if (key && !allowedFields.has(key)) {
-      findings.push({
-        category: 'ELIGIBILITY_KEY',
-        severity: 'ERROR',
-        entity: 'bn_eligibility_rule',
-        entityId: r.id,
-        message: `Unknown eligibility field key: "${key}"`,
-      });
+  const collectFieldKeys = (node: any, acc: Set<string>): void => {
+    if (!node) return;
+    if (Array.isArray(node)) { node.forEach((n) => collectFieldKeys(n, acc)); return; }
+    if (typeof node === 'object') {
+      for (const [k, val] of Object.entries(node)) {
+        if ((k === 'field_key' || k === 'field' || k === 'left_operand') && typeof val === 'string') acc.add(val);
+        else collectFieldKeys(val, acc);
+      }
+    }
+  };
+  const versionsForEligibility = await safeFetch('bn_product_version');
+  for (const v of versionsForEligibility) {
+    if (!v.eligibility_config) continue;
+    const used = new Set<string>();
+    collectFieldKeys(v.eligibility_config, used);
+    for (const key of used) {
+      if (!allowedFields.has(key)) {
+        findings.push({
+          category: 'ELIGIBILITY_KEY',
+          severity: 'ERROR',
+          entity: 'bn_product_version',
+          entityId: v.id,
+          message: `V${v.version_number ?? '?'}: unknown eligibility field key "${key}"`,
+        });
+      }
     }
   }
 
@@ -174,22 +187,62 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
     }
   }
 
-  // ---------- 6. Orphan / inactive-library references ----------
-  // Active product version configs should not reference inactive library records.
-  const documents = await safeFetch('bn_document');
-  const inactiveDocCodes = new Set(
-    documents.filter((d) => d.is_active === false).map((d) => d.document_code),
+  // ---------- 6. Orphan / inactive-library references on active product versions ----------
+  const productVersions = await safeFetch('bn_product_version');
+  const liveVersions = productVersions.filter(
+    (v) => ['ACTIVE', 'PUBLISHED', 'APPROVED'].includes(String(v.status || '').toUpperCase()),
   );
-  const productDocs = await safeFetch('bn_product_document');
-  for (const pd of productDocs) {
-    if (pd.is_active === false) continue;
-    if (pd.document_code && inactiveDocCodes.has(pd.document_code)) {
+
+  const workflowTemplates = await safeFetch('bn_workflow_template');
+  const wfById = new Map(workflowTemplates.map((t) => [t.id, t]));
+  const screenTemplates = await safeFetch('bn_screen_template');
+  const scrById = new Map(screenTemplates.map((t) => [t.id, t]));
+  const docProfiles = await safeFetch('bn_document_profile');
+  const dpById = new Map(docProfiles.map((t) => [t.id, t]));
+
+  for (const v of liveVersions) {
+    const label = `V${v.version_number ?? '?'} (${v.id?.slice(0, 8)})`;
+    if (v.workflow_template_id) {
+      const wf = wfById.get(v.workflow_template_id);
+      if (!wf) {
+        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: workflow_template_id references missing record` });
+      } else if (wf.is_active === false) {
+        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: references inactive workflow template "${wf.template_code}"` });
+      }
+    }
+    if (v.screen_template_id) {
+      const sc = scrById.get(v.screen_template_id);
+      if (!sc) {
+        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: screen_template_id references missing record` });
+      } else if (sc.is_active === false) {
+        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'WARNING', entity: 'bn_product_version', entityId: v.id, message: `${label}: references inactive screen template "${sc.template_code}"` });
+      }
+    }
+    if (v.document_profile_id) {
+      const dp = dpById.get(v.document_profile_id);
+      if (!dp) {
+        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'ERROR', entity: 'bn_product_version', entityId: v.id, message: `${label}: document_profile_id references missing record` });
+      } else if (dp.is_active === false) {
+        findings.push({ category: 'ORPHAN_REFERENCE', severity: 'WARNING', entity: 'bn_product_version', entityId: v.id, message: `${label}: references inactive document profile "${dp.profile_code}"` });
+      }
+    }
+  }
+
+  // Communication mappings → comm events: active mappings must reference active events
+  const commEvents = await safeFetch('bn_comm_event');
+  const inactiveEventCodes = new Set(
+    commEvents.filter((e) => e.is_active === false).map((e) => e.event_code),
+  );
+  const commMappings = await safeFetch('bn_comm_mapping');
+  for (const m of commMappings) {
+    if (m.is_active === false) continue;
+    if (m.event_code && inactiveEventCodes.has(m.event_code)) {
       findings.push({
         category: 'ORPHAN_REFERENCE',
-        severity: 'ERROR',
-        entity: 'bn_product_document',
-        entityId: pd.id,
-        message: `Active product references inactive document "${pd.document_code}"`,
+        severity: 'WARNING',
+        entity: 'bn_comm_mapping',
+        entityId: m.id,
+        message: `Active mapping references inactive communication event "${m.event_code}"`,
       });
     }
   }
