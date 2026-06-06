@@ -23,11 +23,16 @@ const CATEGORIES = ['IDENTITY', 'FINANCIAL', 'MEDICAL', 'RELATIONSHIP', 'EMPLOYM
 export default function ServiceDocTypes() {
   const { toast } = useToast();
   const { userCode } = useUserCode();
+  const audit = useBnConfigAudit();
   const { data: types = [], isLoading } = useBnServiceDocTypes();
   const upsertMutation = useUpsertServiceDocType();
   const deleteMutation = useDeleteServiceDocType();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<BnServiceDocType>>({});
+
+  const otherCodes = (types as BnServiceDocType[])
+    .filter(t => t.id !== editing.id)
+    .map(t => t.type_code);
 
   const openNew = () => {
     setEditing({ type_code: '', type_name: '', category: 'IDENTITY', default_expiry_days: undefined, requires_witness: false, description: '', is_active: true });
@@ -41,9 +46,20 @@ export default function ServiceDocTypes() {
       toast({ title: 'Validation', description: 'Type code and name are required.', variant: 'destructive' });
       return;
     }
+    if (!editing.id && otherCodes.map(c => c.toUpperCase()).includes(editing.type_code.trim().toUpperCase())) {
+      toast({ title: 'Duplicate code', description: 'Another document type already uses this code.', variant: 'destructive' });
+      return;
+    }
     try {
+      const before = editing.id ? (types as BnServiceDocType[]).find(t => t.id === editing.id) ?? null : null;
       const record = { ...editing, entered_by: editing.id ? undefined : userCode, modified_by: userCode };
-      await upsertMutation.mutateAsync(record);
+      const saved = await upsertMutation.mutateAsync(record);
+      audit.log({
+        entityType: 'bn_service_doc_type',
+        entityId: (saved as any)?.id ?? editing.id ?? 'new',
+        action: editing.id ? 'UPDATE' : 'CREATE',
+        before, after: editing,
+      });
       toast({ title: 'Saved' });
       setDialogOpen(false);
     } catch (err: any) {
