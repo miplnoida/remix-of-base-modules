@@ -327,15 +327,18 @@ export default function ClaimantPortal() {
 
 function Dashboard() {
   const { persona } = useClaimantPersona();
+  const { data: features } = usePortalFeatureConfig();
   const f = persona?.flags;
+  const showPayments = !!f?.canViewPayments && features?.paymentHistoryEnabled !== false;
+  const showSocialSecurity = !!f?.canViewContributions && features?.contributionHistoryEnabled !== false;
   return (
     <div className="space-y-6">
       <SectionClaimActivity />
       <SectionBenefits />
-      {f?.canViewPayments && <SectionPayments />}
+      {showPayments && <SectionPayments />}
       <SectionCompliance />
       <SectionCommunications />
-      {f?.canViewContributions && <SectionSocialSecuritySummary />}
+      {showSocialSecurity && <SectionSocialSecuritySummary />}
     </div>
   );
 }
