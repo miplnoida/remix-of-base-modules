@@ -54,7 +54,8 @@ export interface EligibilityFieldDef {
     | 'evidence.documentVerified'
     | 'claim.hasDuplicateActiveClaim'
     | 'claim.claimDate'
-    | 'claim.benefitType';
+    | 'claim.benefitType'
+    | 'participant.deceasedRelationship';
   /** Whether a contribution window selector should be exposed on the rule. */
   supportsWindow?: boolean;
   /** Whether a document_type_code selector should be exposed. */
