@@ -84,7 +84,8 @@ const SIDEBAR_STATE_KEY = 'lov.portalSidebar.collapsed';
 
 export function ExternalPortalShell({
   role, brand, nav, subHeader, homeHref,
-  userMenuItems, userMenuHeader, mobileNavItems, children,
+  userMenuItems, userMenuHeader, mobileNavItems,
+  notificationBell, helpButton, children,
 }: Props) {
   const [session, setSession] = useState<PortalSession | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
