@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate, useParams, Link } from 'react-router-dom';
 import { useMemo } from 'react';
-import { ExternalPortalShell, type NavGroup, type NavItem } from '@/portals/_shared/ExternalPortalShell';
+import { ExternalPortalShell, type NavItem } from '@/portals/_shared/ExternalPortalShell';
+import { NotificationBell } from '@/portals/_shared/NotificationBell';
+import { HelpButton } from '@/portals/_shared/HelpButton';
 import { ExternalTaskList } from '@/portals/_shared/ExternalTaskList';
 import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
 
@@ -20,6 +22,9 @@ import PaymentsPage from '@/portals/claimant/benefits/PaymentsPage';
 import EligibilityEstimatorPage from '@/portals/claimant/benefits/EligibilityEstimatorPage';
 import LifeCertificatePage from '@/portals/claimant/compliance/LifeCertificatePage';
 import LettersPage from '@/portals/claimant/comms/LettersPage';
+import NotificationsPage from '@/portals/claimant/comms/NotificationsPage';
+import HelpCenterPage from '@/portals/claimant/help/HelpCenterPage';
+import MorePage from '@/portals/claimant/MorePage';
 import DocumentCenterPage from '@/portals/claimant/documents/DocumentCenterPage';
 import SelfServiceDashboard from '@/portals/claimant/dashboard/SelfServiceDashboard';
 import AppealsPage from '@/portals/claimant/appeals/AppealsPage';
@@ -42,52 +47,38 @@ import type { PersonaFlags, Persona } from '@/services/external/portalPersonaSer
 import type { PortalFeatureConfig } from '@/services/external/portalFeatureConfigService';
 
 import {
-  LayoutDashboard, User, Phone, Bell, Lock, PiggyBank, Briefcase, FileDown, Coins,
-  FileText, Search, Award, Wallet, Landmark, Users, ShieldCheck, ShieldQuestion,
-  GraduationCap, ClipboardCheck, AlertCircle, Inbox, Mail, BellRing, ListChecks,
-  FolderOpen, Scale, RotateCcw, IdCard, HelpCircle, Building2, LifeBuoy,
-  CheckCircle2, FileSearch, FileUp, FileCheck2, Home as HomeIcon, MessageSquare,
+  Home as HomeIcon, FileText, Search, Wallet, ListChecks, FolderOpen, PiggyBank,
+  Users, MoreHorizontal, User, Phone, Bell, Lock, IdCard, CheckCircle2,
 } from 'lucide-react';
 
 const BRAND = 'Social Security Self-Service Portal';
-
-/** User-account dropdown items (top-right avatar). */
-const USER_MENU_ITEMS: NavItem[] = [
-  { to: '/claimant/account', label: 'My Profile', icon: User },
-  { to: '/claimant/account/contacts', label: 'Contact Information', icon: Phone },
-  { to: '/claimant/account/preferences', label: 'Communication Preferences', icon: Bell },
-  { to: '/claimant/account/security', label: 'Security Settings', icon: Lock },
-  { to: '/claimant/account/identity', label: 'Linked SSN / Identity', icon: IdCard },
-];
 
 /** Mobile bottom nav (5 slots). */
 const MOBILE_NAV_ITEMS: NavItem[] = [
   { to: '/claimant/dashboard', label: 'Home', icon: HomeIcon },
   { to: '/claimant/apply', label: 'Apply', icon: FileText },
-  { to: '/claimant/tasks', label: 'Tasks', icon: ListChecks },
   { to: '/claimant/claims', label: 'Claims', icon: Search },
-  { to: '/claimant/comms/inbox', label: 'Messages', icon: MessageSquare },
+  { to: '/claimant/tasks', label: 'Tasks', icon: ListChecks },
+  { to: '/claimant/more', label: 'More', icon: MoreHorizontal },
 ];
 
-function buildNavGroups(
+/**
+ * Build a flat, public-friendly sidebar (max 8 items).
+ * Profile/Notifications/Help/Compliance/Appeals/Bank/Letters/Certificates do NOT appear here —
+ * they live in the avatar menu, header bell, header help button, or under Tasks/Documents/Benefits.
+ */
+function buildSidebar(
   flags: PersonaFlags | undefined,
   personas: Persona[],
   features: PortalFeatureConfig | undefined,
-): NavGroup[] {
+): NavItem[] {
   const f = flags ?? ({} as PersonaFlags);
   const ft: PortalFeatureConfig = features ?? ({
     peopleIMangeEnabled: true,
     guardianPayeeEnabled: true,
     representativeAccessEnabled: true,
-    beneficiarySelfServiceEnabled: true,
     contributionHistoryEnabled: true,
-    employmentHistoryEnabled: true,
     paymentHistoryEnabled: true,
-    lifeCertificateEnabled: true,
-    schoolCertificateEnabled: true,
-    bankUpdateEnabled: true,
-    appealsEnabled: true,
-    eligibilityEstimatorEnabled: true,
   } as PortalFeatureConfig);
 
   const isInsured = personas.includes('INSURED_PERSON');
@@ -95,116 +86,111 @@ function buildNavGroups(
   const isBeneficiary = personas.includes('BENEFICIARY');
   const isGuardianOrPayee = personas.includes('GUARDIAN') || personas.includes('PAYEE');
   const isRepresentative = personas.includes('REPRESENTATIVE');
+
+  const selfVerified = !!f.canViewContributions;
+  const hasBenefitActivity = !!f.canViewPayments || isPensioner || isBeneficiary;
   const managerEnabled =
     ft.peopleIMangeEnabled &&
     ((isGuardianOrPayee && ft.guardianPayeeEnabled) ||
       (isRepresentative && ft.representativeAccessEnabled));
 
-  // "Verified SELF SSN" gate — only true when the user has a verified self link.
-  const selfVerified = !!f.canViewContributions;
-  // Show Benefits & Payments group when user has any award/claim/payment activity.
-  const hasBenefitActivity = !!f.canViewPayments || isPensioner || isBeneficiary;
-  // Bank details: award holder, payee, guardian, or representative.
-  const canUpdateBank = ft.bankUpdateEnabled && (isPensioner || isBeneficiary || isGuardianOrPayee || isRepresentative);
-  // Life certificate: pensioner or manages a pensioner.
-  const showLifeCert = ft.lifeCertificateEnabled && (isPensioner || managerEnabled);
-  // School cert: beneficiary student or manages survivor child/student.
-  const showSchoolCert = ft.schoolCertificateEnabled && (isBeneficiary || managerEnabled);
-
-  const groups: NavGroup[] = [];
-
-  // 1) Dashboard
-  groups.push({
-    label: 'Overview',
-    items: [{ to: '/claimant/dashboard', label: 'Dashboard', icon: LayoutDashboard }],
-  });
-
-  // 2) Apply & Track
-  const applyItems: NavItem[] = [
-    { to: '/claimant/apply', label: 'Apply for Benefits', icon: FileText },
-    { to: '/claimant/claims', label: 'My Claims', icon: Search },
-    { to: '/claimant/tasks', label: 'Pending Actions', icon: ListChecks },
+  const items: NavItem[] = [
+    { to: '/claimant/dashboard', label: 'Home', icon: HomeIcon },
+    { to: '/claimant/apply', label: 'Apply', icon: FileText },
+    { to: '/claimant/claims', label: 'Claims', icon: Search },
   ];
-  if (ft.appealsEnabled) {
-    applyItems.push({ to: '/claimant/appeals', label: 'Appeals / Reconsideration', icon: Scale });
-  }
-  groups.push({ label: 'Apply & Track', items: applyItems });
-
-  // 3) My Social Security — verified INSURED_PERSON only
-  if (isInsured && selfVerified) {
-    const items: NavItem[] = [];
-    if (ft.contributionHistoryEnabled) items.push({ to: '/claimant/contributions', label: 'Contribution History', icon: PiggyBank });
-    if (ft.employmentHistoryEnabled) items.push({ to: '/claimant/employment-history', label: 'Employment History', icon: Briefcase });
-    if (ft.contributionHistoryEnabled) {
-      items.push({ to: '/claimant/statements', label: 'Contribution Statements', icon: FileDown });
-      items.push({ to: '/claimant/insurable-earnings', label: 'Insurable Earnings', icon: Coins });
-    }
-    if (items.length) groups.push({ label: 'My Social Security', items });
-  }
-
-  // 4) Benefits & Payments — only if there is benefit/payment activity
   if (hasBenefitActivity) {
-    const items: NavItem[] = [
-      { to: '/claimant/entitlements', label: 'Entitlements / Pensions', icon: Award },
-    ];
-    if (ft.paymentHistoryEnabled) items.push({ to: '/claimant/payments', label: 'Payment History', icon: Wallet });
-    if (canUpdateBank) items.push({ to: '/claimant/bank-details', label: 'Bank Details / EFT Update', icon: Landmark });
-    groups.push({ label: 'Benefits & Payments', items });
+    items.push({ to: '/claimant/entitlements', label: 'Benefits & Payments', icon: Wallet });
   }
-
-  // 5) People I Manage — flag + relationship
+  items.push({ to: '/claimant/tasks', label: 'Tasks', icon: ListChecks });
+  items.push({ to: '/claimant/documents', label: 'Documents', icon: FolderOpen });
+  if (isInsured && selfVerified && ft.contributionHistoryEnabled) {
+    items.push({ to: '/claimant/contributions', label: 'My Social Security', icon: PiggyBank });
+  }
   if (managerEnabled) {
-    groups.push({
-      label: 'People I Manage',
-      items: [
-        { to: '/claimant/managed/people', label: 'People I Manage', icon: Users },
-        { to: '/claimant/managed/claims', label: 'Managed Claims', icon: Search },
-        { to: '/claimant/managed/benefits', label: 'Managed Benefits', icon: Award },
-        { to: '/claimant/managed/documents', label: 'Managed Documents', icon: FolderOpen },
-      ],
-    });
+    items.push({ to: '/claimant/managed/people', label: 'People I Manage', icon: Users });
   }
+  return items;
+}
 
-  // 6) Compliance & Certificates
-  const compliance: NavItem[] = [];
-  if (showLifeCert) compliance.push({ to: '/claimant/compliance/life', label: 'Life Certificates', icon: ShieldCheck });
-  if (showSchoolCert) compliance.push({ to: '/claimant/compliance/school', label: 'School / College Certificates', icon: GraduationCap });
-  compliance.push({ to: '/claimant/compliance/verification', label: 'Verification Requests', icon: ClipboardCheck });
-  compliance.push({ to: '/claimant/compliance/outstanding', label: 'Outstanding Requirements', icon: AlertCircle });
-  if (compliance.length) groups.push({ label: 'Compliance & Certificates', items: compliance });
 
-  // 7) Documents
-  groups.push({
-    label: 'Documents',
-    items: [
-      { to: '/claimant/documents', label: 'Document Center', icon: FolderOpen },
-      { to: '/claimant/documents/requested', label: 'Requested Documents', icon: FileSearch },
-      { to: '/claimant/documents/uploaded', label: 'Uploaded Documents', icon: FileUp },
-      { to: '/claimant/documents/forms', label: 'Official Forms', icon: FileCheck2 },
-    ],
-  });
+function maskSsn(ssn: string | null | undefined): string {
+  if (!ssn) return '—';
+  if (ssn.length <= 3) return ssn;
+  return `${'•'.repeat(Math.max(0, ssn.length - 3))}${ssn.slice(-3)}`;
+}
 
-  // 8) Messages
-  groups.push({
-    label: 'Messages',
-    items: [
-      { to: '/claimant/comms/inbox', label: 'Inbox', icon: Inbox },
-      { to: '/claimant/comms/letters', label: 'Letters', icon: Mail },
-      { to: '/claimant/comms/notifications', label: 'Notifications', icon: BellRing },
-    ],
-  });
+function PersonaHeader() {
+  const { persona, isLoading } = useClaimantPersona();
+  if (isLoading || !persona) {
+    return <div className="h-7" />;
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-primary-foreground/95">
+      <span className="text-sm font-medium">{persona.displayName}</span>
+      {persona.personSsn && (
+        <span className="rounded bg-white/15 px-2 py-0.5 text-xs font-mono">
+          SSN {maskSsn(persona.personSsn)}
+        </span>
+      )}
+      <span className="opacity-70">·</span>
+      {persona.personas.length === 0 ? (
+        <Badge variant="outline" className="border-white/40 bg-white/10 text-xs text-primary-foreground">
+          PERSONA NOT VERIFIED
+        </Badge>
+      ) : (
+        persona.personas.map(p => (
+          <Badge key={p} variant="outline" className="border-white/40 bg-white/10 text-xs text-primary-foreground">
+            {p.replace(/_/g, ' ')}
+          </Badge>
+        ))
+      )}
+      {!persona.personSsn && (
+        <Button asChild size="sm" variant="secondary" className="ml-2 h-7">
+          <Link to="/claimant/link-ssn">Link my SSN</Link>
+        </Button>
+      )}
+    </div>
+  );
+}
 
-  // 9) Help
-  groups.push({
-    label: 'Help',
-    items: [
-      { to: '/claimant/help/faqs', label: 'FAQs', icon: HelpCircle },
-      { to: '/claimant/help/contact', label: 'Contact SSB', icon: LifeBuoy },
-      { to: '/claimant/help/offices', label: 'Office Locations', icon: Building2 },
-    ],
-  });
-
-  return groups;
+/** Compact status block shown at the top of the user dropdown. */
+function UserMenuStatus() {
+  const { persona } = useClaimantPersona();
+  if (!persona) return null;
+  return (
+    <div className="space-y-1.5 text-xs">
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted-foreground">SSN:</span>
+        {persona.personSsn ? (
+          <Badge variant="secondary" className="font-mono">
+            <CheckCircle2 className="h-3 w-3 mr-1 text-emerald-600" />
+            {maskSsn(persona.personSsn)}
+          </Badge>
+        ) : (
+          <Link to="/claimant/link-ssn" className="text-primary hover:underline">Not linked — link now</Link>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted-foreground">Email:</span>
+        <Badge variant="secondary" className="text-[10px]">
+          <CheckCircle2 className="h-3 w-3 mr-1 text-emerald-600" /> Verified
+        </Badge>
+      </div>
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="text-muted-foreground mr-0.5">Roles:</span>
+        {persona.personas.length === 0 ? (
+          <Badge variant="outline" className="text-[10px]">Not verified</Badge>
+        ) : (
+          persona.personas.map(p => (
+            <Badge key={p} variant="outline" className="text-[10px]">
+              {p.replace(/_/g, ' ')}
+            </Badge>
+          ))
+        )}
+      </div>
+    </div>
+  );
 }
 
 
