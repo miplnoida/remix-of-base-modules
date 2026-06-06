@@ -16,6 +16,7 @@ import { PageHeader } from '@/components/common/PageHeader';
 import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
 import { SMART_FIELD_TYPES } from '@/services/bn/registries';
 import { ScreenBuilder } from '@/components/bn/config/ScreenBuilder';
+import { ScreenTemplateUsageCell } from '@/components/bn/config/ScreenTemplateUsageCell';
 import { useToast } from '@/hooks/use-toast';
 
 export default function ScreenMetadataSetup() {
@@ -106,6 +107,7 @@ export default function ScreenMetadataSetup() {
                       <TableHead>Name</TableHead>
                       <TableHead>Layout</TableHead>
                       <TableHead>Sections</TableHead>
+                      <TableHead>Used by</TableHead>
                       <TableHead>Description</TableHead>
                       <TableHead className="w-[120px]">Actions</TableHead>
                     </TableRow>
@@ -122,6 +124,7 @@ export default function ScreenMetadataSetup() {
                         </TableCell>
                         <TableCell><Badge variant="outline" className="text-xs">{s.layout_type}</Badge></TableCell>
                         <TableCell><Badge variant="secondary">{Array.isArray(s.sections) ? s.sections.length : 0}</Badge></TableCell>
+                        <TableCell><ScreenTemplateUsageCell templateId={s.id} /></TableCell>
                         <TableCell className="text-sm text-muted-foreground max-w-[300px] truncate">{s.description || '—'}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
