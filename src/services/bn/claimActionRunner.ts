@@ -108,14 +108,12 @@ export async function runClaimEligibility(
   userCode: string,
 ): Promise<EligibilityRunResult> {
   const claim = await loadClaimContext(claimId);
-  if (!claim.product_version_id) {
-    throw new Error('Claim has no product_version_id — cannot evaluate eligibility.');
-  }
+  const versionId = await resolveEvaluationVersionId(claim);
 
   const { data: rules, error: rulesErr } = await db
     .from('bn_eligibility_rule')
     .select('*')
-    .eq('product_version_id', claim.product_version_id)
+    .eq('product_version_id', versionId)
     .eq('is_active', true)
     .order('sort_order');
   if (rulesErr) throw rulesErr;
