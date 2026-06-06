@@ -45,7 +45,7 @@ export interface BnCommDispatchResult {
 }
 
 // ─── Merge context ────────────────────────────────────────────────
-export async function buildBnMergeContext(claimId: string, extra?: Record<string, any>) {
+export async function buildBnMergeContext(claimId: string, extra?: Record<string, any>): Promise<Record<string, any>> {
   const { data: claim } = await db
     .from('bn_claim')
     .select('id, claim_number, ssn, employer_regno, product_id, status, submitted_at, created_at')
