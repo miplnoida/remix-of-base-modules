@@ -205,24 +205,32 @@ export default function ClaimantPortal() {
 
             {/* MY SOCIAL SECURITY (insured only) */}
             <Route path="contributions" element={
-              <RequirePersonaFlag flag="canViewContributions" title="Contribution history is private">
-                <Contributions />
-              </RequirePersonaFlag>
+              <RequireFeature feature="contributionHistoryEnabled" title="Contribution History unavailable">
+                <RequirePersonaFlag flag="canViewContributions" title="Contribution history is private">
+                  <Contributions />
+                </RequirePersonaFlag>
+              </RequireFeature>
             } />
             <Route path="employment-history" element={
-              <RequirePersonaFlag flag="canViewEmploymentHistory" title="Employment history is private">
-                <Employment />
-              </RequirePersonaFlag>
+              <RequireFeature feature="employmentHistoryEnabled" title="Employment History unavailable">
+                <RequirePersonaFlag flag="canViewEmploymentHistory" title="Employment history is private">
+                  <Employment />
+                </RequirePersonaFlag>
+              </RequireFeature>
             } />
             <Route path="statements" element={
-              <RequirePersonaFlag flag="canViewContributions" title="Contribution statements are private">
-                <PortalModulePlaceholder title="Contribution Statements" description="Annual statement, contribution certificate, insurable earnings — generated PDFs." internalSource="ip_wages_ann_sum" />
-              </RequirePersonaFlag>
+              <RequireFeature feature="contributionHistoryEnabled" title="Statements unavailable">
+                <RequirePersonaFlag flag="canViewContributions" title="Contribution statements are private">
+                  <PortalModulePlaceholder title="Contribution Statements" description="Annual statement, contribution certificate, insurable earnings — generated PDFs." internalSource="ip_wages_ann_sum" />
+                </RequirePersonaFlag>
+              </RequireFeature>
             } />
             <Route path="insurable-earnings" element={
-              <RequirePersonaFlag flag="canViewContributions" title="Insurable earnings are private">
-                <PortalModulePlaceholder title="Insurable Earnings" description="Year-by-year insurable wages used in benefit calculations." internalSource="ip_wages_ann_sum" />
-              </RequirePersonaFlag>
+              <RequireFeature feature="contributionHistoryEnabled" title="Insurable Earnings unavailable">
+                <RequirePersonaFlag flag="canViewContributions" title="Insurable earnings are private">
+                  <PortalModulePlaceholder title="Insurable Earnings" description="Year-by-year insurable wages used in benefit calculations." internalSource="ip_wages_ann_sum" />
+                </RequirePersonaFlag>
+              </RequireFeature>
             } />
 
             {/* BENEFITS */}
