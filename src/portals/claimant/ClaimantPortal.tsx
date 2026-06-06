@@ -38,29 +38,34 @@ const NAV = [
 
 export default function ClaimantPortal() {
   return (
-    <ExternalPortalShell role="CLAIMANT" brand="Insured Person Portal" nav={NAV}>
-      <Routes>
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="contributions" element={<Contributions />} />
-        <Route path="employment-history" element={<Employment />} />
-        <Route path="apply" element={<ApplyList />} />
-        <Route path="apply/:productCode" element={<ApplyForm />} />
-        <Route path="claims" element={<Claims />} />
-        <Route path="claims/:claimNumber" element={<ClaimDetail />} />
-        <Route path="awards" element={<Awards />} />
-        <Route path="payments" element={<Payments />} />
-        <Route path="life-certificates" element={<PortalModulePlaceholder title="Life Certificates" description="Annual proof-of-life submissions for pensioners." internalSource="bn_life_certificate" />} />
-        <Route path="school-certificates" element={<PortalModulePlaceholder title="School / College Certificates" description="Enrolment proofs for survivor / orphan beneficiaries." internalSource="bn_external_task" />} />
-        <Route path="bank-details" element={<PortalModulePlaceholder title="EFT / Bank Account Update" description="Submit or update your bank account for benefit payments." internalSource="cl_bank_acct" />} />
-        <Route path="documents" element={<PortalModulePlaceholder title="My Documents" description="Documents you have uploaded to support claims, certificates and requests." internalSource="ip_documents" />} />
-        <Route path="messages" element={<Messages />} />
-        <Route path="appeals" element={<PortalModulePlaceholder title="Appeals / Reconsideration" description="Request review of a benefit decision. Routed to Internal BN Appeals workflow." internalSource="bn_claim_decision" />} />
-        <Route path="tasks" element={<ExternalTaskList basePath="/claimant/tasks" />} />
-        <Route path="tasks/:taskId" element={<TaskDetail />} />
-      </Routes>
-    </ExternalPortalShell>
+    <Routes>
+      <Route index element={<ClaimantLanding />} />
+      <Route path="*" element={
+        <ExternalPortalShell role="CLAIMANT" brand="Insured Person Portal" nav={NAV}>
+          <Routes>
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="contributions" element={<Contributions />} />
+            <Route path="employment-history" element={<Employment />} />
+            <Route path="apply" element={<ApplyList />} />
+            <Route path="apply/:productCode" element={<ApplyForm />} />
+            <Route path="claims" element={<Claims />} />
+            <Route path="claims/:claimNumber" element={<ClaimDetail />} />
+            <Route path="awards" element={<Awards />} />
+            <Route path="payments" element={<Payments />} />
+            <Route path="life-certificates" element={<PortalModulePlaceholder title="Life Certificates" description="Annual proof-of-life submissions for pensioners." internalSource="bn_life_certificate" />} />
+            <Route path="school-certificates" element={<PortalModulePlaceholder title="School / College Certificates" description="Enrolment proofs for survivor / orphan beneficiaries." internalSource="bn_external_task" />} />
+            <Route path="bank-details" element={<PortalModulePlaceholder title="EFT / Bank Account Update" description="Submit or update your bank account for benefit payments." internalSource="cl_bank_acct" />} />
+            <Route path="documents" element={<PortalModulePlaceholder title="My Documents" description="Documents you have uploaded to support claims, certificates and requests." internalSource="ip_documents" />} />
+            <Route path="messages" element={<Messages />} />
+            <Route path="appeals" element={<PortalModulePlaceholder title="Appeals / Reconsideration" description="Request review of a benefit decision. Routed to Internal BN Appeals workflow." internalSource="bn_claim_decision" />} />
+            <Route path="tasks" element={<ExternalTaskList basePath="/claimant/tasks" />} />
+            <Route path="tasks/:taskId" element={<TaskDetail />} />
+            <Route path="*" element={<Navigate to="/claimant/dashboard" replace />} />
+          </Routes>
+        </ExternalPortalShell>
+      } />
+    </Routes>
   );
 }
 
