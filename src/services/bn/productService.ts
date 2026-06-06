@@ -318,14 +318,22 @@ export async function upsertEligibilityRule(rule: Partial<BnEligibilityRule>): P
   if (rule.product_version_id) await assertVersionMutable(rule.product_version_id);
   const { data, error } = await db.from('bn_eligibility_rule').upsert(rule).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: rule.id ? 'UPDATE' : 'CREATE', entityType: 'bn_eligibility_rule', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data as BnEligibilityRule;
 }
 
 export async function deleteEligibilityRule(id: string): Promise<void> {
-  const { data: existing } = await db.from('bn_eligibility_rule').select('product_version_id').eq('id', id).maybeSingle();
+  const { data: existing } = await db.from('bn_eligibility_rule').select('*').eq('id', id).maybeSingle();
   if (existing?.product_version_id) await assertVersionMutable(existing.product_version_id);
   const { error } = await db.from('bn_eligibility_rule').delete().eq('id', id);
   if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_eligibility_rule', entityId: id,
+    beforeValue: existing, performedBy: await actor(), critical: true,
+  });
 }
 
 // ---- Calculation Rules ----
@@ -340,14 +348,22 @@ export async function upsertCalculationRule(rule: Partial<BnCalculationRule>): P
   if (rule.product_version_id) await assertVersionMutable(rule.product_version_id);
   const { data, error } = await db.from('bn_calculation_rule').upsert(rule).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: rule.id ? 'UPDATE' : 'CREATE', entityType: 'bn_calculation_rule', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data as BnCalculationRule;
 }
 
 export async function deleteCalculationRule(id: string): Promise<void> {
-  const { data: existing } = await db.from('bn_calculation_rule').select('product_version_id').eq('id', id).maybeSingle();
+  const { data: existing } = await db.from('bn_calculation_rule').select('*').eq('id', id).maybeSingle();
   if (existing?.product_version_id) await assertVersionMutable(existing.product_version_id);
   const { error } = await db.from('bn_calculation_rule').delete().eq('id', id);
   if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_calculation_rule', entityId: id,
+    beforeValue: existing, performedBy: await actor(), critical: true,
+  });
 }
 
 // ---- Timeline Rules ----
@@ -362,12 +378,20 @@ export async function upsertTimelineRule(rule: Partial<BnTimelineRule>): Promise
   if (rule.product_version_id) await assertVersionMutable(rule.product_version_id);
   const { data, error } = await db.from('bn_timeline_rule').upsert(rule).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: rule.id ? 'UPDATE' : 'CREATE', entityType: 'bn_timeline_rule', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data as BnTimelineRule;
 }
 
 export async function deleteTimelineRule(id: string): Promise<void> {
-  const { data: existing } = await db.from('bn_timeline_rule').select('product_version_id').eq('id', id).maybeSingle();
+  const { data: existing } = await db.from('bn_timeline_rule').select('*').eq('id', id).maybeSingle();
   if (existing?.product_version_id) await assertVersionMutable(existing.product_version_id);
   const { error } = await db.from('bn_timeline_rule').delete().eq('id', id);
   if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_timeline_rule', entityId: id,
+    beforeValue: existing, performedBy: await actor(), critical: true,
+  });
 }
