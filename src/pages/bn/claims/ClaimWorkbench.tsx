@@ -79,6 +79,7 @@ import { CreditCard, ListChecks, Inbox } from 'lucide-react';
 import { filterEditablePayload } from '@/lib/bn/fieldOwnership';
 import { ActiveEligibilityPanel } from '@/components/bn/workbench/ActiveEligibilityPanel';
 import { ActiveCalculationPanel } from '@/components/bn/workbench/ActiveCalculationPanel';
+import { OverviewChecklist } from '@/components/bn/workbench/OverviewChecklist';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
@@ -124,6 +125,7 @@ export default function ClaimWorkbench() {
   // ── Local edits ────────────────────────────────────────────────
   const [localUpdates, setLocalUpdates] = useState<Record<string, any>>({});
   const [localDetail, setLocalDetail] = useState<Record<string, any> | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('overview');
 
   // ── Mutations ──────────────────────────────────────────────────
   const updateClaim = useUpdateBnClaim();
@@ -324,7 +326,7 @@ export default function ClaimWorkbench() {
       </div>
 
       {/* Main Content — Tabs */}
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="overview" className="w-full">
         <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1 flex-wrap h-auto gap-1">
           <TabsTrigger value="overview" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Overview</TabsTrigger>
           <TabsTrigger value="claimant" className="gap-1.5"><User className="h-3.5 w-3.5" /> Claimant</TabsTrigger>
@@ -371,6 +373,13 @@ export default function ClaimWorkbench() {
 
         {/* OVERVIEW — Sections 1, 2, 3 */}
         <TabsContent value="overview" className="mt-6 space-y-4">
+          <OverviewChecklist
+            claimId={claim.id}
+            status={currentStatus}
+            ssn={claim.ssn}
+            productId={(claim as any).product_id}
+            onJumpTab={setActiveTab}
+          />
           <ClaimHeaderSection
             claim={mergedClaim}
             isEditable={isEditable}
