@@ -76,6 +76,10 @@ export async function createProductVersion(version: Partial<BnProductVersion>): 
   }
   const { data, error } = await db.from('bn_product_version').insert(version).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: 'CREATE_VERSION', entityType: 'bn_product_version', entityId: data.id,
+    afterValue: data, performedBy: await actor(), critical: true,
+  });
   return data as BnProductVersion;
 }
 
@@ -93,6 +97,10 @@ export async function updateProductVersion(id: string, updates: Partial<BnProduc
   }
   const { data, error } = await db.from('bn_product_version').update({ ...updates, modified_at: new Date().toISOString() }).eq('id', id).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: 'UPDATE_VERSION', entityType: 'bn_product_version', entityId: id,
+    beforeValue: current, afterValue: data, performedBy: await actor(),
+  });
   return data as BnProductVersion;
 }
 
