@@ -76,6 +76,12 @@ function SortableBlock({ block, selected, onSelect, onRemove, disabled }: { bloc
         <GripVertical className="h-4 w-4" />
       </button>
       <Badge variant="outline" className="text-[10px] shrink-0">{def?.label ?? block.kind}</Badge>
+      {block.props?._origin === 'LEGACY' && (
+        <Badge variant="secondary" className="text-[10px] shrink-0">DB</Badge>
+      )}
+      {block.props?._origin === 'BUILDER' && (
+        <Badge className="text-[10px] shrink-0">Builder</Badge>
+      )}
       <div className="text-xs text-muted-foreground truncate flex-1">{summary}</div>
       {!disabled && (
         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); onRemove(); }}>

@@ -9,7 +9,8 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, RefreshCw, Copy } from 'lucide-react';
+import { Loader2, Save, RefreshCw, Copy, Download } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import {
   BlockPalette, ConfigBuilderCanvas, BlockInspector, ValidationPanel, PreviewPanel,
@@ -37,7 +38,7 @@ interface Props {
 }
 
 export function VisualBuilderTab({ versionId, versionStatus }: Props) {
-  const { canvas, setCanvas, save, loading, saving } = useBuilderCanvas(versionId);
+  const { canvas, setCanvas, save, reimport, loading, saving, hydratedFromTables } = useBuilderCanvas(versionId);
   const { profile } = useSupabaseAuth();
   const userCode = profile?.user_code ?? 'system';
   const [section, setSection] = useState<BuilderSectionKey>('eligibility');
@@ -122,13 +123,24 @@ export function VisualBuilderTab({ versionId, versionStatus }: Props) {
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-2">
         <div>
-          <CardTitle>Visual Builder</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            Visual Builder
+            {hydratedFromTables && (
+              <Badge variant="secondary" className="text-[10px]">Imported from tables</Badge>
+            )}
+          </CardTitle>
           <CardDescription>
-            Drag reusable blocks into each section to assemble this product version.
+            {hydratedFromTables
+              ? 'Showing live rows from this version\'s eligibility, calculation, document and communication tables. Save Canvas to take ownership in the builder.'
+              : 'Drag reusable blocks into each section to assemble this product version.'}
             {readOnly && ' Version is read-only — clone to a DRAFT to edit.'}
           </CardDescription>
         </div>
         <div className="flex items-center gap-2">
+          <Button onClick={reimport} disabled={loading} size="sm" variant="ghost" title="Re-import current rows from normalized tables">
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            Import from Tables
+          </Button>
           {readOnly && (
             <Button onClick={onClone} disabled={cloning} size="sm" variant="outline">
               {cloning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Copy className="mr-2 h-4 w-4" />}
