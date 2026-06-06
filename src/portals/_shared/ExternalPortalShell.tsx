@@ -7,12 +7,24 @@ import { externalAuthService, type PortalSession } from './externalAuthService';
 import type { PortalRole } from './publicBenefitApiClient';
 import { cn } from '@/lib/utils';
 
-interface NavItem { to: string; label: string }
+export interface NavItem { to: string; label: string }
+export interface NavGroup { label: string; items: NavItem[] }
+type NavInput = NavItem[] | NavGroup[];
+
 interface Props {
   role: PortalRole;
   brand: string;
-  nav: NavItem[];
+  nav: NavInput;
+  subHeader?: ReactNode;
   children: ReactNode;
+}
+
+function isGrouped(n: NavInput): n is NavGroup[] {
+  return Array.isArray(n) && n.length > 0 && (n[0] as any).items !== undefined;
+}
+function firstHref(n: NavInput): string {
+  if (isGrouped(n)) return n[0]?.items?.[0]?.to ?? '/';
+  return n[0]?.to ?? '/';
 }
 
 /**
