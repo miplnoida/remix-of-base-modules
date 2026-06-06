@@ -28,6 +28,7 @@ import { ChannelsTab } from '@/components/bn/config/ChannelsTab';
 import { CommunicationsTab } from '@/components/bn/config/CommunicationsTab';
 import { ReadOnlyVersionBanner } from '@/components/bn/smart';
 import { VisualBuilderTab } from '@/components/bn/config/VisualBuilderTab';
+import { ConflictDetectionPanel } from '@/components/bn/config/ConflictDetectionPanel';
 
 const statusBadge: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'secondary', PENDING_APPROVAL: 'outline', ACTIVE: 'default', SUSPENDED: 'destructive', ARCHIVED: 'outline',
@@ -223,6 +224,10 @@ export default function ProductEditor() {
           status={activeVersion.status}
           draftActionLabel="modify eligibility, calculation, documents, workflow or any assembly tab"
         />
+      )}
+
+      {!isNew && selectedVersionId && (
+        <ConflictDetectionPanel versionId={selectedVersionId} compact />
       )}
 
       {/* Tabs */}
