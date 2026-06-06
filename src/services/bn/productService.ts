@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { BnProduct, BnProductVersion, BnEligibilityRule, BnCalculationRule, BnTimelineRule } from '@/types/bn';
+import { assertVersionMutable } from './config/configImpactService';
 
 const db = supabase as any;
 
