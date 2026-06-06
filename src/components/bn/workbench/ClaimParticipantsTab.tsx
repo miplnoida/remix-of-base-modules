@@ -50,6 +50,7 @@ export function ClaimParticipantsTab({ claimId }: Props) {
   const { data: tasks = [], isLoading: tLoading } = useBnClaimExternalTasks(claimId);
   const decide = useUpdateExternalTaskDecision(claimId);
   const resend = useResendParticipantInvite(claimId);
+  const materialize = useMaterializeExternalTasks(claimId);
 
   const [filterKind, setFilterKind] = useState<'ALL' | 'CLAIMANT' | 'EMPLOYER' | 'DOCTOR'>('ALL');
 
