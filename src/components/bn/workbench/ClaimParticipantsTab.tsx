@@ -15,10 +15,14 @@ import {
   useUpdateExternalTaskDecision,
   useResendParticipantInvite,
   useMaterializeExternalTasks,
+  useUpdateParticipantRelationship,
   type BnExternalTaskRow,
+  type BnClaimParticipantRow,
 } from '@/hooks/bn/useBnClaimParticipants';
 import { useUserCode } from '@/hooks/useUserCode';
 import { Sparkles } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 interface Props { claimId: string }
 
