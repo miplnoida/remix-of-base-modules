@@ -26,6 +26,7 @@ const ACTIONS = ['SUBMIT', 'VERIFY', 'APPROVE', 'DENY', 'SUSPEND', 'SEND_BACK', 
 
 export default function ReasonCodes() {
   const { userCode } = useUserCode();
+  const audit = useBnConfigAudit();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
   const [editItem, setEditItem] = useState<BnReasonCode | null>(null);
@@ -49,14 +50,26 @@ export default function ReasonCodes() {
     },
   });
 
+  const otherCodes = reasons
+    .filter(r => r.id !== editItem?.id)
+    .map(r => r.reason_code);
+
   const saveMutation = useMutation({
     mutationFn: async (item: any) => {
       if (isNew) {
-        const { error } = await db.from('bn_reason_code').insert({ ...item, entered_by: userCode });
+        if (otherCodes.map(c => c.toUpperCase()).includes(item.reason_code?.trim().toUpperCase())) {
+          throw new Error('Another reason code already uses this code.');
+        }
+        const { data, error } = await db.from('bn_reason_code').insert({ ...item, entered_by: userCode }).select().single();
         if (error) throw error;
+        audit.log({ entityType: 'bn_reason_code', entityId: data?.id ?? 'new', action: 'CREATE', after: item });
+        return data;
       } else {
-        const { error } = await db.from('bn_reason_code').update({ ...item, modified_by: userCode, modified_at: new Date().toISOString() }).eq('id', editItem!.id);
+        const before = editItem;
+        const { data, error } = await db.from('bn_reason_code').update({ ...item, modified_by: userCode, modified_at: new Date().toISOString() }).eq('id', editItem!.id).select().single();
         if (error) throw error;
+        audit.log({ entityType: 'bn_reason_code', entityId: editItem!.id, action: 'UPDATE', before, after: item });
+        return data;
       }
     },
     onSuccess: () => {
@@ -66,6 +79,7 @@ export default function ReasonCodes() {
     },
     onError: (err: any) => toast.error(err.message),
   });
+
 
   const openNew = () => {
     setIsNew(true);
