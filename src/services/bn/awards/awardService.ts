@@ -183,12 +183,12 @@ export async function fetchAwardDetail(id: string): Promise<AwardDetail> {
     supabase.from('bn_life_certificate').select('*').eq('bn_award_id', id).order('due_date', { ascending: false }),
     supabase.from('bn_medical_review_schedule').select('*').eq('bn_award_id', id).order('scheduled_date', { ascending: false }),
     supabase.from('bn_overpayment').select('*').eq('bn_award_id', id).order('entered_at', { ascending: false }),
-    supabase.from('bn_payment_schedule').select('*').eq('bn_award_id', id),
-    supabase.from('bn_payment_instruction').select('*').eq('bn_award_id', id).order('scheduled_date', { ascending: false }).range(0, 199),
-    supabase.from('bn_communication_log').select('*').eq('bn_award_id', id).order('created_at', { ascending: false }).range(0, 199),
-    award.bn_claim_id ? supabase.from('bn_claim').select('*').eq('id', award.bn_claim_id).maybeSingle() : Promise.resolve({ data: null }),
-    award.ssn ? supabase.from('ip_master').select('ssn, first_name, last_name, dob, sex, address1, address2, mobile_no, email_id').eq('ssn', award.ssn).maybeSingle() : Promise.resolve({ data: null }),
-    award.bn_product_id ? supabase.from('bn_product').select('*').eq('id', award.bn_product_id).maybeSingle() : Promise.resolve({ data: null }),
+    supabase.from('bn_payment_schedule').select('*').eq('bn_award_id', id) as any,
+    supabase.from('bn_payment_instruction').select('*').eq('bn_award_id', id).order('scheduled_date', { ascending: false }).range(0, 199) as any,
+    supabase.from('bn_communication_log').select('*').eq('bn_award_id', id).order('created_at', { ascending: false }).range(0, 199) as any,
+    award.bn_claim_id ? (supabase.from('bn_claim').select('*').eq('id', award.bn_claim_id).maybeSingle() as any) : Promise.resolve({ data: null }),
+    award.ssn ? (supabase.from('ip_master').select('ssn, first_name, last_name, dob, sex, address1, address2, mobile_no, email_id').eq('ssn', award.ssn).maybeSingle() as any) : Promise.resolve({ data: null }),
+    award.bn_product_id ? (supabase.from('bn_product').select('*').eq('id', award.bn_product_id).maybeSingle() as any) : Promise.resolve({ data: null }),
   ]);
 
   let productVersion = null;
