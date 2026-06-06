@@ -9,14 +9,16 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, RefreshCw, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   BlockPalette, ConfigBuilderCanvas, BlockInspector, ValidationPanel, PreviewPanel,
-  useBuilderCanvas, newBlock, validateCanvas, EMPTY_CANVAS,
-  type BuilderBlock, type BuilderSectionKey, type BuilderCanvas, type BuilderBlockKind,
+  useBuilderCanvas, newBlock, validateCanvas,
+  type BuilderBlock, type BuilderSectionKey, type BuilderBlockKind,
 } from '@/components/bn/config-builder';
 import { BLOCK_REGISTRY } from '@/components/bn/config-builder/blockRegistry';
+import { syncCanvasToNormalized, cloneVersionToDraft } from '@/services/bn/canvasSyncService';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 const SECTIONS: { key: BuilderSectionKey; label: string }[] = [
   { key: 'eligibility', label: 'Eligibility' },
@@ -36,13 +38,41 @@ interface Props {
 
 export function VisualBuilderTab({ versionId, versionStatus }: Props) {
   const { canvas, setCanvas, save, loading, saving } = useBuilderCanvas(versionId);
+  const { profile } = useSupabaseAuth();
+  const userCode = profile?.user_code ?? 'system';
   const [section, setSection] = useState<BuilderSectionKey>('eligibility');
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [syncing, setSyncing] = useState(false);
+  const [cloning, setCloning] = useState(false);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   const readOnly = !!versionStatus && versionStatus.toUpperCase() !== 'DRAFT';
   const blocks = canvas.sections[section] ?? [];
   const selectedBlock = useMemo(() => blocks.find((b) => b.id === selectedId), [blocks, selectedId]);
   const issues = useMemo(() => validateCanvas(canvas), [canvas]);
+
+  const onSync = async () => {
+    if (!versionId) return;
+    setSyncing(true);
+    try {
+      const r = await syncCanvasToNormalized(versionId, canvas, userCode);
+      const msg = `Eligibility: ${r.eligibilityRules}, Documents: ${r.documentRequirements}, Comms: ${r.commMappings}`;
+      if (r.warnings.length) toast.warning('Sync completed with warnings', { description: `${msg} · ${r.warnings.join('; ')}` });
+      else toast.success('Synced to normalized tables', { description: msg });
+    } catch (e: any) {
+      toast.error('Sync failed', { description: e?.message });
+    } finally { setSyncing(false); }
+  };
+
+  const onClone = async () => {
+    if (!versionId) return;
+    setCloning(true);
+    try {
+      const newId = await cloneVersionToDraft(versionId, userCode);
+      toast.success('Cloned to DRAFT', { description: `New version id: ${newId.slice(0, 8)}…` });
+    } catch (e: any) {
+      toast.error('Clone failed', { description: e?.message });
+    } finally { setCloning(false); }
+  };
 
   const updateSectionBlocks = (next: BuilderBlock[]) => {
     setCanvas({ ...canvas, sections: { ...canvas.sections, [section]: next } });
@@ -98,10 +128,22 @@ export function VisualBuilderTab({ versionId, versionStatus }: Props) {
             {readOnly && ' Version is read-only — clone to a DRAFT to edit.'}
           </CardDescription>
         </div>
-        <Button onClick={onSave} disabled={saving || readOnly} size="sm">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          Save Canvas
-        </Button>
+        <div className="flex items-center gap-2">
+          {readOnly && (
+            <Button onClick={onClone} disabled={cloning} size="sm" variant="outline">
+              {cloning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Copy className="mr-2 h-4 w-4" />}
+              Clone to DRAFT
+            </Button>
+          )}
+          <Button onClick={onSync} disabled={syncing || readOnly} size="sm" variant="outline">
+            {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Sync to Tables
+          </Button>
+          <Button onClick={onSave} disabled={saving || readOnly} size="sm">
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Save Canvas
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {loading ? (
