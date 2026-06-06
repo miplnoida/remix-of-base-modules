@@ -60,6 +60,14 @@ export default function WorkbasketConfig() {
   };
 
   const handleSave = async () => {
+    if (!form.basket_code.trim() || !form.basket_name.trim()) {
+      toast.error('Code and Name are required');
+      return;
+    }
+    if (!form.assigned_role) {
+      toast.error('Assigned Role is required');
+      return;
+    }
     const payload: any = {
       basket_code: form.basket_code,
       basket_name: form.basket_name,
@@ -74,11 +82,13 @@ export default function WorkbasketConfig() {
     try {
       if (isNew) {
         payload.entered_by = userCode;
-        await createMut.mutateAsync(payload);
+        const res: any = await createMut.mutateAsync(payload);
+        log({ entityType: 'bn_workbasket', entityId: res?.id ?? form.basket_code, action: 'CREATE', after: payload });
         toast.success('Workbasket created');
       } else {
         payload.modified_by = userCode;
         await updateMut.mutateAsync({ id: editItem!.id, updates: payload });
+        log({ entityType: 'bn_workbasket', entityId: editItem!.id, action: 'UPDATE', before: editItem as any, after: payload });
         toast.success('Workbasket updated');
       }
       setEditItem(null);
