@@ -265,17 +265,34 @@ export default function ClaimantPortal() {
           nav={groups}
           subHeader={<PersonaHeader />}
           homeHref="/claimant/dashboard"
+          userMenuItems={[
+            { to: '/claimant/account', label: 'My Profile', icon: User },
+            { to: '/claimant/account/contacts', label: 'Contact Information', icon: Phone },
+            { to: '/claimant/account/preferences', label: 'Communication Preferences', icon: Bell },
+            { to: '/claimant/account/security', label: 'Security Settings', icon: Lock },
+            { to: '/claimant/account/identity', label: 'Linked SSN / Identity', icon: IdCard },
+            { to: '/claimant/account/relationships', label: 'Relationships', icon: Users },
+          ]}
+          userMenuHeader={<UserMenuStatus />}
+          mobileNavItems={MOBILE_NAV_ITEMS}
         >
           <Routes>
             <Route path="dashboard" element={<SelfServiceDashboard />} />
             <Route path="link-ssn" element={<LinkSsnPage />} />
 
-            {/* MY ACCOUNT */}
-            <Route path="profile" element={<AccountProfilePage />} />
-            <Route path="profile/contacts" element={<AccountProfilePage initialTab="contacts" />} />
-            <Route path="profile/preferences" element={<AccountProfilePage initialTab="preferences" />} />
-            <Route path="profile/security" element={<AccountProfilePage initialTab="security" />} />
-            <Route path="relationships" element={<RelationshipsPage />} />
+            {/* MY ACCOUNT — now under /account, old /profile paths redirect */}
+            <Route path="account" element={<AccountProfilePage />} />
+            <Route path="account/contacts" element={<AccountProfilePage initialTab="contacts" />} />
+            <Route path="account/preferences" element={<AccountProfilePage initialTab="preferences" />} />
+            <Route path="account/security" element={<AccountProfilePage initialTab="security" />} />
+            <Route path="account/identity" element={<AccountProfilePage initialTab="security" />} />
+            <Route path="account/relationships" element={<RelationshipsPage />} />
+            <Route path="profile" element={<Navigate to="/claimant/account" replace />} />
+            <Route path="profile/contacts" element={<Navigate to="/claimant/account/contacts" replace />} />
+            <Route path="profile/preferences" element={<Navigate to="/claimant/account/preferences" replace />} />
+            <Route path="profile/security" element={<Navigate to="/claimant/account/security" replace />} />
+            <Route path="relationships" element={<Navigate to="/claimant/account/relationships" replace />} />
+
 
             {/* MY SOCIAL SECURITY (insured only) */}
             <Route path="contributions" element={
