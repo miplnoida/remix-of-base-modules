@@ -228,24 +228,50 @@ export default function ClaimantPortal() {
             {/* BENEFITS */}
             <Route path="apply" element={<ApplyList />} />
             <Route path="apply/:productCode" element={<ApplyForm />} />
-            <Route path="estimator" element={<PortalModulePlaceholder title="Eligibility Estimator" description="Read-only simulation against the Product Catalog rules. Does not create a claim." internalSource="bn_eligibility_rule" />} />
+            <Route path="estimator" element={
+              <RequireFeature feature="eligibilityEstimatorEnabled" title="Eligibility Estimator unavailable">
+                <PortalModulePlaceholder title="Eligibility Estimator" description="Read-only simulation against the Product Catalog rules. Does not create a claim." internalSource="bn_eligibility_rule" />
+              </RequireFeature>
+            } />
             <Route path="claims" element={<Claims />} />
             <Route path="claims/:claimNumber" element={<ClaimDetail />} />
             <Route path="entitlements" element={<Entitlements />} />
             <Route path="payments" element={
-              <RequirePersonaFlag flag="canViewPayments" title="No payments visible to this account">
-                <Payments />
-              </RequirePersonaFlag>
+              <RequireFeature feature="paymentHistoryEnabled" title="Payment History unavailable">
+                <RequirePersonaFlag flag="canViewPayments" title="No payments visible to this account">
+                  <Payments />
+                </RequirePersonaFlag>
+              </RequireFeature>
             } />
 
             {/* PEOPLE I MANAGE */}
-            <Route path="managed/people" element={<PortalModulePlaceholder title="People I Manage" description="Insured persons you act for as guardian, payee or representative." internalSource="external_user_person_link" />} />
-            <Route path="managed/claims" element={<PortalModulePlaceholder title="Managed Claims" description="Claims you have filed on behalf of someone else." internalSource="bn_claim" />} />
-            <Route path="managed/benefits" element={<PortalModulePlaceholder title="Managed Benefits" description="Awards / pensions you receive on behalf of someone else." internalSource="bn_award" />} />
+            <Route path="managed/people" element={
+              <RequireFeature feature="peopleIMangeEnabled" title="People I Manage is disabled">
+                <PortalModulePlaceholder title="People I Manage" description="Insured persons you act for as guardian, payee or representative." internalSource="external_user_person_link" />
+              </RequireFeature>
+            } />
+            <Route path="managed/claims" element={
+              <RequireFeature feature="peopleIMangeEnabled" title="Managed Claims is disabled">
+                <PortalModulePlaceholder title="Managed Claims" description="Claims you have filed on behalf of someone else." internalSource="bn_claim" />
+              </RequireFeature>
+            } />
+            <Route path="managed/benefits" element={
+              <RequireFeature feature="peopleIMangeEnabled" title="Managed Benefits is disabled">
+                <PortalModulePlaceholder title="Managed Benefits" description="Awards / pensions you receive on behalf of someone else." internalSource="bn_award" />
+              </RequireFeature>
+            } />
 
             {/* COMPLIANCE */}
-            <Route path="compliance/life" element={<PortalModulePlaceholder title="Life Certificates" description="Annual proof-of-life for pensioners." internalSource="bn_life_certificate" />} />
-            <Route path="compliance/school" element={<PortalModulePlaceholder title="School / College Certificates" description="Enrolment proofs for survivor / orphan beneficiaries." internalSource="bn_external_task" />} />
+            <Route path="compliance/life" element={
+              <RequireFeature feature="lifeCertificateEnabled" title="Life Certificates unavailable">
+                <PortalModulePlaceholder title="Life Certificates" description="Annual proof-of-life for pensioners." internalSource="bn_life_certificate" />
+              </RequireFeature>
+            } />
+            <Route path="compliance/school" element={
+              <RequireFeature feature="schoolCertificateEnabled" title="School Certificates unavailable">
+                <PortalModulePlaceholder title="School / College Certificates" description="Enrolment proofs for survivor / orphan beneficiaries." internalSource="bn_external_task" />
+              </RequireFeature>
+            } />
             <Route path="compliance/verification" element={<PortalModulePlaceholder title="Verification Tasks" description="Requests for additional information from the Board." internalSource="bn_external_task" />} />
             <Route path="compliance/outstanding" element={<PortalModulePlaceholder title="Outstanding Requirements" description="Open items blocking your claims or awards." internalSource="bn_claim_evidence" />} />
 
@@ -260,11 +286,23 @@ export default function ClaimantPortal() {
             <Route path="documents" element={<PortalModulePlaceholder title="Document Center" description="Uploaded documents, requested documents, official letters and generated forms." internalSource="ip_documents" />} />
 
             {/* APPEALS */}
-            <Route path="appeals" element={<PortalModulePlaceholder title="Appeals" description="Request review of a benefit decision." internalSource="bn_claim_decision" />} />
-            <Route path="appeals/reconsideration" element={<PortalModulePlaceholder title="Reconsiderations" description="Reconsideration of a recent decision." internalSource="bn_claim_decision" />} />
+            <Route path="appeals" element={
+              <RequireFeature feature="appealsEnabled" title="Appeals unavailable">
+                <PortalModulePlaceholder title="Appeals" description="Request review of a benefit decision." internalSource="bn_claim_decision" />
+              </RequireFeature>
+            } />
+            <Route path="appeals/reconsideration" element={
+              <RequireFeature feature="appealsEnabled" title="Reconsiderations unavailable">
+                <PortalModulePlaceholder title="Reconsiderations" description="Reconsideration of a recent decision." internalSource="bn_claim_decision" />
+              </RequireFeature>
+            } />
 
             {/* Legacy / fallback */}
-            <Route path="bank-details" element={<PortalModulePlaceholder title="EFT / Bank Account Update" description="Submit or update your bank account for benefit payments." internalSource="cl_bank_acct" />} />
+            <Route path="bank-details" element={
+              <RequireFeature feature="bankUpdateEnabled" title="Bank Update unavailable">
+                <PortalModulePlaceholder title="EFT / Bank Account Update" description="Submit or update your bank account for benefit payments." internalSource="cl_bank_acct" />
+              </RequireFeature>
+            } />
             <Route path="awards" element={<Navigate to="/claimant/entitlements" replace />} />
             <Route path="messages" element={<Navigate to="/claimant/comms/inbox" replace />} />
             <Route path="life-certificates" element={<Navigate to="/claimant/compliance/life" replace />} />
