@@ -54710,6 +54710,7 @@ export type Database = {
       }
     }
     Functions: {
+      _bn_seed_exec: { Args: { p_sql: string }; Returns: Json }
       add_sep_activity: {
         Args: {
           p_activity_type: string
