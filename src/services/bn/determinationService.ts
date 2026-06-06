@@ -549,6 +549,16 @@ export async function executeDeterminationAction(params: ExecuteDeterminationPar
       performed_by: performedBy,
       performed_at: new Date().toISOString(),
     });
+
+    // Create long-term award if product is configured for it (non-blocking)
+    if (newStatus === 'APPROVED') {
+      try {
+        const { createAwardOnApproval } = await import('@/services/bn/awards/awardCreationService');
+        await createAwardOnApproval(claimId, performedBy);
+      } catch (e) {
+        console.warn('[determinationService] award creation skipped:', e);
+      }
+    }
   } else {
     // Non-status-changing action (CALCULATE, RECALCULATE, OVERRIDE)
     await db.from('bn_claim_event').insert({
