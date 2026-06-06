@@ -113,29 +113,38 @@ export async function startRegistration(_payload: unknown): Promise<void> {
  * Falls back to logging-only when auth is not configured.
  */
 export async function sendEmailOtp(email: string): Promise<void> {
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/public/register` },
+  const { data, error } = await supabase.functions.invoke('public-registration-otp', {
+    body: { action: 'send', channel: 'EMAIL', destination: email },
   });
   if (error) throw error;
+  if (data?.error) throw new Error(data.error);
 }
 
 export async function verifyEmailOtp(email: string, token: string): Promise<boolean> {
-  const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
-  if (error) return false;
+  const { data, error } = await supabase.functions.invoke('public-registration-otp', {
+    body: { action: 'verify', channel: 'EMAIL', destination: email, token },
+  });
+  if (error || data?.error) return false;
+  if (!data?.verified) return false;
   auditPortalAction('EMAIL_VERIFIED', { payload: { email } });
   return true;
 }
 
 export async function sendPhoneOtp(phone: string): Promise<void> {
-  const { error } = await supabase.auth.signInWithOtp({ phone, options: { shouldCreateUser: true } });
+  const { data, error } = await supabase.functions.invoke('public-registration-otp', {
+    body: { action: 'send', channel: 'PHONE', destination: phone },
+  });
   if (error) throw error;
+  if (data?.error) throw new Error(data.error);
 }
 
 
 export async function verifyPhoneOtp(phone: string, token: string): Promise<boolean> {
-  const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
-  if (error) return false;
+  const { data, error } = await supabase.functions.invoke('public-registration-otp', {
+    body: { action: 'verify', channel: 'PHONE', destination: phone, token },
+  });
+  if (error || data?.error) return false;
+  if (!data?.verified) return false;
   auditPortalAction('PHONE_VERIFIED', { payload: { phone } });
   return true;
 }
