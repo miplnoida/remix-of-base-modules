@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { BN_CLAIM_STATUS_LABELS } from '@/types/bn';
 import type { BnClaimTransitionRule } from '@/types/bn';
+import { BnScreenRoleBanner } from '@/components/bn/shared';
 
 const db = supabase as any;
 
@@ -47,6 +48,13 @@ export default function TransitionMatrix() {
         <p className="text-sm text-muted-foreground">
           Configuration-driven rules that govern all claim status transitions.
         </p>
+
+        <BnScreenRoleBanner
+          role="library"
+          productAssemblyHint
+          description="Reusable fallback status/action matrix. Product Catalog and workflow templates reference this matrix when the central workflow is missing or disabled."
+        />
+
 
         {isLoading ? (
           <p className="text-muted-foreground">Loading...</p>

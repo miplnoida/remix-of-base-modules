@@ -13,6 +13,7 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { toast } from 'sonner';
 import type { BnWorkbasket } from '@/types/bn';
+import { BnScreenRoleBanner } from '@/components/bn/shared';
 
 export default function WorkbasketConfig() {
   const { userCode } = useUserCode();
@@ -86,9 +87,17 @@ export default function WorkbasketConfig() {
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-foreground">Workbasket Configuration</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Workbaskets</h1>
           <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Add Workbasket</Button>
         </div>
+
+        <BnScreenRoleBanner
+          role="library"
+          productAssemblyHint
+          description="Reusable operational queues (intake, evidence review, medical board, supervisor approval, finance). Workflow routing references these baskets."
+        />
+
+
 
         <Card>
           <CardContent className="pt-6">

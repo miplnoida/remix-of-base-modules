@@ -15,6 +15,7 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { toast } from 'sonner';
 import type { BnReasonCode } from '@/types/bn';
+import { BnScreenRoleBanner } from '@/components/bn/shared';
 
 const db = supabase as any;
 
@@ -104,6 +105,14 @@ export default function ReasonCodes() {
           <h1 className="text-2xl font-semibold text-foreground">Reason Codes</h1>
           <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Add Reason Code</Button>
         </div>
+
+        <BnScreenRoleBanner
+          role="library"
+          productAssemblyHint
+          description="Reusable reason master used by denial, suspension, waiver, overpayment, reopen, document rejection and medical review outcome actions."
+        />
+
+
 
         <Card>
           <CardHeader className="pb-3">
