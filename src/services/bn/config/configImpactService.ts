@@ -152,16 +152,21 @@ export async function getEscalationPolicyUsage(policyId: string): Promise<Impact
   return summarize(refs);
 }
 
-/** Medical referral rule usage */
+/** Medical referral rule — flag if active. */
 export async function getMedicalPolicyUsage(ruleId: string): Promise<ImpactReport> {
   const { data } = await db
     .from('bn_medical_referral_rule')
-    .select('product_version_id')
-    .eq('id', ruleId);
-  const refs = await enrichWithVersions(
-    (data ?? []).map((r: any) => r.product_version_id),
-    'medical_referral_rule',
-  );
+    .select('id, is_active, country_code')
+    .eq('id', ruleId)
+    .maybeSingle();
+  const refs: ImpactReference[] = [];
+  if (data?.is_active) {
+    refs.push({
+      product_version_id: `(country:${data.country_code ?? 'ALL'})`,
+      status: 'ACTIVE',
+      context: 'medical_referral_active',
+    });
+  }
   return summarize(refs);
 }
 
