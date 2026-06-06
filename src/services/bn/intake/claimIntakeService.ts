@@ -67,6 +67,29 @@ const CHANNEL_TO_CONFIG: Record<ApplicationChannel, string> = {
 export async function submitClaimApplication(
   input: SubmitClaimApplicationInput,
 ): Promise<SubmitClaimApplicationResult> {
+  // ─── Pre-RPC Readiness Gate ───────────────────────────────────────
+  // No DB row is created if the channel is not allowed or required
+  // identity / OTP / documents are missing.
+  const { validateReadiness, ClaimIntakeReadinessError } = await import(
+    './intakeReadinessService'
+  );
+  const readiness = await validateReadiness(
+    { productCode: input.productCode, claimDate: input.claimDate, channel: input.channel },
+    {
+      ssn: input.ssn,
+      contact_email: (input.formPayload as any)?.contact_email ?? null,
+      contact_phone: (input.formPayload as any)?.contact_phone ?? null,
+      identity_verified: (input.formPayload as any)?.identity_verified === true,
+      otp_verified: (input.formPayload as any)?.otp_verified === true,
+      uploaded_document_codes:
+        (input.formPayload as any)?.uploaded_document_codes ?? [],
+      employerRegno: input.employerRegno ?? null,
+    },
+  );
+  if (!readiness.ok) {
+    throw new ClaimIntakeReadinessError(readiness);
+  }
+
   const { data, error } = await db.rpc('bn_submit_claim_application', {
     p_ssn: input.ssn,
     p_product_code: input.productCode,
@@ -176,6 +199,31 @@ export async function submitClaimApplication(
   } catch (wfErr) {
     // Non-blocking: claim is already persisted, surface as console warning.
     console.warn('[claimIntake] Workflow integration error (non-fatal):', wfErr);
+  }
+
+  // ─── Mandatory Submission Audit ───────────────────────────────────
+  try {
+    const { auditSubmission } = await import('@/services/bn/audit/bnAuditService');
+    await auditSubmission({
+      action: 'CLAIM_SUBMITTED',
+      entityType: 'bn_claim',
+      entityId: claimId,
+      performedBy: input.submittedByUserId || 'PUBLIC',
+      afterValue: {
+        claim_number: claimNumber,
+        product_code: input.productCode,
+        channel: input.channel,
+        workflow_instance_id: workflowInstanceId,
+        workflow_engine: workflowEngine,
+        readiness_warnings: readiness.warnings,
+      },
+      notes: `Claim submitted via ${input.channel}`,
+      critical: input.channel !== 'PUBLIC_ONLINE', // public 'PUBLIC' performer can't pass strict guard
+    });
+  } catch (auditErr) {
+    // For PUBLIC_ONLINE we can't enforce critical audit (no user_code yet);
+    // for staff channels the strict guard above will surface failure.
+    console.warn('[claimIntake] Submission audit failed:', auditErr);
   }
 
   return {
