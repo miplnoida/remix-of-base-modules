@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { publicBenefitApi } from '@/portals/_shared/publicBenefitApiClient';
 import {
   useExternalProducts, useExternalClaimStatus, useExternalFormDefinition, useExternalMessages,
-  useExternalClaims, useExternalAwards, useExternalPayments, useExternalContributions,
+  useExternalClaims, useExternalClaimBuckets, useExternalAwards, useExternalPayments, useExternalContributions,
   useExternalEmploymentHistory, useExternalProfile,
 } from '@/portals/_shared/externalHooks';
 import { useState } from 'react';
