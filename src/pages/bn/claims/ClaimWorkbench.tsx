@@ -171,11 +171,24 @@ export default function ClaimWorkbench() {
         });
       }
       if (localDetail && id) {
-        await upsertDetail.mutateAsync({
-          claimId: id,
-          detailJson: localDetail,
-          userCode,
-        });
+        // Filter so only STAFF_REVIEW / SUPERVISOR_DECISION fields the user
+        // is allowed to write reach the DB. Citizen-submitted and
+        // system-derived fields are dropped silently.
+        const editable = filterEditablePayload(
+          product?.category || 'SHORT_TERM',
+          localDetail,
+          claim?.status || '',
+          userRoles,
+        );
+        // Merge into existing detailJson so we don't blow away prior staff edits.
+        const persistJson = { ...(detailJson || {}), ...editable };
+        if (Object.keys(editable).length > 0) {
+          await upsertDetail.mutateAsync({
+            claimId: id,
+            detailJson: persistJson,
+            userCode,
+          });
+        }
       }
       setLocalUpdates({});
       setLocalDetail(null);
