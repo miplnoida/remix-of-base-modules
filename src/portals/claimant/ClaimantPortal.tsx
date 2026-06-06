@@ -260,7 +260,7 @@ export default function ClaimantPortal() {
             } />
 
             {/* BENEFITS */}
-            <Route path="apply" element={<ApplyList />} />
+            <Route path="apply" element={<ApplyWizard />} />
             <Route path="apply/:productCode" element={<ApplyForm />} />
             <Route path="estimator" element={
               <RequireFeature feature="eligibilityEstimatorEnabled" title="Eligibility Estimator unavailable">
