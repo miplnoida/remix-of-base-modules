@@ -757,6 +757,10 @@ const BnEligibilityReview = lazy(() => import('@/pages/bn/claims/EligibilityRevi
 const BnCalculationWorkspace = lazy(() => import('@/pages/bn/engine/CalculationWorkspace'));
 const BnDeterminationRecommendation = lazy(() => import('@/pages/bn/claims/DeterminationRecommendation'));
 const BnEntitlementManagement = lazy(() => import('@/pages/bn/entitlement/EntitlementManagement'));
+const BnPensionerRegister = lazy(() => import('@/pages/bn/awards/PensionerRegister'));
+const BnAward360 = lazy(() => import('@/pages/bn/awards/Award360'));
+const BnSurvivorAwards = lazy(() => import('@/pages/bn/awards/SurvivorAwards'));
+const BnAwardAdjustments = lazy(() => import('@/pages/bn/awards/AwardAdjustments'));
 const BnPayablesQueue = lazy(() => import('@/pages/bn/payables/PayablesQueue'));
 const BnPaymentSchedule = lazy(() => import('@/pages/bn/schedule/PaymentScheduleManagement'));
 const BnBatchOperations = lazy(() => import('@/pages/bn/batch/BatchOperations'));
