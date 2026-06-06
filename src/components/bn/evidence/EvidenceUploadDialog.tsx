@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Upload, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUploadEvidence } from '@/hooks/bn/useBnEvidence';
 import { useUserCode } from '@/hooks/useUserCode';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   open: boolean;
@@ -19,12 +20,19 @@ interface Props {
   requirementId?: string | null;
   allowedExtensions?: string[];
   maxFileSizeMb?: number;
+  productVersionId?: string | null;
 }
+
+const FALLBACK_DOC_TYPES = [
+  'DEATH_CERT', 'BIRTH_CERT', 'BANK_EFT', 'BANK_LETTER', 'CLAIM_FORM',
+  'CONTRIB_HISTORY', 'FUNERAL_INVOICE', 'EMPLOYER_REPORT', 'MEDICAL_CERT',
+  'ID_DOCUMENT', 'GENERAL',
+];
 
 export function EvidenceUploadDialog({
   open, onOpenChange, claimId,
   preselectedTypeCode, preselectedName, requirementId,
-  allowedExtensions, maxFileSizeMb = 10,
+  allowedExtensions, maxFileSizeMb = 10, productVersionId,
 }: Props) {
   const { toast } = useToast();
   const uploadMutation = useUploadEvidence();
@@ -33,9 +41,32 @@ export function EvidenceUploadDialog({
 
   const [file, setFile] = useState<File | null>(null);
   const [documentName, setDocumentName] = useState(preselectedName || '');
+  const [documentTypeCode, setDocumentTypeCode] = useState<string>(preselectedTypeCode || 'GENERAL');
+  const [docTypes, setDocTypes] = useState<string[]>(FALLBACK_DOC_TYPES);
   const [source, setSource] = useState('UPLOAD');
   const [notes, setNotes] = useState('');
   const [fileError, setFileError] = useState('');
+
+  useEffect(() => {
+    if (!open) return;
+    setDocumentTypeCode(preselectedTypeCode || 'GENERAL');
+    setDocumentName(preselectedName || '');
+    (async () => {
+      try {
+        let q = (supabase as any).from('bn_doc_requirement').select('document_type_code');
+        if (productVersionId) q = q.eq('product_version_id', productVersionId);
+        const { data } = await q;
+        const fromDb = Array.from(new Set((data ?? [])
+          .map((r: any) => r.document_type_code)
+          .filter(Boolean))) as string[];
+        const merged = Array.from(new Set([...(fromDb.length ? fromDb : []), ...FALLBACK_DOC_TYPES])).sort();
+        setDocTypes(merged);
+      } catch {
+        setDocTypes(FALLBACK_DOC_TYPES);
+      }
+    })();
+  }, [open, productVersionId, preselectedTypeCode, preselectedName]);
+
 
   const validateFile = (f: File): boolean => {
     setFileError('');
@@ -69,7 +100,7 @@ export function EvidenceUploadDialog({
       await uploadMutation.mutateAsync({
         claimId,
         file,
-        documentTypeCode: preselectedTypeCode || 'GENERAL',
+        documentTypeCode: documentTypeCode || 'GENERAL',
         documentName: documentName.trim(),
         requirementId: requirementId || null,
         source,
@@ -98,9 +129,25 @@ export function EvidenceUploadDialog({
 
         <div className="space-y-4">
           <div className="space-y-2">
+            <Label>Document Type *</Label>
+            <Select value={documentTypeCode} onValueChange={setDocumentTypeCode}>
+              <SelectTrigger><SelectValue placeholder="Select document type" /></SelectTrigger>
+              <SelectContent className="max-h-72">
+                {docTypes.map(code => (
+                  <SelectItem key={code} value={code}>{code.replace(/_/g, ' ')}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Choose the specific document type — eligibility rules (e.g. Death Certificate) match on this.
+            </p>
+          </div>
+
+          <div className="space-y-2">
             <Label>Document Name *</Label>
             <Input value={documentName} onChange={e => setDocumentName(e.target.value)} placeholder="e.g. Birth Certificate" />
           </div>
+
 
           <div className="space-y-2">
             <Label>Source</Label>

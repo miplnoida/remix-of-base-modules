@@ -54,7 +54,8 @@ export interface EligibilityFieldDef {
     | 'evidence.documentVerified'
     | 'claim.hasDuplicateActiveClaim'
     | 'claim.claimDate'
-    | 'claim.benefitType';
+    | 'claim.benefitType'
+    | 'participant.deceasedRelationship';
   /** Whether a contribution window selector should be exposed on the rule. */
   supportsWindow?: boolean;
   /** Whether a document_type_code selector should be exposed. */
@@ -187,7 +188,18 @@ export const ELIGIBILITY_FIELD_REGISTRY: EligibilityFieldDef[] = [
     resolver: 'claim.benefitType',
     helpText: 'Benefit type code from the claim being evaluated.',
   },
+  {
+    key: 'participant.deceased_relationship',
+    label: 'Deceased — relationship to insured',
+    category: 'CLAIM',
+    dataSource: 'bn_claim_participant.relationship_to_insured (DECEASED_INSURED_PERSON)',
+    valueType: 'string',
+    operators: ['==', '!=', 'IN'],
+    resolver: 'participant.deceasedRelationship',
+    helpText: 'Relationship of the deceased participant to the insured person (e.g. INSURED, SPOUSE, DEPENDENT_CHILD).',
+  },
 ];
+
 
 export function getFieldDef(key: string | undefined | null): EligibilityFieldDef | undefined {
   if (!key) return undefined;

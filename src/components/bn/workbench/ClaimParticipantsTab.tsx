@@ -15,10 +15,14 @@ import {
   useUpdateExternalTaskDecision,
   useResendParticipantInvite,
   useMaterializeExternalTasks,
+  useUpdateParticipantRelationship,
   type BnExternalTaskRow,
+  type BnClaimParticipantRow,
 } from '@/hooks/bn/useBnClaimParticipants';
 import { useUserCode } from '@/hooks/useUserCode';
 import { Sparkles } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
 
 interface Props { claimId: string }
 
@@ -51,6 +55,8 @@ export function ClaimParticipantsTab({ claimId }: Props) {
   const decide = useUpdateExternalTaskDecision(claimId);
   const resend = useResendParticipantInvite(claimId);
   const materialize = useMaterializeExternalTasks(claimId);
+  const updateRelationship = useUpdateParticipantRelationship(claimId);
+
 
   const [filterKind, setFilterKind] = useState<'ALL' | 'CLAIMANT' | 'EMPLOYER' | 'DOCTOR'>('ALL');
 
@@ -172,9 +178,22 @@ export function ClaimParticipantsTab({ claimId }: Props) {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-2">
+                      <ParticipantMetadataEditor
+                        participant={p}
+                        busy={updateRelationship.isPending}
+                        onChangeRelationship={async (rel) => {
+                          try {
+                            await updateRelationship.mutateAsync({ participantId: p.id, relationship: rel });
+                            toast.success('Relationship updated.');
+                          } catch (e: any) {
+                            toast.error(e?.message ?? 'Could not update relationship');
+                          }
+                        }}
+                      />
                       {pTasks.length === 0 && (
                         <p className="text-xs text-muted-foreground">No tasks assigned to this participant yet.</p>
                       )}
+
                       {pTasks.map(t => (
                         <TaskRow
                           key={t.id}
@@ -298,4 +317,49 @@ function TaskRow({
   );
 }
 
+const DECEASED_ROLE_HINTS = ['DECEASED_INSURED_PERSON', 'DECEASED'];
+const RELATIONSHIP_OPTIONS: { value: string; label: string }[] = [
+  { value: 'INSURED', label: 'Insured (self)' },
+  { value: 'SPOUSE', label: 'Spouse' },
+  { value: 'DEPENDENT_CHILD', label: 'Dependent child' },
+  { value: 'PARENT', label: 'Parent' },
+  { value: 'SIBLING', label: 'Sibling' },
+  { value: 'OTHER', label: 'Other' },
+];
+
+function ParticipantMetadataEditor({
+  participant, onChangeRelationship, busy,
+}: {
+  participant: BnClaimParticipantRow;
+  onChangeRelationship: (rel: string) => void;
+  busy: boolean;
+}) {
+  const role = String(participant.participant_role ?? '').toUpperCase();
+  const kind = String(participant.kind ?? '').toUpperCase();
+  const isDeceased = DECEASED_ROLE_HINTS.includes(role) || kind === 'DECEASED';
+  if (!isDeceased) return null;
+  const current = participant.relationship_to_insured ?? '';
+  return (
+    <div className="flex flex-col gap-1 rounded-md border border-dashed bg-muted/30 p-2 sm:flex-row sm:items-center sm:gap-3">
+      <div className="text-xs font-medium">
+        Relationship to insured <span className="text-destructive">*</span>
+      </div>
+      <Select value={current || undefined} onValueChange={onChangeRelationship} disabled={busy}>
+        <SelectTrigger className="h-8 w-full sm:w-64">
+          <SelectValue placeholder="Select relationship…" />
+        </SelectTrigger>
+        <SelectContent>
+          {RELATIONSHIP_OPTIONS.map(opt => (
+            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {!current && (
+        <span className="text-[11px] text-destructive">Required for eligibility rules (e.g. Funeral Grant).</span>
+      )}
+    </div>
+  );
+}
+
 export default ClaimParticipantsTab;
+

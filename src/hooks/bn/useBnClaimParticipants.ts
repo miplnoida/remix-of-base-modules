@@ -14,6 +14,10 @@ export interface BnClaimParticipantRow {
   status: 'INVITED' | 'ACTIVE' | 'REVOKED' | 'EXPIRED';
   invite_sent_at: string | null;
   created_at: string;
+  participant_role: string | null;
+  participant_type: string | null;
+  relationship_to_insured: string | null;
+  is_primary_applicant: boolean | null;
 }
 
 export interface BnExternalTaskRow {
@@ -42,7 +46,7 @@ export function useBnClaimParticipants(claimId: string | undefined) {
     queryFn: async (): Promise<BnClaimParticipantRow[]> => {
       const { data, error } = await (supabase as any)
         .from('bn_claim_participant')
-        .select('id, claim_id, kind, display_name, ssn, employer_regno, provider_code, email, phone, status, invite_sent_at, created_at')
+        .select('id, claim_id, kind, display_name, ssn, employer_regno, provider_code, email, phone, status, invite_sent_at, created_at, participant_role, participant_type, relationship_to_insured, is_primary_applicant')
         .eq('claim_id', claimId)
         .order('created_at', { ascending: true });
       if (error) throw error;
@@ -50,6 +54,28 @@ export function useBnClaimParticipants(claimId: string | undefined) {
     },
   });
 }
+
+export function useUpdateParticipantRelationship(claimId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: ['bn_claim_participant', 'relationship', claimId],
+    mutationFn: async (args: { participantId: string; relationship: string | null }) => {
+      const { error } = await (supabase as any)
+        .from('bn_claim_participant')
+        .update({
+          relationship_to_insured: args.relationship,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', args.participantId);
+      if (error) throw error;
+      return { ok: true };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bn_claim_participants', claimId] });
+    },
+  });
+}
+
 
 export function useBnClaimExternalTasks(claimId: string | undefined) {
   return useQuery({
