@@ -86,6 +86,11 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useBnWorkflowGovernance } from '@/hooks/bn/useBnWorkflowIntegration';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Workflow } from 'lucide-react';
+import { EditabilityBanner } from '@/components/bn/workbench/EditabilityBanner';
+import { ClaimStaleBanner } from '@/components/bn/workbench/ClaimStaleBanner';
+import { AmendmentHistoryDrawer } from '@/components/bn/workbench/AmendmentHistoryDrawer';
+import { CorrectionRequestDialog } from '@/components/bn/workbench/CorrectionRequestDialog';
+import { useClaimEditability, useFieldOwnership } from '@/hooks/bn/useClaimEditability';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
@@ -145,6 +150,10 @@ export default function ClaimWorkbench() {
   const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
   const { data: governance } = useBnWorkflowGovernance('bn_claim', id);
   const isWorkflowGoverned = !!governance?.governed;
+  const { data: editability } = useClaimEditability(id);
+  const { data: fieldOwnershipList = [] } = useFieldOwnership((claim as any)?.product_version_id);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showCorrection, setShowCorrection] = useState(false);
 
   const product = (claim as any)?.bn_product;
   const currentStatus = localUpdates.status || claim?.status || 'DRAFT';
@@ -332,6 +341,23 @@ export default function ClaimWorkbench() {
           hasUnsavedChanges={hasUnsavedChanges}
         />
       )}
+
+      {/* Channel-aware editability banner + correction-request entry point */}
+      <EditabilityBanner
+        editability={editability}
+        onRequestCorrection={() => setShowCorrection(true)}
+        onViewHistory={() => setShowHistory(true)}
+      />
+
+      {/* Stale flags after amendments */}
+      <ClaimStaleBanner
+        eligibilityStale={(claim as any).eligibility_stale}
+        calculationStale={(claim as any).calculation_stale}
+        onRerunEligibility={() => setActiveTab('eligibility')}
+        onRerunCalculation={() => setActiveTab('calculation')}
+      />
+
+
 
       {/* Decision Panel */}
       <ClaimDecisionPanel claimId={claim.id} userRoles={userRoles} productCategory={product?.category} />
@@ -541,6 +567,23 @@ export default function ClaimWorkbench() {
         </TabsContent>
 
       </Tabs>
+
+      {/* Amendment / Correction drawers */}
+      <AmendmentHistoryDrawer
+        open={showHistory}
+        onOpenChange={setShowHistory}
+        claimId={claim.id}
+      />
+      <CorrectionRequestDialog
+        open={showCorrection}
+        onOpenChange={setShowCorrection}
+        claimId={claim.id}
+        channel={editability?.channel ?? 'STAFF_OFFLINE'}
+        candidateFields={fieldOwnershipList.filter(
+          (f) => f.field_owner === 'APPLICANT_SUBMITTED' || f.field_owner === 'DOCTOR_SUBMITTED' || f.field_owner === 'EMPLOYER_SUBMITTED',
+        )}
+      />
     </div>
   );
 }
+
