@@ -248,6 +248,41 @@ function PersonaHeader() {
   );
 }
 
+/** Compact status block shown at the top of the user dropdown. */
+function UserMenuStatus() {
+  const { persona } = useClaimantPersona();
+  if (!persona) return null;
+  return (
+    <div className="space-y-1.5 text-xs">
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted-foreground">SSN:</span>
+        {persona.personSsn ? (
+          <Badge variant="secondary" className="font-mono">
+            <CheckCircle2 className="h-3 w-3 mr-1 text-emerald-600" />
+            {maskSsn(persona.personSsn)}
+          </Badge>
+        ) : (
+          <Link to="/claimant/link-ssn" className="text-primary hover:underline">Not linked — link now</Link>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="text-muted-foreground mr-0.5">Roles:</span>
+        {persona.personas.length === 0 ? (
+          <Badge variant="outline" className="text-[10px]">Not verified</Badge>
+        ) : (
+          persona.personas.map(p => (
+            <Badge key={p} variant="outline" className="text-[10px]">
+              {p.replace(/_/g, ' ')}
+            </Badge>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+
 export default function ClaimantPortal() {
   const { persona } = useClaimantPersona();
   const { data: features } = usePortalFeatureConfig();
