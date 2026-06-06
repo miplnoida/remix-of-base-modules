@@ -21,6 +21,7 @@ import EligibilityEstimatorPage from '@/portals/claimant/benefits/EligibilityEst
 import LifeCertificatePage from '@/portals/claimant/compliance/LifeCertificatePage';
 import LettersPage from '@/portals/claimant/comms/LettersPage';
 import DocumentCenterPage from '@/portals/claimant/documents/DocumentCenterPage';
+import SelfServiceDashboard from '@/portals/claimant/dashboard/SelfServiceDashboard';
 import AppealsPage from '@/portals/claimant/appeals/AppealsPage';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -208,7 +209,7 @@ export default function ClaimantPortal() {
           subHeader={<PersonaHeader />}
         >
           <Routes>
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="dashboard" element={<SelfServiceDashboard />} />
             <Route path="link-ssn" element={<LinkSsnPage />} />
 
             {/* MY ACCOUNT */}
