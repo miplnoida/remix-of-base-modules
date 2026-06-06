@@ -126,13 +126,11 @@ export async function submitClaimApplication(
         if (!workflowDefinitionId) {
           const { data: ver } = await db
             .from('bn_product_version')
-            .select('workflow_template_id, workflow_definition_id')
+            .select('workflow_template_id')
             .eq('id', productVersionId)
             .maybeSingle();
           workflowDefinitionId =
-            (ver as any)?.workflow_definition_id ??
-            (ver as any)?.workflow_template_id ??
-            null;
+            (ver as any)?.workflow_template_id ?? null;
         }
       }
 
