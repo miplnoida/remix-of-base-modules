@@ -270,17 +270,22 @@ export default function ClaimantPortal() {
             {/* PEOPLE I MANAGE */}
             <Route path="managed/people" element={
               <RequireFeature feature="peopleIMangeEnabled" title="People I Manage is disabled">
-                <PortalModulePlaceholder title="People I Manage" description="Insured persons you act for as guardian, payee or representative." internalSource="external_user_person_link" />
+                <ManagedPeoplePage />
+              </RequireFeature>
+            } />
+            <Route path="managed/people/:ssn" element={
+              <RequireFeature feature="peopleIMangeEnabled" title="People I Manage is disabled">
+                <ManagedPersonDetailPage />
               </RequireFeature>
             } />
             <Route path="managed/claims" element={
               <RequireFeature feature="peopleIMangeEnabled" title="Managed Claims is disabled">
-                <PortalModulePlaceholder title="Managed Claims" description="Claims you have filed on behalf of someone else." internalSource="bn_claim" />
+                <ManagedPeoplePage />
               </RequireFeature>
             } />
             <Route path="managed/benefits" element={
               <RequireFeature feature="peopleIMangeEnabled" title="Managed Benefits is disabled">
-                <PortalModulePlaceholder title="Managed Benefits" description="Awards / pensions you receive on behalf of someone else." internalSource="bn_award" />
+                <ManagedPeoplePage />
               </RequireFeature>
             } />
 
