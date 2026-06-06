@@ -267,14 +267,21 @@ export async function getPublicApplicationDefinition(
   if (productErr) throw productErr;
   if (!productRow) throw new Error(`Benefit ${benefitCode} not found`);
 
-  const { data: cfgRow, error: cfgErr } = await supabase
+  const { data: cfgRows, error: cfgErr } = await supabase
     .from('bn_product_channel_config')
-    .select('*')
+    .select('*, bn_product_version:product_version_id ( id, status, version_number )')
     .eq('product_id', productRow.id)
     .eq('channel_code', CHANNEL_PUBLIC)
-    .eq('public_online_enabled', true)
-    .maybeSingle();
+    .eq('public_online_enabled', true);
   if (cfgErr) throw cfgErr;
+  const cfgList = (cfgRows ?? []) as any[];
+  // Pick ACTIVE version row; fall back to highest version_number.
+  const cfgRow = cfgList.sort((a, b) => {
+    const aActive = a.bn_product_version?.status === 'ACTIVE' ? 1 : 0;
+    const bActive = b.bn_product_version?.status === 'ACTIVE' ? 1 : 0;
+    if (aActive !== bActive) return bActive - aActive;
+    return (b.bn_product_version?.version_number ?? 0) - (a.bn_product_version?.version_number ?? 0);
+  })[0];
   if (!cfgRow) throw new Error(`Benefit ${benefitCode} is not enabled for public application.`);
 
   const productVersionId: string | null = (cfgRow as any).product_version_id ?? null;
