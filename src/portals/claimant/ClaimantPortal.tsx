@@ -47,10 +47,10 @@ export default function ClaimantPortal() {
 function Dashboard() {
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Link to="apply"><Card className="hover:shadow-md"><CardHeader><CardTitle>Apply for a Benefit</CardTitle><CardDescription>Start a new benefit application.</CardDescription></CardHeader></Card></Link>
-      <Link to="claims"><Card className="hover:shadow-md"><CardHeader><CardTitle>My Claims</CardTitle><CardDescription>Status, decisions and payments.</CardDescription></CardHeader></Card></Link>
-      <Link to="tasks"><Card className="hover:shadow-md"><CardHeader><CardTitle>Pending Actions</CardTitle><CardDescription>Tasks you need to complete.</CardDescription></CardHeader></Card></Link>
-      <Link to="messages"><Card className="hover:shadow-md"><CardHeader><CardTitle>Messages &amp; Letters</CardTitle></CardHeader></Card></Link>
+      <Link to="/claimant/apply"><Card className="hover:shadow-md"><CardHeader><CardTitle>Apply for a Benefit</CardTitle><CardDescription>Start a new benefit application.</CardDescription></CardHeader></Card></Link>
+      <Link to="/claimant/claims"><Card className="hover:shadow-md"><CardHeader><CardTitle>My Claims</CardTitle><CardDescription>Status, decisions and payments.</CardDescription></CardHeader></Card></Link>
+      <Link to="/claimant/tasks"><Card className="hover:shadow-md"><CardHeader><CardTitle>Pending Actions</CardTitle><CardDescription>Tasks you need to complete.</CardDescription></CardHeader></Card></Link>
+      <Link to="/claimant/messages"><Card className="hover:shadow-md"><CardHeader><CardTitle>Messages &amp; Letters</CardTitle></CardHeader></Card></Link>
     </div>
   );
 }
