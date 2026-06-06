@@ -119,8 +119,24 @@ export interface ClaimActionResult {
   success: boolean;
   newStatus?: string;
   message: string;
+  /** Optional payload from a side-effect (eligibility id, calc id, etc). */
+  data?: Record<string, any>;
 }
 
+/**
+ * Execute a claim action with REAL side-effects, not just a status flip.
+ *
+ * Side-effects per action:
+ *   START_REVIEW       → status + CLAIM_REVIEW_STARTED event
+ *   CHECK_ELIGIBILITY  → run eligibility engine, persist bn_claim_eligibility
+ *   RUN_CALCULATION    → require passing eligibility, run calc engine, persist bn_claim_calculation
+ *   SUBMIT_DECISION    → require calculation exists, draft recommendation in bn_claim_decision
+ *   APPROVE / DENY     → create final bn_claim_decision row
+ *   REQUEST_EVIDENCE / REQUEST_INFO / SUSPEND / REOPEN / WITHDRAW / CLOSE
+ *                      → status + audit event (+ specific preconditions)
+ *
+ * Every action also writes a bn_claim_event row for the timeline.
+ */
 export async function executeClaimAction(
   claimId: string,
   action: string,
@@ -131,8 +147,94 @@ export async function executeClaimAction(
   reasonCode?: string,
 ): Promise<ClaimActionResult> {
   try {
-    // 1. Update claim status
-    const { error: updateErr } = await db
+    const sideEffect: Record<string, any> = {};
+
+    // ── 1. Preconditions & side-effects BEFORE status change ──
+    switch (action) {
+      case 'CHECK_ELIGIBILITY': {
+        const { runClaimEligibility } = await import('./claimActionRunner');
+        const res = await runClaimEligibility(claimId, userCode);
+        sideEffect.eligibilityId = res.eligibilityId;
+        sideEffect.overallResult = res.overallResult;
+        sideEffect.ruleCount = res.rules.length;
+        break;
+      }
+      case 'RUN_CALCULATION': {
+        const { runClaimCalculation } = await import('./claimActionRunner');
+        const res = await runClaimCalculation(claimId, userCode);
+        sideEffect.calculationId = res.calculationId;
+        sideEffect.weeklyRate = res.weeklyRate;
+        sideEffect.monthlyRate = res.monthlyRate;
+        sideEffect.lumpSum = res.lumpSum;
+        break;
+      }
+      case 'SUBMIT_DECISION': {
+        const { data: calc } = await db
+          .from('bn_claim_calculation')
+          .select('id')
+          .eq('claim_id', claimId)
+          .limit(1);
+        if (!calc || calc.length === 0) {
+          throw new Error('No calculation exists. Run calculation before submitting for decision.');
+        }
+        const { createClaimDecision } = await import('./claimActionRunner');
+        const dec = await createClaimDecision({
+          claimId,
+          decisionType: 'RECOMMENDATION',
+          userCode,
+          narrative,
+        });
+        sideEffect.decisionId = dec.id;
+        break;
+      }
+      case 'APPROVE': {
+        const { createClaimDecision } = await import('./claimActionRunner');
+        const dec = await createClaimDecision({
+          claimId,
+          decisionType: 'APPROVED',
+          userCode,
+          narrative,
+          reasonCode,
+        });
+        sideEffect.decisionId = dec.id;
+        break;
+      }
+      case 'DENY': {
+        if (!reasonCode) throw new Error('Reason code is required to deny a claim.');
+        if (!narrative) throw new Error('Narrative is required to deny a claim.');
+        const { createClaimDecision } = await import('./claimActionRunner');
+        const dec = await createClaimDecision({
+          claimId,
+          decisionType: 'DENIED',
+          userCode,
+          narrative,
+          reasonCode,
+        });
+        sideEffect.decisionId = dec.id;
+        break;
+      }
+      case 'CLOSE': {
+        // Refuse to close if any payment instruction is still active.
+        const { data: pending } = await db
+          .from('bn_payment_instruction')
+          .select('id')
+          .eq('claim_id', claimId)
+          .in('status', ['PENDING', 'SCHEDULED', 'IN_PROGRESS'])
+          .limit(1);
+        if (pending && pending.length > 0) {
+          throw new Error('Cannot close — pending payment instructions exist.');
+        }
+        break;
+      }
+      // The remaining actions (START_REVIEW, REQUEST_EVIDENCE, REQUEST_INFO,
+      // SUSPEND, REOPEN, WITHDRAW) have no pre-status side-effect beyond the
+      // event row we always write below.
+      default:
+        break;
+    }
+
+    // ── 2. Update claim status (optimistic on fromStatus) ──
+    const { error: updateErr, data: updateRows } = await db
       .from('bn_claim')
       .update({
         status: toStatus,
@@ -140,11 +242,14 @@ export async function executeClaimAction(
         modified_at: new Date().toISOString(),
       })
       .eq('id', claimId)
-      .eq('status', fromStatus); // Optimistic lock on current status
-
+      .eq('status', fromStatus)
+      .select('id');
     if (updateErr) throw updateErr;
+    if (!updateRows || updateRows.length === 0) {
+      throw new Error(`Status changed under us — expected ${fromStatus}. Refresh and retry.`);
+    }
 
-    // 2. Record event
+    // ── 3. Record event for the timeline ──
     await db.from('bn_claim_event').insert({
       claim_id: claimId,
       event_type: action,
@@ -153,14 +258,21 @@ export async function executeClaimAction(
       notes: narrative,
       performed_by: userCode,
       performed_at: new Date().toISOString(),
-      metadata: reasonCode ? { reason_code: reasonCode } : null,
+      metadata: { reason_code: reasonCode ?? null, ...sideEffect },
     });
 
-    // 3. Future: sync to cl_head.status
-    // 4. Future: create workflow task via workflow_instances
-    // 5. Future: send notification via notification_templates
+    const friendly =
+      action === 'CHECK_ELIGIBILITY'
+        ? `Eligibility evaluated — ${sideEffect.overallResult ? 'PASS' : 'FAIL'} (${sideEffect.ruleCount ?? 0} rules)`
+        : action === 'RUN_CALCULATION'
+          ? `Calculation completed${sideEffect.weeklyRate ? ` — weekly $${sideEffect.weeklyRate}` : ''}`
+          : action === 'APPROVE'
+            ? 'Claim approved and decision recorded'
+            : action === 'DENY'
+              ? 'Claim denied and decision recorded'
+              : `Claim ${action.toLowerCase().replace(/_/g, ' ')} successfully`;
 
-    return { success: true, newStatus: toStatus, message: `Claim ${action.toLowerCase()} successfully` };
+    return { success: true, newStatus: toStatus, message: friendly, data: sideEffect };
   } catch (err: any) {
     return { success: false, message: err?.message || 'Action failed' };
   }
