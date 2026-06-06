@@ -330,10 +330,17 @@ export default function ClaimantPortal() {
             <Route path="compliance/verification" element={<ExternalTaskList basePath="/claimant/tasks" />} />
             <Route path="compliance/outstanding" element={<ExternalTaskList basePath="/claimant/tasks" />} />
 
-            {/* COMMUNICATIONS */}
+            {/* COMMUNICATIONS / NOTIFICATIONS */}
+            <Route path="notifications" element={<NotificationsPage />} />
             <Route path="comms/inbox" element={<Messages />} />
             <Route path="comms/letters" element={<LettersPage />} />
-            <Route path="comms/notifications" element={<LettersPage />} />
+            <Route path="comms/notifications" element={<Navigate to="/claimant/notifications" replace />} />
+
+            {/* HELP & MORE */}
+            <Route path="help" element={<HelpCenterPage />} />
+            <Route path="help/*" element={<HelpCenterPage />} />
+            <Route path="more" element={<MorePage />} />
+
             <Route path="tasks" element={<ExternalTaskList basePath="/claimant/tasks" />} />
             <Route path="tasks/:taskId" element={<TaskDetail />} />
 
