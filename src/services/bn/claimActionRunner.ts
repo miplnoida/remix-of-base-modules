@@ -238,8 +238,12 @@ export async function runClaimCalculation(
   options: { allowWithoutPassingEligibility?: boolean } = {},
 ): Promise<CalculationRunResult> {
   const claim = await loadClaimContext(claimId);
-  if (!claim.product_id || !claim.product_version_id) {
-    throw new Error('Claim is missing product/product_version — cannot run calculation.');
+  if (!claim.product_id) {
+    throw new Error('Claim is missing product — cannot run calculation.');
+  }
+  await resolveEvaluationVersionId(claim);
+  if (!claim.product_version_id) {
+    throw new Error('Claim is missing product_version — cannot run calculation.');
   }
 
   // Precondition: latest eligibility must have passed (or override).
