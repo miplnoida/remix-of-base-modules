@@ -120,7 +120,7 @@ export default function BankUpdatePage() {
       const { error } = await (supabase as any).from('cl_payout_method_request').insert(payload);
       if (error) throw error;
 
-      auditPortalAction('PAYOUT_METHOD_REQUESTED', { userId, targetSsn: persona?.personSsn, method });
+      auditPortalAction('BANK_DETAILS_UPDATED', { userId, targetSsn: persona?.personSsn });
       toast.success('Request submitted for review.');
       setEft(blankEft); setWire(blankWire); setChk(blankCheck); setNotes('');
       loadRequests();
