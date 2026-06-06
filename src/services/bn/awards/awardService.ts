@@ -80,7 +80,7 @@ export async function fetchAwards(filters: AwardFilters = {}): Promise<AwardList
 
   const nameMap = new Map<string, string>();
   for (const r of (names.data ?? []) as any[]) {
-    nameMap.set(r.ssn, [r.first_name, r.last_name].filter(Boolean).join(' '));
+    nameMap.set(r.ssn, [r.firstname, r.surname].filter(Boolean).join(' '));
   }
   const lcMap = new Map<string, { status: string; due_date: string }>();
   for (const r of (lifeCerts.data ?? []) as any[]) {
