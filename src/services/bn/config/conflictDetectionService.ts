@@ -419,6 +419,44 @@ export async function detectDocumentConflicts(versionId: string): Promise<Confli
     }
   }
 
+  // duplicate doc per (code, stage, channel)
+  const sigMap = new Map<string, any[]>();
+  for (const d of docs) {
+    const sig = `${d.document_type_code}|${d.stage}|${d.channel_code}`;
+    if (!sigMap.has(sig)) sigMap.set(sig, []);
+    sigMap.get(sig)!.push(d);
+  }
+  for (const [sig, list] of sigMap) {
+    if (list.length > 1) {
+      out.push(mk({
+        severity: 'WARNING',
+        product_version_id: versionId,
+        tab: 'Documents',
+        entity_type: 'bn_doc_requirement',
+        entity_ids: list.map((d: any) => d.id),
+        conflict_type: 'DUPLICATE_DOCUMENT_ROW',
+        message: `${list.length} active rows for the same document/stage/channel (${sig}).`,
+        suggested_fix: 'Remove duplicates — the unique constraint will block save otherwise.',
+      }));
+    }
+  }
+
+  // blocking flags inconsistency: blocks_submission true while public upload disabled
+  for (const d of docs) {
+    if (d.blocks_submission && !d.public_visible) {
+      out.push(mk({
+        severity: 'WARNING',
+        product_version_id: versionId,
+        tab: 'Documents',
+        entity_type: 'bn_doc_requirement',
+        entity_ids: [d.id],
+        conflict_type: 'BLOCKS_SUBMISSION_NO_PUBLIC',
+        message: `${d.document_type_code} blocks submission but is not visible to public applicants — they will be unable to submit.`,
+        suggested_fix: 'Either enable public_visible or unset blocks_submission for public channels.',
+      }));
+    }
+  }
+
   // mandatory but no public/internal channel
   for (const d of docs) {
     if (d.requirement_level === 'MANDATORY' && !d.public_visible && !d.internal_visible) {
