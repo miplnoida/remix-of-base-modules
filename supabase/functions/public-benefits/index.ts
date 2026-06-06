@@ -331,6 +331,53 @@ async function handle(req: Request, url: URL): Promise<Response> {
         }
       }
     }
+
+    // Public-channel enforcement (PR-1 columns on bn_product_channel_config).
+    // Claimant Portal always submits via PUBLIC_ONLINE.
+    if (caller.role === 'CLAIMANT' || caller.role === null) {
+      const { data: pubCfg } = await admin
+        .from('bn_product_channel_config')
+        .select('public_online_enabled, allowed_applicant_types, allowed_subject_types, applicant_must_equal_insured, allow_apply_for_self, allow_apply_for_deceased, allow_apply_for_child_dependant, allow_apply_as_guardian, allow_apply_as_payee, allow_apply_as_representative, allow_managed_contributor_selection')
+        .eq('product_id', product.id)
+        .eq('channel_code', 'PUBLIC_ONLINE')
+        .maybeSingle();
+      if (pubCfg) {
+        if (!pubCfg.public_online_enabled) {
+          return err(403, 'public_disabled', 'This benefit is not available for online application.');
+        }
+        const reqApplicantType: string | undefined = body?.applicantType;
+        const allowed: string[] = (pubCfg.allowed_applicant_types as string[]) ?? [];
+        if (reqApplicantType && allowed.length && !allowed.includes(reqApplicantType)) {
+          return err(403, 'applicant_type_not_allowed', 'You cannot apply for this benefit in this capacity.');
+        }
+        const intent: string | undefined = body?.intent;
+        if (intent === 'managed' && !pubCfg.allow_managed_contributor_selection) {
+          return err(403, 'managed_not_allowed', 'This benefit cannot be filed on behalf of someone you manage.');
+        }
+        if (intent === 'deceased' && pubCfg.allow_apply_for_deceased === false) {
+          return err(403, 'deceased_not_allowed', 'This benefit cannot be filed for a deceased person.');
+        }
+        if (intent === 'child' && pubCfg.allow_apply_for_child_dependant === false) {
+          return err(403, 'child_not_allowed', 'This benefit cannot be filed for a child or dependant.');
+        }
+        // Enforce SELF-verified link when product requires applicant == insured.
+        if (pubCfg.applicant_must_equal_insured && caller.mode === 'session') {
+          // Lookup auth user id from JWT claims via supabase admin
+          const { data: link } = await admin
+            .from('external_user_person_link')
+            .select('id, verification_status, relationship_type')
+            .eq('ssn', caller.ssn ?? '___none___')
+            .eq('relationship_type', 'SELF')
+            .eq('verification_status', 'VERIFIED')
+            .limit(1)
+            .maybeSingle();
+          if (!link) {
+            return err(403, 'self_link_required', 'Your Social Security record must be verified before applying for this benefit.');
+          }
+        }
+      }
+    }
+
     const accepted = !!(declarationAccepted ?? declaration?.accepted);
     if (!accepted) return err(400, 'declaration_required', 'You must accept the declaration to submit');
 
