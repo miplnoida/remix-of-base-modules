@@ -86,6 +86,11 @@ import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useBnWorkflowGovernance } from '@/hooks/bn/useBnWorkflowIntegration';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Workflow } from 'lucide-react';
+import { EditabilityBanner } from '@/components/bn/workbench/EditabilityBanner';
+import { ClaimStaleBanner } from '@/components/bn/workbench/ClaimStaleBanner';
+import { AmendmentHistoryDrawer } from '@/components/bn/workbench/AmendmentHistoryDrawer';
+import { CorrectionRequestDialog } from '@/components/bn/workbench/CorrectionRequestDialog';
+import { useClaimEditability, useFieldOwnership } from '@/hooks/bn/useClaimEditability';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
