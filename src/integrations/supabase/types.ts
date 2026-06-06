@@ -8811,6 +8811,8 @@ export type Database = {
       }
       bn_product_version: {
         Row: {
+          award_creation_rule: string
+          benefit_duration_type: string
           calculation_config: Json
           description: string | null
           document_profile_id: string | null
@@ -8820,21 +8822,28 @@ export type Database = {
           entered_at: string
           entered_by: string | null
           id: string
+          life_certificate_policy: Json
           max_concurrent_claims: number
+          medical_review_policy: Json
           modified_at: string
           modified_by: string | null
+          payment_frequency: string | null
           product_id: string
           requires_employer_verification: boolean
           requires_means_test: boolean
           requires_medical_board_review: boolean
+          review_policy: Json
           screen_template_id: string | null
           status: string
+          survivor_beneficiary_policy: Json
           timeline_config: Json
           version_number: number
           workflow_scheme: string | null
           workflow_template_id: string | null
         }
         Insert: {
+          award_creation_rule?: string
+          benefit_duration_type?: string
           calculation_config?: Json
           description?: string | null
           document_profile_id?: string | null
@@ -8844,21 +8853,28 @@ export type Database = {
           entered_at?: string
           entered_by?: string | null
           id?: string
+          life_certificate_policy?: Json
           max_concurrent_claims?: number
+          medical_review_policy?: Json
           modified_at?: string
           modified_by?: string | null
+          payment_frequency?: string | null
           product_id: string
           requires_employer_verification?: boolean
           requires_means_test?: boolean
           requires_medical_board_review?: boolean
+          review_policy?: Json
           screen_template_id?: string | null
           status?: string
+          survivor_beneficiary_policy?: Json
           timeline_config?: Json
           version_number?: number
           workflow_scheme?: string | null
           workflow_template_id?: string | null
         }
         Update: {
+          award_creation_rule?: string
+          benefit_duration_type?: string
           calculation_config?: Json
           description?: string | null
           document_profile_id?: string | null
@@ -8868,15 +8884,20 @@ export type Database = {
           entered_at?: string
           entered_by?: string | null
           id?: string
+          life_certificate_policy?: Json
           max_concurrent_claims?: number
+          medical_review_policy?: Json
           modified_at?: string
           modified_by?: string | null
+          payment_frequency?: string | null
           product_id?: string
           requires_employer_verification?: boolean
           requires_means_test?: boolean
           requires_medical_board_review?: boolean
+          review_policy?: Json
           screen_template_id?: string | null
           status?: string
+          survivor_beneficiary_policy?: Json
           timeline_config?: Json
           version_number?: number
           workflow_scheme?: string | null
