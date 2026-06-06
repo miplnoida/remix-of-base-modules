@@ -23,7 +23,16 @@ export function PreviewTab({ productId, versionId }: Props) {
   const { data: timeRules = [] } = useBnTimelineRules(versionId);
   const { data: docRules = [] } = useBnDocumentRules(productId);
 
-  const [channel, setChannel] = useState<FormChannel>('ASSISTED_OFFLINE');
+  // Four application channels in the UI, mapped to the underlying FormChannel triple.
+  type PreviewChannel = 'PUBLIC_ONLINE' | 'STAFF_OFFLINE' | 'ASSISTED_COUNTER' | 'BACK_OFFICE_ENTRY';
+  const CHANNEL_MAP: Record<PreviewChannel, FormChannel> = {
+    PUBLIC_ONLINE: 'PUBLIC',
+    STAFF_OFFLINE: 'INTERNAL',
+    ASSISTED_COUNTER: 'ASSISTED_OFFLINE',
+    BACK_OFFICE_ENTRY: 'INTERNAL',
+  };
+  const [previewChannel, setPreviewChannel] = useState<PreviewChannel>('STAFF_OFFLINE');
+  const channel: FormChannel = CHANNEL_MAP[previewChannel];
   const today = new Date().toISOString().slice(0, 10);
   const { data: formDef, isLoading: formLoading, error: formError } = useApplicationFormDefinition(
     product?.benefit_code,
