@@ -23,5 +23,7 @@ project_id = "xynceskeiiisiefqlgxo"
     verify_jwt = false
   [functions.process-email-queue]
     verify_jwt = true
+  [functions.public-registration-otp]
+    verify_jwt = true
   [functions.send-transactional-email]
     verify_jwt = true
