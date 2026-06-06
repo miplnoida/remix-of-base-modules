@@ -159,20 +159,62 @@ export function FormulaBuilder({ value, onChange, disabled }: Props) {
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <Button type="button" size="sm" onClick={runTest} disabled={disabled || !parsed?.valid}>
-          <Play className="h-3.5 w-3.5 mr-1" /> Test formula
-        </Button>
-        {testResult && (
-          testResult.ok ? (
-            <span className="text-sm text-green-700 dark:text-green-400">
-              = <span className="font-mono font-semibold">{testResult.value?.toFixed(2)}</span> (using registry sample values)
-            </span>
-          ) : (
-            <span className="text-sm text-destructive">{testResult.errors.join('; ')}</span>
-          )
-        )}
-      </div>
+      {parsed?.valid && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Sample calculator
+              </Label>
+              {parsed.variablesUsed.length > 0 && (
+                <Button type="button" size="sm" variant="ghost" className="h-6 text-xs" onClick={resetSamples}>
+                  Reset to defaults
+                </Button>
+              )}
+            </div>
+
+            {parsed.variablesUsed.length > 0 && (
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
+                {parsed.variablesUsed.map((k) => {
+                  const def = FORMULA_VARIABLES.find((v) => v.key === k);
+                  return (
+                    <div key={k} className="space-y-1">
+                      <Label htmlFor={`var_${k}`} className="text-[11px] font-mono text-muted-foreground">
+                        {k} <span className="text-muted-foreground/60">({def?.type})</span>
+                      </Label>
+                      <input
+                        id={`var_${k}`}
+                        type="number"
+                        inputMode="decimal"
+                        className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm font-mono"
+                        placeholder={String(def?.sample ?? 0)}
+                        value={overrides[k] ?? ''}
+                        onChange={(e) => setOverrides((o) => ({ ...o, [k]: e.target.value }))}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="rounded-md bg-background border p-3 space-y-1.5">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Substituted</div>
+              <div className="font-mono text-sm break-all">{substituted || value}</div>
+              <div className="flex items-baseline gap-2 pt-1 border-t">
+                <span className="text-xs text-muted-foreground">Result =</span>
+                {live?.ok ? (
+                  <span className="font-mono text-2xl font-semibold text-primary">
+                    {Number.isFinite(live.value!) ? live.value!.toFixed(2) : '—'}
+                  </span>
+                ) : (
+                  <span className="text-sm text-destructive">{live?.errors.join('; ')}</span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
     </div>
   );
 }
