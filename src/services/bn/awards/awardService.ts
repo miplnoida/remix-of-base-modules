@@ -171,13 +171,15 @@ export async function fetchAwardDetail(id: string): Promise<AwardDetail> {
   const medicalReviews = await run(supabase.from('bn_medical_review_schedule').select('*').eq('bn_award_id', id).order('scheduled_date', { ascending: false }));
   const overpayments = await run(supabase.from('bn_overpayment').select('*').eq('bn_award_id', id).order('entered_at', { ascending: false }));
   const schedules = await run(supabase.from('bn_payment_schedule').select('*').eq('bn_award_id', id));
-  const payments = await run((supabase.from('bn_payment_instruction') as any).select('*').eq('bn_award_id', id).order('scheduled_date', { ascending: false }).range(0, 199));
-  const communications = await run((supabase.from('bn_communication_log') as any).select('*').eq('bn_award_id', id).order('created_at', { ascending: false }).range(0, 199));
+  const payments = await run((supabase.from('bn_payment_instruction') as any).select('*').eq('award_id', id).order('due_date', { ascending: false }).range(0, 199));
+  const communications = (award as any).bn_claim_id
+    ? await run((supabase.from('bn_communication_log') as any).select('*').eq('claim_id', (award as any).bn_claim_id).order('created_at', { ascending: false }).range(0, 199))
+    : { data: [] };
   const claim = (award as any).bn_claim_id
     ? await run(supabase.from('bn_claim').select('*').eq('id', (award as any).bn_claim_id).maybeSingle())
     : { data: null };
   const pensioner = (award as any).ssn
-    ? await run(supabase.from('ip_master').select('ssn, first_name, last_name, dob, sex, address1, address2, mobile_no, email_id').eq('ssn', (award as any).ssn).maybeSingle())
+    ? await run(supabase.from('ip_master').select('ssn, firstname, surname, middle_name, dob, sex, mobile, phone, email_addr, contact_email, resident_addr1, resident_addr2').eq('ssn', (award as any).ssn).maybeSingle())
     : { data: null };
   const product = (award as any).bn_product_id
     ? await run(supabase.from('bn_product').select('*').eq('id', (award as any).bn_product_id).maybeSingle())
