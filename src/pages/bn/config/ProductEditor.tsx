@@ -217,6 +217,13 @@ export default function ProductEditor() {
         </Card>
       )}
 
+      {!isNew && activeVersion && (
+        <ReadOnlyVersionBanner
+          status={activeVersion.status}
+          draftActionLabel="modify eligibility, calculation, documents, workflow or any assembly tab"
+        />
+      )}
+
       {/* Tabs */}
       <Tabs defaultValue="definition" className="w-full">
         <TabsList className="flex flex-wrap h-auto gap-1">
