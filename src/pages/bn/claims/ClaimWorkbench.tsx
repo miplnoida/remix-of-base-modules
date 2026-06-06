@@ -80,6 +80,10 @@ import { filterEditablePayload } from '@/lib/bn/fieldOwnership';
 import { ActiveEligibilityPanel } from '@/components/bn/workbench/ActiveEligibilityPanel';
 import { ActiveCalculationPanel } from '@/components/bn/workbench/ActiveCalculationPanel';
 import { OverviewChecklist } from '@/components/bn/workbench/OverviewChecklist';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { useBnWorkflowGovernance } from '@/hooks/bn/useBnWorkflowIntegration';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Workflow } from 'lucide-react';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
@@ -134,8 +138,11 @@ export default function ClaimWorkbench() {
   const executeAction = useExecuteClaimAction();
 
   // ── Derived State ──────────────────────────────────────────────
-  const userRoles = ['Admin']; // TODO: get from auth context
+  const { roles: authRoles } = useSupabaseAuth();
+  const userRoles = authRoles && authRoles.length > 0 ? authRoles : [];
   const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
+  const { data: governance } = useBnWorkflowGovernance('bn_claim', id);
+  const isWorkflowGoverned = !!governance?.governed;
 
   const product = (claim as any)?.bn_product;
   const currentStatus = localUpdates.status || claim?.status || 'DRAFT';
@@ -294,17 +301,35 @@ export default function ClaimWorkbench() {
         </div>
       </div>
 
-      {/* 11. Action Bar (sticky at top) */}
-      <ClaimActionBar
-        claimId={claim.id}
-        currentStatus={currentStatus}
-        availableTransitions={availableTransitions}
-        onSave={handleSave}
-        onExecuteAction={handleExecuteAction}
-        isSaving={updateClaim.isPending || upsertDetail.isPending}
-        isExecuting={executeAction.isPending}
-        hasUnsavedChanges={hasUnsavedChanges}
-      />
+      {/* Workflow governance banner — when an enterprise workflow drives this
+          claim, hide BN's local transition matrix so we never have two
+          conflicting sources of truth. */}
+      {isWorkflowGoverned ? (
+        <Alert>
+          <Workflow className="h-4 w-4" />
+          <AlertTitle>Driven by enterprise workflow</AlertTitle>
+          <AlertDescription className="flex items-center justify-between gap-3">
+            <span>
+              This claim is governed by workflow &quot;{governance?.workflowName}&quot;.
+              Perform transitions from the <strong>Tasks</strong> tab.
+            </span>
+            <Button size="sm" variant="outline" onClick={() => setActiveTab('tasks')}>
+              Open Tasks
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <ClaimActionBar
+          claimId={claim.id}
+          currentStatus={currentStatus}
+          availableTransitions={availableTransitions}
+          onSave={handleSave}
+          onExecuteAction={handleExecuteAction}
+          isSaving={updateClaim.isPending || upsertDetail.isPending}
+          isExecuting={executeAction.isPending}
+          hasUnsavedChanges={hasUnsavedChanges}
+        />
+      )}
 
       {/* Decision Panel */}
       <ClaimDecisionPanel claimId={claim.id} userRoles={userRoles} productCategory={product?.category} />
