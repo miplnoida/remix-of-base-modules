@@ -32,6 +32,10 @@ export default function TransitionMatrix() {
     return acc;
   }, {});
 
+  const invalidRules = rules.filter(r =>
+    r.is_active && !isAllowedTransition(r.from_status, r.action_code, r.to_status)
+  );
+
   const renderPreconditions = (rule: BnClaimTransitionRule) => {
     const conds: string[] = [];
     if (rule.requires_reason) conds.push('Reason');
