@@ -62,7 +62,7 @@ export async function fetchAwards(filters: AwardFilters = {}): Promise<AwardList
 
   const [names, lifeCerts, payments, overpayments] = await Promise.all([
     ssns.length
-      ? supabase.from('ip_master').select('ssn, first_name, last_name').in('ssn', ssns)
+      ? supabase.from('ip_master').select('ssn, firstname, surname').in('ssn', ssns)
       : Promise.resolve({ data: [], error: null }),
     supabase
       .from('bn_life_certificate')
