@@ -132,6 +132,8 @@ export function ExternalPortalShell({
             <Badge variant="outline" className="ml-2 border-white/40 bg-white/10 text-xs text-primary-foreground">{role}</Badge>
           </Link>
           <div className="flex items-center gap-2 text-sm">
+            {helpButton}
+            {notificationBell}
             {session ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
