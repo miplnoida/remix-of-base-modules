@@ -82,13 +82,40 @@ function Dashboard() {
     { to: '/claimant/messages', title: 'Messages & Letters', desc: 'Official communications from SSB.' },
   ];
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-6">
+      <ClaimBuckets />
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {cards.map(c => (
+          <Link key={c.to} to={c.to}>
+            <Card className="hover:shadow-md transition-shadow h-full">
+              <CardHeader><CardTitle className="text-base">{c.title}</CardTitle><CardDescription>{c.desc}</CardDescription></CardHeader>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ClaimBuckets() {
+  const { data, isLoading } = useExternalClaimBuckets();
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  const b = data ?? { own: [], submittedForOthers: [], asBeneficiary: [], asGuardianOrPayee: [] };
+  const cards = [
+    { title: 'My own claims', items: b.own },
+    { title: 'Submitted for someone else', items: b.submittedForOthers },
+    { title: 'As beneficiary', items: b.asBeneficiary },
+    { title: 'As guardian / payee', items: b.asGuardianOrPayee },
+  ];
+  return (
+    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
       {cards.map(c => (
-        <Link key={c.to} to={c.to}>
-          <Card className="hover:shadow-md transition-shadow h-full">
-            <CardHeader><CardTitle className="text-base">{c.title}</CardTitle><CardDescription>{c.desc}</CardDescription></CardHeader>
-          </Card>
-        </Link>
+        <Card key={c.title}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">{c.title}</CardTitle>
+            <CardDescription className="text-2xl font-bold text-foreground">{c.items.length}</CardDescription>
+          </CardHeader>
+        </Card>
       ))}
     </div>
   );
