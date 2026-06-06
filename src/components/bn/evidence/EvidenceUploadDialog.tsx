@@ -100,7 +100,7 @@ export function EvidenceUploadDialog({
       await uploadMutation.mutateAsync({
         claimId,
         file,
-        documentTypeCode: preselectedTypeCode || 'GENERAL',
+        documentTypeCode: documentTypeCode || 'GENERAL',
         documentName: documentName.trim(),
         requirementId: requirementId || null,
         source,
