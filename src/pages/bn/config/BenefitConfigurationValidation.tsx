@@ -32,6 +32,7 @@ import {
   type TestRunResult,
 } from '@/services/bn/productTestCaseService';
 import { findBaselineByCode } from '@/services/bn/skn/sknBenefitCatalogueBaseline';
+import { RegistryConformanceCard } from '@/components/bn/validation/RegistryConformanceCard';
 
 const STATUS_VARIANT: Record<ValidationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   PASS: 'default',
@@ -268,6 +269,8 @@ export default function BenefitConfigurationValidation() {
           version governance remain intact.
         </AlertDescription>
       </Alert>
+
+      <RegistryConformanceCard />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {(Object.keys(summary) as ValidationStatus[]).map((s) => (
