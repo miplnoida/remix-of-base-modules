@@ -512,6 +512,28 @@ export async function detectCommunicationConflicts(versionId: string): Promise<C
     }
   }
 
+  // duplicate mappings per (event, channel, recipient)
+  const sig = new Map<string, any[]>();
+  for (const m of list) {
+    const k = `${m.event_code}|${m.channel}|${m.recipient_type}`;
+    if (!sig.has(k)) sig.set(k, []);
+    sig.get(k)!.push(m);
+  }
+  for (const [k, group] of sig) {
+    if (group.length > 1) {
+      out.push(mk({
+        severity: 'WARNING',
+        product_version_id: versionId,
+        tab: 'Communications',
+        entity_type: 'bn_comm_mapping',
+        entity_ids: group.map((m: any) => m.id),
+        conflict_type: 'DUPLICATE_COMM_MAPPING',
+        message: `${group.length} active mappings for ${k} — the same recipient will be notified multiple times.`,
+        suggested_fix: 'Deactivate duplicates or merge into a single mapping with a single template.',
+      }));
+    }
+  }
+
   // critical events missing letter mapping
   const criticalEvents = ['CLAIM_APPROVED', 'CLAIM_REJECTED', 'CLAIM_SUSPENDED', 'OVERPAYMENT_RAISED'];
   for (const ev of criticalEvents) {
