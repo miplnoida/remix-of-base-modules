@@ -25,6 +25,7 @@ import { OverridePoliciesTab } from '@/components/bn/config/OverridePoliciesTab'
 import { VersionHistoryTab } from '@/components/bn/config/VersionHistoryTab';
 import { PreviewTab } from '@/components/bn/config/PreviewTab';
 import { ChannelsTab } from '@/components/bn/config/ChannelsTab';
+import { CommunicationsTab } from '@/components/bn/config/CommunicationsTab';
 
 const statusBadge: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'secondary', PENDING_APPROVAL: 'outline', ACTIVE: 'default', SUSPENDED: 'destructive', ARCHIVED: 'outline',
@@ -227,6 +228,7 @@ export default function ProductEditor() {
           <TabsTrigger value="workflow" disabled={isNew}>Workflow</TabsTrigger>
           <TabsTrigger value="screens" disabled={isNew}>Screens</TabsTrigger>
           <TabsTrigger value="channels" disabled={isNew}>Channels</TabsTrigger>
+          <TabsTrigger value="communications" disabled={isNew}>Communications</TabsTrigger>
           <TabsTrigger value="interactions" disabled={isNew}>Interactions</TabsTrigger>
           <TabsTrigger value="overrides" disabled={isNew}>Overrides</TabsTrigger>
           <TabsTrigger value="preview" disabled={isNew}>Preview</TabsTrigger>
