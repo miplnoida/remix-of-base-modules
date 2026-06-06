@@ -6372,6 +6372,172 @@ export type Database = {
           },
         ]
       }
+      bn_comm_event: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          description: string | null
+          event_code: string
+          event_name: string
+          is_mandatory_letter: boolean
+          requires_reason_code: boolean
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          description?: string | null
+          event_code: string
+          event_name: string
+          is_mandatory_letter?: boolean
+          requires_reason_code?: boolean
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          description?: string | null
+          event_code?: string
+          event_name?: string
+          is_mandatory_letter?: boolean
+          requires_reason_code?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bn_comm_mapping: {
+        Row: {
+          active: boolean
+          bn_product_version_id: string | null
+          channel: string
+          created_at: string
+          created_by: string | null
+          event_code: string
+          fallback_priority: number
+          id: string
+          is_required: boolean
+          recipient_type: string
+          template_id: string | null
+          updated_at: string
+          workflow_step_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          bn_product_version_id?: string | null
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          event_code: string
+          fallback_priority?: number
+          id?: string
+          is_required?: boolean
+          recipient_type: string
+          template_id?: string | null
+          updated_at?: string
+          workflow_step_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          bn_product_version_id?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          event_code?: string
+          fallback_priority?: number
+          id?: string
+          is_required?: boolean
+          recipient_type?: string
+          template_id?: string | null
+          updated_at?: string
+          workflow_step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_comm_mapping_event_code_fkey"
+            columns: ["event_code"]
+            isOneToOne: false
+            referencedRelation: "bn_comm_event"
+            referencedColumns: ["event_code"]
+          },
+        ]
+      }
+      bn_communication_log: {
+        Row: {
+          channel: string
+          claim_id: string
+          context: Json | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          event_code: string
+          id: string
+          last_retry_at: string | null
+          letter_id: string | null
+          provider_message_id: string | null
+          recipient_address: string | null
+          recipient_type: string
+          retry_count: number
+          status: string
+          subject: string | null
+          template_id: string | null
+          updated_at: string
+          workflow_step_id: string | null
+        }
+        Insert: {
+          channel: string
+          claim_id: string
+          context?: Json | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          event_code: string
+          id?: string
+          last_retry_at?: string | null
+          letter_id?: string | null
+          provider_message_id?: string | null
+          recipient_address?: string | null
+          recipient_type: string
+          retry_count?: number
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          updated_at?: string
+          workflow_step_id?: string | null
+        }
+        Update: {
+          channel?: string
+          claim_id?: string
+          context?: Json | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          event_code?: string
+          id?: string
+          last_retry_at?: string | null
+          letter_id?: string | null
+          provider_message_id?: string | null
+          recipient_address?: string | null
+          recipient_type?: string
+          retry_count?: number
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          updated_at?: string
+          workflow_step_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_communication_log_letter_id_fkey"
+            columns: ["letter_id"]
+            isOneToOne: false
+            referencedRelation: "bn_letter"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_country: {
         Row: {
           address_model_version: number
@@ -7314,6 +7480,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bn_letter: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          body_html: string | null
+          cancelled_at: string | null
+          claim_id: string
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          dispatched_at: string | null
+          dispatched_by: string | null
+          event_code: string
+          generated_at: string | null
+          id: string
+          merge_context: Json | null
+          notes: string | null
+          pdf_storage_path: string | null
+          printed_at: string | null
+          printed_by: string | null
+          recipient_address_snapshot: Json | null
+          recipient_name: string | null
+          recipient_type: string
+          returned_at: string | null
+          status: string
+          subject: string | null
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body_html?: string | null
+          cancelled_at?: string | null
+          claim_id: string
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          dispatched_at?: string | null
+          dispatched_by?: string | null
+          event_code: string
+          generated_at?: string | null
+          id?: string
+          merge_context?: Json | null
+          notes?: string | null
+          pdf_storage_path?: string | null
+          printed_at?: string | null
+          printed_by?: string | null
+          recipient_address_snapshot?: Json | null
+          recipient_name?: string | null
+          recipient_type: string
+          returned_at?: string | null
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          body_html?: string | null
+          cancelled_at?: string | null
+          claim_id?: string
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          dispatched_at?: string | null
+          dispatched_by?: string | null
+          event_code?: string
+          generated_at?: string | null
+          id?: string
+          merge_context?: Json | null
+          notes?: string | null
+          pdf_storage_path?: string | null
+          printed_at?: string | null
+          printed_by?: string | null
+          recipient_address_snapshot?: Json | null
+          recipient_name?: string | null
+          recipient_type?: string
+          returned_at?: string | null
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       bn_life_certificate: {
         Row: {
