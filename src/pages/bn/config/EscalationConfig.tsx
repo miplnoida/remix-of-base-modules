@@ -49,11 +49,13 @@ export default function EscalationConfig() {
   const saveMutation = useMutation({
     mutationFn: async (payload: any) => {
       if (isNew) {
-        const { error } = await db.from('bn_escalation_policy').insert({ ...payload, entered_by: userCode });
+        const { data, error } = await db.from('bn_escalation_policy').insert({ ...payload, entered_by: userCode }).select().single();
         if (error) throw error;
+        log({ entityType: 'bn_escalation_policy', entityId: data?.id ?? payload.policy_code, action: 'CREATE', after: payload });
       } else {
         const { error } = await db.from('bn_escalation_policy').update({ ...payload, modified_by: userCode, modified_at: new Date().toISOString() }).eq('id', editItem!.id);
         if (error) throw error;
+        log({ entityType: 'bn_escalation_policy', entityId: editItem!.id, action: 'UPDATE', before: editItem as any, after: payload });
       }
     },
     onSuccess: () => {
@@ -86,11 +88,18 @@ export default function EscalationConfig() {
   };
 
   const handleSave = () => {
+    if (!form.policy_code.trim() || !form.policy_name.trim()) { toast.error('Code and Name are required'); return; }
+    if (!form.escalation_target_role) { toast.error('Target Role is required'); return; }
+    const hours = parseInt(form.hours_overdue);
+    if (!hours || hours < 1) { toast.error('Hours Overdue must be a positive number'); return; }
+    if (isNew && policies.some(x => x.policy_code.toUpperCase() === form.policy_code.toUpperCase())) {
+      toast.error('Policy code already exists'); return;
+    }
     saveMutation.mutate({
       policy_code: form.policy_code,
       policy_name: form.policy_name,
       trigger_type: form.trigger_type,
-      trigger_config: { hours_overdue: parseInt(form.hours_overdue) || 48 },
+      trigger_config: { hours_overdue: hours },
       escalation_target_role: form.escalation_target_role,
       auto_reassign: form.auto_reassign,
       severity: form.severity,
