@@ -190,6 +190,28 @@ export async function resolveField(
         notes: `bn=${bnDup} legacy=${legacyDup}`,
       };
     }
+    case 'participant.deceasedRelationship': {
+      if (!ctx.claimId) {
+        return { fieldKey, resolver: def.resolver, value: null, sourceLabel: 'bn_claim_participant', notes: 'No claim id' };
+      }
+      const { data, error } = await db
+        .from('bn_claim_participant')
+        .select('participant_role, kind, relationship_to_insured')
+        .eq('claim_id', ctx.claimId);
+      if (error) {
+        return { fieldKey, resolver: def.resolver, value: null, sourceLabel: 'bn_claim_participant', notes: error.message };
+      }
+      const deceased = (data ?? []).find((r: any) =>
+        String(r.participant_role ?? '').toUpperCase() === 'DECEASED_INSURED_PERSON'
+        || String(r.kind ?? '').toUpperCase() === 'DECEASED'
+      );
+      const rel = deceased?.relationship_to_insured ? String(deceased.relationship_to_insured).toUpperCase() : null;
+      return {
+        fieldKey, resolver: def.resolver, value: rel,
+        sourceLabel: 'bn_claim_participant.relationship_to_insured',
+        notes: deceased ? (rel ? `Deceased relationship = ${rel}` : 'Deceased participant has no relationship set') : 'No deceased participant on this claim',
+      };
+    }
     default:
       throw new Error(`No resolver implemented for ${def.resolver}`);
   }
