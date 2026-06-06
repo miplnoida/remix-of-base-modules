@@ -178,9 +178,22 @@ export function ClaimParticipantsTab({ claimId }: Props) {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-2">
+                      <ParticipantMetadataEditor
+                        participant={p}
+                        busy={updateRelationship.isPending}
+                        onChangeRelationship={async (rel) => {
+                          try {
+                            await updateRelationship.mutateAsync({ participantId: p.id, relationship: rel });
+                            toast.success('Relationship updated.');
+                          } catch (e: any) {
+                            toast.error(e?.message ?? 'Could not update relationship');
+                          }
+                        }}
+                      />
                       {pTasks.length === 0 && (
                         <p className="text-xs text-muted-foreground">No tasks assigned to this participant yet.</p>
                       )}
+
                       {pTasks.map(t => (
                         <TaskRow
                           key={t.id}
