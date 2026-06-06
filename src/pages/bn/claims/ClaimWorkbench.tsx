@@ -425,64 +425,17 @@ export default function ClaimWorkbench() {
           </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
-        {/* ELIGIBILITY */}
+        {/* ELIGIBILITY — active */}
         <TabsContent value="eligibility" className="mt-6">
           <ClaimWorkbenchTabBoundary tabName="Eligibility">
-          {eligibility.length === 0 ? (
-            <BnEmptyState type="empty" title="No eligibility checks" description="Run an eligibility check from the action bar." />
-          ) : (
-            <div className="space-y-4">
-              {eligibility.map((check: any) => (
-                <div key={check.id} className="rounded-lg border p-4 bg-card">
-                  <div className="flex items-center justify-between">
-                    <BnStatusBadge status={check.overall_result ? 'APPROVED' : 'DENIED'} label={check.overall_result ? 'ELIGIBLE' : 'NOT ELIGIBLE'} />
-                    <span className="text-sm text-muted-foreground">{formatDateForDisplay(check.check_date)}</span>
-                  </div>
-                  {check.override_applied && (
-                    <p className="mt-2 text-sm text-destructive">Override by {check.override_by}: {check.override_reason}</p>
-                  )}
-                  {Array.isArray(check.rule_results) && check.rule_results.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      {check.rule_results.map((r: any, i: number) => (
-                        <div key={i} className="flex items-center gap-2 text-sm">
-                          <span className={r.passed ? 'text-emerald-600' : 'text-destructive'}>{r.passed ? '✓' : '✗'}</span>
-                          <span>{r.rule_name}: {r.message}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+            <ActiveEligibilityPanel claimId={claim.id} userCode={userCode} eligibility={eligibility as any[]} />
           </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
-        {/* CALCULATION */}
+        {/* CALCULATION — active */}
         <TabsContent value="calculation" className="mt-6">
           <ClaimWorkbenchTabBoundary tabName="Calculation">
-          {calculations.length === 0 ? (
-            <BnEmptyState type="empty" title="No calculations" description="Run a calculation from the action bar." />
-          ) : (
-            <div className="space-y-4">
-              {calculations.map((calc: any) => (
-                <div key={calc.id} className="rounded-lg border p-4 bg-card">
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                    {calc.weekly_rate != null && (
-                      <div><p className="text-sm text-muted-foreground">Weekly Rate</p><p className="text-xl font-bold">${calc.weekly_rate.toFixed(2)}</p></div>
-                    )}
-                    {calc.monthly_rate != null && (
-                      <div><p className="text-sm text-muted-foreground">Monthly Rate</p><p className="text-xl font-bold">${calc.monthly_rate.toFixed(2)}</p></div>
-                    )}
-                    {calc.lump_sum != null && (
-                      <div><p className="text-sm text-muted-foreground">Lump Sum</p><p className="text-xl font-bold">${calc.lump_sum.toFixed(2)}</p></div>
-                    )}
-                  </div>
-                  <p className="mt-3 text-xs text-muted-foreground">Calculated: {formatDateForDisplay(calc.calc_date)}</p>
-                </div>
-              ))}
-            </div>
-          )}
+            <ActiveCalculationPanel claimId={claim.id} userCode={userCode} calculations={calculations as any[]} />
           </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
