@@ -6062,6 +6062,66 @@ export type Database = {
           },
         ]
       }
+      bn_claim_participant: {
+        Row: {
+          claim_id: string
+          contact_ref: string | null
+          created_at: string
+          created_by: string | null
+          display_name: string | null
+          email: string | null
+          employer_regno: string | null
+          id: string
+          invite_sent_at: string | null
+          invite_token_hash: string | null
+          kind: string
+          metadata: Json
+          phone: string | null
+          provider_code: string | null
+          ssn: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          claim_id: string
+          contact_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          email?: string | null
+          employer_regno?: string | null
+          id?: string
+          invite_sent_at?: string | null
+          invite_token_hash?: string | null
+          kind: string
+          metadata?: Json
+          phone?: string | null
+          provider_code?: string | null
+          ssn?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          claim_id?: string
+          contact_ref?: string | null
+          created_at?: string
+          created_by?: string | null
+          display_name?: string | null
+          email?: string | null
+          employer_regno?: string | null
+          id?: string
+          invite_sent_at?: string | null
+          invite_token_hash?: string | null
+          kind?: string
+          metadata?: Json
+          phone?: string | null
+          provider_code?: string | null
+          ssn?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bn_claim_person_snapshot: {
         Row: {
           address_json: Json | null
@@ -7467,6 +7527,198 @@ export type Database = {
             columns: ["requirement_id"]
             isOneToOne: false
             referencedRelation: "bn_doc_requirement"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_external_task: {
+        Row: {
+          blocks_workflow: boolean
+          claim_id: string
+          created_at: string
+          created_by: string | null
+          decision_notes: string | null
+          due_at: string | null
+          id: string
+          participant_id: string | null
+          participant_kind: string
+          payload: Json
+          product_code: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          screen_template_id: string | null
+          secure_token_expires_at: string | null
+          secure_token_hash: string | null
+          secure_token_used_at: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          task_description: string | null
+          task_title: string
+          task_type: string
+          updated_at: string
+          workflow_step_id: string | null
+          workflow_task_id: string | null
+        }
+        Insert: {
+          blocks_workflow?: boolean
+          claim_id: string
+          created_at?: string
+          created_by?: string | null
+          decision_notes?: string | null
+          due_at?: string | null
+          id?: string
+          participant_id?: string | null
+          participant_kind: string
+          payload?: Json
+          product_code?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screen_template_id?: string | null
+          secure_token_expires_at?: string | null
+          secure_token_hash?: string | null
+          secure_token_used_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          task_description?: string | null
+          task_title: string
+          task_type: string
+          updated_at?: string
+          workflow_step_id?: string | null
+          workflow_task_id?: string | null
+        }
+        Update: {
+          blocks_workflow?: boolean
+          claim_id?: string
+          created_at?: string
+          created_by?: string | null
+          decision_notes?: string | null
+          due_at?: string | null
+          id?: string
+          participant_id?: string | null
+          participant_kind?: string
+          payload?: Json
+          product_code?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screen_template_id?: string | null
+          secure_token_expires_at?: string | null
+          secure_token_hash?: string | null
+          secure_token_used_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          task_description?: string | null
+          task_title?: string
+          task_type?: string
+          updated_at?: string
+          workflow_step_id?: string | null
+          workflow_task_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_external_task_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim_participant"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_external_task_audit: {
+        Row: {
+          actor_code: string | null
+          actor_kind: string | null
+          claim_id: string
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          actor_code?: string | null
+          actor_kind?: string | null
+          claim_id: string
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          actor_code?: string | null
+          actor_kind?: string | null
+          claim_id?: string
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_external_task_audit_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "bn_external_task"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_external_task_document: {
+        Row: {
+          claim_id: string
+          document_type_code: string | null
+          file_name: string
+          id: string
+          metadata: Json
+          mime_type: string | null
+          sha256: string | null
+          size_bytes: number | null
+          storage_bucket: string
+          storage_path: string
+          task_id: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          claim_id: string
+          document_type_code?: string | null
+          file_name: string
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          sha256?: string | null
+          size_bytes?: number | null
+          storage_bucket?: string
+          storage_path: string
+          task_id: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          claim_id?: string
+          document_type_code?: string | null
+          file_name?: string
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          sha256?: string | null
+          size_bytes?: number | null
+          storage_bucket?: string
+          storage_path?: string
+          task_id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_external_task_document_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "bn_external_task"
             referencedColumns: ["id"]
           },
         ]

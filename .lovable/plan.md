@@ -1,101 +1,115 @@
-# BN Hardening: Audit Enforcement, Submission Readiness & Config Governance
 
-This is a large, multi-phase initiative. I'll execute it in **3 shippable milestones** (not 11 separate phases) so each milestone is verifiable on its own and the system remains stable between deliveries.
+# Three External BN Portals on a Shared Integration Framework
 
----
+Internal BN stays the source of truth for eligibility, calculation, workflow, decisions, payments and letters. The three external portals (Claimant, Employer, Doctor) are separate UI sections that consume Internal BN through a single shared API client and never re-implement business rules.
 
-## Milestone 1 — Mandatory Audit Foundation (blocking)
+## 1. Architecture
 
-Establish a **service-layer audit layer that fails closed**. After this milestone, no BN mutation can succeed silently.
+```text
+┌──────────────────────────────────────────────────────────┐
+│                Internal BN (LAN, source of truth)        │
+│  Product Catalog · Screen & Field Library · Workflow ·   │
+│  Document Rules · Calculation · Decision · Payments      │
+└──────────────────────────────────────────────────────────┘
+                   ▲                ▲
+                   │  public API    │  edge functions
+                   │                │
+┌──────────────────┴────────────────┴──────────────────────┐
+│        Shared external framework (one codebase)          │
+│  externalAuthService · publicBenefitApiClient ·          │
+│  externalTaskService · externalDocumentUploadService ·   │
+│  externalMessageService · ExternalPortalShell            │
+└──────────────────────────────────────────────────────────┘
+       ▲                   ▲                    ▲
+┌──────┴──────┐    ┌───────┴──────┐    ┌────────┴────────┐
+│  Claimant   │    │   Employer   │    │ Doctor/Medical  │
+│   Portal    │    │    Portal    │    │     Portal      │
+└─────────────┘    └──────────────┘    └─────────────────┘
+```
 
-### Build
+Portals do not call any internal services directly. They only call the shared services, which call the public API. The same `ApplicationFormEngine` and `formDefinitionService` already used by Internal BN are reused — the API returns the *same* form definition with a `portalRole` filter applied server-side.
 
-1. **`src/services/bn/audit/bnAuditService.ts`** — central, **awaited** (not fire-and-forget) audit writer.
-   - `auditConfigChange`, `auditClaimAction`, `auditSubmission`, `auditWorkflowAction`, `auditCommunicationAction`, `auditDocumentAction`
-   - Writes to `system_audit_trail` with `entity_type`, `entity_id`, `action`, `before_state`, `after_state`, `notes`, `performed_by` (UserCode), `performed_at`, `module='BN'`, `correlation_id`
-   - **Critical actions** (PUBLISH/RETIRE/DELETE/APPROVE/DENY/SUBMIT): if insert fails → throw, mutation rolls back.
-   - **Non-critical** (read traces): logs warning but does not block.
+## 2. Database (additions only, no destructive changes)
 
-2. **Wrap mutations in `configService.ts`, `productChannelConfigService.ts`, `claimIntakeService.ts`, `claimActionRunner.ts`, `rulesAdminService.ts`** with the new audit calls. Pattern:
-   ```
-   before → mutate → after → await audit → return
-   ```
+New tables, all `public.` with role-based grants (RLS off, per project memory):
 
-3. **Demote `useBnConfigAudit`** to a thin wrapper around the new service so existing call sites keep working but go through enforced path.
+- **`bn_claim_participant`** — links a claim to a participant identity (`claimant` / `employer` / `doctor`) with contact ref, invite token, status.
+- **`bn_external_task`** — one row per task issued to an external participant; columns include `claim_id`, `participant_id`, `task_type` (`SICKNESS_CERT`, `EMP_CONFIRMATION`, `INJURY_REPORT`, …), `due_at`, `status` (`PENDING` / `SUBMITTED` / `ACCEPTED` / `REJECTED` / `EXPIRED`), `secure_token_hash`, `payload jsonb`, `screen_template_id`.
+- **`bn_external_task_document`** — uploads tied to a task (storage path, mime, sha256, uploaded_by).
+- **`bn_external_task_audit`** — append-only event log per task (mirrors to `system_audit_trail` + `bn_claim_event`).
 
-### Verify
-- Manually trigger a config update and confirm a `system_audit_trail` row appears synchronously.
-- Force an audit failure (bad payload) and confirm the parent mutation is reported as failed.
+Existing `bn_claim_application`, `bn_claim_document`, `bn_claim_event`, `system_audit_trail` are reused for cross-cutting audit.
 
----
+## 3. Public API surface (edge functions under `public-benefits/`)
 
-## Milestone 2 — Submission Readiness & RPC De-risking
+All endpoints accept either a portal session JWT or a one-time secure task token.
 
-Make public/offline submission production-safe.
+| Verb | Path | Purpose |
+|------|------|---------|
+| GET  | `/api/public/benefits/products` | List products with `public_channel_enabled = true` |
+| GET  | `/api/public/benefits/products/:productCode/form-definition?portalRole=CLAIMANT\|EMPLOYER\|DOCTOR` | Reuses `formDefinitionService.getApplicationFormDefinition` and filters fields/sections by participant role |
+| POST | `/api/public/benefits/applications` | Create a `bn_claim_application` draft/submit |
+| GET  | `/api/public/claims/:claimNumber/status` | Status + decision/payment summary |
+| GET  | `/api/public/tasks` | Tasks visible to caller (role-scoped) |
+| GET  | `/api/public/tasks/:taskId` | Task detail with assigned screen template |
+| POST | `/api/public/tasks/:taskId/submit` | Submit response → updates `bn_external_task`, fires `bn_claim_event`, clears workflow blocker when accepted |
+| POST | `/api/public/documents/upload` | Signed upload, writes to `bn_claim_document` or `bn_external_task_document` |
+| GET  | `/api/public/messages` | Letters/messages visible to caller |
 
-### Build
+Server-side guards:
+- Employer caller only sees tasks where `participant.kind = 'EMPLOYER'` and employer match.
+- Doctor caller only sees `participant.kind = 'DOCTOR'`.
+- Claimant only sees own claims (`ssn` match).
+- Secure token tasks bypass session but are single-use + expiring.
 
-1. **`src/services/bn/intake/intakeReadinessService.ts`**
-   - `validateChannelAllowed(productVersionId, channel)` — reads `bn_product_channel_config.is_enabled`
-   - `validateSubmissionRequirements(productVersionId, channel, payload)` — checks SSN lookup, identity verification, OTP per channel config
-   - `validateRequiredDocuments(productVersionId, channel, uploadedDocs)` — joins `bn_doc_requirement`
-   - `validateLookupRequirements(productVersionId, channel, payload)` — person/employer existence
+## 4. Shared framework (`src/portals/_shared/`)
 
-2. **`claimIntakeService.ts`** calls readiness service **before** RPC. On failure: throw with structured errors; no claim created.
+- `externalAuthService.ts` — session, secure token exchange, role detection.
+- `publicBenefitApiClient.ts` — thin fetch wrapper; one entry per endpoint above; never imports internal BN services.
+- `externalTaskService.ts` — list/fetch/submit tasks; emits optimistic updates.
+- `externalDocumentUploadService.ts` — chunked upload + signed URL refresh.
+- `externalMessageService.ts` — fetch/mark-read.
+- `ExternalPortalShell.tsx` — top bar, role badge, sign-out, locale, brand.
+- `usePublicFormDefinition.ts` — wraps `useQuery` over `/form-definition`; feeds the existing `ApplicationFormEngine` unchanged.
 
-3. **RPC `bn_submit_claim_application` migration:**
-   - Remove direct `workflow_instances` insert (workflow is now exclusively started by `claimIntakeService` via central engine).
-   - Replace `EXCEPTION WHEN OTHERS THEN NULL` on contribution snapshot / evidence checklist with inserts into `bn_claim_intake_validation` (WARN/FAIL) so failures are visible.
+## 5. Portal UIs (separate route trees, one app)
 
-4. **Audit submission** end-to-end: channel, resolved version, lookup results, snapshot outcomes, workflow start result → `system_audit_trail` + `bn_claim_event`.
+**Claimant** `/claimant/*`:
+`dashboard`, `apply`, `apply/:productCode`, `claims`, `claims/:claimNumber`, `tasks`, `documents`, `messages`, `payments`, `profile`.
 
-### Verify
-- PUBLIC_ONLINE with disabled channel → blocked before any DB write.
-- STAFF_OFFLINE with missing docs but `blocks_submission_if_documents_missing=false` → submission proceeds, WARN validation recorded.
-- Force snapshot failure → claim still created, FAIL row in `bn_claim_intake_validation`, no silent loss.
+**Employer** `/employer/*`:
+`dashboard`, `tasks`, `tasks/:taskId`, `employee-claims`, `accident-reports`, `confirmations`, `messages`.
 
----
+**Doctor** `/doctor/*`:
+`dashboard`, `tasks`, `tasks/:taskId`, `certificates`, `medical-reports`, `disablement-assessments`, `messages`.
 
-## Milestone 3 — Config Governance: Impact Analysis & Version Lock
+Each portal mounts `ExternalPortalShell` with its role and a left nav. All "form" screens render `ApplicationFormEngine` with the definition returned by `/form-definition` — no portal owns field lists, validation, eligibility or calc.
 
-Prevent destructive edits to active configuration.
+## 6. Internal BN integration (Claim Workbench)
 
-### Build
+Add a **Participants tab** to the existing Claim Workbench:
+- Lists claimant, employer(s), doctor(s) from `bn_claim_participant`.
+- Per participant: task status, submitted payload (read-only render of the same screen template), documents, accept / reject / reopen, resend invite (re-mints secure token).
+- Accepting a task fires the existing workflow advance; rejecting reopens the task with a reason.
 
-1. **`src/services/bn/config/configImpactService.ts`**
-   - `getFormulaUsage`, `getDocumentUsage`, `getReasonCodeUsage`, `getWorkbasketUsage`, `getEscalationPolicyUsage`, `getMedicalPolicyUsage`, `getScreenTemplateUsage`
-   - Each returns `{ activeVersionCount, totalReferences, references: [...] }`
+## 7. Audit & events
 
-2. **Delete/deactivate guard** in each config service: if used by an ACTIVE `bn_product_version` → throw `ConfigInUseError` with impact report; UI shows impact dialog.
+Every external action writes to `system_audit_trail` (user_code = participant identity) and inserts a `bn_claim_event` so the existing timeline shows it. `bn_external_task_audit` keeps a per-task ledger for evidence.
 
-3. **Active-version read-only**: `productService` rejects mutation of any `bn_product_version` whose `status='ACTIVE'`. Editing requires clone-to-draft (already exists) — surface a clear error if caller forgets.
+## 8. Build order
 
-4. **Validation Dashboard — "Audit Coverage" card**: lists services routed through `bnAuditService` and flags any BN page found doing raw `.insert/.update/.delete` (static scan results checked in as JSON).
+1. Migration: `bn_claim_participant`, `bn_external_task`, `bn_external_task_document`, `bn_external_task_audit` + grants.
+2. Edge function `public-benefits` implementing all endpoints, role-scoped, reusing `formDefinitionService`.
+3. Shared framework under `src/portals/_shared/`.
+4. Three portal route trees + nav shells + skeleton pages wired to the shared services.
+5. Claim Workbench → Participants tab.
+6. Verification pass: claimant submit, employer confirm, doctor certificate; confirm workflow blocker clears only after officer accepts.
 
-### Verify
-- Delete an unused formula → succeeds + audit.
-- Delete a formula referenced by an ACTIVE version → blocked with impact list.
-- Try to update an ACTIVE version directly → blocked, suggests clone.
-- Dashboard shows green coverage for all wrapped services.
+## 9. Non-goals (explicit)
 
----
+- No business rules in portals.
+- No new product/eligibility/calc tables.
+- No changes to existing intake; portals reuse `ApplicationFormEngine` and the same form definitions.
+- No RLS additions (project policy); access enforced in the edge function.
 
-## Out of scope for this initiative
-
-- Rewriting every page-level `.insert/.update` in non-BN modules.
-- New UI for cross-tab conflict detection (already shipped in prior turn).
-- Workflow engine internals beyond the RPC cleanup.
-
----
-
-## Risks & mitigations
-
-- **Risk:** Awaited audit increases mutation latency. **Mitigation:** Single insert, indexed table, acceptable for config/claim actions (not hot-path reads).
-- **Risk:** RPC change breaks existing in-flight claims. **Mitigation:** Migration is additive (validation rows + removing best-effort workflow insert); frontend already handles missing `workflow_instance_id`.
-- **Risk:** Active-version lock breaks existing flows. **Mitigation:** All known editors already go through draft; lock only catches mistakes.
-
----
-
-**Estimated tool calls:** ~40–60 across all three milestones. I'll deliver Milestone 1 first, ask for sign-off, then proceed.
-
-Confirm to proceed, or tell me to drop/reorder milestones.
+Approve and I'll start with the migration + edge function, then the shared framework, then the three portal shells, then the Workbench Participants tab.
