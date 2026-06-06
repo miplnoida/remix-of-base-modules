@@ -148,11 +148,13 @@ const LogList: React.FC<{ rows: any[]; loading?: boolean; onRetry: (id: string) 
   if (!rows.length) return <p className="text-sm text-muted-foreground p-4">No communications recorded.</p>;
   return (
     <div className="rounded-md border divide-y">
-      {rows.map((r) => (
+      {rows.map((r) => {
+        const dm = r.delivery_method || r.channel;
+        return (
         <div key={r.id} className="p-3 flex flex-col md:flex-row md:items-center gap-3 text-sm">
-          <div className="flex items-center gap-2 min-w-[140px]">
-            {channelIcon(r.channel)}
-            <span className="font-medium">{r.channel}</span>
+          <div className="flex items-center gap-2 min-w-[160px]">
+            {channelIcon(dm)}
+            <span className="font-medium">{dm}</span>
             <Badge variant="outline" className={STATUS_TONE[r.status] || ''}>{r.status}</Badge>
           </div>
           <div className="flex-1 min-w-0">
