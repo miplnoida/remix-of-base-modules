@@ -1,118 +1,81 @@
 
-# Rework Public Benefit Forms — Participant-Role Aware, Config-Driven
+# Make Funeral Grant Eligibility Rules Evaluable
 
-This is a large, cross-cutting change touching DB, Product Catalog config, public portal renderer, intake RPC, Claim Workbench, and validation. Below is the staged plan. I recommend executing in phases and approving each phase before moving on.
+## Background
 
----
+On claim `100047` (Funeral Grant), two eligibility rules always fail:
 
-## Phase 0 — Audit & legacy marking (read-only)
+1. **FUN-DEATH-DOC — "Death certificate present"** — actual=`true`, required=`—`. Rule JSON uses `requires_document: "DEATH_CERT"`, but the engine reads `value`/`operator`/`document_type_code`. The uploaded evidence is also tagged `document_type_code='GENERAL'`, so even a fixed comparison wouldn't match the death-certificate filter.
+2. **FUN-RELATION — "Insured / spouse / dependent child"** — actual=`—`, required=`—`. Rule JSON references `claim.benefit_type` and stores `deceased_relationship: [...]`. The engine has no resolver for the deceased's relationship, and the existing participants on the claim have `relationship_to_insured = null`.
 
-1. Inventory current public/legacy form routes:
-   - `/newbenefit/apply`, `/newbenefit/apply/:benefitType`, `/newbenefit/my-claims`
-   - `/nbenefit/application/:benefitType`, `/nbenefit/short-term/*`, `/nbenefit/long-term/*`
-   - `/bn/config/products`, `/bn/config/screen-setup`, `/bn/intake/register`
-   - `/claimant/apply/:productCode` (current PublicBenefitApplication)
-2. Add a "Legacy — do not use for new products" banner to `/newbenefit/*` and `/nbenefit/*` and stop linking to them from the Claimant Portal. They remain mounted for reference until removed.
-3. Single supported public entry becomes:
-   `/claimant/apply/:productCode` → `PortalFormRenderer` (new)
+The fix has four small pieces: rule data, engine resolver, upload UI, and participants UI.
 
-## Phase 1 — Participant model (DB)
+## Changes
 
-`bn_claim_participant` already exists (id, claim_id, kind, display_name, ssn, employer_regno, provider_code, email, phone, status, …). Extend it:
+### 1. Engine — new resolver `participant.deceased_relationship`
+File: `src/services/bn/eligibility/fieldRegistry.ts`, `src/services/bn/eligibility/fieldResolver.ts`, `src/services/bn/claimActionRunner.ts`
 
-- Add columns: `participant_role` (enum), `participant_type` (text), `relationship_to_insured` (text), `verification_status` (enum: UNVERIFIED, VERIFIED, REJECTED), `external_ref` (text), `payload jsonb`, `is_primary_applicant boolean`.
-- New enum `bn_participant_role` with the 13 values listed in the request.
-- Keep existing `kind` column for backward compatibility; new code reads/writes `participant_role`.
-- New table `bn_product_participant_config` (per product version):
-  `product_version_id, applicant_must_equal_insured, allowed_applicant_kinds[], required_roles[], optional_roles[], requires_deceased, requires_beneficiaries, requires_guardian_or_payee, requires_employer_task, requires_doctor_task, requires_school_task_when (jsonb), notes`.
-- GRANTs to `authenticated` + `service_role`.
+- Register a new field:
+  ```
+  key: 'participant.deceased_relationship'
+  valueType: 'string'
+  operators: ['==','!=','IN']
+  resolver: 'participant.deceasedRelationship'
+  dataSource: 'bn_claim_participant.relationship_to_insured (where participant_role = DECEASED_INSURED_PERSON)'
+  ```
+- Implement the resolver: query `bn_claim_participant` for the claim, pick the row with `participant_role = 'DECEASED_INSURED_PERSON'`, return `relationship_to_insured` (uppercased), source label `bn_claim_participant`.
+- No engine logic change needed for the `IN` operator — it is already supported by `operatorEvaluator.ts`.
 
-## Phase 2 — Product Catalog UI
+### 2. Fix the two seeded rule definitions
+Update `bn_eligibility_rule.rule_definition` for the two rule codes on product version `aa100001-6666-4000-a000-000000000007`:
 
-In `src/pages/bn/config/products/*` (Product Assembly), add a new tab **"Participants & Public Form Rules"** that edits `bn_product_participant_config` for the selected version. Pre-seed defaults for the 11 product families described (Sickness, Maternity, EI, Funeral, Age, Invalidity, Survivors, NCP, Life Cert, School Cert, EFT Update).
+- `FUN-DEATH-DOC` →
+  ```json
+  {
+    "field_key": "evidence.document_verified",
+    "operator": "==",
+    "value": true,
+    "document_type_code": "DEATH_CERT"
+  }
+  ```
+- `FUN-RELATION` →
+  ```json
+  {
+    "field_key": "participant.deceased_relationship",
+    "operator": "IN",
+    "value": ["INSURED", "SPOUSE", "DEPENDENT_CHILD"]
+  }
+  ```
 
-## Phase 3 — Public Form Renderer
+### 3. Upload Evidence Document dialog — let the user pick a Document Type
+File: `src/components/bn/evidence/EvidenceUploadDialog.tsx`
 
-Create `src/components/external/PortalFormRenderer.tsx` that:
+- Add a required `Document Type` `SearchableSelect` populated from `bn_doc_requirement` for the product (fallback: a hard-coded set including `DEATH_CERT`, `FUNERAL_INVOICE`, `BIRTH_CERT`, `EMPLOYER_REPORT`, `GENERAL`).
+- Persist the choice into `bn_claim_evidence.document_type_code` on upload.
+- Default to the requirement attached to the upload trigger when launched from a checklist row.
 
-1. Loads product version + `bn_product_participant_config` + `bn_screen_template` + `bn_field_metadata` + `bn_doc_requirement` for channel `PUBLIC_ONLINE`.
-2. Renders **Step 0 — "Who are you applying for?"** with options filtered by `allowed_applicant_kinds`.
-3. Based on selection, shows the appropriate smart fields:
-   `APPLICANT_SSN_LOOKUP`, `INSURED_PERSON_SSN_LOOKUP`, `DECEASED_PERSON_SSN_LOOKUP`, `BENEFICIARY_SELECTOR`, `GUARDIAN_PAYEE_DETAILS`, `EMPLOYER_LOOKUP`, `DOCTOR_PROVIDER_TASK_INVITE`.
-   New smart-field types added to `smartFieldRegistry.ts`.
-4. Renders remaining configured sections from `bn_screen_template` for channel `PUBLIC_ONLINE` (no hardcoded sections).
-5. Enforces document checklist + declaration before submit.
+### 4. Participants tab — capture `relationship_to_insured` for the deceased
+File: `src/components/bn/workbench/...` (the Participants tab editor / `bn_claim_participant` form)
 
-Replace `PublicBenefitApplication.tsx`'s body to mount `PortalFormRenderer` instead of `ApplicationFormEngine` for `PUBLIC_ONLINE`.
+- When the participant's `participant_role = 'DECEASED_INSURED_PERSON'` (or `kind = 'DECEASED'`), show a required `Relationship to Insured` dropdown:
+  - `INSURED`, `SPOUSE`, `DEPENDENT_CHILD`, `OTHER`.
+- Save to `bn_claim_participant.relationship_to_insured`.
 
-## Phase 4 — Submission payload + intake RPC
+### 5. Backfill / re-run
+- For claim `db5cc8c4-71bf-49f3-9eb5-dd81945fedce`, after the UI changes the user must:
+  1. Edit the existing deceased participant and set `relationship_to_insured`.
+  2. Re-upload (or edit) the evidence row so `document_type_code = 'DEATH_CERT'`.
+  3. Click **Re-run** on the Eligibility tab — both rules should pass.
+- No automatic data backfill ships with this change.
 
-Public submit payload shape:
-```
-{ applicant, insuredPerson, deceasedInsuredPerson, beneficiaries[], payee, guardian, employer, doctorProvider, benefitFacts, documents[], declaration }
-```
-Update edge function `public-benefits` (or call existing `bn_submit_claim_application` RPC) to:
-- Create `bn_claim` + `bn_claim_application`
-- Insert one `bn_claim_participant` per non-null section with proper `participant_role`
-- Snapshot person/deceased/beneficiaries into `bn_claim_person_snapshot` / `bn_claim_employer_snapshot`
-- Materialize evidence checklist + external tasks via existing `bn_materialize_external_tasks`
-- Start workflow + audit
+## Out of scope
 
-## Phase 5 — Claim Workbench Participants tab
+- No changes to other benefit products' rules.
+- No changes to the calculation/decision engine beyond the new resolver registration.
+- No RLS work.
 
-Update `Participants` tab in claim workspace to group by role:
-Applicant · Insured Person · Deceased IP · Beneficiaries · Payee/Guardian · Employer · Doctor/Provider · School/Funeral Home, with task status + documents per row.
+## Acceptance
 
-## Phase 6 — Claimant Portal dashboard
-
-`/claimant/dashboard` shows four lists, each via a scoped query against `bn_claim_participant`:
-- My own claims (role IN APPLICANT+INSURED_PERSON, same SSN)
-- Claims I submitted for someone else (APPLICANT but not INSURED_PERSON)
-- Claims where I am beneficiary
-- Claims where I am payee/guardian
-Plus pending actions = `bn_external_task` rows assigned to caller.
-
-## Phase 7 — Security scoping
-
-`public-benefits` edge function `/me/*` endpoints filter by `caller.ssn` matching any `bn_claim_participant.ssn` for that claim (any role) — not just CLAIMANT kind. Add `getClaimsForCaller(ssn)` helper.
-
-## Phase 8 — Configuration validator
-
-New script/page warning when a product version has `PUBLIC_ONLINE` enabled but:
-- no participant config row
-- Survivors without `requires_deceased`
-- Funeral without `requires_deceased`
-- Sickness/Maternity without employer/doctor task flags
-- Public screen template exposes a field flagged `staff_only`
-- No declaration field
-- No document checklist
-
-Surface in Product Catalog detail page as a warnings panel.
-
-## Phase 9 — Verification
-
-Manual test matrix covering all 8 scenarios in the request.
-
----
-
-## Technical notes
-
-- DB: 1 migration adds enum + columns + new config table + GRANTs. No RLS (per project rule — role-based only).
-- Edge function: extend `supabase/functions/public-benefits/index.ts` with new submit handler + caller-scoped listing.
-- Smart fields: extend `src/services/bn/registries/smartFieldRegistry.ts` with the 7 new role-lookup types.
-- Legacy `/newbenefit` and `/nbenefit` routes remain mounted with a deprecation banner so existing links don't 404.
-
----
-
-## Recommended execution order
-
-Given scope (likely 15–25 file changes + 1 migration + edge function rewrite), I suggest shipping in 3 PRs:
-
-1. **PR1 — Foundation:** DB migration (Phase 1) + smart-field registry + Product Catalog Participants tab (Phase 2).
-2. **PR2 — Public renderer:** `PortalFormRenderer` + new submit edge handler + replace `/claimant/apply/:productCode` body (Phases 3–4).
-3. **PR3 — Workbench + dashboard + validator:** Phases 5, 6, 8, plus security scoping (7) and verification pass (9).
-
-Please confirm:
-- (a) Approve plan as-is and start with **PR1**?
-- (b) Approve and want me to push straight through all three PRs sequentially?
-- (c) Any product-specific rule you want changed before I encode defaults in `bn_product_participant_config`?
+- New resolver is selectable in the Eligibility Rule editor; saving a rule with operator `IN` and a string array works.
+- For the test claim: setting deceased relationship to `INSURED` and uploading a verified `DEATH_CERT` makes both FUN-* rules pass and the overall Eligibility flips to PASS (subject to other rules).
+- Existing rules for other benefit products continue to evaluate unchanged.
