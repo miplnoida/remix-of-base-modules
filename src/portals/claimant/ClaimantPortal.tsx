@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, useParams, Link } from 'react-router-dom';
 import { useMemo } from 'react';
-import { ExternalPortalShell, type NavGroup } from '@/portals/_shared/ExternalPortalShell';
+import { ExternalPortalShell, type NavGroup, type NavItem } from '@/portals/_shared/ExternalPortalShell';
 import { ExternalTaskList } from '@/portals/_shared/ExternalTaskList';
 import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
 
