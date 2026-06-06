@@ -134,12 +134,12 @@ export function CommunicationsTab({ versionId, isReadOnly, versionStatus }: Prop
               </button>
               {isOpen && (
                 <div className="border-t bg-muted/20 p-3 space-y-2">
-                  {rows.length === 0 && <p className="text-xs text-muted-foreground">No channels configured yet.</p>}
+                  {rows.length === 0 && <p className="text-xs text-muted-foreground">No delivery methods configured yet.</p>}
                   {rows.length > 0 && (
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[140px]">Channel</TableHead>
+                          <TableHead className="w-[160px]">Delivery Method</TableHead>
                           <TableHead className="w-[180px]">Recipient</TableHead>
                           <TableHead>Template</TableHead>
                           <TableHead className="w-[90px]">Required</TableHead>
