@@ -325,7 +325,7 @@ export default function ClaimWorkbench() {
       </div>
 
       {/* Main Content — Tabs */}
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="overview" className="w-full">
         <TabsList className="w-full justify-start overflow-x-auto bg-muted/50 p-1 flex-wrap h-auto gap-1">
           <TabsTrigger value="overview" className="gap-1.5"><FileText className="h-3.5 w-3.5" /> Overview</TabsTrigger>
           <TabsTrigger value="claimant" className="gap-1.5"><User className="h-3.5 w-3.5" /> Claimant</TabsTrigger>
