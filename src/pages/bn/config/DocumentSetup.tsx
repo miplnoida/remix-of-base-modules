@@ -12,14 +12,15 @@ import { Switch } from '@/components/ui/switch';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Plus, Edit, FileCheck, Info } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Plus, Edit, FileCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBnDocumentProfiles, useUpsertBnDocumentProfile } from '@/hooks/bn/useBnConfig';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
+import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
+import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import type { BnDocumentProfile } from '@/types/bn';
 
 type ProfileForm = {
