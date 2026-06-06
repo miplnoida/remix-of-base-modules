@@ -63,7 +63,16 @@ export const publicBenefitApi = {
   listPayments: () => request<{ payments: any[] }>('/me/payments'),
   getContributionHistory: () => request<{ contributions: any[] }>('/me/contributions'),
   getEmploymentHistory: () => request<{ employment: any[] }>('/me/employment'),
-  getProfile: () => request<{ profile: any }>('/me/profile'),
+  getProfile: async (): Promise<{ profile: any }> => {
+    try {
+      return await request<{ profile: any }>('/me/profile');
+    } catch (e: any) {
+      // Logged-in user is not a claimant (e.g. staff previewing the portal).
+      // Don't blank-screen the portal — just return an empty profile.
+      if (e?.status === 403) return { profile: null };
+      throw e;
+    }
+  },
 
   // Tasks (claimant / employer / doctor)
   listTasks: (opts?: ApiOptions) => request<{ tasks: any[] }>('/tasks', { method: 'GET' }, opts),
