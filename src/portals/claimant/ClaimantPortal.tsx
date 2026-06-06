@@ -20,7 +20,10 @@ import {
 } from '@/portals/_shared/externalHooks';
 import { useClaimantPersona } from '@/hooks/external/useClaimantPersona';
 import { useProductApplicability, type ApplicableProduct } from '@/hooks/external/useProductApplicability';
+import { usePortalFeatureConfig } from '@/hooks/external/usePortalFeatureConfig';
+import { RequireFeature } from '@/components/external/RequireFeature';
 import type { PersonaFlags, Persona } from '@/services/external/portalPersonaService';
+import type { PortalFeatureConfig } from '@/services/external/portalFeatureConfigService';
 
 const BRAND = 'Social Security Self-Service Portal';
 
