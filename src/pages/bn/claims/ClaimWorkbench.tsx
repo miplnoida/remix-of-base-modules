@@ -125,6 +125,7 @@ export default function ClaimWorkbench() {
   // ── Local edits ────────────────────────────────────────────────
   const [localUpdates, setLocalUpdates] = useState<Record<string, any>>({});
   const [localDetail, setLocalDetail] = useState<Record<string, any> | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('overview');
 
   // ── Mutations ──────────────────────────────────────────────────
   const updateClaim = useUpdateBnClaim();
