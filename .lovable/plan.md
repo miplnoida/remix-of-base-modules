@@ -1,100 +1,101 @@
+# BN Hardening: Audit Enforcement, Submission Readiness & Config Governance
 
-# Smart BN Configuration Screens — Phased Rollout
-
-This is a large, cross-cutting refactor across 15 configuration screens. Doing it all in a single pass would be risky (regressions, TypeScript breakage, hard to review). I propose a **4-phase rollout** that builds shared foundations first, then upgrades each screen incrementally.
-
-Please confirm the phase order (or tell me to start with a specific screen, e.g. Product Catalog or Formula Library first).
+This is a large, multi-phase initiative. I'll execute it in **3 shippable milestones** (not 11 separate phases) so each milestone is verifiable on its own and the system remains stable between deliveries.
 
 ---
 
-## Phase 1 — Shared foundations (build once, reuse everywhere)
+## Milestone 1 — Mandatory Audit Foundation (blocking)
 
-Create the reusable building blocks every screen will depend on.
+Establish a **service-layer audit layer that fails closed**. After this milestone, no BN mutation can succeed silently.
 
-**Smart components** (`src/components/bn/smart/`):
-- `SmartSelect` — searchable dropdown wrapper around `SearchableSelect` with async loading
-- `ReferenceLookup` — picks a record from a library (formula, document, workbasket, etc.) with preview chip
-- `CodeFieldWithAutoGenerate` — auto-suggests codes from prefix + sequence, blocks duplicates (server-checked)
-- `RuleBuilder` — condition rows: field → operator (filtered by field type) → value control (filtered by field type)
-- `FormulaBuilder` — token-based formula editor with variable picker, operator toolbar, live parser, output type
-- `ConditionBuilder` — used by escalation/transition preconditions
-- `ValidationSummary` — re-used (already exists; extend for config context)
-- `ConfigPreviewPanel` — right-side panel showing live preview / test result / trace
-- `ReadOnlyVersionBanner` — enforced when status ∈ {ACTIVE, PENDING_APPROVAL, RETIRED}
+### Build
 
-**Registries & services** (`src/services/bn/registries/`):
-- `eligibilityFieldRegistry.ts` — typed catalogue (person.age_at_claim_date, contribution.paid_weeks, …) with `{ key, label, type, sourceTable, sourceColumn, sampleValue }`
-- `formulaVariableRegistry.ts` — allowed variables (avg_weekly_wage, paid_weeks, rate_pct, …) with type + sample
-- `smartFieldRegistry.ts` — UI field types (SSN_LOOKUP, MONEY, DECLARATION_CHECKBOX, …)
-- `transitionRegistry.ts` — allowed (fromStatus, action, toStatus) tuples per benefit branch
-- `communicationEventRegistry.ts` — fires on which workflow events
-- `operatorRegistry.ts` — operators per data type (number/string/boolean/date/list)
-- `configLookupService.ts` — fetches library records (formulas, documents, workbaskets, escalation policies, reason codes, screens, workflows, comm templates) and caches with react-query
+1. **`src/services/bn/audit/bnAuditService.ts`** — central, **awaited** (not fire-and-forget) audit writer.
+   - `auditConfigChange`, `auditClaimAction`, `auditSubmission`, `auditWorkflowAction`, `auditCommunicationAction`, `auditDocumentAction`
+   - Writes to `system_audit_trail` with `entity_type`, `entity_id`, `action`, `before_state`, `after_state`, `notes`, `performed_by` (UserCode), `performed_at`, `module='BN'`, `correlation_id`
+   - **Critical actions** (PUBLISH/RETIRE/DELETE/APPROVE/DENY/SUBMIT): if insert fails → throw, mutation rolls back.
+   - **Non-critical** (read traces): logs warning but does not block.
 
-**Formula parser** (`src/lib/bn/formulaParser.ts`):
-- Tokenize, validate variables against registry, return AST + output type + errors
-- `evaluateFormula(ast, inputs)` for the test/trace button
+2. **Wrap mutations in `configService.ts`, `productChannelConfigService.ts`, `claimIntakeService.ts`, `claimActionRunner.ts`, `rulesAdminService.ts`** with the new audit calls. Pattern:
+   ```
+   before → mutate → after → await audit → return
+   ```
 
-**Audit hook**:
-- `useBnConfigAudit` — writes to `system_audit_trail` on every save, capturing before/after JSON
+3. **Demote `useBnConfigAudit`** to a thin wrapper around the new service so existing call sites keep working but go through enforced path.
+
+### Verify
+- Manually trigger a config update and confirm a `system_audit_trail` row appears synchronously.
+- Force an audit failure (bad payload) and confirm the parent mutation is reported as failed.
 
 ---
 
-## Phase 2 — High-impact screens (Product Catalog + Libraries)
+## Milestone 2 — Submission Readiness & RPC De-risking
 
-Upgrade screens where uncontrolled text is most dangerous.
+Make public/offline submission production-safe.
 
-1. **Product Catalog** + version detail
-   - All metadata fields → dropdowns (country, scheme, branch, category, payment type, duration type)
-   - Version assembly tabs: each picker uses `ReferenceLookup` against the corresponding library
-   - Status gating: DRAFT editable, others read-only
-2. **Formula Library** — `FormulaBuilder` + validate/test/trace buttons
-3. **Document Library** + **Service Document Types** — controlled category/stage/file-type fields, duplicate-code block
-4. **Reason Codes** — category, applies-to multi-select, toggles
-5. **Rule Group Library** — auto-generated code, category dropdown, sort order
+### Build
 
----
+1. **`src/services/bn/intake/intakeReadinessService.ts`**
+   - `validateChannelAllowed(productVersionId, channel)` — reads `bn_product_channel_config.is_enabled`
+   - `validateSubmissionRequirements(productVersionId, channel, payload)` — checks SSN lookup, identity verification, OTP per channel config
+   - `validateRequiredDocuments(productVersionId, channel, uploadedDocs)` — joins `bn_doc_requirement`
+   - `validateLookupRequirements(productVersionId, channel, payload)` — person/employer existence
 
-## Phase 3 — Workflow & medical screens
+2. **`claimIntakeService.ts`** calls readiness service **before** RPC. On failure: throw with structured errors; no claim created.
 
-6. **Workbaskets** — owning role / queue type / assignment strategy / SLA dropdowns
-7. **Escalation Policies** — `ConditionBuilder` + numeric+unit + target role
-8. **Transition Matrix** — from/action/to builder, blocks invalid transitions via `transitionRegistry`
-9. **Medical Policy Library** — review type/interval/board-required/outcome controls
-10. **Screen & Field Library** — field-type dropdown driven by `smartFieldRegistry`; per-field channels/roles/source adapter/validation
+3. **RPC `bn_submit_claim_application` migration:**
+   - Remove direct `workflow_instances` insert (workflow is now exclusively started by `claimIntakeService` via central engine).
+   - Replace `EXCEPTION WHEN OTHERS THEN NULL` on contribution snapshot / evidence checklist with inserts into `bn_claim_intake_validation` (WARN/FAIL) so failures are visible.
 
----
+4. **Audit submission** end-to-end: channel, resolved version, lookup results, snapshot outcomes, workflow start result → `system_audit_trail` + `bn_claim_event`.
 
-## Phase 4 — Governance, simulation, validation
-
-11. **Rule Version Governance** — actions-only UI (compare/submit/approve/reject/publish/retire/rollback) + diff view; remove any inline rule editing
-12. **Calculation Simulator** — pick product + version → auto-load formula inputs from registry → run → trace + expected-vs-actual
-13. **Configuration Validation Dashboard** — new checks:
-    - missing required references
-    - invalid formula variables (parser-checked)
-    - invalid eligibility field keys (registry-checked)
-    - missing required documents / workflow / comm templates
-    - overlapping active versions
-    - duplicate codes
-    - orphan records
-    - active references to inactive library records
-14. **Country Pack** — country/locale/calendar/currency dropdowns; no free-text where a list exists
+### Verify
+- PUBLIC_ONLINE with disabled channel → blocked before any DB write.
+- STAFF_OFFLINE with missing docs but `blocks_submission_if_documents_missing=false` → submission proceeds, WARN validation recorded.
+- Force snapshot failure → claim still created, FAIL row in `bn_claim_intake_validation`, no silent loss.
 
 ---
 
-## Technical notes
+## Milestone 3 — Config Governance: Impact Analysis & Version Lock
 
-- **No new database schema** is strictly required for Phase 1–3 (the existing `bn_*` tables already cover this). Phase 4 may add a `bn_config_validation_findings` cache table — I'll surface a migration only if you confirm Phase 4.
-- All dropdowns load via react-query with 60s staleTime; cached in `configLookupService`.
-- All writes go through a single `saveWithAudit()` wrapper to guarantee `system_audit_trail` entries with `user_code`.
-- Read-only enforcement is centralized in a `useVersionEditability(versionId)` hook so every screen behaves identically.
-- TypeScript: every registry is exported as a `const` tuple + derived union type so the compiler catches typos at call sites.
+Prevent destructive edits to active configuration.
+
+### Build
+
+1. **`src/services/bn/config/configImpactService.ts`**
+   - `getFormulaUsage`, `getDocumentUsage`, `getReasonCodeUsage`, `getWorkbasketUsage`, `getEscalationPolicyUsage`, `getMedicalPolicyUsage`, `getScreenTemplateUsage`
+   - Each returns `{ activeVersionCount, totalReferences, references: [...] }`
+
+2. **Delete/deactivate guard** in each config service: if used by an ACTIVE `bn_product_version` → throw `ConfigInUseError` with impact report; UI shows impact dialog.
+
+3. **Active-version read-only**: `productService` rejects mutation of any `bn_product_version` whose `status='ACTIVE'`. Editing requires clone-to-draft (already exists) — surface a clear error if caller forgets.
+
+4. **Validation Dashboard — "Audit Coverage" card**: lists services routed through `bnAuditService` and flags any BN page found doing raw `.insert/.update/.delete` (static scan results checked in as JSON).
+
+### Verify
+- Delete an unused formula → succeeds + audit.
+- Delete a formula referenced by an ACTIVE version → blocked with impact list.
+- Try to update an ACTIVE version directly → blocked, suggests clone.
+- Dashboard shows green coverage for all wrapped services.
 
 ---
 
-## What I need from you
+## Out of scope for this initiative
 
-Pick one:
-- **(A)** Proceed in order: Phase 1 → 2 → 3 → 4 (recommended). I'll deliver Phase 1 first, then pause for review.
-- **(B)** Start with a specific screen (e.g. Product Catalog or Formula Library) end-to-end, foundations built only as needed.
-- **(C)** Different ordering — tell me which screens are highest priority.
+- Rewriting every page-level `.insert/.update` in non-BN modules.
+- New UI for cross-tab conflict detection (already shipped in prior turn).
+- Workflow engine internals beyond the RPC cleanup.
+
+---
+
+## Risks & mitigations
+
+- **Risk:** Awaited audit increases mutation latency. **Mitigation:** Single insert, indexed table, acceptable for config/claim actions (not hot-path reads).
+- **Risk:** RPC change breaks existing in-flight claims. **Mitigation:** Migration is additive (validation rows + removing best-effort workflow insert); frontend already handles missing `workflow_instance_id`.
+- **Risk:** Active-version lock breaks existing flows. **Mitigation:** All known editors already go through draft; lock only catches mistakes.
+
+---
+
+**Estimated tool calls:** ~40–60 across all three milestones. I'll deliver Milestone 1 first, ask for sign-off, then proceed.
+
+Confirm to proceed, or tell me to drop/reorder milestones.
