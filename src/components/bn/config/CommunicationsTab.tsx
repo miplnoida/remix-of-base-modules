@@ -98,11 +98,12 @@ export function CommunicationsTab({ versionId, isReadOnly, versionStatus }: Prop
           <div>
             <CardTitle>Communications</CardTitle>
             <CardDescription>
-              Map lifecycle events (Submitted, Approved, Denied, etc.) to channels, recipients and templates.
-              These run automatically when the workflow action is executed.
+              Controls how messages are sent when claim lifecycle events occur — email, SMS, physical letter,
+              in-app notification, or internal email. Mappings run automatically when the corresponding workflow
+              action executes. (Application submission methods live in the <strong>Application Channels</strong> tab.)
             </CardDescription>
           </div>
-          <Badge variant="outline">{totalMappings} mapping{totalMappings === 1 ? '' : 's'}</Badge>
+          <Badge variant="outline">{totalMappings} method{totalMappings === 1 ? '' : 's'}</Badge>
         </div>
         {isReadOnly && (
           <p className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
@@ -128,17 +129,17 @@ export function CommunicationsTab({ versionId, isReadOnly, versionStatus }: Prop
                   {event.is_mandatory_letter && <Badge variant="destructive" className="text-[10px]">Mandatory Letter</Badge>}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={rows.length ? 'default' : 'outline'}>{rows.length} channel{rows.length === 1 ? '' : 's'}</Badge>
+                  <Badge variant={rows.length ? 'default' : 'outline'}>{rows.length} method{rows.length === 1 ? '' : 's'}</Badge>
                 </div>
               </button>
               {isOpen && (
                 <div className="border-t bg-muted/20 p-3 space-y-2">
-                  {rows.length === 0 && <p className="text-xs text-muted-foreground">No channels configured yet.</p>}
+                  {rows.length === 0 && <p className="text-xs text-muted-foreground">No delivery methods configured yet.</p>}
                   {rows.length > 0 && (
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead className="w-[140px]">Channel</TableHead>
+                          <TableHead className="w-[160px]">Delivery Method</TableHead>
                           <TableHead className="w-[180px]">Recipient</TableHead>
                           <TableHead>Template</TableHead>
                           <TableHead className="w-[90px]">Required</TableHead>
@@ -194,7 +195,7 @@ export function CommunicationsTab({ versionId, isReadOnly, versionStatus }: Prop
                     </Table>
                   )}
                   <Button size="sm" variant="outline" onClick={() => addMapping(event.event_code)} disabled={isReadOnly} className="gap-2">
-                    <Plus className="h-4 w-4" /> Add channel mapping
+                    <Plus className="h-4 w-4" /> Add Communication Method
                   </Button>
                 </div>
               )}

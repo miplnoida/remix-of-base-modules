@@ -227,7 +227,7 @@ export default function ProductEditor() {
           <TabsTrigger value="documents" disabled={isNew}>Documents</TabsTrigger>
           <TabsTrigger value="workflow" disabled={isNew}>Workflow</TabsTrigger>
           <TabsTrigger value="screens" disabled={isNew}>Screens</TabsTrigger>
-          <TabsTrigger value="channels" disabled={isNew}>Channels</TabsTrigger>
+          <TabsTrigger value="channels" disabled={isNew}>Application Channels</TabsTrigger>
           <TabsTrigger value="communications" disabled={isNew}>Communications</TabsTrigger>
           <TabsTrigger value="interactions" disabled={isNew}>Interactions</TabsTrigger>
           <TabsTrigger value="overrides" disabled={isNew}>Overrides</TabsTrigger>

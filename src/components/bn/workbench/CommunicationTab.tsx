@@ -92,7 +92,7 @@ export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId })
           <div>
             <CardTitle>Claim Communications</CardTitle>
             <CardDescription>
-              Event-driven communications. Channels and templates are configured in Product Catalog → Communications.
+              Event-driven communications. Delivery methods and templates are configured in Product Catalog → Communications.
             </CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
