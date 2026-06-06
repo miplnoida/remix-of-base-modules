@@ -55,9 +55,10 @@ export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId })
   const letters = data?.letters || [];
 
   const split = useMemo(() => {
-    const emails = logs.filter((l: any) => l.channel === 'EMAIL' || l.channel === 'INTERNAL_EMAIL');
-    const sms = logs.filter((l: any) => l.channel === 'SMS');
-    const inapp = logs.filter((l: any) => l.channel === 'IN_APP');
+    const dm = (l: any) => l.delivery_method || l.channel;
+    const emails = logs.filter((l: any) => dm(l) === 'EMAIL' || dm(l) === 'INTERNAL_EMAIL');
+    const sms = logs.filter((l: any) => dm(l) === 'SMS');
+    const inapp = logs.filter((l: any) => dm(l) === 'IN_APP');
     const failed = logs.filter((l: any) => l.status === 'FAILED' || l.status === 'SKIPPED');
     return { emails, sms, inapp, failed };
   }, [logs]);
