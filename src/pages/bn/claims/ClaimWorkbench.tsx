@@ -315,20 +315,29 @@ export default function ClaimWorkbench() {
         </TabsList>
 
         <TabsContent value="application" className="mt-6">
-          <ApplicationDetailsPanel claimId={claim.id} productVersionId={(claim as any).product_version_id} />
+          <ClaimWorkbenchTabBoundary tabName="Application">
+            <ApplicationDetailsPanel claimId={claim.id} productVersionId={(claim as any).product_version_id} />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         <TabsContent value="tasks" className="mt-6">
-          <WorkflowTasksPanel claimId={claim.id} workflowInstanceId={claim.workflow_instance_id} />
+          <ClaimWorkbenchTabBoundary tabName="Tasks">
+            <WorkflowTasksPanel claimId={claim.id} workflowInstanceId={claim.workflow_instance_id} />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         <TabsContent value="payments" className="mt-6">
-          <PaymentsPanel claimId={claim.id} />
+          <ClaimWorkbenchTabBoundary tabName="Payments">
+            <PaymentsPanel claimId={claim.id} />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         <TabsContent value="snapshots" className="mt-6">
-          <ClaimSnapshotsPanel claimId={claim.id} />
+          <ClaimWorkbenchTabBoundary tabName="Snapshots">
+            <ClaimSnapshotsPanel claimId={claim.id} />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
+
 
         {/* OVERVIEW — Sections 1, 2, 3 */}
         <TabsContent value="overview" className="mt-6 space-y-4">
