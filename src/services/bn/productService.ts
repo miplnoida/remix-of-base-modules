@@ -1,8 +1,15 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { BnProduct, BnProductVersion, BnEligibilityRule, BnCalculationRule, BnTimelineRule } from '@/types/bn';
 import { assertVersionMutable } from './config/configImpactService';
+import { auditConfigChange } from './audit/bnAuditService';
+import { getCurrentUserCode } from './audit/getCurrentUserCode';
+import { assertSafeToPublish } from './config/publishGateService';
 
 const db = supabase as any;
+
+async function actor(): Promise<string> {
+  return (await getCurrentUserCode()) ?? 'system';
+}
 
 // ---- Product CRUD ----
 
@@ -21,12 +28,21 @@ export async function fetchProductById(id: string): Promise<BnProduct | null> {
 export async function createProduct(product: Partial<BnProduct>): Promise<BnProduct> {
   const { data, error } = await db.from('bn_product').insert(product).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: 'CREATE', entityType: 'bn_product', entityId: data.id,
+    afterValue: data, performedBy: await actor(), critical: true,
+  });
   return data as BnProduct;
 }
 
 export async function updateProduct(id: string, updates: Partial<BnProduct>): Promise<BnProduct> {
+  const before = await fetchProductById(id);
   const { data, error } = await db.from('bn_product').update({ ...updates, modified_at: new Date().toISOString() }).eq('id', id).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: 'UPDATE', entityType: 'bn_product', entityId: id,
+    beforeValue: before, afterValue: data, performedBy: await actor(),
+  });
   return data as BnProduct;
 }
 
@@ -60,6 +76,10 @@ export async function createProductVersion(version: Partial<BnProductVersion>): 
   }
   const { data, error } = await db.from('bn_product_version').insert(version).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: 'CREATE_VERSION', entityType: 'bn_product_version', entityId: data.id,
+    afterValue: data, performedBy: await actor(), critical: true,
+  });
   return data as BnProductVersion;
 }
 
@@ -77,6 +97,10 @@ export async function updateProductVersion(id: string, updates: Partial<BnProduc
   }
   const { data, error } = await db.from('bn_product_version').update({ ...updates, modified_at: new Date().toISOString() }).eq('id', id).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: 'UPDATE_VERSION', entityType: 'bn_product_version', entityId: id,
+    beforeValue: current, afterValue: data, performedBy: await actor(),
+  });
   return data as BnProductVersion;
 }
 
@@ -197,6 +221,15 @@ export async function publishProductVersion(
   const version = await fetchVersionById(versionId);
   if (!version) throw new Error('Version not found');
 
+  // ─── FINAL GATE: Configuration Validation must pass ─────────────
+  // Composes conflict detection + channel readiness + baseline validation.
+  const gate = await assertSafeToPublish(versionId);
+  if (!gate.ok) {
+    throw new Error(
+      `Publish blocked by Configuration Validation:\n• ${gate.errors.join('\n• ')}`,
+    );
+  }
+
   const existingActive = (await fetchVersionsByProduct(version.product_id))
     .filter(v => v.status === 'ACTIVE' && v.id !== versionId);
 
@@ -216,6 +249,11 @@ export async function publishProductVersion(
         effective_to: closeDate,
         modified_at: new Date().toISOString(),
       }).eq('id', ex.id);
+      await auditConfigChange({
+        action: 'RETIRE', entityType: 'bn_product_version', entityId: ex.id,
+        afterValue: { effective_to: closeDate, superseded_by: versionId },
+        performedBy: await actor(), critical: true,
+      });
     } else if (ex.effective_to >= newEffectiveFrom) {
       throw new Error(
         `Cannot publish: ACTIVE Version ${ex.version_number} ends on ${ex.effective_to}, ` +
@@ -229,6 +267,13 @@ export async function publishProductVersion(
     effective_from: newEffectiveFrom,
     modified_at: new Date().toISOString(),
   }).eq('id', versionId);
+
+  await auditConfigChange({
+    action: 'PUBLISH', entityType: 'bn_product_version', entityId: versionId,
+    beforeValue: { status: version.status },
+    afterValue: { status: 'ACTIVE', effective_from: newEffectiveFrom, gate: gate.details },
+    performedBy: await actor(), critical: true,
+  });
 }
 
 /**
@@ -252,6 +297,13 @@ export async function retireProductVersion(versionId: string): Promise<void> {
     status: 'ARCHIVED',
     modified_at: new Date().toISOString(),
   }).eq('id', versionId);
+
+  await auditConfigChange({
+    action: 'RETIRE', entityType: 'bn_product_version', entityId: versionId,
+    beforeValue: { status: 'ACTIVE' },
+    afterValue: { status: 'ARCHIVED', replacement_id: replacement?.id ?? null },
+    performedBy: await actor(), critical: true,
+  });
 }
 
 // ---- Eligibility Rules ----
@@ -266,14 +318,22 @@ export async function upsertEligibilityRule(rule: Partial<BnEligibilityRule>): P
   if (rule.product_version_id) await assertVersionMutable(rule.product_version_id);
   const { data, error } = await db.from('bn_eligibility_rule').upsert(rule).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: rule.id ? 'UPDATE' : 'CREATE', entityType: 'bn_eligibility_rule', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data as BnEligibilityRule;
 }
 
 export async function deleteEligibilityRule(id: string): Promise<void> {
-  const { data: existing } = await db.from('bn_eligibility_rule').select('product_version_id').eq('id', id).maybeSingle();
+  const { data: existing } = await db.from('bn_eligibility_rule').select('*').eq('id', id).maybeSingle();
   if (existing?.product_version_id) await assertVersionMutable(existing.product_version_id);
   const { error } = await db.from('bn_eligibility_rule').delete().eq('id', id);
   if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_eligibility_rule', entityId: id,
+    beforeValue: existing, performedBy: await actor(), critical: true,
+  });
 }
 
 // ---- Calculation Rules ----
@@ -288,14 +348,22 @@ export async function upsertCalculationRule(rule: Partial<BnCalculationRule>): P
   if (rule.product_version_id) await assertVersionMutable(rule.product_version_id);
   const { data, error } = await db.from('bn_calculation_rule').upsert(rule).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: rule.id ? 'UPDATE' : 'CREATE', entityType: 'bn_calculation_rule', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data as BnCalculationRule;
 }
 
 export async function deleteCalculationRule(id: string): Promise<void> {
-  const { data: existing } = await db.from('bn_calculation_rule').select('product_version_id').eq('id', id).maybeSingle();
+  const { data: existing } = await db.from('bn_calculation_rule').select('*').eq('id', id).maybeSingle();
   if (existing?.product_version_id) await assertVersionMutable(existing.product_version_id);
   const { error } = await db.from('bn_calculation_rule').delete().eq('id', id);
   if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_calculation_rule', entityId: id,
+    beforeValue: existing, performedBy: await actor(), critical: true,
+  });
 }
 
 // ---- Timeline Rules ----
@@ -310,12 +378,20 @@ export async function upsertTimelineRule(rule: Partial<BnTimelineRule>): Promise
   if (rule.product_version_id) await assertVersionMutable(rule.product_version_id);
   const { data, error } = await db.from('bn_timeline_rule').upsert(rule).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: rule.id ? 'UPDATE' : 'CREATE', entityType: 'bn_timeline_rule', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data as BnTimelineRule;
 }
 
 export async function deleteTimelineRule(id: string): Promise<void> {
-  const { data: existing } = await db.from('bn_timeline_rule').select('product_version_id').eq('id', id).maybeSingle();
+  const { data: existing } = await db.from('bn_timeline_rule').select('*').eq('id', id).maybeSingle();
   if (existing?.product_version_id) await assertVersionMutable(existing.product_version_id);
   const { error } = await db.from('bn_timeline_rule').delete().eq('id', id);
   if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_timeline_rule', entityId: id,
+    beforeValue: existing, performedBy: await actor(), critical: true,
+  });
 }

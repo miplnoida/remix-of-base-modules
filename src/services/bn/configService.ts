@@ -4,8 +4,20 @@ import type {
   BnDocumentProfile, BnWorkflowTemplate, BnScreenTemplate, BnFieldMetadata,
   BnInteractionRule, BnOverridePolicy, BnVersionApproval, BnDocumentRule,
 } from '@/types/bn';
+import { auditConfigChange } from './audit/bnAuditService';
+import { getCurrentUserCode } from './audit/getCurrentUserCode';
+import {
+  assertSafeToRemove,
+  getFormulaUsage,
+  getDocumentUsage,
+  getScreenTemplateUsage,
+  getWorkflowTemplateUsage,
+} from './config/configImpactService';
 
 const db = supabase as any;
+
+const actor = async () => (await getCurrentUserCode()) ?? 'system';
+
 
 // ---- Country ----
 export const fetchCountries = async (): Promise<BnCountry[]> => {
@@ -44,6 +56,10 @@ export const fetchRuleGroups = async (countryCode?: string): Promise<BnRuleGroup
 export const upsertRuleGroup = async (rg: Partial<BnRuleGroup>): Promise<BnRuleGroup> => {
   const { data, error } = await db.from('bn_rule_group').upsert(rg).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: rg.id ? 'UPDATE' : 'CREATE', entityType: 'bn_rule_group', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data;
 };
 
@@ -59,12 +75,23 @@ export const fetchFormulaTemplates = async (countryCode?: string): Promise<BnFor
 export const upsertFormulaTemplate = async (ft: Partial<BnFormulaTemplate>): Promise<BnFormulaTemplate> => {
   const { data, error } = await db.from('bn_formula_template').upsert(ft).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: ft.id ? 'UPDATE' : 'CREATE', entityType: 'bn_formula_template', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data;
 };
 
 export const deleteFormulaTemplate = async (id: string): Promise<void> => {
+  // Impact analysis — block if used by any ACTIVE product version.
+  assertSafeToRemove(await getFormulaUsage(id), `formula template ${id}`);
+  const { data: existing } = await db.from('bn_formula_template').select('*').eq('id', id).maybeSingle();
   const { error } = await db.from('bn_formula_template').delete().eq('id', id);
   if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_formula_template', entityId: id,
+    beforeValue: existing, performedBy: await actor(), critical: true,
+  });
 };
 
 // ---- Document Profiles ----
@@ -77,6 +104,10 @@ export const fetchDocumentProfiles = async (): Promise<BnDocumentProfile[]> => {
 export const upsertDocumentProfile = async (dp: Partial<BnDocumentProfile>): Promise<BnDocumentProfile> => {
   const { data, error } = await db.from('bn_document_profile').upsert(dp).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: dp.id ? 'UPDATE' : 'CREATE', entityType: 'bn_document_profile', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data;
 };
 
@@ -126,6 +157,10 @@ export const upsertDocumentRule = async (rule: Partial<BnDocumentRule>): Promise
   if (rule.id) payload.id = rule.id;
   const { data, error } = await db.from('bn_doc_requirement').upsert(payload).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: rule.id ? 'UPDATE' : 'CREATE', entityType: 'bn_doc_requirement', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return {
     ...data,
     document_name: data.description || data.document_type_code,
@@ -134,14 +169,24 @@ export const upsertDocumentRule = async (rule: Partial<BnDocumentRule>): Promise
 };
 
 export const deleteDocumentRule = async (id: string): Promise<void> => {
+  const { data: existing } = await db.from('bn_doc_requirement').select('*').eq('id', id).maybeSingle();
+  if (existing?.document_type_code) {
+    // Cross-product impact — block if same document code feeds an ACTIVE version.
+    assertSafeToRemove(
+      await getDocumentUsage(existing.document_type_code),
+      `document requirement ${existing.document_type_code}`,
+    );
+  }
   const { error } = await db.from('bn_doc_requirement').delete().eq('id', id);
   if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_doc_requirement', entityId: id,
+    beforeValue: existing, performedBy: await actor(), critical: true,
+  });
 };
 
 /**
  * Copy all bn_doc_requirement rows from sourceVersionId into targetVersionId.
- * Preserves all fields (channel, visibility, blocking flags, condition_json, etc.)
- * other than id/audit/version columns.
  */
 export const copyDocumentRequirements = async (
   sourceVersionId: string,
@@ -170,7 +215,22 @@ export const fetchWorkflowTemplates = async (): Promise<BnWorkflowTemplate[]> =>
 export const upsertWorkflowTemplate = async (wt: Partial<BnWorkflowTemplate>): Promise<BnWorkflowTemplate> => {
   const { data, error } = await db.from('bn_workflow_template').upsert(wt).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: wt.id ? 'UPDATE' : 'CREATE', entityType: 'bn_workflow_template', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data;
+};
+
+export const deleteWorkflowTemplate = async (id: string): Promise<void> => {
+  assertSafeToRemove(await getWorkflowTemplateUsage(id), `workflow template ${id}`);
+  const { data: existing } = await db.from('bn_workflow_template').select('*').eq('id', id).maybeSingle();
+  const { error } = await db.from('bn_workflow_template').delete().eq('id', id);
+  if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_workflow_template', entityId: id,
+    beforeValue: existing, performedBy: await actor(), critical: true,
+  });
 };
 
 // ---- Screen Templates ----
@@ -183,7 +243,22 @@ export const fetchScreenTemplates = async (): Promise<BnScreenTemplate[]> => {
 export const upsertScreenTemplate = async (st: Partial<BnScreenTemplate>): Promise<BnScreenTemplate> => {
   const { data, error } = await db.from('bn_screen_template').upsert(st).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: st.id ? 'UPDATE' : 'CREATE', entityType: 'bn_screen_template', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data;
+};
+
+export const deleteScreenTemplate = async (id: string): Promise<void> => {
+  assertSafeToRemove(await getScreenTemplateUsage(id), `screen template ${id}`);
+  const { data: existing } = await db.from('bn_screen_template').select('*').eq('id', id).maybeSingle();
+  const { error } = await db.from('bn_screen_template').delete().eq('id', id);
+  if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_screen_template', entityId: id,
+    beforeValue: existing, performedBy: await actor(), critical: true,
+  });
 };
 
 // ---- Field Metadata ----
@@ -196,12 +271,21 @@ export const fetchFieldMetadata = async (templateId: string): Promise<BnFieldMet
 export const upsertFieldMetadata = async (fm: Partial<BnFieldMetadata>): Promise<BnFieldMetadata> => {
   const { data, error } = await db.from('bn_field_metadata').upsert(fm).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: fm.id ? 'UPDATE' : 'CREATE', entityType: 'bn_field_metadata', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data;
 };
 
 export const deleteFieldMetadata = async (id: string): Promise<void> => {
+  const { data: existing } = await db.from('bn_field_metadata').select('*').eq('id', id).maybeSingle();
   const { error } = await db.from('bn_field_metadata').delete().eq('id', id);
   if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_field_metadata', entityId: id,
+    beforeValue: existing, performedBy: await actor(),
+  });
 };
 
 // ---- Interaction Rules ----
@@ -214,12 +298,21 @@ export const fetchInteractionRules = async (): Promise<BnInteractionRule[]> => {
 export const upsertInteractionRule = async (ir: Partial<BnInteractionRule>): Promise<BnInteractionRule> => {
   const { data, error } = await db.from('bn_interaction_rule').upsert(ir).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: ir.id ? 'UPDATE' : 'CREATE', entityType: 'bn_interaction_rule', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data;
 };
 
 export const deleteInteractionRule = async (id: string): Promise<void> => {
+  const { data: existing } = await db.from('bn_interaction_rule').select('*').eq('id', id).maybeSingle();
   const { error } = await db.from('bn_interaction_rule').delete().eq('id', id);
   if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_interaction_rule', entityId: id,
+    beforeValue: existing, performedBy: await actor(), critical: true,
+  });
 };
 
 // ---- Override Policies ----
@@ -232,12 +325,21 @@ export const fetchOverridePolicies = async (): Promise<BnOverridePolicy[]> => {
 export const upsertOverridePolicy = async (op: Partial<BnOverridePolicy>): Promise<BnOverridePolicy> => {
   const { data, error } = await db.from('bn_override_policy').upsert(op).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: op.id ? 'UPDATE' : 'CREATE', entityType: 'bn_override_policy', entityId: data.id,
+    afterValue: data, performedBy: await actor(),
+  });
   return data;
 };
 
 export const deleteOverridePolicy = async (id: string): Promise<void> => {
+  const { data: existing } = await db.from('bn_override_policy').select('*').eq('id', id).maybeSingle();
   const { error } = await db.from('bn_override_policy').delete().eq('id', id);
   if (error) throw error;
+  await auditConfigChange({
+    action: 'DELETE', entityType: 'bn_override_policy', entityId: id,
+    beforeValue: existing, performedBy: await actor(), critical: true,
+  });
 };
 
 // ---- Version Approval ----
