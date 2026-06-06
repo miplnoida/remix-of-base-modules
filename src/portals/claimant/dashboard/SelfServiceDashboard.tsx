@@ -25,6 +25,7 @@ import {
 } from '@/portals/_shared/externalHooks';
 import { useState } from 'react';
 import type { Persona } from '@/services/external/portalPersonaService';
+import { SelfLinkBanner } from '@/portals/claimant/register/SelfLinkBanner';
 
 /* ─── Persona badges ─────────────────────────────────────────── */
 
@@ -484,6 +485,7 @@ export default function SelfServiceDashboard() {
 
   return (
     <div className="space-y-6">
+      <SelfLinkBanner />
       {/* Welcome strip */}
       <div className="rounded-xl border bg-gradient-to-br from-primary/5 via-background to-background p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">

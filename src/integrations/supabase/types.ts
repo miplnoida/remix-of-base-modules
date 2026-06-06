@@ -33053,6 +33053,36 @@ export type Database = {
           },
         ]
       }
+      external_identity_link_attempt: {
+        Row: {
+          attempted_ssn_masked: string
+          created_at: string
+          decision: string
+          id: string
+          match_score: number
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          attempted_ssn_masked: string
+          created_at?: string
+          decision: string
+          id?: string
+          match_score?: number
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          attempted_ssn_masked?: string
+          created_at?: string
+          decision?: string
+          id?: string
+          match_score?: number
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       external_persona_audit: {
         Row: {
           created_at: string
@@ -33136,40 +33166,97 @@ export type Database = {
           created_at: string
           id: string
           is_primary: boolean
+          match_method: string | null
+          match_score: number | null
           notes: string | null
           relationship_type: string
           ssn: string
           updated_at: string
           user_id: string
+          verification_method: string | null
           verification_status: string
           verified_at: string | null
           verified_by: string | null
+          verified_email: boolean
+          verified_phone: boolean
         }
         Insert: {
           created_at?: string
           id?: string
           is_primary?: boolean
+          match_method?: string | null
+          match_score?: number | null
           notes?: string | null
           relationship_type: string
           ssn: string
           updated_at?: string
           user_id: string
+          verification_method?: string | null
           verification_status?: string
           verified_at?: string | null
           verified_by?: string | null
+          verified_email?: boolean
+          verified_phone?: boolean
         }
         Update: {
           created_at?: string
           id?: string
           is_primary?: boolean
+          match_method?: string | null
+          match_score?: number | null
           notes?: string | null
           relationship_type?: string
           ssn?: string
           updated_at?: string
           user_id?: string
+          verification_method?: string | null
           verification_status?: string
           verified_at?: string | null
           verified_by?: string | null
+          verified_email?: boolean
+          verified_phone?: boolean
+        }
+        Relationships: []
+      }
+      external_verification_attempt: {
+        Row: {
+          attempt_count: number
+          channel: string
+          created_at: string
+          destination_masked: string
+          expires_at: string
+          id: string
+          otp_hash: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          attempt_count?: number
+          channel: string
+          created_at?: string
+          destination_masked: string
+          expires_at: string
+          id?: string
+          otp_hash?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          attempt_count?: number
+          channel?: string
+          created_at?: string
+          destination_masked?: string
+          expires_at?: string
+          id?: string
+          otp_hash?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
         }
         Relationships: []
       }
