@@ -46,6 +46,12 @@ const emptyForm: FormulaForm = {
   is_active: true,
 };
 
+const OUTPUT_TYPES = [
+  { value: 'NUMBER', label: 'Number' },
+  { value: 'MONEY', label: 'Money' },
+  { value: 'PERCENT', label: 'Percent' },
+];
+
 export default function FormulaConfiguration() {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -53,11 +59,16 @@ export default function FormulaConfiguration() {
   const { data: formulas = [], isLoading } = useBnFormulaTemplates();
   const upsert = useUpsertBnFormulaTemplate();
   const { userCode } = useUserCode();
+  const audit = useBnConfigAudit();
 
   const filtered = formulas.filter((f: BnFormulaTemplate) =>
     !search || f.template_name?.toLowerCase().includes(search.toLowerCase()) ||
     f.template_code?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const otherCodes = formulas
+    .filter((f: BnFormulaTemplate) => f.id !== form.id)
+    .map((f: BnFormulaTemplate) => f.template_code);
 
   const openAdd = () => { setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (f: BnFormulaTemplate) => {
@@ -81,8 +92,20 @@ export default function FormulaConfiguration() {
       });
       return;
     }
+    // Block duplicate codes
+    if (otherCodes.map(c => c.toUpperCase()).includes(form.template_code.trim().toUpperCase())) {
+      toast.error('Duplicate code', { description: 'Another formula already uses this code.' });
+      return;
+    }
+    // Validate formula against the registry
+    const parsed = parseFormula(form.formula_expression);
+    if (!parsed.valid) {
+      toast.error('Formula is invalid', { description: parsed.errors.join('; ') });
+      return;
+    }
     try {
-      await upsert.mutateAsync({
+      const before = form.id ? formulas.find((f: BnFormulaTemplate) => f.id === form.id) ?? null : null;
+      const saved = await upsert.mutateAsync({
         ...(form.id ? { id: form.id } : {}),
         template_code: form.template_code.trim(),
         template_name: form.template_name.trim(),
@@ -93,6 +116,13 @@ export default function FormulaConfiguration() {
         is_active: form.is_active,
         entered_by: userCode ?? null,
       } as Partial<BnFormulaTemplate>);
+      audit.log({
+        entityType: 'bn_formula_template',
+        entityId: (saved as any)?.id ?? form.id ?? 'new',
+        action: form.id ? 'UPDATE' : 'CREATE',
+        before,
+        after: { ...form, variables_used: parsed.variablesUsed },
+      });
       toast.success(form.id ? 'Formula updated' : 'Formula created');
       setDialogOpen(false);
     } catch (e: any) {
