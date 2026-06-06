@@ -113,8 +113,34 @@ function numericContradiction(a: { op?: string; value?: any }, b: { op?: string;
 
 function stringContradiction(a: any, b: any): boolean {
   const eq = (op: string) => op === '=' || op === '==';
-  if (eq(a.op) && eq(b.op) && a.value !== b.value) return true;
+  const neq = (op: string) => op === '!=';
+  if (eq(a.op) && eq(b.op) && String(a.value) !== String(b.value)) return true;
+  // X == V  vs  X != V → contradiction
+  if ((eq(a.op) && neq(b.op) && String(a.value) === String(b.value)) ||
+      (eq(b.op) && neq(a.op) && String(a.value) === String(b.value))) return true;
+  // IN [..] vs == V where V not in list
+  const inOp = (op: string) => op === 'IN' || op === 'in';
+  const notInOp = (op: string) => op === 'NOT_IN' || op === 'not_in';
+  const arr = (v: any) => Array.isArray(v) ? v.map(String) : String(v ?? '').split(',').map(s => s.trim()).filter(Boolean);
+  if (inOp(a.op) && eq(b.op) && !arr(a.value).includes(String(b.value))) return true;
+  if (inOp(b.op) && eq(a.op) && !arr(b.value).includes(String(a.value))) return true;
+  if (notInOp(a.op) && eq(b.op) && arr(a.value).includes(String(b.value))) return true;
+  if (notInOp(b.op) && eq(a.op) && arr(b.value).includes(String(a.value))) return true;
+  // Two IN lists with empty intersection
+  if (inOp(a.op) && inOp(b.op)) {
+    const sa = new Set(arr(a.value));
+    const inter = arr(b.value).filter(v => sa.has(v));
+    if (inter.length === 0) return true;
+  }
   return false;
+}
+
+function booleanContradiction(a: any, b: any): boolean {
+  const truthy = (v: any) => v === true || v === 'true' || v === 1 || v === '1' || v === 'IS_TRUE';
+  const falsy = (v: any) => v === false || v === 'false' || v === 0 || v === '0' || v === 'IS_FALSE';
+  const isBool = (v: any) => typeof v === 'boolean' || ['true', 'false', '1', '0', 'IS_TRUE', 'IS_FALSE'].includes(String(v));
+  if (!isBool(a.value) || !isBool(b.value)) return false;
+  return (truthy(a.value) && falsy(b.value)) || (falsy(a.value) && truthy(b.value));
 }
 
 export async function detectEligibilityConflicts(versionId: string): Promise<Conflict[]> {
@@ -123,11 +149,45 @@ export async function detectEligibilityConflicts(versionId: string): Promise<Con
   const rules = data || [];
   const out: Conflict[] = [];
 
+  // duplicate rule_code at same version
+  const byCode = new Map<string, any[]>();
+  for (const r of rules) {
+    if (!r.rule_code) continue;
+    if (!byCode.has(r.rule_code)) byCode.set(r.rule_code, []);
+    byCode.get(r.rule_code)!.push(r);
+  }
+  for (const [code, list] of byCode) {
+    if (list.length > 1) {
+      out.push(mk({
+        severity: 'WARNING',
+        product_version_id: versionId,
+        tab: 'Eligibility',
+        entity_type: 'bn_eligibility_rule',
+        entity_ids: list.map((r: any) => r.id),
+        conflict_type: 'DUPLICATE_RULE_CODE',
+        message: `${list.length} active eligibility rules share rule_code "${code}".`,
+        suggested_fix: 'Rename one of the rule codes or deactivate the duplicates.',
+      }));
+    }
+  }
+
   // group by field
   const byField = new Map<string, any[]>();
   for (const r of rules) {
     const { field } = extractFieldOp(r);
-    if (!field) continue;
+    if (!field) {
+      out.push(mk({
+        severity: 'INFO',
+        product_version_id: versionId,
+        tab: 'Eligibility',
+        entity_type: 'bn_eligibility_rule',
+        entity_ids: [r.id],
+        conflict_type: 'RULE_MISSING_FIELD',
+        message: `Rule "${r.rule_name || r.rule_code}" has no field/operator/value defined.`,
+        suggested_fix: 'Open the rule in the builder and pick a field, operator and value.',
+      }));
+      continue;
+    }
     if (!byField.has(field)) byField.set(field, []);
     byField.get(field)!.push(r);
   }
@@ -138,24 +198,25 @@ export async function detectEligibilityConflicts(versionId: string): Promise<Con
       for (let j = i + 1; j < group.length; j++) {
         const ai = extractFieldOp(group[i]);
         const bj = extractFieldOp(group[j]);
-        const contradicts = NUMERIC_OPS.has(ai.op || '') && NUMERIC_OPS.has(bj.op || '')
+        const sameGroup = (group[i].rule_group || '') === (group[j].rule_group || '');
+        const numeric = NUMERIC_OPS.has(ai.op || '') && NUMERIC_OPS.has(bj.op || '');
+        const contradicts = numeric
           ? numericContradiction(ai, bj)
-          : stringContradiction(ai, bj);
+          : booleanContradiction(ai, bj) || stringContradiction(ai, bj);
         if (contradicts) {
           out.push(mk({
-            severity: 'ERROR',
+            severity: sameGroup ? 'ERROR' : 'WARNING',
             product_version_id: versionId,
             tab: 'Eligibility',
             entity_type: 'bn_eligibility_rule',
             entity_ids: [group[i].id, group[j].id],
-            conflict_type: 'IMPOSSIBLE_CONDITION',
-            message: `Rules "${group[i].rule_name}" (${ai.op} ${ai.value}) and "${group[j].rule_name}" (${bj.op} ${bj.value}) on field "${field}" cannot both be satisfied.`,
-            suggested_fix: `Adjust one of the thresholds, move the rules to alternative paths/groups, or deactivate one.`,
+            conflict_type: sameGroup ? 'IMPOSSIBLE_CONDITION' : 'CROSS_GROUP_CONTRADICTION',
+            message: `Rules "${group[i].rule_name}" (${ai.op} ${ai.value}) and "${group[j].rule_name}" (${bj.op} ${bj.value}) on field "${field}"${sameGroup ? ' in the same group' : ` across groups "${group[i].rule_group}" / "${group[j].rule_group}"`} cannot both be satisfied.`,
+            suggested_fix: 'Adjust one of the thresholds, move the rules to alternative paths/groups, or deactivate one.',
           }));
         }
-
-        // exact duplicates
-        if (ai.op === bj.op && String(ai.value) === String(bj.value)) {
+        // exact duplicates within same group
+        if (sameGroup && ai.op === bj.op && String(ai.value) === String(bj.value)) {
           out.push(mk({
             severity: 'WARNING',
             product_version_id: versionId,
@@ -163,9 +224,29 @@ export async function detectEligibilityConflicts(versionId: string): Promise<Con
             entity_type: 'bn_eligibility_rule',
             entity_ids: [group[i].id, group[j].id],
             conflict_type: 'DUPLICATE_RULE',
-            message: `Duplicate eligibility rule for ${field} ${ai.op} ${ai.value}.`,
+            message: `Duplicate eligibility rule for ${field} ${ai.op} ${ai.value} within group "${group[i].rule_group || 'default'}".`,
             suggested_fix: 'Remove one of the duplicates or consolidate into a single rule group.',
           }));
+        }
+        // subsumed rule: e.g., >= 500 AND >= 300 → second is redundant
+        if (sameGroup && numeric && ai.op === bj.op) {
+          const av = Number(ai.value), bv = Number(bj.value);
+          if (!Number.isNaN(av) && !Number.isNaN(bv) && av !== bv) {
+            if (['>=', '>'].includes(ai.op || '')) {
+              const redundant = av > bv ? group[j] : group[i];
+              const keep = av > bv ? group[i] : group[j];
+              out.push(mk({
+                severity: 'INFO',
+                product_version_id: versionId,
+                tab: 'Eligibility',
+                entity_type: 'bn_eligibility_rule',
+                entity_ids: [redundant.id, keep.id],
+                conflict_type: 'REDUNDANT_RULE',
+                message: `"${redundant.rule_name}" (${field} ${ai.op} ${redundant.rule_definition?.value}) is redundant because "${keep.rule_name}" already enforces a stricter threshold.`,
+                suggested_fix: 'Remove the weaker rule, or change its operator/value.',
+              }));
+            }
+          }
         }
       }
     }
