@@ -3,6 +3,7 @@ import { ExternalPortalShell } from '@/portals/_shared/ExternalPortalShell';
 import { ExternalTaskList } from '@/portals/_shared/ExternalTaskList';
 import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
 import { PortalModulePlaceholder } from '@/portals/_shared/PortalModulePlaceholder';
+import ClaimantLanding from '@/portals/claimant/ClaimantLanding';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
