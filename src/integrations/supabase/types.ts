@@ -9090,6 +9090,8 @@ export type Database = {
           allow_apply_for_child_dependant: boolean
           allow_apply_for_deceased: boolean
           allow_apply_for_self: boolean
+          allow_doctor_initiated: boolean
+          allow_employer_initiated: boolean
           allow_managed_contributor_selection: boolean
           allow_save_draft: boolean
           allow_upload_later: boolean
@@ -9116,14 +9118,23 @@ export type Database = {
           modified_by: string | null
           product_id: string
           product_version_id: string
+          public_card_message: string | null
+          public_disabled_reason: string | null
           public_intent_tags: string[]
           public_online_enabled: boolean
           public_screen_template_id: string | null
           public_short_description: string | null
           public_who_can_apply: string | null
           required_participant_roles: string[]
+          requires_active_award: boolean
+          requires_deceased_person: boolean
+          requires_doctor_task: boolean
           requires_email_or_phone_otp: boolean
+          requires_employer_task: boolean
+          requires_existing_ei_claim: boolean
           requires_identity_verification: boolean
+          requires_school_task: boolean
+          requires_self_verified_ssn: boolean
           requires_staff_review_before_acceptance: boolean
           screen_template_id: string | null
           workflow_definition_id: string | null
@@ -9136,6 +9147,8 @@ export type Database = {
           allow_apply_for_child_dependant?: boolean
           allow_apply_for_deceased?: boolean
           allow_apply_for_self?: boolean
+          allow_doctor_initiated?: boolean
+          allow_employer_initiated?: boolean
           allow_managed_contributor_selection?: boolean
           allow_save_draft?: boolean
           allow_upload_later?: boolean
@@ -9162,14 +9175,23 @@ export type Database = {
           modified_by?: string | null
           product_id: string
           product_version_id: string
+          public_card_message?: string | null
+          public_disabled_reason?: string | null
           public_intent_tags?: string[]
           public_online_enabled?: boolean
           public_screen_template_id?: string | null
           public_short_description?: string | null
           public_who_can_apply?: string | null
           required_participant_roles?: string[]
+          requires_active_award?: boolean
+          requires_deceased_person?: boolean
+          requires_doctor_task?: boolean
           requires_email_or_phone_otp?: boolean
+          requires_employer_task?: boolean
+          requires_existing_ei_claim?: boolean
           requires_identity_verification?: boolean
+          requires_school_task?: boolean
+          requires_self_verified_ssn?: boolean
           requires_staff_review_before_acceptance?: boolean
           screen_template_id?: string | null
           workflow_definition_id?: string | null
@@ -9182,6 +9204,8 @@ export type Database = {
           allow_apply_for_child_dependant?: boolean
           allow_apply_for_deceased?: boolean
           allow_apply_for_self?: boolean
+          allow_doctor_initiated?: boolean
+          allow_employer_initiated?: boolean
           allow_managed_contributor_selection?: boolean
           allow_save_draft?: boolean
           allow_upload_later?: boolean
@@ -9208,14 +9232,23 @@ export type Database = {
           modified_by?: string | null
           product_id?: string
           product_version_id?: string
+          public_card_message?: string | null
+          public_disabled_reason?: string | null
           public_intent_tags?: string[]
           public_online_enabled?: boolean
           public_screen_template_id?: string | null
           public_short_description?: string | null
           public_who_can_apply?: string | null
           required_participant_roles?: string[]
+          requires_active_award?: boolean
+          requires_deceased_person?: boolean
+          requires_doctor_task?: boolean
           requires_email_or_phone_otp?: boolean
+          requires_employer_task?: boolean
+          requires_existing_ei_claim?: boolean
           requires_identity_verification?: boolean
+          requires_school_task?: boolean
+          requires_self_verified_ssn?: boolean
           requires_staff_review_before_acceptance?: boolean
           screen_template_id?: string | null
           workflow_definition_id?: string | null
