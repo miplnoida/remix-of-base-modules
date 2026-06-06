@@ -454,6 +454,122 @@ async function handle(req: Request, url: URL): Promise<Response> {
     return json({ messages: data ?? [] });
   }
 
+  // ─── Claimant self-service (read-only views of Internal LAN data) ──
+  if (method === 'GET' && path === '/me/profile') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'CLAIMANT') return err(403, 'forbidden', 'Claimant only');
+    if (!caller.ssn) return json({ profile: null });
+    const { data } = await admin.from('ip_master').select('ssn, first_name, last_name, dob, gender, marital_status, mobile_phone, email').eq('ssn', caller.ssn).maybeSingle();
+    await audit(null, null, 'PROFILE_VIEWED', caller);
+    return json({ profile: data ?? null });
+  }
+  if (method === 'GET' && path === '/me/contributions') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'CLAIMANT' || !caller.ssn) return json({ contributions: [] });
+    const { data } = await admin.from('ip_wages_ann_sum').select('*').eq('ssn', caller.ssn).order('year_paid', { ascending: false }).limit(200);
+    return json({ contributions: data ?? [] });
+  }
+  if (method === 'GET' && path === '/me/employment') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'CLAIMANT' || !caller.ssn) return json({ employment: [] });
+    const { data } = await admin.from('ip_employer').select('*').eq('ssn', caller.ssn).order('start_date', { ascending: false }).limit(100);
+    return json({ employment: data ?? [] });
+  }
+  if (method === 'GET' && path === '/me/claims') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'CLAIMANT' || !caller.ssn) return json({ claims: [] });
+    const { data } = await admin.from('bn_claim').select('id, claim_number, status, claim_date, submission_date, decision_date, product_id').eq('ssn', caller.ssn).order('submission_date', { ascending: false }).limit(100);
+    return json({ claims: data ?? [] });
+  }
+  if (method === 'GET' && path === '/me/awards') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'CLAIMANT' || !caller.ssn) return json({ awards: [] });
+    const { data } = await admin.from('bn_award').select('*').eq('ssn', caller.ssn).order('start_date', { ascending: false }).limit(50);
+    return json({ awards: data ?? [] });
+  }
+  if (method === 'GET' && path === '/me/payments') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'CLAIMANT' || !caller.ssn) return json({ payments: [] });
+    const { data: claims } = await admin.from('bn_claim').select('id').eq('ssn', caller.ssn);
+    const ids = (claims ?? []).map(c => c.id);
+    if (!ids.length) return json({ payments: [] });
+    const { data } = await admin.from('bn_payment_instruction').select('id, payment_date, gross_amount, net_amount, status, claim_id').in('claim_id', ids).order('payment_date', { ascending: false }).limit(200);
+    return json({ payments: data ?? [] });
+  }
+
+  // ─── Employer self-service ──────────────────────────────────────────
+  if (method === 'GET' && path === '/employer/profile') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'EMPLOYER' || !caller.employerRegno) return json({ employer: null });
+    const { data } = await admin.from('er_master').select('regno, employer_name, address_line1, address_line2, city, country_code, email, phone, status').eq('regno', caller.employerRegno).maybeSingle();
+    return json({ employer: data ?? null });
+  }
+  if (method === 'GET' && path === '/employer/employees') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'EMPLOYER' || !caller.employerRegno) return json({ employees: [] });
+    const { data } = await admin.from('ip_employer').select('ssn, regno, start_date, end_date, occup_code').eq('regno', caller.employerRegno).is('end_date', null).limit(500);
+    return json({ employees: data ?? [] });
+  }
+  if (method === 'GET' && path === '/employer/c3') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'EMPLOYER' || !caller.employerRegno) return json({ submissions: [] });
+    const { data } = await admin.from('cn_c3_reported').select('*').eq('regno', caller.employerRegno).order('period_year', { ascending: false }).limit(100);
+    return json({ submissions: data ?? [] });
+  }
+  if (method === 'GET' && path === '/employer/contributions') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'EMPLOYER' || !caller.employerRegno) return json({ contributions: [] });
+    const { data } = await admin.from('cn_payment').select('*').eq('regno', caller.employerRegno).order('payment_date', { ascending: false }).limit(100);
+    return json({ contributions: data ?? [] });
+  }
+  if (method === 'GET' && path === '/employer/payments') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'EMPLOYER' || !caller.employerRegno) return json({ payments: [] });
+    const { data } = await admin.from('cn_receipt').select('*').eq('regno', caller.employerRegno).order('receipt_date', { ascending: false }).limit(100);
+    return json({ payments: data ?? [] });
+  }
+  if (method === 'GET' && path === '/employer/balances') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'EMPLOYER' || !caller.employerRegno) return json({ balances: [] });
+    const { data } = await admin.from('cn_arrears').select('*').eq('regno', caller.employerRegno).limit(50);
+    return json({ balances: data ?? [] });
+  }
+  if (method === 'GET' && path === '/employer/compliance') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'EMPLOYER' || !caller.employerRegno) return json({ notices: [] });
+    const { data } = await admin.from('ce_notices').select('*').eq('employer_regno', caller.employerRegno).order('issued_at', { ascending: false }).limit(100);
+    return json({ notices: data ?? [] });
+  }
+
+  // ─── Doctor / Medical Provider ──────────────────────────────────────
+  if (method === 'GET' && path === '/doctor/profile') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'DOCTOR' || !caller.providerCode) return json({ provider: null });
+    const { data } = await admin.from('bn_medical_facility').select('*').eq('facility_code', caller.providerCode).maybeSingle();
+    return json({ provider: data ?? null });
+  }
+  if (method === 'GET' && path === '/doctor/reports') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'DOCTOR' || !caller.providerCode) return json({ reports: [] });
+    const { data } = await admin.from('bn_medical_recommendation').select('*').eq('provider_code', caller.providerCode).order('created_at', { ascending: false }).limit(100);
+    return json({ reports: data ?? [] });
+  }
+
   return err(404, 'no_route', `No route for ${method} ${path}`);
 }
 
