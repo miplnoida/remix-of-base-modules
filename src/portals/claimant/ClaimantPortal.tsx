@@ -10,6 +10,7 @@ import { PortalFormRenderer } from '@/components/external/PortalFormRenderer';
 import { RequirePersonaFlag } from '@/components/external/RequirePersonaFlag';
 import ClaimantLanding from '@/portals/claimant/ClaimantLanding';
 import LinkSsnPage from '@/portals/claimant/LinkSsnPage';
+import RegistrationWizard from '@/portals/claimant/register/RegistrationWizard';
 import AccountProfilePage from '@/portals/claimant/account/AccountProfilePage';
 import RelationshipsPage from '@/portals/claimant/account/RelationshipsPage';
 import ContributionStatementsPage from '@/portals/claimant/account/ContributionStatementsPage';
@@ -229,6 +230,7 @@ export default function ClaimantPortal() {
   return (
     <Routes>
       <Route index element={<ClaimantLanding />} />
+      <Route path="register" element={<RegistrationWizard />} />
       <Route path="*" element={
         <ExternalPortalShell
           role="CLAIMANT"
@@ -251,7 +253,8 @@ export default function ClaimantPortal() {
         >
           <Routes>
             <Route path="dashboard" element={<SelfServiceDashboard />} />
-            <Route path="link-ssn" element={<LinkSsnPage />} />
+            <Route path="link-ssn" element={<Navigate to="/claimant/register?step=link" replace />} />
+            <Route path="register" element={<RegistrationWizard />} />
 
             {/* MY ACCOUNT — now under /account, old /profile paths redirect */}
             <Route path="account" element={<AccountProfilePage />} />
