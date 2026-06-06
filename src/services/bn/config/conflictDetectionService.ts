@@ -262,6 +262,28 @@ export async function detectCalculationConflicts(versionId: string): Promise<Con
   const rules = data || [];
   const out: Conflict[] = [];
 
+  // duplicate rule_code at same version
+  const codeMap = new Map<string, any[]>();
+  for (const r of rules) {
+    if (!r.rule_code) continue;
+    if (!codeMap.has(r.rule_code)) codeMap.set(r.rule_code, []);
+    codeMap.get(r.rule_code)!.push(r);
+  }
+  for (const [code, list] of codeMap) {
+    if (list.length > 1) {
+      out.push(mk({
+        severity: 'WARNING',
+        product_version_id: versionId,
+        tab: 'Calculation',
+        entity_type: 'bn_calculation_rule',
+        entity_ids: list.map((r: any) => r.id),
+        conflict_type: 'DUPLICATE_CALC_RULE_CODE',
+        message: `${list.length} active formulas share rule_code "${code}".`,
+        suggested_fix: 'Rename or deactivate the duplicate formula.',
+      }));
+    }
+  }
+
   // multiple primary formulas of same calc_type
   const byType = new Map<string, any[]>();
   for (const r of rules) {
