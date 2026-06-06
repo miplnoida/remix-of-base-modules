@@ -9169,6 +9169,68 @@ export type Database = {
           },
         ]
       }
+      bn_product_participant_task_config: {
+        Row: {
+          blocks_workflow: boolean
+          configured_by: string | null
+          created_at: string
+          due_offset_days: number
+          id: string
+          is_active: boolean
+          is_required: boolean
+          participant_kind: string
+          product_version_id: string
+          screen_template_code: string | null
+          sort_order: number
+          task_code: string
+          task_description: string | null
+          task_title: string
+          updated_at: string
+        }
+        Insert: {
+          blocks_workflow?: boolean
+          configured_by?: string | null
+          created_at?: string
+          due_offset_days?: number
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          participant_kind: string
+          product_version_id: string
+          screen_template_code?: string | null
+          sort_order?: number
+          task_code: string
+          task_description?: string | null
+          task_title: string
+          updated_at?: string
+        }
+        Update: {
+          blocks_workflow?: boolean
+          configured_by?: string | null
+          created_at?: string
+          due_offset_days?: number
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          participant_kind?: string
+          product_version_id?: string
+          screen_template_code?: string | null
+          sort_order?: number
+          task_code?: string
+          task_description?: string | null
+          task_title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_product_participant_task_config_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_product_test_case: {
         Row: {
           entered_at: string
