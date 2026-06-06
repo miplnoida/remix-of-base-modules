@@ -112,20 +112,33 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
     }
   }
 
-  // ---------- 3. Eligibility field key conformance ----------
+  // ---------- 3. Eligibility field key conformance (JSON walker on bn_product_version.eligibility_config) ----------
   const allowedFields = new Set(ELIGIBILITY_FIELDS.map((f) => f.key));
-  const eligibilityRules = await safeFetch('bn_eligibility_rule');
-  for (const r of eligibilityRules) {
-    if (r.is_active === false) continue;
-    const key = r.field_key || r.left_operand || r.field;
-    if (key && !allowedFields.has(key)) {
-      findings.push({
-        category: 'ELIGIBILITY_KEY',
-        severity: 'ERROR',
-        entity: 'bn_eligibility_rule',
-        entityId: r.id,
-        message: `Unknown eligibility field key: "${key}"`,
-      });
+  const collectFieldKeys = (node: any, acc: Set<string>): void => {
+    if (!node) return;
+    if (Array.isArray(node)) { node.forEach((n) => collectFieldKeys(n, acc)); return; }
+    if (typeof node === 'object') {
+      for (const [k, val] of Object.entries(node)) {
+        if ((k === 'field_key' || k === 'field' || k === 'left_operand') && typeof val === 'string') acc.add(val);
+        else collectFieldKeys(val, acc);
+      }
+    }
+  };
+  const versionsForEligibility = await safeFetch('bn_product_version');
+  for (const v of versionsForEligibility) {
+    if (!v.eligibility_config) continue;
+    const used = new Set<string>();
+    collectFieldKeys(v.eligibility_config, used);
+    for (const key of used) {
+      if (!allowedFields.has(key)) {
+        findings.push({
+          category: 'ELIGIBILITY_KEY',
+          severity: 'ERROR',
+          entity: 'bn_product_version',
+          entityId: v.id,
+          message: `V${v.version_number ?? '?'}: unknown eligibility field key "${key}"`,
+        });
+      }
     }
   }
 
