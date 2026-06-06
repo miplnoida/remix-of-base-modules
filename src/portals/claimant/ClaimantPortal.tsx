@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useParams, Link } from 'react-router-dom';
-import { ExternalPortalShell } from '@/portals/_shared/ExternalPortalShell';
+import { useMemo } from 'react';
+import { ExternalPortalShell, type NavGroup } from '@/portals/_shared/ExternalPortalShell';
 import { ExternalTaskList } from '@/portals/_shared/ExternalTaskList';
 import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
 import { PortalModulePlaceholder } from '@/portals/_shared/PortalModulePlaceholder';
@@ -19,46 +20,168 @@ import {
 } from '@/portals/_shared/externalHooks';
 import { useClaimantPersona } from '@/hooks/external/useClaimantPersona';
 import { useProductApplicability, type ApplicableProduct } from '@/hooks/external/useProductApplicability';
-import { useMemo } from 'react';
+import type { PersonaFlags, Persona } from '@/services/external/portalPersonaService';
 
-interface NavItem { to: string; label: string }
+const BRAND = 'Social Security Self-Service Portal';
 
-function buildNav(flags: Record<string, boolean> | undefined): NavItem[] {
-  const f = flags ?? {};
-  const items: NavItem[] = [
-    { to: '/claimant/dashboard', label: 'Dashboard' },
-    { to: '/claimant/profile', label: 'My Profile' },
+function buildNavGroups(flags: PersonaFlags | undefined, personas: Persona[]): NavGroup[] {
+  const f = flags ?? ({} as PersonaFlags);
+  const isInsured = personas.includes('INSURED_PERSON');
+  const isManager =
+    personas.includes('GUARDIAN') || personas.includes('PAYEE') || personas.includes('REPRESENTATIVE');
+
+  const groups: NavGroup[] = [
+    {
+      label: 'My Account',
+      items: [
+        { to: '/claimant/dashboard', label: 'Dashboard' },
+        { to: '/claimant/profile', label: 'Personal Profile' },
+        { to: '/claimant/profile/contacts', label: 'Contact Information' },
+        { to: '/claimant/profile/preferences', label: 'Communication Preferences' },
+        { to: '/claimant/profile/security', label: 'Security Settings' },
+      ],
+    },
   ];
-  if (f.canViewContributions) items.push({ to: '/claimant/contributions', label: 'Contribution History' });
-  if (f.canViewEmploymentHistory) items.push({ to: '/claimant/employment-history', label: 'Employment History' });
-  items.push({ to: '/claimant/apply', label: 'Apply for Benefits' });
-  items.push({ to: '/claimant/claims', label: 'My Claims' });
-  items.push({ to: '/claimant/awards', label: 'My Awards / Pensions' });
-  if (f.canViewPayments) items.push({ to: '/claimant/payments', label: 'Payment History' });
-  items.push(
-    { to: '/claimant/life-certificates', label: 'Life Certificates' },
-    { to: '/claimant/school-certificates', label: 'School Certificates' },
-    { to: '/claimant/bank-details', label: 'EFT / Bank Update' },
-    { to: '/claimant/documents', label: 'Documents' },
-    { to: '/claimant/messages', label: 'Messages / Letters' },
-    { to: '/claimant/appeals', label: 'Appeals / Reconsideration' },
-    { to: '/claimant/tasks', label: 'Pending Tasks' },
+
+  if (isInsured) {
+    groups.push({
+      label: 'My Social Security',
+      items: [
+        { to: '/claimant/contributions', label: 'Contribution History' },
+        { to: '/claimant/employment-history', label: 'Employment History' },
+        { to: '/claimant/statements', label: 'Contribution Statements' },
+        { to: '/claimant/insurable-earnings', label: 'Insurable Earnings' },
+      ],
+    });
+  }
+
+  groups.push({
+    label: 'Benefits',
+    items: [
+      { to: '/claimant/apply', label: 'Apply for Benefits' },
+      { to: '/claimant/estimator', label: 'Eligibility Estimator' },
+      { to: '/claimant/claims', label: 'Claims' },
+      { to: '/claimant/entitlements', label: 'Entitlements' },
+      { to: '/claimant/payments', label: 'Payments' },
+    ],
+  });
+
+  if (isManager) {
+    groups.push({
+      label: 'People I Manage',
+      items: [
+        { to: '/claimant/managed/people', label: 'People I Manage' },
+        { to: '/claimant/managed/claims', label: 'Managed Claims' },
+        { to: '/claimant/managed/benefits', label: 'Managed Benefits' },
+      ],
+    });
+  }
+
+  groups.push({
+    label: 'Compliance',
+    items: [
+      { to: '/claimant/compliance/life', label: 'Life Certificates' },
+      { to: '/claimant/compliance/school', label: 'School Certificates' },
+      { to: '/claimant/compliance/verification', label: 'Verification Tasks' },
+      { to: '/claimant/compliance/outstanding', label: 'Outstanding Requirements' },
+    ],
+  });
+
+  groups.push({
+    label: 'Communications',
+    items: [
+      { to: '/claimant/comms/inbox', label: 'Inbox' },
+      { to: '/claimant/comms/letters', label: 'Letters' },
+      { to: '/claimant/comms/notifications', label: 'Notifications' },
+      { to: '/claimant/tasks', label: 'Tasks' },
+    ],
+  });
+
+  groups.push({
+    label: 'Documents',
+    items: [{ to: '/claimant/documents', label: 'Document Center' }],
+  });
+
+  groups.push({
+    label: 'Appeals',
+    items: [
+      { to: '/claimant/appeals', label: 'Appeals' },
+      { to: '/claimant/appeals/reconsideration', label: 'Reconsiderations' },
+    ],
+  });
+
+  // Suppress unused warning for `f` (kept for future per-item gating)
+  void f;
+  return groups;
+}
+
+function maskSsn(ssn: string | null | undefined): string {
+  if (!ssn) return '—';
+  if (ssn.length <= 3) return ssn;
+  return `${'•'.repeat(Math.max(0, ssn.length - 3))}${ssn.slice(-3)}`;
+}
+
+function PersonaHeader() {
+  const { persona, isLoading } = useClaimantPersona();
+  if (isLoading || !persona) {
+    return <div className="h-7" />;
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-primary-foreground/95">
+      <span className="text-sm font-medium">{persona.displayName}</span>
+      {persona.personSsn && (
+        <span className="rounded bg-white/15 px-2 py-0.5 text-xs font-mono">
+          SSN {maskSsn(persona.personSsn)}
+        </span>
+      )}
+      <span className="opacity-70">·</span>
+      {persona.personas.length === 0 ? (
+        <Badge variant="outline" className="border-white/40 bg-white/10 text-xs text-primary-foreground">
+          PERSONA NOT VERIFIED
+        </Badge>
+      ) : (
+        persona.personas.map(p => (
+          <Badge key={p} variant="outline" className="border-white/40 bg-white/10 text-xs text-primary-foreground">
+            {p.replace(/_/g, ' ')}
+          </Badge>
+        ))
+      )}
+      {!persona.personSsn && (
+        <Button asChild size="sm" variant="secondary" className="ml-2 h-7">
+          <Link to="/claimant/link-ssn">Link my SSN</Link>
+        </Button>
+      )}
+    </div>
   );
-  return items;
 }
 
 export default function ClaimantPortal() {
   const { persona } = useClaimantPersona();
-  const nav = useMemo(() => buildNav(persona?.flags as any), [persona]);
+  const groups = useMemo(
+    () => buildNavGroups(persona?.flags, persona?.personas ?? []),
+    [persona],
+  );
   return (
     <Routes>
       <Route index element={<ClaimantLanding />} />
       <Route path="*" element={
-        <ExternalPortalShell role="CLAIMANT" brand="Insured Person Portal" nav={nav}>
+        <ExternalPortalShell
+          role="CLAIMANT"
+          brand={BRAND}
+          nav={groups}
+          subHeader={<PersonaHeader />}
+        >
           <Routes>
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="profile" element={<Profile />} />
             <Route path="link-ssn" element={<LinkSsnPage />} />
+
+            {/* MY ACCOUNT */}
+            <Route path="profile" element={<Profile />} />
+            <Route path="profile/contacts" element={<PortalModulePlaceholder title="Contact Information" description="Phone, email, mailing addresses." internalSource="ip_master" />} />
+            <Route path="profile/preferences" element={<PortalModulePlaceholder title="Communication Preferences" description="Channel preferences for letters, SMS, email." internalSource="user_notification_preferences" />} />
+            <Route path="profile/security" element={<PortalModulePlaceholder title="Security Settings" description="Password, MFA, sessions." internalSource="mfa_config" />} />
+
+            {/* MY SOCIAL SECURITY (insured only) */}
             <Route path="contributions" element={
               <RequirePersonaFlag flag="canViewContributions" title="Contribution history is private">
                 <Contributions />
@@ -69,24 +192,61 @@ export default function ClaimantPortal() {
                 <Employment />
               </RequirePersonaFlag>
             } />
+            <Route path="statements" element={
+              <RequirePersonaFlag flag="canViewContributions" title="Contribution statements are private">
+                <PortalModulePlaceholder title="Contribution Statements" description="Annual statement, contribution certificate, insurable earnings — generated PDFs." internalSource="ip_wages_ann_sum" />
+              </RequirePersonaFlag>
+            } />
+            <Route path="insurable-earnings" element={
+              <RequirePersonaFlag flag="canViewContributions" title="Insurable earnings are private">
+                <PortalModulePlaceholder title="Insurable Earnings" description="Year-by-year insurable wages used in benefit calculations." internalSource="ip_wages_ann_sum" />
+              </RequirePersonaFlag>
+            } />
+
+            {/* BENEFITS */}
             <Route path="apply" element={<ApplyList />} />
             <Route path="apply/:productCode" element={<ApplyForm />} />
+            <Route path="estimator" element={<PortalModulePlaceholder title="Eligibility Estimator" description="Read-only simulation against the Product Catalog rules. Does not create a claim." internalSource="bn_eligibility_rule" />} />
             <Route path="claims" element={<Claims />} />
             <Route path="claims/:claimNumber" element={<ClaimDetail />} />
-            <Route path="awards" element={<Awards />} />
+            <Route path="entitlements" element={<Entitlements />} />
             <Route path="payments" element={
               <RequirePersonaFlag flag="canViewPayments" title="No payments visible to this account">
                 <Payments />
               </RequirePersonaFlag>
             } />
-            <Route path="life-certificates" element={<PortalModulePlaceholder title="Life Certificates" description="Annual proof-of-life submissions for pensioners." internalSource="bn_life_certificate" />} />
-            <Route path="school-certificates" element={<PortalModulePlaceholder title="School / College Certificates" description="Enrolment proofs for survivor / orphan beneficiaries." internalSource="bn_external_task" />} />
-            <Route path="bank-details" element={<PortalModulePlaceholder title="EFT / Bank Account Update" description="Submit or update your bank account for benefit payments." internalSource="cl_bank_acct" />} />
-            <Route path="documents" element={<PortalModulePlaceholder title="My Documents" description="Documents you have uploaded to support claims, certificates and requests." internalSource="ip_documents" />} />
-            <Route path="messages" element={<Messages />} />
-            <Route path="appeals" element={<PortalModulePlaceholder title="Appeals / Reconsideration" description="Request review of a benefit decision. Routed to Internal BN Appeals workflow." internalSource="bn_claim_decision" />} />
+
+            {/* PEOPLE I MANAGE */}
+            <Route path="managed/people" element={<PortalModulePlaceholder title="People I Manage" description="Insured persons you act for as guardian, payee or representative." internalSource="external_user_person_link" />} />
+            <Route path="managed/claims" element={<PortalModulePlaceholder title="Managed Claims" description="Claims you have filed on behalf of someone else." internalSource="bn_claim" />} />
+            <Route path="managed/benefits" element={<PortalModulePlaceholder title="Managed Benefits" description="Awards / pensions you receive on behalf of someone else." internalSource="bn_award" />} />
+
+            {/* COMPLIANCE */}
+            <Route path="compliance/life" element={<PortalModulePlaceholder title="Life Certificates" description="Annual proof-of-life for pensioners." internalSource="bn_life_certificate" />} />
+            <Route path="compliance/school" element={<PortalModulePlaceholder title="School / College Certificates" description="Enrolment proofs for survivor / orphan beneficiaries." internalSource="bn_external_task" />} />
+            <Route path="compliance/verification" element={<PortalModulePlaceholder title="Verification Tasks" description="Requests for additional information from the Board." internalSource="bn_external_task" />} />
+            <Route path="compliance/outstanding" element={<PortalModulePlaceholder title="Outstanding Requirements" description="Open items blocking your claims or awards." internalSource="bn_claim_evidence" />} />
+
+            {/* COMMUNICATIONS */}
+            <Route path="comms/inbox" element={<Messages />} />
+            <Route path="comms/letters" element={<PortalModulePlaceholder title="Letters" description="Official correspondence issued to you." internalSource="bn_letter" />} />
+            <Route path="comms/notifications" element={<PortalModulePlaceholder title="Notifications" description="In-app and email notifications." internalSource="in_app_notifications" />} />
             <Route path="tasks" element={<ExternalTaskList basePath="/claimant/tasks" />} />
             <Route path="tasks/:taskId" element={<TaskDetail />} />
+
+            {/* DOCUMENTS */}
+            <Route path="documents" element={<PortalModulePlaceholder title="Document Center" description="Uploaded documents, requested documents, official letters and generated forms." internalSource="ip_documents" />} />
+
+            {/* APPEALS */}
+            <Route path="appeals" element={<PortalModulePlaceholder title="Appeals" description="Request review of a benefit decision." internalSource="bn_claim_decision" />} />
+            <Route path="appeals/reconsideration" element={<PortalModulePlaceholder title="Reconsiderations" description="Reconsideration of a recent decision." internalSource="bn_claim_decision" />} />
+
+            {/* Legacy / fallback */}
+            <Route path="bank-details" element={<PortalModulePlaceholder title="EFT / Bank Account Update" description="Submit or update your bank account for benefit payments." internalSource="cl_bank_acct" />} />
+            <Route path="awards" element={<Navigate to="/claimant/entitlements" replace />} />
+            <Route path="messages" element={<Navigate to="/claimant/comms/inbox" replace />} />
+            <Route path="life-certificates" element={<Navigate to="/claimant/compliance/life" replace />} />
+            <Route path="school-certificates" element={<Navigate to="/claimant/compliance/school" replace />} />
             <Route path="*" element={<Navigate to="/claimant/dashboard" replace />} />
           </Routes>
         </ExternalPortalShell>
@@ -95,89 +255,151 @@ export default function ClaimantPortal() {
   );
 }
 
-function PersonaSummary() {
-  const { persona, isLoading } = useClaimantPersona();
-  if (isLoading || !persona) return null;
-  const hasSelf = !!persona.personSsn;
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base">{persona.displayName}</CardTitle>
-        <CardDescription className="flex flex-wrap gap-1">
-          {persona.personas.length === 0
-            ? <span>No persona detected yet.</span>
-            : persona.personas.map(p => <Badge key={p} variant="secondary">{p.replace('_',' ')}</Badge>)}
-        </CardDescription>
-      </CardHeader>
-      {!hasSelf && (
-        <CardContent>
-          <div className="flex items-center justify-between gap-3 rounded-md border border-dashed p-3 text-sm">
-            <div>
-              <div className="font-medium">Are you the insured person?</div>
-              <div className="text-muted-foreground">Link your SSN to unlock contribution and employment history.</div>
-            </div>
-            <Button asChild size="sm"><Link to="/claimant/link-ssn">Link my SSN</Link></Button>
-          </div>
-        </CardContent>
-      )}
-    </Card>
-  );
-}
+/* ─── Dashboard (6 sections) ───────────────────────────────────────── */
 
 function Dashboard() {
   const { persona } = useClaimantPersona();
   const f = persona?.flags;
-  const allCards = [
-    { to: '/claimant/apply', title: 'Apply for a Benefit', desc: 'Sickness, Maternity, Funeral, Survivors and more.', show: true },
-    { to: '/claimant/claims', title: 'My Claims', desc: 'Track submitted claims and decisions.', show: true },
-    { to: '/claimant/awards', title: 'My Awards / Pensions', desc: 'Active awards and entitlements.', show: true },
-    { to: '/claimant/payments', title: 'Payment History', desc: 'Past benefit payments and EFTs.', show: !!f?.canViewPayments },
-    { to: '/claimant/contributions', title: 'Contribution History', desc: 'Your annual contribution summary.', show: !!f?.canViewContributions },
-    { to: '/claimant/employment-history', title: 'Employment History', desc: 'Employers you contributed under.', show: !!f?.canViewEmploymentHistory },
-    { to: '/claimant/tasks', title: 'Pending Tasks', desc: 'Actions you need to complete.', show: true },
-    { to: '/claimant/messages', title: 'Messages & Letters', desc: 'Official communications from SSB.', show: true },
-  ];
-  const cards = allCards.filter(c => c.show);
   return (
     <div className="space-y-6">
-      <PersonaSummary />
-      <ClaimBuckets />
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {cards.map(c => (
-          <Link key={c.to} to={c.to}>
-            <Card className="hover:shadow-md transition-shadow h-full">
-              <CardHeader><CardTitle className="text-base">{c.title}</CardTitle><CardDescription>{c.desc}</CardDescription></CardHeader>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      <SectionClaimActivity />
+      <SectionBenefits />
+      {f?.canViewPayments && <SectionPayments />}
+      <SectionCompliance />
+      <SectionCommunications />
+      {f?.canViewContributions && <SectionSocialSecuritySummary />}
     </div>
   );
 }
 
-function ClaimBuckets() {
-  const { data, isLoading } = useExternalClaimBuckets();
-  if (isLoading) return <Skeleton className="h-32 w-full" />;
-  const b = data ?? { own: [], submittedForOthers: [], asBeneficiary: [], asGuardianOrPayee: [] };
-  const cards = [
-    { title: 'My own claims', items: b.own },
-    { title: 'Submitted for someone else', items: b.submittedForOthers },
-    { title: 'As beneficiary', items: b.asBeneficiary },
-    { title: 'As guardian / payee', items: b.asGuardianOrPayee },
-  ];
+function DashSection({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-      {cards.map(c => (
-        <Card key={c.title}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">{c.title}</CardTitle>
-            <CardDescription className="text-2xl font-bold text-foreground">{c.items.length}</CardDescription>
-          </CardHeader>
-        </Card>
-      ))}
-    </div>
+    <section>
+      <div className="mb-2">
+        <h2 className="text-lg font-semibold">{title}</h2>
+        {description && <p className="text-sm text-muted-foreground">{description}</p>}
+      </div>
+      {children}
+    </section>
   );
 }
+
+function CountCard({ to, title, value, hint }: { to: string; title: string; value: React.ReactNode; hint?: string }) {
+  return (
+    <Link to={to}>
+      <Card className="h-full hover:shadow-md transition-shadow">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium">{title}</CardTitle>
+          <CardDescription className="text-2xl font-bold text-foreground">{value}</CardDescription>
+          {hint && <CardDescription className="text-xs">{hint}</CardDescription>}
+        </CardHeader>
+      </Card>
+    </Link>
+  );
+}
+
+function SectionClaimActivity() {
+  const { data, isLoading } = useExternalClaimBuckets();
+  if (isLoading) return <Skeleton className="h-24 w-full" />;
+  const b = data ?? { own: [], submittedForOthers: [], asBeneficiary: [], asGuardianOrPayee: [] };
+  return (
+    <DashSection title="Claim Activity" description="All claims connected to you, grouped by your role.">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <CountCard to="/claimant/claims?tab=own" title="My Own Claims" value={b.own.length} />
+        <CountCard to="/claimant/claims?tab=submitted" title="Claims Submitted By Me" value={b.submittedForOthers.length} />
+        <CountCard to="/claimant/claims?tab=beneficiary" title="Claims As Beneficiary" value={b.asBeneficiary.length} />
+        <CountCard to="/claimant/claims?tab=guardian" title="Claims As Guardian" value={b.asGuardianOrPayee.length} />
+      </div>
+    </DashSection>
+  );
+}
+
+function SectionBenefits() {
+  const { data, isLoading } = useExternalAwards();
+  if (isLoading) return <Skeleton className="h-24 w-full" />;
+  const rows = (data?.awards ?? []) as any[];
+  const norm = (s?: string) => String(s ?? '').toUpperCase();
+  const active = rows.filter(r => ['ACTIVE', 'IN_PAYMENT', 'AWARDED'].includes(norm(r.status)));
+  const pending = rows.filter(r => ['PENDING', 'AWAITING_APPROVAL', 'DRAFT'].includes(norm(r.status)));
+  const suspended = rows.filter(r => ['SUSPENDED', 'ON_HOLD'].includes(norm(r.status)));
+  return (
+    <DashSection title="Benefits">
+      <div className="grid gap-3 md:grid-cols-3">
+        <CountCard to="/claimant/entitlements?tab=active" title="Active Benefits" value={active.length} />
+        <CountCard to="/claimant/entitlements?tab=pending" title="Pending Benefits" value={pending.length} />
+        <CountCard to="/claimant/entitlements?tab=suspended" title="Suspended Benefits" value={suspended.length} />
+      </div>
+    </DashSection>
+  );
+}
+
+function SectionPayments() {
+  const { data, isLoading } = useExternalPayments();
+  if (isLoading) return <Skeleton className="h-24 w-full" />;
+  const rows = (data?.payments ?? []) as any[];
+  const norm = (s?: string) => String(s ?? '').toUpperCase();
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = rows.filter(r => r.payment_date && r.payment_date >= today);
+  const recent = rows.filter(r => r.payment_date && r.payment_date < today).slice(0, 50);
+  const returned = rows.filter(r => ['RETURNED', 'FAILED', 'REJECTED'].includes(norm(r.status)));
+  return (
+    <DashSection title="Payments">
+      <div className="grid gap-3 md:grid-cols-3">
+        <CountCard to="/claimant/payments?tab=upcoming" title="Upcoming Payments" value={upcoming.length} />
+        <CountCard to="/claimant/payments?tab=history" title="Recent Payments" value={recent.length} />
+        <CountCard to="/claimant/payments?tab=returned" title="Returned Payments" value={returned.length} />
+      </div>
+    </DashSection>
+  );
+}
+
+function SectionCompliance() {
+  return (
+    <DashSection title="Compliance" description="Items requiring your attention to keep benefits active.">
+      <div className="grid gap-3 md:grid-cols-3">
+        <CountCard to="/claimant/compliance/life" title="Life Certificate Due" value="—" hint="Annual proof-of-life" />
+        <CountCard to="/claimant/compliance/school" title="School Certificate Due" value="—" hint="Enrolment proofs" />
+        <CountCard to="/claimant/compliance/outstanding" title="Outstanding Documents" value="—" hint="Open evidence requests" />
+      </div>
+    </DashSection>
+  );
+}
+
+function SectionCommunications() {
+  const { data, isLoading } = useExternalMessages();
+  if (isLoading) return <Skeleton className="h-24 w-full" />;
+  const msgs = (data?.messages ?? []) as any[];
+  return (
+    <DashSection title="Communications">
+      <div className="grid gap-3 md:grid-cols-3">
+        <CountCard to="/claimant/comms/inbox" title="Unread Messages" value={msgs.length} />
+        <CountCard to="/claimant/comms/letters" title="Letters" value="—" />
+        <CountCard to="/claimant/tasks" title="Pending Tasks" value="—" />
+      </div>
+    </DashSection>
+  );
+}
+
+function SectionSocialSecuritySummary() {
+  const { data, isLoading } = useExternalContributions();
+  if (isLoading) return <Skeleton className="h-24 w-full" />;
+  const rows = (data?.contributions ?? []) as any[];
+  const years = rows.length;
+  const totalContrib = rows.reduce((s, r) => s + Number(r.contributions_paid ?? 0), 0);
+  const lastYear = rows[0]?.year_paid ?? '—';
+  return (
+    <DashSection title="Social Security Summary" description="Visible only because your SSN is linked as the insured person.">
+      <div className="grid gap-3 md:grid-cols-4">
+        <CountCard to="/claimant/contributions" title="Contribution Years" value={years} />
+        <CountCard to="/claimant/contributions" title="Total Contributions" value={totalContrib.toFixed(2)} />
+        <CountCard to="/claimant/employment-history" title="Last Employer" value="—" />
+        <CountCard to="/claimant/statements" title="Last Year on Record" value={String(lastYear)} />
+      </div>
+    </DashSection>
+  );
+}
+
+/* ─── Profile / Contributions / Employment / Apply / Claims / Entitlements / Payments / Messages ── */
 
 function Profile() {
   const { data, isLoading } = useExternalProfile();
@@ -185,7 +407,7 @@ function Profile() {
   const p = data?.profile;
   return (
     <Card>
-      <CardHeader><CardTitle>My Profile</CardTitle><CardDescription>Sourced from Insured Person Master (ip_master).</CardDescription></CardHeader>
+      <CardHeader><CardTitle>Personal Profile</CardTitle><CardDescription>Sourced from Insured Person Master (ip_master).</CardDescription></CardHeader>
       <CardContent>
         {!p ? <p className="text-sm text-muted-foreground">No profile on record.</p> : (
           <dl className="grid grid-cols-2 gap-y-2 text-sm">
@@ -261,12 +483,10 @@ function ApplyList() {
   const canApplyForSelf = !!persona?.flags?.canApplyForSelf;
   const canApplyForOthers = !!persona?.flags?.canApplyForOthers;
   const forSelf = products.filter(p => p.allowsSelf);
-  // "Apply for others" — only the products whose participant config permits a non-SELF applicant.
   const forOthers = products.filter(p => p.allowsOthers);
 
   return (
     <div className="space-y-6">
-      <PersonaSummary />
       <section>
         <div className="mb-3">
           <h2 className="text-lg font-semibold">Apply for myself</h2>
@@ -331,7 +551,7 @@ function Claims() {
   const rows = data?.claims ?? [];
   return (
     <Card>
-      <CardHeader><CardTitle>My Claims</CardTitle><CardDescription>All claims you have submitted (bn_claim).</CardDescription></CardHeader>
+      <CardHeader><CardTitle>Claims</CardTitle><CardDescription>All claims connected to you (bn_claim).</CardDescription></CardHeader>
       <CardContent>
         {rows.length === 0 ? <p className="text-sm text-muted-foreground">No claims yet.</p> : (
           <Table>
@@ -368,19 +588,25 @@ function ClaimDetail() {
   );
 }
 
-function Awards() {
+function Entitlements() {
   const { data, isLoading } = useExternalAwards();
   if (isLoading) return <Skeleton className="h-48 w-full" />;
   const rows = data?.awards ?? [];
   return (
     <Card>
-      <CardHeader><CardTitle>My Awards / Pensions</CardTitle><CardDescription>Active and historical awards (bn_award).</CardDescription></CardHeader>
+      <CardHeader><CardTitle>Entitlements</CardTitle><CardDescription>Active and historical awards / pensions (bn_award).</CardDescription></CardHeader>
       <CardContent>
         {rows.length === 0 ? <p className="text-sm text-muted-foreground">No awards on record.</p> : (
           <Table>
             <TableHeader><TableRow><TableHead>Award #</TableHead><TableHead>Type</TableHead><TableHead>Start</TableHead><TableHead>Rate</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
             <TableBody>{rows.map((a: any) => (
-              <TableRow key={a.id}><TableCell className="font-mono">{a.award_number ?? a.id.slice(0,8)}</TableCell><TableCell>{a.award_type ?? '—'}</TableCell><TableCell>{a.start_date ?? '—'}</TableCell><TableCell>{a.weekly_rate ?? a.monthly_rate ?? '—'}</TableCell><TableCell><Badge>{a.status}</Badge></TableCell></TableRow>
+              <TableRow key={a.id}>
+                <TableCell className="font-mono">{a.award_number ?? a.id.slice(0,8)}</TableCell>
+                <TableCell>{a.award_type ?? '—'}</TableCell>
+                <TableCell>{a.start_date ?? '—'}</TableCell>
+                <TableCell>{a.weekly_rate ?? a.monthly_rate ?? '—'}</TableCell>
+                <TableCell><Badge>{a.status}</Badge></TableCell>
+              </TableRow>
             ))}</TableBody>
           </Table>
         )}
@@ -395,7 +621,7 @@ function Payments() {
   const rows = data?.payments ?? [];
   return (
     <Card>
-      <CardHeader><CardTitle>Payment History</CardTitle><CardDescription>Benefit payments to you (bn_payment_instruction).</CardDescription></CardHeader>
+      <CardHeader><CardTitle>Payments</CardTitle><CardDescription>Benefit payments to you (bn_payment_instruction).</CardDescription></CardHeader>
       <CardContent>
         {rows.length === 0 ? <p className="text-sm text-muted-foreground">No payments recorded.</p> : (
           <Table>
