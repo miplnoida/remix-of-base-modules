@@ -12,9 +12,10 @@ interface Props {
 }
 
 export function NotificationBell({ viewAllHref }: Props) {
-  const { data } = useExternalMessages();
-  const msgs = (data?.messages ?? []) as any[];
+  const query = useExternalMessages();
+  const msgs = (!query.isError && (query.data as any)?.messages ? (query.data as any).messages : []) as any[];
   const unread = msgs.length;
+
 
   return (
     <DropdownMenu>

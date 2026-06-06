@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { externalAuthService, type PortalSession } from './externalAuthService';
 import type { PortalRole } from './publicBenefitApiClient';
+import { HeaderErrorBoundary } from './HeaderErrorBoundary';
 import { cn } from '@/lib/utils';
 
 export interface NavItem {
@@ -97,9 +98,18 @@ export function ExternalPortalShell({
   const { crumbs, isHome } = useBreadcrumbs(nav, resolvedHome);
 
   useEffect(() => {
-    externalAuthService.getSession().then(setSession);
-    const sub = externalAuthService.onAuthStateChange(setSession);
-    return () => sub.data?.subscription?.unsubscribe?.();
+    let mounted = true;
+    externalAuthService.getSession()
+      .then(s => { if (mounted) setSession(s); })
+      .catch(err => {
+        if (import.meta.env.DEV) console.error('[shell] getSession failed', err);
+        if (mounted) setSession(null);
+      });
+    const sub = externalAuthService.onAuthStateChange(s => {
+      if (import.meta.env.DEV) console.debug('[shell] session changed', s);
+      setSession(s);
+    });
+    return () => { mounted = false; sub.data?.subscription?.unsubscribe?.(); };
   }, []);
 
   useEffect(() => {
@@ -111,8 +121,13 @@ export function ExternalPortalShell({
     navigate('/');
   };
 
-  const initials = (session?.displayName ?? session?.email ?? '?')
-    .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase()).join('');
+  // Fallback display values so the avatar dropdown always renders, even while
+  // the session is still loading or if the lookup fails. Menu *contents* vary,
+  // but the control itself is always present for authenticated users.
+  const displayName = session?.displayName ?? 'Account';
+  const email = session?.email ?? '';
+  const initials = (session?.displayName ?? session?.email ?? 'A')
+    .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase()).join('') || 'A';
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -132,32 +147,35 @@ export function ExternalPortalShell({
             <Badge variant="outline" className="ml-2 border-white/40 bg-white/10 text-xs text-primary-foreground">{role}</Badge>
           </Link>
           <div className="flex items-center gap-2 text-sm">
-            {helpButton}
-            {notificationBell}
-            {session ? (
+            <HeaderErrorBoundary>{helpButton}</HeaderErrorBoundary>
+            <HeaderErrorBoundary>{notificationBell}</HeaderErrorBoundary>
+            <HeaderErrorBoundary>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
+                    aria-label="Account menu"
                     className="flex items-center gap-2 rounded-full bg-white/10 px-2 py-1 pr-3 hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/40"
                   >
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-primary text-xs font-bold">
                       {initials || <UserCircle2 className="h-4 w-4" />}
                     </span>
                     <span className="hidden md:inline opacity-95 max-w-[180px] truncate">
-                      {session.displayName ?? session.email}
+                      {displayName}
                     </span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-72">
                   <DropdownMenuLabel className="flex flex-col gap-1">
-                    <span className="text-sm font-semibold">{session.displayName ?? 'User'}</span>
-                    <span className="text-xs font-normal text-muted-foreground truncate">{session.email}</span>
+                    <span className="text-sm font-semibold">{displayName}</span>
+                    {email && <span className="text-xs font-normal text-muted-foreground truncate">{email}</span>}
                   </DropdownMenuLabel>
                   {userMenuHeader && (
                     <>
                       <DropdownMenuSeparator />
-                      <div className="px-2 py-1.5">{userMenuHeader}</div>
+                      <div className="px-2 py-1.5">
+                        <HeaderErrorBoundary>{userMenuHeader}</HeaderErrorBoundary>
+                      </div>
                     </>
                   )}
                   {userMenuItems && userMenuItems.length > 0 && (
@@ -177,18 +195,26 @@ export function ExternalPortalShell({
                     </>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
-                    <LogOut className="h-4 w-4 mr-2" /> Sign out
-                  </DropdownMenuItem>
+                  {session ? (
+                    <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
+                      <LogOut className="h-4 w-4 mr-2" /> Sign out
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem asChild>
+                      <Link to="/" className="flex items-center gap-2">
+                        <UserCircle2 className="h-4 w-4" /> Sign in
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
-              <span className="opacity-90">Guest</span>
-            )}
+            </HeaderErrorBoundary>
           </div>
         </div>
         {subHeader ? (
-          <div className="mx-auto max-w-7xl px-4 pb-3">{subHeader}</div>
+          <div className="mx-auto max-w-7xl px-4 pb-3">
+            <HeaderErrorBoundary>{subHeader}</HeaderErrorBoundary>
+          </div>
         ) : null}
       </header>
 
