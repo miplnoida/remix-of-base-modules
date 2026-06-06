@@ -244,6 +244,7 @@ export default function ProductEditor() {
           <TabsTrigger value="workflow" disabled={isNew}>Workflow</TabsTrigger>
           <TabsTrigger value="screens" disabled={isNew}>Screens</TabsTrigger>
           <TabsTrigger value="participants" disabled={isNew}>Participant Workflow</TabsTrigger>
+          <TabsTrigger value="public-rules" disabled={isNew}>Public Form Rules</TabsTrigger>
           <TabsTrigger value="channels" disabled={isNew}>Application Channels</TabsTrigger>
           <TabsTrigger value="communications" disabled={isNew}>Communications</TabsTrigger>
           <TabsTrigger value="interactions" disabled={isNew}>Interactions</TabsTrigger>
