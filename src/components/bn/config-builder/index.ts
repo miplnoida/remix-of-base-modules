@@ -6,4 +6,5 @@ export { ConfigBuilderCanvas } from './ConfigBuilderCanvas';
 export { BlockInspector } from './BlockInspector';
 export { ValidationPanel } from './ValidationPanel';
 export { PreviewPanel } from './PreviewPanel';
+export { FormulaExpression } from './FormulaExpression';
 export { useBuilderCanvas } from './useBuilderCanvas';
