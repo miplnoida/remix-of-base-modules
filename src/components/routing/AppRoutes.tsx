@@ -11,6 +11,9 @@ import { ComplianceFeatureGate } from '@/components/compliance/ComplianceFeature
 // ComplianceRouteGuard retired — global ComplianceAccessGate (in ProtectedLayout) handles permission gating for /compliance/*; ComplianceFeatureGate handles feature-flag gating.
 import { useComplianceFeatureFlagsBootstrap } from '@/hooks/compliance/useComplianceFeatureFlags';
 const FeatureToggleDiagnosticsPage = lazy(() => import('@/pages/compliance/admin/FeatureToggleDiagnosticsPage'));
+const ClaimantPortal = lazy(() => import('@/portals/claimant/ClaimantPortal'));
+const EmployerPortal = lazy(() => import('@/portals/employer/EmployerPortal'));
+const DoctorPortal = lazy(() => import('@/portals/doctor/DoctorPortal'));
 
 const InspectorLogin = lazy(() => import('@/pages/inspector/InspectorLogin').then((m) => ({ default: m.InspectorLogin })));
 const InspectorDashboard = lazy(() => import('@/pages/inspector/InspectorDashboard').then((m) => ({ default: m.InspectorDashboard })));
@@ -2203,6 +2206,11 @@ export const AppRoutes = () => {
 
       {/* Unauthorized */}
       <Route path="/unauthorized" element={<Unauthorized />} />
+
+      {/* External BN Portals — Claimant / Employer / Doctor */}
+      <Route path="/claimant/*" element={<Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}><ClaimantPortal /></Suspense>} />
+      <Route path="/employer/*" element={<Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}><EmployerPortal /></Suspense>} />
+      <Route path="/doctor/*" element={<Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}><DoctorPortal /></Suspense>} />
 
       <Route path="*" element={<NotFound />} />
       </Routes>
