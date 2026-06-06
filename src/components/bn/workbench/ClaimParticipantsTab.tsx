@@ -14,9 +14,11 @@ import {
   useBnClaimExternalTasks,
   useUpdateExternalTaskDecision,
   useResendParticipantInvite,
+  useMaterializeExternalTasks,
   type BnExternalTaskRow,
 } from '@/hooks/bn/useBnClaimParticipants';
 import { useUserCode } from '@/hooks/useUserCode';
+import { Sparkles } from 'lucide-react';
 
 interface Props { claimId: string }
 
