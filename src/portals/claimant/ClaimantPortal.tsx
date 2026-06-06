@@ -47,18 +47,32 @@ export default function ClaimantPortal() {
 function Dashboard() {
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Link to="apply"><Card className="hover:shadow-md"><CardHeader><CardTitle>Apply for a Benefit</CardTitle><CardDescription>Start a new benefit application.</CardDescription></CardHeader></Card></Link>
-      <Link to="claims"><Card className="hover:shadow-md"><CardHeader><CardTitle>My Claims</CardTitle><CardDescription>Status, decisions and payments.</CardDescription></CardHeader></Card></Link>
-      <Link to="tasks"><Card className="hover:shadow-md"><CardHeader><CardTitle>Pending Actions</CardTitle><CardDescription>Tasks you need to complete.</CardDescription></CardHeader></Card></Link>
-      <Link to="messages"><Card className="hover:shadow-md"><CardHeader><CardTitle>Messages &amp; Letters</CardTitle></CardHeader></Card></Link>
+      <Link to="/claimant/apply"><Card className="hover:shadow-md"><CardHeader><CardTitle>Apply for a Benefit</CardTitle><CardDescription>Start a new benefit application.</CardDescription></CardHeader></Card></Link>
+      <Link to="/claimant/claims"><Card className="hover:shadow-md"><CardHeader><CardTitle>My Claims</CardTitle><CardDescription>Status, decisions and payments.</CardDescription></CardHeader></Card></Link>
+      <Link to="/claimant/tasks"><Card className="hover:shadow-md"><CardHeader><CardTitle>Pending Actions</CardTitle><CardDescription>Tasks you need to complete.</CardDescription></CardHeader></Card></Link>
+      <Link to="/claimant/messages"><Card className="hover:shadow-md"><CardHeader><CardTitle>Messages &amp; Letters</CardTitle></CardHeader></Card></Link>
     </div>
   );
 }
 
 function ApplyList() {
-  const { data, isLoading } = useExternalProducts();
+  const { data, isLoading, error } = useExternalProducts();
   if (isLoading) return <Skeleton className="h-32 w-full" />;
+  if (error) return <Card><CardContent className="py-6 text-sm text-destructive">{(error as Error).message}</CardContent></Card>;
   const products = data?.products ?? [];
+  if (products.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">No benefits available for online application</CardTitle>
+          <CardDescription>
+            Only products with an enabled <b>Online</b> channel in the Product Catalog appear here.
+            Ask an administrator to open Product Catalog → choose a product → Channels tab → enable the <b>Online</b> channel and attach a Screen Template for the CLAIMANT role.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
   return (
     <div className="grid gap-3 md:grid-cols-2">
       {products.map((p: any) => (
