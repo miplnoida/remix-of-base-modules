@@ -98,11 +98,12 @@ export function CommunicationsTab({ versionId, isReadOnly, versionStatus }: Prop
           <div>
             <CardTitle>Communications</CardTitle>
             <CardDescription>
-              Map lifecycle events (Submitted, Approved, Denied, etc.) to channels, recipients and templates.
-              These run automatically when the workflow action is executed.
+              Controls how messages are sent when claim lifecycle events occur — email, SMS, physical letter,
+              in-app notification, or internal email. Mappings run automatically when the corresponding workflow
+              action executes. (Application submission methods live in the <strong>Application Channels</strong> tab.)
             </CardDescription>
           </div>
-          <Badge variant="outline">{totalMappings} mapping{totalMappings === 1 ? '' : 's'}</Badge>
+          <Badge variant="outline">{totalMappings} method{totalMappings === 1 ? '' : 's'}</Badge>
         </div>
         {isReadOnly && (
           <p className="flex items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
