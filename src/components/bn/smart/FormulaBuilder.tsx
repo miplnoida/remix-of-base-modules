@@ -22,9 +22,41 @@ const OPERATORS = ['+', '-', '*', '/', '(', ')', 'min(', 'max(', 'round(', ','];
 
 export function FormulaBuilder({ value, onChange, disabled }: Props) {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const [testResult, setTestResult] = React.useState<{ ok: boolean; value?: number; errors: string[] } | null>(null);
+  const [overrides, setOverrides] = React.useState<Record<string, string>>({});
 
   const parsed = React.useMemo(() => (value.trim() ? parseFormula(value) : null), [value]);
+
+  const varsKey = parsed?.variablesUsed.join(',') ?? '';
+  React.useEffect(() => { setOverrides({}); }, [varsKey]);
+
+  const numericInputs = React.useMemo(() => {
+    const out: Record<string, number> = {};
+    (parsed?.variablesUsed ?? []).forEach((k) => {
+      const raw = overrides[k];
+      const def = FORMULA_VARIABLES.find((v) => v.key === k);
+      const n = raw !== undefined && raw !== '' ? Number(raw) : NaN;
+      out[k] = Number.isFinite(n) ? n : (def?.sample ?? 0);
+    });
+    return out;
+  }, [overrides, parsed?.variablesUsed]);
+
+  const live = React.useMemo(() => {
+    if (!value.trim()) return null;
+    return testFormula(value, numericInputs);
+  }, [value, numericInputs]);
+
+  const substituted = React.useMemo(() => {
+    if (!parsed?.valid) return '';
+    return value
+      .replace(/[a-zA-Z_][a-zA-Z0-9_]*/g, (tok) => {
+        if (['min', 'max', 'round'].includes(tok)) return tok;
+        const v = numericInputs[tok];
+        return v !== undefined ? String(v) : tok;
+      })
+      .replace(/\*/g, '×')
+      .replace(/\//g, '÷');
+  }, [value, parsed?.valid, numericInputs]);
+
 
   const insert = (token: string) => {
     const ta = textareaRef.current;
