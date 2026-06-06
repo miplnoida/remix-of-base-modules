@@ -16,6 +16,8 @@ import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { toast } from 'sonner';
 import type { BnReasonCode } from '@/types/bn';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
+import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
+import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 
 const db = supabase as any;
 
