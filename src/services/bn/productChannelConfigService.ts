@@ -28,8 +28,17 @@ export async function getChannelConfig(
 }
 
 export async function upsertChannelConfig(
-  cfg: Partial<BnProductChannelConfig>
+  cfg: Partial<BnProductChannelConfig>,
+  actor?: { userCode: string } | null,
 ): Promise<BnProductChannelConfig> {
+  // Capture before state for audit (best-effort; null on first insert)
+  let before: BnProductChannelConfig | null = null;
+  if (cfg.product_version_id && cfg.channel_code) {
+    try {
+      before = await getChannelConfig(cfg.product_version_id, cfg.channel_code as BnChannelCode);
+    } catch { /* ignore — audit will record null before */ }
+  }
+
   const payload = { ...cfg, modified_at: new Date().toISOString() };
   const { data, error } = await db
     .from('bn_product_channel_config')
@@ -37,6 +46,21 @@ export async function upsertChannelConfig(
     .select()
     .single();
   if (error) throw error;
+
+  if (actor?.userCode) {
+    const { writeBnAudit } = await import('@/services/bn/audit/bnAuditService');
+    await writeBnAudit({
+      action: 'CHANNEL_CONFIG_CHANGED',
+      entityType: 'bn_product_channel_config',
+      entityId: data.id,
+      beforeValue: before as any,
+      afterValue: data,
+      performedBy: actor.userCode,
+      module: 'BN_CONFIG',
+      critical: true,
+    });
+  }
+
   return data as BnProductChannelConfig;
 }
 
