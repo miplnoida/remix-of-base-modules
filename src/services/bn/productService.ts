@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { BnProduct, BnProductVersion, BnEligibilityRule, BnCalculationRule, BnTimelineRule } from '@/types/bn';
+import { assertVersionMutable } from './config/configImpactService';
 
 const db = supabase as any;
 
@@ -63,6 +64,17 @@ export async function createProductVersion(version: Partial<BnProductVersion>): 
 }
 
 export async function updateProductVersion(id: string, updates: Partial<BnProductVersion>): Promise<BnProductVersion> {
+  // Guard: ACTIVE versions are read-only EXCEPT for lifecycle changes (status, effective_to) done via publish/retire helpers.
+  const current = await fetchVersionById(id);
+  if (current?.status === 'ACTIVE') {
+    const allowed = new Set(['status', 'effective_to', 'modified_at', 'modified_by']);
+    const mutating = Object.keys(updates).filter(k => !allowed.has(k));
+    if (mutating.length > 0) {
+      throw new Error(
+        `Version ${current.version_number} is ACTIVE and locked. Create a new DRAFT version to change: ${mutating.join(', ')}.`,
+      );
+    }
+  }
   const { data, error } = await db.from('bn_product_version').update({ ...updates, modified_at: new Date().toISOString() }).eq('id', id).select().single();
   if (error) throw error;
   return data as BnProductVersion;
@@ -251,12 +263,15 @@ export async function fetchEligibilityRules(versionId: string): Promise<BnEligib
 }
 
 export async function upsertEligibilityRule(rule: Partial<BnEligibilityRule>): Promise<BnEligibilityRule> {
+  if (rule.product_version_id) await assertVersionMutable(rule.product_version_id);
   const { data, error } = await db.from('bn_eligibility_rule').upsert(rule).select().single();
   if (error) throw error;
   return data as BnEligibilityRule;
 }
 
 export async function deleteEligibilityRule(id: string): Promise<void> {
+  const { data: existing } = await db.from('bn_eligibility_rule').select('product_version_id').eq('id', id).maybeSingle();
+  if (existing?.product_version_id) await assertVersionMutable(existing.product_version_id);
   const { error } = await db.from('bn_eligibility_rule').delete().eq('id', id);
   if (error) throw error;
 }
@@ -270,12 +285,15 @@ export async function fetchCalculationRules(versionId: string): Promise<BnCalcul
 }
 
 export async function upsertCalculationRule(rule: Partial<BnCalculationRule>): Promise<BnCalculationRule> {
+  if (rule.product_version_id) await assertVersionMutable(rule.product_version_id);
   const { data, error } = await db.from('bn_calculation_rule').upsert(rule).select().single();
   if (error) throw error;
   return data as BnCalculationRule;
 }
 
 export async function deleteCalculationRule(id: string): Promise<void> {
+  const { data: existing } = await db.from('bn_calculation_rule').select('product_version_id').eq('id', id).maybeSingle();
+  if (existing?.product_version_id) await assertVersionMutable(existing.product_version_id);
   const { error } = await db.from('bn_calculation_rule').delete().eq('id', id);
   if (error) throw error;
 }
@@ -289,12 +307,15 @@ export async function fetchTimelineRules(versionId: string): Promise<BnTimelineR
 }
 
 export async function upsertTimelineRule(rule: Partial<BnTimelineRule>): Promise<BnTimelineRule> {
+  if (rule.product_version_id) await assertVersionMutable(rule.product_version_id);
   const { data, error } = await db.from('bn_timeline_rule').upsert(rule).select().single();
   if (error) throw error;
   return data as BnTimelineRule;
 }
 
 export async function deleteTimelineRule(id: string): Promise<void> {
+  const { data: existing } = await db.from('bn_timeline_rule').select('product_version_id').eq('id', id).maybeSingle();
+  if (existing?.product_version_id) await assertVersionMutable(existing.product_version_id);
   const { error } = await db.from('bn_timeline_rule').delete().eq('id', id);
   if (error) throw error;
 }
