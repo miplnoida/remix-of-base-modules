@@ -683,7 +683,7 @@ export async function detectScreenFieldConflicts(versionId: string): Promise<Con
   const fieldCodes = new Set(fields.map((f: any) => f.field_code));
   const systemDerivedPrefix = /^(person\.|contribution\.|employer\.|evidence\.|claim\.|survivor\.|medical\.)/;
   for (const r of eligRows ?? []) {
-    const refs: string[] = (r.rule_definition?.field_refs as string[]) ?? [];
+    const refs: string[] = ((r.rule_definition as any)?.field_refs as string[]) ?? [];
     for (const ref of refs) {
       if (!ref) continue;
       if (systemDerivedPrefix.test(ref)) continue;
