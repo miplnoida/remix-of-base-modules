@@ -28,12 +28,21 @@ export async function fetchProductById(id: string): Promise<BnProduct | null> {
 export async function createProduct(product: Partial<BnProduct>): Promise<BnProduct> {
   const { data, error } = await db.from('bn_product').insert(product).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: 'CREATE', entityType: 'bn_product', entityId: data.id,
+    afterValue: data, performedBy: await actor(), critical: true,
+  });
   return data as BnProduct;
 }
 
 export async function updateProduct(id: string, updates: Partial<BnProduct>): Promise<BnProduct> {
+  const before = await fetchProductById(id);
   const { data, error } = await db.from('bn_product').update({ ...updates, modified_at: new Date().toISOString() }).eq('id', id).select().single();
   if (error) throw error;
+  await auditConfigChange({
+    action: 'UPDATE', entityType: 'bn_product', entityId: id,
+    beforeValue: before, afterValue: data, performedBy: await actor(),
+  });
   return data as BnProduct;
 }
 
