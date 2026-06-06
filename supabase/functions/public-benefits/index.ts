@@ -339,7 +339,7 @@ async function handle(req: Request, url: URL): Promise<Response> {
         .from('bn_product_channel_config')
         .select('public_online_enabled, allowed_applicant_types, allowed_subject_types, applicant_must_equal_insured, allow_apply_for_self, allow_apply_for_deceased, allow_apply_for_child_dependant, allow_apply_as_guardian, allow_apply_as_payee, allow_apply_as_representative, allow_managed_contributor_selection')
         .eq('product_id', product.id)
-        .eq('channel_code', 'PUBLIC_ONLINE')
+        .eq('channel_code', 'ONLINE')
         .maybeSingle();
       if (pubCfg) {
         if (!pubCfg.public_online_enabled) {
