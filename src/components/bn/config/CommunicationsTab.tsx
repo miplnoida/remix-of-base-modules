@@ -195,7 +195,7 @@ export function CommunicationsTab({ versionId, isReadOnly, versionStatus }: Prop
                     </Table>
                   )}
                   <Button size="sm" variant="outline" onClick={() => addMapping(event.event_code)} disabled={isReadOnly} className="gap-2">
-                    <Plus className="h-4 w-4" /> Add channel mapping
+                    <Plus className="h-4 w-4" /> Add Communication Method
                   </Button>
                 </div>
               )}
