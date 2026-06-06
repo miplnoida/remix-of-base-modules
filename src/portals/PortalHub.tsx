@@ -8,7 +8,7 @@ import { Users, Building2, Stethoscope, FileText, Upload, Search, ClipboardCheck
 const PORTALS = [
   {
     to: '/claimant',
-    title: 'Insured Person / Claimant Portal',
+    title: 'Social Security Self-Service Portal',
     desc: 'Apply for benefits, track claims, view contributions, manage payments and life certificates.',
     icon: Users,
   },

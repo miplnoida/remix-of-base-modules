@@ -4,7 +4,7 @@ import { FileText, ClipboardList, Coins, Upload, Banknote, ShieldCheck, Landmark
 export default function ClaimantLanding() {
   return (
     <PortalLandingTemplate
-      brand="Insured Person Portal"
+      brand="Social Security Self-Service Portal"
       role="CLAIMANT"
       hero={{
         title: 'Manage your Social Security benefits and contributions online.',
