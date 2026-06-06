@@ -40,6 +40,13 @@ import { RequireFeature } from '@/components/external/RequireFeature';
 import type { PersonaFlags, Persona } from '@/services/external/portalPersonaService';
 import type { PortalFeatureConfig } from '@/services/external/portalFeatureConfigService';
 
+import {
+  LayoutDashboard, User, Phone, Bell, Lock, PiggyBank, Briefcase, FileDown, Coins,
+  FileText, Sparkles, Search, Award, Wallet, Landmark, Users, ShieldCheck,
+  GraduationCap, ClipboardCheck, AlertCircle, Inbox, Mail, BellRing, ListChecks,
+  FolderOpen, Scale, RotateCcw,
+} from 'lucide-react';
+
 const BRAND = 'Social Security Self-Service Portal';
 
 function buildNavGroups(
@@ -75,74 +82,74 @@ function buildNavGroups(
     {
       label: 'My Account',
       items: [
-        { to: '/claimant/dashboard', label: 'Dashboard' },
-        { to: '/claimant/profile', label: 'Personal Profile' },
-        { to: '/claimant/profile/contacts', label: 'Contact Information' },
-        { to: '/claimant/profile/preferences', label: 'Communication Preferences' },
-        { to: '/claimant/profile/security', label: 'Security Settings' },
+        { to: '/claimant/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { to: '/claimant/profile', label: 'Personal Profile', icon: User },
+        { to: '/claimant/profile/contacts', label: 'Contact Information', icon: Phone },
+        { to: '/claimant/profile/preferences', label: 'Communication Preferences', icon: Bell },
+        { to: '/claimant/profile/security', label: 'Security Settings', icon: Lock },
       ],
     },
   ];
 
   if (isInsured) {
     const items = [] as NavGroup['items'];
-    if (ft.contributionHistoryEnabled) items.push({ to: '/claimant/contributions', label: 'Contribution History' });
-    if (ft.employmentHistoryEnabled) items.push({ to: '/claimant/employment-history', label: 'Employment History' });
+    if (ft.contributionHistoryEnabled) items.push({ to: '/claimant/contributions', label: 'Contribution History', icon: PiggyBank });
+    if (ft.employmentHistoryEnabled) items.push({ to: '/claimant/employment-history', label: 'Employment History', icon: Briefcase });
     if (ft.contributionHistoryEnabled) {
-      items.push({ to: '/claimant/statements', label: 'Contribution Statements' });
-      items.push({ to: '/claimant/insurable-earnings', label: 'Insurable Earnings' });
+      items.push({ to: '/claimant/statements', label: 'Contribution Statements', icon: FileDown });
+      items.push({ to: '/claimant/insurable-earnings', label: 'Insurable Earnings', icon: Coins });
     }
     if (items.length) groups.push({ label: 'My Social Security', items });
   }
 
   const benefits = [] as NavGroup['items'];
-  benefits.push({ to: '/claimant/apply', label: 'Apply for Benefits' });
-  if (ft.eligibilityEstimatorEnabled) benefits.push({ to: '/claimant/estimator', label: 'Eligibility Estimator' });
-  benefits.push({ to: '/claimant/claims', label: 'Claims' });
-  benefits.push({ to: '/claimant/entitlements', label: 'Entitlements' });
-  if (ft.paymentHistoryEnabled) benefits.push({ to: '/claimant/payments', label: 'Payments' });
-  if (ft.bankUpdateEnabled) benefits.push({ to: '/claimant/bank-details', label: 'Bank Update' });
+  benefits.push({ to: '/claimant/apply', label: 'Apply for Benefits', icon: FileText });
+  if (ft.eligibilityEstimatorEnabled) benefits.push({ to: '/claimant/estimator', label: 'Eligibility Estimator', icon: Sparkles });
+  benefits.push({ to: '/claimant/claims', label: 'Claims', icon: Search });
+  benefits.push({ to: '/claimant/entitlements', label: 'Entitlements', icon: Award });
+  if (ft.paymentHistoryEnabled) benefits.push({ to: '/claimant/payments', label: 'Payments', icon: Wallet });
+  if (ft.bankUpdateEnabled) benefits.push({ to: '/claimant/bank-details', label: 'Bank Update', icon: Landmark });
   groups.push({ label: 'Benefits', items: benefits });
 
   if (managerEnabled) {
     groups.push({
       label: 'People I Manage',
       items: [
-        { to: '/claimant/managed/people', label: 'People I Manage' },
-        { to: '/claimant/managed/claims', label: 'Managed Claims' },
-        { to: '/claimant/managed/benefits', label: 'Managed Benefits' },
+        { to: '/claimant/managed/people', label: 'People I Manage', icon: Users },
+        { to: '/claimant/managed/claims', label: 'Managed Claims', icon: Search },
+        { to: '/claimant/managed/benefits', label: 'Managed Benefits', icon: Award },
       ],
     });
   }
 
   const compliance = [] as NavGroup['items'];
-  if (ft.lifeCertificateEnabled) compliance.push({ to: '/claimant/compliance/life', label: 'Life Certificates' });
-  if (ft.schoolCertificateEnabled) compliance.push({ to: '/claimant/compliance/school', label: 'School Certificates' });
-  compliance.push({ to: '/claimant/compliance/verification', label: 'Verification Tasks' });
-  compliance.push({ to: '/claimant/compliance/outstanding', label: 'Outstanding Requirements' });
+  if (ft.lifeCertificateEnabled) compliance.push({ to: '/claimant/compliance/life', label: 'Life Certificates', icon: ShieldCheck });
+  if (ft.schoolCertificateEnabled) compliance.push({ to: '/claimant/compliance/school', label: 'School Certificates', icon: GraduationCap });
+  compliance.push({ to: '/claimant/compliance/verification', label: 'Verification Tasks', icon: ClipboardCheck });
+  compliance.push({ to: '/claimant/compliance/outstanding', label: 'Outstanding Requirements', icon: AlertCircle });
   groups.push({ label: 'Compliance', items: compliance });
 
   groups.push({
     label: 'Communications',
     items: [
-      { to: '/claimant/comms/inbox', label: 'Inbox' },
-      { to: '/claimant/comms/letters', label: 'Letters' },
-      { to: '/claimant/comms/notifications', label: 'Notifications' },
-      { to: '/claimant/tasks', label: 'Tasks' },
+      { to: '/claimant/comms/inbox', label: 'Inbox', icon: Inbox },
+      { to: '/claimant/comms/letters', label: 'Letters', icon: Mail },
+      { to: '/claimant/comms/notifications', label: 'Notifications', icon: BellRing },
+      { to: '/claimant/tasks', label: 'Tasks', icon: ListChecks },
     ],
   });
 
   groups.push({
     label: 'Documents',
-    items: [{ to: '/claimant/documents', label: 'Document Center' }],
+    items: [{ to: '/claimant/documents', label: 'Document Center', icon: FolderOpen }],
   });
 
   if (ft.appealsEnabled) {
     groups.push({
       label: 'Appeals',
       items: [
-        { to: '/claimant/appeals', label: 'Appeals' },
-        { to: '/claimant/appeals/reconsideration', label: 'Reconsiderations' },
+        { to: '/claimant/appeals', label: 'Appeals', icon: Scale },
+        { to: '/claimant/appeals/reconsideration', label: 'Reconsiderations', icon: RotateCcw },
       ],
     });
   }
@@ -150,6 +157,7 @@ function buildNavGroups(
   void f;
   return groups;
 }
+
 
 function maskSsn(ssn: string | null | undefined): string {
   if (!ssn) return '—';

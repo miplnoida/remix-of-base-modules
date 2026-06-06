@@ -2,13 +2,24 @@ import { ReactNode, useEffect, useState, useMemo } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Home, ChevronRight } from 'lucide-react';
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { LogOut, Home, ChevronRight, PanelLeftClose, PanelLeftOpen, Circle } from 'lucide-react';
 import { externalAuthService, type PortalSession } from './externalAuthService';
 import type { PortalRole } from './publicBenefitApiClient';
 import { cn } from '@/lib/utils';
 
-export interface NavItem { to: string; label: string }
-export interface NavGroup { label: string; items: NavItem[] }
+export interface NavItem {
+  to: string;
+  label: string;
+  icon?: React.ComponentType<{ className?: string }>;
+}
+export interface NavGroup {
+  label: string;
+  items: NavItem[];
+  icon?: React.ComponentType<{ className?: string }>;
+}
 type NavInput = NavItem[] | NavGroup[];
 
 interface Props {
@@ -16,7 +27,6 @@ interface Props {
   brand: string;
   nav: NavInput;
   subHeader?: ReactNode;
-  /** Route (relative to portal root) considered the "home" / dashboard. */
   homeHref?: string;
   children: ReactNode;
 }
@@ -29,17 +39,15 @@ function firstHref(n: NavInput): string {
   return n[0]?.to ?? '/';
 }
 
-/* Build breadcrumb trail from nav groups + current path */
 function useBreadcrumbs(nav: NavInput, homeHref: string) {
   const { pathname } = useLocation();
   return useMemo(() => {
     const flat: { to: string; label: string; group?: string }[] = [];
     if (isGrouped(nav)) {
-      nav.forEach(g => g.items.forEach(i => flat.push({ ...i, group: g.label })));
+      nav.forEach(g => g.items.forEach(i => flat.push({ to: i.to, label: i.label, group: g.label })));
     } else {
-      nav.forEach(i => flat.push({ ...i }));
+      nav.forEach(i => flat.push({ to: i.to, label: i.label }));
     }
-    // Find best match: longest prefix match against current pathname
     const matches = flat.filter(i => pathname === i.to || pathname.startsWith(i.to + '/'));
     matches.sort((a, b) => b.to.length - a.to.length);
     const current = matches[0];
@@ -48,7 +56,6 @@ function useBreadcrumbs(nav: NavInput, homeHref: string) {
       if (current.group && current.to !== homeHref) crumbs.push({ label: current.group });
       if (current.to !== homeHref) crumbs.push({ label: current.label });
     } else if (pathname !== homeHref) {
-      // Derive a fallback label from the last path segment
       const seg = pathname.split('/').filter(Boolean).pop() ?? '';
       crumbs.push({ label: seg.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Page' });
     }
@@ -56,12 +63,14 @@ function useBreadcrumbs(nav: NavInput, homeHref: string) {
   }, [nav, pathname, homeHref]);
 }
 
-/**
- * ExternalPortalShell — top bar + side nav for Claimant / Employer / Doctor
- * portals. Pure presentation; never embeds Internal BN UI.
- */
+const SIDEBAR_STATE_KEY = 'lov.portalSidebar.collapsed';
+
 export function ExternalPortalShell({ role, brand, nav, subHeader, homeHref, children }: Props) {
   const [session, setSession] = useState<PortalSession | null>(null);
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(SIDEBAR_STATE_KEY) === '1';
+  });
   const navigate = useNavigate();
   const resolvedHome = homeHref ?? firstHref(nav);
   const { crumbs, isHome } = useBreadcrumbs(nav, resolvedHome);
@@ -71,6 +80,10 @@ export function ExternalPortalShell({ role, brand, nav, subHeader, homeHref, chi
     const sub = externalAuthService.onAuthStateChange(setSession);
     return () => sub.data?.subscription?.unsubscribe?.();
   }, []);
+
+  useEffect(() => {
+    try { window.localStorage.setItem(SIDEBAR_STATE_KEY, collapsed ? '1' : '0'); } catch {}
+  }, [collapsed]);
 
   const signOut = async () => {
     await externalAuthService.signOut();
@@ -106,13 +119,13 @@ export function ExternalPortalShell({ role, brand, nav, subHeader, homeHref, chi
         ) : null}
       </header>
 
-      {/* Breadcrumb bar — always show, gives "you are here" + back-to-dashboard */}
-      <div className="border-b bg-muted/40">
+      {/* Sticky breadcrumb bar */}
+      <div className="sticky top-0 z-30 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2">
           <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1 text-sm">
             <Link
               to={resolvedHome}
-              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <Home className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Dashboard</span>
@@ -137,28 +150,51 @@ export function ExternalPortalShell({ role, brand, nav, subHeader, homeHref, chi
       </div>
 
       <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6">
-        {/* Sidebar hidden on the dashboard itself (tiles are the primary nav there)
-            and on mobile (bottom nav handles it). Shown on inner pages as secondary nav. */}
         {!isHome && (
-          <aside className="hidden md:block w-60 shrink-0">
-            <nav className="sticky top-4 space-y-4">
-              {isGrouped(nav) ? (
-                nav.map(group => (
-                  <div key={group.label}>
-                    <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
-                      {group.label}
+          <aside className={cn('hidden md:block shrink-0 transition-[width] duration-200', collapsed ? 'w-14' : 'w-60')}>
+            <div className="sticky top-14 space-y-2">
+              <div className="flex justify-end px-1">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => setCollapsed(c => !c)}
+                        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                      >
+                        {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="text-xs">
+                      {collapsed ? 'Expand menu' : 'Collapse to icons'}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <nav className="space-y-3">
+                {isGrouped(nav) ? (
+                  nav.map(group => (
+                    <div key={group.label}>
+                      {!collapsed && (
+                        <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80">
+                          {group.label}
+                        </div>
+                      )}
+                      {collapsed && <div className="mx-2 my-1 h-px bg-border" />}
+                      <div className="space-y-0.5">
+                        {group.items.map(item => <SideLink key={item.to} item={item} collapsed={collapsed} />)}
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      {group.items.map(item => <SideLink key={item.to} item={item} />)}
-                    </div>
+                  ))
+                ) : (
+                  <div className="space-y-0.5">
+                    {nav.map(item => <SideLink key={item.to} item={item} collapsed={collapsed} />)}
                   </div>
-                ))
-              ) : (
-                <div className="space-y-1">
-                  {nav.map(item => <SideLink key={item.to} item={item} />)}
-                </div>
-              )}
-            </nav>
+                )}
+              </nav>
+            </div>
           </aside>
         )}
         <main className="min-w-0 flex-1">{children}</main>
@@ -167,17 +203,31 @@ export function ExternalPortalShell({ role, brand, nav, subHeader, homeHref, chi
   );
 }
 
-function SideLink({ item }: { item: NavItem }) {
-  return (
+function SideLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
+  const Icon = item.icon ?? Circle;
+  const inner = (
     <NavLink
       to={item.to}
       end
       className={({ isActive }) => cn(
-        'block rounded-md px-3 py-2 text-sm transition-colors',
-        isActive ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+        'flex items-center gap-2 rounded-md text-sm transition-colors',
+        collapsed ? 'h-9 w-9 justify-center mx-auto' : 'px-3 py-2',
+        isActive
+          ? 'bg-primary/10 text-primary font-medium'
+          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
       )}
     >
-      {item.label}
+      <Icon className={cn('shrink-0', collapsed ? 'h-4 w-4' : 'h-4 w-4')} />
+      {!collapsed && <span className="truncate">{item.label}</span>}
     </NavLink>
+  );
+  if (!collapsed) return inner;
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>{inner}</TooltipTrigger>
+        <TooltipContent side="right" className="text-xs">{item.label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
