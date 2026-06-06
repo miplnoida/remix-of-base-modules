@@ -55121,6 +55121,10 @@ export type Database = {
           total_weeks: number
         }[]
       }
+      bn_materialize_external_tasks: {
+        Args: { p_claim_id: string }
+        Returns: number
+      }
       bn_submit_claim_application: {
         Args: {
           p_channel: string

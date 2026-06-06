@@ -133,3 +133,19 @@ export function useResendParticipantInvite(claimId: string | undefined) {
     },
   });
 }
+
+export function useMaterializeExternalTasks(claimId: string | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationKey: ['bn_external_tasks', 'materialize', claimId],
+    mutationFn: async () => {
+      if (!claimId) throw new Error('claimId required');
+      const { data, error } = await (supabase as any).rpc('bn_materialize_external_tasks', { p_claim_id: claimId });
+      if (error) throw error;
+      return { inserted: (data as number) ?? 0 };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bn_external_tasks', claimId] });
+    },
+  });
+}
