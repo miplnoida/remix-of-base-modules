@@ -142,7 +142,7 @@ export default function ClaimWorkbench() {
   const userRoles = authRoles && authRoles.length > 0 ? authRoles : [];
   const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
   const { data: governance } = useBnWorkflowGovernance('bn_claim', id);
-  const isWorkflowGoverned = !!governance?.isGoverned;
+  const isWorkflowGoverned = !!governance?.governed;
 
   const product = (claim as any)?.bn_product;
   const currentStatus = localUpdates.status || claim?.status || 'DRAFT';
