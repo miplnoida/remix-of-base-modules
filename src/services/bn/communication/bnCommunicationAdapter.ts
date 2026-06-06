@@ -206,7 +206,8 @@ async function writeCommLog(row: {
   const { data, error } = await db.from('bn_communication_log').insert({
     claim_id: row.claimId,
     event_code: row.eventCode,
-    channel: row.channel,
+    channel: row.channel, // legacy
+    delivery_method: row.channel,
     recipient_type: row.recipientType,
     recipient_address: row.recipientAddress,
     template_id: row.templateId || null,
