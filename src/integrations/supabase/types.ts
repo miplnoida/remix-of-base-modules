@@ -5259,6 +5259,7 @@ export type Database = {
           assigned_to: string | null
           bank_account: string | null
           bank_routing_number: string | null
+          calculation_stale: boolean
           channel_code: string | null
           channel_config_id: string | null
           claim_date: string
@@ -5268,6 +5269,7 @@ export type Database = {
           decision_date: string | null
           declaration: boolean
           digital_signature: string | null
+          eligibility_stale: boolean
           employer_regno: string | null
           entered_at: string
           entered_by: string | null
@@ -5293,6 +5295,7 @@ export type Database = {
           assigned_to?: string | null
           bank_account?: string | null
           bank_routing_number?: string | null
+          calculation_stale?: boolean
           channel_code?: string | null
           channel_config_id?: string | null
           claim_date?: string
@@ -5302,6 +5305,7 @@ export type Database = {
           decision_date?: string | null
           declaration?: boolean
           digital_signature?: string | null
+          eligibility_stale?: boolean
           employer_regno?: string | null
           entered_at?: string
           entered_by?: string | null
@@ -5327,6 +5331,7 @@ export type Database = {
           assigned_to?: string | null
           bank_account?: string | null
           bank_routing_number?: string | null
+          calculation_stale?: boolean
           channel_code?: string | null
           channel_config_id?: string | null
           claim_date?: string
@@ -5336,6 +5341,7 @@ export type Database = {
           decision_date?: string | null
           declaration?: boolean
           digital_signature?: string | null
+          eligibility_stale?: boolean
           employer_regno?: string | null
           entered_at?: string
           entered_by?: string | null
@@ -5369,6 +5375,68 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "bn_product"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_amendment_log: {
+        Row: {
+          after_value: Json | null
+          amended_at: string
+          amended_by: string
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          audit_trail_id: string | null
+          before_value: Json | null
+          claim_id: string
+          claim_status_at_change: string | null
+          field_area: string | null
+          field_key: string
+          id: string
+          reason: string | null
+          source_channel: string
+        }
+        Insert: {
+          after_value?: Json | null
+          amended_at?: string
+          amended_by: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          audit_trail_id?: string | null
+          before_value?: Json | null
+          claim_id: string
+          claim_status_at_change?: string | null
+          field_area?: string | null
+          field_key: string
+          id?: string
+          reason?: string | null
+          source_channel: string
+        }
+        Update: {
+          after_value?: Json | null
+          amended_at?: string
+          amended_by?: string
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          audit_trail_id?: string | null
+          before_value?: Json | null
+          claim_id?: string
+          claim_status_at_change?: string | null
+          field_area?: string | null
+          field_key?: string
+          id?: string
+          reason?: string | null
+          source_channel?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_amendment_log_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
             referencedColumns: ["id"]
           },
         ]
@@ -5558,6 +5626,112 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "bn_claim_contribution_snapshot_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_correction_field: {
+        Row: {
+          created_at: string
+          current_value: Json | null
+          field_key: string
+          field_label: string | null
+          field_status: string
+          id: string
+          notes: string | null
+          proposed_value: Json | null
+          request_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: Json | null
+          field_key: string
+          field_label?: string | null
+          field_status?: string
+          id?: string
+          notes?: string | null
+          proposed_value?: Json | null
+          request_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: Json | null
+          field_key?: string
+          field_label?: string | null
+          field_status?: string
+          id?: string
+          notes?: string | null
+          proposed_value?: Json | null
+          request_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_correction_field_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "bn_claim_correction_request"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_correction_request: {
+        Row: {
+          claim_id: string
+          created_at: string
+          id: string
+          message: string
+          requested_at: string
+          requested_by: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_channel: string
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          claim_id: string
+          created_at?: string
+          id?: string
+          message: string
+          requested_at?: string
+          requested_by: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_channel?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          claim_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          requested_at?: string
+          requested_by?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_channel?: string
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_correction_request_claim_id_fkey"
             columns: ["claim_id"]
             isOneToOne: false
             referencedRelation: "bn_claim"
@@ -5982,6 +6156,65 @@ export type Database = {
             columns: ["claim_id"]
             isOneToOne: false
             referencedRelation: "bn_claim"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_claim_field_ownership: {
+        Row: {
+          affects_calculation: boolean
+          affects_eligibility: boolean
+          created_at: string
+          editable_channels: string[]
+          editable_until_status: string
+          field_area: string
+          field_key: string
+          field_label: string | null
+          field_owner: string
+          id: string
+          product_version_id: string
+          requires_reason: boolean
+          requires_supervisor_approval: boolean
+          updated_at: string
+        }
+        Insert: {
+          affects_calculation?: boolean
+          affects_eligibility?: boolean
+          created_at?: string
+          editable_channels?: string[]
+          editable_until_status?: string
+          field_area?: string
+          field_key: string
+          field_label?: string | null
+          field_owner?: string
+          id?: string
+          product_version_id: string
+          requires_reason?: boolean
+          requires_supervisor_approval?: boolean
+          updated_at?: string
+        }
+        Update: {
+          affects_calculation?: boolean
+          affects_eligibility?: boolean
+          created_at?: string
+          editable_channels?: string[]
+          editable_until_status?: string
+          field_area?: string
+          field_key?: string
+          field_label?: string | null
+          field_owner?: string
+          id?: string
+          product_version_id?: string
+          requires_reason?: boolean
+          requires_supervisor_approval?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_claim_field_ownership_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_version"
             referencedColumns: ["id"]
           },
         ]
@@ -9078,6 +9311,89 @@ export type Database = {
             columns: ["scheme_id"]
             isOneToOne: false
             referencedRelation: "bn_scheme"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_product_amendment_policy: {
+        Row: {
+          allow_officer_amendments: boolean
+          allow_participant_amendments: boolean
+          allow_public_corrections: boolean
+          benefit_facts_editable_until: string
+          calculation_inputs_editable_until: string
+          created_at: string
+          created_by: string | null
+          document_details_editable_until: string
+          editable_until_status: string
+          id: string
+          lock_after_approval: boolean
+          lock_after_calculation: boolean
+          lock_after_decision: boolean
+          lock_after_eligibility: boolean
+          lock_after_payment: boolean
+          participant_details_editable_until: string
+          payment_details_editable_until: string
+          product_version_id: string
+          requires_reason_for_amendment: boolean
+          requires_supervisor_approval_for_locked_changes: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allow_officer_amendments?: boolean
+          allow_participant_amendments?: boolean
+          allow_public_corrections?: boolean
+          benefit_facts_editable_until?: string
+          calculation_inputs_editable_until?: string
+          created_at?: string
+          created_by?: string | null
+          document_details_editable_until?: string
+          editable_until_status?: string
+          id?: string
+          lock_after_approval?: boolean
+          lock_after_calculation?: boolean
+          lock_after_decision?: boolean
+          lock_after_eligibility?: boolean
+          lock_after_payment?: boolean
+          participant_details_editable_until?: string
+          payment_details_editable_until?: string
+          product_version_id: string
+          requires_reason_for_amendment?: boolean
+          requires_supervisor_approval_for_locked_changes?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allow_officer_amendments?: boolean
+          allow_participant_amendments?: boolean
+          allow_public_corrections?: boolean
+          benefit_facts_editable_until?: string
+          calculation_inputs_editable_until?: string
+          created_at?: string
+          created_by?: string | null
+          document_details_editable_until?: string
+          editable_until_status?: string
+          id?: string
+          lock_after_approval?: boolean
+          lock_after_calculation?: boolean
+          lock_after_decision?: boolean
+          lock_after_eligibility?: boolean
+          lock_after_payment?: boolean
+          participant_details_editable_until?: string
+          payment_details_editable_until?: string
+          product_version_id?: string
+          requires_reason_for_amendment?: boolean
+          requires_supervisor_approval_for_locked_changes?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_product_amendment_policy_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: true
+            referencedRelation: "bn_product_version"
             referencedColumns: ["id"]
           },
         ]
@@ -55662,6 +55978,23 @@ export type Database = {
       bn_materialize_external_tasks: {
         Args: { p_claim_id: string }
         Returns: number
+      }
+      bn_record_claim_amendment: {
+        Args: {
+          p_affects_calculation?: boolean
+          p_affects_eligibility?: boolean
+          p_after: Json
+          p_approval_status?: string
+          p_before: Json
+          p_channel: string
+          p_claim_id: string
+          p_field_area: string
+          p_field_key: string
+          p_reason: string
+          p_status_at_change: string
+          p_user_code: string
+        }
+        Returns: string
       }
       bn_submit_claim_application: {
         Args: {
