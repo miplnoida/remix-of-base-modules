@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { BLOCK_REGISTRY } from './blockRegistry';
+import { FormulaExpression } from './FormulaExpression';
 import type { BuilderCanvas } from './types';
 
 export function PreviewPanel({ canvas }: { canvas: BuilderCanvas }) {
@@ -9,14 +10,16 @@ export function PreviewPanel({ canvas }: { canvas: BuilderCanvas }) {
     <Card>
       <CardHeader className="pb-2"><CardTitle className="text-sm">Preview</CardTitle></CardHeader>
       <CardContent>
-        <Tabs defaultValue="form">
-          <TabsList className="h-8">
+        <Tabs defaultValue="formula">
+          <TabsList className="h-8 flex-wrap">
+            <TabsTrigger value="formula" className="text-xs">Formula</TabsTrigger>
             <TabsTrigger value="form" className="text-xs">Internal Form</TabsTrigger>
             <TabsTrigger value="public" className="text-xs">Public Form</TabsTrigger>
             <TabsTrigger value="workflow" className="text-xs">Workflow Path</TabsTrigger>
             <TabsTrigger value="docs" className="text-xs">Doc Checklist</TabsTrigger>
             <TabsTrigger value="comms" className="text-xs">Comms</TabsTrigger>
           </TabsList>
+          <TabsContent value="formula" className="pt-3"><FormulaExpression canvas={canvas} /></TabsContent>
           <TabsContent value="form" className="pt-3"><ScreenPreview canvas={canvas} channel="INTERNAL" /></TabsContent>
           <TabsContent value="public" className="pt-3"><ScreenPreview canvas={canvas} channel="PUBLIC" /></TabsContent>
           <TabsContent value="workflow" className="pt-3"><WorkflowPreview canvas={canvas} /></TabsContent>
