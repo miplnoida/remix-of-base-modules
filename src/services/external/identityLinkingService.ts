@@ -113,7 +113,11 @@ export async function startRegistration(_payload: unknown): Promise<void> {
  * Falls back to logging-only when auth is not configured.
  */
 export async function sendEmailOtp(email: string): Promise<void> {
-  await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/public/register` },
+  });
+  if (error) throw error;
 }
 
 export async function verifyEmailOtp(email: string, token: string): Promise<boolean> {
@@ -124,8 +128,10 @@ export async function verifyEmailOtp(email: string, token: string): Promise<bool
 }
 
 export async function sendPhoneOtp(phone: string): Promise<void> {
-  await supabase.auth.signInWithOtp({ phone, options: { shouldCreateUser: false } });
+  const { error } = await supabase.auth.signInWithOtp({ phone, options: { shouldCreateUser: true } });
+  if (error) throw error;
 }
+
 
 export async function verifyPhoneOtp(phone: string, token: string): Promise<boolean> {
   const { error } = await supabase.auth.verifyOtp({ phone, token, type: 'sms' });
