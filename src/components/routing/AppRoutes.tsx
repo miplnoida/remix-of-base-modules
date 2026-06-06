@@ -2209,7 +2209,10 @@ export const AppRoutes = () => {
       {/* Unauthorized */}
       <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* External BN Portals — Claimant / Employer / Doctor */}
+      {/* External BN Portals — Public hub, Claimant / Employer / Doctor */}
+      <Route path="/portal" element={<Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}><PortalHub /></Suspense>} />
+      <Route path="/external/tasks" element={<Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}><ExternalTaskLanding /></Suspense>} />
+      <Route path="/external/tasks/:token" element={<Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}><ExternalTaskLanding /></Suspense>} />
       <Route path="/claimant/*" element={<Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}><ClaimantPortal /></Suspense>} />
       <Route path="/employer/*" element={<Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}><EmployerPortal /></Suspense>} />
       <Route path="/doctor/*" element={<Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading…</div>}><DoctorPortal /></Suspense>} />
