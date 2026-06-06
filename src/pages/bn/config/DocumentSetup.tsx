@@ -19,7 +19,7 @@ import { useBnDocumentProfiles, useUpsertBnDocumentProfile } from '@/hooks/bn/us
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
-import { BnEmptyState, BnFilterBar } from '@/components/bn/shared';
+import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
 import type { BnDocumentProfile } from '@/types/bn';
 
 type ProfileForm = {

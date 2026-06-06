@@ -21,7 +21,7 @@ import { useBnRuleGroups, useUpsertBnRuleGroup } from '@/hooks/bn/useBnConfig';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
-import { BnEmptyState, BnFilterBar } from '@/components/bn/shared';
+import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
 import type { BnRuleGroup } from '@/types/bn';
 
 type RuleGroupForm = {

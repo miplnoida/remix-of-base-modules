@@ -12,7 +12,7 @@ import { Plus, Edit, Monitor, Type } from 'lucide-react';
 import { useBnScreenTemplates, useBnFieldMetadata } from '@/hooks/bn/useBnConfig';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
-import { BnEmptyState, BnFilterBar } from '@/components/bn/shared';
+import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
 
 export default function ScreenMetadataSetup() {
   const [search, setSearch] = useState('');

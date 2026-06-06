@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
-import { BnStatusBadge, BnEmptyState } from '@/components/bn/shared';
+import { BnStatusBadge, BnEmptyState, BnScreenRoleBanner } from '@/components/bn/shared';
 import { useUserCode } from '@/hooks/useUserCode';
 import { useBnProducts } from '@/hooks/bn/useBnProduct';
 import {

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Search, Edit, Copy, Archive } from 'lucide-react';
+import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { useBnProducts } from '@/hooks/bn/useBnProduct';
 import { BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProduct, BnProductStatus } from '@/types/bn';
@@ -42,6 +43,13 @@ export default function ProductCatalog() {
           <Plus className="h-4 w-4" /> New Product
         </Button>
       </div>
+
+      <BnScreenRoleBanner
+        role="product-assembly"
+        description="This is the central Product Assembly workbench. For each product version, configure eligibility, calculation formulas, required documents, service documents, medical policy, workflow, transition fallback, screen/field template, workbasket routing, escalation policy, reason code usage and communications. All reusable building blocks are selected from the libraries — they are not redefined here."
+      />
+
+
 
       <Card>
         <CardHeader>
