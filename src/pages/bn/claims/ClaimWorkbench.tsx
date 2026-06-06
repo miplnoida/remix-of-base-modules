@@ -80,6 +80,10 @@ import { filterEditablePayload } from '@/lib/bn/fieldOwnership';
 import { ActiveEligibilityPanel } from '@/components/bn/workbench/ActiveEligibilityPanel';
 import { ActiveCalculationPanel } from '@/components/bn/workbench/ActiveCalculationPanel';
 import { OverviewChecklist } from '@/components/bn/workbench/OverviewChecklist';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import { useBnWorkflowGovernance } from '@/hooks/bn/useBnWorkflowIntegration';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Workflow } from 'lucide-react';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
