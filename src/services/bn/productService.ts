@@ -64,6 +64,17 @@ export async function createProductVersion(version: Partial<BnProductVersion>): 
 }
 
 export async function updateProductVersion(id: string, updates: Partial<BnProductVersion>): Promise<BnProductVersion> {
+  // Guard: ACTIVE versions are read-only EXCEPT for lifecycle changes (status, effective_to) done via publish/retire helpers.
+  const current = await fetchVersionById(id);
+  if (current?.status === 'ACTIVE') {
+    const allowed = new Set(['status', 'effective_to', 'modified_at', 'modified_by']);
+    const mutating = Object.keys(updates).filter(k => !allowed.has(k));
+    if (mutating.length > 0) {
+      throw new Error(
+        `Version ${current.version_number} is ACTIVE and locked. Create a new DRAFT version to change: ${mutating.join(', ')}.`,
+      );
+    }
+  }
   const { data, error } = await db.from('bn_product_version').update({ ...updates, modified_at: new Date().toISOString() }).eq('id', id).select().single();
   if (error) throw error;
   return data as BnProductVersion;
