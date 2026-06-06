@@ -27,7 +27,10 @@ export function VerifyContactStep({ email, phone, onDone }: Props) {
   async function sendEmail() {
     setBusy('email-send');
     try { await sendEmailOtp(email); toast.success(`Code sent to ${email}`); }
-    catch { toast.error('Could not send code. Try again.'); }
+    catch (e: any) {
+      console.error('[OTP] sendEmail failed', e);
+      toast.error(e?.message || 'Could not send code. Try again.');
+    }
     finally { setBusy(''); }
   }
   async function checkEmail() {
@@ -41,9 +44,13 @@ export function VerifyContactStep({ email, phone, onDone }: Props) {
   async function sendPhone() {
     setBusy('phone-send');
     try { await sendPhoneOtp(phone); toast.success(`Code sent to ${phone}`); }
-    catch { toast.error('Could not send code. Try again.'); }
+    catch (e: any) {
+      console.error('[OTP] sendPhone failed', e);
+      toast.error(e?.message || 'Could not send code. Try again.');
+    }
     finally { setBusy(''); }
   }
+
   async function checkPhone() {
     setBusy('phone-verify');
     try {
