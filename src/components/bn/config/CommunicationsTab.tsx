@@ -129,7 +129,7 @@ export function CommunicationsTab({ versionId, isReadOnly, versionStatus }: Prop
                   {event.is_mandatory_letter && <Badge variant="destructive" className="text-[10px]">Mandatory Letter</Badge>}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={rows.length ? 'default' : 'outline'}>{rows.length} channel{rows.length === 1 ? '' : 's'}</Badge>
+                  <Badge variant={rows.length ? 'default' : 'outline'}>{rows.length} method{rows.length === 1 ? '' : 's'}</Badge>
                 </div>
               </button>
               {isOpen && (
