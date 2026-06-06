@@ -21,6 +21,7 @@ import { DocumentRulesTab } from '@/components/bn/config/DocumentRulesTab';
 import { WorkflowTab } from '@/components/bn/config/WorkflowTab';
 import { ScreenTemplateTab } from '@/components/bn/config/ScreenTemplateTab';
 import ParticipantWorkflowTab from '@/components/bn/config/ParticipantWorkflowTab';
+import PublicFormRulesTab from '@/components/bn/config/PublicFormRulesTab';
 import { InteractionRulesTab } from '@/components/bn/config/InteractionRulesTab';
 import { OverridePoliciesTab } from '@/components/bn/config/OverridePoliciesTab';
 import { VersionHistoryTab } from '@/components/bn/config/VersionHistoryTab';
@@ -244,6 +245,7 @@ export default function ProductEditor() {
           <TabsTrigger value="workflow" disabled={isNew}>Workflow</TabsTrigger>
           <TabsTrigger value="screens" disabled={isNew}>Screens</TabsTrigger>
           <TabsTrigger value="participants" disabled={isNew}>Participant Workflow</TabsTrigger>
+          <TabsTrigger value="public-rules" disabled={isNew}>Public Form Rules</TabsTrigger>
           <TabsTrigger value="channels" disabled={isNew}>Application Channels</TabsTrigger>
           <TabsTrigger value="communications" disabled={isNew}>Communications</TabsTrigger>
           <TabsTrigger value="interactions" disabled={isNew}>Interactions</TabsTrigger>
@@ -367,6 +369,10 @@ export default function ProductEditor() {
 
         <TabsContent value="participants" className="mt-6">
           <ParticipantWorkflowTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
+        </TabsContent>
+
+        <TabsContent value="public-rules" className="mt-6">
+          <PublicFormRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} />
         </TabsContent>
 
         <TabsContent value="channels" className="mt-6">

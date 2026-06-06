@@ -1,83 +1,118 @@
 
-# External Stakeholder Portals — Full SSB Scope
+# Rework Public Benefit Forms — Participant-Role Aware, Config-Driven
 
-Re-scope the three external portals from "benefit application screens" to full Social Security Board stakeholder portals. Internal LAN remains source of truth; portals only consume APIs.
+This is a large, cross-cutting change touching DB, Product Catalog config, public portal renderer, intake RPC, Claim Workbench, and validation. Below is the staged plan. I recommend executing in phases and approving each phase before moving on.
 
-## What's in scope
+---
 
-### 1. Shared portal infrastructure (`src/portals/_shared/`)
-- `ExternalPortalLayout` (sidebar + header + content area + footer)
-- `ExternalPortalSidebar` — module list driven by per-portal config array
-- `ExternalPortalHeader` — user identity, switch role (employer multi-user), logout
-- `ExternalDashboardCard`, `ExternalStatusTimeline`, `ExternalEmptyState`
-- `ExternalFormRenderer` — already covered by `ApplicationFormEngine`; thin wrapper
-- `ExternalDocumentUploader`, `ExternalMessageCenter`, `ExternalLetterViewer`
-- Keep existing `SecureTaskPage`, `ExternalTaskList`, `ExternalTaskForm`
+## Phase 0 — Audit & legacy marking (read-only)
 
-### 2. Shared services (`src/services/external/`)
-Extend existing `publicBenefitApiClient.ts` and add:
-- `externalProfileService` — `getProfile`, `updateProfile`
-- `externalMessageService` — `getMessages`, `markRead`
-- `externalDocumentService` — `getDocuments`, `uploadDocument`
-- `externalTaskService` — `getTasks`, `submitTask`
-- `externalContributionService` — `getContributionHistory`, `getEmploymentHistory`
-- `externalClaimService` — `getClaims`, `getClaimDetail`, `getAwards`, `getPayments`
-- `externalEmployerService` — `getEmployees`, `submitC3`, `uploadC3`, `validateC3`, `getC3History`, `getBalances`, `getComplianceNotices`, `submitConfirmation`, `submitAccidentReport`
-- `externalAuditService` — fire-and-forget audit writes
-All call the existing `public-benefits` edge function (extended with new actions) — no business logic in the browser.
+1. Inventory current public/legacy form routes:
+   - `/newbenefit/apply`, `/newbenefit/apply/:benefitType`, `/newbenefit/my-claims`
+   - `/nbenefit/application/:benefitType`, `/nbenefit/short-term/*`, `/nbenefit/long-term/*`
+   - `/bn/config/products`, `/bn/config/screen-setup`, `/bn/intake/register`
+   - `/claimant/apply/:productCode` (current PublicBenefitApplication)
+2. Add a "Legacy — do not use for new products" banner to `/newbenefit/*` and `/nbenefit/*` and stop linking to them from the Claimant Portal. They remain mounted for reference until removed.
+3. Single supported public entry becomes:
+   `/claimant/apply/:productCode` → `PortalFormRenderer` (new)
 
-### 3. Claimant Portal (`/claimant/*`)
-Routes: dashboard, profile, contributions, employment-history, apply, apply/:productCode, claims, claims/:claimNumber, awards, payments, life-certificates, school-certificates, bank-details, documents, messages, appeals, tasks.
+## Phase 1 — Participant model (DB)
 
-Each module is a page that calls the matching shared service and renders read-only tables/cards plus the existing form engine where input is needed.
+`bn_claim_participant` already exists (id, claim_id, kind, display_name, ssn, employer_regno, provider_code, email, phone, status, …). Extend it:
 
-### 4. Employer Portal (`/employer/*`)
-Routes: dashboard, profile, users, employees, employees/add, c3, c3/new, c3/upload, c3/:period, c3/errors, contributions, payments, balances, penalties, compliance, benefit-tasks, confirmations, accident-reports, wage-confirmations, documents, messages.
+- Add columns: `participant_role` (enum), `participant_type` (text), `relationship_to_insured` (text), `verification_status` (enum: UNVERIFIED, VERIFIED, REJECTED), `external_ref` (text), `payload jsonb`, `is_primary_applicant boolean`.
+- New enum `bn_participant_role` with the 13 values listed in the request.
+- Keep existing `kind` column for backward compatibility; new code reads/writes `participant_role`.
+- New table `bn_product_participant_config` (per product version):
+  `product_version_id, applicant_must_equal_insured, allowed_applicant_kinds[], required_roles[], optional_roles[], requires_deceased, requires_beneficiaries, requires_guardian_or_payee, requires_employer_task, requires_doctor_task, requires_school_task_when (jsonb), notes`.
+- GRANTs to `authenticated` + `service_role`.
 
-C3 submission/upload/validation calls API only — internal C3 module performs validation and returns errors for portal display.
+## Phase 2 — Product Catalog UI
 
-### 5. Doctor / Medical Provider Portal (`/doctor/*`)
-Routes: dashboard, profile, users, tasks, tasks/:taskId, certificates, sickness-certificates, maternity-certificates, ei-medical-reports, invalidity-reports, disablement-assessments, reviews, documents, messages.
+In `src/pages/bn/config/products/*` (Product Assembly), add a new tab **"Participants & Public Form Rules"** that edits `bn_product_participant_config` for the selected version. Pre-seed defaults for the 11 product families described (Sickness, Maternity, EI, Funeral, Age, Invalidity, Survivors, NCP, Life Cert, School Cert, EFT Update).
 
-All certificates use the existing screen template engine (`MEDICAL_CERTIFICATE_BLOCK` smart field) — no hardcoded medical forms.
+## Phase 3 — Public Form Renderer
 
-### 6. Edge function extensions (`supabase/functions/public-benefits/index.ts`)
-New action handlers (all auth-scoped):
-- `profile.get/update`
-- `messages.list/markRead`
-- `documents.list/upload-url`
-- `contributions.history`, `employment.history`
-- `claims.list/get`, `awards.list`, `payments.list`
-- `employer.employees/c3.submit/c3.upload/c3.validate/c3.history/balances/notices/confirmation/accident-report`
-- `doctor.tasks/certificate.submit`
+Create `src/components/external/PortalFormRenderer.tsx` that:
 
-Each writes a `system_audit_trail` row.
+1. Loads product version + `bn_product_participant_config` + `bn_screen_template` + `bn_field_metadata` + `bn_doc_requirement` for channel `PUBLIC_ONLINE`.
+2. Renders **Step 0 — "Who are you applying for?"** with options filtered by `allowed_applicant_kinds`.
+3. Based on selection, shows the appropriate smart fields:
+   `APPLICANT_SSN_LOOKUP`, `INSURED_PERSON_SSN_LOOKUP`, `DECEASED_PERSON_SSN_LOOKUP`, `BENEFICIARY_SELECTOR`, `GUARDIAN_PAYEE_DETAILS`, `EMPLOYER_LOOKUP`, `DOCTOR_PROVIDER_TASK_INVITE`.
+   New smart-field types added to `smartFieldRegistry.ts`.
+4. Renders remaining configured sections from `bn_screen_template` for channel `PUBLIC_ONLINE` (no hardcoded sections).
+5. Enforces document checklist + declaration before submit.
 
-### 7. Security
-- Claimant: `auth.uid()` → linked `ip_master.ssn`; only own records.
-- Employer: portal user → `er_master.regno` link table; role checks via `user_roles` extended with employer-scoped roles (`EMPLOYER_ADMIN`, `PAYROLL_OFFICER`, `HR_OFFICER`, `COMPLIANCE_CONTACT`, `BENEFIT_CONFIRMATION_USER`).
-- Doctor: provider link table → only tasks assigned to provider or facility.
-- Secure token flow already in place via `bn_external_task.access_token`.
+Replace `PublicBenefitApplication.tsx`'s body to mount `PortalFormRenderer` instead of `ApplicationFormEngine` for `PUBLIC_ONLINE`.
 
-## What is NOT in scope this turn
-- Implementing every business-rule API end-to-end. Many internal modules (C3 validation, payments, awards) already have services in the codebase — the edge function will call them. Where an internal service is missing, the API returns a typed "not yet wired" response and the portal shows an "Coming soon — data not yet exposed" empty state so the navigation/shell is complete and verifiable.
-- No new RLS (project policy: role-based only).
+## Phase 4 — Submission payload + intake RPC
 
-## Build order
-1. Shared layout + sidebar config + services scaffolding.
-2. Extend `public-benefits` edge function with new action router + audit.
-3. Claimant portal pages (dashboard, profile, contributions, employment, claims, awards, payments, certificates, bank, documents, messages, appeals, tasks).
-4. Employer portal pages (dashboard, profile, users, employees, C3 suite, contributions, payments, balances, penalties, compliance, benefit-tasks, confirmations, accident-reports, documents, messages).
-5. Doctor portal pages (dashboard, profile, users, tasks, all certificate types, reviews, documents, messages).
-6. Route registration in `PublicRoutes`.
-7. Verify TypeScript build + walk through each portal.
+Public submit payload shape:
+```
+{ applicant, insuredPerson, deceasedInsuredPerson, beneficiaries[], payee, guardian, employer, doctorProvider, benefitFacts, documents[], declaration }
+```
+Update edge function `public-benefits` (or call existing `bn_submit_claim_application` RPC) to:
+- Create `bn_claim` + `bn_claim_application`
+- Insert one `bn_claim_participant` per non-null section with proper `participant_role`
+- Snapshot person/deceased/beneficiaries into `bn_claim_person_snapshot` / `bn_claim_employer_snapshot`
+- Materialize evidence checklist + external tasks via existing `bn_materialize_external_tasks`
+- Start workflow + audit
+
+## Phase 5 — Claim Workbench Participants tab
+
+Update `Participants` tab in claim workspace to group by role:
+Applicant · Insured Person · Deceased IP · Beneficiaries · Payee/Guardian · Employer · Doctor/Provider · School/Funeral Home, with task status + documents per row.
+
+## Phase 6 — Claimant Portal dashboard
+
+`/claimant/dashboard` shows four lists, each via a scoped query against `bn_claim_participant`:
+- My own claims (role IN APPLICANT+INSURED_PERSON, same SSN)
+- Claims I submitted for someone else (APPLICANT but not INSURED_PERSON)
+- Claims where I am beneficiary
+- Claims where I am payee/guardian
+Plus pending actions = `bn_external_task` rows assigned to caller.
+
+## Phase 7 — Security scoping
+
+`public-benefits` edge function `/me/*` endpoints filter by `caller.ssn` matching any `bn_claim_participant.ssn` for that claim (any role) — not just CLAIMANT kind. Add `getClaimsForCaller(ssn)` helper.
+
+## Phase 8 — Configuration validator
+
+New script/page warning when a product version has `PUBLIC_ONLINE` enabled but:
+- no participant config row
+- Survivors without `requires_deceased`
+- Funeral without `requires_deceased`
+- Sickness/Maternity without employer/doctor task flags
+- Public screen template exposes a field flagged `staff_only`
+- No declaration field
+- No document checklist
+
+Surface in Product Catalog detail page as a warnings panel.
+
+## Phase 9 — Verification
+
+Manual test matrix covering all 8 scenarios in the request.
+
+---
 
 ## Technical notes
-- All data fetching via TanStack Query through the new services.
-- All forms via existing `ApplicationFormEngine` with `channel="PUBLIC"`; no hardcoded form JSX.
-- Audit calls are fire-and-forget per project Error Handling standard.
-- Existing memory `mem://architecture/protected-source-table-policy` respected — no write-path mods to core tables; new wiring is API-side.
-- Confirmation: this is a large multi-turn build. After approval, I'll deliver in the order above and pause between phases for review.
 
-## Heads-up
-This will create ~60+ new files. I'll keep each page lean (table + service hook), reuse shared components, and avoid duplicating any internal business logic.
+- DB: 1 migration adds enum + columns + new config table + GRANTs. No RLS (per project rule — role-based only).
+- Edge function: extend `supabase/functions/public-benefits/index.ts` with new submit handler + caller-scoped listing.
+- Smart fields: extend `src/services/bn/registries/smartFieldRegistry.ts` with the 7 new role-lookup types.
+- Legacy `/newbenefit` and `/nbenefit` routes remain mounted with a deprecation banner so existing links don't 404.
+
+---
+
+## Recommended execution order
+
+Given scope (likely 15–25 file changes + 1 migration + edge function rewrite), I suggest shipping in 3 PRs:
+
+1. **PR1 — Foundation:** DB migration (Phase 1) + smart-field registry + Product Catalog Participants tab (Phase 2).
+2. **PR2 — Public renderer:** `PortalFormRenderer` + new submit edge handler + replace `/claimant/apply/:productCode` body (Phases 3–4).
+3. **PR3 — Workbench + dashboard + validator:** Phases 5, 6, 8, plus security scoping (7) and verification pass (9).
+
+Please confirm:
+- (a) Approve plan as-is and start with **PR1**?
+- (b) Approve and want me to push straight through all three PRs sequentially?
+- (c) Any product-specific rule you want changed before I encode defaults in `bn_product_participant_config`?
