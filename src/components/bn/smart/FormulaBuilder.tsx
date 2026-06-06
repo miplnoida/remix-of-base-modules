@@ -22,9 +22,41 @@ const OPERATORS = ['+', '-', '*', '/', '(', ')', 'min(', 'max(', 'round(', ','];
 
 export function FormulaBuilder({ value, onChange, disabled }: Props) {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
-  const [testResult, setTestResult] = React.useState<{ ok: boolean; value?: number; errors: string[] } | null>(null);
+  const [overrides, setOverrides] = React.useState<Record<string, string>>({});
 
   const parsed = React.useMemo(() => (value.trim() ? parseFormula(value) : null), [value]);
+
+  const varsKey = parsed?.variablesUsed.join(',') ?? '';
+  React.useEffect(() => { setOverrides({}); }, [varsKey]);
+
+  const numericInputs = React.useMemo(() => {
+    const out: Record<string, number> = {};
+    (parsed?.variablesUsed ?? []).forEach((k) => {
+      const raw = overrides[k];
+      const def = FORMULA_VARIABLES.find((v) => v.key === k);
+      const n = raw !== undefined && raw !== '' ? Number(raw) : NaN;
+      out[k] = Number.isFinite(n) ? n : (def?.sample ?? 0);
+    });
+    return out;
+  }, [overrides, parsed?.variablesUsed]);
+
+  const live = React.useMemo(() => {
+    if (!value.trim()) return null;
+    return testFormula(value, numericInputs);
+  }, [value, numericInputs]);
+
+  const substituted = React.useMemo(() => {
+    if (!parsed?.valid) return '';
+    return value
+      .replace(/[a-zA-Z_][a-zA-Z0-9_]*/g, (tok) => {
+        if (['min', 'max', 'round'].includes(tok)) return tok;
+        const v = numericInputs[tok];
+        return v !== undefined ? String(v) : tok;
+      })
+      .replace(/\*/g, '×')
+      .replace(/\//g, '÷');
+  }, [value, parsed?.valid, numericInputs]);
+
 
   const insert = (token: string) => {
     const ta = textareaRef.current;
@@ -42,10 +74,8 @@ export function FormulaBuilder({ value, onChange, disabled }: Props) {
     }, 0);
   };
 
-  const runTest = () => {
-    const result = testFormula(value);
-    setTestResult(result);
-  };
+  const resetSamples = () => setOverrides({});
+
 
   return (
     <div className="space-y-3">
@@ -129,20 +159,62 @@ export function FormulaBuilder({ value, onChange, disabled }: Props) {
         </div>
       )}
 
-      <div className="flex items-center gap-2">
-        <Button type="button" size="sm" onClick={runTest} disabled={disabled || !parsed?.valid}>
-          <Play className="h-3.5 w-3.5 mr-1" /> Test formula
-        </Button>
-        {testResult && (
-          testResult.ok ? (
-            <span className="text-sm text-green-700 dark:text-green-400">
-              = <span className="font-mono font-semibold">{testResult.value?.toFixed(2)}</span> (using registry sample values)
-            </span>
-          ) : (
-            <span className="text-sm text-destructive">{testResult.errors.join('; ')}</span>
-          )
-        )}
-      </div>
+      {parsed?.valid && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+                Sample calculator
+              </Label>
+              {parsed.variablesUsed.length > 0 && (
+                <Button type="button" size="sm" variant="ghost" className="h-6 text-xs" onClick={resetSamples}>
+                  Reset to defaults
+                </Button>
+              )}
+            </div>
+
+            {parsed.variablesUsed.length > 0 && (
+              <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-2">
+                {parsed.variablesUsed.map((k) => {
+                  const def = FORMULA_VARIABLES.find((v) => v.key === k);
+                  return (
+                    <div key={k} className="space-y-1">
+                      <Label htmlFor={`var_${k}`} className="text-[11px] font-mono text-muted-foreground">
+                        {k} <span className="text-muted-foreground/60">({def?.type})</span>
+                      </Label>
+                      <input
+                        id={`var_${k}`}
+                        type="number"
+                        inputMode="decimal"
+                        className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm font-mono"
+                        placeholder={String(def?.sample ?? 0)}
+                        value={overrides[k] ?? ''}
+                        onChange={(e) => setOverrides((o) => ({ ...o, [k]: e.target.value }))}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="rounded-md bg-background border p-3 space-y-1.5">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Substituted</div>
+              <div className="font-mono text-sm break-all">{substituted || value}</div>
+              <div className="flex items-baseline gap-2 pt-1 border-t">
+                <span className="text-xs text-muted-foreground">Result =</span>
+                {live?.ok ? (
+                  <span className="font-mono text-2xl font-semibold text-primary">
+                    {Number.isFinite(live.value!) ? live.value!.toFixed(2) : '—'}
+                  </span>
+                ) : (
+                  <span className="text-sm text-destructive">{live?.errors.join('; ')}</span>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
     </div>
   );
 }
