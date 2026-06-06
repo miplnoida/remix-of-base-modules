@@ -560,25 +560,28 @@ export async function simulateVersionRules(
 }
 
 // ─── Audit Logger ──────────────────────────────────────────────────
+//
+// Delegates to the central BN audit service. Critical lifecycle actions
+// (SUBMIT / APPROVE / REJECT / PUBLISH / RETIRE) are awaited and will
+// throw on failure so the caller can surface the error instead of
+// silently losing the audit row.
+
+import { writeBnAudit } from '@/services/bn/audit/bnAuditService';
 
 async function logRuleAudit(
   action: string,
   entityType: string,
   entityId: string,
   afterValue: Record<string, any>,
-  userCode: string
+  userCode: string,
 ) {
-  try {
-    await db.from('audit_logs').insert({
-      action,
-      module: 'benefit_management',
-      entity_type: entityType,
-      entity_id: entityId,
-      after_value: afterValue,
-      user_id: userCode,
-      source: 'App',
-    });
-  } catch (err) {
-    console.error('[BN-Rules] Audit log failed:', err);
-  }
+  await writeBnAudit({
+    action,
+    entityType,
+    entityId,
+    afterValue,
+    performedBy: userCode,
+    module: 'BN_CONFIG',
+    // CRITICAL_ACTIONS set in bnAuditService already covers RULE_VERSION_*.
+  });
 }
