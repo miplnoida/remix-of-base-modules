@@ -200,8 +200,8 @@ function UserMenuStatus() {
 export default function ClaimantPortal() {
   const { persona } = useClaimantPersona();
   const { data: features } = usePortalFeatureConfig();
-  const groups = useMemo(
-    () => buildNavGroups(persona?.flags, persona?.personas ?? [], features),
+  const sidebarItems = useMemo(
+    () => buildSidebar(persona?.flags, persona?.personas ?? [], features),
     [persona, features],
   );
   return (
@@ -211,9 +211,11 @@ export default function ClaimantPortal() {
         <ExternalPortalShell
           role="CLAIMANT"
           brand={BRAND}
-          nav={groups}
+          nav={sidebarItems}
           subHeader={<PersonaHeader />}
           homeHref="/claimant/dashboard"
+          notificationBell={<NotificationBell viewAllHref="/claimant/notifications" />}
+          helpButton={<HelpButton helpHref="/claimant/help" />}
           userMenuItems={[
             { to: '/claimant/account', label: 'My Profile', icon: User },
             { to: '/claimant/account/contacts', label: 'Contact Information', icon: Phone },
