@@ -236,10 +236,21 @@ async function handle(req: Request, url: URL): Promise<Response> {
 
   // Public — list of products that allow public-online (claimant) intake.
   if (method === 'GET' && path === '/benefits/products') {
+    // Only return products that have an ACTIVE version with an enabled ONLINE channel —
+    // i.e. products that are actually openable from a public/external portal.
+    const { data: channels } = await admin
+      .from('bn_product_channel_config')
+      .select('product_id, product_version_id, bn_product_version!inner(status)')
+      .eq('channel_code', 'ONLINE')
+      .eq('is_enabled', true)
+      .eq('bn_product_version.status', 'ACTIVE');
+    const productIds = Array.from(new Set((channels ?? []).map((c: any) => c.product_id)));
+    if (productIds.length === 0) return json({ products: [] });
     const { data } = await admin
       .from('bn_product')
       .select('id, benefit_code, benefit_name, category, payment_type, country_code, status')
       .eq('status', 'ACTIVE')
+      .in('id', productIds)
       .order('benefit_name');
     return json({ products: data ?? [] });
   }
