@@ -23,6 +23,7 @@ export default function WorkbasketConfig() {
   const { data: workbaskets = [] } = useBnWorkbaskets();
   const createMut = useCreateBnWorkbasket();
   const updateMut = useUpdateBnWorkbasket();
+  const { log } = useBnConfigAudit();
 
   const [editItem, setEditItem] = useState<BnWorkbasket | null>(null);
   const [isNew, setIsNew] = useState(false);
