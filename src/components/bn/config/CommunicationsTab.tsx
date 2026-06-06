@@ -15,10 +15,10 @@ interface Props {
   versionStatus?: string;
 }
 
-const CHANNELS = ['EMAIL', 'SMS', 'LETTER', 'IN_APP', 'INTERNAL_EMAIL'] as const;
+const DELIVERY_METHODS = ['EMAIL', 'SMS', 'LETTER', 'IN_APP', 'INTERNAL_EMAIL'] as const;
 const RECIPIENTS = ['CLAIMANT', 'PAYEE', 'EMPLOYER', 'ASSIGNED_OFFICER', 'SUPERVISOR', 'FINANCE', 'MEDICAL_BOARD', 'AUDITOR'] as const;
 
-const channelIcon: Record<string, any> = { EMAIL: Mail, INTERNAL_EMAIL: Mail, SMS: MessageSquare, LETTER: FileText, IN_APP: Bell };
+const deliveryMethodIcon: Record<string, any> = { EMAIL: Mail, INTERNAL_EMAIL: Mail, SMS: MessageSquare, LETTER: FileText, IN_APP: Bell };
 
 interface Event {
   event_code: string;
@@ -30,7 +30,8 @@ interface Event {
 interface Mapping {
   id: string;
   event_code: string;
-  channel: string;
+  delivery_method: string;
+  channel?: string | null; // legacy fallback
   recipient_type: string;
   template_id: string | null;
   is_required: boolean;
