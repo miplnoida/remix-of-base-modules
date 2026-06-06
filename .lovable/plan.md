@@ -1,122 +1,110 @@
-# Claimant Portal Apply — Product-Catalog-Driven Rework
+# Public Registration & SSN Linking Redesign
 
-Scope is large. Splitting into 5 sequential PRs so each ships as a reviewable unit. Nothing changes for internal staff flows.
+A multi-step wizard that lets a public user create an account, verify email or phone, and link their Social Security record automatically when identity match is strong — without manual moderation. Sensitive contribution features stay locked until a VERIFIED SELF link exists.
 
----
+## Scope
 
-## PR-1 — Catalog schema for public channel
+In scope: claimant (insured-person) public registration. Employer/doctor flows untouched. Reuses existing tables wherever possible.
 
-Extend the existing product-catalog tables (no rebuild). All additions are nullable / default-safe so internal BN keeps working.
+## Data model
 
-**`bn_product_channel_config`** — add columns (PUBLIC_ONLINE row per product version):
-- `public_online_enabled boolean default false`
-- `allowed_applicant_types text[]` — SELF, SURVIVOR, GUARDIAN, PAYEE, REPRESENTATIVE, FUNERAL_RESPONSIBLE_PERSON
-- `allowed_subject_types text[]` — INSURED_PERSON, DECEASED_INSURED_PERSON, CHILD_DEPENDANT, BENEFICIARY, AWARD_HOLDER
-- `applicant_must_equal_insured boolean default true`
-- `allow_apply_for_self / _deceased / _child_dependant boolean`
-- `allow_apply_as_guardian / _payee / _representative boolean`
-- `allow_managed_contributor_selection boolean default false`
-- `required_participant_roles text[]`
-- `public_screen_template_id`, `assisted_screen_template_id`, `internal_screen_template_id` — FK to `bn_screen_template`
-- `estimated_processing_days int`
-- `public_intent_tags text[]` — `self`, `deceased`, `child`, `managed`, `funeral`, `not_sure` (used by Step 1 of the wizard)
+Reuse existing tables — do **not** duplicate:
 
-**`external_user_person_link`** — confirm/extend:
-- `relationship_type text` — SELF, GUARDIAN, PAYEE, REPRESENTATIVE, BENEFICIARY, APPLICANT_FOR, MANAGED_CONTRIBUTOR
-- `verification_status text` — UNVERIFIED, PENDING, VERIFIED, REVOKED
-- `is_primary boolean`, `verified_at timestamptz`, `verified_by text`
-- Unique (`user_id`, `ssn`, `relationship_type`)
+- `external_user_person_link` (already exists, 11 cols) — extend with: `match_score INT`, `match_method TEXT`, `verified_email BOOL`, `verified_phone BOOL`, `verified_by TEXT`, `relationship_type` constraint widened to SELF/CLAIMANT/GUARDIAN/PAYEE/REPRESENTATIVE/BENEFICIARY.
+- `ip_master` — read-only source of truth for matching (ssn, date_of_birth, surname, first_name, mother_maiden_name, gender, etc.).
+- Supabase `auth.users.user_metadata` — keep `display_name`, `portal_role`, `link_status`, plus new `email_verified`, `phone_verified` flags.
+- `system_audit_trail` — every step writes an entry via existing `auditPortalAction`.
+- `external_portal_feature_config` (already exists, 10 cols) — store the thresholds and toggles (no new table).
 
-**`external_portal_feature_config`** — seed flag `people_i_manage_enabled` (super-admin toggle).
+New tables (only where nothing equivalent exists):
 
-**Validation view** `v_bn_product_public_config_issues` — flags products with public_online_enabled = true but missing template, missing applicant types, conflicting self-only + other applicants, survivor/funeral without deceased role, public template referencing staff-only fields (joined to `bn_field_metadata.is_internal_only`), missing declaration / document checklist.
+- `external_verification_attempt` — channel (EMAIL/PHONE), destination_masked, status, attempt_count, expires_at, verified_at, rate-limit window.
+- `external_identity_link_attempt` — user_id, attempted_ssn_masked, score, decision (AUTO_LINK/MANUAL_REVIEW/REJECT), created_at — used for rate limiting + audit.
 
----
+Both new tables: RLS off (per project policy), GRANT to authenticated + service_role.
 
-## PR-2 — `publicProductCatalogService`
+## Services
 
-`src/services/external/publicProductCatalogService.ts`:
+`src/services/external/identityLinkingService.ts` — single facade:
 
-- `getPublicAvailableProducts(ctx)` — joins `bn_product` + active `bn_product_version` + `bn_product_channel_config` where channel = PUBLIC_ONLINE and `public_online_enabled` and applicant type / intent tag matches `ctx`.
-- `getPublicApplicationDefinition(productCode, ctx)` — pulls template + `bn_field_metadata` + `bn_doc_requirement` + `bn_product_participant_config` + external task config; returns a normalized `PublicApplicationDefinition`.
-- `validatePublicApplicationContext(productCode, ctx)` — runs Step-2 gate (active version, channel on, applicant allowed, required participants resolvable, template exists).
-- `getRequiredParticipants(productVersionId, ctx)`, `getRequiredDocuments(productVersionId, ctx)`.
-
-Backed by Supabase reads only; no internal BN write paths touched.
-
-Server-side enforcement lives in an edge function `public-benefits/apply-context` that re-validates the same rules before any insert — UI cannot bypass.
-
----
-
-## PR-3 — Claimant Apply Wizard (`/claimant/apply`)
-
-Replaces current placeholder. Three steps:
-
-1. **Intent** — icon tiles: *Myself / Someone deceased / A child or dependant / Someone I manage / Funeral expenses / Not sure*. "Someone I manage" hidden when `people_i_manage_enabled = false`. Tile click sets `applicationContext.intent` + suggested applicant/subject types.
-2. **Catalog** — calls `getPublicAvailableProducts(ctx)`. Renders persona-aware icon cards: name, short description, who-can-apply chip, required-docs summary, processing time, `Start application` CTA, disabled state with reason when validation fails. Lucide icons mapped per product code (Sickness → HeartPulse, Maternity → Baby, EI → Hammer, Age → Sun, Invalidity → Accessibility, Survivors → Users, Funeral → Flower2, NCP → HandHeart, Life Cert → ShieldCheck, School Cert → GraduationCap, EFT → Banknote).
-3. **Application** — renders `<PortalFormRenderer productCode channel="PUBLIC_ONLINE" portalRole="CLAIMANT" applicationContext />`.
-
-Examples wired from intent → product filter:
-- `myself` → SELF intent tag → Sickness, Maternity, Age, Invalidity, NCP, Life Cert (pensioner-gated).
-- `deceased` → Funeral, Survivors, EI Death.
-- `child` → Survivors, School Certificate.
-
----
-
-## PR-4 — `PortalFormRenderer` (public channel)
-
-`src/portals/_shared/PortalFormRenderer.tsx` — generic; no hardcoded forms.
-
-Sections in order, each driven by the resolved `PublicApplicationDefinition`:
-- Participant lookup (Applicant / Insured / Deceased / Beneficiaries / Payee / Guardian / Representative) — only the roles in `required_participant_roles`.
-- Benefit facts (fields from template, filtered to channel `PUBLIC_ONLINE` and `is_internal_only = false`).
-- Document checklist (`bn_doc_requirement` for the version).
-- Declaration block.
-- External task notices ("Your employer will need to confirm…", "Your doctor will need to complete…") derived from `bn_product_participant_task_config`.
-
-**Self-only contribution rule**: contribution prefill / summary banner is rendered only when `applicationContext.subjectIsSelfVerified === true`. Otherwise the section is omitted; the rendered field list strips fields tagged `requires_self_verified = true`.
-
-Submit payload (unchanged shape from spec):
+```text
+startRegistration(payload)
+sendEmailOtp(userId) / verifyEmailOtp(userId, code)
+sendPhoneOtp(userId) / verifyPhoneOtp(userId, code)
+attemptSsnLink(userId, candidate) -> { decision, score, personRef? }
+calculateMatchScore(candidate, dbPerson) -> 0..100
+createVerifiedSelfLink(userId, ssn, score)
+createLimitedAccount(userId)
+auditIdentityLinkAttempt(userId, decision, score)
+getLinkStatus(userId)
 ```
-{ applicationContext, applicant, insuredPerson, deceasedInsuredPerson,
-  beneficiaries, payee, guardian, representative,
-  benefitFacts, documents, declaration }
-```
-POSTed to `public-benefits/apply` (existing edge function extended) which creates `bn_claim` + `bn_claim_application` + `bn_claim_participant` rows, evidence checklist, external tasks, workflow + audit logs.
 
----
+Match scoring (server-side, in the service):
 
-## PR-5 — Managed people, dashboard, validation
+- Hard gates: SSN exact AND DOB exact — otherwise score = 0.
+- Then weighted: surname fuzzy (30), first name fuzzy (25), mother's maiden / previous name (15), gender (10), email-on-record (10), phone-on-record (10).
+- Fuzzy = normalized (lowercase, strip diacritics, collapse whitespace) + Levenshtein ratio ≥ 0.85.
+- Thresholds read from `external_portal_feature_config`: `autoLinkThreshold` (default 85), `manualReviewThreshold` (default 60).
+- Rate limit: max N attempts/day (config, default 5). Lockout response is generic.
 
-- **People I Manage** page (`/claimant/managed/people`) only mounted when `people_i_manage_enabled = true`. CRUD on `external_user_person_link`. Verification flow writes audit row in `external_persona_audit`.
-- **Server gate**: `public-benefits` edge function rejects any request with relationship not VERIFIED for non-SELF subjects, and 404s the managed-people endpoints when flag is off.
-- **Dashboard tiles** added (icon-first, persona-filtered): *Apply for myself*, *Apply for someone else*, *People I Manage* (flag-gated), *Claims I submitted*, *Claims for me*, *Claims I manage*, *Pending tasks*. Counts come from existing `me/claim-buckets` endpoint.
-- **Admin Catalog Validation** page surfaces `v_bn_product_public_config_issues` so configurators see public-channel misconfigurations before publishing.
+## UI — registration wizard
 
----
+New `src/portals/claimant/register/RegistrationWizard.tsx` with 4 steps + a result screen, mounted at `/claimant/register` and linked from `ClaimantLanding`.
 
-## Verification matrix (end of PR-5)
+- Step 1 Create account: email, mobile, password, terms checkbox. Uses existing `externalApiClient.registerExternalUser`.
+- Step 2 Verify contact: tabbed Email / Phone OTP. Either one passing enables Next. Resend cooldown + retry limit from config.
+- Step 3 Link SSN: SSN, DOB, first/last name, optional middle, optional previous/maiden, optional national ID. `noValidate` + ValidationSummary + inline errors per Validation-UX standards. SSN masked on display.
+- Step 4 Result: AUTO_LINK → success animation + "Go to dashboard"; MANUAL_REVIEW → "Submit for review" or "Continue with limited access"; REJECT → "Continue with limited access". Messages are the friendly strings from the brief (no detailed mismatch reasons).
 
-| Scenario | Expected |
-| --- | --- |
-| Insured (SELF verified) opens Apply → Myself | Sickness/Maternity/Age/Invalidity/NCP visible; Funeral hidden |
-| Same user opens Apply → Someone deceased | Funeral, Survivors, EI Death visible; Sickness hidden |
-| Guardian opens Apply → Child/dependant | Survivors + School Cert visible; eligibility uses internal data, UI shows safe messages only |
-| Funeral applicant (no SSN link) | Funeral form opens; no contribution panel anywhere |
-| Claimant-only user (no SELF link) | Sickness/Age etc. show "We could not verify your record — eligibility checks unavailable"; contribution panel never renders |
-| `people_i_manage_enabled = false` | Sidebar tile, /managed/people route, and managed-person endpoints all 404 |
-| Direct POST to apply with mismatched applicant type | Edge function 403s |
-| TypeScript build | Passes |
+Re-uses Validation-UX, date, and phone standards already documented in `<project-knowledge>`.
 
----
+## Feature gating
 
-## Out of scope
+Single hook `useSelfLinkStatus()` reads the current user's `external_user_person_link` row for relationship=SELF status=VERIFIED.
 
-- Rewriting internal BN claim intake (only public channel touched).
-- New product authoring UI (only validation surface added).
-- Replacing Supabase auth or the existing `public-benefits` function — extended, not rebuilt.
-- Payment, letters, life-cert capture flows beyond exposing the apply entry point.
+- `ClaimantPortal` `buildSidebar` consults the hook; hides Contribution History, Employment History, Contribution Statement, Insurable Earnings, Payment Details, Bank Update when no verified SELF link.
+- Dashboard shows a persistent banner: "Link your Social Security record to unlock contribution history and self-service benefits." with CTA → `/claimant/register?step=link` (re-enters the wizard at step 3 for already-authenticated users).
+- Apply-for-Benefits product list filters by `bn_product.public_online_enabled` + each product's `requires_self_link` flag (Sickness/Age require SELF, Funeral/Survivors do not).
 
-## Approval needed
+## Admin settings
 
-Reply **approve** to start with PR-1 (schema migration). Each PR will be a separate, reviewable change.
+Extend `external_portal_feature_config` with: `require_email_verification`, `require_phone_verification`, `allow_either_channel`, `auto_link_threshold`, `manual_review_threshold`, `max_ssn_attempts_per_day`, `enable_limited_accounts`, `enable_people_i_manage`, `enable_representative_access`. Surface in existing Super Admin → External Portal Settings page.
+
+## Audit
+
+Every step calls `auditPortalAction(action, payload)` writing to `system_audit_trail`:
+REGISTRATION_STARTED, EMAIL_OTP_SENT, EMAIL_VERIFIED, PHONE_OTP_SENT, PHONE_VERIFIED, SSN_LINK_ATTEMPT, SSN_LINK_SUCCESS, SSN_LINK_FAIL, LIMITED_ACCOUNT_CREATED, IDENTITY_REVIEW_REQUESTED. SSN is masked in payload.
+
+## Security
+
+- Rate limit + lockout enforced server-side in `attemptSsnLink` against `external_identity_link_attempt`.
+- Masked SSN in all logs, audit rows, and UI.
+- Generic failure copy; never reveal which field mismatched.
+- Email/phone OTP enforce single-use, expiry, retry cap.
+
+## Files
+
+New:
+- `supabase/migrations/<ts>_external_registration_extensions.sql` — extend `external_user_person_link`, create the 2 attempt tables, extend `external_portal_feature_config` columns.
+- `src/services/external/identityLinkingService.ts`
+- `src/hooks/external/useSelfLinkStatus.ts`
+- `src/portals/claimant/register/RegistrationWizard.tsx`
+- `src/portals/claimant/register/steps/{CreateAccountStep,VerifyContactStep,LinkSsnStep,ResultStep}.tsx`
+- `src/portals/claimant/register/SelfLinkBanner.tsx`
+
+Edited:
+- `src/portals/claimant/ClaimantPortal.tsx` — sidebar gating via `useSelfLinkStatus`, banner on dashboard.
+- `src/portals/claimant/ClaimantLanding.tsx` — replace existing register CTA with the new wizard route.
+- `src/portals/claimant/LinkSsnPage.tsx` — delegate to wizard step 3 to avoid two link paths.
+- `src/services/external/portalFeatureConfigService.ts` — read new toggles/thresholds.
+- `src/components/routing/AppRoutes.tsx` — register `/claimant/register` route.
+
+## Verification
+
+Manual scenarios from §15 of the brief — strong match auto-links; DOB mismatch returns generic failure; name typo passes when fuzzy ≥ threshold; limited account cannot reach `/claimant/account/contribution-statements`; Funeral Grant still visible in Apply for Benefits without SELF link; rate-limit kicks in after configured attempts.
+
+## Out of scope (this iteration)
+
+- Actual SMS provider wiring (uses Supabase phone OTP if enabled; otherwise stub with audit-only flow and TODO).
+- Manual-review reviewer UI for admins (only the queue write happens here).
+- People-I-Manage flow (kept behind feature flag, no UI changes here).
