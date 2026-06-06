@@ -221,6 +221,15 @@ export async function publishProductVersion(
   const version = await fetchVersionById(versionId);
   if (!version) throw new Error('Version not found');
 
+  // ─── FINAL GATE: Configuration Validation must pass ─────────────
+  // Composes conflict detection + channel readiness + baseline validation.
+  const gate = await assertSafeToPublish(versionId);
+  if (!gate.ok) {
+    throw new Error(
+      `Publish blocked by Configuration Validation:\n• ${gate.errors.join('\n• ')}`,
+    );
+  }
+
   const existingActive = (await fetchVersionsByProduct(version.product_id))
     .filter(v => v.status === 'ACTIVE' && v.id !== versionId);
 
@@ -240,6 +249,11 @@ export async function publishProductVersion(
         effective_to: closeDate,
         modified_at: new Date().toISOString(),
       }).eq('id', ex.id);
+      await auditConfigChange({
+        action: 'RETIRE', entityType: 'bn_product_version', entityId: ex.id,
+        afterValue: { effective_to: closeDate, superseded_by: versionId },
+        performedBy: await actor(), critical: true,
+      });
     } else if (ex.effective_to >= newEffectiveFrom) {
       throw new Error(
         `Cannot publish: ACTIVE Version ${ex.version_number} ends on ${ex.effective_to}, ` +
@@ -253,6 +267,13 @@ export async function publishProductVersion(
     effective_from: newEffectiveFrom,
     modified_at: new Date().toISOString(),
   }).eq('id', versionId);
+
+  await auditConfigChange({
+    action: 'PUBLISH', entityType: 'bn_product_version', entityId: versionId,
+    beforeValue: { status: version.status },
+    afterValue: { status: 'ACTIVE', effective_from: newEffectiveFrom, gate: gate.details },
+    performedBy: await actor(), critical: true,
+  });
 }
 
 /**
@@ -276,6 +297,13 @@ export async function retireProductVersion(versionId: string): Promise<void> {
     status: 'ARCHIVED',
     modified_at: new Date().toISOString(),
   }).eq('id', versionId);
+
+  await auditConfigChange({
+    action: 'RETIRE', entityType: 'bn_product_version', entityId: versionId,
+    beforeValue: { status: 'ACTIVE' },
+    afterValue: { status: 'ARCHIVED', replacement_id: replacement?.id ?? null },
+    performedBy: await actor(), critical: true,
+  });
 }
 
 // ---- Eligibility Rules ----
