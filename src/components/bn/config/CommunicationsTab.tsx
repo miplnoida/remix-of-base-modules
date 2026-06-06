@@ -150,18 +150,19 @@ export function CommunicationsTab({ versionId, isReadOnly, versionStatus }: Prop
                       </TableHeader>
                       <TableBody>
                         {rows.map(m => {
-                          const Icon = channelIcon[m.channel] || Mail;
+                          const dm = m.delivery_method || m.channel || 'EMAIL';
+                          const Icon = deliveryMethodIcon[dm] || Mail;
                           const filteredTpls = templates.filter(t =>
-                            !t.channel || t.channel.toLowerCase() === m.channel.toLowerCase() ||
-                            (m.channel === 'INTERNAL_EMAIL' && t.channel.toLowerCase() === 'email')
+                            !t.channel || t.channel.toLowerCase() === dm.toLowerCase() ||
+                            (dm === 'INTERNAL_EMAIL' && t.channel.toLowerCase() === 'email')
                           );
                           return (
                             <TableRow key={m.id}>
                               <TableCell>
-                                <Select value={m.channel} onValueChange={v => updateMapping(m.id, { channel: v, template_id: null })} disabled={isReadOnly}>
+                                <Select value={dm} onValueChange={v => updateMapping(m.id, { delivery_method: v, channel: v, template_id: null })} disabled={isReadOnly}>
                                   <SelectTrigger><SelectValue /></SelectTrigger>
                                   <SelectContent>
-                                    {CHANNELS.map(c => <SelectItem key={c} value={c}><span className="flex items-center gap-2"><Icon className="h-3.5 w-3.5" />{c}</span></SelectItem>)}
+                                    {DELIVERY_METHODS.map(c => <SelectItem key={c} value={c}><span className="flex items-center gap-2"><Icon className="h-3.5 w-3.5" />{c}</span></SelectItem>)}
                                   </SelectContent>
                                 </Select>
                               </TableCell>
