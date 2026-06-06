@@ -202,7 +202,10 @@ export function PortalFormRenderer({ productCode }: Props) {
       toast.success(`Application submitted: ${res.claimNumber}`);
       navigate(`/claimant/claims/${encodeURIComponent(res.claimNumber)}`);
     } catch (e: any) {
-      toast.error('Submission failed', { description: e?.message ?? 'Unknown error' });
+      const message = e?.status === 403
+        ? 'Your sign-in is not set up for claimant submissions. Please use a claimant portal account, or continue as staff preview without submitting.'
+        : (e?.message ?? 'Unknown error');
+      toast.error('Submission failed', { description: message });
     } finally {
       setSubmitting(false);
     }
