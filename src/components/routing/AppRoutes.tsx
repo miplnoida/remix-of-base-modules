@@ -17,6 +17,16 @@ const DoctorPortal = lazy(() => import('@/portals/doctor/DoctorPortal'));
 const PortalHub = lazy(() => import('@/portals/PortalHub'));
 const ExternalTaskLanding = lazy(() => import('@/portals/ExternalTaskLanding'));
 
+// Public website
+const PublicLayout = lazy(() => import('@/pages/public/PublicLayout'));
+const PublicHome = lazy(() => import('@/pages/public/Home'));
+const RegisterWizard = lazy(() => import('@/pages/public/register/RegisterWizard'));
+const ExternalPortalApprovals = lazy(() => import('@/pages/admin/ExternalPortalApprovals'));
+import {
+  PublicServices, PublicBenefits, PublicContributions, PublicEmployers,
+  PublicMedicalProviders, PublicContact, PublicHelp, PublicLogin,
+} from '@/pages/public/ContentPages';
+
 const InspectorLogin = lazy(() => import('@/pages/inspector/InspectorLogin').then((m) => ({ default: m.InspectorLogin })));
 const InspectorDashboard = lazy(() => import('@/pages/inspector/InspectorDashboard').then((m) => ({ default: m.InspectorDashboard })));
 const InspectorWeeklyPlan = lazy(() => import('@/pages/inspector/InspectorWeeklyPlan').then((m) => ({ default: m.InspectorWeeklyPlan })));
