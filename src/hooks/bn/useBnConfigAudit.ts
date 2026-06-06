@@ -3,7 +3,7 @@
  * Captures before/after snapshots into system_audit_trail tagged with user_code.
  */
 import { supabase } from '@/integrations/supabase/client';
-import { useNewBenefitAuth } from '@/contexts/NewBenefitAuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 export interface BnAuditEntry {
   entityType: string;
@@ -15,10 +15,8 @@ export interface BnAuditEntry {
 }
 
 export function useBnConfigAudit() {
-  const auth = (() => {
-    try { return useNewBenefitAuth(); } catch { return null as any; }
-  })();
-  const userCode = auth?.user?.user_code ?? auth?.user?.userCode ?? 'system';
+  const { profile } = useSupabaseAuth();
+  const userCode = profile?.user_code ?? 'system';
 
   const log = (entry: BnAuditEntry): void => {
     // Fire-and-forget (non-blocking). Failures are logged but never thrown.
