@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { ExternalPortalShell, type NavGroup } from '@/portals/_shared/ExternalPortalShell';
 import { ExternalTaskList } from '@/portals/_shared/ExternalTaskList';
 import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
-import { PortalModulePlaceholder } from '@/portals/_shared/PortalModulePlaceholder';
+
 import { PortalFormRenderer } from '@/components/external/PortalFormRenderer';
 import { RequirePersonaFlag } from '@/components/external/RequirePersonaFlag';
 import ClaimantLanding from '@/portals/claimant/ClaimantLanding';
