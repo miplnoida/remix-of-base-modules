@@ -176,7 +176,8 @@ const LogList: React.FC<{ rows: any[]; loading?: boolean; onRetry: (id: string) 
             )}
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 };
