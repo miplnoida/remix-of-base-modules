@@ -43,7 +43,8 @@ const channelIcon = (ch: string) => {
 const formatTime = (iso?: string) => (iso ? format(new Date(iso), 'dd/MM/yyyy HH:mm') : '—');
 
 export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId }) => {
-  const userCode = useUserCode();
+  const { userCode: userCodeRaw } = useUserCode();
+  const userCode = userCodeRaw || 'SYSTEM';
   const { data, isLoading } = useBnClaimCommunicationHistory(claimId);
   const trigger = useBnTriggerCommunication();
   const updateLetter = useBnUpdateLetterStatus();
