@@ -79,6 +79,7 @@ import { CreditCard, ListChecks, Inbox } from 'lucide-react';
 import { filterEditablePayload } from '@/lib/bn/fieldOwnership';
 import { ActiveEligibilityPanel } from '@/components/bn/workbench/ActiveEligibilityPanel';
 import { ActiveCalculationPanel } from '@/components/bn/workbench/ActiveCalculationPanel';
+import { OverviewChecklist } from '@/components/bn/workbench/OverviewChecklist';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
