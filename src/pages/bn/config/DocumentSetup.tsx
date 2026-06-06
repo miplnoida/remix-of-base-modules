@@ -47,11 +47,16 @@ export default function DocumentSetup() {
   const { data: profiles = [], isLoading } = useBnDocumentProfiles();
   const upsert = useUpsertBnDocumentProfile();
   const { userCode } = useUserCode();
+  const audit = useBnConfigAudit();
 
   const filtered = profiles.filter((p: BnDocumentProfile) =>
     !search || p.profile_name?.toLowerCase().includes(search.toLowerCase()) ||
     p.profile_code?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const otherCodes = profiles
+    .filter((p: BnDocumentProfile) => p.id !== form.id)
+    .map((p: BnDocumentProfile) => p.profile_code);
 
   const openAdd = () => { setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (p: BnDocumentProfile) => {
@@ -73,8 +78,13 @@ export default function DocumentSetup() {
       });
       return;
     }
+    if (otherCodes.map(c => c.toUpperCase()).includes(form.profile_code.trim().toUpperCase())) {
+      toast.error('Duplicate code', { description: 'Another profile already uses this code.' });
+      return;
+    }
     try {
-      await upsert.mutateAsync({
+      const before = form.id ? profiles.find((p: BnDocumentProfile) => p.id === form.id) ?? null : null;
+      const saved = await upsert.mutateAsync({
         ...(form.id ? { id: form.id } : {}),
         profile_code: form.profile_code.trim(),
         profile_name: form.profile_name.trim(),
@@ -83,6 +93,12 @@ export default function DocumentSetup() {
         is_active: form.is_active,
         entered_by: userCode ?? null,
       } as Partial<BnDocumentProfile>);
+      audit.log({
+        entityType: 'bn_document_profile',
+        entityId: (saved as any)?.id ?? form.id ?? 'new',
+        action: form.id ? 'UPDATE' : 'CREATE',
+        before, after: form,
+      });
       toast.success(form.id ? 'Profile updated' : 'Profile created');
       setDialogOpen(false);
     } catch (e: any) {
