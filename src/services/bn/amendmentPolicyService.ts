@@ -252,8 +252,8 @@ export async function createCorrectionRequest(input: CreateCorrectionInput): Pro
     entity_id: input.claimId,
     action: 'REQUEST_CORRECTION',
     severity: 'info',
-    user_code: input.requestedBy,
-    details: { request_id: (req as any).id, message: input.message, fields: input.fields.map((f) => f.field_key) },
+    user_name: input.requestedBy,
+    payload_json: { request_id: (req as any).id, message: input.message, fields: input.fields.map((f) => f.field_key) },
   } as any);
 
   return (req as any).id as string;
