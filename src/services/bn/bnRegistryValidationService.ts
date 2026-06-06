@@ -81,7 +81,17 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
     if (!expr) continue;
     try {
       const result = parseFormula(expr);
-      const unknown = (result.variables || []).filter((v) => !allowedVars.has(v));
+      if (!result.valid) {
+        findings.push({
+          category: 'FORMULA_VARIABLE',
+          severity: 'WARNING',
+          entity: 'bn_formula',
+          entityId: f.id,
+          message: `${f.formula_code || f.code}: ${result.errors.join('; ') || 'parse error'}`,
+        });
+        continue;
+      }
+      const unknown = (result.variablesUsed || []).filter((v) => !allowedVars.has(v));
       if (unknown.length > 0) {
         findings.push({
           category: 'FORMULA_VARIABLE',
