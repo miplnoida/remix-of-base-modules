@@ -1,110 +1,63 @@
-# Public Registration & SSN Linking Redesign
-
-A multi-step wizard that lets a public user create an account, verify email or phone, and link their Social Security record automatically when identity match is strong — without manual moderation. Sensitive contribution features stay locked until a VERIFIED SELF link exists.
-
 ## Scope
 
-In scope: claimant (insured-person) public registration. Employer/doctor flows untouched. Reuses existing tables wherever possible.
+Make the Claim Workbench (`/bn/claims/:id`) respect a per-product **amendment policy** driven by the existing `application_channel` on `bn_claim` / `bn_claim_application`. No new `claim_source` column — we use the channel already in place.
 
-## Data model
+The work has three layers: **schema** (policy + audit), **service** (resolver that says "what's editable, by whom, why locked"), **UI** (banner, editable/locked controls, correction flow).
 
-Reuse existing tables — do **not** duplicate:
+## Phase 1 — Schema (one migration)
 
-- `external_user_person_link` (already exists, 11 cols) — extend with: `match_score INT`, `match_method TEXT`, `verified_email BOOL`, `verified_phone BOOL`, `verified_by TEXT`, `relationship_type` constraint widened to SELF/CLAIMANT/GUARDIAN/PAYEE/REPRESENTATIVE/BENEFICIARY.
-- `ip_master` — read-only source of truth for matching (ssn, date_of_birth, surname, first_name, mother_maiden_name, gender, etc.).
-- Supabase `auth.users.user_metadata` — keep `display_name`, `portal_role`, `link_status`, plus new `email_verified`, `phone_verified` flags.
-- `system_audit_trail` — every step writes an entry via existing `auditPortalAction`.
-- `external_portal_feature_config` (already exists, 10 cols) — store the thresholds and toggles (no new table).
+New tables in `public` (RLS off per project rule, plain GRANTs):
 
-New tables (only where nothing equivalent exists):
+1. `bn_product_amendment_policy` — one row per `bn_product_version`
+   - flags: `allow_officer_amendments`, `allow_public_corrections`, `allow_participant_amendments`
+   - lock gates: `editable_until_status`, `lock_after_eligibility/calculation/decision/approval/payment`
+   - approval flags: `requires_reason_for_amendment`, `requires_supervisor_approval_for_locked_changes`
+   - area gates: `participant_details_editable_until`, `benefit_facts_editable_until`, `document_details_editable_until`, `payment_details_editable_until`, `calculation_inputs_editable_until`
 
-- `external_verification_attempt` — channel (EMAIL/PHONE), destination_masked, status, attempt_count, expires_at, verified_at, rate-limit window.
-- `external_identity_link_attempt` — user_id, attempted_ssn_masked, score, decision (AUTO_LINK/MANUAL_REVIEW/REJECT), created_at — used for rate limiting + audit.
+2. `bn_claim_field_ownership` — per product_version + field_key
+   - `field_owner` enum: APPLICANT_SUBMITTED, STAFF_REVIEW, EMPLOYER_SUBMITTED, DOCTOR_SUBMITTED, SYSTEM_DERIVED, DECISION_FIELD, PAYMENT_FIELD
+   - `editable_channels text[]`, `editable_until_status`, `requires_reason`, `requires_supervisor_approval`
 
-Both new tables: RLS off (per project policy), GRANT to authenticated + service_role.
+3. `bn_claim_amendment_log` — before/after/reason/by/at/channel/approval_status (also mirrored into `system_audit_trail`)
 
-## Services
+4. `bn_claim_correction_request` + `bn_claim_correction_field` — officer requests fields, claimant fills, officer accepts/rejects
 
-`src/services/external/identityLinkingService.ts` — single facade:
+5. Add `eligibility_stale boolean` and `calculation_stale boolean` to `bn_claim`
 
-```text
-startRegistration(payload)
-sendEmailOtp(userId) / verifyEmailOtp(userId, code)
-sendPhoneOtp(userId) / verifyPhoneOtp(userId, code)
-attemptSsnLink(userId, candidate) -> { decision, score, personRef? }
-calculateMatchScore(candidate, dbPerson) -> 0..100
-createVerifiedSelfLink(userId, ssn, score)
-createLimitedAccount(userId)
-auditIdentityLinkAttempt(userId, decision, score)
-getLinkStatus(userId)
-```
+Seed default policy rows for every existing `bn_product_version` and a default field-ownership set for the well-known claim fact keys.
 
-Match scoring (server-side, in the service):
+## Phase 2 — Service layer
 
-- Hard gates: SSN exact AND DOB exact — otherwise score = 0.
-- Then weighted: surname fuzzy (30), first name fuzzy (25), mother's maiden / previous name (15), gender (10), email-on-record (10), phone-on-record (10).
-- Fuzzy = normalized (lowercase, strip diacritics, collapse whitespace) + Levenshtein ratio ≥ 0.85.
-- Thresholds read from `external_portal_feature_config`: `autoLinkThreshold` (default 85), `manualReviewThreshold` (default 60).
-- Rate limit: max N attempts/day (config, default 5). Lockout response is generic.
+`src/services/bn/amendmentPolicyService.ts`
+- `resolveClaimEditability(claimId)` → returns `{ channel, status, policy, areas: { participants, benefitFacts, documents, payment, calcInputs }, lockedReasons[], canRequestCorrection, canSupervisorOverride }`
+- `getFieldEditability(claimId, fieldKey, userRoles)` → uses ownership + channel + status + policy
+- `recordAmendment(...)` — writes `bn_claim_amendment_log` + `system_audit_trail` in one RPC; if either fails, both rollback. Flips `eligibility_stale` / `calculation_stale` when amended field is tagged as affecting them.
+- `createCorrectionRequest`, `submitCorrection`, `acceptCorrection`, `rejectCorrection` — each writes its audit action.
 
-## UI — registration wizard
+Hook: `useClaimEditability(claimId)`.
 
-New `src/portals/claimant/register/RegistrationWizard.tsx` with 4 steps + a result screen, mounted at `/claimant/register` and linked from `ClaimantLanding`.
+## Phase 3 — Workbench UI
 
-- Step 1 Create account: email, mobile, password, terms checkbox. Uses existing `externalApiClient.registerExternalUser`.
-- Step 2 Verify contact: tabbed Email / Phone OTP. Either one passing enables Next. Resend cooldown + retry limit from config.
-- Step 3 Link SSN: SSN, DOB, first/last name, optional middle, optional previous/maiden, optional national ID. `noValidate` + ValidationSummary + inline errors per Validation-UX standards. SSN masked on display.
-- Step 4 Result: AUTO_LINK → success animation + "Go to dashboard"; MANUAL_REVIEW → "Submit for review" or "Continue with limited access"; REJECT → "Continue with limited access". Messages are the friendly strings from the brief (no detailed mismatch reasons).
+- New `EditabilityBanner` at top of workbench showing channel, status, what's editable, what's locked and why. Variants per channel match the spec text.
+- `BenefitDetailSection`, `ClaimParticipantsTab`, documents tab: wrap field inputs with `<AmendableField fieldKey=... />` that consults `useClaimEditability`. Locked fields render read-only with a lock icon + tooltip; correction-request channels show "Request Correction" instead of "Edit".
+- `ClaimActionBar` actions become policy-driven: Edit Application, Request Correction, Save Amendment, Re-run Eligibility, Re-run Calculation, Submit for Decision, Supervisor Override, Reopen for Amendment.
+- `AmendmentDialog` (reason required when policy says so; supervisor approval gate when applicable).
+- `CorrectionRequestDialog` (officer picks fields + message) and `AmendmentHistoryDrawer` (reads `bn_claim_amendment_log`).
+- Stale banner: when `eligibility_stale` or `calculation_stale` is true, show "Claim data changed. Re-run eligibility and calculation."
 
-Re-uses Validation-UX, date, and phone standards already documented in `<project-knowledge>`.
+## Phase 4 — Validation + tests
 
-## Feature gating
+- Add `validateAmendmentConfig()` to the existing Config Validation runner: every product version has a policy row, public-enabled products allow corrections, lock stages set, field ownership present.
+- Manual test script under `scripts/qa/bn-amendment-tests.md` covering the four channel scenarios in section 15.
 
-Single hook `useSelfLinkStatus()` reads the current user's `external_user_person_link` row for relationship=SELF status=VERIFIED.
+## Out of scope (intentionally)
 
-- `ClaimantPortal` `buildSidebar` consults the hook; hides Contribution History, Employment History, Contribution Statement, Insurable Earnings, Payment Details, Bank Update when no verified SELF link.
-- Dashboard shows a persistent banner: "Link your Social Security record to unlock contribution history and self-service benefits." with CTA → `/claimant/register?step=link` (re-enters the wizard at step 3 for already-authenticated users).
-- Apply-for-Benefits product list filters by `bn_product.public_online_enabled` + each product's `requires_self_link` flag (Sickness/Age require SELF, Funeral/Survivors do not).
+- Real claimant-portal screens for filling correction tasks (we expose the request + accept/reject inside the workbench; portal-side rendering stays for the public portal pass we deferred earlier).
+- Migrating historical claims to backfill `application_channel` (existing values are kept; null treated as `STAFF_OFFLINE` for legacy admin display only — flagged in the banner).
 
-## Admin settings
+## Technical notes
 
-Extend `external_portal_feature_config` with: `require_email_verification`, `require_phone_verification`, `allow_either_channel`, `auto_link_threshold`, `manual_review_threshold`, `max_ssn_attempts_per_day`, `enable_limited_accounts`, `enable_people_i_manage`, `enable_representative_access`. Surface in existing Super Admin → External Portal Settings page.
-
-## Audit
-
-Every step calls `auditPortalAction(action, payload)` writing to `system_audit_trail`:
-REGISTRATION_STARTED, EMAIL_OTP_SENT, EMAIL_VERIFIED, PHONE_OTP_SENT, PHONE_VERIFIED, SSN_LINK_ATTEMPT, SSN_LINK_SUCCESS, SSN_LINK_FAIL, LIMITED_ACCOUNT_CREATED, IDENTITY_REVIEW_REQUESTED. SSN is masked in payload.
-
-## Security
-
-- Rate limit + lockout enforced server-side in `attemptSsnLink` against `external_identity_link_attempt`.
-- Masked SSN in all logs, audit rows, and UI.
-- Generic failure copy; never reveal which field mismatched.
-- Email/phone OTP enforce single-use, expiry, retry cap.
-
-## Files
-
-New:
-- `supabase/migrations/<ts>_external_registration_extensions.sql` — extend `external_user_person_link`, create the 2 attempt tables, extend `external_portal_feature_config` columns.
-- `src/services/external/identityLinkingService.ts`
-- `src/hooks/external/useSelfLinkStatus.ts`
-- `src/portals/claimant/register/RegistrationWizard.tsx`
-- `src/portals/claimant/register/steps/{CreateAccountStep,VerifyContactStep,LinkSsnStep,ResultStep}.tsx`
-- `src/portals/claimant/register/SelfLinkBanner.tsx`
-
-Edited:
-- `src/portals/claimant/ClaimantPortal.tsx` — sidebar gating via `useSelfLinkStatus`, banner on dashboard.
-- `src/portals/claimant/ClaimantLanding.tsx` — replace existing register CTA with the new wizard route.
-- `src/portals/claimant/LinkSsnPage.tsx` — delegate to wizard step 3 to avoid two link paths.
-- `src/services/external/portalFeatureConfigService.ts` — read new toggles/thresholds.
-- `src/components/routing/AppRoutes.tsx` — register `/claimant/register` route.
-
-## Verification
-
-Manual scenarios from §15 of the brief — strong match auto-links; DOB mismatch returns generic failure; name typo passes when fuzzy ≥ threshold; limited account cannot reach `/claimant/account/contribution-statements`; Funeral Grant still visible in Apply for Benefits without SELF link; rate-limit kicks in after configured attempts.
-
-## Out of scope (this iteration)
-
-- Actual SMS provider wiring (uses Supabase phone OTP if enabled; otherwise stub with audit-only flow and TODO).
-- Manual-review reviewer UI for admins (only the queue write happens here).
-- People-I-Manage flow (kept behind feature flag, no UI changes here).
+- All new tables: RLS **off** (project rule), GRANTs to `authenticated` + `service_role`.
+- Field ownership table seeded for: `illness_start_date`, `illness_end_date`, `incapacity_dates`, `confinement_date`, `expected_delivery_date`, `funeral_date`, `deceased_*`, `wage_*`, `payment_method`, `bank_account_*`, plus participant identity keys. Anything not listed defaults to `STAFF_REVIEW` with `editable_until_status = 'DECISION_PENDING'`.
+- `recordAmendment` is a Postgres function (`security definer`) so the audit-write-or-fail guarantee is atomic.
+- TypeScript build must pass — all new types live in `src/types/bn/amendment.ts`.
