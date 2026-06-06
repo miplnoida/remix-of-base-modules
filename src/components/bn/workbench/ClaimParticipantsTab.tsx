@@ -55,6 +55,8 @@ export function ClaimParticipantsTab({ claimId }: Props) {
   const decide = useUpdateExternalTaskDecision(claimId);
   const resend = useResendParticipantInvite(claimId);
   const materialize = useMaterializeExternalTasks(claimId);
+  const updateRelationship = useUpdateParticipantRelationship(claimId);
+
 
   const [filterKind, setFilterKind] = useState<'ALL' | 'CLAIMANT' | 'EMPLOYER' | 'DOCTOR'>('ALL');
 
