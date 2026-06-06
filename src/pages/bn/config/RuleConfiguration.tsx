@@ -243,14 +243,19 @@ export default function RuleConfiguration() {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="rg_code">Code *</Label>
-                  <Input id="rg_code" value={form.group_code} maxLength={50}
-                    onChange={(e) => setForm({ ...form, group_code: e.target.value.toUpperCase() })} />
-                </div>
+                <CodeFieldWithAutoGenerate
+                  label="Code"
+                  required
+                  prefix="RG"
+                  value={form.group_code}
+                  onChange={(v) => setForm({ ...form, group_code: v })}
+                  existingCodes={otherCodes}
+                  disabled={!!form.id}
+                  helpText="Unique rule group code. Cannot be changed after creation."
+                />
                 <div className="space-y-1.5">
                   <Label htmlFor="rg_country">Country code</Label>
-                  <Input id="rg_country" value={form.country_code} maxLength={3} placeholder="e.g. KN"
+                  <Input id="rg_country" value={form.country_code} maxLength={3} placeholder="Leave blank for global"
                     onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
                 </div>
               </div>
