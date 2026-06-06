@@ -372,26 +372,33 @@ export default function ClaimWorkbench() {
 
         {/* CLAIMANT — Full profile */}
         <TabsContent value="claimant" className="mt-6">
-          <ClaimantProfileTab ssn={claim.ssn} />
+          <ClaimWorkbenchTabBoundary tabName="Claimant">
+            <ClaimantProfileTab ssn={claim.ssn} />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         {/* CONTRIBUTIONS */}
         <TabsContent value="contributions" className="mt-6">
-          <ContributionsWagesTab ssn={claim.ssn} />
+          <ClaimWorkbenchTabBoundary tabName="Contributions">
+            <ContributionsWagesTab ssn={claim.ssn} />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         {/* BENEFIT DETAILS — Section 6 */}
         <TabsContent value="details" className="mt-6">
-          <BenefitDetailSection
-            category={product?.category || 'SHORT_TERM'}
-            detailJson={mergedDetail}
-            isEditable={isEditable}
-            onDetailChange={handleDetailChange}
-          />
+          <ClaimWorkbenchTabBoundary tabName="Benefit Details">
+            <BenefitDetailSection
+              category={product?.category || 'SHORT_TERM'}
+              detailJson={mergedDetail}
+              isEditable={isEditable}
+              onDetailChange={handleDetailChange}
+            />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         {/* ELIGIBILITY */}
         <TabsContent value="eligibility" className="mt-6">
+          <ClaimWorkbenchTabBoundary tabName="Eligibility">
           {eligibility.length === 0 ? (
             <BnEmptyState type="empty" title="No eligibility checks" description="Run an eligibility check from the action bar." />
           ) : (
@@ -419,10 +426,12 @@ export default function ClaimWorkbench() {
               ))}
             </div>
           )}
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         {/* CALCULATION */}
         <TabsContent value="calculation" className="mt-6">
+          <ClaimWorkbenchTabBoundary tabName="Calculation">
           {calculations.length === 0 ? (
             <BnEmptyState type="empty" title="No calculations" description="Run a calculation from the action bar." />
           ) : (
@@ -445,44 +454,58 @@ export default function ClaimWorkbench() {
               ))}
             </div>
           )}
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         {/* DOCUMENTS — Section 7 */}
         <TabsContent value="documents" className="mt-6 space-y-6">
-          <EvidenceChecklist claimId={claim.id} userRoles={userRoles} />
-          <EvidenceAuditTimeline claimId={claim.id} />
+          <ClaimWorkbenchTabBoundary tabName="Documents">
+            <EvidenceChecklist claimId={claim.id} userRoles={userRoles} />
+            <EvidenceAuditTimeline claimId={claim.id} />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         {/* DECISIONS */}
         <TabsContent value="decisions" className="mt-6">
-          <ClaimDecisionTimeline claimId={claim.id} />
+          <ClaimWorkbenchTabBoundary tabName="Decisions">
+            <ClaimDecisionTimeline claimId={claim.id} />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         {/* NOTES — Section 8 */}
         <TabsContent value="notes" className="mt-6">
-          <NotesWorklogSection
-            notes={notes as any[]}
-            isLoading={false}
-            userRoles={userRoles}
-            onAddNote={handleAddNote}
-            isAdding={addNote.isPending}
-          />
+          <ClaimWorkbenchTabBoundary tabName="Notes">
+            <NotesWorklogSection
+              notes={notes as any[]}
+              isLoading={false}
+              userRoles={userRoles}
+              onAddNote={handleAddNote}
+              isAdding={addNote.isPending}
+            />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         {/* LINKED CLAIMS — Section 9 */}
         <TabsContent value="linked" className="mt-6">
-          <LinkedClaimsPanel linkedClaims={linkedClaims} isLoading={linkedLoading} />
+          <ClaimWorkbenchTabBoundary tabName="Linked">
+            <LinkedClaimsPanel linkedClaims={linkedClaims} isLoading={linkedLoading} />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         {/* STATUS HISTORY — Section 10 */}
         <TabsContent value="history" className="mt-6">
-          <StatusHistorySection history={statusHistory} isLoading={historyLoading} />
+          <ClaimWorkbenchTabBoundary tabName="History">
+            <StatusHistorySection history={statusHistory} isLoading={historyLoading} />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
         {/* WORKFLOW */}
         <TabsContent value="workflow" className="mt-6">
-          <WorkflowAuditTab claimId={claim.id} />
+          <ClaimWorkbenchTabBoundary tabName="Workflow">
+            <WorkflowAuditTab claimId={claim.id} />
+          </ClaimWorkbenchTabBoundary>
         </TabsContent>
+
       </Tabs>
     </div>
   );
