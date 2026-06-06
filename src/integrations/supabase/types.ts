@@ -7761,8 +7761,10 @@ export type Database = {
           help_text: string | null
           id: string
           is_active: boolean
+          is_internal_only: boolean
           is_required: boolean
           options_source: string | null
+          requires_self_verified: boolean
           screen_template_id: string
           section_code: string
           sort_order: number
@@ -7778,8 +7780,10 @@ export type Database = {
           help_text?: string | null
           id?: string
           is_active?: boolean
+          is_internal_only?: boolean
           is_required?: boolean
           options_source?: string | null
+          requires_self_verified?: boolean
           screen_template_id: string
           section_code?: string
           sort_order?: number
@@ -7795,8 +7799,10 @@ export type Database = {
           help_text?: string | null
           id?: string
           is_active?: boolean
+          is_internal_only?: boolean
           is_required?: boolean
           options_source?: string | null
+          requires_self_verified?: boolean
           screen_template_id?: string
           section_code?: string
           sort_order?: number
@@ -9078,8 +9084,19 @@ export type Database = {
       }
       bn_product_channel_config: {
         Row: {
+          allow_apply_as_guardian: boolean
+          allow_apply_as_payee: boolean
+          allow_apply_as_representative: boolean
+          allow_apply_for_child_dependant: boolean
+          allow_apply_for_deceased: boolean
+          allow_apply_for_self: boolean
+          allow_managed_contributor_selection: boolean
           allow_save_draft: boolean
           allow_upload_later: boolean
+          allowed_applicant_types: string[]
+          allowed_subject_types: string[]
+          applicant_must_equal_insured: boolean
+          assisted_screen_template_id: string | null
           blocks_submission_if_documents_missing: boolean
           blocks_submission_if_precheck_fails: boolean
           channel_code: string
@@ -9090,13 +9107,21 @@ export type Database = {
           document_profile_id: string | null
           entered_at: string
           entered_by: string | null
+          estimated_processing_days: number | null
           id: string
+          internal_screen_template_id: string | null
           is_enabled: boolean
           metadata: Json
           modified_at: string
           modified_by: string | null
           product_id: string
           product_version_id: string
+          public_intent_tags: string[]
+          public_online_enabled: boolean
+          public_screen_template_id: string | null
+          public_short_description: string | null
+          public_who_can_apply: string | null
+          required_participant_roles: string[]
           requires_email_or_phone_otp: boolean
           requires_identity_verification: boolean
           requires_staff_review_before_acceptance: boolean
@@ -9105,8 +9130,19 @@ export type Database = {
           workflow_template_id: string | null
         }
         Insert: {
+          allow_apply_as_guardian?: boolean
+          allow_apply_as_payee?: boolean
+          allow_apply_as_representative?: boolean
+          allow_apply_for_child_dependant?: boolean
+          allow_apply_for_deceased?: boolean
+          allow_apply_for_self?: boolean
+          allow_managed_contributor_selection?: boolean
           allow_save_draft?: boolean
           allow_upload_later?: boolean
+          allowed_applicant_types?: string[]
+          allowed_subject_types?: string[]
+          applicant_must_equal_insured?: boolean
+          assisted_screen_template_id?: string | null
           blocks_submission_if_documents_missing?: boolean
           blocks_submission_if_precheck_fails?: boolean
           channel_code: string
@@ -9117,13 +9153,21 @@ export type Database = {
           document_profile_id?: string | null
           entered_at?: string
           entered_by?: string | null
+          estimated_processing_days?: number | null
           id?: string
+          internal_screen_template_id?: string | null
           is_enabled?: boolean
           metadata?: Json
           modified_at?: string
           modified_by?: string | null
           product_id: string
           product_version_id: string
+          public_intent_tags?: string[]
+          public_online_enabled?: boolean
+          public_screen_template_id?: string | null
+          public_short_description?: string | null
+          public_who_can_apply?: string | null
+          required_participant_roles?: string[]
           requires_email_or_phone_otp?: boolean
           requires_identity_verification?: boolean
           requires_staff_review_before_acceptance?: boolean
@@ -9132,8 +9176,19 @@ export type Database = {
           workflow_template_id?: string | null
         }
         Update: {
+          allow_apply_as_guardian?: boolean
+          allow_apply_as_payee?: boolean
+          allow_apply_as_representative?: boolean
+          allow_apply_for_child_dependant?: boolean
+          allow_apply_for_deceased?: boolean
+          allow_apply_for_self?: boolean
+          allow_managed_contributor_selection?: boolean
           allow_save_draft?: boolean
           allow_upload_later?: boolean
+          allowed_applicant_types?: string[]
+          allowed_subject_types?: string[]
+          applicant_must_equal_insured?: boolean
+          assisted_screen_template_id?: string | null
           blocks_submission_if_documents_missing?: boolean
           blocks_submission_if_precheck_fails?: boolean
           channel_code?: string
@@ -9144,13 +9199,21 @@ export type Database = {
           document_profile_id?: string | null
           entered_at?: string
           entered_by?: string | null
+          estimated_processing_days?: number | null
           id?: string
+          internal_screen_template_id?: string | null
           is_enabled?: boolean
           metadata?: Json
           modified_at?: string
           modified_by?: string | null
           product_id?: string
           product_version_id?: string
+          public_intent_tags?: string[]
+          public_online_enabled?: boolean
+          public_screen_template_id?: string | null
+          public_short_description?: string | null
+          public_who_can_apply?: string | null
+          required_participant_roles?: string[]
           requires_email_or_phone_otp?: boolean
           requires_identity_verification?: boolean
           requires_staff_review_before_acceptance?: boolean
@@ -9160,10 +9223,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "bn_product_channel_config_assisted_screen_template_id_fkey"
+            columns: ["assisted_screen_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_screen_template"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bn_product_channel_config_document_profile_id_fkey"
             columns: ["document_profile_id"]
             isOneToOne: false
             referencedRelation: "bn_document_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_channel_config_internal_screen_template_id_fkey"
+            columns: ["internal_screen_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_screen_template"
             referencedColumns: ["id"]
           },
           {
@@ -9178,6 +9255,13 @@ export type Database = {
             columns: ["product_version_id"]
             isOneToOne: false
             referencedRelation: "bn_product_version"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_channel_config_public_screen_template_id_fkey"
+            columns: ["public_screen_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_screen_template"
             referencedColumns: ["id"]
           },
           {
@@ -55200,6 +55284,18 @@ export type Database = {
           rate: number | null
           sector: string | null
           total: number | null
+        }
+        Relationships: []
+      }
+      v_bn_product_public_config_issues: {
+        Row: {
+          benefit_code: string | null
+          benefit_name: string | null
+          channel_config_id: string | null
+          issue_code: string | null
+          issue_message: string | null
+          product_id: string | null
+          product_version_id: string | null
         }
         Relationships: []
       }
