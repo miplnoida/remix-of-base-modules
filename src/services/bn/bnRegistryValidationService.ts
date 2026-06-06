@@ -11,7 +11,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { ALLOWED_TRANSITIONS } from './registries/transitionRegistry';
-import { ALLOWED_FORMULA_VARIABLES } from './registries/formulaVariableRegistry';
+import { FORMULA_VARIABLES } from './registries/formulaVariableRegistry';
 import { ELIGIBILITY_FIELDS } from './registries/eligibilityFieldRegistry';
 import { SMART_FIELD_TYPES } from './registries/smartFieldRegistry';
 import { BN_WORKFLOW_ROLES } from './registries/workflowRolesRegistry';
