@@ -13,6 +13,7 @@ const Maintenance = lazy(() => import('@/pages/Maintenance'));
 const Unauthorized = lazy(() => import('@/pages/Unauthorized'));
 const InspectorLogin = lazy(() => import('@/pages/inspector/InspectorLogin').then(m => ({ default: m.InspectorLogin })));
 const AuditReportAcknowledgePage = lazy(() => import('@/pages/public/AuditReportAcknowledgePage'));
+const SecureTaskPage = lazy(() => import('@/portals/_shared/SecureTaskPage'));
 
 // Heavy protected route table — only loaded when the user is on a non-public route
 const AppRoutes = lazy(() =>
@@ -36,6 +37,7 @@ function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
   if (pathname.startsWith('/acknowledge-audit/')) return true;
   if (pathname.startsWith('/public/')) return true;
+  if (pathname.startsWith('/external/tasks/')) return true;
   return false;
 }
 
@@ -112,6 +114,10 @@ export const PublicRoutes: React.FC = () => {
       <Route
         path="/acknowledge-audit/:token"
         element={<Suspense fallback={<RouteFallback />}><AuditReportAcknowledgePage /></Suspense>}
+      />
+      <Route
+        path="/external/tasks/:token"
+        element={<Suspense fallback={<RouteFallback label="Validating secure link…" />}><SecureTaskPage /></Suspense>}
       />
 
       {/* Everything else: lazy-load the full protected route table */}
