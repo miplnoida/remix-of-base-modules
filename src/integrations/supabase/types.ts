@@ -27017,6 +27017,116 @@ export type Database = {
         }
         Relationships: []
       }
+      cl_payout_method_request: {
+        Row: {
+          acct_name: string | null
+          acct_num: string | null
+          acct_type: string | null
+          bank_code: string | null
+          branch_code: string | null
+          check_city: string | null
+          check_country: string | null
+          check_mailing_address: string | null
+          check_payee_name: string | null
+          check_postal: string | null
+          check_state: string | null
+          claim_number: string | null
+          created_at: string
+          iban: string | null
+          id: string
+          intermediary_bank: string | null
+          method: string
+          notes: string | null
+          requested_at: string
+          requested_by: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          routing_number: string | null
+          ssn: string
+          status: string
+          swift_bic: string | null
+          updated_at: string
+          wire_bank_address: string | null
+          wire_bank_country: string | null
+          wire_bank_name: string | null
+        }
+        Insert: {
+          acct_name?: string | null
+          acct_num?: string | null
+          acct_type?: string | null
+          bank_code?: string | null
+          branch_code?: string | null
+          check_city?: string | null
+          check_country?: string | null
+          check_mailing_address?: string | null
+          check_payee_name?: string | null
+          check_postal?: string | null
+          check_state?: string | null
+          claim_number?: string | null
+          created_at?: string
+          iban?: string | null
+          id?: string
+          intermediary_bank?: string | null
+          method: string
+          notes?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          routing_number?: string | null
+          ssn: string
+          status?: string
+          swift_bic?: string | null
+          updated_at?: string
+          wire_bank_address?: string | null
+          wire_bank_country?: string | null
+          wire_bank_name?: string | null
+        }
+        Update: {
+          acct_name?: string | null
+          acct_num?: string | null
+          acct_type?: string | null
+          bank_code?: string | null
+          branch_code?: string | null
+          check_city?: string | null
+          check_country?: string | null
+          check_mailing_address?: string | null
+          check_payee_name?: string | null
+          check_postal?: string | null
+          check_state?: string | null
+          claim_number?: string | null
+          created_at?: string
+          iban?: string | null
+          id?: string
+          intermediary_bank?: string | null
+          method?: string
+          notes?: string | null
+          requested_at?: string
+          requested_by?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          routing_number?: string | null
+          ssn?: string
+          status?: string
+          swift_bic?: string | null
+          updated_at?: string
+          wire_bank_address?: string | null
+          wire_bank_country?: string | null
+          wire_bank_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cl_payout_method_request_bank_code_fkey"
+            columns: ["bank_code"]
+            isOneToOne: false
+            referencedRelation: "tb_bank_code"
+            referencedColumns: ["bank_code"]
+          },
+        ]
+      }
       cl_track: {
         Row: {
           claim_number: string | null
