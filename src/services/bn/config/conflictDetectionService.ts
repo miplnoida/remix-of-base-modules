@@ -585,18 +585,122 @@ export async function detectScreenFieldConflicts(versionId: string): Promise<Con
   const out: Conflict[] = [];
   if (!ver) return out;
   const cat = ver.bn_product?.category;
-  if (cat === 'SURVIVOR' && !ver.screen_template_id) {
+  const branch = ver.bn_product?.branch;
+
+  // (a) Missing screen template altogether
+  if (!ver.screen_template_id) {
     out.push(mk({
-      severity: 'WARNING',
+      severity: 'ERROR',
       product_version_id: versionId,
       tab: 'Screens',
       entity_type: 'bn_product_version',
       entity_ids: [versionId],
-      conflict_type: 'SURVIVOR_NO_BENEFICIARY_SCREEN',
-      message: 'Survivor benefit has no screen template — beneficiary grid will be missing on the application.',
-      suggested_fix: 'Assign a screen template that includes a Survivor / Beneficiary grid.',
+      conflict_type: 'NO_SCREEN_TEMPLATE',
+      message: 'Product version has no screen template assigned — intake form cannot render.',
+      suggested_fix: 'Open Product Catalogue → Screens and assign a screen template from the Screen & Field Library.',
     }));
+    return out; // remaining checks rely on fields
   }
+
+  // Load fields once
+  const { data: fieldRows } = await supabase
+    .from('bn_field_metadata')
+    .select('field_code, field_type, validation_rules, is_active')
+    .eq('screen_template_id', ver.screen_template_id);
+  const fields = (fieldRows ?? []).filter((f: any) => f.is_active !== false);
+  const fieldTypes = new Set<string>(fields.map((f: any) => (f.field_type || '').toUpperCase()));
+
+  // Channel config (for public/SSN checks)
+  const { data: channels } = await supabase
+    .from('bn_product_channel_config')
+    .select('channel_code, is_enabled')
+    .eq('product_version_id', versionId);
+  const publicEnabled = (channels ?? []).some((c: any) =>
+    c.is_enabled && (c.channel_code === 'PUBLIC_ONLINE' || c.channel_code === 'PUBLIC'),
+  );
+
+  const pushMissing = (smart: string, msg: string, fix: string, sev: ConflictSeverity = 'WARNING') => {
+    out.push(mk({
+      severity: sev,
+      product_version_id: versionId,
+      tab: 'Screens',
+      entity_type: 'bn_screen_template',
+      entity_ids: [ver.screen_template_id],
+      conflict_type: `MISSING_${smart}`,
+      message: msg,
+      suggested_fix: fix,
+    }));
+  };
+
+  // (b) Document checklist
+  const { data: docs } = await supabase
+    .from('bn_doc_requirement')
+    .select('document_type_code')
+    .eq('product_version_id', versionId)
+    .eq('is_active', true);
+  if ((docs ?? []).length > 0 && !fieldTypes.has('DOCUMENT_UPLOAD_CHECKLIST')) {
+    pushMissing('DOCUMENT_UPLOAD_CHECKLIST',
+      'Document requirements are configured but the assigned screen template has no DOCUMENT_UPLOAD_CHECKLIST field.',
+      'Add a DOCUMENT_UPLOAD_CHECKLIST smart field to the screen template.');
+  }
+
+  // (c) Employer verification
+  if (ver.requires_employer_verification && !fieldTypes.has('EMPLOYER_LOOKUP')) {
+    pushMissing('EMPLOYER_LOOKUP',
+      'Employer verification is required but the screen template has no EMPLOYER_LOOKUP field.',
+      'Add an EMPLOYER_LOOKUP smart field to the screen template.');
+  }
+
+  // (d) Survivor product
+  if (cat === 'SURVIVOR' && !fieldTypes.has('SURVIVOR_BENEFICIARY_GRID')) {
+    pushMissing('SURVIVOR_BENEFICIARY_GRID',
+      'Survivor benefit needs a beneficiary grid but the screen template has no SURVIVOR_BENEFICIARY_GRID field.',
+      'Add a SURVIVOR_BENEFICIARY_GRID smart field to the screen template.');
+  }
+
+  // (e) Medical certificate
+  const needsMedical = ['SICKNESS', 'EI', 'INVALIDITY', 'DISABLEMENT'].includes(branch);
+  if ((ver.requires_medical_board_review || needsMedical) && !fieldTypes.has('MEDICAL_CERTIFICATE_BLOCK')) {
+    pushMissing('MEDICAL_CERTIFICATE_BLOCK',
+      'Medical evidence is required for this product but the screen template has no MEDICAL_CERTIFICATE_BLOCK field.',
+      'Add a MEDICAL_CERTIFICATE_BLOCK smart field to the screen template.');
+  }
+
+  // (f) Public online requires SSN_LOOKUP
+  if (publicEnabled && !fieldTypes.has('SSN_LOOKUP')) {
+    pushMissing('SSN_LOOKUP',
+      'Public Online channel is enabled but the screen template has no SSN_LOOKUP field.',
+      'Add an SSN_LOOKUP smart field so public applicants can identify themselves.',
+      'ERROR');
+  }
+
+  // (g) Eligibility rules reference a field that is neither in the template nor system-derived
+  const { data: eligRows } = await supabase
+    .from('bn_eligibility_rule')
+    .select('rule_code, rule_definition')
+    .eq('product_version_id', versionId)
+    .eq('is_active', true);
+  const fieldCodes = new Set(fields.map((f: any) => f.field_code));
+  const systemDerivedPrefix = /^(person\.|contribution\.|employer\.|evidence\.|claim\.|survivor\.|medical\.)/;
+  for (const r of eligRows ?? []) {
+    const refs: string[] = ((r.rule_definition as any)?.field_refs as string[]) ?? [];
+    for (const ref of refs) {
+      if (!ref) continue;
+      if (systemDerivedPrefix.test(ref)) continue;
+      if (fieldCodes.has(ref)) continue;
+      out.push(mk({
+        severity: 'WARNING',
+        product_version_id: versionId,
+        tab: 'Screens',
+        entity_type: 'bn_eligibility_rule',
+        entity_ids: [r.rule_code],
+        conflict_type: 'ELIGIBILITY_REFS_UNKNOWN_FIELD',
+        message: `Eligibility rule "${r.rule_code}" references field "${ref}" which is not present in the assigned screen template and is not system-derived.`,
+        suggested_fix: `Either add field "${ref}" to the screen template or change the rule to use a system-derived field (e.g. person.*, contribution.*).`,
+      }));
+    }
+  }
+
   return out;
 }
 

@@ -1,41 +1,51 @@
 /**
- * Screen Metadata Setup — Manage screen templates and field metadata
+ * Screen Metadata Setup — Manage reusable screen templates and smart field metadata.
+ * This screen is the canonical Screen & Field Library. It only creates reusable
+ * templates and field metadata — product-specific eligibility, documents, and
+ * calculations belong to the Product Catalogue.
  */
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Plus, Edit, Monitor, Type } from 'lucide-react';
-import { useBnScreenTemplates, useBnFieldMetadata } from '@/hooks/bn/useBnConfig';
+import { Plus, Edit, Monitor, Trash2 } from 'lucide-react';
+import { useBnScreenTemplates, useDeleteBnScreenTemplate } from '@/hooks/bn/useBnConfig';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
 import { SMART_FIELD_TYPES } from '@/services/bn/registries';
+import { ScreenBuilder } from '@/components/bn/config/ScreenBuilder';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ScreenMetadataSetup() {
+  const { toast } = useToast();
   const [search, setSearch] = useState('');
-  const { data: screens = [], isLoading: screensLoading } = useBnScreenTemplates();
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
-  const { data: fields = [], isLoading: fieldsLoading } = useBnFieldMetadata(selectedTemplateId);
+  const { data: screens = [], isLoading, refetch } = useBnScreenTemplates();
+  const deleteTemplate = useDeleteBnScreenTemplate();
+  const [editing, setEditing] = useState<any | null>(null);
 
-  const filteredScreens = screens.filter((s: any) =>
-    !search || s.template_name?.toLowerCase().includes(search.toLowerCase())
+  const filtered = screens.filter((s: any) =>
+    !search || s.template_name?.toLowerCase().includes(search.toLowerCase()) || s.template_code?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filteredFields = fields.filter((f: any) =>
-    !search || f.field_name?.toLowerCase().includes(search.toLowerCase()) ||
-    f.field_label?.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleDelete = async (s: any) => {
+    if (!confirm(`Delete screen template "${s.template_name}"? This will also remove its fields.`)) return;
+    try {
+      await deleteTemplate.mutateAsync(s.id);
+      toast({ title: 'Deleted', description: `Template "${s.template_name}" removed.` });
+      refetch();
+    } catch (err: any) {
+      toast({ title: 'Cannot delete', description: err?.message ?? 'Template is in use by a product version.', variant: 'destructive' });
+    }
+  };
 
   return (
     <PermissionWrapper moduleName="bn_configuration">
       <div className="space-y-6 p-6">
         <PageHeader
           title="Screen & Field Library"
-          subtitle="Reusable screen templates and smart field blocks"
+          subtitle="Reusable screen templates and smart field blocks consumed by Product Catalogue"
           breadcrumbs={[
             { label: 'Benefit Management', href: '/bn/claims' },
             { label: 'Configuration' },
@@ -46,7 +56,7 @@ export default function ScreenMetadataSetup() {
         <BnScreenRoleBanner
           role="library"
           productAssemblyHint
-          description="Reusable screen templates and smart field blocks (SSN lookup, Employer lookup, Contribution summary, Survivor beneficiary grid, Medical certificate, Bank details). Product Catalog → Screens tab assembles them for each product version."
+          description="Build reusable screen templates by adding sections and smart fields. Product Catalogue → Screens tab assigns them to product versions; Preview and Intake render the assigned template."
         />
 
         <Card>
@@ -62,116 +72,71 @@ export default function ScreenMetadataSetup() {
           </CardContent>
         </Card>
 
-
-        <Tabs defaultValue="screens" className="w-full">
-          <TabsList>
-            <TabsTrigger value="screens" className="gap-1.5"><Monitor className="h-3.5 w-3.5" /> Screen Templates</TabsTrigger>
-            <TabsTrigger value="fields" className="gap-1.5"><Type className="h-3.5 w-3.5" /> Field Metadata</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="screens" className="mt-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <BnFilterBar
-                  search={search}
-                  onSearchChange={setSearch}
-                  searchPlaceholder="Search screen templates..."
-                  filters={[]}
-                  actions={
-                    <Button size="sm" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Add Template</Button>
-                  }
+        {editing ? (
+          <ScreenBuilder template={editing} onClose={() => { setEditing(null); refetch(); }} />
+        ) : (
+          <Card>
+            <CardHeader className="pb-3">
+              <BnFilterBar
+                search={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Search screen templates..."
+                filters={[]}
+                actions={
+                  <Button size="sm" className="gap-1.5" onClick={() => setEditing({})}>
+                    <Plus className="h-3.5 w-3.5" /> Add Template
+                  </Button>
+                }
+              />
+            </CardHeader>
+            <CardContent className="p-0">
+              {isLoading ? (
+                <BnEmptyState type="loading" />
+              ) : filtered.length === 0 ? (
+                <BnEmptyState
+                  type={search ? 'no-results' : 'empty'}
+                  title="No screen templates"
+                  description="Screen templates define the layout, sections and smart fields of benefit intake forms."
                 />
-              </CardHeader>
-              <CardContent className="p-0">
-                {screensLoading ? (
-                  <BnEmptyState type="loading" />
-                ) : filteredScreens.length === 0 ? (
-                  <BnEmptyState type={search ? 'no-results' : 'empty'} title="No screen templates" description="Screen templates define the layout and sections of benefit intake forms." />
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Template Name</TableHead>
-                        <TableHead>Sections</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="w-[60px]">Edit</TableHead>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Template Code</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Layout</TableHead>
+                      <TableHead>Sections</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="w-[120px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((s: any) => (
+                      <TableRow key={s.id}>
+                        <TableCell className="font-mono text-xs">{s.template_code}</TableCell>
+                        <TableCell className="font-medium text-sm">
+                          <div className="flex items-center gap-2">
+                            <Monitor className="h-4 w-4 text-muted-foreground" />
+                            {s.template_name}
+                          </div>
+                        </TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs">{s.layout_type}</Badge></TableCell>
+                        <TableCell><Badge variant="secondary">{Array.isArray(s.sections) ? s.sections.length : 0}</Badge></TableCell>
+                        <TableCell className="text-sm text-muted-foreground max-w-[300px] truncate">{s.description || '—'}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => setEditing(s)}><Edit className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(s)}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredScreens.map((s: any) => (
-                        <TableRow key={s.id}>
-                          <TableCell className="font-medium text-sm">
-                            <div className="flex items-center gap-2">
-                              <Monitor className="h-4 w-4 text-muted-foreground" />
-                              {s.template_name}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{Array.isArray(s.sections) ? s.sections.length : 0} sections</Badge>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground max-w-[300px] truncate">{s.description || '—'}</TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="fields" className="mt-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <BnFilterBar
-                  search={search}
-                  onSearchChange={setSearch}
-                  searchPlaceholder="Search fields..."
-                  filters={[]}
-                  actions={
-                    <Button size="sm" className="gap-1.5"><Plus className="h-3.5 w-3.5" /> Add Field</Button>
-                  }
-                />
-              </CardHeader>
-              <CardContent className="p-0">
-                {fieldsLoading ? (
-                  <BnEmptyState type="loading" />
-                ) : filteredFields.length === 0 ? (
-                  <BnEmptyState type={search ? 'no-results' : 'empty'} title="No field metadata" description="Field metadata defines the fields that appear on benefit intake screens." />
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Field Name</TableHead>
-                        <TableHead>Label</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Required</TableHead>
-                        <TableHead>Visible</TableHead>
-                        <TableHead className="w-[60px]">Edit</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredFields.map((f: any) => (
-                        <TableRow key={f.id}>
-                          <TableCell className="font-mono text-sm">{f.field_name}</TableCell>
-                          <TableCell className="text-sm">{f.field_label}</TableCell>
-                          <TableCell><Badge variant="outline">{SMART_FIELD_TYPES.find(t => t.key === f.field_type)?.label || f.field_type || 'text'}</Badge></TableCell>
-                          <TableCell><Switch checked={f.is_required} disabled /></TableCell>
-                          <TableCell><Switch checked={f.is_visible !== false} disabled /></TableCell>
-                          <TableCell>
-                            <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </PermissionWrapper>
   );
