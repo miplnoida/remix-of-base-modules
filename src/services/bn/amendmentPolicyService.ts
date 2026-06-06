@@ -299,7 +299,7 @@ export async function reviewCorrection(
     entity_id: requestId,
     action: decision === 'ACCEPTED' ? 'ACCEPT_CORRECTION' : 'REJECT_CORRECTION',
     severity: 'info',
-    user_code: reviewedBy,
-    details: { notes },
+    user_name: reviewedBy,
+    payload_json: { notes },
   } as any);
 }
