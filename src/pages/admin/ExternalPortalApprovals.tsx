@@ -43,12 +43,12 @@ export default function ExternalPortalApprovals() {
 
   const decide = async (r: PendingRequest, approve: boolean) => {
     try {
-      await auditPortalAction({
+      const event = approve
+        ? (r.action === "EMPLOYER_LINK_REQUESTED" ? "EMPLOYER_LINK_APPROVED" : "PROVIDER_LINK_APPROVED")
+        : (r.action === "EMPLOYER_LINK_REQUESTED" ? "EMPLOYER_LINK_REJECTED" : "PROVIDER_LINK_REJECTED");
+      auditPortalAction(event as any, {
         userId: r.user_id,
-        action: approve
-          ? (r.action === "EMPLOYER_LINK_REQUESTED" ? "EMPLOYER_LINK_APPROVED" : "PROVIDER_LINK_APPROVED")
-          : (r.action === "EMPLOYER_LINK_REQUESTED" ? "EMPLOYER_LINK_REJECTED" : "PROVIDER_LINK_REJECTED"),
-        metadata: { ...r.metadata, decidedAt: new Date().toISOString() },
+        payload: { ...(r.metadata ?? {}), decidedAt: new Date().toISOString() },
       });
       toast.success(approve ? "Approved" : "Rejected");
       await load();
