@@ -51,6 +51,7 @@ import {
   useDeleteBnFieldMetadata,
 } from '@/hooks/bn/useBnConfig';
 import { SMART_FIELD_TYPES } from '@/services/bn/registries';
+import { ScreenTemplatePreview } from './ScreenTemplatePreview';
 
 export const APP_CHANNELS = [
   { key: 'PUBLIC_ONLINE', label: 'Public Online' },
@@ -324,6 +325,14 @@ export function ScreenBuilder({ template, onClose }: Props) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Live form preview */}
+      <ScreenTemplatePreview
+        templateCode={code}
+        templateName={name}
+        sections={sections}
+        fields={fields}
+      />
 
       {/* Inspector dialog */}
       <FieldInspectorDialog
