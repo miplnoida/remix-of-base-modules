@@ -13,14 +13,16 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Plus, Edit, Info } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Plus, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBnFormulaTemplates, useUpsertBnFormulaTemplate } from '@/hooks/bn/useBnConfig';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
+import { CodeFieldWithAutoGenerate, FormulaBuilder, SmartSelect } from '@/components/bn/smart';
+import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
+import { parseFormula } from '@/lib/bn/formulaParser';
 import type { BnFormulaTemplate } from '@/types/bn';
 
 type FormulaForm = {
