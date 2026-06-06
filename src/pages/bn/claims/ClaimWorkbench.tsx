@@ -107,6 +107,7 @@ export default function ClaimWorkbench() {
 
   // ── Workbench Data ─────────────────────────────────────────────
   const { data: detailJson } = useBnClaimDetailJson(id);
+  const { data: workspaceBundle } = useBnClaimWorkspace(id);
   const { data: linkedClaims = [], isLoading: linkedLoading } = useBnLinkedClaims(id, claim?.ssn);
   const { data: statusHistory = [], isLoading: historyLoading } = useBnClaimStatusHistory(id);
 
