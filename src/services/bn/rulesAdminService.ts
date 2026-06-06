@@ -482,6 +482,14 @@ export async function publishVersion(
     return { success: false, error: `Only APPROVED versions can be published (current: ${ver.status})` };
   }
 
+  // Block publish on ERROR-level cross-tab conflicts
+  try {
+    const { hasBlockingConflicts } = await import('@/services/bn/config/conflictDetectionService');
+    if (await hasBlockingConflicts(versionId)) {
+      return { success: false, error: 'Cross-tab conflicts contain ERROR-level issues. Resolve them on the Product Editor before publishing.' };
+    }
+  } catch { /* non-fatal */ }
+
   // Retire current active version for this product (no overlapping active)
   const { data: currentActive } = await db
     .from('bn_product_version')
