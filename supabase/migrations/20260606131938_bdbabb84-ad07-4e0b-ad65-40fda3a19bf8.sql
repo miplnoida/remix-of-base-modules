@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public._bn_seed_exec(text);
