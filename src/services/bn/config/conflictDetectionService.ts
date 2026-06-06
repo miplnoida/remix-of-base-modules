@@ -205,7 +205,7 @@ export async function detectCalculationConflicts(versionId: string): Promise<Con
 
   // min/max sanity in limits
   for (const r of rules) {
-    const lim = r.limits || {};
+    const lim: any = (r.limits as any) || {};
     const min = lim.min_amount ?? lim.minimum;
     const max = lim.max_amount ?? lim.cap ?? lim.maximum;
     if (min != null && max != null && Number(min) > Number(max)) {
