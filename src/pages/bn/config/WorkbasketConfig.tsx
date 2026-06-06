@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,6 +14,9 @@ import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { toast } from 'sonner';
 import type { BnWorkbasket } from '@/types/bn';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
+import { SmartSelect, CodeFieldWithAutoGenerate } from '@/components/bn/smart';
+import { BN_WORKFLOW_ROLES, BN_PRODUCT_CATEGORIES } from '@/services/bn/registries';
+import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 
 export default function WorkbasketConfig() {
   const { userCode } = useUserCode();
