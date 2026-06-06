@@ -14,6 +14,8 @@ const FeatureToggleDiagnosticsPage = lazy(() => import('@/pages/compliance/admin
 const ClaimantPortal = lazy(() => import('@/portals/claimant/ClaimantPortal'));
 const EmployerPortal = lazy(() => import('@/portals/employer/EmployerPortal'));
 const DoctorPortal = lazy(() => import('@/portals/doctor/DoctorPortal'));
+const PortalHub = lazy(() => import('@/portals/PortalHub'));
+const ExternalTaskLanding = lazy(() => import('@/portals/ExternalTaskLanding'));
 
 const InspectorLogin = lazy(() => import('@/pages/inspector/InspectorLogin').then((m) => ({ default: m.InspectorLogin })));
 const InspectorDashboard = lazy(() => import('@/pages/inspector/InspectorDashboard').then((m) => ({ default: m.InspectorDashboard })));
