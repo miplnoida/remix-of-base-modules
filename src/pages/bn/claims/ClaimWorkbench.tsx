@@ -404,7 +404,8 @@ export default function ClaimWorkbench() {
             <BenefitDetailSection
               category={product?.category || 'SHORT_TERM'}
               detailJson={mergedDetail}
-              isEditable={isEditable}
+              claimStatus={claim.status}
+              roles={userRoles}
               onDetailChange={handleDetailChange}
             />
           </ClaimWorkbenchTabBoundary>
