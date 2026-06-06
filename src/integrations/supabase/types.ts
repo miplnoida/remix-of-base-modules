@@ -6415,6 +6415,7 @@ export type Database = {
           channel: string
           created_at: string
           created_by: string | null
+          delivery_method: string | null
           event_code: string
           fallback_priority: number
           id: string
@@ -6430,6 +6431,7 @@ export type Database = {
           channel: string
           created_at?: string
           created_by?: string | null
+          delivery_method?: string | null
           event_code: string
           fallback_priority?: number
           id?: string
@@ -6445,6 +6447,7 @@ export type Database = {
           channel?: string
           created_at?: string
           created_by?: string | null
+          delivery_method?: string | null
           event_code?: string
           fallback_priority?: number
           id?: string
@@ -6471,6 +6474,7 @@ export type Database = {
           context: Json | null
           created_at: string
           created_by: string | null
+          delivery_method: string | null
           error_message: string | null
           event_code: string
           id: string
@@ -6492,6 +6496,7 @@ export type Database = {
           context?: Json | null
           created_at?: string
           created_by?: string | null
+          delivery_method?: string | null
           error_message?: string | null
           event_code: string
           id?: string
@@ -6513,6 +6518,7 @@ export type Database = {
           context?: Json | null
           created_at?: string
           created_by?: string | null
+          delivery_method?: string | null
           error_message?: string | null
           event_code?: string
           id?: string
