@@ -567,6 +567,23 @@ export default function ClaimWorkbench() {
         </TabsContent>
 
       </Tabs>
+
+      {/* Amendment / Correction drawers */}
+      <AmendmentHistoryDrawer
+        open={showHistory}
+        onOpenChange={setShowHistory}
+        claimId={claim.id}
+      />
+      <CorrectionRequestDialog
+        open={showCorrection}
+        onOpenChange={setShowCorrection}
+        claimId={claim.id}
+        channel={editability?.channel ?? 'STAFF_OFFLINE'}
+        candidateFields={fieldOwnershipList.filter(
+          (f) => f.field_owner === 'APPLICANT_SUBMITTED' || f.field_owner === 'DOCTOR_SUBMITTED' || f.field_owner === 'EMPLOYER_SUBMITTED',
+        )}
+      />
     </div>
   );
 }
+
