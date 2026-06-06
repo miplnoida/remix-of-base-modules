@@ -757,6 +757,10 @@ const BnEligibilityReview = lazy(() => import('@/pages/bn/claims/EligibilityRevi
 const BnCalculationWorkspace = lazy(() => import('@/pages/bn/engine/CalculationWorkspace'));
 const BnDeterminationRecommendation = lazy(() => import('@/pages/bn/claims/DeterminationRecommendation'));
 const BnEntitlementManagement = lazy(() => import('@/pages/bn/entitlement/EntitlementManagement'));
+const BnPensionerRegister = lazy(() => import('@/pages/bn/awards/PensionerRegister'));
+const BnAward360 = lazy(() => import('@/pages/bn/awards/Award360'));
+const BnSurvivorAwards = lazy(() => import('@/pages/bn/awards/SurvivorAwards'));
+const BnAwardAdjustments = lazy(() => import('@/pages/bn/awards/AwardAdjustments'));
 const BnPayablesQueue = lazy(() => import('@/pages/bn/payables/PayablesQueue'));
 const BnPaymentSchedule = lazy(() => import('@/pages/bn/schedule/PaymentScheduleManagement'));
 const BnBatchOperations = lazy(() => import('@/pages/bn/batch/BatchOperations'));
@@ -1812,6 +1816,10 @@ export const AppRoutes = () => {
       <Route path="/bn/overpayments" element={<BnFeatureGate flag="bn.servicing.overpayment"><BnOverpaymentRecovery /></BnFeatureGate>} />
       <Route path="/bn/award-suspension" element={<BnFeatureGate flag="bn.awards"><BnAwardSuspensionConsole /></BnFeatureGate>} />
       <Route path="/bn/survivors" element={<BnFeatureGate flag="bn.awards"><BnSurvivorsBenefitProcessing /></BnFeatureGate>} />
+      <Route path="/bn/awards" element={<BnFeatureGate flag="bn.awards"><BnPensionerRegister /></BnFeatureGate>} />
+      <Route path="/bn/awards/survivors" element={<BnFeatureGate flag="bn.awards"><BnSurvivorAwards /></BnFeatureGate>} />
+      <Route path="/bn/awards/adjustments" element={<BnFeatureGate flag="bn.awards"><BnAwardAdjustments /></BnFeatureGate>} />
+      <Route path="/bn/awards/:id" element={<BnFeatureGate flag="bn.awards"><BnAward360 /></BnFeatureGate>} />
       <Route path="/bn/config/reason-codes" element={<BnFeatureGate flag="bn.config.rules"><BnReasonCodes /></BnFeatureGate>} />
       <Route path="/bn/config/transitions" element={<BnFeatureGate flag="bn.config.rules"><BnTransitionMatrix /></BnFeatureGate>} />
       <Route path="/bn/config/workbaskets" element={<BnFeatureGate flag="bn.config.rules"><BnWorkbasketConfig /></BnFeatureGate>} />
