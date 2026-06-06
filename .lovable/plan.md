@@ -1,115 +1,83 @@
 
-# Three External BN Portals on a Shared Integration Framework
+# External Stakeholder Portals — Full SSB Scope
 
-Internal BN stays the source of truth for eligibility, calculation, workflow, decisions, payments and letters. The three external portals (Claimant, Employer, Doctor) are separate UI sections that consume Internal BN through a single shared API client and never re-implement business rules.
+Re-scope the three external portals from "benefit application screens" to full Social Security Board stakeholder portals. Internal LAN remains source of truth; portals only consume APIs.
 
-## 1. Architecture
+## What's in scope
 
-```text
-┌──────────────────────────────────────────────────────────┐
-│                Internal BN (LAN, source of truth)        │
-│  Product Catalog · Screen & Field Library · Workflow ·   │
-│  Document Rules · Calculation · Decision · Payments      │
-└──────────────────────────────────────────────────────────┘
-                   ▲                ▲
-                   │  public API    │  edge functions
-                   │                │
-┌──────────────────┴────────────────┴──────────────────────┐
-│        Shared external framework (one codebase)          │
-│  externalAuthService · publicBenefitApiClient ·          │
-│  externalTaskService · externalDocumentUploadService ·   │
-│  externalMessageService · ExternalPortalShell            │
-└──────────────────────────────────────────────────────────┘
-       ▲                   ▲                    ▲
-┌──────┴──────┐    ┌───────┴──────┐    ┌────────┴────────┐
-│  Claimant   │    │   Employer   │    │ Doctor/Medical  │
-│   Portal    │    │    Portal    │    │     Portal      │
-└─────────────┘    └──────────────┘    └─────────────────┘
-```
+### 1. Shared portal infrastructure (`src/portals/_shared/`)
+- `ExternalPortalLayout` (sidebar + header + content area + footer)
+- `ExternalPortalSidebar` — module list driven by per-portal config array
+- `ExternalPortalHeader` — user identity, switch role (employer multi-user), logout
+- `ExternalDashboardCard`, `ExternalStatusTimeline`, `ExternalEmptyState`
+- `ExternalFormRenderer` — already covered by `ApplicationFormEngine`; thin wrapper
+- `ExternalDocumentUploader`, `ExternalMessageCenter`, `ExternalLetterViewer`
+- Keep existing `SecureTaskPage`, `ExternalTaskList`, `ExternalTaskForm`
 
-Portals do not call any internal services directly. They only call the shared services, which call the public API. The same `ApplicationFormEngine` and `formDefinitionService` already used by Internal BN are reused — the API returns the *same* form definition with a `portalRole` filter applied server-side.
+### 2. Shared services (`src/services/external/`)
+Extend existing `publicBenefitApiClient.ts` and add:
+- `externalProfileService` — `getProfile`, `updateProfile`
+- `externalMessageService` — `getMessages`, `markRead`
+- `externalDocumentService` — `getDocuments`, `uploadDocument`
+- `externalTaskService` — `getTasks`, `submitTask`
+- `externalContributionService` — `getContributionHistory`, `getEmploymentHistory`
+- `externalClaimService` — `getClaims`, `getClaimDetail`, `getAwards`, `getPayments`
+- `externalEmployerService` — `getEmployees`, `submitC3`, `uploadC3`, `validateC3`, `getC3History`, `getBalances`, `getComplianceNotices`, `submitConfirmation`, `submitAccidentReport`
+- `externalAuditService` — fire-and-forget audit writes
+All call the existing `public-benefits` edge function (extended with new actions) — no business logic in the browser.
 
-## 2. Database (additions only, no destructive changes)
+### 3. Claimant Portal (`/claimant/*`)
+Routes: dashboard, profile, contributions, employment-history, apply, apply/:productCode, claims, claims/:claimNumber, awards, payments, life-certificates, school-certificates, bank-details, documents, messages, appeals, tasks.
 
-New tables, all `public.` with role-based grants (RLS off, per project memory):
+Each module is a page that calls the matching shared service and renders read-only tables/cards plus the existing form engine where input is needed.
 
-- **`bn_claim_participant`** — links a claim to a participant identity (`claimant` / `employer` / `doctor`) with contact ref, invite token, status.
-- **`bn_external_task`** — one row per task issued to an external participant; columns include `claim_id`, `participant_id`, `task_type` (`SICKNESS_CERT`, `EMP_CONFIRMATION`, `INJURY_REPORT`, …), `due_at`, `status` (`PENDING` / `SUBMITTED` / `ACCEPTED` / `REJECTED` / `EXPIRED`), `secure_token_hash`, `payload jsonb`, `screen_template_id`.
-- **`bn_external_task_document`** — uploads tied to a task (storage path, mime, sha256, uploaded_by).
-- **`bn_external_task_audit`** — append-only event log per task (mirrors to `system_audit_trail` + `bn_claim_event`).
+### 4. Employer Portal (`/employer/*`)
+Routes: dashboard, profile, users, employees, employees/add, c3, c3/new, c3/upload, c3/:period, c3/errors, contributions, payments, balances, penalties, compliance, benefit-tasks, confirmations, accident-reports, wage-confirmations, documents, messages.
 
-Existing `bn_claim_application`, `bn_claim_document`, `bn_claim_event`, `system_audit_trail` are reused for cross-cutting audit.
+C3 submission/upload/validation calls API only — internal C3 module performs validation and returns errors for portal display.
 
-## 3. Public API surface (edge functions under `public-benefits/`)
+### 5. Doctor / Medical Provider Portal (`/doctor/*`)
+Routes: dashboard, profile, users, tasks, tasks/:taskId, certificates, sickness-certificates, maternity-certificates, ei-medical-reports, invalidity-reports, disablement-assessments, reviews, documents, messages.
 
-All endpoints accept either a portal session JWT or a one-time secure task token.
+All certificates use the existing screen template engine (`MEDICAL_CERTIFICATE_BLOCK` smart field) — no hardcoded medical forms.
 
-| Verb | Path | Purpose |
-|------|------|---------|
-| GET  | `/api/public/benefits/products` | List products with `public_channel_enabled = true` |
-| GET  | `/api/public/benefits/products/:productCode/form-definition?portalRole=CLAIMANT\|EMPLOYER\|DOCTOR` | Reuses `formDefinitionService.getApplicationFormDefinition` and filters fields/sections by participant role |
-| POST | `/api/public/benefits/applications` | Create a `bn_claim_application` draft/submit |
-| GET  | `/api/public/claims/:claimNumber/status` | Status + decision/payment summary |
-| GET  | `/api/public/tasks` | Tasks visible to caller (role-scoped) |
-| GET  | `/api/public/tasks/:taskId` | Task detail with assigned screen template |
-| POST | `/api/public/tasks/:taskId/submit` | Submit response → updates `bn_external_task`, fires `bn_claim_event`, clears workflow blocker when accepted |
-| POST | `/api/public/documents/upload` | Signed upload, writes to `bn_claim_document` or `bn_external_task_document` |
-| GET  | `/api/public/messages` | Letters/messages visible to caller |
+### 6. Edge function extensions (`supabase/functions/public-benefits/index.ts`)
+New action handlers (all auth-scoped):
+- `profile.get/update`
+- `messages.list/markRead`
+- `documents.list/upload-url`
+- `contributions.history`, `employment.history`
+- `claims.list/get`, `awards.list`, `payments.list`
+- `employer.employees/c3.submit/c3.upload/c3.validate/c3.history/balances/notices/confirmation/accident-report`
+- `doctor.tasks/certificate.submit`
 
-Server-side guards:
-- Employer caller only sees tasks where `participant.kind = 'EMPLOYER'` and employer match.
-- Doctor caller only sees `participant.kind = 'DOCTOR'`.
-- Claimant only sees own claims (`ssn` match).
-- Secure token tasks bypass session but are single-use + expiring.
+Each writes a `system_audit_trail` row.
 
-## 4. Shared framework (`src/portals/_shared/`)
+### 7. Security
+- Claimant: `auth.uid()` → linked `ip_master.ssn`; only own records.
+- Employer: portal user → `er_master.regno` link table; role checks via `user_roles` extended with employer-scoped roles (`EMPLOYER_ADMIN`, `PAYROLL_OFFICER`, `HR_OFFICER`, `COMPLIANCE_CONTACT`, `BENEFIT_CONFIRMATION_USER`).
+- Doctor: provider link table → only tasks assigned to provider or facility.
+- Secure token flow already in place via `bn_external_task.access_token`.
 
-- `externalAuthService.ts` — session, secure token exchange, role detection.
-- `publicBenefitApiClient.ts` — thin fetch wrapper; one entry per endpoint above; never imports internal BN services.
-- `externalTaskService.ts` — list/fetch/submit tasks; emits optimistic updates.
-- `externalDocumentUploadService.ts` — chunked upload + signed URL refresh.
-- `externalMessageService.ts` — fetch/mark-read.
-- `ExternalPortalShell.tsx` — top bar, role badge, sign-out, locale, brand.
-- `usePublicFormDefinition.ts` — wraps `useQuery` over `/form-definition`; feeds the existing `ApplicationFormEngine` unchanged.
+## What is NOT in scope this turn
+- Implementing every business-rule API end-to-end. Many internal modules (C3 validation, payments, awards) already have services in the codebase — the edge function will call them. Where an internal service is missing, the API returns a typed "not yet wired" response and the portal shows an "Coming soon — data not yet exposed" empty state so the navigation/shell is complete and verifiable.
+- No new RLS (project policy: role-based only).
 
-## 5. Portal UIs (separate route trees, one app)
+## Build order
+1. Shared layout + sidebar config + services scaffolding.
+2. Extend `public-benefits` edge function with new action router + audit.
+3. Claimant portal pages (dashboard, profile, contributions, employment, claims, awards, payments, certificates, bank, documents, messages, appeals, tasks).
+4. Employer portal pages (dashboard, profile, users, employees, C3 suite, contributions, payments, balances, penalties, compliance, benefit-tasks, confirmations, accident-reports, documents, messages).
+5. Doctor portal pages (dashboard, profile, users, tasks, all certificate types, reviews, documents, messages).
+6. Route registration in `PublicRoutes`.
+7. Verify TypeScript build + walk through each portal.
 
-**Claimant** `/claimant/*`:
-`dashboard`, `apply`, `apply/:productCode`, `claims`, `claims/:claimNumber`, `tasks`, `documents`, `messages`, `payments`, `profile`.
+## Technical notes
+- All data fetching via TanStack Query through the new services.
+- All forms via existing `ApplicationFormEngine` with `channel="PUBLIC"`; no hardcoded form JSX.
+- Audit calls are fire-and-forget per project Error Handling standard.
+- Existing memory `mem://architecture/protected-source-table-policy` respected — no write-path mods to core tables; new wiring is API-side.
+- Confirmation: this is a large multi-turn build. After approval, I'll deliver in the order above and pause between phases for review.
 
-**Employer** `/employer/*`:
-`dashboard`, `tasks`, `tasks/:taskId`, `employee-claims`, `accident-reports`, `confirmations`, `messages`.
-
-**Doctor** `/doctor/*`:
-`dashboard`, `tasks`, `tasks/:taskId`, `certificates`, `medical-reports`, `disablement-assessments`, `messages`.
-
-Each portal mounts `ExternalPortalShell` with its role and a left nav. All "form" screens render `ApplicationFormEngine` with the definition returned by `/form-definition` — no portal owns field lists, validation, eligibility or calc.
-
-## 6. Internal BN integration (Claim Workbench)
-
-Add a **Participants tab** to the existing Claim Workbench:
-- Lists claimant, employer(s), doctor(s) from `bn_claim_participant`.
-- Per participant: task status, submitted payload (read-only render of the same screen template), documents, accept / reject / reopen, resend invite (re-mints secure token).
-- Accepting a task fires the existing workflow advance; rejecting reopens the task with a reason.
-
-## 7. Audit & events
-
-Every external action writes to `system_audit_trail` (user_code = participant identity) and inserts a `bn_claim_event` so the existing timeline shows it. `bn_external_task_audit` keeps a per-task ledger for evidence.
-
-## 8. Build order
-
-1. Migration: `bn_claim_participant`, `bn_external_task`, `bn_external_task_document`, `bn_external_task_audit` + grants.
-2. Edge function `public-benefits` implementing all endpoints, role-scoped, reusing `formDefinitionService`.
-3. Shared framework under `src/portals/_shared/`.
-4. Three portal route trees + nav shells + skeleton pages wired to the shared services.
-5. Claim Workbench → Participants tab.
-6. Verification pass: claimant submit, employer confirm, doctor certificate; confirm workflow blocker clears only after officer accepts.
-
-## 9. Non-goals (explicit)
-
-- No business rules in portals.
-- No new product/eligibility/calc tables.
-- No changes to existing intake; portals reuse `ApplicationFormEngine` and the same form definitions.
-- No RLS additions (project policy); access enforced in the edge function.
-
-Approve and I'll start with the migration + edge function, then the shared framework, then the three portal shells, then the Workbench Participants tab.
+## Heads-up
+This will create ~60+ new files. I'll keep each page lean (table + service hook), reuse shared components, and avoid duplicating any internal business logic.
