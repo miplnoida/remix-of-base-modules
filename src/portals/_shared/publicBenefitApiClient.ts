@@ -45,18 +45,44 @@ function safeParse(t: string) { try { return JSON.parse(t); } catch { return nul
 
 // ─── Endpoints ──────────────────────────────────────────────────────
 export const publicBenefitApi = {
+  // Benefits (claimant intake)
   listProducts: () => request<{ products: any[] }>('/benefits/products'),
   getFormDefinition: (productCode: string, portalRole: PortalRole, opts?: ApiOptions) =>
     request<any>(`/benefits/products/${encodeURIComponent(productCode)}/form-definition?portalRole=${portalRole}`, { method: 'GET' }, opts),
   submitApplication: (body: { productCode: string; values: Record<string, any>; claimDate?: string; declarationAccepted?: boolean }) =>
     request<{ claimId: string; claimNumber: string }>('/benefits/applications', { method: 'POST', body: JSON.stringify(body) }),
+
+  // Claims / awards / payments (claimant)
+  listClaims: () => request<{ claims: any[] }>('/me/claims'),
   getClaimStatus: (claimNumber: string) =>
     request<any>(`/claims/${encodeURIComponent(claimNumber)}/status`),
+  listAwards: () => request<{ awards: any[] }>('/me/awards'),
+  listPayments: () => request<{ payments: any[] }>('/me/payments'),
+  getContributionHistory: () => request<{ contributions: any[] }>('/me/contributions'),
+  getEmploymentHistory: () => request<{ employment: any[] }>('/me/employment'),
+  getProfile: () => request<{ profile: any }>('/me/profile'),
+
+  // Tasks (claimant / employer / doctor)
   listTasks: (opts?: ApiOptions) => request<{ tasks: any[] }>('/tasks', { method: 'GET' }, opts),
   getTask: (taskId: string, opts?: ApiOptions) => request<{ task: any; formDefinition: any; documents: any[] }>(`/tasks/${encodeURIComponent(taskId)}`, { method: 'GET' }, opts),
   submitTask: (taskId: string, body: { values: Record<string, any>; notes?: string }, opts?: ApiOptions) =>
     request<{ ok: boolean }>(`/tasks/${encodeURIComponent(taskId)}/submit`, { method: 'POST', body: JSON.stringify(body) }, opts),
+
+  // Documents / Messages
   uploadDocument: (body: { taskId: string; fileName: string; mimeType: string; base64: string; documentTypeCode?: string }, opts?: ApiOptions) =>
     request<{ document: any }>('/documents/upload', { method: 'POST', body: JSON.stringify(body) }, opts),
   listMessages: () => request<{ messages: any[] }>('/messages'),
+
+  // Employer
+  employerProfile: () => request<{ employer: any }>('/employer/profile'),
+  employerEmployees: () => request<{ employees: any[] }>('/employer/employees'),
+  employerC3History: () => request<{ submissions: any[] }>('/employer/c3'),
+  employerContributions: () => request<{ contributions: any[] }>('/employer/contributions'),
+  employerPayments: () => request<{ payments: any[] }>('/employer/payments'),
+  employerBalances: () => request<{ balances: any[] }>('/employer/balances'),
+  employerNotices: () => request<{ notices: any[] }>('/employer/compliance'),
+
+  // Doctor / Medical provider
+  doctorProfile: () => request<{ provider: any }>('/doctor/profile'),
+  doctorReports: () => request<{ reports: any[] }>('/doctor/reports'),
 };
