@@ -578,8 +578,55 @@ async function handle(req: Request, url: URL): Promise<Response> {
     const caller = await resolveCaller(req);
     if (caller instanceof Response) return caller;
     if (caller.role !== 'CLAIMANT' || !caller.ssn) return json({ claims: [] });
-    const { data } = await admin.from('bn_claim').select('id, claim_number, status, claim_date, submission_date, decision_date, product_id').eq('ssn', caller.ssn).order('submission_date', { ascending: false }).limit(100);
+    // Claims where caller is the insured person OR any registered participant.
+    const { data: parts } = await admin.from('bn_claim_participant')
+      .select('claim_id').eq('ssn', caller.ssn);
+    const idsFromParts = (parts ?? []).map((p: any) => p.claim_id).filter(Boolean);
+    let q = admin.from('bn_claim').select('id, claim_number, status, claim_date, submission_date, decision_date, product_id, ssn');
+    if (idsFromParts.length) {
+      q = q.or(`ssn.eq.${caller.ssn},id.in.(${idsFromParts.join(',')})`);
+    } else {
+      q = q.eq('ssn', caller.ssn);
+    }
+    const { data } = await q.order('submission_date', { ascending: false }).limit(200);
     return json({ claims: data ?? [] });
+  }
+
+  // Categorised buckets for the claimant dashboard.
+  if (method === 'GET' && path === '/me/claim-buckets') {
+    const caller = await resolveCaller(req);
+    if (caller instanceof Response) return caller;
+    if (caller.role !== 'CLAIMANT' || !caller.ssn) {
+      return json({ own: [], submittedForOthers: [], asBeneficiary: [], asGuardianOrPayee: [] });
+    }
+    const { data: parts } = await admin.from('bn_claim_participant')
+      .select('claim_id, participant_role, ssn, is_primary_applicant')
+      .eq('ssn', caller.ssn);
+    const claimIds = Array.from(new Set((parts ?? []).map((p: any) => p.claim_id)));
+    const { data: claims } = claimIds.length
+      ? await admin.from('bn_claim')
+          .select('id, claim_number, status, claim_date, submission_date, ssn, product_id')
+          .in('id', claimIds)
+      : { data: [] as any[] };
+    const byId: Record<string, any> = {};
+    for (const c of claims ?? []) byId[c.id] = c;
+    const own: any[] = []; const submittedForOthers: any[] = [];
+    const asBeneficiary: any[] = []; const asGuardianOrPayee: any[] = [];
+    for (const p of parts ?? []) {
+      const c = byId[p.claim_id]; if (!c) continue;
+      const isInsured = c.ssn && c.ssn === caller.ssn;
+      if (p.participant_role === 'BENEFICIARY') asBeneficiary.push(c);
+      else if (p.participant_role === 'GUARDIAN' || p.participant_role === 'PAYEE') asGuardianOrPayee.push(c);
+      else if (isInsured) own.push(c);
+      else if (p.is_primary_applicant) submittedForOthers.push(c);
+    }
+    // Also include claims where ssn matches as primary insured but no participant row recorded
+    const { data: ownDirect } = await admin.from('bn_claim')
+      .select('id, claim_number, status, claim_date, submission_date, ssn, product_id')
+      .eq('ssn', caller.ssn).order('submission_date', { ascending: false }).limit(100);
+    const seen = new Set(own.map(c => c.id));
+    for (const c of ownDirect ?? []) if (!seen.has(c.id)) own.push(c);
+    return json({ own, submittedForOthers, asBeneficiary, asGuardianOrPayee });
   }
   if (method === 'GET' && path === '/me/awards') {
     const caller = await resolveCaller(req);
