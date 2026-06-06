@@ -107,9 +107,9 @@ export default function Award360() {
               <Field label="SSN" value={a.ssn} />
               <Field label="DOB" value={dt(data.pensioner?.dob)} />
               <Field label="Sex" value={data.pensioner?.sex} />
-              <Field label="Mobile" value={data.pensioner?.mobile_no} />
-              <Field label="Email" value={data.pensioner?.email_id} />
-              <Field label="Address" value={[data.pensioner?.address1, data.pensioner?.address2].filter(Boolean).join(', ')} />
+              <Field label="Mobile" value={data.pensioner?.mobile ?? data.pensioner?.phone} />
+              <Field label="Email" value={data.pensioner?.email_addr ?? data.pensioner?.contact_email} />
+              <Field label="Address" value={[data.pensioner?.resident_addr1, data.pensioner?.resident_addr2].filter(Boolean).join(', ')} />
             </CardContent>
           </Card>
         </TabsContent>
