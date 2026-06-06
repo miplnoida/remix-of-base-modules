@@ -554,7 +554,7 @@ async function handle(req: Request, url: URL): Promise<Response> {
   if (method === 'GET' && path === '/me/profile') {
     const caller = await resolveCaller(req);
     if (caller instanceof Response) return caller;
-    if (caller.role !== 'CLAIMANT') return err(403, 'forbidden', 'Claimant only');
+    if (caller.role !== 'CLAIMANT') return json({ profile: null });
     if (!caller.ssn) return json({ profile: null });
     const { data } = await admin.from('ip_master').select('ssn, first_name, last_name, dob, gender, marital_status, mobile_phone, email').eq('ssn', caller.ssn).maybeSingle();
     await audit(null, null, 'PROFILE_VIEWED', caller);
