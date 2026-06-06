@@ -1,6 +1,15 @@
 /**
- * Transition Registry — allowed (fromStatus, action, toStatus) tuples.
- * Used by the Transition Matrix editor to prevent impossible transitions.
+ * Transition Registry — EDITOR-ONLY suggestions for icons, labels, defaults
+ * and dropdown options.
+ *
+ * ⚠️ NOT the runtime source of truth.
+ * Claim processing must always read bn_claim_transition_rule from the database.
+ * Drift between this file and the live table is reported (as WARNING) by
+ * bnRegistryValidationService → "Registry / Database Drift" card.
+ *
+ * To refresh this file, use Configuration Validation →
+ * "Generate Registry Suggestions from DB" and review the exported JSON before
+ * pasting tuples here.
  */
 export interface AllowedTransition {
   from: string;
