@@ -120,18 +120,15 @@ export const PublicRoutes: React.FC = () => {
         element={<Suspense fallback={<RouteFallback label="Validating secure link…" />}><SecureTaskPage /></Suspense>}
       />
 
-      {/* Everything else: lazy-load the full protected route table */}
+      {/* Everything else: lazy-load the full route table.
+          /public/* routes are registered inside AppRoutes (PublicLayout + children),
+          so we must fall through there — not short-circuit on isPublicPath. */}
       <Route
         path="*"
         element={
-          onPublic ? (
-            // Defensive: if a public path slipped through, don't trigger the heavy table
-            <RouteFallback />
-          ) : (
-            <Suspense fallback={<RouteFallback label="Loading application…" />}>
-              <AppRoutes />
-            </Suspense>
-          )
+          <Suspense fallback={<RouteFallback label="Loading application…" />}>
+            <AppRoutes />
+          </Suspense>
         }
       />
     </Routes>
