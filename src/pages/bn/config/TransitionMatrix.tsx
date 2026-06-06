@@ -1,13 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowRight } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ArrowRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { BN_CLAIM_STATUS_LABELS } from '@/types/bn';
 import type { BnClaimTransitionRule } from '@/types/bn';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
+import { isAllowedTransition } from '@/services/bn/registries';
 
 const db = supabase as any;
 
