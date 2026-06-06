@@ -123,7 +123,7 @@ export function resolveApplicantType(ctx: ApplicationContext): ApplicantType | u
 
 // ─── Service ──────────────────────────────────────────────────────────
 
-const CHANNEL_PUBLIC = 'PUBLIC_ONLINE';
+const CHANNEL_PUBLIC = 'ONLINE';
 
 /**
  * Returns benefits eligible for display in the Claimant Portal catalog
@@ -144,6 +144,10 @@ export async function getPublicAvailableProducts(
       allow_apply_for_self, allow_apply_for_deceased, allow_apply_for_child_dependant,
       allow_apply_as_guardian, allow_apply_as_payee, allow_apply_as_representative,
       allow_managed_contributor_selection, applicant_must_equal_insured,
+      allow_employer_initiated, allow_doctor_initiated,
+      requires_self_verified_ssn, requires_deceased_person, requires_active_award,
+      requires_existing_ei_claim, requires_employer_task, requires_doctor_task, requires_school_task,
+      public_card_message, public_disabled_reason,
       bn_product:product_id ( id, benefit_code, benefit_name, category, description, status )
     `)
     .eq('channel_code', CHANNEL_PUBLIC)
@@ -164,6 +168,13 @@ export async function getPublicAvailableProducts(
     const allowedSubject: SubjectType[] = row.allowed_subject_types ?? [];
     const intentTags: ApplyIntent[] = row.public_intent_tags ?? [];
 
+    // Hide employer/doctor-only products from claimant catalog entirely.
+    const claimantCanApply =
+      row.allow_apply_for_self || row.allow_apply_for_deceased ||
+      row.allow_apply_for_child_dependant || row.allow_apply_as_guardian ||
+      row.allow_apply_as_payee || row.allow_apply_as_representative;
+    if (!claimantCanApply) continue;
+
     // Intent filter (not_sure shows everything that's intent-tagged)
     if (ctx.intent !== 'not_sure' && intentTags.length && !intentTags.includes(ctx.intent)) {
       continue;
@@ -175,7 +186,7 @@ export async function getPublicAvailableProducts(
       productVersionId: row.product_version_id,
       benefitCode: product.benefit_code,
       benefitName: product.benefit_name,
-      shortDescription: row.public_short_description ?? product.description ?? null,
+      shortDescription: row.public_short_description ?? row.public_card_message ?? product.description ?? null,
       whoCanApply: row.public_who_can_apply ?? null,
       estimatedProcessingDays: row.estimated_processing_days ?? null,
       category: product.category ?? null,
@@ -185,20 +196,32 @@ export async function getPublicAvailableProducts(
       publicScreenTemplateId: row.public_screen_template_id ?? null,
     };
 
-    // Disable reasons (still rendered so users see what they could apply for)
-    if (!summary.publicScreenTemplateId) {
-      summary.disabledReason = 'Application form is not yet available.';
+    // Disable reasons, in priority order. Self-only + missing SSN is the
+    // ONLY case where we tell the user to link their SSN. Deceased,
+    // survivor, funeral, award-service products never show that message.
+    const isSelfOnlyProduct =
+      row.allow_apply_for_self &&
+      !row.allow_apply_for_deceased &&
+      !row.allow_apply_for_child_dependant &&
+      !row.allow_apply_as_guardian &&
+      !row.allow_apply_as_payee &&
+      !row.allow_apply_as_representative;
+
+    if (row.public_disabled_reason) {
+      summary.disabledReason = row.public_disabled_reason;
     } else if (wantedApplicant && allowedApplicant.length && !allowedApplicant.includes(wantedApplicant)) {
       summary.disabledReason = 'Not available for this type of application.';
-    } else if (ctx.intent === 'managed' && !row.allow_managed_contributor_selection) {
+    } else if (ctx.intent === 'managed' && !row.allow_managed_contributor_selection &&
+               !row.allow_apply_as_representative && !row.allow_apply_as_guardian && !row.allow_apply_as_payee) {
       summary.disabledReason = 'This benefit cannot be filed on behalf of someone you manage.';
-    } else if (
-      wantedApplicant === 'SELF' &&
-      !ctx.subjectIsSelfVerified &&
-      row.applicant_must_equal_insured
-    ) {
-      // Soft warning only; eligibility cannot be evaluated without SELF link.
-      summary.disabledReason = undefined; // allow start; UI will show a banner
+    } else if (row.requires_deceased_person && (ctx.intent === 'self' || ctx.intent === 'child')) {
+      summary.disabledReason = 'Requires deceased person details.';
+    } else if (row.requires_active_award && ctx.intent === 'self' && !ctx.subjectIsSelfVerified) {
+      summary.disabledReason = 'Requires an active award.';
+    } else if (isSelfOnlyProduct && row.requires_self_verified_ssn && !ctx.subjectIsSelfVerified) {
+      summary.disabledReason = 'Link your SSN to apply for yourself.';
+    } else if (!summary.publicScreenTemplateId) {
+      summary.disabledReason = 'Application form is not yet available.';
     }
 
     results.push(summary);
