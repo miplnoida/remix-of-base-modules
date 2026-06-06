@@ -38,31 +38,45 @@ export function channelLabel(code?: string | null) {
 // ─── Application Details + Product Version Used ──────────────────────
 export const ApplicationDetailsPanel: React.FC<{ claimId: string; productVersionId?: string | null }>
 = ({ claimId, productVersionId }) => {
-  const { data, isLoading } = useQuery({
-    queryKey: ['bn-claim-application', claimId],
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
+    queryKey: ['bn-claim-application', claimId, productVersionId],
     enabled: !!claimId,
     queryFn: async () => {
-      const [{ data: app }, { data: version }] = await Promise.all([
+      const [appRes, versionRes] = await Promise.all([
         db.from('bn_claim_application')
           .select('*')
           .eq('claim_id', claimId)
-          .order('created_at', { ascending: false })
+          .order('submitted_at', { ascending: false, nullsFirst: false })
           .limit(1)
           .maybeSingle(),
         productVersionId
           ? db.from('bn_product_version')
-              .select('id, version_number, status, effective_from, effective_to, bn_product:product_id(benefit_name, product_code, category)')
+              .select('id, version_number, status, effective_from, effective_to, bn_product:product_id(benefit_name, benefit_code, category)')
               .eq('id', productVersionId)
               .maybeSingle()
-          : Promise.resolve({ data: null }),
+          : Promise.resolve({ data: null, error: null } as any),
       ]);
-      return { app, version };
+      if (appRes.error) throw appRes.error;
+      if (versionRes.error) throw versionRes.error;
+      return { app: appRes.data, version: versionRes.data };
     },
   });
 
   if (isLoading) return <BnEmptyState type="loading" title="Loading application…" />;
+  if (error) {
+    return (
+      <Card className="border-destructive/40">
+        <CardContent className="py-6 space-y-3">
+          <p className="text-sm text-destructive font-medium">Could not load application details</p>
+          <p className="text-xs text-muted-foreground break-all">{(error as Error)?.message}</p>
+          <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>Retry</Button>
+        </CardContent>
+      </Card>
+    );
+  }
   const app = data?.app;
   const version: any = data?.version;
+  const rawJson = app?.raw_application_json;
 
   return (
     <div className="space-y-4">
@@ -75,8 +89,9 @@ export const ApplicationDetailsPanel: React.FC<{ claimId: string; productVersion
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 text-sm">
               <Field label="Channel" value={<Badge variant="secondary">{channelLabel(app.application_channel)}</Badge>} />
               <Field label="Submitted By Type" value={app.submitted_by_type ?? '—'} />
-              <Field label="Submitted By" value={app.submitted_by_user_id ?? app.submitted_by_user_code ?? '—'} />
+              <Field label="Submitted By" value={app.submitted_by_user_id ?? '—'} />
               <Field label="Submitted At" value={app.submitted_at ? formatDateForDisplay(app.submitted_at) : '—'} />
+              <Field label="Entered At" value={app.entered_at ? formatDateForDisplay(app.entered_at) : '—'} />
               <Field label="Source IP" value={app.source_ip ?? '—'} />
               <Field label="User Agent" value={<span className="line-clamp-2 break-all">{app.user_agent ?? '—'}</span>} />
             </div>
@@ -92,7 +107,7 @@ export const ApplicationDetailsPanel: React.FC<{ claimId: string; productVersion
           ) : (
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 text-sm">
               <Field label="Benefit" value={version.bn_product?.benefit_name ?? '—'} />
-              <Field label="Product Code" value={version.bn_product?.product_code ?? '—'} />
+              <Field label="Benefit Code" value={version.bn_product?.benefit_code ?? '—'} />
               <Field label="Category" value={version.bn_product?.category ?? '—'} />
               <Field label="Version" value={`v${version.version_number}`} />
               <Field label="Effective" value={`${formatDateForDisplay(version.effective_from)} → ${version.effective_to ? formatDateForDisplay(version.effective_to) : 'open'}`} />
@@ -101,6 +116,18 @@ export const ApplicationDetailsPanel: React.FC<{ claimId: string; productVersion
           )}
         </CardContent>
       </Card>
+
+      {rawJson && (
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base font-medium">Raw Application Payload</CardTitle></CardHeader>
+          <CardContent>
+            <details>
+              <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">Show raw JSON</summary>
+              <pre className="mt-3 text-xs bg-muted/50 rounded p-3 overflow-auto max-h-96">{JSON.stringify(rawJson, null, 2)}</pre>
+            </details>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
