@@ -158,28 +158,43 @@ export default function EscalationConfig() {
             <DialogHeader><DialogTitle>{isNew ? 'Add Escalation Policy' : 'Edit Escalation Policy'}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><label className="text-sm font-medium">Code</label><Input value={form.policy_code} onChange={e => setForm(p => ({ ...p, policy_code: e.target.value.toUpperCase() }))} disabled={!isNew} /></div>
+                {isNew ? (
+                  <CodeFieldWithAutoGenerate
+                    label="Code"
+                    value={form.policy_code}
+                    onChange={(v) => setForm(p => ({ ...p, policy_code: v }))}
+                    existingCodes={policies.map(x => x.policy_code)}
+                    prefix="ESC"
+                    required
+                  />
+                ) : (
+                  <div className="space-y-1"><label className="text-sm font-medium">Code</label><Input value={form.policy_code} disabled /></div>
+                )}
                 <div className="space-y-1"><label className="text-sm font-medium">Name</label><Input value={form.policy_name} onChange={e => setForm(p => ({ ...p, policy_name: e.target.value }))} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Trigger Type</label>
-                  <Select value={form.trigger_type} onValueChange={v => setForm(p => ({ ...p, trigger_type: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{TRIGGER_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1"><label className="text-sm font-medium">Hours Overdue</label><Input type="number" value={form.hours_overdue} onChange={e => setForm(p => ({ ...p, hours_overdue: e.target.value }))} /></div>
+                <SmartSelect
+                  label="Trigger Type"
+                  value={form.trigger_type}
+                  onValueChange={(v) => setForm(p => ({ ...p, trigger_type: v }))}
+                  options={BN_ESCALATION_TRIGGERS.map(t => ({ value: t.value, label: t.label }))}
+                />
+                <div className="space-y-1"><label className="text-sm font-medium">Hours Overdue</label><Input type="number" min={1} value={form.hours_overdue} onChange={e => setForm(p => ({ ...p, hours_overdue: e.target.value }))} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><label className="text-sm font-medium">Target Role</label><Input value={form.escalation_target_role} onChange={e => setForm(p => ({ ...p, escalation_target_role: e.target.value }))} /></div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Severity</label>
-                  <Select value={form.severity} onValueChange={v => setForm(p => ({ ...p, severity: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{SEVERITIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
+                <SmartSelect
+                  label="Target Role"
+                  value={form.escalation_target_role}
+                  onValueChange={(v) => setForm(p => ({ ...p, escalation_target_role: v }))}
+                  options={BN_WORKFLOW_ROLES.map(r => ({ value: r, label: r.replace(/_/g, ' ') }))}
+                  required
+                />
+                <SmartSelect
+                  label="Severity"
+                  value={form.severity}
+                  onValueChange={(v) => setForm(p => ({ ...p, severity: v }))}
+                  options={BN_ESCALATION_SEVERITIES.map(s => ({ value: s.value, label: s.label }))}
+                />
               </div>
               <div className="flex items-center gap-2"><Switch checked={form.auto_reassign} onCheckedChange={v => setForm(p => ({ ...p, auto_reassign: v }))} /><label className="text-sm">Auto-Reassign on Escalation</label></div>
               <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={v => setForm(p => ({ ...p, is_active: v }))} /><label className="text-sm">Active</label></div>
