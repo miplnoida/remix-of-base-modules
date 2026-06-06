@@ -1,13 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowRight } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ArrowRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { BN_CLAIM_STATUS_LABELS } from '@/types/bn';
 import type { BnClaimTransitionRule } from '@/types/bn';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
+import { isAllowedTransition } from '@/services/bn/registries';
 
 const db = supabase as any;
 
@@ -29,6 +31,10 @@ export default function TransitionMatrix() {
     acc[rule.action_code].push(rule);
     return acc;
   }, {});
+
+  const invalidRules = rules.filter(r =>
+    r.is_active && !isAllowedTransition(r.from_status, r.action_code, r.to_status)
+  );
 
   const renderPreconditions = (rule: BnClaimTransitionRule) => {
     const conds: string[] = [];
@@ -55,6 +61,31 @@ export default function TransitionMatrix() {
           description="Reusable fallback status/action matrix. Product Catalog and workflow templates reference this matrix when the central workflow is missing or disabled."
         />
 
+
+        {!isLoading && (
+          invalidRules.length > 0 ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>{invalidRules.length} active rule(s) violate the transition registry</AlertTitle>
+              <AlertDescription>
+                The following (from → action → to) tuples are not in the allowed registry and may produce broken claim flows:
+                <ul className="mt-2 list-disc pl-5 text-xs">
+                  {invalidRules.slice(0, 10).map(r => (
+                    <li key={r.id}>
+                      <code>{r.from_status}</code> — <code>{r.action_code}</code> → <code>{r.to_status}</code>
+                    </li>
+                  ))}
+                  {invalidRules.length > 10 && <li>… and {invalidRules.length - 10} more</li>}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert>
+              <CheckCircle2 className="h-4 w-4" />
+              <AlertTitle>All active rules conform to the transition registry</AlertTitle>
+            </Alert>
+          )
+        )}
 
         {isLoading ? (
           <p className="text-muted-foreground">Loading...</p>

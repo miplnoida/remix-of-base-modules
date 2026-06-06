@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Edit } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,13 +14,15 @@ import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { toast } from 'sonner';
 import type { BnEscalationPolicy } from '@/types/bn';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
+import { SmartSelect, CodeFieldWithAutoGenerate } from '@/components/bn/smart';
+import { BN_WORKFLOW_ROLES, BN_ESCALATION_TRIGGERS, BN_ESCALATION_SEVERITIES } from '@/services/bn/registries';
+import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 
 const db = supabase as any;
-const TRIGGER_TYPES = ['SLA_BREACH', 'MANUAL', 'THRESHOLD', 'EXCEPTION'];
-const SEVERITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
 export default function EscalationConfig() {
   const { userCode } = useUserCode();
+  const { log } = useBnConfigAudit();
   const qc = useQueryClient();
   const [editItem, setEditItem] = useState<BnEscalationPolicy | null>(null);
   const [isNew, setIsNew] = useState(false);
@@ -48,11 +49,13 @@ export default function EscalationConfig() {
   const saveMutation = useMutation({
     mutationFn: async (payload: any) => {
       if (isNew) {
-        const { error } = await db.from('bn_escalation_policy').insert({ ...payload, entered_by: userCode });
+        const { data, error } = await db.from('bn_escalation_policy').insert({ ...payload, entered_by: userCode }).select().single();
         if (error) throw error;
+        log({ entityType: 'bn_escalation_policy', entityId: data?.id ?? payload.policy_code, action: 'CREATE', after: payload });
       } else {
         const { error } = await db.from('bn_escalation_policy').update({ ...payload, modified_by: userCode, modified_at: new Date().toISOString() }).eq('id', editItem!.id);
         if (error) throw error;
+        log({ entityType: 'bn_escalation_policy', entityId: editItem!.id, action: 'UPDATE', before: editItem as any, after: payload });
       }
     },
     onSuccess: () => {
@@ -85,11 +88,18 @@ export default function EscalationConfig() {
   };
 
   const handleSave = () => {
+    if (!form.policy_code.trim() || !form.policy_name.trim()) { toast.error('Code and Name are required'); return; }
+    if (!form.escalation_target_role) { toast.error('Target Role is required'); return; }
+    const hours = parseInt(form.hours_overdue);
+    if (!hours || hours < 1) { toast.error('Hours Overdue must be a positive number'); return; }
+    if (isNew && policies.some(x => x.policy_code.toUpperCase() === form.policy_code.toUpperCase())) {
+      toast.error('Policy code already exists'); return;
+    }
     saveMutation.mutate({
       policy_code: form.policy_code,
       policy_name: form.policy_name,
       trigger_type: form.trigger_type,
-      trigger_config: { hours_overdue: parseInt(form.hours_overdue) || 48 },
+      trigger_config: { hours_overdue: hours },
       escalation_target_role: form.escalation_target_role,
       auto_reassign: form.auto_reassign,
       severity: form.severity,
@@ -158,28 +168,43 @@ export default function EscalationConfig() {
             <DialogHeader><DialogTitle>{isNew ? 'Add Escalation Policy' : 'Edit Escalation Policy'}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><label className="text-sm font-medium">Code</label><Input value={form.policy_code} onChange={e => setForm(p => ({ ...p, policy_code: e.target.value.toUpperCase() }))} disabled={!isNew} /></div>
+                {isNew ? (
+                  <CodeFieldWithAutoGenerate
+                    label="Code"
+                    value={form.policy_code}
+                    onChange={(v) => setForm(p => ({ ...p, policy_code: v }))}
+                    existingCodes={policies.map(x => x.policy_code)}
+                    prefix="ESC"
+                    required
+                  />
+                ) : (
+                  <div className="space-y-1"><label className="text-sm font-medium">Code</label><Input value={form.policy_code} disabled /></div>
+                )}
                 <div className="space-y-1"><label className="text-sm font-medium">Name</label><Input value={form.policy_name} onChange={e => setForm(p => ({ ...p, policy_name: e.target.value }))} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Trigger Type</label>
-                  <Select value={form.trigger_type} onValueChange={v => setForm(p => ({ ...p, trigger_type: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{TRIGGER_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1"><label className="text-sm font-medium">Hours Overdue</label><Input type="number" value={form.hours_overdue} onChange={e => setForm(p => ({ ...p, hours_overdue: e.target.value }))} /></div>
+                <SmartSelect
+                  label="Trigger Type"
+                  value={form.trigger_type}
+                  onValueChange={(v) => setForm(p => ({ ...p, trigger_type: v }))}
+                  options={BN_ESCALATION_TRIGGERS.map(t => ({ value: t.value, label: t.label }))}
+                />
+                <div className="space-y-1"><label className="text-sm font-medium">Hours Overdue</label><Input type="number" min={1} value={form.hours_overdue} onChange={e => setForm(p => ({ ...p, hours_overdue: e.target.value }))} /></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><label className="text-sm font-medium">Target Role</label><Input value={form.escalation_target_role} onChange={e => setForm(p => ({ ...p, escalation_target_role: e.target.value }))} /></div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Severity</label>
-                  <Select value={form.severity} onValueChange={v => setForm(p => ({ ...p, severity: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{SEVERITIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
+                <SmartSelect
+                  label="Target Role"
+                  value={form.escalation_target_role}
+                  onValueChange={(v) => setForm(p => ({ ...p, escalation_target_role: v }))}
+                  options={BN_WORKFLOW_ROLES.map(r => ({ value: r, label: r.replace(/_/g, ' ') }))}
+                  required
+                />
+                <SmartSelect
+                  label="Severity"
+                  value={form.severity}
+                  onValueChange={(v) => setForm(p => ({ ...p, severity: v }))}
+                  options={BN_ESCALATION_SEVERITIES.map(s => ({ value: s.value, label: s.label }))}
+                />
               </div>
               <div className="flex items-center gap-2"><Switch checked={form.auto_reassign} onCheckedChange={v => setForm(p => ({ ...p, auto_reassign: v }))} /><label className="text-sm">Auto-Reassign on Escalation</label></div>
               <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={v => setForm(p => ({ ...p, is_active: v }))} /><label className="text-sm">Active</label></div>

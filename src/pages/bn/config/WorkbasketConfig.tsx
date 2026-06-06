@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,12 +14,16 @@ import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { toast } from 'sonner';
 import type { BnWorkbasket } from '@/types/bn';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
+import { SmartSelect, CodeFieldWithAutoGenerate } from '@/components/bn/smart';
+import { BN_WORKFLOW_ROLES, BN_PRODUCT_CATEGORIES } from '@/services/bn/registries';
+import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 
 export default function WorkbasketConfig() {
   const { userCode } = useUserCode();
   const { data: workbaskets = [] } = useBnWorkbaskets();
   const createMut = useCreateBnWorkbasket();
   const updateMut = useUpdateBnWorkbasket();
+  const { log } = useBnConfigAudit();
 
   const [editItem, setEditItem] = useState<BnWorkbasket | null>(null);
   const [isNew, setIsNew] = useState(false);
@@ -56,6 +60,14 @@ export default function WorkbasketConfig() {
   };
 
   const handleSave = async () => {
+    if (!form.basket_code.trim() || !form.basket_name.trim()) {
+      toast.error('Code and Name are required');
+      return;
+    }
+    if (!form.assigned_role) {
+      toast.error('Assigned Role is required');
+      return;
+    }
     const payload: any = {
       basket_code: form.basket_code,
       basket_name: form.basket_name,
@@ -70,11 +82,13 @@ export default function WorkbasketConfig() {
     try {
       if (isNew) {
         payload.entered_by = userCode;
-        await createMut.mutateAsync(payload);
+        const res: any = await createMut.mutateAsync(payload);
+        log({ entityType: 'bn_workbasket', entityId: res?.id ?? form.basket_code, action: 'CREATE', after: payload });
         toast.success('Workbasket created');
       } else {
         payload.modified_by = userCode;
         await updateMut.mutateAsync({ id: editItem!.id, updates: payload });
+        log({ entityType: 'bn_workbasket', entityId: editItem!.id, action: 'UPDATE', before: editItem as any, after: payload });
         toast.success('Workbasket updated');
       }
       setEditItem(null);
@@ -139,12 +153,39 @@ export default function WorkbasketConfig() {
           <DialogContent>
             <DialogHeader><DialogTitle>{isNew ? 'Add Workbasket' : 'Edit Workbasket'}</DialogTitle></DialogHeader>
             <div className="space-y-3">
-              <div className="space-y-1"><label className="text-sm font-medium">Code</label><Input value={form.basket_code} onChange={e => setForm(p => ({ ...p, basket_code: e.target.value.toUpperCase() }))} disabled={!isNew} /></div>
+              {isNew ? (
+                <CodeFieldWithAutoGenerate
+                  label="Code"
+                  value={form.basket_code}
+                  onChange={(v) => setForm(p => ({ ...p, basket_code: v }))}
+                  existingCodes={workbaskets.map(w => w.basket_code)}
+                  prefix="WB"
+                  required
+                />
+              ) : (
+                <div className="space-y-1"><label className="text-sm font-medium">Code</label><Input value={form.basket_code} disabled /></div>
+              )}
               <div className="space-y-1"><label className="text-sm font-medium">Name</label><Input value={form.basket_name} onChange={e => setForm(p => ({ ...p, basket_name: e.target.value }))} /></div>
               <div className="space-y-1"><label className="text-sm font-medium">Description</label><Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2} /></div>
-              <div className="space-y-1"><label className="text-sm font-medium">Assigned Role</label><Input value={form.assigned_role} onChange={e => setForm(p => ({ ...p, assigned_role: e.target.value }))} /></div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Assigned Role</label>
+                <SmartSelect
+                  value={form.assigned_role}
+                  onValueChange={(v) => setForm(p => ({ ...p, assigned_role: v }))}
+                  options={BN_WORKFLOW_ROLES.map(r => ({ value: r, label: r.replace(/_/g, ' ') }))}
+                  placeholder="Select role"
+                />
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><label className="text-sm font-medium">Product Category</label><Input value={form.product_category} onChange={e => setForm(p => ({ ...p, product_category: e.target.value }))} placeholder="Optional" /></div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Product Category</label>
+                  <SmartSelect
+                    value={form.product_category}
+                    onValueChange={(v) => setForm(p => ({ ...p, product_category: v }))}
+                    options={[{ value: '', label: '— Any —' }, ...BN_PRODUCT_CATEGORIES]}
+                    placeholder="Optional"
+                  />
+                </div>
                 <div className="space-y-1"><label className="text-sm font-medium">Max Capacity</label><Input type="number" value={form.max_capacity} onChange={e => setForm(p => ({ ...p, max_capacity: e.target.value }))} placeholder="Optional" /></div>
               </div>
               <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={v => setForm(p => ({ ...p, is_active: v }))} /><label className="text-sm">Active</label></div>

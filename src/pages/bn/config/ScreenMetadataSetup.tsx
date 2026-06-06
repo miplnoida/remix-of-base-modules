@@ -13,6 +13,7 @@ import { useBnScreenTemplates, useBnFieldMetadata } from '@/hooks/bn/useBnConfig
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
+import { SMART_FIELD_TYPES } from '@/services/bn/registries';
 
 export default function ScreenMetadataSetup() {
   const [search, setSearch] = useState('');
@@ -47,6 +48,19 @@ export default function ScreenMetadataSetup() {
           productAssemblyHint
           description="Reusable screen templates and smart field blocks (SSN lookup, Employer lookup, Contribution summary, Survivor beneficiary grid, Medical certificate, Bank details). Product Catalog → Screens tab assembles them for each product version."
         />
+
+        <Card>
+          <CardHeader className="pb-2">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Smart Field Type Registry</p>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="flex flex-wrap gap-1.5">
+              {SMART_FIELD_TYPES.map(t => (
+                <Badge key={t.key} variant="outline" className="text-xs">{t.label}</Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
 
         <Tabs defaultValue="screens" className="w-full">
@@ -143,7 +157,7 @@ export default function ScreenMetadataSetup() {
                         <TableRow key={f.id}>
                           <TableCell className="font-mono text-sm">{f.field_name}</TableCell>
                           <TableCell className="text-sm">{f.field_label}</TableCell>
-                          <TableCell><Badge variant="outline">{f.field_type || 'text'}</Badge></TableCell>
+                          <TableCell><Badge variant="outline">{SMART_FIELD_TYPES.find(t => t.key === f.field_type)?.label || f.field_type || 'text'}</Badge></TableCell>
                           <TableCell><Switch checked={f.is_required} disabled /></TableCell>
                           <TableCell><Switch checked={f.is_visible !== false} disabled /></TableCell>
                           <TableCell>
