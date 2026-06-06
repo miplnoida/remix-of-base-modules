@@ -5,7 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { LogOut, Home, ChevronRight, PanelLeftClose, PanelLeftOpen, Circle } from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import {
+  LogOut, Home, ChevronRight, PanelLeftClose, PanelLeftOpen, Circle,
+  UserCircle2,
+} from 'lucide-react';
 import { externalAuthService, type PortalSession } from './externalAuthService';
 import type { PortalRole } from './publicBenefitApiClient';
 import { cn } from '@/lib/utils';
@@ -28,6 +35,12 @@ interface Props {
   nav: NavInput;
   subHeader?: ReactNode;
   homeHref?: string;
+  /** Items shown inside the top-right user dropdown (profile, security, etc.). */
+  userMenuItems?: NavItem[];
+  /** Extra content rendered at the top of the user dropdown (status badges, etc.). */
+  userMenuHeader?: ReactNode;
+  /** Items shown in the mobile bottom navigation bar. */
+  mobileNavItems?: NavItem[];
   children: ReactNode;
 }
 
@@ -65,7 +78,10 @@ function useBreadcrumbs(nav: NavInput, homeHref: string) {
 
 const SIDEBAR_STATE_KEY = 'lov.portalSidebar.collapsed';
 
-export function ExternalPortalShell({ role, brand, nav, subHeader, homeHref, children }: Props) {
+export function ExternalPortalShell({
+  role, brand, nav, subHeader, homeHref,
+  userMenuItems, userMenuHeader, mobileNavItems, children,
+}: Props) {
   const [session, setSession] = useState<PortalSession | null>(null);
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -90,6 +106,9 @@ export function ExternalPortalShell({ role, brand, nav, subHeader, homeHref, chi
     navigate('/');
   };
 
+  const initials = (session?.displayName ?? session?.email ?? '?')
+    .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase()).join('');
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-gradient-to-r from-[hsl(var(--ssb-green-primary))] to-[hsl(var(--primary))] text-primary-foreground shadow-sm">
@@ -107,11 +126,58 @@ export function ExternalPortalShell({ role, brand, nav, subHeader, homeHref, chi
             </div>
             <Badge variant="outline" className="ml-2 border-white/40 bg-white/10 text-xs text-primary-foreground">{role}</Badge>
           </Link>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="opacity-90">{session?.displayName ?? 'Guest'}</span>
+          <div className="flex items-center gap-2 text-sm">
             {session ? (
-              <Button variant="ghost" size="sm" onClick={signOut} className="gap-1.5 text-primary-foreground hover:bg-white/15 hover:text-primary-foreground"><LogOut className="h-4 w-4" /> Sign out</Button>
-            ) : null}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 rounded-full bg-white/10 px-2 py-1 pr-3 hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/40"
+                  >
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-primary text-xs font-bold">
+                      {initials || <UserCircle2 className="h-4 w-4" />}
+                    </span>
+                    <span className="hidden md:inline opacity-95 max-w-[180px] truncate">
+                      {session.displayName ?? session.email}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-72">
+                  <DropdownMenuLabel className="flex flex-col gap-1">
+                    <span className="text-sm font-semibold">{session.displayName ?? 'User'}</span>
+                    <span className="text-xs font-normal text-muted-foreground truncate">{session.email}</span>
+                  </DropdownMenuLabel>
+                  {userMenuHeader && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <div className="px-2 py-1.5">{userMenuHeader}</div>
+                    </>
+                  )}
+                  {userMenuItems && userMenuItems.length > 0 && (
+                    <>
+                      <DropdownMenuSeparator />
+                      {userMenuItems.map(item => {
+                        const Icon = item.icon ?? Circle;
+                        return (
+                          <DropdownMenuItem key={item.to} asChild>
+                            <Link to={item.to} className="flex items-center gap-2">
+                              <Icon className="h-4 w-4 text-muted-foreground" />
+                              <span>{item.label}</span>
+                            </Link>
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
+                    <LogOut className="h-4 w-4 mr-2" /> Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <span className="opacity-90">Guest</span>
+            )}
           </div>
         </div>
         {subHeader ? (
@@ -149,7 +215,7 @@ export function ExternalPortalShell({ role, brand, nav, subHeader, homeHref, chi
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-7xl gap-6 px-4 py-6">
+      <div className={cn('mx-auto flex max-w-7xl gap-6 px-4 py-6', mobileNavItems && 'pb-24 md:pb-6')}>
         {!isHome && (
           <aside className={cn('hidden md:block shrink-0 transition-[width] duration-200', collapsed ? 'w-14' : 'w-60')}>
             <div className="sticky top-14 space-y-2">
@@ -199,6 +265,38 @@ export function ExternalPortalShell({ role, brand, nav, subHeader, homeHref, chi
         )}
         <main className="min-w-0 flex-1">{children}</main>
       </div>
+
+      {/* Mobile bottom nav */}
+      {mobileNavItems && mobileNavItems.length > 0 && (
+        <nav
+          aria-label="Primary"
+          className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden"
+        >
+          <ul
+            className="mx-auto grid max-w-7xl"
+            style={{ gridTemplateColumns: `repeat(${mobileNavItems.length}, minmax(0, 1fr))` }}
+          >
+            {mobileNavItems.map(item => {
+              const Icon = item.icon ?? Circle;
+              return (
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    end
+                    className={({ isActive }) => cn(
+                      'flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] font-medium',
+                      isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="truncate">{item.label}</span>
+                  </NavLink>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      )}
     </div>
   );
 }

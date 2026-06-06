@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, useParams, Link } from 'react-router-dom';
 import { useMemo } from 'react';
-import { ExternalPortalShell, type NavGroup } from '@/portals/_shared/ExternalPortalShell';
+import { ExternalPortalShell, type NavGroup, type NavItem } from '@/portals/_shared/ExternalPortalShell';
 import { ExternalTaskList } from '@/portals/_shared/ExternalTaskList';
 import { ExternalTaskForm } from '@/portals/_shared/ExternalTaskForm';
 
@@ -43,12 +43,31 @@ import type { PortalFeatureConfig } from '@/services/external/portalFeatureConfi
 
 import {
   LayoutDashboard, User, Phone, Bell, Lock, PiggyBank, Briefcase, FileDown, Coins,
-  FileText, Sparkles, Search, Award, Wallet, Landmark, Users, ShieldCheck,
+  FileText, Search, Award, Wallet, Landmark, Users, ShieldCheck, ShieldQuestion,
   GraduationCap, ClipboardCheck, AlertCircle, Inbox, Mail, BellRing, ListChecks,
-  FolderOpen, Scale, RotateCcw,
+  FolderOpen, Scale, RotateCcw, IdCard, HelpCircle, Building2, LifeBuoy,
+  CheckCircle2, FileSearch, FileUp, FileCheck2, Home as HomeIcon, MessageSquare,
 } from 'lucide-react';
 
 const BRAND = 'Social Security Self-Service Portal';
+
+/** User-account dropdown items (top-right avatar). */
+const USER_MENU_ITEMS: NavItem[] = [
+  { to: '/claimant/account', label: 'My Profile', icon: User },
+  { to: '/claimant/account/contacts', label: 'Contact Information', icon: Phone },
+  { to: '/claimant/account/preferences', label: 'Communication Preferences', icon: Bell },
+  { to: '/claimant/account/security', label: 'Security Settings', icon: Lock },
+  { to: '/claimant/account/identity', label: 'Linked SSN / Identity', icon: IdCard },
+];
+
+/** Mobile bottom nav (5 slots). */
+const MOBILE_NAV_ITEMS: NavItem[] = [
+  { to: '/claimant/dashboard', label: 'Home', icon: HomeIcon },
+  { to: '/claimant/apply', label: 'Apply', icon: FileText },
+  { to: '/claimant/tasks', label: 'Tasks', icon: ListChecks },
+  { to: '/claimant/claims', label: 'Claims', icon: Search },
+  { to: '/claimant/comms/inbox', label: 'Messages', icon: MessageSquare },
+];
 
 function buildNavGroups(
   flags: PersonaFlags | undefined,
@@ -72,6 +91,8 @@ function buildNavGroups(
   } as PortalFeatureConfig);
 
   const isInsured = personas.includes('INSURED_PERSON');
+  const isPensioner = personas.includes('PENSIONER');
+  const isBeneficiary = personas.includes('BENEFICIARY');
   const isGuardianOrPayee = personas.includes('GUARDIAN') || personas.includes('PAYEE');
   const isRepresentative = personas.includes('REPRESENTATIVE');
   const managerEnabled =
@@ -79,21 +100,39 @@ function buildNavGroups(
     ((isGuardianOrPayee && ft.guardianPayeeEnabled) ||
       (isRepresentative && ft.representativeAccessEnabled));
 
-  const groups: NavGroup[] = [
-    {
-      label: 'My Account',
-      items: [
-        { to: '/claimant/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { to: '/claimant/profile', label: 'Personal Profile', icon: User },
-        { to: '/claimant/profile/contacts', label: 'Contact Information', icon: Phone },
-        { to: '/claimant/profile/preferences', label: 'Communication Preferences', icon: Bell },
-        { to: '/claimant/profile/security', label: 'Security Settings', icon: Lock },
-      ],
-    },
-  ];
+  // "Verified SELF SSN" gate — only true when the user has a verified self link.
+  const selfVerified = !!f.canViewContributions;
+  // Show Benefits & Payments group when user has any award/claim/payment activity.
+  const hasBenefitActivity = !!f.canViewPayments || isPensioner || isBeneficiary;
+  // Bank details: award holder, payee, guardian, or representative.
+  const canUpdateBank = ft.bankUpdateEnabled && (isPensioner || isBeneficiary || isGuardianOrPayee || isRepresentative);
+  // Life certificate: pensioner or manages a pensioner.
+  const showLifeCert = ft.lifeCertificateEnabled && (isPensioner || managerEnabled);
+  // School cert: beneficiary student or manages survivor child/student.
+  const showSchoolCert = ft.schoolCertificateEnabled && (isBeneficiary || managerEnabled);
 
-  if (isInsured) {
-    const items = [] as NavGroup['items'];
+  const groups: NavGroup[] = [];
+
+  // 1) Dashboard
+  groups.push({
+    label: 'Overview',
+    items: [{ to: '/claimant/dashboard', label: 'Dashboard', icon: LayoutDashboard }],
+  });
+
+  // 2) Apply & Track
+  const applyItems: NavItem[] = [
+    { to: '/claimant/apply', label: 'Apply for Benefits', icon: FileText },
+    { to: '/claimant/claims', label: 'My Claims', icon: Search },
+    { to: '/claimant/tasks', label: 'Pending Actions', icon: ListChecks },
+  ];
+  if (ft.appealsEnabled) {
+    applyItems.push({ to: '/claimant/appeals', label: 'Appeals / Reconsideration', icon: Scale });
+  }
+  groups.push({ label: 'Apply & Track', items: applyItems });
+
+  // 3) My Social Security — verified INSURED_PERSON only
+  if (isInsured && selfVerified) {
+    const items: NavItem[] = [];
     if (ft.contributionHistoryEnabled) items.push({ to: '/claimant/contributions', label: 'Contribution History', icon: PiggyBank });
     if (ft.employmentHistoryEnabled) items.push({ to: '/claimant/employment-history', label: 'Employment History', icon: Briefcase });
     if (ft.contributionHistoryEnabled) {
@@ -103,15 +142,17 @@ function buildNavGroups(
     if (items.length) groups.push({ label: 'My Social Security', items });
   }
 
-  const benefits = [] as NavGroup['items'];
-  benefits.push({ to: '/claimant/apply', label: 'Apply for Benefits', icon: FileText });
-  if (ft.eligibilityEstimatorEnabled) benefits.push({ to: '/claimant/estimator', label: 'Eligibility Estimator', icon: Sparkles });
-  benefits.push({ to: '/claimant/claims', label: 'Claims', icon: Search });
-  benefits.push({ to: '/claimant/entitlements', label: 'Entitlements', icon: Award });
-  if (ft.paymentHistoryEnabled) benefits.push({ to: '/claimant/payments', label: 'Payments', icon: Wallet });
-  if (ft.bankUpdateEnabled) benefits.push({ to: '/claimant/bank-details', label: 'Bank Update', icon: Landmark });
-  groups.push({ label: 'Benefits', items: benefits });
+  // 4) Benefits & Payments — only if there is benefit/payment activity
+  if (hasBenefitActivity) {
+    const items: NavItem[] = [
+      { to: '/claimant/entitlements', label: 'Entitlements / Pensions', icon: Award },
+    ];
+    if (ft.paymentHistoryEnabled) items.push({ to: '/claimant/payments', label: 'Payment History', icon: Wallet });
+    if (canUpdateBank) items.push({ to: '/claimant/bank-details', label: 'Bank Details / EFT Update', icon: Landmark });
+    groups.push({ label: 'Benefits & Payments', items });
+  }
 
+  // 5) People I Manage — flag + relationship
   if (managerEnabled) {
     groups.push({
       label: 'People I Manage',
@@ -119,43 +160,50 @@ function buildNavGroups(
         { to: '/claimant/managed/people', label: 'People I Manage', icon: Users },
         { to: '/claimant/managed/claims', label: 'Managed Claims', icon: Search },
         { to: '/claimant/managed/benefits', label: 'Managed Benefits', icon: Award },
+        { to: '/claimant/managed/documents', label: 'Managed Documents', icon: FolderOpen },
       ],
     });
   }
 
-  const compliance = [] as NavGroup['items'];
-  if (ft.lifeCertificateEnabled) compliance.push({ to: '/claimant/compliance/life', label: 'Life Certificates', icon: ShieldCheck });
-  if (ft.schoolCertificateEnabled) compliance.push({ to: '/claimant/compliance/school', label: 'School Certificates', icon: GraduationCap });
-  compliance.push({ to: '/claimant/compliance/verification', label: 'Verification Tasks', icon: ClipboardCheck });
+  // 6) Compliance & Certificates
+  const compliance: NavItem[] = [];
+  if (showLifeCert) compliance.push({ to: '/claimant/compliance/life', label: 'Life Certificates', icon: ShieldCheck });
+  if (showSchoolCert) compliance.push({ to: '/claimant/compliance/school', label: 'School / College Certificates', icon: GraduationCap });
+  compliance.push({ to: '/claimant/compliance/verification', label: 'Verification Requests', icon: ClipboardCheck });
   compliance.push({ to: '/claimant/compliance/outstanding', label: 'Outstanding Requirements', icon: AlertCircle });
-  groups.push({ label: 'Compliance', items: compliance });
+  if (compliance.length) groups.push({ label: 'Compliance & Certificates', items: compliance });
 
+  // 7) Documents
   groups.push({
-    label: 'Communications',
+    label: 'Documents',
+    items: [
+      { to: '/claimant/documents', label: 'Document Center', icon: FolderOpen },
+      { to: '/claimant/documents/requested', label: 'Requested Documents', icon: FileSearch },
+      { to: '/claimant/documents/uploaded', label: 'Uploaded Documents', icon: FileUp },
+      { to: '/claimant/documents/forms', label: 'Official Forms', icon: FileCheck2 },
+    ],
+  });
+
+  // 8) Messages
+  groups.push({
+    label: 'Messages',
     items: [
       { to: '/claimant/comms/inbox', label: 'Inbox', icon: Inbox },
       { to: '/claimant/comms/letters', label: 'Letters', icon: Mail },
       { to: '/claimant/comms/notifications', label: 'Notifications', icon: BellRing },
-      { to: '/claimant/tasks', label: 'Tasks', icon: ListChecks },
     ],
   });
 
+  // 9) Help
   groups.push({
-    label: 'Documents',
-    items: [{ to: '/claimant/documents', label: 'Document Center', icon: FolderOpen }],
+    label: 'Help',
+    items: [
+      { to: '/claimant/help/faqs', label: 'FAQs', icon: HelpCircle },
+      { to: '/claimant/help/contact', label: 'Contact SSB', icon: LifeBuoy },
+      { to: '/claimant/help/offices', label: 'Office Locations', icon: Building2 },
+    ],
   });
 
-  if (ft.appealsEnabled) {
-    groups.push({
-      label: 'Appeals',
-      items: [
-        { to: '/claimant/appeals', label: 'Appeals', icon: Scale },
-        { to: '/claimant/appeals/reconsideration', label: 'Reconsiderations', icon: RotateCcw },
-      ],
-    });
-  }
-
-  void f;
   return groups;
 }
 
@@ -200,6 +248,41 @@ function PersonaHeader() {
   );
 }
 
+/** Compact status block shown at the top of the user dropdown. */
+function UserMenuStatus() {
+  const { persona } = useClaimantPersona();
+  if (!persona) return null;
+  return (
+    <div className="space-y-1.5 text-xs">
+      <div className="flex items-center gap-1.5">
+        <span className="text-muted-foreground">SSN:</span>
+        {persona.personSsn ? (
+          <Badge variant="secondary" className="font-mono">
+            <CheckCircle2 className="h-3 w-3 mr-1 text-emerald-600" />
+            {maskSsn(persona.personSsn)}
+          </Badge>
+        ) : (
+          <Link to="/claimant/link-ssn" className="text-primary hover:underline">Not linked — link now</Link>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-1">
+        <span className="text-muted-foreground mr-0.5">Roles:</span>
+        {persona.personas.length === 0 ? (
+          <Badge variant="outline" className="text-[10px]">Not verified</Badge>
+        ) : (
+          persona.personas.map(p => (
+            <Badge key={p} variant="outline" className="text-[10px]">
+              {p.replace(/_/g, ' ')}
+            </Badge>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+
 export default function ClaimantPortal() {
   const { persona } = useClaimantPersona();
   const { data: features } = usePortalFeatureConfig();
@@ -217,17 +300,34 @@ export default function ClaimantPortal() {
           nav={groups}
           subHeader={<PersonaHeader />}
           homeHref="/claimant/dashboard"
+          userMenuItems={[
+            { to: '/claimant/account', label: 'My Profile', icon: User },
+            { to: '/claimant/account/contacts', label: 'Contact Information', icon: Phone },
+            { to: '/claimant/account/preferences', label: 'Communication Preferences', icon: Bell },
+            { to: '/claimant/account/security', label: 'Security Settings', icon: Lock },
+            { to: '/claimant/account/identity', label: 'Linked SSN / Identity', icon: IdCard },
+            { to: '/claimant/account/relationships', label: 'Relationships', icon: Users },
+          ]}
+          userMenuHeader={<UserMenuStatus />}
+          mobileNavItems={MOBILE_NAV_ITEMS}
         >
           <Routes>
             <Route path="dashboard" element={<SelfServiceDashboard />} />
             <Route path="link-ssn" element={<LinkSsnPage />} />
 
-            {/* MY ACCOUNT */}
-            <Route path="profile" element={<AccountProfilePage />} />
-            <Route path="profile/contacts" element={<AccountProfilePage initialTab="contacts" />} />
-            <Route path="profile/preferences" element={<AccountProfilePage initialTab="preferences" />} />
-            <Route path="profile/security" element={<AccountProfilePage initialTab="security" />} />
-            <Route path="relationships" element={<RelationshipsPage />} />
+            {/* MY ACCOUNT — now under /account, old /profile paths redirect */}
+            <Route path="account" element={<AccountProfilePage />} />
+            <Route path="account/contacts" element={<AccountProfilePage initialTab="contacts" />} />
+            <Route path="account/preferences" element={<AccountProfilePage initialTab="preferences" />} />
+            <Route path="account/security" element={<AccountProfilePage initialTab="security" />} />
+            <Route path="account/identity" element={<AccountProfilePage initialTab="security" />} />
+            <Route path="account/relationships" element={<RelationshipsPage />} />
+            <Route path="profile" element={<Navigate to="/claimant/account" replace />} />
+            <Route path="profile/contacts" element={<Navigate to="/claimant/account/contacts" replace />} />
+            <Route path="profile/preferences" element={<Navigate to="/claimant/account/preferences" replace />} />
+            <Route path="profile/security" element={<Navigate to="/claimant/account/security" replace />} />
+            <Route path="relationships" element={<Navigate to="/claimant/account/relationships" replace />} />
+
 
             {/* MY SOCIAL SECURITY (insured only) */}
             <Route path="contributions" element={
