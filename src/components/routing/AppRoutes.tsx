@@ -1816,6 +1816,10 @@ export const AppRoutes = () => {
       <Route path="/bn/overpayments" element={<BnFeatureGate flag="bn.servicing.overpayment"><BnOverpaymentRecovery /></BnFeatureGate>} />
       <Route path="/bn/award-suspension" element={<BnFeatureGate flag="bn.awards"><BnAwardSuspensionConsole /></BnFeatureGate>} />
       <Route path="/bn/survivors" element={<BnFeatureGate flag="bn.awards"><BnSurvivorsBenefitProcessing /></BnFeatureGate>} />
+      <Route path="/bn/awards" element={<BnFeatureGate flag="bn.awards"><BnPensionerRegister /></BnFeatureGate>} />
+      <Route path="/bn/awards/survivors" element={<BnFeatureGate flag="bn.awards"><BnSurvivorAwards /></BnFeatureGate>} />
+      <Route path="/bn/awards/adjustments" element={<BnFeatureGate flag="bn.awards"><BnAwardAdjustments /></BnFeatureGate>} />
+      <Route path="/bn/awards/:id" element={<BnFeatureGate flag="bn.awards"><BnAward360 /></BnFeatureGate>} />
       <Route path="/bn/config/reason-codes" element={<BnFeatureGate flag="bn.config.rules"><BnReasonCodes /></BnFeatureGate>} />
       <Route path="/bn/config/transitions" element={<BnFeatureGate flag="bn.config.rules"><BnTransitionMatrix /></BnFeatureGate>} />
       <Route path="/bn/config/workbaskets" element={<BnFeatureGate flag="bn.config.rules"><BnWorkbasketConfig /></BnFeatureGate>} />
