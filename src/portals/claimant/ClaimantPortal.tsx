@@ -292,43 +292,43 @@ export default function ClaimantPortal() {
             {/* COMPLIANCE */}
             <Route path="compliance/life" element={
               <RequireFeature feature="lifeCertificateEnabled" title="Life Certificates unavailable">
-                <PortalModulePlaceholder title="Life Certificates" description="Annual proof-of-life for pensioners." internalSource="bn_life_certificate" />
+                <LifeCertificatePage />
               </RequireFeature>
             } />
             <Route path="compliance/school" element={
               <RequireFeature feature="schoolCertificateEnabled" title="School Certificates unavailable">
-                <PortalModulePlaceholder title="School / College Certificates" description="Enrolment proofs for survivor / orphan beneficiaries." internalSource="bn_external_task" />
+                <LifeCertificatePage />
               </RequireFeature>
             } />
-            <Route path="compliance/verification" element={<PortalModulePlaceholder title="Verification Tasks" description="Requests for additional information from the Board." internalSource="bn_external_task" />} />
-            <Route path="compliance/outstanding" element={<PortalModulePlaceholder title="Outstanding Requirements" description="Open items blocking your claims or awards." internalSource="bn_claim_evidence" />} />
+            <Route path="compliance/verification" element={<ExternalTaskList basePath="/claimant/tasks" />} />
+            <Route path="compliance/outstanding" element={<ExternalTaskList basePath="/claimant/tasks" />} />
 
             {/* COMMUNICATIONS */}
             <Route path="comms/inbox" element={<Messages />} />
-            <Route path="comms/letters" element={<PortalModulePlaceholder title="Letters" description="Official correspondence issued to you." internalSource="bn_letter" />} />
-            <Route path="comms/notifications" element={<PortalModulePlaceholder title="Notifications" description="In-app and email notifications." internalSource="in_app_notifications" />} />
+            <Route path="comms/letters" element={<LettersPage />} />
+            <Route path="comms/notifications" element={<LettersPage />} />
             <Route path="tasks" element={<ExternalTaskList basePath="/claimant/tasks" />} />
             <Route path="tasks/:taskId" element={<TaskDetail />} />
 
             {/* DOCUMENTS */}
-            <Route path="documents" element={<PortalModulePlaceholder title="Document Center" description="Uploaded documents, requested documents, official letters and generated forms." internalSource="ip_documents" />} />
+            <Route path="documents" element={<DocumentCenterPage />} />
 
             {/* APPEALS */}
             <Route path="appeals" element={
               <RequireFeature feature="appealsEnabled" title="Appeals unavailable">
-                <PortalModulePlaceholder title="Appeals" description="Request review of a benefit decision." internalSource="bn_claim_decision" />
+                <AppealsPage />
               </RequireFeature>
             } />
             <Route path="appeals/reconsideration" element={
               <RequireFeature feature="appealsEnabled" title="Reconsiderations unavailable">
-                <PortalModulePlaceholder title="Reconsiderations" description="Reconsideration of a recent decision." internalSource="bn_claim_decision" />
+                <AppealsPage />
               </RequireFeature>
             } />
 
             {/* Legacy / fallback */}
             <Route path="bank-details" element={
               <RequireFeature feature="bankUpdateEnabled" title="Bank Update unavailable">
-                <PortalModulePlaceholder title="EFT / Bank Account Update" description="Submit or update your bank account for benefit payments." internalSource="cl_bank_acct" />
+                <BankUpdatePage />
               </RequireFeature>
             } />
             <Route path="awards" element={<Navigate to="/claimant/entitlements" replace />} />
