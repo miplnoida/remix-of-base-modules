@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { externalAuthService, type PortalSession } from './externalAuthService';
 import type { PortalRole } from './publicBenefitApiClient';
+import { HeaderErrorBoundary } from './HeaderErrorBoundary';
 import { cn } from '@/lib/utils';
 
 export interface NavItem {
@@ -97,9 +98,18 @@ export function ExternalPortalShell({
   const { crumbs, isHome } = useBreadcrumbs(nav, resolvedHome);
 
   useEffect(() => {
-    externalAuthService.getSession().then(setSession);
-    const sub = externalAuthService.onAuthStateChange(setSession);
-    return () => sub.data?.subscription?.unsubscribe?.();
+    let mounted = true;
+    externalAuthService.getSession()
+      .then(s => { if (mounted) setSession(s); })
+      .catch(err => {
+        if (import.meta.env.DEV) console.error('[shell] getSession failed', err);
+        if (mounted) setSession(null);
+      });
+    const sub = externalAuthService.onAuthStateChange(s => {
+      if (import.meta.env.DEV) console.debug('[shell] session changed', s);
+      setSession(s);
+    });
+    return () => { mounted = false; sub.data?.subscription?.unsubscribe?.(); };
   }, []);
 
   useEffect(() => {
@@ -111,8 +121,13 @@ export function ExternalPortalShell({
     navigate('/');
   };
 
-  const initials = (session?.displayName ?? session?.email ?? '?')
-    .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase()).join('');
+  // Fallback display values so the avatar dropdown always renders, even while
+  // the session is still loading or if the lookup fails. Menu *contents* vary,
+  // but the control itself is always present for authenticated users.
+  const displayName = session?.displayName ?? 'Account';
+  const email = session?.email ?? '';
+  const initials = (session?.displayName ?? session?.email ?? 'A')
+    .split(/[\s@.]+/).filter(Boolean).slice(0, 2).map(s => s[0]?.toUpperCase()).join('') || 'A';
 
   return (
     <div className="min-h-screen bg-background text-foreground">
