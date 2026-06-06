@@ -370,6 +370,10 @@ export default function ProductEditor() {
           <ParticipantWorkflowTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
 
+        <TabsContent value="public-rules" className="mt-6">
+          <PublicFormRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} />
+        </TabsContent>
+
         <TabsContent value="channels" className="mt-6">
           <ChannelsTab productId={isNew ? undefined : id} versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
