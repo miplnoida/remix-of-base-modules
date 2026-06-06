@@ -97,7 +97,27 @@ export function ClaimParticipantsTab({ claimId }: Props) {
                 Claimant, employer and medical provider activity for this claim. Data flows in from the public portals and secure links.
               </CardDescription>
             </div>
-            <Badge variant="outline">{participants.length} total</Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">{participants.length} total</Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={materialize.isPending}
+                onClick={async () => {
+                  try {
+                    const { inserted } = await materialize.mutateAsync();
+                    if (inserted > 0) toast.success(`Materialized ${inserted} external task(s) from product config.`);
+                    else toast.info('No new tasks to materialize — all configured tasks already exist.');
+                  } catch (e: any) {
+                    toast.error('Failed to materialize tasks', { description: e?.message });
+                  }
+                }}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {materialize.isPending ? 'Materializing…' : 'Materialize tasks'}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
