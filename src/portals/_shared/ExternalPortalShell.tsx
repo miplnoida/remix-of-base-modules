@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Shield } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { externalAuthService, type PortalSession } from './externalAuthService';
 import type { PortalRole } from './publicBenefitApiClient';
 import { cn } from '@/lib/utils';
