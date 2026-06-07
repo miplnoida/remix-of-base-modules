@@ -69,20 +69,28 @@ export const NextStepGuidance: React.FC<Props> = ({
     qc.invalidateQueries({ queryKey: ['bn', 'entitlements'] });
   };
 
+  const guard = () => {
+    if (!userCode) {
+      toast.error('Cannot perform action — your user code is not available.');
+      return false;
+    }
+    return true;
+  };
+
   const submitMut = useBlockingMutation({
-    mutationFn: () => submitClaimForDecision(claimId, userCode || 'SYSTEM'),
+    mutationFn: () => submitClaimForDecision(claimId, userCode!),
     onSuccess: () => { toast.success('Submitted for decision'); invalidate(); },
     onError: (e: any) => toast.error('Failed', { description: e?.message }),
   }, 'Submitting for decision...');
 
   const approveMut = useBlockingMutation({
-    mutationFn: () => approveClaim(claimId, userCode || 'SYSTEM'),
+    mutationFn: () => approveClaim(claimId, userCode!),
     onSuccess: (r: any) => { toast.success(r.message || 'Approved'); invalidate(); },
     onError: (e: any) => toast.error('Approval failed', { description: e?.message }),
   }, 'Approving claim...');
 
   const generateMut = useBlockingMutation({
-    mutationFn: () => generatePayableForApprovedClaim(claimId, userCode || 'SYSTEM'),
+    mutationFn: () => generatePayableForApprovedClaim(claimId, userCode!),
     onSuccess: (r: any) => { toast.success(r.message || 'Generated'); invalidate(); },
     onError: (e: any) => toast.error('Generation failed', { description: e?.message }),
   }, 'Generating payable...');
