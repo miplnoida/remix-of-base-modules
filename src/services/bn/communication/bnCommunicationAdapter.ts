@@ -39,9 +39,44 @@ export interface BnCommDispatchResult {
   dispatched: number;
   skipped: number;
   failed: number;
+  blocked: number;
   letters: string[];
   logIds: string[];
   warnings: string[];
+}
+
+export interface RecipientDiagnosis {
+  resolvable: boolean;
+  recipient?: { name?: string; email?: string; phone?: string; address?: any; userId?: string };
+  missing: string[];
+  reason?: string;
+}
+
+/**
+ * Recipient diagnostics — single source of truth for "can this comm actually go out?".
+ * Returns structured missing-data reasons used to set BLOCKED status with actionable details.
+ */
+export async function diagnoseRecipient(
+  claimId: string,
+  recipientType: BnRecipientType,
+  channel: BnChannel,
+): Promise<RecipientDiagnosis> {
+  const recipient = await resolveRecipient(claimId, recipientType, channel);
+  if (!recipient) {
+    return { resolvable: false, missing: ['recipient'], reason: `${recipientType} record not found on claim` };
+  }
+  const missing: string[] = [];
+  if ((channel === 'EMAIL' || channel === 'INTERNAL_EMAIL') && !recipient.email) missing.push('email');
+  if (channel === 'SMS' && !recipient.phone) missing.push('phone');
+  if (channel === 'LETTER') {
+    const a: any = recipient.address || {};
+    if (!a.line1 && !a.city) missing.push('postal address');
+  }
+  if (channel === 'IN_APP' && !recipient.userId) missing.push('internal user account');
+  if (missing.length) {
+    return { resolvable: false, recipient, missing, reason: `${recipientType} is missing: ${missing.join(', ')}` };
+  }
+  return { resolvable: true, recipient, missing: [] };
 }
 
 // ─── Merge context ────────────────────────────────────────────────
