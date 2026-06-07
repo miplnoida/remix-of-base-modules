@@ -128,12 +128,14 @@ export async function copyVersionRules(
     workflow: 0, screen_template: 0, channels: 0, overrides: 0,
   };
 
-  await Promise.all([
+  const clearResults = await Promise.all([
     db.from('bn_eligibility_rule').delete().eq('product_version_id', targetVersionId),
     db.from('bn_calculation_rule').delete().eq('product_version_id', targetVersionId),
     db.from('bn_timeline_rule').delete().eq('product_version_id', targetVersionId),
     db.from('bn_approval_policy').delete().eq('product_version_id', targetVersionId),
   ]);
+  const clearError = clearResults.find((r: any) => r.error)?.error;
+  if (clearError) throw clearError;
 
   // Eligibility
   const eligRules = await fetchEligibilityRules(sourceVersionId);
