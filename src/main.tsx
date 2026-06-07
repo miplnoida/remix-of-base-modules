@@ -3,6 +3,24 @@ import { Suspense } from 'react'
 import App from './App.tsx'
 import './index.css'
 
+const installDomMutationSafetyGuard = () => {
+  const originalRemoveChild = Node.prototype.removeChild;
+
+  Node.prototype.removeChild = function <T extends Node>(child: T): T {
+    if (child.parentNode && child.parentNode !== this) {
+      return originalRemoveChild.call(child.parentNode, child) as T;
+    }
+
+    if (!child.parentNode) {
+      return child;
+    }
+
+    return originalRemoveChild.call(this, child) as T;
+  };
+};
+
+installDomMutationSafetyGuard();
+
 const BootFallback = () => (
   <div
     style={{
