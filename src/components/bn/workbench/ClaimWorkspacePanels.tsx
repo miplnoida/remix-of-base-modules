@@ -19,6 +19,7 @@ import { BnEmptyState, BnStatusBadge } from '@/components/bn/shared';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { DynamicSectionRenderer } from './DynamicSectionRenderer';
 
 const db = supabase as any;
 
@@ -116,6 +117,15 @@ export const ApplicationDetailsPanel: React.FC<{ claimId: string; productVersion
           )}
         </CardContent>
       </Card>
+
+      {productVersionId && rawJson && (
+        <DynamicSectionRenderer
+          productVersionId={productVersionId}
+          channelCode={app?.application_channel === 'PUBLIC_ONLINE' ? 'ONLINE' : 'OFFLINE'}
+          payload={rawJson}
+          title="Submitted Application (catalog-driven view)"
+        />
+      )}
 
       {rawJson && (
         <Card>

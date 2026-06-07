@@ -803,6 +803,7 @@ const BnFormulaConfiguration = lazy(() => import('@/pages/bn/config/FormulaConfi
 const BnDocumentSetup = lazy(() => import('@/pages/bn/config/DocumentSetup'));
 const BnScreenMetadataSetup = lazy(() => import('@/pages/bn/config/ScreenMetadataSetup'));
 const BnBenefitConfigurationValidation = lazy(() => import('@/pages/bn/config/BenefitConfigurationValidation'));
+const BnBenefitCommunicationTemplates = lazy(() => import('@/pages/bn/config/BenefitCommunicationTemplates'));
 // Medical Benefit Setup
 const BnMedicalSetupHome = lazy(() => import('@/pages/bn/config/medical/MedicalSetupHome'));
 const BnMedicalProceduresCatalog = lazy(() => import('@/pages/bn/config/medical/MedicalProceduresCatalog'));
@@ -1858,6 +1859,7 @@ export const AppRoutes = () => {
       <Route path="/bn/awards/adjustments" element={<BnFeatureGate flag="bn.awards"><BnAwardAdjustments /></BnFeatureGate>} />
       <Route path="/bn/awards/:id" element={<BnFeatureGate flag="bn.awards"><BnAward360 /></BnFeatureGate>} />
       <Route path="/bn/config/reason-codes" element={<BnFeatureGate flag="bn.config.rules"><BnReasonCodes /></BnFeatureGate>} />
+      <Route path="/bn/config/communication-templates" element={<BnFeatureGate flag="bn.config.rules"><BnBenefitCommunicationTemplates /></BnFeatureGate>} />
       <Route path="/bn/config/transitions" element={<BnFeatureGate flag="bn.config.rules"><BnTransitionMatrix /></BnFeatureGate>} />
       <Route path="/bn/config/workbaskets" element={<BnFeatureGate flag="bn.config.rules"><BnWorkbasketConfig /></BnFeatureGate>} />
       <Route path="/bn/config/escalation" element={<BnFeatureGate flag="bn.config.rules"><BnEscalationConfig /></BnFeatureGate>} />
