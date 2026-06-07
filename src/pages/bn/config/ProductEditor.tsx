@@ -393,6 +393,10 @@ export default function ProductEditor() {
           <OverridePoliciesTab productId={isNew ? undefined : id} versionStatus={activeVersion?.status} />
         </TabsContent>
 
+        <TabsContent value="approval-policies" className="mt-6">
+          <ApprovalPoliciesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} />
+        </TabsContent>
+
         <TabsContent value="preview" className="mt-6">
           <PreviewTab productId={isNew ? undefined : id} versionId={selectedVersionId} />
         </TabsContent>
