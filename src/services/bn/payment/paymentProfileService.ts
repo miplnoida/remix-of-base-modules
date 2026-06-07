@@ -33,7 +33,7 @@ export async function getPaymentPolicy(productId?: string | null): Promise<BnPay
     const { data } = await db
       .from('bn_product_channel_config')
       .select(
-        'allowed_payment_methods,default_payment_method,payment_required_at_application,payment_required_before_approval,payment_required_before_payment,allow_third_party_payee,allow_guardian_payee,require_bank_verification,require_supervisor_approval_for_change,require_proof_for_change,cheque_address_required',
+        'allowed_payment_methods,default_payment_method,payment_required_at_application,payment_required_before_approval,payment_required_before_payment,allow_third_party_payee,allow_guardian_payee,require_bank_verification,require_supervisor_approval_for_change,require_proof_for_change,cheque_address_required,payment_details_visibility,allow_manual_workbasket_override',
       )
       .eq('product_id', productId)
       .order('entered_at', { ascending: false })
@@ -47,6 +47,10 @@ export async function getPaymentPolicy(productId?: string | null): Promise<BnPay
         (data.allowed_payment_methods as BnPaymentMethod[]) ?? DEFAULT_PAYMENT_POLICY.allowed_payment_methods,
       default_payment_method:
         (data.default_payment_method as BnPaymentMethod) ?? DEFAULT_PAYMENT_POLICY.default_payment_method,
+      payment_details_visibility:
+        (data.payment_details_visibility as any) ?? DEFAULT_PAYMENT_POLICY.payment_details_visibility,
+      allow_manual_workbasket_override:
+        data.allow_manual_workbasket_override ?? DEFAULT_PAYMENT_POLICY.allow_manual_workbasket_override,
     };
   } catch (e) {
     logShielded('getPaymentPolicy', e);

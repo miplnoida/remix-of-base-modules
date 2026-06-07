@@ -93,6 +93,8 @@ export interface BnPaymentProfileChangeRequest {
 }
 
 /** Product-level payment policy (from bn_product_channel_config). */
+export type BnPaymentDetailsVisibility = 'SHOW' | 'HIDE' | 'READONLY';
+
 export interface BnPaymentPolicy {
   allowed_payment_methods: BnPaymentMethod[];
   default_payment_method: BnPaymentMethod | null;
@@ -105,6 +107,8 @@ export interface BnPaymentPolicy {
   require_supervisor_approval_for_change: boolean;
   require_proof_for_change: boolean;
   cheque_address_required: boolean;
+  payment_details_visibility: BnPaymentDetailsVisibility;
+  allow_manual_workbasket_override: boolean;
 }
 
 export const DEFAULT_PAYMENT_POLICY: BnPaymentPolicy = {
@@ -119,6 +123,8 @@ export const DEFAULT_PAYMENT_POLICY: BnPaymentPolicy = {
   require_supervisor_approval_for_change: false,
   require_proof_for_change: false,
   cheque_address_required: true,
+  payment_details_visibility: 'SHOW',
+  allow_manual_workbasket_override: false,
 };
 
 export function maskAccount(accountNumber: string | null | undefined): string | null {
