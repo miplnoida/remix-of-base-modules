@@ -309,7 +309,7 @@ async function writeCommLog(row: {
 
 // ─── Top-level event dispatcher ────────────────────────────────────
 export async function triggerClaimCommunication(eventCode: string, claimId: string, ctx?: BnCommContext): Promise<BnCommDispatchResult> {
-  const result: BnCommDispatchResult = { eventCode, dispatched: 0, skipped: 0, failed: 0, letters: [], logIds: [], warnings: [] };
+  const result: BnCommDispatchResult = { eventCode, dispatched: 0, skipped: 0, failed: 0, blocked: 0, letters: [], logIds: [], warnings: [] };
 
   // 1. Resolve event metadata
   const { data: event } = await db.from('bn_comm_event').select('*').eq('event_code', eventCode).maybeSingle();
