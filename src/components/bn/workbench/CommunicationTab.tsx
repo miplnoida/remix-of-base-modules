@@ -92,6 +92,20 @@ export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId })
     } catch (e: any) { toast.error(e?.message || 'Retry failed'); }
   };
 
+  const handleGenerateLetter = async (logId: string) => {
+    try {
+      await genLetter.mutateAsync({ logId, userCode });
+      toast.success('Letter generated');
+    } catch (e: any) { toast.error(e?.message || 'Generate failed'); }
+  };
+
+  const handleMarkDispatched = async (logId: string) => {
+    try {
+      await markDispatched.mutateAsync({ logId, userCode });
+      toast.success('Marked dispatched');
+    } catch (e: any) { toast.error(e?.message || 'Update failed'); }
+  };
+
   return (
     <div className="space-y-4">
       <Card>
