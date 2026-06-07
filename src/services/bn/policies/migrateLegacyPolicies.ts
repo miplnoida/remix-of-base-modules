@@ -60,24 +60,47 @@ export async function migrateLegacyOverridePoliciesToApprovalPolicies(
     errors: [],
   };
 
-  let q = db.from('bn_override_policy').select('*');
-  if (opts.productVersionId) q = q.eq('product_version_id', opts.productVersionId);
+  let q = db.from('bn_override_policy').select('*').eq('is_active', true);
   const { data: legacy, error } = await q;
   if (error) {
     stats.errors.push(`Legacy fetch failed: ${error.message}`);
     return stats;
   }
-  stats.legacyRows = legacy?.length ?? 0;
-  if (!legacy?.length) return stats;
 
+  // Resolve target product versions. Legacy rows are keyed by product_id,
+  // not product_version_id — fan out to every active/draft version of that
+  // product, or restrict to a single version when caller passed one.
+  const productIds = Array.from(new Set((legacy ?? []).map((r: any) => r.product_id).filter(Boolean)));
+  if (productIds.length === 0) return stats;
+  let versionsQ = db
+    .from('bn_product_version')
+    .select('id, product_id, status')
+    .in('product_id', productIds)
+    .in('status', ['DRAFT', 'PENDING_APPROVAL', 'ACTIVE']);
+  if (opts.productVersionId) versionsQ = versionsQ.eq('id', opts.productVersionId);
+  const { data: versions, error: vErr } = await versionsQ;
+  if (vErr) {
+    stats.errors.push(`Version fetch failed: ${vErr.message}`);
+    return stats;
+  }
+  const versionsByProduct = new Map<string, string[]>();
+  for (const v of versions ?? []) {
+    const arr = versionsByProduct.get(v.product_id) ?? [];
+    arr.push(v.id);
+    versionsByProduct.set(v.product_id, arr);
+  }
+
+  const expanded: Array<{ row: any; versionId: string }> = [];
   for (const row of legacy as any[]) {
+    const versionIds = versionsByProduct.get(row.product_id) ?? [];
+    for (const vid of versionIds) expanded.push({ row, versionId: vid });
+  }
+  stats.legacyRows = expanded.length;
+  if (expanded.length === 0) return stats;
+
+  for (const { row, versionId } of expanded) {
     try {
-      const versionId = row.product_version_id;
-      if (!versionId) {
-        stats.skipped++;
-        continue;
-      }
-      const area = AREA_MAP[String(row.target ?? '').toUpperCase()];
+      const area = AREA_MAP[String(row.override_target ?? '').toUpperCase()];
       if (!area) {
         stats.skipped++;
         continue;
@@ -91,7 +114,7 @@ export async function migrateLegacyOverridePoliciesToApprovalPolicies(
         .eq('action_code', 'DEFAULT')
         .maybeSingle();
 
-      const extractedRule = row.rule_code || row.field_path || null;
+      const extractedRule = row.field_path || null;
       const mergedRuleCodes = Array.from(
         new Set([
           ...((existing?.allowed_rule_codes as string[]) ?? []),
@@ -105,18 +128,23 @@ export async function migrateLegacyOverridePoliciesToApprovalPolicies(
         action_code: 'DEFAULT',
         is_enabled: existing ? existing.is_enabled || !!row.is_active : !!row.is_active,
         requires_supervisor_approval:
-          existing?.requires_supervisor_approval ?? !!row.maker_checker,
+          existing?.requires_supervisor_approval ?? !!row.requires_maker_checker,
         requires_justification:
           existing?.requires_justification ?? !!row.requires_justification,
         approval_role:
           existing?.approval_role ??
-          (row.allowed_role ? String(row.allowed_role).toUpperCase() : null),
+          (row.allowed_role_code
+            ? String(row.allowed_role_code).toUpperCase()
+            : row.allowed_role
+              ? String(row.allowed_role).toUpperCase()
+              : null),
         max_override_amount:
-          existing?.max_override_amount ?? row.max_amount ?? null,
+          existing?.max_override_amount ?? row.max_override_amount ?? null,
         allowed_rule_codes: mergedRuleCodes,
         self_approval_allowed: existing?.self_approval_allowed ?? false,
         updated_by: opts.actor,
       };
+
 
       if (existing) {
         if (!opts.force) {
