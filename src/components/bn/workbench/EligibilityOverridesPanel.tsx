@@ -314,6 +314,16 @@ const OverrideRow: React.FC<React.PropsWithChildren<{ row: OverrideRequest }>> =
           {row.review_notes ? ` — ${row.review_notes}` : ''}
         </div>
       )}
+      {row.status === 'APPROVED' && (
+        <div className="text-[11px] text-emerald-700 font-medium">Status: ACTIVE — applied on re-runs until explicitly removed.</div>
+      )}
+      {(row as any).revoked_by && (
+        <div className="text-xs text-destructive">
+          Removed by {(row as any).revoked_by} on {formatDateForDisplay((row as any).revoked_at ?? '')}
+          {(row as any).revocation_reason ? ` — ${(row as any).revocation_reason}` : ''}
+        </div>
+      )}
+      <div className="text-[10px] text-muted-foreground font-mono">Override ID: {row.id}</div>
       {children}
     </div>
   );
