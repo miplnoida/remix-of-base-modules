@@ -1,13 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, CheckCircle, XCircle, Clock, Send, Copy, Loader2 } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, Clock, Send, Copy, Loader2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUpdateBnProductVersion, useCopyBnVersionRules, usePublishBnProductVersion, useRetireBnProductVersion } from '@/hooks/bn/useBnProduct';
 import { useBnVersionApprovals, useCreateBnVersionApproval } from '@/hooks/bn/useBnConfig';
@@ -15,6 +15,7 @@ import { BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProductVersion, BnProductStatus } from '@/types/bn';
 import { useState } from 'react';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { useUserCode } from '@/hooks/useUserCode';
 
 interface Props {
   productId: string | undefined;
