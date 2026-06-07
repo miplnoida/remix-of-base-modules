@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, MessageSquare, FileText, Bell, AlertTriangle, RefreshCw, Printer, Send, CheckCircle2, XCircle, Clock, Ban, FileSignature, MailCheck } from 'lucide-react';
+import { Mail, MessageSquare, FileText, Bell, AlertTriangle, RefreshCw, Printer, Send, CheckCircle2, XCircle, Clock, Ban, FileSignature, MailCheck, Eye } from 'lucide-react';
+import { LetterPreviewDialog } from './LetterPreviewDialog';
 import {
   useBnClaimCommunicationHistory,
   useBnTriggerCommunication,
@@ -240,32 +241,39 @@ const NEXT_STATUS: Record<string, { label: string; next: string }[]> = {
 };
 
 const LetterList: React.FC<{ rows: any[]; onUpdate: (id: string, next: string) => void }> = ({ rows, onUpdate }) => {
+  const [previewId, setPreviewId] = useState<string | null>(null);
   if (!rows.length) return <p className="text-sm text-muted-foreground p-4">No letters generated yet.</p>;
   return (
-    <div className="rounded-md border divide-y">
-      {rows.map((l) => (
-        <div key={l.id} className="p-3 flex flex-col md:flex-row md:items-center gap-3 text-sm">
-          <div className="flex items-center gap-2 min-w-[180px]">
-            <FileText className="h-4 w-4" />
-            <Badge variant="outline" className={STATUS_TONE[l.status] || ''}>{l.status.replace(/_/g, ' ')}</Badge>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-mono text-xs text-muted-foreground">{l.event_code}</p>
-            <p className="truncate"><span className="text-muted-foreground">{l.recipient_type}:</span> {l.recipient_name || '—'}</p>
-            {l.subject && <p className="text-xs text-muted-foreground truncate">{l.subject}</p>}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span><Clock className="h-3 w-3 inline mr-1" />{formatTime(l.created_at)}</span>
-            {(NEXT_STATUS[l.status] || []).map(s => (
-              <Button key={s.next} size="sm" variant="outline" onClick={() => onUpdate(l.id, s.next)}>
-                {s.next === 'PRINTED' ? <Printer className="h-3 w-3 mr-1" /> : s.next === 'CANCELLED' ? <XCircle className="h-3 w-3 mr-1" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
-                {s.label}
+    <>
+      <div className="rounded-md border divide-y">
+        {rows.map((l) => (
+          <div key={l.id} className="p-3 flex flex-col md:flex-row md:items-center gap-3 text-sm">
+            <div className="flex items-center gap-2 min-w-[180px]">
+              <FileText className="h-4 w-4" />
+              <Badge variant="outline" className={STATUS_TONE[l.status] || ''}>{l.status.replace(/_/g, ' ')}</Badge>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-mono text-xs text-muted-foreground">{l.event_code}</p>
+              <p className="truncate"><span className="text-muted-foreground">{l.recipient_type}:</span> {l.recipient_name || '—'}</p>
+              {l.subject && <p className="text-xs text-muted-foreground truncate">{l.subject}</p>}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span><Clock className="h-3 w-3 inline mr-1" />{formatTime(l.created_at)}</span>
+              <Button size="sm" variant="outline" onClick={() => setPreviewId(l.id)}>
+                <Eye className="h-3 w-3 mr-1" /> View
               </Button>
-            ))}
+              {(NEXT_STATUS[l.status] || []).map(s => (
+                <Button key={s.next} size="sm" variant="outline" onClick={() => onUpdate(l.id, s.next)}>
+                  {s.next === 'PRINTED' ? <Printer className="h-3 w-3 mr-1" /> : s.next === 'CANCELLED' ? <XCircle className="h-3 w-3 mr-1" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
+                  {s.label}
+                </Button>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+      <LetterPreviewDialog letterId={previewId} open={!!previewId} onOpenChange={(o) => !o && setPreviewId(null)} />
+    </>
   );
 };
 

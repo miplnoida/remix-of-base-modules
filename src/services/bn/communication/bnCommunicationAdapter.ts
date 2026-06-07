@@ -90,7 +90,7 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
 
   const [{ data: person }, { data: product }, { data: latestDecision }, { data: latestCalc }, { data: missingDocs }, { data: latestEligArr }] = await Promise.all([
     claim.ssn
-      ? db.from('ip_master').select('first_name, surname, email, phone_cell, phone_home, mailing_address').eq('ssn', String(claim.ssn).trim()).maybeSingle()
+      ? db.from('ip_master').select('firstname, surname, email_addr, contact_email, phone_mobile, phone, mail_addr1, mail_addr2').eq('ssn', String(claim.ssn).trim()).maybeSingle()
       : Promise.resolve({ data: null }),
     claim.product_id
       ? db.from('bn_product').select('product_name, product_code').eq('id', claim.product_id).maybeSingle()
@@ -124,7 +124,7 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
   const missingDocsText = (missingDocs || []).map((d: any) => d.document_label).join(', ');
   const product_name = product?.product_name || '';
   const claim_number = claim.claim_number || claim.id;
-  const claimant_name = person ? `${person.first_name || ''} ${person.surname || ''}`.trim() : '';
+  const claimant_name = person ? `${person.firstname || ''} ${person.surname || ''}`.trim() : '';
   const today = new Date().toISOString().slice(0, 10);
   const decision_date = dec?.decided_at || today;
 
@@ -185,23 +185,45 @@ export async function resolveRecipient(claimId: string, recipientType: BnRecipie
   if (!claim) return null;
 
   if (recipientType === 'CLAIMANT' || recipientType === 'PAYEE') {
-    if (!claim.ssn) return null;
+    const ssn = claim.ssn ? String(claim.ssn).trim() : null;
+    if (!ssn) return null;
+    // ip_master uses firstname/surname/email_addr/contact_email/phone_mobile/phone/mail_addr1
     const { data: p } = await db.from('ip_master')
-      .select('first_name, surname, email, phone_cell, phone_home, mailing_address, mailing_address_2, mailing_city, mailing_country, mailing_postal_code, mailing_state')
-      .eq('ssn', String(claim.ssn).trim()).maybeSingle();
-    if (!p) return null;
+      .select('firstname, surname, email_addr, contact_email, phone_mobile, phone, telephone, mail_addr1, mail_addr2')
+      .eq('ssn', ssn).maybeSingle();
+    // Fallback to the application snapshot contact info if ip_master is sparse
+    const { data: appSnap } = await db.from('bn_claim_application')
+      .select('raw_application_json')
+      .eq('claim_id', claimId)
+      .order('submitted_at', { ascending: false, nullsFirst: false })
+      .limit(1).maybeSingle();
+    const raw = appSnap?.raw_application_json || {};
+    const contact = raw.contact || raw.claimant || raw.applicant || {};
+    const addrSrc = raw.address || raw.mailing_address || contact.address || {};
+    // Resolve linked external user (for IN_APP delivery to claimant)
+    let userId: string | undefined;
+    if (channel === 'IN_APP') {
+      const { data: link } = await db.from('external_user_person_link')
+        .select('user_id, is_primary, verification_status')
+        .eq('ssn', ssn)
+        .order('is_primary', { ascending: false })
+        .limit(1).maybeSingle();
+      userId = link?.user_id || undefined;
+    }
+    const name = `${p?.firstname || contact.firstname || contact.first_name || ''} ${p?.surname || contact.surname || contact.last_name || ''}`.trim();
     return {
-      name: `${p.first_name || ''} ${p.surname || ''}`.trim(),
-      email: p.email || undefined,
-      phone: p.phone_cell || p.phone_home || undefined,
+      name: name || recipientType,
+      email: p?.email_addr || p?.contact_email || contact.email || contact.email_addr || undefined,
+      phone: p?.phone_mobile || p?.phone || p?.telephone || contact.phone || contact.phone_mobile || undefined,
       address: {
-        line1: p.mailing_address,
-        line2: p.mailing_address_2,
-        city: p.mailing_city,
-        state: p.mailing_state,
-        postal: p.mailing_postal_code,
-        country: p.mailing_country,
+        line1: p?.mail_addr1 || addrSrc.line1 || addrSrc.address_line1 || addrSrc.street || undefined,
+        line2: p?.mail_addr2 || addrSrc.line2 || addrSrc.address_line2 || undefined,
+        city: addrSrc.city || undefined,
+        state: addrSrc.state || addrSrc.parish || undefined,
+        postal: addrSrc.postal || addrSrc.postal_code || addrSrc.zip || undefined,
+        country: addrSrc.country || undefined,
       },
+      userId,
     };
   }
 
@@ -216,8 +238,29 @@ export async function resolveRecipient(claimId: string, recipientType: BnRecipie
     };
   }
 
-  // Internal recipients — best-effort lookup; downstream caller may resolve user_code separately.
-  return { name: recipientType, userId: claim.assigned_to || undefined };
+  // Internal recipients (ASSIGNED_OFFICER / SUPERVISOR / FINANCE / etc.)
+  let officerId: string | undefined = claim.assigned_to || undefined;
+  if (!officerId) {
+    // Fallback to most-recent active queue assignment
+    const { data: q } = await db.from('bn_claim_queue_assignment')
+      .select('assigned_to')
+      .eq('claim_id', claimId)
+      .eq('is_active', true)
+      .order('assigned_at', { ascending: false })
+      .limit(1).maybeSingle();
+    officerId = q?.assigned_to || undefined;
+  }
+  // Try to resolve an email for that user (best effort)
+  let officerEmail: string | undefined;
+  if (officerId) {
+    const { data: prof } = await db.from('profiles')
+      .select('email, full_name, user_code')
+      .or(`id.eq.${officerId},user_code.eq.${officerId}`)
+      .limit(1).maybeSingle();
+    officerEmail = prof?.email || undefined;
+    return { name: prof?.full_name || recipientType, email: officerEmail, userId: officerId };
+  }
+  return { name: recipientType, userId: officerId };
 }
 
 // ─── Channel dispatchers ──────────────────────────────────────────
