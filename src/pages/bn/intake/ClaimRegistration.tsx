@@ -384,7 +384,17 @@ export default function ClaimRegistration() {
       case 'eligibility':
       case 'documents':
       case 'facts':
+        return null;
       case 'banking':
+        // Honour product policy: if payment is required at application, a profile must exist.
+        if (
+          paymentPolicy.payment_required_at_application &&
+          paymentPolicy.payment_details_visibility !== 'HIDE' &&
+          !paymentProfile
+        ) {
+          return 'This product requires payment details before continuing.';
+        }
+        return null;
       case 'internal':
         return null;
       case 'review': return null;
@@ -699,11 +709,19 @@ export default function ClaimRegistration() {
                                 if (opt === 'PROVIDED') {
                                   setDocState(prev => ({ ...prev, [d.document_type_code]: { status: 'PROVIDED' } }));
                                 } else if (opt === 'PENDING') {
-                                  const r = window.prompt('Reason for marking pending?') ?? '';
-                                  if (r) markDocPending(d.document_type_code, r);
+                                  setReasonDialog({
+                                    kind: 'PENDING',
+                                    code: d.document_type_code,
+                                    title: 'Mark document as pending',
+                                    description: d.description ?? d.document_type_code,
+                                  });
                                 } else {
-                                  const r = window.prompt('Waiver justification?') ?? '';
-                                  if (r) requestDocWaiver(d.document_type_code, r);
+                                  setReasonDialog({
+                                    kind: 'WAIVE',
+                                    code: d.document_type_code,
+                                    title: 'Request document waiver',
+                                    description: d.description ?? d.document_type_code,
+                                  });
                                 }
                               }}
                             >
@@ -742,21 +760,43 @@ export default function ClaimRegistration() {
               </StepCard>
             )}
 
-            {step === 'banking' && (
+            {step === 'banking' && paymentPolicy.payment_details_visibility !== 'HIDE' && (
               <StepCard title="9. Banking / Payment Details" desc="Captured via the unified Payment Details framework — same form, validation, and policy as the claimant portal and online application.">
                 {ssn ? (
-                  <PaymentDetailsSection
-                    mode="edit"
-                    channel="STAFF_OFFLINE"
-                    productId={productId || null}
-                    personSsn={ssn}
-                    userCode={userCode}
-                  />
+                  <>
+                    <PaymentDetailsSection
+                      mode="edit"
+                      channel="STAFF_OFFLINE"
+                      productId={productId || null}
+                      personSsn={ssn}
+                      userCode={userCode}
+                      onPolicyResolved={(pol, prof) => { setPaymentPolicy(pol); setPaymentProfile(prof); }}
+                      onSaved={(saved) => {
+                        // Optimistically reflect the new profile in policy gating.
+                        if ((saved as any)?.payment_method) setPaymentProfile(saved as any);
+                      }}
+                    />
+                    {paymentPolicy.payment_required_at_application && !paymentProfile && (
+                      <Alert variant="destructive" className="mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Payment details required</AlertTitle>
+                        <AlertDescription>
+                          This product requires bank/payment details to be captured before the application can progress.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </>
                 ) : (
                   <p className="text-xs text-muted-foreground">
                     Bank / payment details become available once an SSN is captured.
                   </p>
                 )}
+              </StepCard>
+            )}
+
+            {step === 'banking' && paymentPolicy.payment_details_visibility === 'HIDE' && (
+              <StepCard title="9. Banking / Payment Details" desc="Skipped — this product does not collect payment details at application.">
+                <p className="text-sm text-muted-foreground">No action required. Payment details will be captured later in the lifecycle.</p>
               </StepCard>
             )}
 
@@ -790,10 +830,20 @@ export default function ClaimRegistration() {
                 <Field label="Internal Notes">
                   <Textarea value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={3} maxLength={500} />
                 </Field>
-                {can('benefits.workflow_routing') && (
+                {can('benefits.workflow_routing') && paymentPolicy.allow_manual_workbasket_override && (
                   <Field label="Workflow Basket Override">
-                    <Input value={workbasket} onChange={e => setBasketWithAudit(e.target.value)} placeholder="basket code" />
+                    <WorkbasketSelector
+                      value={workbasket}
+                      onChange={(b) => setBasketWithAudit(b?.basket_code ?? '')}
+                      productCategory={(selectedProduct as any)?.benefit_code ?? null}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Only active workbaskets are selectable. Override is audited.</p>
                   </Field>
+                )}
+                {can('benefits.workflow_routing') && !paymentPolicy.allow_manual_workbasket_override && (
+                  <p className="text-xs text-muted-foreground">
+                    Manual workbasket override is disabled by product policy — routing is automatic.
+                  </p>
                 )}
                 <div className="rounded border p-2 space-y-2">
                   <div className="flex items-center gap-2">
