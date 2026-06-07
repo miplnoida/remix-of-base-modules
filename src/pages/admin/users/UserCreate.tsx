@@ -47,9 +47,11 @@ const UserCreate = () => {
   const passwordsMatch = formData.password === formData.confirm_password && formData.password.length > 0;
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const clearError = (field: string) => {
     setErrors(prev => { const n = { ...prev }; delete n[field]; return n; });
+    setSubmitError(null);
   };
 
   const handleDesignationChange = (v: string) => {
@@ -58,8 +60,12 @@ const UserCreate = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
 
     const newErrors: Record<string, string> = {};
+    if (!formData.first_name.trim()) newErrors.first_name = "First Name is required";
+    if (!formData.last_name.trim()) newErrors.last_name = "Last Name is required";
+    if (!formData.email.trim()) newErrors.email = "Email Address is required";
     if (!formData.gender) newErrors.gender = "Gender is required";
     if (!formData.date_of_birth) newErrors.date_of_birth = "Date of Birth is required";
     if (!formData.office_code) newErrors.office_code = "Office Location is required";
@@ -122,14 +128,29 @@ const UserCreate = () => {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to create user');
+        const message = result?.error || 'Failed to create user';
+
+        if (response.status === 409 || result?.code === 'EMAIL_ALREADY_EXISTS') {
+          setErrors(prev => ({ ...prev, email: message }));
+          setSubmitError(message);
+          toast.error("Email already exists", {
+            description: "Please use a different email address or edit the existing user record.",
+          });
+          return;
+        }
+
+        setSubmitError(message);
+        toast.error("Failed to create user", { description: message });
+        return;
       }
 
       toast.success("User created successfully");
       navigate('/admin/users');
     } catch (error: any) {
-      console.error("Create user error:", error);
-      toast.error(error.message || "Failed to create user");
+      const message = error?.message || "Failed to create user";
+      console.error("Create user unexpected error:", error);
+      setSubmitError(message);
+      toast.error("Failed to create user", { description: message });
     } finally {
       setIsSubmitting(false);
     }
@@ -163,6 +184,13 @@ const UserCreate = () => {
             <CardDescription>Enter the user's personal and contact details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {submitError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{submitError}</AlertDescription>
+              </Alert>
+            )}
+
             {/* Personal Information */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
@@ -180,7 +208,8 @@ const UserCreate = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="first_name">First Name *</Label>
-                <Input id="first_name" required value={formData.first_name} onChange={(e) => setFormData({...formData, first_name: e.target.value})} />
+                <Input id="first_name" value={formData.first_name} className={errors.first_name ? "border-destructive focus-visible:ring-destructive" : ""} onChange={(e) => { setFormData({...formData, first_name: e.target.value}); clearError('first_name'); }} />
+                {errors.first_name && <p className="text-xs text-destructive mt-1">{errors.first_name}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="middle_name">Middle Name</Label>
@@ -188,7 +217,8 @@ const UserCreate = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="last_name">Last Name *</Label>
-                <Input id="last_name" required value={formData.last_name} onChange={(e) => setFormData({...formData, last_name: e.target.value})} />
+                <Input id="last_name" value={formData.last_name} className={errors.last_name ? "border-destructive focus-visible:ring-destructive" : ""} onChange={(e) => { setFormData({...formData, last_name: e.target.value}); clearError('last_name'); }} />
+                {errors.last_name && <p className="text-xs text-destructive mt-1">{errors.last_name}</p>}
               </div>
             </div>
 
@@ -196,7 +226,8 @@ const UserCreate = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address *</Label>
-                <Input id="email" type="email" required value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+                <Input id="email" value={formData.email} className={errors.email ? "border-destructive focus-visible:ring-destructive" : ""} onChange={(e) => { setFormData({...formData, email: e.target.value}); clearError('email'); }} />
+                {errors.email && <p className="text-xs text-destructive mt-1">{errors.email}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
