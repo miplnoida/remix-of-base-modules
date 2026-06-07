@@ -105,9 +105,19 @@ export async function orchestrateApproval(
 
   const periodicDefault = isPeriodic(product.category, product.payment_type);
   const weekly = Number(calc?.weekly_rate || 0);
-  const monthly = Number(calc?.monthly_rate || (weekly * 52 / 12) || 0);
+  const monthlyFromCalc = Number(calc?.monthly_rate || 0);
   const lump = Number(calc?.lump_sum || 0);
   const today = new Date().toISOString().slice(0, 10);
+
+  // Resolve payment frequency: respect product version config; otherwise infer
+  // from benefit duration (short-term benefits — e.g. Sickness, Maternity,
+  // Employment Injury — pay WEEKLY; long-term/pension defaults to MONTHLY).
+  const configuredFreq = (pv?.payment_frequency || '').toString().toUpperCase();
+  const durationType = (pv?.benefit_duration_type || '').toString().toUpperCase();
+  const frequency: 'WEEKLY' | 'MONTHLY' = (configuredFreq === 'WEEKLY' || configuredFreq === 'MONTHLY')
+    ? (configuredFreq as 'WEEKLY' | 'MONTHLY')
+    : (durationType === 'SHORT_TERM' && weekly > 0 ? 'WEEKLY' : (weekly > 0 || monthlyFromCalc > 0 ? 'MONTHLY' : 'WEEKLY'));
+  const monthly = monthlyFromCalc > 0 ? monthlyFromCalc : Math.round(weekly * 52 / 12);
 
   // ─── Phase 4: transition-rule drives post-approve routing ─────
   // If a `bn_claim_transition_rule` row for (current status, APPROVE)
@@ -129,7 +139,11 @@ export async function orchestrateApproval(
 
   if (periodic) {
     // ─── Periodic / long-term ────────────────────────────────────
-    const total = lump > 0 ? lump : (weekly > 0 ? weekly * 52 : monthly * 12);
+    // Total entitlement: respect explicit lump if provided, else compute from
+    // the resolved frequency × 1-year duration (52 weeks / 12 months).
+    const total = lump > 0
+      ? lump
+      : (frequency === 'WEEKLY' ? weekly * 52 : monthly * 12);
     const { data: ent, error: entErr } = await db
       .from('bn_entitlement')
       .insert({
@@ -140,12 +154,13 @@ export async function orchestrateApproval(
         product_version_id: claim.product_version_id,
         calculation_id: calc?.id ?? null,
         entitlement_type: 'PERIODIC',
-        payment_frequency: monthly > 0 ? 'MONTHLY' : 'WEEKLY',
+        payment_frequency: frequency,
         weekly_rate: weekly,
-        monthly_rate: monthly,
+        monthly_rate: frequency === 'MONTHLY' ? monthly : null,
         lump_sum_amount: lump || null,
         total_entitlement: total,
         remaining_amount: total,
+        duration_weeks: frequency === 'WEEKLY' ? 52 : null,
         effective_from: today,
         status: 'ACTIVE',
         activated_at: new Date().toISOString(),
@@ -161,7 +176,7 @@ export async function orchestrateApproval(
       entityType: 'bn_entitlement',
       entityId: entitlementId,
       action: 'AWARD_CREATED',
-      afterValue: { claim_id: claimId, weekly_rate: weekly, total },
+      afterValue: { claim_id: claimId, frequency, weekly_rate: weekly, monthly_rate: frequency === 'MONTHLY' ? monthly : null, total },
       performedBy,
       critical: true,
     });
@@ -169,7 +184,7 @@ export async function orchestrateApproval(
     // Also raise the first periodic payment instruction so the claim
     // becomes visible in the Payables Queue and in the Workbench
     // Payments tab immediately after activation.
-    const firstAmt = monthly > 0 ? monthly : (weekly > 0 ? weekly : 0);
+    const firstAmt = frequency === 'WEEKLY' ? weekly : monthly;
     if (firstAmt > 0) {
       const { data: firstPi } = await db
         .from('bn_payment_instruction')
@@ -183,7 +198,7 @@ export async function orchestrateApproval(
           bank_code: claim.bank_routing_number || null,
           account_number: claim.bank_account || null,
           due_date: today,
-          frequency: monthly > 0 ? 'MONTHLY' : 'WEEKLY',
+          frequency,
           status: 'queued',
           description: `${product.benefit_name} — first periodic payment`,
         })
@@ -195,7 +210,7 @@ export async function orchestrateApproval(
           entityType: 'bn_payment_instruction',
           entityId: paymentInstructionId,
           action: 'PAYMENT_INSTRUCTION_CREATED',
-          afterValue: { claim_id: claimId, entitlement_id: entitlementId, amount: firstAmt, kind: 'PERIODIC_FIRST' },
+          afterValue: { claim_id: claimId, entitlement_id: entitlementId, amount: firstAmt, kind: 'PERIODIC_FIRST', frequency },
           performedBy,
           critical: true,
         });
@@ -206,6 +221,7 @@ export async function orchestrateApproval(
   } else {
     // ─── Lump-sum / short-term one-off payable ───────────────────
     const amt = lump > 0 ? lump : (weekly > 0 ? weekly : monthly);
+
     if (amt <= 0) {
       throw new Error('No calculated amount available. Run calculation before approval.');
     }
