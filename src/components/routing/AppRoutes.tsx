@@ -786,6 +786,7 @@ const BnBatchOperations = lazy(() => import('@/pages/bn/batch/BatchOperations'))
 const BnPaymentIssue = lazy(() => import('@/pages/bn/issue/PaymentIssue'));
 const BnPostIssueReview = lazy(() => import('@/pages/bn/postissue/PostIssueReview'));
 const BnChequeStock = lazy(() => import('@/pages/bn/admin/ChequeStock'));
+const BnPaymentProfiles = lazy(() => import('@/pages/bn/admin/PaymentProfiles'));
 const BnHistoricalInquiry = lazy(() => import('@/pages/bn/history/HistoricalInquiry'));
 const BnClaimQueue = lazy(() => import('@/pages/bn/claims/ClaimQueue'));
 const BnReasonCodes = lazy(() => import('@/pages/bn/config/ReasonCodes'));
