@@ -273,7 +273,7 @@ export function SendEligibilityFailureNoticeDialog({
           </section>
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 p-4 border-t shrink-0 bg-background">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={trigger.isPending}>
             Cancel
           </Button>
