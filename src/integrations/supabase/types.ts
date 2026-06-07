@@ -8087,10 +8087,14 @@ export type Database = {
           data_source: string | null
           entered_at: string
           entered_by: string | null
+          fact_key: string | null
           fail_action: string
           fail_message: string | null
+          group_code: string | null
           id: string
           is_active: boolean
+          override_policy_code: string | null
+          overrideable: boolean
           product_version_id: string
           rule_code: string
           rule_definition: Json
@@ -8098,16 +8102,21 @@ export type Database = {
           rule_group_id: string | null
           rule_name: string
           rule_type: string
+          severity: string
           sort_order: number
         }
         Insert: {
           data_source?: string | null
           entered_at?: string
           entered_by?: string | null
+          fact_key?: string | null
           fail_action?: string
           fail_message?: string | null
+          group_code?: string | null
           id?: string
           is_active?: boolean
+          override_policy_code?: string | null
+          overrideable?: boolean
           product_version_id: string
           rule_code: string
           rule_definition?: Json
@@ -8115,16 +8124,21 @@ export type Database = {
           rule_group_id?: string | null
           rule_name: string
           rule_type: string
+          severity?: string
           sort_order?: number
         }
         Update: {
           data_source?: string | null
           entered_at?: string
           entered_by?: string | null
+          fact_key?: string | null
           fail_action?: string
           fail_message?: string | null
+          group_code?: string | null
           id?: string
           is_active?: boolean
+          override_policy_code?: string | null
+          overrideable?: boolean
           product_version_id?: string
           rule_code?: string
           rule_definition?: Json
@@ -8132,6 +8146,7 @@ export type Database = {
           rule_group_id?: string | null
           rule_name?: string
           rule_type?: string
+          severity?: string
           sort_order?: number
         }
         Relationships: [
