@@ -1,61 +1,79 @@
-/**
- * LetterPreviewDialog
- * --------------------
- * Shows full letter detail used by Workbench → Communications → Letters:
- *   - template (subject + body) with merged values
- *   - rendered preview using `merge_context` already on the bn_letter row
- *   - recipient + address snapshot
- *   - lifecycle history (generated → approved → printed → dispatched)
- *   - related bn_communication_log rows linked to this letter
- */
 import React from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { BnEmptyState } from '@/components/bn/shared';
 import { formatAuditTimestamp } from '@/lib/culture/culture';
+import { downloadLetterPdf } from '@/services/bn/communication/letterGenerator';
+import { ensureBnLetterSnapshot } from '@/services/bn/communication/bnLetterRenderer';
+import { updateLetterStatus } from '@/services/bn/communication/bnCommunicationAdapter';
+import { useUserCode } from '@/hooks/useUserCode';
+import { Download, Printer, CheckCircle2, MailCheck, FileCheck2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const db = supabase as any;
-
-function renderMerged(text: string, ctx: Record<string, any>): string {
-  if (!text) return '';
-  return text
-    .replace(/\{\{\s*([\w_.]+)\s*\}\}/g, (_, k) => String(ctx?.[k] ?? `{{${k}}}`))
-    .replace(/\{\s*([\w_.]+)\s*\}/g, (_, k) => String(ctx?.[k] ?? `{${k}}`));
-}
 
 interface Props { letterId: string | null; open: boolean; onOpenChange: (o: boolean) => void; }
 
 export const LetterPreviewDialog: React.FC<Props> = ({ letterId, open, onOpenChange }) => {
+  const qc = useQueryClient();
+  const { userCode } = useUserCode();
   const { data, isLoading } = useQuery({
     queryKey: ['bn-letter-detail', letterId],
     enabled: !!letterId && open,
     queryFn: async () => {
+      const rendered = await ensureBnLetterSnapshot(letterId!);
       const { data: letter } = await db.from('bn_letter').select('*').eq('id', letterId).maybeSingle();
       if (!letter) return null;
       const [{ data: template }, { data: logs }] = await Promise.all([
         letter.template_id
-          ? db.from('notification_templates').select('id, name, subject, html_body, body, template_code, version_no').eq('id', letter.template_id).maybeSingle()
+          ? db.from('notification_templates').select('id, name, subject, html_body, body, template_code, version_no, channel').eq('id', letter.template_id).maybeSingle()
           : Promise.resolve({ data: null }),
         db.from('bn_communication_log').select('id, status, created_at, channel, delivery_method, error_message, context')
           .eq('letter_id', letterId).order('created_at', { ascending: true }),
       ]);
-      return { letter, template: template || null, logs: logs || [] };
+      return { letter, rendered, template: template || null, logs: logs || [] };
     },
   });
 
   const letter = data?.letter;
   const template = data?.template;
   const merge = letter?.merge_context || {};
-  const subject = letter?.rendered_subject || letter?.subject || renderMerged(template?.subject || '', merge) || '—';
-  const body = letter?.rendered_body_html
-    || letter?.body_html
-    || renderMerged(template?.html_body || template?.body || '', merge);
-  const addr = letter?.recipient_address_snapshot || {};
+  const printableHtml = data?.rendered?.printableHtml || '';
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['bn-letter-detail', letterId] });
+    qc.invalidateQueries({ queryKey: ['bn', 'claim-communications'] });
+  };
+
+  const handlePrint = () => {
+    if (!printableHtml) return;
+    const win = window.open('', '_blank', 'width=900,height=900');
+    if (!win) return toast.error('Popup blocked. Please allow popups to print the letter.');
+    win.document.open();
+    win.document.write(printableHtml);
+    win.document.close();
+    win.focus();
+    setTimeout(() => win.print(), 250);
+  };
+
+  const handleDownload = async () => {
+    try { await downloadLetterPdf(letterId!, userCode || 'SYSTEM'); }
+    catch (e: any) { toast.error(e?.message || 'Could not download PDF'); }
+  };
+
+  const handleStatus = async (status: string) => {
+    try {
+      await updateLetterStatus(letterId!, status, userCode || 'SYSTEM');
+      toast.success(`Letter marked ${status.replace(/_/g, ' ').toLowerCase()}`);
+      refresh();
+    } catch (e: any) { toast.error(e?.message || 'Could not update letter'); }
+  };
 
   const events: Array<{ label: string; at?: string | null; by?: string | null }> = letter ? [
     { label: 'Generated', at: letter.generated_at || letter.created_at, by: letter.created_by },
@@ -69,12 +87,12 @@ export const LetterPreviewDialog: React.FC<Props> = ({ letterId, open, onOpenCha
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[94vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Letter detail</DialogTitle>
+          <DialogTitle>View Letter</DialogTitle>
           <DialogDescription>
-            {letter?.event_code || ''}
-            {template?.name ? ` · Template: ${template.name}` : ' · No template linked'}
+            {letter?.reference_number || data?.rendered?.referenceNumber || 'Reference pending'}
+            {template?.name ? ` · ${template.name}` : ''}
             {letter?.template_version_no ? ` · v${letter.template_version_no}` : ''}
           </DialogDescription>
         </DialogHeader>
@@ -83,44 +101,41 @@ export const LetterPreviewDialog: React.FC<Props> = ({ letterId, open, onOpenCha
           <BnEmptyState type="loading" title="Loading letter…" />
         ) : (
           <div className="space-y-4 text-sm">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/20 p-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 flex-1">
               <Field label="Status" value={<Badge variant="outline">{letter.status}</Badge>} />
-              <Field label="Reference No." value={letter.reference_number || <span className="text-muted-foreground italic">not yet allocated</span>} />
+                <Field label="Reference No." value={letter.reference_number || data?.rendered?.referenceNumber || '—'} />
               <Field label="Recipient" value={letter.recipient_name || '—'} />
-              <Field label="Type" value={letter.recipient_type} />
               <Field label="Document Type" value={letter.document_type || '—'} />
-              <Field label="Department" value={letter.department_code || '—'} />
-              <Field label="Created" value={formatAuditTimestamp(letter.created_at)} />
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Address</p>
-              <div className="border rounded p-2 bg-muted/30 text-sm whitespace-pre-line">
-                {[addr.line1, addr.line2, [addr.city, addr.state].filter(Boolean).join(', '), addr.postal, addr.country]
-                  .filter(Boolean).join('\n') || <span className="text-muted-foreground">No postal address on file</span>}
+                <Field label="Created" value={formatAuditTimestamp(letter.created_at)} />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={handlePrint}><Printer className="h-3.5 w-3.5 mr-1.5" />Print</Button>
+                <Button size="sm" variant="outline" onClick={handleDownload}><Download className="h-3.5 w-3.5 mr-1.5" />Download PDF</Button>
+                {['GENERATED', 'PENDING_APPROVAL'].includes(letter.status) && (
+                  <Button size="sm" variant="outline" onClick={() => handleStatus('APPROVED_TO_PRINT')}><CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />Approve to Print</Button>
+                )}
+                {letter.status === 'APPROVED_TO_PRINT' && (
+                  <Button size="sm" variant="outline" onClick={() => handleStatus('PRINTED')}><FileCheck2 className="h-3.5 w-3.5 mr-1.5" />Mark Printed</Button>
+                )}
+                {letter.status === 'PRINTED' && (
+                  <Button size="sm" variant="outline" onClick={() => handleStatus('DISPATCHED')}><MailCheck className="h-3.5 w-3.5 mr-1.5" />Mark Dispatched</Button>
+                )}
               </div>
             </div>
 
-            <Separator />
-
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Subject</p>
-              <p className="font-medium">{subject}</p>
-            </div>
-
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Rendered preview</p>
-              {body ? (
-                <div className="border rounded p-3 bg-background prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: body }} />
+            {printableHtml ? (
+              <iframe title="Printable Benefit letter" className="h-[68vh] w-full rounded-md border bg-background" srcDoc={printableHtml} />
               ) : (
-                <p className="text-muted-foreground italic border rounded p-3">No template body configured. Attach a template in Product Catalog → Communications.</p>
+              <p className="text-muted-foreground italic border rounded p-3">No printable letter was generated. Check that a LETTER template is configured for this event.</p>
               )}
-            </div>
+
+            <Separator />
 
             {template && (
               <details>
                 <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
-                  Show raw template ({template.template_code} v{template.version_no})
+                  Template details ({template.template_code} · {String(template.channel).toUpperCase()} · v{template.version_no})
                 </summary>
                 <pre className="mt-2 text-xs bg-muted/50 rounded p-2 overflow-auto max-h-60">
 {`Subject: ${template.subject || '—'}\n\n${template.html_body || template.body || ''}`}
@@ -128,7 +143,7 @@ export const LetterPreviewDialog: React.FC<Props> = ({ letterId, open, onOpenCha
               </details>
             )}
 
-            <details open>
+            <details>
               <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">Merge values used ({Object.keys(merge).length})</summary>
               <pre className="mt-2 text-xs bg-muted/50 rounded p-2 overflow-auto max-h-60">{JSON.stringify(merge, null, 2)}</pre>
             </details>

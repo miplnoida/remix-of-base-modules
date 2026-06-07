@@ -42,7 +42,12 @@ async function callRpc(req: ReferenceRequest) {
     p_document_type: req.documentType,
     p_financial_year: req.financialYear ?? null,
   });
-  if (error) throw error;
+  if (error) {
+    if (String(error.message || '').includes('No active reference sequence configured')) {
+      throw new MissingReferenceSequenceError(req);
+    }
+    throw error;
+  }
   const row = Array.isArray(data) ? data[0] : data;
   if (!row?.reference_number) throw new MissingReferenceSequenceError(req);
   return {

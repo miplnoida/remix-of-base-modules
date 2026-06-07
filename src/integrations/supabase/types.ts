@@ -8273,6 +8273,8 @@ export type Database = {
           generated_at: string | null
           id: string
           issued_by_office: string | null
+          issued_department_code: string | null
+          issued_office_code: string | null
           merge_context: Json | null
           notes: string | null
           pdf_storage_path: string | null
@@ -8310,6 +8312,8 @@ export type Database = {
           generated_at?: string | null
           id?: string
           issued_by_office?: string | null
+          issued_department_code?: string | null
+          issued_office_code?: string | null
           merge_context?: Json | null
           notes?: string | null
           pdf_storage_path?: string | null
@@ -8347,6 +8351,8 @@ export type Database = {
           generated_at?: string | null
           id?: string
           issued_by_office?: string | null
+          issued_department_code?: string | null
+          issued_office_code?: string | null
           merge_context?: Json | null
           notes?: string | null
           pdf_storage_path?: string | null
