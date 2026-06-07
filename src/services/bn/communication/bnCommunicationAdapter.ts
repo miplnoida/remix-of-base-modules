@@ -39,9 +39,44 @@ export interface BnCommDispatchResult {
   dispatched: number;
   skipped: number;
   failed: number;
+  blocked: number;
   letters: string[];
   logIds: string[];
   warnings: string[];
+}
+
+export interface RecipientDiagnosis {
+  resolvable: boolean;
+  recipient?: { name?: string; email?: string; phone?: string; address?: any; userId?: string };
+  missing: string[];
+  reason?: string;
+}
+
+/**
+ * Recipient diagnostics — single source of truth for "can this comm actually go out?".
+ * Returns structured missing-data reasons used to set BLOCKED status with actionable details.
+ */
+export async function diagnoseRecipient(
+  claimId: string,
+  recipientType: BnRecipientType,
+  channel: BnChannel,
+): Promise<RecipientDiagnosis> {
+  const recipient = await resolveRecipient(claimId, recipientType, channel);
+  if (!recipient) {
+    return { resolvable: false, missing: ['recipient'], reason: `${recipientType} record not found on claim` };
+  }
+  const missing: string[] = [];
+  if ((channel === 'EMAIL' || channel === 'INTERNAL_EMAIL') && !recipient.email) missing.push('email');
+  if (channel === 'SMS' && !recipient.phone) missing.push('phone');
+  if (channel === 'LETTER') {
+    const a: any = recipient.address || {};
+    if (!a.line1 && !a.city) missing.push('postal address');
+  }
+  if (channel === 'IN_APP' && !recipient.userId) missing.push('internal user account');
+  if (missing.length) {
+    return { resolvable: false, recipient, missing, reason: `${recipientType} is missing: ${missing.join(', ')}` };
+  }
+  return { resolvable: true, recipient, missing: [] };
 }
 
 // ─── Merge context ────────────────────────────────────────────────
@@ -247,7 +282,8 @@ async function createLetter(params: {
 async function writeCommLog(row: {
   claimId: string; eventCode: string; channel: BnChannel; recipientType: BnRecipientType;
   recipientAddress?: string; templateId?: string | null; subject?: string;
-  status: 'QUEUED' | 'SENT' | 'FAILED' | 'SKIPPED'; providerId?: string | null;
+  status: 'QUEUED' | 'SENT' | 'FAILED' | 'SKIPPED' | 'BLOCKED' | 'GENERATED' | 'PRINT_PENDING' | 'PRINTED' | 'DISPATCHED' | 'RETRYING' | 'DELIVERED';
+  providerId?: string | null;
   letterId?: string | null; workflowStepId?: string; error?: string;
   context?: Record<string, any>; userCode?: string;
 }) {
@@ -274,7 +310,7 @@ async function writeCommLog(row: {
 
 // ─── Top-level event dispatcher ────────────────────────────────────
 export async function triggerClaimCommunication(eventCode: string, claimId: string, ctx?: BnCommContext): Promise<BnCommDispatchResult> {
-  const result: BnCommDispatchResult = { eventCode, dispatched: 0, skipped: 0, failed: 0, letters: [], logIds: [], warnings: [] };
+  const result: BnCommDispatchResult = { eventCode, dispatched: 0, skipped: 0, failed: 0, blocked: 0, letters: [], logIds: [], warnings: [] };
 
   // 1. Resolve event metadata
   const { data: event } = await db.from('bn_comm_event').select('*').eq('event_code', eventCode).maybeSingle();
@@ -322,108 +358,101 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
     });
   }
 
-  // 5. If no mappings at all, log a SKIPPED entry so the timeline shows the event still happened
+  // 5. If no mappings at all, log a BLOCKED entry — required event with no configured mapping.
   if (mappings.length === 0) {
     const id = await writeCommLog({
       claimId, eventCode, channel: 'IN_APP', recipientType: 'ASSIGNED_OFFICER',
-      status: 'SKIPPED', error: 'No communication mappings configured', userCode: ctx?.userCode,
-      workflowStepId: ctx?.workflowStepId,
+      status: 'BLOCKED', error: 'No communication mapping configured for this event in Product Catalog',
+      userCode: ctx?.userCode, workflowStepId: ctx?.workflowStepId,
+      context: { missing: ['mapping'], action: 'Configure mapping in Product Catalog → Communications' },
     });
     if (id) result.logIds.push(id);
+    result.blocked += 1;
     return result;
   }
 
   // 6. Dispatch each mapping
   for (const m of mappings) {
+    const isRequired = m.is_required === true || event.is_mandatory_letter === true;
     try {
-      const recipient = await resolveRecipient(claimId, m.recipient_type as BnRecipientType, m.channel as BnChannel);
-      if (!recipient) {
-        result.skipped += 1;
+      const diag = await diagnoseRecipient(claimId, m.recipient_type as BnRecipientType, m.channel as BnChannel);
+      const recipient = diag.recipient;
+      const subject = `${event.event_name}${mergeContext.ClaimNumber ? ` — ${mergeContext.ClaimNumber}` : ''}`;
+
+      if (!diag.resolvable) {
+        // If channel is digital but event mandates a letter, fall back to letter generation
+        const canFallbackToLetter = event.is_mandatory_letter && m.channel !== 'LETTER';
+        if (canFallbackToLetter) {
+          const letterId = await createLetter({
+            claimId, eventCode, templateId: m.template_id, recipientType: m.recipient_type,
+            recipient: recipient || { name: m.recipient_type }, subject, mergeContext,
+            isMandatoryLetter: true, userCode: ctx?.userCode,
+          });
+          result.letters.push(letterId);
+          const id = await writeCommLog({
+            claimId, eventCode, channel: 'LETTER', recipientType: m.recipient_type,
+            recipientAddress: recipient?.name, templateId: m.template_id, subject,
+            status: 'GENERATED', letterId, userCode: ctx?.userCode,
+            workflowStepId: ctx?.workflowStepId,
+            context: { fallbackFrom: m.channel, missing: diag.missing, reason: diag.reason },
+          });
+          if (id) result.logIds.push(id);
+          result.dispatched += 1;
+          continue;
+        }
+
+        const status: 'BLOCKED' | 'SKIPPED' = isRequired ? 'BLOCKED' : 'SKIPPED';
+        if (status === 'BLOCKED') result.blocked += 1; else result.skipped += 1;
         const id = await writeCommLog({
           claimId, eventCode, channel: m.channel, recipientType: m.recipient_type,
-          status: 'SKIPPED', error: 'Recipient not resolved', userCode: ctx?.userCode,
-          templateId: m.template_id, workflowStepId: ctx?.workflowStepId,
+          status, error: diag.reason || 'Recipient not resolved',
+          templateId: m.template_id, workflowStepId: ctx?.workflowStepId, userCode: ctx?.userCode,
+          context: { missing: diag.missing, required: isRequired },
         });
         if (id) result.logIds.push(id);
         continue;
       }
 
-      const subject = `${event.event_name}${mergeContext.ClaimNumber ? ` — ${mergeContext.ClaimNumber}` : ''}`;
-
-      // Channel-specific
+      // Channel-specific dispatch
       if (m.channel === 'EMAIL' || m.channel === 'INTERNAL_EMAIL') {
-        if (!recipient.email) {
-          // Fallback to letter if formal event
-          if (event.is_mandatory_letter) {
-            const letterId = await createLetter({
-              claimId, eventCode, templateId: m.template_id, recipientType: m.recipient_type,
-              recipient, subject, mergeContext, isMandatoryLetter: true, userCode: ctx?.userCode,
-            });
-            result.letters.push(letterId);
-            const id = await writeCommLog({
-              claimId, eventCode, channel: 'LETTER', recipientType: m.recipient_type, recipientAddress: recipient.name,
-              templateId: m.template_id, subject, status: 'QUEUED', letterId, userCode: ctx?.userCode,
-              workflowStepId: ctx?.workflowStepId, context: { fallbackFrom: m.channel },
-            });
-            if (id) result.logIds.push(id);
-            result.dispatched += 1;
-            continue;
-          }
-          result.skipped += 1;
-          const id = await writeCommLog({
-            claimId, eventCode, channel: m.channel, recipientType: m.recipient_type,
-            status: 'SKIPPED', error: 'No email on file', templateId: m.template_id,
-            workflowStepId: ctx?.workflowStepId, userCode: ctx?.userCode,
-          });
-          if (id) result.logIds.push(id);
-          continue;
-        }
         const providerId = await queueNotificationQueue('EMAIL', recipient, m.template_id, subject, mergeContext, claimId, eventCode);
         const id = await writeCommLog({
-          claimId, eventCode, channel: m.channel, recipientType: m.recipient_type, recipientAddress: recipient.email,
+          claimId, eventCode, channel: m.channel, recipientType: m.recipient_type, recipientAddress: recipient!.email,
           templateId: m.template_id, subject, status: 'QUEUED', providerId, userCode: ctx?.userCode,
           workflowStepId: ctx?.workflowStepId,
         });
         if (id) result.logIds.push(id);
         result.dispatched += 1;
       } else if (m.channel === 'SMS') {
-        if (!recipient.phone) {
-          result.skipped += 1;
-          const id = await writeCommLog({
-            claimId, eventCode, channel: 'SMS', recipientType: m.recipient_type,
-            status: 'SKIPPED', error: 'No phone on file', templateId: m.template_id,
-            workflowStepId: ctx?.workflowStepId, userCode: ctx?.userCode,
-          });
-          if (id) result.logIds.push(id);
-          continue;
-        }
         const providerId = await queueNotificationQueue('SMS', recipient, m.template_id, subject, mergeContext, claimId, eventCode);
         const id = await writeCommLog({
-          claimId, eventCode, channel: 'SMS', recipientType: m.recipient_type, recipientAddress: recipient.phone,
+          claimId, eventCode, channel: 'SMS', recipientType: m.recipient_type, recipientAddress: recipient!.phone,
           templateId: m.template_id, subject, status: 'QUEUED', providerId, userCode: ctx?.userCode,
           workflowStepId: ctx?.workflowStepId,
         });
         if (id) result.logIds.push(id);
         result.dispatched += 1;
       } else if (m.channel === 'IN_APP') {
-        const inAppId = await createInAppNotification(recipient.userId, subject, mergeContext.ReasonDescription || event.description || '', claimId, eventCode);
+        const inAppId = await createInAppNotification(recipient!.userId, subject, mergeContext.ReasonDescription || event.description || '', claimId, eventCode);
         const id = await writeCommLog({
-          claimId, eventCode, channel: 'IN_APP', recipientType: m.recipient_type, recipientAddress: recipient.userId,
-          templateId: m.template_id, subject, status: inAppId ? 'SENT' : 'SKIPPED',
+          claimId, eventCode, channel: 'IN_APP', recipientType: m.recipient_type, recipientAddress: recipient!.userId,
+          templateId: m.template_id, subject, status: inAppId ? 'SENT' : (isRequired ? 'BLOCKED' : 'SKIPPED'),
           providerId: inAppId, userCode: ctx?.userCode, workflowStepId: ctx?.workflowStepId,
-          error: inAppId ? undefined : 'No internal user resolved',
+          error: inAppId ? undefined : 'In-app delivery failed',
         });
         if (id) result.logIds.push(id);
-        if (inAppId) result.dispatched += 1; else result.skipped += 1;
+        if (inAppId) result.dispatched += 1;
+        else if (isRequired) result.blocked += 1;
+        else result.skipped += 1;
       } else if (m.channel === 'LETTER') {
         const letterId = await createLetter({
           claimId, eventCode, templateId: m.template_id, recipientType: m.recipient_type,
-          recipient, subject, mergeContext, isMandatoryLetter: !!event.is_mandatory_letter, userCode: ctx?.userCode,
+          recipient: recipient!, subject, mergeContext, isMandatoryLetter: !!event.is_mandatory_letter, userCode: ctx?.userCode,
         });
         result.letters.push(letterId);
         const id = await writeCommLog({
-          claimId, eventCode, channel: 'LETTER', recipientType: m.recipient_type, recipientAddress: recipient.name,
-          templateId: m.template_id, subject, status: 'QUEUED', letterId, userCode: ctx?.userCode,
+          claimId, eventCode, channel: 'LETTER', recipientType: m.recipient_type, recipientAddress: recipient!.name,
+          templateId: m.template_id, subject, status: 'GENERATED', letterId, userCode: ctx?.userCode,
           workflowStepId: ctx?.workflowStepId,
         });
         if (id) result.logIds.push(id);
@@ -445,7 +474,7 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
     await db.from('bn_claim_event').insert({
       claim_id: claimId,
       event_type: `COMM_${eventCode}`,
-      notes: `Dispatched ${result.dispatched} • Skipped ${result.skipped} • Failed ${result.failed}`,
+      notes: `Dispatched ${result.dispatched} • Skipped ${result.skipped} • Blocked ${result.blocked} • Failed ${result.failed}`,
       performed_by: ctx?.userCode || 'SYSTEM',
       performed_at: new Date().toISOString(),
       metadata: { eventCode, ...result },
@@ -488,11 +517,58 @@ export async function updateLetterStatus(letterId: string, newStatus: string, us
 export async function retryCommunication(logId: string, userCode: string) {
   const { data: log } = await db.from('bn_communication_log').select('*').eq('id', logId).maybeSingle();
   if (!log) throw new Error('Log entry not found');
-  if (!['FAILED', 'SKIPPED'].includes(log.status)) throw new Error('Only failed/skipped entries can be retried');
+  if (!['FAILED', 'SKIPPED', 'BLOCKED'].includes(log.status)) throw new Error('Only failed/skipped/blocked entries can be retried');
   await db.from('bn_communication_log').update({
     retry_count: (log.retry_count || 0) + 1,
     last_retry_at: new Date().toISOString(),
     status: 'RETRYING',
   }).eq('id', logId);
   return triggerClaimCommunication(log.event_code, log.claim_id, { userCode });
+}
+
+// ─── Manual / fallback actions ────────────────────────────────────
+
+/**
+ * "Generate Letter Instead" — used when a digital channel is BLOCKED but the
+ * user still wants to dispatch via mail. Creates a bn_letter row and a
+ * GENERATED comm log entry against the same event.
+ */
+export async function generateLetterFromBlocked(logId: string, userCode: string): Promise<string> {
+  const { data: log } = await db.from('bn_communication_log').select('*').eq('id', logId).maybeSingle();
+  if (!log) throw new Error('Communication entry not found');
+  const diag = await diagnoseRecipient(log.claim_id, log.recipient_type, 'LETTER');
+  const merge = await buildBnMergeContext(log.claim_id);
+  const letterId = await createLetter({
+    claimId: log.claim_id, eventCode: log.event_code, templateId: log.template_id || null,
+    recipientType: log.recipient_type, recipient: diag.recipient || { name: log.recipient_type },
+    subject: log.subject || log.event_code, mergeContext: merge, isMandatoryLetter: false, userCode,
+  });
+  await writeCommLog({
+    claimId: log.claim_id, eventCode: log.event_code, channel: 'LETTER',
+    recipientType: log.recipient_type, recipientAddress: diag.recipient?.name,
+    templateId: log.template_id || null, subject: log.subject || undefined,
+    status: 'GENERATED', letterId, userCode, context: { generatedFromBlockedLogId: logId },
+  });
+  // Resolve the original BLOCKED entry
+  await db.from('bn_communication_log').update({
+    status: 'SKIPPED',
+    error_message: 'Replaced by manually generated letter',
+    context: { ...(log.context || {}), replacedByLetterId: letterId },
+  }).eq('id', logId);
+  return letterId;
+}
+
+/**
+ * "Mark Manually Dispatched" — operator confirms they delivered the message
+ * outside the system (e.g. phone call, hand-delivered letter). Closes the
+ * communication entry to DISPATCHED.
+ */
+export async function markCommunicationManuallyDispatched(logId: string, userCode: string, note?: string) {
+  const { error } = await db.from('bn_communication_log').update({
+    status: 'DISPATCHED',
+    error_message: null,
+    context: { manualDispatch: true, note: note || null, by: userCode, at: new Date().toISOString() },
+  }).eq('id', logId);
+  if (error) throw error;
+  return true;
 }

@@ -4,6 +4,8 @@ import {
   triggerClaimCommunication,
   updateLetterStatus,
   retryCommunication,
+  generateLetterFromBlocked,
+  markCommunicationManuallyDispatched,
   type BnCommContext,
 } from '@/services/bn/communication/bnCommunicationAdapter';
 
@@ -45,3 +47,22 @@ export function useBnRetryCommunication() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'claim-communications'] }),
   });
 }
+
+export function useBnGenerateLetterFromBlocked() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ logId, userCode }: { logId: string; userCode: string }) =>
+      generateLetterFromBlocked(logId, userCode),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'claim-communications'] }),
+  });
+}
+
+export function useBnMarkManuallyDispatched() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ logId, userCode, note }: { logId: string; userCode: string; note?: string }) =>
+      markCommunicationManuallyDispatched(logId, userCode, note),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'claim-communications'] }),
+  });
+}
+

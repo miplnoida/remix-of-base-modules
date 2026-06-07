@@ -3,12 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, MessageSquare, FileText, Bell, AlertTriangle, RefreshCw, Printer, Send, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Mail, MessageSquare, FileText, Bell, AlertTriangle, RefreshCw, Printer, Send, CheckCircle2, XCircle, Clock, Ban, FileSignature, MailCheck } from 'lucide-react';
 import {
   useBnClaimCommunicationHistory,
   useBnTriggerCommunication,
   useBnUpdateLetterStatus,
   useBnRetryCommunication,
+  useBnGenerateLetterFromBlocked,
+  useBnMarkManuallyDispatched,
 } from '@/hooks/bn/useBnClaimCommunication';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
@@ -22,9 +24,11 @@ const STATUS_TONE: Record<string, string> = {
   RETRYING: 'bg-amber-500/15 text-amber-700 border-amber-300',
   DELIVERED: 'bg-emerald-500/15 text-emerald-700 border-emerald-300',
   FAILED: 'bg-destructive/15 text-destructive border-destructive/40',
+  BLOCKED: 'bg-orange-500/15 text-orange-700 border-orange-400',
   SKIPPED: 'bg-muted text-muted-foreground border-border',
   DRAFT: 'bg-muted text-muted-foreground border-border',
   GENERATED: 'bg-blue-500/15 text-blue-700 border-blue-300',
+  PRINT_PENDING: 'bg-amber-500/15 text-amber-700 border-amber-300',
   PENDING_APPROVAL: 'bg-amber-500/15 text-amber-700 border-amber-300',
   APPROVED_TO_PRINT: 'bg-indigo-500/15 text-indigo-700 border-indigo-300',
   PRINTED: 'bg-emerald-500/15 text-emerald-700 border-emerald-300',
@@ -49,6 +53,8 @@ export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId })
   const trigger = useBnTriggerCommunication();
   const updateLetter = useBnUpdateLetterStatus();
   const retry = useBnRetryCommunication();
+  const genLetter = useBnGenerateLetterFromBlocked();
+  const markDispatched = useBnMarkManuallyDispatched();
   const [subTab, setSubTab] = useState('timeline');
 
   const logs = data?.logs || [];
@@ -59,7 +65,7 @@ export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId })
     const emails = logs.filter((l: any) => dm(l) === 'EMAIL' || dm(l) === 'INTERNAL_EMAIL');
     const sms = logs.filter((l: any) => dm(l) === 'SMS');
     const inapp = logs.filter((l: any) => dm(l) === 'IN_APP');
-    const failed = logs.filter((l: any) => l.status === 'FAILED' || l.status === 'SKIPPED');
+    const failed = logs.filter((l: any) => l.status === 'FAILED' || l.status === 'BLOCKED' || l.status === 'SKIPPED');
     return { emails, sms, inapp, failed };
   }, [logs]);
 
@@ -84,6 +90,20 @@ export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId })
       await retry.mutateAsync({ logId, userCode });
       toast.success('Retry queued');
     } catch (e: any) { toast.error(e?.message || 'Retry failed'); }
+  };
+
+  const handleGenerateLetter = async (logId: string) => {
+    try {
+      await genLetter.mutateAsync({ logId, userCode });
+      toast.success('Letter generated');
+    } catch (e: any) { toast.error(e?.message || 'Generate failed'); }
+  };
+
+  const handleMarkDispatched = async (logId: string) => {
+    try {
+      await markDispatched.mutateAsync({ logId, userCode });
+      toast.success('Marked dispatched');
+    } catch (e: any) { toast.error(e?.message || 'Update failed'); }
   };
 
   return (
@@ -121,41 +141,56 @@ export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId })
         </TabsList>
 
         <TabsContent value="timeline" className="mt-4">
-          <LogList rows={logs} loading={isLoading} onRetry={handleRetry} />
+          <LogList rows={logs} loading={isLoading} onRetry={handleRetry} onGenerateLetter={handleGenerateLetter} onMarkDispatched={handleMarkDispatched} />
         </TabsContent>
         <TabsContent value="letters" className="mt-4">
           <LetterList rows={letters} onUpdate={handleLetterStatus} />
         </TabsContent>
         <TabsContent value="emails" className="mt-4">
-          <LogList rows={split.emails} loading={isLoading} onRetry={handleRetry} />
+          <LogList rows={split.emails} loading={isLoading} onRetry={handleRetry} onGenerateLetter={handleGenerateLetter} onMarkDispatched={handleMarkDispatched} />
         </TabsContent>
         <TabsContent value="sms" className="mt-4">
-          <LogList rows={split.sms} loading={isLoading} onRetry={handleRetry} />
+          <LogList rows={split.sms} loading={isLoading} onRetry={handleRetry} onGenerateLetter={handleGenerateLetter} onMarkDispatched={handleMarkDispatched} />
         </TabsContent>
         <TabsContent value="inapp" className="mt-4">
-          <LogList rows={split.inapp} loading={isLoading} onRetry={handleRetry} />
+          <LogList rows={split.inapp} loading={isLoading} onRetry={handleRetry} onGenerateLetter={handleGenerateLetter} onMarkDispatched={handleMarkDispatched} />
         </TabsContent>
         <TabsContent value="failed" className="mt-4">
-          <LogList rows={split.failed} loading={isLoading} onRetry={handleRetry} highlightFailed />
+          <LogList rows={split.failed} loading={isLoading} onRetry={handleRetry} onGenerateLetter={handleGenerateLetter} onMarkDispatched={handleMarkDispatched} highlightFailed />
         </TabsContent>
       </Tabs>
     </div>
   );
 };
 
-const LogList: React.FC<{ rows: any[]; loading?: boolean; onRetry: (id: string) => void; highlightFailed?: boolean }> = ({ rows, loading, onRetry, highlightFailed }) => {
+interface LogListProps {
+  rows: any[];
+  loading?: boolean;
+  onRetry: (id: string) => void;
+  onGenerateLetter?: (id: string) => void;
+  onMarkDispatched?: (id: string) => void;
+  highlightFailed?: boolean;
+}
+
+const LogList: React.FC<LogListProps> = ({ rows, loading, onRetry, onGenerateLetter, onMarkDispatched }) => {
   if (loading) return <p className="text-sm text-muted-foreground p-4">Loading…</p>;
   if (!rows.length) return <p className="text-sm text-muted-foreground p-4">No communications recorded.</p>;
   return (
     <div className="rounded-md border divide-y">
       {rows.map((r) => {
         const dm = r.delivery_method || r.channel;
+        const missing: string[] = Array.isArray(r.context?.missing) ? r.context.missing : [];
+        const isBlocked = r.status === 'BLOCKED';
+        const canRetry = r.status === 'FAILED' || r.status === 'SKIPPED' || r.status === 'BLOCKED';
         return (
-        <div key={r.id} className="p-3 flex flex-col md:flex-row md:items-center gap-3 text-sm">
+        <div key={r.id} className="p-3 flex flex-col md:flex-row md:items-start gap-3 text-sm">
           <div className="flex items-center gap-2 min-w-[160px]">
             {channelIcon(dm)}
             <span className="font-medium">{dm}</span>
-            <Badge variant="outline" className={STATUS_TONE[r.status] || ''}>{r.status}</Badge>
+            <Badge variant="outline" className={STATUS_TONE[r.status] || ''}>
+              {isBlocked && <Ban className="h-3 w-3 mr-1 inline" />}
+              {r.status}
+            </Badge>
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-mono text-xs text-muted-foreground">{r.event_code}</p>
@@ -166,12 +201,25 @@ const LogList: React.FC<{ rows: any[]; loading?: boolean; onRetry: (id: string) 
                 <AlertTriangle className="h-3 w-3" /> {r.error_message}
               </p>
             )}
+            {missing.length > 0 && (
+              <p className="text-xs text-orange-700 mt-0.5">Missing: {missing.join(', ')}</p>
+            )}
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span><Clock className="h-3 w-3 inline mr-1" />{formatTime(r.created_at)}</span>
-            {(r.status === 'FAILED' || r.status === 'SKIPPED') && (
+            {canRetry && (
               <Button size="sm" variant="outline" onClick={() => onRetry(r.id)}>
                 <RefreshCw className="h-3 w-3 mr-1" /> Retry
+              </Button>
+            )}
+            {isBlocked && dm !== 'LETTER' && onGenerateLetter && (
+              <Button size="sm" variant="outline" onClick={() => onGenerateLetter(r.id)}>
+                <FileSignature className="h-3 w-3 mr-1" /> Generate Letter
+              </Button>
+            )}
+            {(isBlocked || r.status === 'FAILED') && onMarkDispatched && (
+              <Button size="sm" variant="outline" onClick={() => onMarkDispatched(r.id)}>
+                <MailCheck className="h-3 w-3 mr-1" /> Mark Dispatched
               </Button>
             )}
           </div>
