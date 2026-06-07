@@ -8265,11 +8265,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           delivered_at: string | null
+          department_code: string | null
           dispatched_at: string | null
           dispatched_by: string | null
+          document_type: string | null
           event_code: string
           generated_at: string | null
           id: string
+          issued_by_office: string | null
           merge_context: Json | null
           notes: string | null
           pdf_storage_path: string | null
@@ -8278,6 +8281,7 @@ export type Database = {
           recipient_address_snapshot: Json | null
           recipient_name: string | null
           recipient_type: string
+          reference_number: string | null
           rendered_body_html: string | null
           rendered_body_text: string | null
           rendered_subject: string | null
@@ -8298,11 +8302,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           delivered_at?: string | null
+          department_code?: string | null
           dispatched_at?: string | null
           dispatched_by?: string | null
+          document_type?: string | null
           event_code: string
           generated_at?: string | null
           id?: string
+          issued_by_office?: string | null
           merge_context?: Json | null
           notes?: string | null
           pdf_storage_path?: string | null
@@ -8311,6 +8318,7 @@ export type Database = {
           recipient_address_snapshot?: Json | null
           recipient_name?: string | null
           recipient_type: string
+          reference_number?: string | null
           rendered_body_html?: string | null
           rendered_body_text?: string | null
           rendered_subject?: string | null
@@ -8331,11 +8339,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           delivered_at?: string | null
+          department_code?: string | null
           dispatched_at?: string | null
           dispatched_by?: string | null
+          document_type?: string | null
           event_code?: string
           generated_at?: string | null
           id?: string
+          issued_by_office?: string | null
           merge_context?: Json | null
           notes?: string | null
           pdf_storage_path?: string | null
@@ -8344,6 +8355,7 @@ export type Database = {
           recipient_address_snapshot?: Json | null
           recipient_name?: string | null
           recipient_type?: string
+          reference_number?: string | null
           rendered_body_html?: string | null
           rendered_body_text?: string | null
           rendered_subject?: string | null
@@ -49147,6 +49159,75 @@ export type Database = {
         }
         Relationships: []
       }
+      system_office_settings: {
+        Row: {
+          address_line_1: string | null
+          address_line_2: string | null
+          city: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          department_name: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          is_default: boolean | null
+          logo_url: string | null
+          office_code: string
+          office_name: string
+          phone: string | null
+          postal_code: string | null
+          signature_block: string | null
+          state: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_name?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          logo_url?: string | null
+          office_code: string
+          office_name: string
+          phone?: string | null
+          postal_code?: string | null
+          signature_block?: string | null
+          state?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          address_line_1?: string | null
+          address_line_2?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_name?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_default?: boolean | null
+          logo_url?: string | null
+          office_code?: string
+          office_name?: string
+          phone?: string | null
+          postal_code?: string | null
+          signature_block?: string | null
+          state?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       system_performance_metrics: {
         Row: {
           api_name: string | null
@@ -49207,6 +49288,51 @@ export type Database = {
           status?: string | null
           timestamp?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      system_reference_sequence: {
+        Row: {
+          active: boolean
+          created_at: string
+          current_number: number
+          department_code: string
+          description: string | null
+          document_type: string
+          financial_year: number
+          id: string
+          module_code: string
+          padding: number
+          prefix_pattern: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          current_number?: number
+          department_code: string
+          description?: string | null
+          document_type: string
+          financial_year?: number
+          id?: string
+          module_code: string
+          padding?: number
+          prefix_pattern?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          current_number?: number
+          department_code?: string
+          description?: string | null
+          document_type?: string
+          financial_year?: number
+          id?: string
+          module_code?: string
+          padding?: number
+          prefix_pattern?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -58266,6 +58392,19 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      next_reference_number: {
+        Args: {
+          p_department_code: string
+          p_document_type: string
+          p_financial_year?: number
+          p_module_code: string
+        }
+        Returns: {
+          current_number: number
+          reference_number: string
+          sequence_id: string
+        }[]
       }
       pay_invoices_with_receipt:
         | {

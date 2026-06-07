@@ -16,6 +16,7 @@
  *     → fallback: if no email/phone for digital channels, auto-promote to LETTER
  */
 import { supabase } from '@/integrations/supabase/client';
+import { bnDocumentTypeFor } from '@/services/reference/referenceNumberService';
 
 const db = supabase as any;
 
@@ -360,6 +361,8 @@ async function createLetter(params: {
     rendered_body_html: renderedHtml,
     rendered_body_text: renderedText,
     merge_context: params.mergeContext,
+    department_code: 'BENEFITS',
+    document_type: bnDocumentTypeFor(params.eventCode),
     status: params.isMandatoryLetter ? 'PENDING_APPROVAL' : 'GENERATED',
     generated_at: new Date().toISOString(),
     created_by: params.userCode || null,
