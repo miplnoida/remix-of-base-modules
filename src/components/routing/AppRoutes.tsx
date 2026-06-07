@@ -378,6 +378,7 @@ const WorkflowSchemeList = lazy(() => import('@/pages/systemAdmin/WorkflowScheme
 const NotificationLog = lazy(() => import('@/pages/systemAdmin/NotificationLog'));
 const NotificationTemplates = lazy(() => import('@/pages/systemAdmin/NotificationTemplates'));
 const NotificationChannelSettings = lazy(() => import('@/pages/systemAdmin/NotificationChannelSettings'));
+const ReferenceSequencesAdmin = lazy(() => import('@/pages/systemAdmin/ReferenceSequencesAdmin'));
 const WorkflowManagement = lazy(() => import('@/pages/workflow/WorkflowManagement'));
 
 // Enterprise Admin Module
@@ -1650,6 +1651,7 @@ export const AppRoutes = () => {
       <Route path="/admin/email-campaigns" element={<EmailCampaigns />} />
       <Route path="/admin/email-logs" element={<EmailLogs />} />
       <Route path="/admin/offices" element={<OfficeManagement />} />
+      <Route path="/admin/reference-sequences" element={<ReferenceSequencesAdmin />} />
       <Route path="/admin/office-ip-management" element={<OfficeIPManagement />} />
       <Route path="/admin/departments" element={<DepartmentManagement />} />
       <Route path="/admin/modules" element={<ModuleManagement />} />
