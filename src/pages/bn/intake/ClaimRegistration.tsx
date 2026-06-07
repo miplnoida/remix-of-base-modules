@@ -744,9 +744,21 @@ export default function ClaimRegistration() {
                   </Field>
                   <Field label="Contact Phone"><Input value={contactPhone} onChange={e => setContactPhone(e.target.value)} /></Field>
                   <Field label="Contact Email"><Input value={contactEmail} onChange={e => setContactEmail(e.target.value)} /></Field>
-                  <Field label="Bank Account"><Input value={bankAccount} onChange={e => setBankAccount(e.target.value)} /></Field>
-                  <Field label="Bank Routing"><Input value={bankRouting} onChange={e => setBankRouting(e.target.value)} /></Field>
                 </div>
+                {ssn && (
+                  <PaymentDetailsSection
+                    mode="edit"
+                    channel="STAFF_OFFLINE"
+                    productId={productId || null}
+                    personSsn={ssn}
+                    userCode={userCode}
+                  />
+                )}
+                {!ssn && (
+                  <p className="text-xs text-muted-foreground">
+                    Bank / payment details become available once an SSN is captured. Uses the unified Payment Details framework.
+                  </p>
+                )}
                 <Field label="Internal Notes">
                   <Textarea value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={3} maxLength={500} />
                 </Field>
