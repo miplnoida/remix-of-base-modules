@@ -1,10 +1,9 @@
 /**
  * Override Eligibility Dialog
  *
- * Officer-facing modal to request an eligibility-rule override.
- * Captures rule context, reason code, justification and override scope, then
- * submits a PENDING request to bn_eligibility_override_request which a
- * supervisor must approve before the rule is treated as passed.
+ * Officer-facing modal to request an eligibility-rule override. Submits via
+ * the unified policy handler (bn_override_request) so all gating, required
+ * fields, maker-checker and audit are driven by bn_approval_policy.
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -22,18 +21,17 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SearchableSelect } from '@/components/ui/searchable-select';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
-import {
-  listOverrideReasonCodes,
-  requestOverride,
-  type OverrideScope,
-  type ProductOverridePolicy,
-} from '@/services/bn/eligibilityOverrideService';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useSubmitOverride, usePolicy } from '@/hooks/bn/usePolicy';
+
+export type OverrideScope = 'THIS_RULE_ONLY' | 'RULE_GROUP' | 'FULL_ELIGIBILITY';
 
 export interface OverrideEligibilityDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   claimId: string;
+  productVersionId: string;
   eligibilityResultId?: string | null;
   rule: {
     rule_code: string;
@@ -48,25 +46,46 @@ export interface OverrideEligibilityDialogProps {
     message?: string;
   };
   userCode: string;
-  policy: ProductOverridePolicy | null;
+  userRoles: string[];
+  claimStatus?: string;
+}
+
+async function fetchReasonCodes(group: string | null): Promise<Array<{ code: string; label: string }>> {
+  const db = supabase as any;
+  let q = db
+    .from('bn_reason_code')
+    .select('reason_code, reason_label, is_active, reason_category')
+    .eq('is_active', true);
+  q = q.eq('reason_category', group ?? 'ELIGIBILITY_OVERRIDE');
+  const { data, error } = await q.order('reason_label');
+  if (error) return [];
+  return (data ?? []).map((r: any) => ({ code: r.reason_code, label: r.reason_label }));
 }
 
 export const OverrideEligibilityDialog: React.FC<OverrideEligibilityDialogProps> = ({
   open,
   onOpenChange,
   claimId,
+  productVersionId,
   eligibilityResultId,
   rule,
   userCode,
-  policy,
+  userRoles,
+  claimStatus,
 }) => {
-  const qc = useQueryClient();
-  const [reasons, setReasons] = useState<Array<{ code: string; label: string }>>([]);
+  const { data: policy } = usePolicy(productVersionId, 'ELIGIBILITY');
+  const submit = useSubmitOverride();
+
+  const { data: reasons = [] } = useQuery({
+    queryKey: ['bn', 'reason-codes', policy?.reason_code_group ?? 'ELIGIBILITY_OVERRIDE'],
+    queryFn: () => fetchReasonCodes(policy?.reason_code_group ?? null),
+    enabled: open,
+  });
+
   const [reasonCode, setReasonCode] = useState('');
   const [justification, setJustification] = useState('');
   const [scope, setScope] = useState<OverrideScope>('THIS_RULE_ONLY');
   const [confirm, setConfirm] = useState(false);
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -74,7 +93,6 @@ export const OverrideEligibilityDialog: React.FC<OverrideEligibilityDialogProps>
     setJustification('');
     setScope('THIS_RULE_ONLY');
     setConfirm(false);
-    listOverrideReasonCodes().then(setReasons).catch(() => setReasons([]));
   }, [open]);
 
   const reasonOptions = useMemo(
@@ -82,42 +100,50 @@ export const OverrideEligibilityDialog: React.FC<OverrideEligibilityDialogProps>
     [reasons],
   );
 
-  const requireDoc = policy?.override_requires_document === true;
+  const requireReason = policy?.requires_reason_code !== false;
+  const requireJustification = policy?.requires_justification !== false;
+  const requireDoc = policy?.requires_document === true;
+
   const canSubmit =
-    !!reasonCode &&
-    justification.trim().length >= 10 &&
+    (!requireReason || !!reasonCode) &&
+    (!requireJustification || justification.trim().length >= 10) &&
     confirm &&
-    !busy;
+    !submit.isPending;
 
   const handleSubmit = async () => {
-    setBusy(true);
     try {
-      await requestOverride({
+      await submit.mutateAsync({
         claimId,
-        eligibilityResultId: eligibilityResultId ?? null,
+        productVersionId,
+        area: 'ELIGIBILITY',
+        actionCode: 'DEFAULT',
+        targetEntityType: eligibilityResultId ? 'bn_claim_eligibility' : undefined,
+        targetEntityId: eligibilityResultId ?? undefined,
         ruleCode: rule.rule_code,
-        ruleGroupCode: rule.rule_group_code ?? null,
-        fieldKey: rule.field_key ?? null,
-        sourceTable: rule.source ?? null,
-        sourceRecordId: rule.source_record_id ?? null,
-        actualValue: rule.actual_value ?? null,
-        expectedValue: rule.expected_value ?? null,
-        operator: rule.operator ?? null,
-        overrideScope: scope,
-        reasonCode,
-        justification,
+        currentValue: {
+          actual_value: rule.actual_value ?? null,
+          expected_value: rule.expected_value ?? null,
+          operator: rule.operator ?? null,
+          rule_group_code: rule.rule_group_code ?? null,
+          field_key: rule.field_key ?? null,
+          source: rule.source ?? null,
+          message: rule.message ?? null,
+        },
+        requestedValue: { override_scope: scope, passed: true },
+        reasonCode: reasonCode || undefined,
+        justification: justification || undefined,
+        claimStatus,
         requestedBy: userCode,
+        requestedByRoles: userRoles,
       });
       toast.success('Override request submitted', {
-        description: 'A supervisor must review and approve before eligibility is updated.',
+        description: policy?.requires_supervisor_approval
+          ? 'A supervisor must review and approve before eligibility is updated.'
+          : 'Override applied per policy.',
       });
-      qc.invalidateQueries({ queryKey: ['bn', 'eligibility-overrides', claimId] });
-      qc.invalidateQueries({ queryKey: ['bn', 'claim-events', claimId] });
       onOpenChange(false);
     } catch (err: any) {
       toast.error('Could not submit override', { description: err?.message ?? 'Please try again.' });
-    } finally {
-      setBusy(false);
     }
   };
 
@@ -127,8 +153,8 @@ export const OverrideEligibilityDialog: React.FC<OverrideEligibilityDialogProps>
         <DialogHeader>
           <DialogTitle>Request Eligibility Override</DialogTitle>
           <DialogDescription>
-            Eligibility failures stay factual. This request creates a separate maker-checker record; a
-            supervisor must approve before the rule is treated as passed.
+            Eligibility failures stay factual. This request follows the product's approval policy and is
+            fully audited.
           </DialogDescription>
         </DialogHeader>
 
@@ -147,32 +173,37 @@ export const OverrideEligibilityDialog: React.FC<OverrideEligibilityDialogProps>
             {rule.message && <div className="text-xs text-destructive">{rule.message}</div>}
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Reason code *</Label>
-            <SearchableSelect
-              options={reasonOptions}
-              value={reasonCode}
-              onValueChange={setReasonCode}
-              placeholder="Select reason…"
-              searchPlaceholder="Search reason codes…"
-              emptyMessage="No override reason codes configured."
-            />
-            <p className="text-xs text-muted-foreground">
-              Manage codes in Admin → Reason Codes (category <span className="font-mono">ELIGIBILITY_OVERRIDE</span>).
-            </p>
-          </div>
+          {requireReason && (
+            <div className="space-y-1.5">
+              <Label>Reason code *</Label>
+              <SearchableSelect
+                options={reasonOptions}
+                value={reasonCode}
+                onValueChange={setReasonCode}
+                placeholder="Select reason…"
+                searchPlaceholder="Search reason codes…"
+                emptyMessage="No override reason codes configured."
+              />
+              <p className="text-xs text-muted-foreground">
+                Manage codes in Admin → Reason Codes (category{' '}
+                <span className="font-mono">{policy?.reason_code_group ?? 'ELIGIBILITY_OVERRIDE'}</span>).
+              </p>
+            </div>
+          )}
 
-          <div className="space-y-1.5">
-            <Label>Officer justification *</Label>
-            <Textarea
-              value={justification}
-              onChange={(e) => setJustification(e.target.value)}
-              placeholder="Explain why this rule should be overridden. Reference evidence, prior approvals, or applicable exceptions."
-              maxLength={1000}
-              rows={4}
-            />
-            <p className="text-xs text-muted-foreground">{justification.length}/1000 — minimum 10 characters.</p>
-          </div>
+          {requireJustification && (
+            <div className="space-y-1.5">
+              <Label>Officer justification *</Label>
+              <Textarea
+                value={justification}
+                onChange={(e) => setJustification(e.target.value)}
+                placeholder="Explain why this rule should be overridden. Reference evidence, prior approvals, or applicable exceptions."
+                maxLength={1000}
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">{justification.length}/1000 — minimum 10 characters.</p>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label>Override scope *</Label>
@@ -213,11 +244,15 @@ export const OverrideEligibilityDialog: React.FC<OverrideEligibilityDialogProps>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submit.isPending}>
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={!canSubmit}>
-            {busy ? 'Submitting…' : 'Submit for Supervisor Review'}
+            {submit.isPending
+              ? 'Submitting…'
+              : policy?.requires_supervisor_approval
+                ? 'Submit for Supervisor Review'
+                : 'Apply Override'}
           </Button>
         </DialogFooter>
       </DialogContent>

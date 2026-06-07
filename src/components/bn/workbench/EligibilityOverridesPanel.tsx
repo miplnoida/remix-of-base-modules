@@ -1,9 +1,10 @@
 /**
  * Eligibility Overrides Panel
  *
- * Lists all override requests for a claim grouped by status. Supervisors can
- * Approve/Reject pending requests (except their own). Officers can Cancel
- * their own pending requests.
+ * Lists override requests from bn_override_request (area=ELIGIBILITY) for a
+ * claim, grouped by status. Approvers (per policy) can Approve / Reject
+ * pending requests; requesters can Cancel their own pending requests.
+ * All actions are driven by the unified policy handler.
  */
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,54 +20,49 @@ import {
 } from '@/components/ui/dialog';
 import { CheckCircle2, XCircle, Clock, Ban } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  listClaimOverrides,
-  reviewOverride,
-  cancelOverride,
-  type EligibilityOverrideRow,
-} from '@/services/bn/eligibilityOverrideService';
+  usePendingOverrides,
+  useReviewOverride,
+  useCancelOverride,
+} from '@/hooks/bn/usePolicy';
+import type { OverrideRequest } from '@/services/bn/policies/types';
 import { formatDateForDisplay } from '@/lib/format-config';
 
 interface Props {
   claimId: string;
   userCode: string;
+  userRoles: string[];
   canReview: boolean;
-  userRoles?: string[];
 }
 
-export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, canReview, userRoles = [] }) => {
-  const qc = useQueryClient();
-  const { data: rows = [] } = useQuery({
-    queryKey: ['bn', 'eligibility-overrides', claimId],
-    queryFn: () => listClaimOverrides(claimId),
-    enabled: !!claimId,
-  });
+export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, userRoles, canReview }) => {
+  const { data: rows = [] } = usePendingOverrides(claimId, 'ELIGIBILITY');
+  const review = useReviewOverride(claimId);
+  const cancel = useCancelOverride(claimId);
 
-  const [reviewing, setReviewing] = useState<{ row: EligibilityOverrideRow; decision: 'APPROVED' | 'REJECTED' } | null>(null);
+  const [reviewing, setReviewing] = useState<{ row: OverrideRequest; decision: 'APPROVED' | 'REJECTED' } | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const pending = rows.filter((r) => r.status === 'PENDING');
+  const pending = rows.filter((r) => r.status === 'PENDING_APPROVAL');
   const approved = rows.filter((r) => r.status === 'APPROVED');
   const rejected = rows.filter((r) => r.status === 'REJECTED');
   const cancelled = rows.filter((r) => r.status === 'CANCELLED');
-
-  const refresh = () => {
-    qc.invalidateQueries({ queryKey: ['bn', 'eligibility-overrides', claimId] });
-    qc.invalidateQueries({ queryKey: ['bn', 'claim-eligibility', claimId] });
-    qc.invalidateQueries({ queryKey: ['bn', 'claim-events', claimId] });
-  };
 
   const submitReview = async () => {
     if (!reviewing) return;
     setBusyId(reviewing.row.id);
     try {
-      await reviewOverride(reviewing.row.id, reviewing.decision, userCode, reviewNotes || undefined, userRoles);
+      await review.mutateAsync({
+        requestId: reviewing.row.id,
+        decision: reviewing.decision,
+        notes: reviewNotes || undefined,
+        reviewedBy: userCode,
+        reviewerRoles: userRoles,
+      });
       toast.success(`Override ${reviewing.decision.toLowerCase()}`);
       setReviewing(null);
       setReviewNotes('');
-      refresh();
     } catch (err: any) {
       toast.error('Review failed', { description: err?.message });
     } finally {
@@ -74,12 +70,11 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
     }
   };
 
-  const cancel = async (row: EligibilityOverrideRow) => {
+  const onCancel = async (row: OverrideRequest) => {
     setBusyId(row.id);
     try {
-      await cancelOverride(row.id, userCode);
+      await cancel.mutateAsync({ requestId: row.id, cancelledBy: userCode });
       toast.success('Override request cancelled.');
-      refresh();
     } catch (err: any) {
       toast.error('Cancel failed', { description: err?.message });
     } finally {
@@ -119,7 +114,7 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
                       </Badge>
                     )}
                     {r.requested_by === userCode && (
-                      <Button size="sm" variant="outline" disabled={busyId === r.id} onClick={() => cancel(r)}>
+                      <Button size="sm" variant="outline" disabled={busyId === r.id} onClick={() => onCancel(r)}>
                         Cancel my request
                       </Button>
                     )}
@@ -157,13 +152,14 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
           {reviewing && (
             <div className="space-y-3 py-2">
               <div className="text-sm">
-                Rule <span className="font-mono">{reviewing.row.rule_code}</span> — scope{' '}
-                <span className="font-mono">{reviewing.row.override_scope}</span>
+                Rule <span className="font-mono">{reviewing.row.rule_code ?? '—'}</span>
               </div>
               <div className="text-xs text-muted-foreground">
-                Requested by {reviewing.row.requested_by} • Reason {reviewing.row.reason_code}
+                Requested by {reviewing.row.requested_by} • Reason {reviewing.row.reason_code ?? '—'}
               </div>
-              <div className="text-sm">{reviewing.row.justification}</div>
+              {reviewing.row.justification && (
+                <div className="text-sm">{reviewing.row.justification}</div>
+              )}
               <Textarea
                 rows={3}
                 placeholder="Review notes (optional)"
@@ -173,8 +169,8 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
               />
               {reviewing.decision === 'APPROVED' && (
                 <p className="text-xs text-amber-700 bg-amber-500/10 border border-amber-300 rounded px-3 py-2">
-                  Approving will mark the affected rule(s) as OVERRIDDEN, set eligibility to
-                  "Passed with Override" if no blocking failures remain, and flag the calculation as stale.
+                  Approving will mark the affected rule as OVERRIDDEN, set eligibility to
+                  "Passed with Override" and flag the calculation as stale.
                 </p>
               )}
             </div>
@@ -205,25 +201,28 @@ const Section: React.FC<React.PropsWithChildren<{ title: string; icon: React.Rea
   </div>
 );
 
-const OverrideRow: React.FC<React.PropsWithChildren<{ row: EligibilityOverrideRow }>> = ({ row, children }) => (
-  <div className="rounded border p-3 text-sm space-y-1">
-    <div className="flex items-center justify-between gap-2 flex-wrap">
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="font-mono text-xs">{row.rule_code}</Badge>
-        <Badge variant="secondary" className="text-xs">{row.override_scope}</Badge>
+const OverrideRow: React.FC<React.PropsWithChildren<{ row: OverrideRequest }>> = ({ row, children }) => {
+  const scope = (row.requested_value as any)?.override_scope as string | undefined;
+  return (
+    <div className="rounded border p-3 text-sm space-y-1">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="font-mono text-xs">{row.rule_code ?? '—'}</Badge>
+          {scope && <Badge variant="secondary" className="text-xs">{scope}</Badge>}
+        </div>
+        <span className="text-xs text-muted-foreground">
+          {formatDateForDisplay(row.requested_at)} • by {row.requested_by}
+        </span>
       </div>
-      <span className="text-xs text-muted-foreground">
-        {formatDateForDisplay(row.requested_at)} • by {row.requested_by}
-      </span>
+      <div className="text-xs"><span className="text-muted-foreground">Reason:</span> {row.reason_code ?? '—'}</div>
+      {row.justification && <div className="text-xs">{row.justification}</div>}
+      {row.reviewed_by && (
+        <div className="text-xs text-muted-foreground">
+          Reviewed by {row.reviewed_by} on {formatDateForDisplay(row.reviewed_at ?? '')} — {row.review_decision}
+          {row.review_notes ? ` — ${row.review_notes}` : ''}
+        </div>
+      )}
+      {children}
     </div>
-    <div className="text-xs"><span className="text-muted-foreground">Reason:</span> {row.reason_code}</div>
-    <div className="text-xs">{row.justification}</div>
-    {row.reviewed_by && (
-      <div className="text-xs text-muted-foreground">
-        Reviewed by {row.reviewed_by} on {formatDateForDisplay(row.reviewed_at ?? '')} — {row.review_decision}
-        {row.review_notes ? ` — ${row.review_notes}` : ''}
-      </div>
-    )}
-    {children}
-  </div>
-);
+  );
+};
