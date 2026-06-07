@@ -389,7 +389,7 @@ export async function reviewOverrideRequest(input: ReviewOverrideInput): Promise
 
 async function applyApprovedRequest(request: OverrideRequest, actor: string): Promise<void> {
   const applier = EFFECT_APPLIERS[request.policy_area];
-  const result = await applier(request);
+  const result = await applier(request, actor);
   if (!result.applied) return;
 
   await db
