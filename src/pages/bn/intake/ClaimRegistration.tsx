@@ -891,7 +891,40 @@ function FactInput({
   field,
   value,
   onChange,
-}: { field: FormFieldDef; value: any; onChange: (v: any) => void }) {
+  existingClaims,
+}: {
+  field: FormFieldDef;
+  value: any;
+  onChange: (v: any) => void;
+  existingClaims: ExistingClaimRecord[];
+}) {
+  // Special case: Prior Injury Claim Reference must be picked from the
+  // claimant's prior injury claims, not entered as free text.
+  if (field.field_code === 'prior_injury_claim_ref') {
+    const injuryClaims = existingClaims.filter(c => {
+      const code = (c.product_code ?? '').toUpperCase();
+      return code.includes('EI') || code.includes('INJ');
+    });
+    if (injuryClaims.length === 0) {
+      return (
+        <Input value="" disabled placeholder="No prior injury claims on file" />
+      );
+    }
+    return (
+      <Select value={value ?? ''} onValueChange={onChange}>
+        <SelectTrigger><SelectValue placeholder="Select prior injury claim…" /></SelectTrigger>
+        <SelectContent>
+          {injuryClaims.map(c => (
+            <SelectItem key={c.id} value={c.claim_number ?? c.id}>
+              {(c.claim_number ?? c.id)} — {c.product_code ?? '—'} · {c.status ?? '—'}
+              {c.claim_date ? ` · ${formatDateForDisplay(c.claim_date)}` : ''}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
   switch (field.field_type) {
     case 'TEXTAREA':
       return <Textarea value={value ?? ''} onChange={e => onChange(e.target.value)} />;
