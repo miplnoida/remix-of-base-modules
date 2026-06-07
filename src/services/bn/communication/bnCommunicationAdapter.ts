@@ -196,18 +196,16 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
 
 
 // ─── Recipient resolution ─────────────────────────────────────────
-export async function resolveRecipient(claimId: string, recipientType: BnRecipientType, channel: BnChannel): Promise<{ name?: string; email?: string; phone?: string; address?: any; userId?: string } | null> {
+export async function resolveRecipient(claimId: string, recipientType: BnRecipientType, channel: BnChannel, ctx?: BnCommContext): Promise<{ name?: string; email?: string; phone?: string; address?: any; userId?: string; fallbackUsed?: string } | null> {
   const { data: claim } = await db.from('bn_claim').select('ssn, employer_regno, assigned_to').eq('id', claimId).maybeSingle();
   if (!claim) return null;
 
   if (recipientType === 'CLAIMANT' || recipientType === 'PAYEE') {
     const ssn = claim.ssn ? String(claim.ssn).trim() : null;
     if (!ssn) return null;
-    // ip_master uses firstname/surname/email_addr/contact_email/phone_mobile/phone/mail_addr1
     const { data: p } = await db.from('ip_master')
-      .select('firstname, surname, email_addr, contact_email, phone_mobile, phone, telephone, mail_addr1, mail_addr2')
+      .select('firstname, surname, email_addr, contact_email, mobile, phone_mobile, contact_mobile, phone, telephone, mail_addr1, mail_addr2')
       .eq('ssn', ssn).maybeSingle();
-    // Fallback to the application snapshot contact info if ip_master is sparse
     const { data: appSnap } = await db.from('bn_claim_application')
       .select('raw_application_json')
       .eq('claim_id', claimId)
@@ -216,21 +214,30 @@ export async function resolveRecipient(claimId: string, recipientType: BnRecipie
     const raw = appSnap?.raw_application_json || {};
     const contact = raw.contact || raw.claimant || raw.applicant || {};
     const addrSrc = raw.address || raw.mailing_address || contact.address || {};
-    // Resolve linked external user (for IN_APP delivery to claimant)
+
+    // Resolve linked external (claimant portal) user, plus fallback phone via verified link
     let userId: string | undefined;
-    if (channel === 'IN_APP') {
-      const { data: link } = await db.from('external_user_person_link')
-        .select('user_id, is_primary, verification_status')
-        .eq('ssn', ssn)
-        .order('is_primary', { ascending: false })
-        .limit(1).maybeSingle();
-      userId = link?.user_id || undefined;
+    let linkedPhone: string | undefined;
+    const { data: link } = await db.from('external_user_person_link')
+      .select('user_id, is_primary, verification_status')
+      .eq('ssn', ssn)
+      .order('is_primary', { ascending: false })
+      .limit(1).maybeSingle();
+    if (link?.user_id) {
+      if (channel === 'IN_APP') userId = link.user_id;
+      // best-effort: pull verified phone from profile if present
+      const { data: extProf } = await db.from('profiles')
+        .select('phone, mobile, contact_phone')
+        .eq('id', link.user_id)
+        .maybeSingle();
+      linkedPhone = (extProf as any)?.phone || (extProf as any)?.mobile || (extProf as any)?.contact_phone || undefined;
     }
     const name = `${p?.firstname || contact.firstname || contact.first_name || ''} ${p?.surname || contact.surname || contact.last_name || ''}`.trim();
     return {
       name: name || recipientType,
       email: p?.email_addr || p?.contact_email || contact.email || contact.email_addr || undefined,
-      phone: p?.phone_mobile || p?.phone || p?.telephone || contact.phone || contact.phone_mobile || undefined,
+      // phone_cell-equivalent → mobile first, then phone_mobile, contact_mobile, phone, telephone, linked, snapshot
+      phone: p?.mobile || p?.phone_mobile || p?.contact_mobile || p?.phone || p?.telephone || contact.phone || contact.phone_mobile || linkedPhone || undefined,
       address: {
         line1: p?.mail_addr1 || addrSrc.line1 || addrSrc.address_line1 || addrSrc.street || undefined,
         line2: p?.mail_addr2 || addrSrc.line2 || addrSrc.address_line2 || undefined,
@@ -256,8 +263,8 @@ export async function resolveRecipient(claimId: string, recipientType: BnRecipie
 
   // Internal recipients (ASSIGNED_OFFICER / SUPERVISOR / FINANCE / etc.)
   let officerId: string | undefined = claim.assigned_to || undefined;
+  let fallbackUsed: string | undefined;
   if (!officerId) {
-    // Fallback to most-recent active queue assignment
     const { data: q } = await db.from('bn_claim_queue_assignment')
       .select('assigned_to')
       .eq('claim_id', claimId)
@@ -266,17 +273,26 @@ export async function resolveRecipient(claimId: string, recipientType: BnRecipie
       .limit(1).maybeSingle();
     officerId = q?.assigned_to || undefined;
   }
-  // Try to resolve an email for that user (best effort)
-  let officerEmail: string | undefined;
+  // Fallback: current logged-in user (officer-initiated comms)
+  if (!officerId && ctx?.currentUserId) {
+    officerId = ctx.currentUserId;
+    fallbackUsed = 'current-user';
+  }
+
   if (officerId) {
     const { data: prof } = await db.from('profiles')
-      .select('email, full_name, user_code')
+      .select('id, email, full_name, user_code')
       .or(`id.eq.${officerId},user_code.eq.${officerId}`)
       .limit(1).maybeSingle();
-    officerEmail = prof?.email || undefined;
-    return { name: prof?.full_name || recipientType, email: officerEmail, userId: officerId };
+    const resolvedUserId = (prof as any)?.id || officerId;
+    return {
+      name: prof?.full_name || ctx?.currentUserName || recipientType,
+      email: prof?.email || ctx?.currentUserEmail || undefined,
+      userId: resolvedUserId,
+      fallbackUsed,
+    };
   }
-  return { name: recipientType, userId: officerId };
+  return { name: ctx?.currentUserName || recipientType, email: ctx?.currentUserEmail, userId: undefined };
 }
 
 // ─── Channel dispatchers ──────────────────────────────────────────
