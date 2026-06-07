@@ -368,6 +368,7 @@ export default function ClaimRegistration() {
       case 'eligibility':
       case 'documents':
       case 'facts':
+      case 'banking':
       case 'internal':
         return null;
       case 'review': return null;
