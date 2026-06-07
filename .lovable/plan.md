@@ -1,85 +1,175 @@
 
-## Goal
-Make every eligibility rule executable against real business facts. No more `field=CLAIM / op=REFER / value=Yes` placeholders. EI-REPORT-3D must actually compute `days_between(injury_date, reported_date ?? submission_date) <= 3`.
+# Calculation Tab Rebuild + Eligibility Rule Backfill
 
-## 1. Schema (migration)
-Extend `bn_eligibility_rule` with typed-rule columns (additive, nullable — existing data preserved):
-- `rule_kind` enum: `LITERAL | FACT_TO_FACT | DATE_DIFFERENCE | DOCUMENT_STATUS | EXISTS | CROSS_PRODUCT | DERIVED_FACT | CONDITIONAL`
-- `start_fact_key`, `end_fact_key`, `fallback_end_fact_key` (DATE_DIFFERENCE)
-- `compare_fact_key` (FACT_TO_FACT)
-- `document_type_code`, `required_status` (DOCUMENT_STATUS)
-- `existence_check_code` (EXISTS / CROSS_PRODUCT)
-- `unit` enum: `DAYS | WEEKS | MONTHS | YEARS`
-- `severity` enum: `BLOCKING | REFER | WARNING | INFO`
-- `overrideable bool`, `override_policy_code`, `reason_code_group`
-- `conditional_when jsonb` (CONDITIONAL pre-guard)
-- `message_template text`
-Keep legacy `field_name/operator/expected_value` for LITERAL fallback.
-Add `bn_eligibility_diagnostic` table (run_id, rule_id, source_fact, resolver, actual_value, expected_value, operator, result, severity, override_status, evaluated_at) for trace persistence.
+Two tracks. Track A finishes what the eligibility rebuild started (so we can honestly say "all products work"). Track B is the calculation-tab redesign you just asked for. Both share the same fact-registry + diagnostics infrastructure already built.
 
-## 2. Fact Registry (`eligibilityFactRegistry.ts` rewrite)
-Replace current registry with all facts listed in the brief, grouped:
-Person, Contribution, Employer, Claim, Document, Existing, Medical, MedicalBoard, MeansTest, Beneficiary, PaymentProfile, Applicant.
-Each entry: `{ key, label, group, type, unit?, resolverId, source, sample, description }`. Add `getFactsByKind(kind)` helpers so the builder only shows compatible facts per rule kind.
+---
 
-## 3. Resolver layer (`eligibilityFactResolver.ts`)
-Add resolvers for new facts (or stub with `notImplemented:true` flag surfaced in diagnostics) mapped to:
-- `ip_master`, `ip_wages`, `ip_wages_ann_sum`, `er_master`
-- `bn_claim`, `bn_claim_document`, `bn_claim_evidence`
-- `bn_award`, `bn_award_beneficiary`
-- `bn_medical_recommendation`, `bn_payment_profile`
-Resolver returns `{ value, sourceTable, sourceColumn, missing }` so diagnostics can render.
+## Track A — Backfill executable eligibility rules (must ship first)
 
-## 4. Rule Builder UI (`EligibilityRulesTab.tsx` + new `RuleWizardDialog`)
-Step wizard replacing the flat grid:
-1. Pick **Rule Kind** (cards with descriptions)
-2. Pick **Fact(s)** from registry — filtered by kind, grouped picker, no free-text
-3. Pick **Operator** — driven by fact type + rule kind
-4. Configure **value / second fact / period+unit / document type+status / existence code**
-5. **Severity** select
-6. **Override** toggle + policy + reason group
-7. **Message template**
-Existing list still renders rows but now shows `rule_kind` badge and human-readable summary built from registry (e.g. *"Days between Injury date → Reported date (fallback Submission date) ≤ 3 DAYS — REFER"*).
+**Why first**: today only SKN-EI-INJ has real date-difference / document-status rules. Four service products have zero rules. Without this, "all rules work" cannot be claimed.
 
-## 5. Evaluator updates (`operatorEvaluator.ts` + new `ruleEvaluator.ts`)
-- `evaluateRule(rule, context)` dispatches on `rule_kind`.
-- DATE_DIFFERENCE: resolve start + end (fallback if end missing) → compute diff in unit → compare.
-- DOCUMENT_STATUS: lookup `bn_claim_document` row by type, compare status.
-- EXISTS / CROSS_PRODUCT: call existence resolver.
-- FACT_TO_FACT: resolve both facts, coerce to common type, apply operator.
-- CONDITIONAL: evaluate `conditional_when` first; skip if false.
-- Every eval emits a diagnostic record (in-memory + optional persist).
+### A1. Re-seed SKN core benefit products
+Rewrite the LITERAL-only rules to executable ones per the SKN benefit-parameters memory:
 
-## 6. Diagnostics panel
-New `RuleDiagnosticsPanel` shown on the rule row (expandable) and inside the simulator: source fact, resolver/table, actual, expected, operator, pass/fail, severity, override status. Wired to evaluator output.
+- **SKN-SICK** — add `SICK-WAIT-3D` (DATE_DIFFERENCE: incapacity_start → claim.submission_date, ≤ 14 days late), `SICK-MEDCERT-VERIFIED` (DOCUMENT_STATUS), `SICK-MIN-26W` (LITERAL on contribution.total_paid_weeks ≥ 26), `SICK-NOT-WORKING` (EXISTS: no active wage in claim week).
+- **SKN-AGE** — `AGE-MIN-62` (LITERAL person.age ≥ 62), `AGE-CONTRIB-500W` (≥ 500 paid+credited weeks), `AGE-LIFE-CERT` (DOCUMENT_STATUS).
+- **SKN-INV** — `INV-MEDBOARD-CONFIRMED` (DOCUMENT_STATUS on medical board recommendation), `INV-MIN-150W` contribution, `INV-NO-AGE-PENSION` (CROSS_PRODUCT).
+- **SKN-NCP** — `NCP-AGE-65`, `NCP-NO-CONTRIB-PENSION` (CROSS_PRODUCT), `NCP-RESIDENCE-10Y` (DATE_DIFFERENCE on person.residence_start_date), `NCP-MEANS-TEST` (DOCUMENT_STATUS stub).
+- **SKN-MAT** — add `MAT-CONFINEMENT-CERT` (DOCUMENT_STATUS), `MAT-MIN-26W` contribution.
+- **SKN-EI-DIS / DTH / MED / FUN / SUR** — add the missing document and existence checks (death cert, dependant proof, funeral receipt cap, beneficiary share check).
 
-## 7. Configuration validator (extend `validateProductChannelConfig.ts`)
-Add checks blocking publish:
-- unknown fact key
-- missing resolver
-- DATE_DIFFERENCE missing start/end
-- DOCUMENT_STATUS missing document_type_code
-- value type mismatch with fact type
-- seeded placeholder values (`REFER`, `Yes`) used as literal expected
-Surface in existing `ChannelConfigValidationPanel`.
+### A2. Seed rules for the four service products
+- **SKN-SVC-EFT** — `EFT-PAYEE-MATCH` (FACT_TO_FACT: bn_payment_profile.account_holder matches person name), `EFT-BANK-VERIFIED` (DOCUMENT_STATUS).
+- **SKN-SVC-EIR** — `EIR-REPORT-7D` (DATE_DIFFERENCE).
+- **SKN-SVC-LIFE** — `LIFE-CERT-WITHIN-12M` (DATE_DIFFERENCE).
+- **SKN-SVC-SCH** — `SCH-AGE-RANGE` (LITERAL dependant age 16–25), `SCH-SCHOOL-CERT` (DOCUMENT_STATUS).
 
-## 8. Re-seed SKN rules (data migration via insert tool, not schema)
-Rewrite seeded rules for: Sickness, Maternity, Employment Injury (incl. fixed **EI-REPORT-3D**), Disablement, Invalidity, Age, Survivors, Funeral, NCP, Life Certificate, School Certificate, EFT Update — using new columns, exactly per the spec list.
+### A3. Build a Coverage Dashboard
+Read-only panel on Product Catalog list view: per product, show rule count by `rule_kind`, flag products with 0 rules or all-LITERAL rules. One badge per product on the catalog grid.
 
-## 9. Tests
-Extend `eligibility/__tests__/registry.test.ts` and add `ruleEvaluator.test.ts` covering each rule kind incl. EI-REPORT-3D pass/fail/fallback.
+### A4. Smoke-test runner
+Reuse the `TestRulePanel` already in the wizard. Add a "Test all rules" button on the Eligibility tab that runs every rule against a chosen test claim and shows the diagnostic grid.
 
-## Delivery order (separate turns to keep diffs reviewable)
-1. **Migration** (schema + diagnostic table) — review & approve.
-2. **Registry + resolver + evaluator** + unit tests.
-3. **Builder wizard UI + diagnostics panel**.
-4. **Validator extensions + re-seed SKN rules**.
+---
 
-## Out of scope (call out)
-- Wiring evaluator into batch claim processing (only intake pre-check uses it now).
-- Real `medical_board.invalidity_confirmed`, `means_test.result` data sources — seeded as resolvers returning `missing:true` until source tables exist; diagnostics will flag them. Confirm OK?
+## Track B — Calculation Tab Rebuild
 
-## Question before I start
-Two things to confirm so I don't ping-pong:
-- (a) OK that medical-board / means-test facts ship as stub resolvers (flagged `notImplemented`) until backing tables exist?
-- (b) Should I keep legacy rows readable (rule_kind defaulting to `LITERAL`) and migrate them lazily, or hard-rewrite all existing seeded rules in this pass?
+### B1. Discovery (what exists today)
+
+```text
+Product Catalog → Calculation tab
+  └─ CalculationTab.tsx  →  edits bn_product_version.calculation_config (raw JSON)
+Formula Library
+  └─ FormulaLibrary.tsx  →  CRUD on bn_formula_template
+                            (template_code, formula_expression, input_variables, output_type)
+Runtime
+  └─ services/bn/calculation/*  →  reads calculation_config JSON, no formula lookup
+```
+
+The two systems are not connected. Product version stores a JSON blob; library has 8 templates that nothing references.
+
+### B2. Schema additions (single migration)
+
+Add to `bn_product_version`:
+- `formula_template_id uuid REFERENCES bn_formula_template(id)`
+- `formula_version_id uuid` (nullable, for snapshotting)
+- `formula_parameter_values jsonb` — `{ replacement_rate: 0.75, ... }`
+- `cap_rules jsonb` — `{ min: 200, max: 1500, frequency_cap: 'WEEKLY' }`
+- `rounding_rule text` — `NEAREST_CENT | UP | DOWN | NEAREST_DOLLAR`
+- `effective_date_rule text` — `CLAIM_DATE | INCAPACITY_START | DECISION_DATE`
+- `payment_frequency_resolved text` — derived display
+
+Add `bn_formula_template`:
+- `template_version int default 1`
+- `status text default 'DRAFT'` — DRAFT / PUBLISHED / DEPRECATED
+- `input_facts jsonb` — array of `{ fact_key, required: bool, default? }`
+- `parameter_schema jsonb` — `[{ key, label, type: 'percent|currency|int', min, max, default }]`
+- `output_fact_key text` — e.g. `weekly_benefit_amount`
+- `category text` — PERCENT_WAGE | FLAT | TIERED | SHARE | …
+
+Add `bn_calc_legacy_snapshot.formula_template_id uuid` so migrations can be audited.
+
+### B3. Formula Library expansion
+
+Seed/refresh the 8 existing templates and add the missing ones from your list, using fact-registry keys:
+
+| Template Code | Expression | Inputs | Parameters |
+|---|---|---|---|
+| `PCT-AVG-WAGE` | `average_weekly_wage * replacement_rate` | contribution.average_weekly_wage | replacement_rate |
+| `FLAT-GRANT` | `fixed_amount` | — | fixed_amount |
+| `TIERED-PENSION` | piecewise on paid_weeks | contribution.total_paid_credited_weeks, contribution.average_weekly_wage | tier_table |
+| `AGE-GRANT-LUMP` | `fixed_amount` (NCP) | — | fixed_amount |
+| `FUNERAL-GRANT` | `min(actual_expense, cap)` | medical.approved_expense_amount | cap_amount |
+| `SURVIVOR-SPLIT` | `base * beneficiary_share_percent` | award.base_amount, award.beneficiary_share_percent | — |
+| `EI-DISABLEMENT` | `base * disablement_percentage` | contribution.average_weekly_wage, medical.disablement_percentage | replacement_rate |
+| `INVALIDITY-PCT` | `average_weekly_wage * replacement_rate` | contribution.average_weekly_wage | replacement_rate |
+| `MED-REIMBURSE` | `min(approved_expense, schedule_cap)` | medical.approved_expense_amount | schedule_table |
+| `ARREARS` | `weekly_amount * weeks_since(effective_date, today)` | award.effective_date, computed.weekly_amount | — |
+| `MIN-MAX-CAP` (composite wrapper) | `clamp(base, min, max)` | computed.base | min, max |
+
+### B4. Replace the JSON editor with `CalculationBuilder.tsx`
+
+Sections rendered top-to-bottom, all using shadcn `SearchableSelect` / `Input` / `Switch`:
+
+```text
+A. Formula Selection
+   ├─ Calculation Type chip (auto from template.category)
+   ├─ Formula Template picker (lists active templates in library)
+   ├─ "Create new formula"  →  opens FormulaWizardDialog
+   ├─ "Clone & customize"   →  copies template into a product-scoped draft
+   └─ Expression preview (read-only, monospace)
+
+B. Input Mapping
+   ├─ One row per required fact: fact_key → resolver/source_table
+   ├─ Green/red badge: resolved / missing fact in registry
+   └─ Override resolver (advanced)
+
+C. Product Parameters
+   └─ Rendered from template.parameter_schema (percent slider, currency input, etc.)
+
+D. Caps & Rounding
+   ├─ Min / Max amount, frequency cap
+   ├─ Rounding rule
+   ├─ Payment frequency
+   ├─ Arrears rule (toggle + formula link)
+   └─ Effective date rule
+
+E. Simulation
+   ├─ Pick a real claim (reuses TestRulePanel pattern)
+   ├─ Override SSN / parameters
+   └─ Shows CalculationTrace (formula, inputs, params, intermediate, final, caps applied, rounding)
+
+F. Advanced (Admin only) ▾
+   └─ Raw calculation_config JSON view (read-only by default; "Edit JSON" gated by has_role('admin'))
+```
+
+### B5. Runtime engine update
+
+`services/bn/calculation/runCalculation.ts`:
+
+1. Load `bn_product_version` → grab `formula_template_id`, parameters, caps.
+2. Load template; if `formula_template_id IS NULL` → fall back to legacy JSON path with a `legacy_mode=true` flag on the trace.
+3. For each `input_fact` → call `resolveFact` (Track A infrastructure).
+4. Evaluate `formula_expression` in a sandboxed evaluator (mathjs, expression already supported in library).
+5. Apply caps → apply rounding → produce result.
+6. Write a `bn_calc_trace` row capturing template id, version, every input value, every parameter, intermediate result, caps applied, rounding applied, final amount.
+
+### B6. Configuration validator
+
+Extend `validateProductChannelConfig.ts`:
+- product version requires a formula when `payment_type IS NOT NULL`
+- every `input_fact` must be in the registry and have a resolver
+- every `parameter_schema` entry must have a value in `formula_parameter_values`
+- caps must be numeric and `min ≤ max`
+- output fact key must match an award/payment column
+- warn when legacy `calculation_config` JSON is still present without a template
+
+### B7. Migration of existing JSON calcs
+
+One-shot migration script (idempotent, run via insert tool):
+- Read `bn_product_version.calculation_config` JSON.
+- Map shape → template (`{"type":"percentage","rate":0.75}` → `PCT-AVG-WAGE` with `replacement_rate: 0.75`).
+- Write `formula_template_id`, `formula_parameter_values`, `cap_rules`, `rounding_rule`.
+- Copy original JSON into `bn_calc_legacy_snapshot` for audit.
+- Report unmapped rows for manual review (UI badge "Migration: needs review").
+
+### B8. Tests
+
+- Unit: `formulaEvaluator.test.ts` covering PCT-AVG-WAGE (75% rule), FLAT-GRANT, MED-REIMBURSE (cap), ARREARS (weeks math).
+- Integration: end-to-end simulation against a seeded SKN-SICK claim — expected weekly amount matches manual calculation.
+
+---
+
+## Out of scope for this pass
+
+- Wiring calculation into the actual claim decision/payment pipeline (still simulation-only)
+- Means-test and medical-board resolvers (still stubs, flagged `notImplemented`)
+- Multi-currency / FX
+- Approval workflow for formula publishing (will reuse existing `bn_version_approval` table later)
+
+## Decision needed before I start
+
+1. **Order**: ship Track A (rule backfill) first, then Track B? Or interleave so each product gets rules + calc together?
+2. **Legacy JSON**: hard-migrate now and drop the column post-publish, or keep both paths indefinitely with a feature flag?
+3. **Formula expression sandbox**: OK to use `mathjs` (already friendly with our parameter shape) or do you want a custom whitelist evaluator?
