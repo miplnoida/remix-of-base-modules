@@ -52,7 +52,7 @@ import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { useBnProducts } from '@/hooks/bn/useBnProduct';
 import { useBnClaimIntake } from '@/hooks/bn/useBnClaimIntake';
 import type { BnProduct } from '@/types/bn';
-import { formatDateForDisplay } from '@/lib/format-config';
+import { formatDate as formatDateForDisplay } from '@/lib/culture/culture';
 import { useAuth } from '@/contexts/AuthContext';
 import { logAuditTrail } from '@/services/auditService';
 import { resolveProductVersion, type ResolvedProductVersion } from '@/services/bn/productVersionResolver';
@@ -629,8 +629,8 @@ export default function ClaimRegistration() {
                       <ShieldCheck className="h-4 w-4 text-emerald-600" />
                       v{resolvedVersion.version.version_number} <Badge variant="outline">{resolvedVersion.version.status}</Badge>
                     </div>
-                    <Detail k="Effective From" v={resolvedVersion.version.effective_from} />
-                    <Detail k="Effective To" v={resolvedVersion.version.effective_to ?? '(open)'} />
+                    <Detail k="Effective From" v={formatDateForDisplay(resolvedVersion.version.effective_from)} />
+                    <Detail k="Effective To" v={resolvedVersion.version.effective_to ? formatDateForDisplay(resolvedVersion.version.effective_to) : '(open)'} />
                   </div>
                 )}
               </StepCard>
@@ -918,7 +918,7 @@ function ContextPanel({
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" /> {person.fullName}
               </div>
               <Detail k="SSN" v={person.ssn} />
-              <Detail k="DOB" v={person.dateOfBirth} />
+              <Detail k="DOB" v={formatDateForDisplay(person.dateOfBirth)} />
               <Detail k="Status" v={person.status} />
             </>
           )}
@@ -926,7 +926,7 @@ function ContextPanel({
             <>
               <Badge variant="outline">Pending Verification</Badge>
               <Detail k="Name" v={`${pending.firstName} ${pending.lastName}`} />
-              <Detail k="DOB" v={pending.dob} />
+              <Detail k="DOB" v={formatDateForDisplay(pending.dob)} />
               <Detail k="Gender" v={pending.gender} />
             </>
           )}
@@ -940,7 +940,7 @@ function ContextPanel({
           <CardContent className="text-xs space-y-1">
             {product && <Detail k="Benefit" v={`${product.benefit_name} (${product.benefit_code})`} />}
             {version && <Detail k="Version" v={`v${version.version.version_number} (${version.version.status})`} />}
-            {version && <Detail k="Effective" v={`${version.version.effective_from} → ${version.version.effective_to ?? 'open'}`} />}
+            {version && <Detail k="Effective" v={`${formatDateForDisplay(version.version.effective_from)} → ${version.version.effective_to ? formatDateForDisplay(version.version.effective_to) : 'open'}`} />}
           </CardContent>
         </Card>
       )}
