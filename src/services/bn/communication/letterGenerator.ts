@@ -118,6 +118,14 @@ export async function renderLetterPdf(letterId: string, userCode: string): Promi
     }
   }
 
+  // Helpers for safe plain-text → HTML conversion (preserves blank lines, escapes HTML).
+  const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const normalizeNewlines = (s: string) => s.replace(/\\r\\n|\\n|\\r/g, '\n');
+  const textToHtml = (s: string) => normalizeNewlines(s)
+    .split(/\n{2,}/)
+    .map((p) => `<p style="margin:0 0 10px">${escapeHtml(p).replace(/\n/g, '<br/>')}</p>`)
+    .join('');
+
   // 3) Template snapshot resolution
   let subjectTpl: string = letter.rendered_subject || letter.subject || '';
   let htmlTpl: string | null = letter.rendered_body_html || letter.body_html || null;
@@ -136,8 +144,8 @@ export async function renderLetterPdf(letterId: string, userCode: string): Promi
     const ver = Array.isArray(versionRows) ? versionRows[0] : null;
     if (ver) {
       subjectTpl = subjectTpl || ver.subject || '';
-      htmlTpl = htmlTpl || ver.html_body || (ver.body ? `<pre style="white-space:pre-wrap">${ver.body}</pre>` : null);
-      textTpl = ver.body || null;
+      htmlTpl = htmlTpl || ver.html_body || (ver.body ? textToHtml(ver.body) : null);
+      textTpl = ver.body ? normalizeNewlines(ver.body) : null;
       templateVersionId = ver.id;
       templateVersionNo = ver.version_no;
     }
@@ -148,8 +156,8 @@ export async function renderLetterPdf(letterId: string, userCode: string): Promi
         .eq('id', letter.template_id)
         .maybeSingle();
       subjectTpl = subjectTpl || tpl?.subject || '';
-      htmlTpl = htmlTpl || tpl?.html_body || (tpl?.body ? `<pre style="white-space:pre-wrap">${tpl.body}</pre>` : null);
-      textTpl = textTpl || tpl?.body || null;
+      htmlTpl = htmlTpl || tpl?.html_body || (tpl?.body ? textToHtml(tpl.body) : null);
+      textTpl = textTpl || (tpl?.body ? normalizeNewlines(tpl.body) : null);
       templateVersionNo = templateVersionNo ?? tpl?.version_no ?? null;
     }
   }

@@ -82,11 +82,12 @@ export async function diagnoseRecipient(
 
 // ─── Merge context ────────────────────────────────────────────────
 export async function buildBnMergeContext(claimId: string, extra?: Record<string, any>): Promise<Record<string, any>> {
-  const { data: claim } = await db
+  const { data: claim, error: claimErr } = await db
     .from('bn_claim')
-    .select('id, claim_number, ssn, employer_regno, product_id, status, submitted_at, created_at')
+    .select('id, claim_number, ssn, employer_regno, product_id, status, submission_date, claim_date, entered_at')
     .eq('id', claimId)
     .maybeSingle();
+  if (claimErr) console.warn('[buildBnMergeContext] claim query failed', claimId, claimErr);
   if (!claim) return { ClaimNumber: '', ClaimantName: '', ...(extra || {}) };
 
   const [{ data: person }, { data: product }, { data: latestDecision }, { data: latestCalc }, { data: missingDocs }, { data: latestEligArr }] = await Promise.all([
@@ -94,7 +95,7 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
       ? db.from('ip_master').select('firstname, surname, email_addr, contact_email, phone_mobile, phone, mail_addr1, mail_addr2').eq('ssn', String(claim.ssn).trim()).maybeSingle()
       : Promise.resolve({ data: null }),
     claim.product_id
-      ? db.from('bn_product').select('product_name, product_code').eq('id', claim.product_id).maybeSingle()
+      ? db.from('bn_product').select('benefit_name, benefit_code').eq('id', claim.product_id).maybeSingle()
       : Promise.resolve({ data: null }),
     db.from('bn_claim_decision').select('decision_type, reason_code, narrative, decided_at').eq('claim_id', claimId).order('decided_at', { ascending: false }).limit(1),
     db.from('bn_claim_calculation').select('weekly_rate, monthly_rate, lump_sum, effective_date').eq('claim_id', claimId).order('calculated_at', { ascending: false }).limit(1),
@@ -108,7 +109,6 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
   const calc = latestCalc?.[0];
   const latestElig = (extra?.latestEligibility as any) ?? (Array.isArray(latestEligArr) ? latestEligArr[0] : null);
 
-
   // Build failed rules summary from extra.failedRules (preferred) or latest eligibility snapshot
   const failedRulesArr: any[] = Array.isArray(extra?.failedRules)
     ? (extra!.failedRules as any[])
@@ -118,15 +118,20 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
   const failedRulesText = failedRulesArr
     .map((r: any) => `• ${r.rule_name || r.rule_code || 'Rule'}${r.message ? ` — ${r.message}` : ''}`)
     .join('\n');
+  const failedRulesHtml = failedRulesArr.length
+    ? `<ul style="margin:8px 0 8px 18px;padding:0">${failedRulesArr.map((r: any) => `<li><strong>${r.rule_name || r.rule_code || 'Rule'}</strong>${r.message ? ` — ${r.message}` : ''}</li>`).join('')}</ul>`
+    : '<em>None</em>';
   const failedReasonSummary = failedRulesArr.length
     ? `${failedRulesArr.length} eligibility check${failedRulesArr.length === 1 ? '' : 's'} did not pass.`
     : '';
 
   const missingDocsText = (missingDocs || []).map((d: any) => d.document_label).join(', ');
-  const product_name = product?.product_name || '';
+  const product_name = (product as any)?.benefit_name || '';
+  const product_code = (product as any)?.benefit_code || '';
   const claim_number = claim.claim_number || claim.id;
   const claimant_name = person ? `${person.firstname || ''} ${person.surname || ''}`.trim() : '';
   const today = new Date().toISOString().slice(0, 10);
+  const submission_date = claim.submission_date || claim.claim_date || claim.entered_at || '';
   const decision_date = dec?.decided_at || today;
 
   return {
@@ -137,7 +142,7 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
     SSNMasked: maskedSsn,
     BenefitType: product_name,
     BenefitName: product_name,
-    SubmissionDate: claim.submitted_at || claim.created_at || '',
+    SubmissionDate: submission_date,
     DecisionDate: decision_date,
     ReasonCode: dec?.reason_code || extra?.reasonCode || '',
     ReasonDescription: dec?.narrative || extra?.reasonDescription || '',
@@ -150,6 +155,7 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
     PaymentMethod: '',
     MissingDocuments: missingDocsText,
     FailedRules: failedRulesText,
+    FailedRulesHtml: failedRulesHtml,
     FailedReasonSummary: failedReasonSummary,
     NextSteps: extra?.nextSteps || 'Please review the listed checks and contact the claims office to discuss next steps.',
     OfficePhone: extra?.officePhone || extra?.officeContact || '',
@@ -165,13 +171,17 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
     SSN_MASKED: maskedSsn,
     BENEFIT_NAME: product_name,
     BENEFIT_TYPE: product_name,
-    APPLICATION_DATE: claim.submitted_at || claim.created_at || '',
+    BENEFIT_CODE: product_code,
+    APPLICATION_DATE: submission_date,
+    SUBMISSION_DATE: submission_date,
     DECISION_DATE: decision_date,
     FAILED_RULES: failedRulesText || '—',
+    FAILED_RULES_HTML: failedRulesHtml,
     FAILED_REASON_SUMMARY: failedReasonSummary || '—',
     MISSING_DOCUMENTS: missingDocsText || '—',
     NEXT_STEPS: extra?.nextSteps || 'Please contact the claims office to discuss next steps.',
     APPEAL_INSTRUCTIONS: extra?.appealInstructions || 'You may appeal this decision in writing within 30 days of receipt.',
+    APPEAL_DEADLINE: extra?.appealDeadline || '',
     OFFICE_PHONE: extra?.officePhone || extra?.officeContact || '',
     OFFICE_EMAIL: extra?.officeEmail || '',
     TODAY: today,
@@ -312,6 +322,19 @@ async function createLetter(params: {
   let renderedText: string | null = null;
   let templateVersionId: string | null = null;
   let templateVersionNo: number | null = null;
+
+  // Convert a plain-text body (with real or literal \n) into safe formatted HTML.
+  const escapeHtml = (s: string) => s
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const normalizeNewlines = (s: string) => s.replace(/\\r\\n|\\n|\\r/g, '\n');
+  const textToHtml = (s: string) => {
+    const norm = normalizeNewlines(s);
+    return norm
+      .split(/\n{2,}/)
+      .map((p) => `<p style="margin:0 0 10px">${escapeHtml(p).replace(/\n/g, '<br/>')}</p>`)
+      .join('');
+  };
+
   if (params.templateId) {
     const { data: versionRows } = await db
       .from('notification_template_versions')
@@ -321,8 +344,8 @@ async function createLetter(params: {
       .limit(1);
     const ver = Array.isArray(versionRows) ? versionRows[0] : null;
     let subjectTpl = ver?.subject || '';
-    let htmlTpl = ver?.html_body || (ver?.body ? `<pre style="white-space:pre-wrap">${ver.body}</pre>` : null);
-    let textTpl = ver?.body || null;
+    let htmlTpl: string | null = ver?.html_body || (ver?.body ? textToHtml(ver.body) : null);
+    let textTpl = ver?.body ? normalizeNewlines(ver.body) : null;
     templateVersionId = ver?.id || null;
     templateVersionNo = ver?.version_no || null;
     if (!htmlTpl) {
@@ -331,8 +354,8 @@ async function createLetter(params: {
         .select('subject, html_body, body, version_no')
         .eq('id', params.templateId).maybeSingle();
       subjectTpl = subjectTpl || tpl?.subject || '';
-      htmlTpl = htmlTpl || tpl?.html_body || (tpl?.body ? `<pre style="white-space:pre-wrap">${tpl.body}</pre>` : null);
-      textTpl = textTpl || tpl?.body || null;
+      htmlTpl = htmlTpl || tpl?.html_body || (tpl?.body ? textToHtml(tpl.body) : null);
+      textTpl = textTpl || (tpl?.body ? normalizeNewlines(tpl.body) : null);
       templateVersionNo = templateVersionNo ?? tpl?.version_no ?? null;
     }
     const ctx = params.mergeContext || {};
