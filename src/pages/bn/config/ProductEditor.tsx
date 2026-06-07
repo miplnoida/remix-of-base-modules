@@ -247,8 +247,21 @@ export default function ProductEditor() {
         <ReadOnlyVersionBanner
           status={activeVersion.status}
           draftActionLabel="modify eligibility, calculation, documents, workflow or any assembly tab"
+          onCreateDraft={activeVersion.status !== 'DRAFT' ? handleCloneToDraft : undefined}
+          creatingDraft={cloneToDraftMutation.isPending}
         />
       )}
+
+      <LiveVersionGuardDialog
+        open={guard.open}
+        onOpenChange={(o) => setGuard(prev => ({ ...prev, open: o }))}
+        intent={guard.intent}
+        status={activeVersion?.status ?? 'ACTIVE'}
+        versionLabel={activeVersion ? `Version ${activeVersion.version_number}` : 'This version'}
+        busy={cloneToDraftMutation.isPending}
+        onCreateDraft={handleCloneToDraft}
+        onViewCurrent={() => setGuard({ open: false, intent: 'EDIT' })}
+      />
 
       {!isNew && selectedVersionId && (
         <ConflictDetectionPanel versionId={selectedVersionId} compact />
