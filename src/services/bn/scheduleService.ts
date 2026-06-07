@@ -25,7 +25,8 @@
  *   - Each schedule row, when due, generates a bn_payment_instruction (PENDING).
  */
 import { supabase } from '@/integrations/supabase/client';
-import { addWeeks, addDays, addMonths, format, isBefore, isAfter, startOfDay } from 'date-fns';
+import { addWeeks, addDays, addMonths, isBefore, isAfter, startOfDay } from 'date-fns';
+import { toStorageDate } from '@/lib/culture/culture';
 
 const db = supabase as any;
 
@@ -435,9 +436,9 @@ export function generateScheduleRows(params: GenerateScheduleParams): Omit<BnPay
       claim_number: claimNumber,
       sequence_number: seq,
       frequency,
-      period_start: format(currentStart, 'yyyy-MM-dd'),
-      period_end: format(pEnd, 'yyyy-MM-dd'),
-      due_date: format(dueDate, 'yyyy-MM-dd'),
+      period_start: toStorageDate(currentStart),
+      period_end: toStorageDate(pEnd),
+      due_date: toStorageDate(dueDate),
       amount: Math.round(rowAmount * 100) / 100,
       currency,
       rate_weekly: weeklyRate,
@@ -610,7 +611,7 @@ export async function executeScheduleRowAction(params: ExecuteScheduleActionPara
 // ─── Schedule-Level Actions ─────────────────────────────────────────
 
 export async function suspendFutureRows(entitlementId: string, performedBy: string, narrative: string, reasonCodeId: string): Promise<number> {
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = toStorageDate(new Date());
 
   const { data: rows } = await db
     .from('bn_payment_schedule')
@@ -663,7 +664,7 @@ export async function regenerateSchedule(
   performedBy: string,
   narrative: string
 ): Promise<{ cancelledRows: number; newRows: number }> {
-  const today = format(new Date(), 'yyyy-MM-dd');
+  const today = toStorageDate(new Date());
   const now = new Date().toISOString();
 
   // Cancel future non-generated rows
