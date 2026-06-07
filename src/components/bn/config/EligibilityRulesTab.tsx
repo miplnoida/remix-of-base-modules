@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, Edit, GripVertical, FlaskConical, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Trash2, Edit, GripVertical, FlaskConical, CheckCircle2, XCircle, Sparkles, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBnEligibilityRules, useUpsertBnEligibilityRule, useDeleteBnEligibilityRule } from '@/hooks/bn/useBnProduct';
 import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
@@ -24,6 +24,8 @@ import {
 } from '@/services/bn/eligibility/fieldRegistry';
 import { resolveField, type ResolvedValue } from '@/services/bn/eligibility/fieldResolver';
 import { evaluateOperator } from '@/services/bn/eligibility/operatorEvaluator';
+import { RULE_GROUPS, defaultGroupForFact } from '@/services/bn/eligibility/eligibilityFactRegistry';
+import { RULE_TEMPLATES, type RuleTemplate } from '@/services/bn/eligibility/ruleTemplates';
 
 import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
@@ -33,6 +35,7 @@ const emptyRule: Partial<BnEligibilityRule> = {
   rule_code: '', rule_name: '', rule_type: 'CONTRIBUTION', rule_group: 'GENERAL',
   rule_definition: { field_key: '', operator: '>=', value: 0, window_type: 'LIFETIME' },
   data_source: '', fail_message: '', fail_action: 'REJECT', sort_order: 0, is_active: true,
+  group_code: 'CORE_IDENTITY', severity: 'BLOCK', overrideable: false, override_policy_code: null, fact_key: null,
 };
 
 export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Props) {
@@ -87,7 +90,29 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Pr
       },
       data_source: fd?.dataSource ?? '',
       rule_type: fd ? mapCategoryToRuleType(fd.category) : prev.rule_type,
+      fact_key: key,
+      group_code: prev.group_code || safeDefaultGroup(key),
     }));
+  };
+
+  const applyTemplate = (tpl: RuleTemplate) => {
+    setEditing(prev => ({
+      ...prev,
+      rule_code: prev.rule_code || tpl.template_code,
+      rule_name: prev.rule_name || tpl.label,
+      fail_message: prev.fail_message || tpl.description,
+      group_code: tpl.group_code,
+      severity: tpl.severity ?? 'BLOCK',
+      overrideable: tpl.overrideable ?? false,
+      fact_key: tpl.fact_key,
+      rule_definition: {
+        ...(prev.rule_definition as Record<string, unknown>),
+        field_key: tpl.fact_key,
+        operator: tpl.operator,
+        value: tpl.default_value,
+      },
+    }));
+    toast({ title: 'Template applied', description: `${tpl.label} pre-filled. Adjust the expected value before saving.` });
   };
 
   const handleSave = async () => {
@@ -210,11 +235,45 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Pr
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing.id ? 'Edit' : 'Add'} Eligibility Rule</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
+            {/* Quick Templates */}
+            <div className="col-span-2 space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <Label className="text-sm font-semibold">Quick Templates</Label>
+                <span className="text-xs text-muted-foreground">Click to pre-fill from a common eligibility pattern</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {RULE_TEMPLATES.map(t => (
+                  <Button key={t.template_code} type="button" size="sm" variant="outline"
+                    className="h-7 text-xs" title={t.description} onClick={() => applyTemplate(t)}>
+                    + {t.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2"><Label>Rule Code *</Label><Input value={editing.rule_code || ''} onChange={e => updateEditing('rule_code', e.target.value.toUpperCase())} maxLength={30} /></div>
             <div className="space-y-2"><Label>Rule Name *</Label><Input value={editing.rule_name || ''} onChange={e => updateEditing('rule_name', e.target.value)} /></div>
 
             <div className="space-y-2">
-              <Label>Rule Group</Label>
+              <Label>Eligibility Group *</Label>
+              <Select value={editing.group_code || 'CORE_IDENTITY'} onValueChange={v => updateEditing('group_code', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {RULE_GROUPS.map(g => (
+                    <SelectItem key={g.code} value={g.code}>
+                      <div>
+                        <div className="font-medium">{g.label}</div>
+                        <div className="text-xs text-muted-foreground">{g.description}</div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Custom Rule Group (optional)</Label>
               <Select value={editing.rule_group_id || '__none__'} onValueChange={v => updateEditing('rule_group_id', v === '__none__' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Select group" /></SelectTrigger>
                 <SelectContent>
@@ -225,11 +284,35 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Pr
             </div>
 
             <div className="space-y-2">
+              <Label>Severity</Label>
+              <Select value={editing.severity || 'BLOCK'} onValueChange={v => updateEditing('severity', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BLOCK"><div className="flex items-center gap-2"><ShieldAlert className="h-3 w-3 text-destructive" /> Block (hard fail)</div></SelectItem>
+                  <SelectItem value="WARN"><div className="flex items-center gap-2"><ShieldCheck className="h-3 w-3 text-amber-600" /> Warn (soft warning)</div></SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label>Fail Action</Label>
               <Select value={editing.fail_action || 'REJECT'} onValueChange={v => updateEditing('fail_action', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{BN_FAIL_ACTIONS.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}</SelectContent>
               </Select>
+            </div>
+
+            <div className="col-span-2 flex items-center gap-6 rounded-md border bg-muted/30 p-3">
+              <div className="flex items-center gap-2">
+                <Switch checked={editing.overrideable ?? false} onCheckedChange={v => updateEditing('overrideable', v)} />
+                <Label>Allow supervisor override</Label>
+              </div>
+              {editing.overrideable && (
+                <div className="flex items-center gap-2 flex-1">
+                  <Label className="text-xs whitespace-nowrap">Override policy code</Label>
+                  <Input value={editing.override_policy_code || ''} onChange={e => updateEditing('override_policy_code', e.target.value || null)} placeholder="e.g. SUPERVISOR_L2" />
+                </div>
+              )}
             </div>
 
             <div className="col-span-2 space-y-3 rounded-lg border p-4">
@@ -331,6 +414,25 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Pr
               )}
             </div>
 
+            {/* Business-readable rule preview */}
+            {fieldDef && def.field_key && (
+              <div className="col-span-2 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
+                <Label className="text-xs font-semibold uppercase text-primary">Rule Preview</Label>
+                <p className="text-sm">
+                  <strong>{fieldDef.label}</strong>{' '}
+                  <span className="text-muted-foreground">{ELIGIBILITY_OPERATOR_LABELS[def.operator as EligibilityOperator] ?? def.operator}</span>{' '}
+                  <span className="font-mono">{def.operator === 'BETWEEN' ? `${def.range_from} … ${def.range_to}` : formatValue(def.value)}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Group: <Badge variant="outline" className="ml-1">{editing.group_code}</Badge>{' '}
+                  Severity: <Badge variant={editing.severity === 'WARN' ? 'secondary' : 'destructive'} className="ml-1">{editing.severity}</Badge>{' '}
+                  Source: <span className="font-mono">{fieldDef.dataSource}</span>
+                  {editing.overrideable && <> · Overrideable{editing.override_policy_code ? ` (${editing.override_policy_code})` : ''}</>}
+                </p>
+              </div>
+            )}
+
+
             <div className="col-span-2 space-y-2"><Label>Fail Message</Label><Textarea value={editing.fail_message || ''} onChange={e => updateEditing('fail_message', e.target.value)} rows={2} placeholder="Message shown when rule fails" /></div>
             <div className="space-y-2"><Label>Sort Order</Label><Input type="number" value={editing.sort_order ?? 0} onChange={e => updateEditing('sort_order', parseInt(e.target.value) || 0)} /></div>
             <div className="flex items-center gap-2 pt-6"><Switch checked={editing.is_active ?? true} onCheckedChange={v => updateEditing('is_active', v)} /><Label>Active</Label></div>
@@ -377,6 +479,10 @@ function formatValue(v: unknown): string {
   if (v === null || v === undefined) return '—';
   if (typeof v === 'boolean') return v ? 'true' : 'false';
   return String(v);
+}
+
+function safeDefaultGroup(factKey: string): string {
+  try { return defaultGroupForFact(factKey); } catch { return 'SPECIAL'; }
 }
 
 function mapCategoryToRuleType(cat: string): string {
