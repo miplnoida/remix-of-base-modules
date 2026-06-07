@@ -41,13 +41,17 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
   const { data: rows = [] } = usePendingOverrides(claimId, 'ELIGIBILITY');
   const review = useReviewOverride(claimId);
   const cancel = useCancelOverride(claimId);
+  const revoke = useRevokeOverride(claimId);
 
   const [reviewing, setReviewing] = useState<{ row: OverrideRequest; decision: 'APPROVED' | 'REJECTED' } | null>(null);
+  const [revoking, setRevoking] = useState<OverrideRequest | null>(null);
+  const [revokeReason, setRevokeReason] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const pending = rows.filter((r) => r.status === 'PENDING_APPROVAL');
   const approved = rows.filter((r) => r.status === 'APPROVED');
+  const revoked = rows.filter((r) => r.status === 'REVOKED');
   const rejected = rows.filter((r) => r.status === 'REJECTED');
   const cancelled = rows.filter((r) => r.status === 'CANCELLED');
 
