@@ -303,13 +303,13 @@ export default function PostIssueEnhanced() {
                         <div>
                           <p className="text-xs text-muted-foreground">Claim: {c.claim_number || '—'}</p>
                           <p className="text-xs text-muted-foreground">
-                            Issued: {c.issued_at ? new formatDate(Date(c.issued_at)) : '—'}
+                            Issued: {c.issued_at ? formatDate(new Date(c.issued_at)) : '—'}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="font-mono font-medium">
-                          {c.amount?formatNumber(, 2)}
+                          {formatNumber(c.amount ?? 0, 2)}
                         </p>
                         <Button
                           variant="ghost"

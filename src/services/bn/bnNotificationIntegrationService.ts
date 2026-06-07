@@ -9,7 +9,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 
-import { formatDate, formatNumber } from '@/lib/culture/culture';
+import { formatAuditTimestamp, formatDate, formatNumber } from '@/lib/culture/culture';
 const db = supabase as any;
 
 // ─── Event Codes ───────────────────────────────────────────────────
@@ -849,7 +849,7 @@ export async function notifyClaimCreated(claimId: string, claimNumber: string, b
     eventCode: 'bn.claim.created',
     entityId: claimId,
     claimId,
-    templateData: { ClaimNumber: claimNumber, BenefitType: benefitType, SubmissionDate: new formatDate(Date()) },
+    templateData: { ClaimNumber: claimNumber, BenefitType: benefitType, SubmissionDate: formatDate(new Date()) },
     triggeredBy,
   });
 }
@@ -859,7 +859,7 @@ export async function notifyClaimSubmitted(claimId: string, claimNumber: string,
     eventCode: 'bn.claim.submitted',
     entityId: claimId,
     claimId,
-    templateData: { ClaimNumber: claimNumber, BenefitType: benefitType, SubmissionDate: new formatDate(Date()), ExpectedProcessingDays: 10 },
+    templateData: { ClaimNumber: claimNumber, BenefitType: benefitType, SubmissionDate: formatDate(new Date()), ExpectedProcessingDays: 10 },
     triggeredBy,
   });
 }
@@ -869,7 +869,7 @@ export async function notifyClaimVerified(claimId: string, claimNumber: string, 
     eventCode: 'bn.claim.verified',
     entityId: claimId,
     claimId,
-    templateData: { ClaimNumber: claimNumber, VerifiedDate: new formatDate(Date()), NextStep: 'Benefit calculation and eligibility assessment' },
+    templateData: { ClaimNumber: claimNumber, VerifiedDate: formatDate(new Date()), NextStep: 'Benefit calculation and eligibility assessment' },
     triggeredBy,
   });
 }
@@ -906,7 +906,7 @@ export async function notifyCalculationCompleted(
     eventCode: 'bn.calc.completed',
     entityId: claimId,
     claimId,
-    templateData: { ClaimNumber: claimNumber, BenefitType: benefitType, WeeklyRate: weeklyRate, MonthlyRate: monthlyRate, LumpSum: lumpSum, CalcDate: new formatDate(Date()), OverrideApplied: overrideApplied },
+    templateData: { ClaimNumber: claimNumber, BenefitType: benefitType, WeeklyRate: weeklyRate, MonthlyRate: monthlyRate, LumpSum: lumpSum, CalcDate: formatDate(new Date()), OverrideApplied: overrideApplied },
     triggeredBy,
     additionalInternalRecipients: overrideApplied && supervisorId ? [supervisorId] : undefined,
   });
@@ -976,7 +976,7 @@ export async function notifyPayableBlocked(instructionId: string, claimId: strin
     eventCode: 'bn.payable.blocked',
     entityId: instructionId,
     claimId,
-    templateData: { ClaimNumber: claimNumber, ClaimantName: claimantName, Amount: amount, BlockReason: blockReason, BlockedDate: new formatDate(Date()), InstructionId: instructionId },
+    templateData: { ClaimNumber: claimNumber, ClaimantName: claimantName, Amount: amount, BlockReason: blockReason, BlockedDate: formatDate(new Date()), InstructionId: instructionId },
     triggeredBy,
   });
 }
@@ -985,7 +985,7 @@ export async function notifyPayableReady(instructionId: string, claimNumber: str
   return dispatchBnNotification({
     eventCode: 'bn.payable.ready',
     entityId: instructionId,
-    templateData: { ClaimNumber: claimNumber, Amount: amount, PaymentMethod: paymentMethod, Frequency: frequency, ReadyDate: new formatDate(Date()) },
+    templateData: { ClaimNumber: claimNumber, Amount: amount, PaymentMethod: paymentMethod, Frequency: frequency, ReadyDate: formatDate(new Date()) },
     triggeredBy,
   });
 }
@@ -994,7 +994,7 @@ export async function notifyBatchCreated(batchId: string, batchNumber: string, b
   return dispatchBnNotification({
     eventCode: 'bn.batch.created',
     entityId: batchId,
-    templateData: { BatchNumber: batchNumber, BatchType: batchType, CreatedDate: new formatDate(Date()), InstructionCount: instructionCount, TotalAmount: totalAmount },
+    templateData: { BatchNumber: batchNumber, BatchType: batchType, CreatedDate: formatDate(new Date()), InstructionCount: instructionCount, TotalAmount: totalAmount },
     triggeredBy,
   });
 }
@@ -1003,7 +1003,7 @@ export async function notifyBatchApproved(batchId: string, batchNumber: string, 
   return dispatchBnNotification({
     eventCode: 'bn.batch.approved',
     entityId: batchId,
-    templateData: { BatchNumber: batchNumber, ApprovedBy: approvedBy, ApprovedDate: new formatDate(Date()), InstructionCount: instructionCount, TotalAmount: totalAmount, PaymentMethod: paymentMethod },
+    templateData: { BatchNumber: batchNumber, ApprovedBy: approvedBy, ApprovedDate: formatDate(new Date()), InstructionCount: instructionCount, TotalAmount: totalAmount, PaymentMethod: paymentMethod },
     triggeredBy,
   });
 }
@@ -1012,7 +1012,7 @@ export async function notifyIssueStarted(batchId: string, batchNumber: string, i
   return dispatchBnNotification({
     eventCode: 'bn.issue.started',
     entityId: batchId,
-    templateData: { BatchNumber: batchNumber, InstructionCount: instructionCount, TotalAmount: totalAmount, IssueStartTime: new formatNumber(Date(), 0), PaymentMethod: paymentMethod },
+    templateData: { BatchNumber: batchNumber, InstructionCount: instructionCount, TotalAmount: totalAmount, IssueStartTime: formatAuditTimestamp(), PaymentMethod: paymentMethod },
     triggeredBy,
   });
 }
@@ -1021,7 +1021,7 @@ export async function notifyIssueCompleted(batchId: string, batchNumber: string,
   return dispatchBnNotification({
     eventCode: 'bn.issue.completed',
     entityId: batchId,
-    templateData: { BatchNumber: batchNumber, SuccessCount: successCount, TotalAmount: totalAmount, IssueDate: new formatDate(Date()) },
+    templateData: { BatchNumber: batchNumber, SuccessCount: successCount, TotalAmount: totalAmount, IssueDate: formatDate(new Date()) },
     triggeredBy,
   });
 }
@@ -1030,7 +1030,7 @@ export async function notifyIssueFailed(batchId: string, batchNumber: string, fa
   return dispatchBnNotification({
     eventCode: 'bn.issue.failed',
     entityId: batchId,
-    templateData: { BatchNumber: batchNumber, FailedCount: failedCount, SuccessCount: successCount, ErrorSummary: errorSummary, IssueDate: new formatDate(Date()) },
+    templateData: { BatchNumber: batchNumber, FailedCount: failedCount, SuccessCount: successCount, ErrorSummary: errorSummary, IssueDate: formatDate(new Date()) },
     triggeredBy,
   });
 }
@@ -1040,7 +1040,7 @@ export async function notifyPostIssueCompleted(claimId: string, claimNumber: str
     eventCode: 'bn.postissue.completed',
     entityId: claimId,
     claimId,
-    templateData: { ClaimNumber: claimNumber, TasksCompleted: tasksCompleted, CompletionDate: new formatDate(Date()), ClaimStatus: claimStatus },
+    templateData: { ClaimNumber: claimNumber, TasksCompleted: tasksCompleted, CompletionDate: formatDate(new Date()), ClaimStatus: claimStatus },
     triggeredBy,
   });
 }
@@ -1050,7 +1050,7 @@ export async function notifyCancellationRequested(instructionId: string, claimId
     eventCode: 'bn.payment.cancel_requested',
     entityId: instructionId,
     claimId,
-    templateData: { ClaimNumber: claimNumber, Amount: amount, CancellationReason: cancellationReason, RequestedBy: requestedBy, RequestDate: new formatDate(Date()), OriginalChequeNumber: originalChequeNumber },
+    templateData: { ClaimNumber: claimNumber, Amount: amount, CancellationReason: cancellationReason, RequestedBy: requestedBy, RequestDate: formatDate(new Date()), OriginalChequeNumber: originalChequeNumber },
     triggeredBy,
   });
 }

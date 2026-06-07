@@ -100,7 +100,7 @@ export default function SimulationDashboard() {
                     </div>
                     {s.description && <p className="text-xs text-muted-foreground mt-1 truncate">{s.description}</p>}
                     <p className="text-xs text-muted-foreground mt-1">
-                      Created {new formatDate(Date(s.entered_at))} · {s.country_code}
+                      Created {formatDate(new Date(s.entered_at))} · {s.country_code}
                     </p>
                   </div>
                   <div className="flex gap-2" onClick={e => e.stopPropagation()}>

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import type { BnSimConfigSnapshot } from '@/types/bnSimulation';
 
-import { formatNumber } from '@/lib/culture/culture';
+import { formatAuditTimestamp, formatNumber } from '@/lib/culture/culture';
 interface Props {
   snapshot: BnSimConfigSnapshot | null | undefined;
 }
@@ -129,7 +129,7 @@ export default function SimConfigSnapshotViewer({ snapshot }: Props) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             <div>
               <span className="text-xs text-muted-foreground">Captured At</span>
-              <p className="font-medium">{new formatNumber(Date(snapshot.captured_at), 0)}</p>
+              <p className="font-medium">{formatAuditTimestamp(snapshot.captured_at)}</p>
             </div>
             <div>
               <span className="text-xs text-muted-foreground">Captured By</span>
