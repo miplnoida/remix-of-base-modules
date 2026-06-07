@@ -43,7 +43,7 @@ export const ContributionsWagesTab: React.FC<ContributionsWagesTabProps> = ({
           title="Total Weeks"
           value={summary.totalWeeks}
           icon={BarChart3}
-          subtitle={`${start} to ${end}`}
+          subtitle={`${formatDisplayDate(start)} to ${formatDisplayDate(end)}`}
         />
         <BnStatCard
           title="Total Contributions"
