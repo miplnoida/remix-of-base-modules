@@ -422,10 +422,6 @@ export default function ProductEditor() {
           <InteractionRulesTab productId={isNew ? undefined : id} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
         </TabsContent>
 
-        <TabsContent value="overrides" className="mt-6">
-          <OverridePoliciesTab productId={isNew ? undefined : id} versionStatus={activeVersion?.status} />
-        </TabsContent>
-
         <TabsContent value="approval-policies" className="mt-6">
           <ApprovalPoliciesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} />
         </TabsContent>
