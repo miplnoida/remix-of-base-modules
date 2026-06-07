@@ -63,38 +63,86 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
     db.from('bn_claim_decision').select('decision_type, reason_code, narrative, decided_at').eq('claim_id', claimId).order('decided_at', { ascending: false }).limit(1),
     db.from('bn_claim_calculation').select('weekly_rate, monthly_rate, lump_sum, effective_date').eq('claim_id', claimId).order('calculated_at', { ascending: false }).limit(1),
     db.from('bn_evidence_checklist').select('document_label').eq('claim_id', claimId).neq('status', 'VERIFIED').neq('status', 'WAIVED'),
+    db.from('bn_claim_eligibility').select('id, overall_result, override_applied, rule_results, check_date').eq('claim_id', claimId).order('check_date', { ascending: false }).limit(1),
   ]);
 
   const ssnRaw = String(claim.ssn || '');
   const maskedSsn = ssnRaw ? ssnRaw.replace(/.(?=.{2})/g, '*') : '';
   const dec = latestDecision?.[0];
   const calc = latestCalc?.[0];
+  const elig = (extra?.eligibility as any) ?? (Array.isArray((arguments as any)) ? null : null);
+  const latestElig = (extra?.latestEligibility as any) ?? null;
+
+  // Build failed rules summary from extra.failedRules (preferred) or latest eligibility snapshot
+  const failedRulesArr: any[] = Array.isArray(extra?.failedRules)
+    ? (extra!.failedRules as any[])
+    : Array.isArray(latestElig?.rule_results)
+      ? (latestElig!.rule_results as any[]).filter((r: any) => !r.passed && r.result_state !== 'OVERRIDDEN')
+      : [];
+  const failedRulesText = failedRulesArr
+    .map((r: any) => `• ${r.rule_name || r.rule_code || 'Rule'}${r.message ? ` — ${r.message}` : ''}`)
+    .join('\n');
+  const failedReasonSummary = failedRulesArr.length
+    ? `${failedRulesArr.length} eligibility check${failedRulesArr.length === 1 ? '' : 's'} did not pass.`
+    : '';
+
+  const missingDocsText = (missingDocs || []).map((d: any) => d.document_label).join(', ');
+  const product_name = product?.product_name || '';
+  const claim_number = claim.claim_number || claim.id;
+  const claimant_name = person ? `${person.first_name || ''} ${person.surname || ''}`.trim() : '';
+  const today = new Date().toISOString().slice(0, 10);
+  const decision_date = dec?.decided_at || today;
 
   return {
-    ClaimNumber: claim.claim_number || claim.id,
-    ClaimantName: person ? `${person.first_name || ''} ${person.surname || ''}`.trim() : '',
+    // Camel-case keys (used by notification_queue/template_data)
+    ClaimNumber: claim_number,
+    ClaimantName: claimant_name,
     SSN: ssnRaw,
     SSNMasked: maskedSsn,
-    BenefitType: product?.product_name || '',
+    BenefitType: product_name,
+    BenefitName: product_name,
     SubmissionDate: claim.submitted_at || claim.created_at || '',
-    DecisionDate: dec?.decided_at || '',
+    DecisionDate: decision_date,
     ReasonCode: dec?.reason_code || extra?.reasonCode || '',
     ReasonDescription: dec?.narrative || extra?.reasonDescription || '',
     AppealDeadline: extra?.appealDeadline || '',
-    AppealInstructions: 'You may appeal this decision in writing within 30 days of receipt.',
+    AppealInstructions: extra?.appealInstructions || 'You may appeal this decision in writing within 30 days of receipt.',
     WeeklyRate: calc?.weekly_rate ?? '',
     MonthlyRate: calc?.monthly_rate ?? '',
     LumpSum: calc?.lump_sum ?? '',
     EffectiveDate: calc?.effective_date || '',
     PaymentMethod: '',
-    MissingDocuments: (missingDocs || []).map((d: any) => d.document_label).join(', '),
+    MissingDocuments: missingDocsText,
+    FailedRules: failedRulesText,
+    FailedReasonSummary: failedReasonSummary,
+    NextSteps: extra?.nextSteps || 'Please review the listed checks and contact the claims office to discuss next steps.',
+    OfficePhone: extra?.officePhone || extra?.officeContact || '',
+    OfficeEmail: extra?.officeEmail || '',
     DueDate: extra?.dueDate || '',
     OfficerName: extra?.officerName || '',
     OfficeContact: extra?.officeContact || '',
     EmployerName: '',
+    Today: today,
+    // Snake/upper-case duplicates for {{PLACEHOLDER}}-style templates
+    CLAIM_NUMBER: claim_number,
+    CLAIMANT_NAME: claimant_name,
+    SSN_MASKED: maskedSsn,
+    BENEFIT_NAME: product_name,
+    BENEFIT_TYPE: product_name,
+    APPLICATION_DATE: claim.submitted_at || claim.created_at || '',
+    DECISION_DATE: decision_date,
+    FAILED_RULES: failedRulesText || '—',
+    FAILED_REASON_SUMMARY: failedReasonSummary || '—',
+    MISSING_DOCUMENTS: missingDocsText || '—',
+    NEXT_STEPS: extra?.nextSteps || 'Please contact the claims office to discuss next steps.',
+    APPEAL_INSTRUCTIONS: extra?.appealInstructions || 'You may appeal this decision in writing within 30 days of receipt.',
+    OFFICE_PHONE: extra?.officePhone || extra?.officeContact || '',
+    OFFICE_EMAIL: extra?.officeEmail || '',
+    TODAY: today,
     ...(extra || {}),
   };
 }
+
 
 // ─── Recipient resolution ─────────────────────────────────────────
 export async function resolveRecipient(claimId: string, recipientType: BnRecipientType, channel: BnChannel): Promise<{ name?: string; email?: string; phone?: string; address?: any; userId?: string } | null> {
