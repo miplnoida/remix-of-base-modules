@@ -1,110 +1,53 @@
-# BN Approval / Override Policy Consolidation
+## BN Post-Calculation → Payment Flow Wiring
 
-## Goal
-Make `bn_approval_policy` + `bnPolicyEvaluator` the **only** runtime authority for every override / approval / waiver / amendment decision in Benefits. Demote `bn_override_policy` to a legacy migration source. Unify Product Catalog UX, fix Workbench eligibility override visibility for claim `BN-20260607-75991` (EI-EMP-ACTIVE), and add a runtime-consistency diagnostic.
+Most of the infrastructure already exists (determinationService, approvalConsoleService, entitlementService, payablesQueueService, decisionEngine, payment routes). The gap is **end-to-end orchestration and guidance**. This plan focuses on closing the gaps without rebuilding what already works.
 
----
+### Phase 1 — Workbench guidance & status flow
+- Add `NextStepGuidance` panel to `ClaimWorkbench.tsx` that inspects current claim state (eligibility result, calculation run, decision, entitlement, payable) and renders the exact next action with a one-click button.
+  - After CALCULATION → "Submit for Decision" → moves status to `DECISION` (or `PENDING_APPROVAL` if approval policy requires it, resolved via `bn_approval_policy`).
+  - After DECISION approved & no payable → "Generate Payable / Entitlement".
+  - After payable created → link to `/bn/payables` filtered to this claim.
+- Wire `Submit for Decision` action through existing `executeClaimAction` and audit via `auditClaimAction`.
 
-## Phase 1 — Inventory (no code changes)
-Search and classify every reference to:
-- `bn_override_policy`, `fetchOverridePolicies`, `upsertOverridePolicy`, `deleteOverridePolicy`, `OverridePolicies`, `Overrides (Legacy)`
-- `bn_approval_policy`, `useProductPolicies`, `bnPolicyEvaluator`, `eligibilityOverrideService`
+### Phase 2 — On-approval orchestration (`onClaimApproved` orchestrator)
+New service `src/services/bn/postApprovalOrchestrator.ts`:
+- Read product (`benefit_category`, `payment_frequency`, `entitlement_type`, `payment_method`) from `bn_product` / `bn_product_version`.
+- Branch:
+  - Periodic / long-term → insert `bn_entitlement` + first `bn_payment_instruction` (if `auto_first_payment`).
+  - Lump sum / short-term → insert `bn_payment_instruction` directly, status `PENDING_VALIDATION`.
+- Move claim to `AWARD_SETUP` / `IN_PAYMENT` / `PAYMENT_QUEUE`.
+- Audit each step (`AWARD_CREATED`, `PAYMENT_INSTRUCTION_CREATED`, `PAYABLE_QUEUED`) into `system_audit_trail` + `bn_claim_event`.
+- Hook orchestrator into `decisionEngine.executeTransition` when transition is `APPROVE` and to_status is terminal-approval.
 
-Deliverable: short report listing
-- runtime files reading `bn_override_policy` (to be cut over)
-- Product Catalog UI files
-- Workbench override path
-- Eligibility override service path
+### Phase 3 — Payable validation
+New helper `validatePayable(instructionId)` in `payablesQueueService.ts` returning structured diagnostics:
+- approved decision exists
+- eligibility ELIGIBLE / ELIGIBLE_WITH_OVERRIDE
+- calculation finalized
+- payee resolved (bank/payment method)
+- no active hold
+- no blocking mandatory document
+Renders in Payables Queue row as a `BlockerChip` with reason; blocks "Issue" if any fail.
 
-## Phase 2 — Runtime cutover to `bn_approval_policy`
-Refactor each runtime consumer to call `bnPolicyEvaluator` (`canRequestOverride`, `canApproveOverride`, area-specific helpers):
-- `services/bn/eligibilityOverrideService.ts`
-- Calculation override action
-- Document waiver action
-- Amendment / participant change actions
-- Workflow / award / payment / communication override actions
-- Workbench claim-detail action resolver
+### Phase 4 — Diagnostic surfacing
+- `NextStepGuidance` reuses `validatePayable` results to show exact blocker text per spec section 9.
+- Add "Generate Payable" button on workbench when decision approved & no instruction exists.
 
-Remove direct `from('bn_override_policy')` reads from any non-migration file.
+### Phase 5 — Audit coverage
+Ensure these audit events use `auditClaimAction` with `critical: true`:
+`CALCULATION_COMPLETED`, `SUBMITTED_FOR_DECISION`, `CLAIM_APPROVED`, `CLAIM_DENIED`, `ENTITLEMENT_CREATED`, `PAYMENT_INSTRUCTION_CREATED`, `PAYABLE_QUEUED`, `BATCH_CREATED`, `PAYMENT_ISSUED`. Add the missing ones (most likely `SUBMITTED_FOR_DECISION`, `ENTITLEMENT_CREATED`, `PAYABLE_QUEUED`).
 
-## Phase 3 — Policy evaluator hardening
-Extend `bnPolicyEvaluator.evaluatePolicy` to return a richer diagnostic:
-```
-{ allowed, reasons, policyId, productVersionId, policyArea,
-  currentUserRoles, requiredRole, claimStatus, allowedStatuses,
-  ruleCode, allowedRuleCodes, blockedRuleCodes,
-  makerCheckerRequired, requesterUser, requires }
-```
-Cover: enabled, status allowed/blocked, rule allowed/blocked, role/permission, maker-checker, self-approval, reason/document required, amount/percent thresholds. Add unit-style smoke logging.
+### Files to touch
+- `src/services/bn/postApprovalOrchestrator.ts` (new)
+- `src/services/bn/payablesQueueService.ts` (add `validatePayable`)
+- `src/services/bn/decisionEngine.ts` (call orchestrator on approve)
+- `src/components/bn/workbench/NextStepGuidance.tsx` (new)
+- `src/pages/bn/claims/ClaimWorkbench.tsx` (mount panel)
+- `src/pages/bn/payables/*` (BlockerChip in row — find file)
+- `src/services/bn/audit/bnAuditService.ts` (extend CRITICAL_ACTIONS set)
 
-## Phase 4 — Eligibility override flow (Workbench)
-On the Workbench Eligibility tab:
-- Fetch latest failed rules from `bn_claim_eligibility`.
-- For each failed rule call `canRequestOverride({area:'ELIGIBILITY', ruleCode, claimStatus, ...})`.
-- Show **Request Override** button when allowed; show denial reason inline when blocked (never hide silently).
-- Show **Pending Override** badge when `bn_override_request` row exists for that rule.
-- Show **Approve / Reject** only when `canApproveOverride` returns allowed (different reviewer than requester unless `self_approval_allowed`).
-- On approval: insert/update eligibility override, recompute overall result → `ELIGIBLE_WITH_OVERRIDE` only if no other blocking failures, mark calc stale, write `bn_claim_event` + `system_audit_trail`.
+### Out of scope (already working, just confirm)
+- Payment schedule, batch, issue, post-issue routes — pages already exist; wiring of "add to schedule" from payable row is reused as-is.
+- Approval policy resolution — uses existing `bn_approval_policy` evaluator.
 
-Backed by existing `bn_override_request` (acts as the eligibility-override-request table).
-
-## Phase 5 — Product Catalog UI cleanup
-- Keep a single **Approval / Override Policies** tab covering all 9 policy areas (ELIGIBILITY, CALCULATION, DOCUMENTS, AMENDMENTS, PARTICIPANTS, WORKFLOW, AWARD, PAYMENT, COMMUNICATION).
-- Remove / hide the legacy Overrides tab and menu entries from the normal UI.
-- Add a Super-Admin-only **Legacy Override Policies** diagnostic panel listing old rows, migration status, and the target `bn_approval_policy` row id.
-
-## Phase 6 — ApprovalPoliciesTab UX upgrade
-Replace free-text fields with structured pickers:
-- Approver role → dropdown from `roles` master
-- Reason code group → dropdown from `bn_reason_code` groups
-- Allowed / blocked statuses → multi-select from `bn_claim_status_def`
-- Allowed / blocked rule codes → searchable multi-select from product-version `bn_eligibility_rule` / `bn_calculation_rule`
-- Workbasket → dropdown from `bn_workbasket`
-- Live policy diagnostic preview (sample claim → evaluator output)
-- Help text differentiating **Workflow** ("controls claim movement between stages") vs **Approval / Override Policies** ("controls exceptions, overrides, waivers, amendments, and who approves").
-
-## Phase 7 — Migration utility
-Add `migrateLegacyOverridePoliciesToApprovalPolicies()` (server RPC + admin button):
-- `target` → `policy_area`
-- `field_path` / rule → `allowed_rule_codes`
-- `allowed_role` → `approval_role`
-- `requires_maker_checker` → `requires_supervisor_approval`
-- `requires_justification` → `requires_justification`
-- `max_amount` → `max_override_amount`
-- `is_active` → `is_enabled`
-Idempotent — never overwrite existing `bn_approval_policy` rows unless `force=true` confirmed.
-
-## Phase 8 — Configuration Validation card
-New "Policy Runtime Consistency" card in Product Catalog Admin:
-- 0 runtime reads of `bn_override_policy` (static scan flag)
-- every active product version has ≥1 `bn_approval_policy` row
-- enabled policies requiring supervisor approval have an `approval_role`
-- reason group exists when `requires_reason_code`
-- allowed statuses ⊂ `bn_claim_status_def`
-- allowed rule codes ⊂ product rules
-- unmigrated legacy rows count
-- duplicate / conflicting policy rows
-
-## Phase 9 — Targeted fix for claim `BN-20260607-75991` (EI-EMP-ACTIVE)
-After cutover:
-1. Insert / verify `bn_approval_policy` row: `policy_area=ELIGIBILITY`, `action_code=DEFAULT`, `is_enabled=true`, `approval_role=Admin`, `allowed_rule_codes={EI-EMP-ACTIVE}`, `allowed_statuses={INTAKE,ELIGIBILITY_REVIEW,...}`, `requires_justification=true`, `requires_supervisor_approval=false`, `self_approval_allowed=true`.
-2. Run evaluator and surface diagnostics in the Workbench panel.
-3. Expected: **Request Override** is now visible to `admin@secureserve.gov`.
-
-## Acceptance
-- Single Approval / Override Policies tab in Product Catalog.
-- Legacy override UI hidden from normal users; Super-Admin diagnostic only.
-- Workbench reads `bn_approval_policy` exclusively.
-- Override buttons show with diagnostic denial reasons, never silently hidden.
-- Maker-checker enforced; self-approval gated by policy.
-- All override actions write `bn_claim_event` + `system_audit_trail`.
-- TypeScript build passes.
-
-## Technical notes
-- `bn_override_request` is reused as the cross-area request table (`policy_area=ELIGIBILITY` plays the role of `bn_eligibility_override_request`).
-- No RLS added (per project rule); access stays role-gated.
-- Migration file only for any new helper RPC (`migrate_legacy_override_policies`, `evaluate_policy_diagnostic`). No schema-destructive changes; `bn_override_policy` table stays for migration input.
-- All `created_by` / `updated_by` use logged-in user's `user_code`.
-
-## Scope size
-Large — touches Product Catalog UI, Workbench, services layer, and one DB helper. No destructive migrations. Estimate ~15–25 files changed plus 1 SQL migration.
+Please confirm and I'll implement Phases 1–5 in sequence.

@@ -91,6 +91,7 @@ import { ClaimStaleBanner } from '@/components/bn/workbench/ClaimStaleBanner';
 import { AmendmentHistoryDrawer } from '@/components/bn/workbench/AmendmentHistoryDrawer';
 import { CorrectionRequestDialog } from '@/components/bn/workbench/CorrectionRequestDialog';
 import { useClaimEditability, useFieldOwnership } from '@/hooks/bn/useClaimEditability';
+import { NextStepGuidance } from '@/components/bn/workbench/NextStepGuidance';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
@@ -357,7 +358,13 @@ export default function ClaimWorkbench() {
         onRerunCalculation={() => setActiveTab('calculation')}
       />
 
-
+      {/* Next-step guidance — tells the officer exactly what action to take next */}
+      <NextStepGuidance
+        claimId={claim.id}
+        status={currentStatus}
+        hasEligibilityPass={eligibility.length > 0 && (eligibility[0].overall_result === true || (eligibility[0] as any).override_applied === true)}
+        hasCalculation={calculations.length > 0}
+      />
 
       {/* Decision Panel */}
       <ClaimDecisionPanel claimId={claim.id} userRoles={userRoles} productCategory={product?.category} />

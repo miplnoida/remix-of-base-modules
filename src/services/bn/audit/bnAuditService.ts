@@ -78,6 +78,16 @@ const CRITICAL_ACTIONS = new Set([
   'TEMPLATE_DISABLED',
   'CONTACT_UPDATED',
   'RECIPIENT_OVERRIDDEN',
+  // Post-approval orchestration
+  'SUBMITTED_FOR_DECISION',
+  'CLAIM_APPROVED',
+  'CLAIM_DENIED',
+  'AWARD_CREATED',
+  'ENTITLEMENT_CREATED',
+  'PAYMENT_INSTRUCTION_CREATED',
+  'PAYABLE_QUEUED',
+  'BATCH_CREATED',
+  'PAYMENT_ISSUED',
 ]);
 
 function isCritical(input: BnAuditInput): boolean {
