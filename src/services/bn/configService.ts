@@ -200,6 +200,9 @@ export const copyDocumentRequirements = async (
     const { id, entered_at, modified_at, entered_by, modified_by, ...rest } = r;
     return { ...rest, product_version_id: targetVersionId };
   });
+  // Replace existing rows in the target version to avoid unique-constraint
+  // collisions on (product_version_id, document_type_code, stage, channel_code).
+  await db.from('bn_doc_requirement').delete().eq('product_version_id', targetVersionId);
   const { error: e2 } = await db.from('bn_doc_requirement').insert(rows);
   if (e2) throw e2;
   return rows.length;
