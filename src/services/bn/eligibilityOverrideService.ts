@@ -237,12 +237,16 @@ export async function reviewOverride(
   decision: OverrideDecision,
   reviewedBy: string,
   reviewNotes?: string,
+  reviewerRoles: string[] = [],
 ): Promise<void> {
   const { data: before, error: be } = await db.from(TABLE).select('*').eq('id', requestId).maybeSingle();
   if (be || !before) throw be ?? new Error('Override request not found.');
   if (before.status !== 'PENDING') throw new Error('This request has already been reviewed.');
   if (before.requested_by === reviewedBy) {
-    throw new Error('You cannot review an override request you submitted. Ask another supervisor to review it.');
+    const isSuperAdmin = reviewerRoles.some((r) => r?.toUpperCase() === 'SUPER_ADMIN');
+    if (!isSuperAdmin) {
+      throw new Error('Maker-checker: a different supervisor must approve this override. Only Super Admin can self-approve.');
+    }
   }
 
   const newStatus: OverrideStatus = decision === 'APPROVED' ? 'APPROVED' : 'REJECTED';
