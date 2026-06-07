@@ -199,7 +199,8 @@ export async function orchestrateApproval(
           account_number: claim.bank_account || null,
           due_date: today,
           frequency,
-          status: 'queued',
+          status: 'READY',
+
           description: `${product.benefit_name} — first periodic payment`,
         })
         .select('id')
@@ -236,8 +237,9 @@ export async function orchestrateApproval(
         bank_code: claim.bank_routing_number || null,
         account_number: claim.bank_account || null,
         due_date: today,
-        frequency: 'one_off',
-        status: 'queued',
+        frequency: 'ONE_OFF',
+        status: 'READY',
+
         description: `${product.benefit_name} — ${claim.claim_number}`,
       })
       .select('id')
