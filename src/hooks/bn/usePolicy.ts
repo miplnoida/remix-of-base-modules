@@ -15,6 +15,7 @@ import {
   submitOverrideRequest,
   reviewOverrideRequest,
   cancelOverrideRequest,
+  revokeOverrideRequest,
   listOverrideRequests,
 } from '@/services/bn/policies/bnPolicyActionHandler';
 import type {
