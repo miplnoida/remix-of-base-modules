@@ -58,14 +58,18 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
   const allowedRules = approvalPolicy?.allowed_rule_codes ?? [];
   const blockedRules = approvalPolicy?.blocked_rule_codes ?? [];
 
-  const isRuleOverrideable = useMemo(
-    () => (ruleCode: string) => {
-      if (!approvalPolicy?.is_enabled) return false;
-      if (blockedRules.includes(ruleCode)) return false;
-      if (allowedRules.length > 0) return allowedRules.includes(ruleCode);
-      return true;
+  // Returns null when the rule is overrideable, or a short denial reason.
+  const overrideDenialReason = useMemo(
+    () => (ruleCode: string): string | null => {
+      if (!productVersionId) return 'No product version on claim';
+      if (!approvalPolicy) return 'No approval policy configured for this product';
+      if (!approvalPolicy.is_enabled) return 'Eligibility overrides are disabled for this product';
+      if (blockedRules.includes(ruleCode)) return `Rule ${ruleCode} is blocked from override`;
+      if (allowedRules.length > 0 && !allowedRules.includes(ruleCode))
+        return `Rule ${ruleCode} is not in the allowed list (${allowedRules.join(', ')})`;
+      return null;
     },
-    [approvalPolicy, allowedRules, blockedRules],
+    [approvalPolicy, allowedRules, blockedRules, productVersionId],
   );
 
   const [overrideRule, setOverrideRule] = useState<any | null>(null);
