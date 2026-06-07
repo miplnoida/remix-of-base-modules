@@ -91,14 +91,14 @@ export async function assertSafeToPublish(versionId: string): Promise<PublishGat
       const baseline = SKN_BENEFIT_BASELINE.find((b: any) => b.benefit_code === code);
       if (baseline) {
         const { validateProduct } = await import('../configurationValidationService');
-        const report = await validateProduct(baseline);
+        const report = await validateProduct(baseline, { productVersionId: versionId });
         const failures = Object.entries(report)
           .filter(([_, v]: any) => v && typeof v === 'object' && v.status === 'FAIL')
           .map(([k]) => k);
         details.baseline = { status: report.overall_status, failures };
         if (failures.length > 0) {
           errors.push(
-            `Configuration Validation reported FAIL on: ${failures.join(', ')}. Fix in the Configuration Validation dashboard before publishing.`,
+            `Configuration Validation reported FAIL on the selected version: ${failures.join(', ')}. Fix the listed Product Editor tabs before approving/publishing.`,
           );
         }
       }
