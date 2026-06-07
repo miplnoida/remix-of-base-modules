@@ -1,0 +1,188 @@
+/**
+ * Legacy → unified policy migration helper.
+ *
+ * Reads rows from the legacy `bn_override_policy` table and upserts
+ * matching defaults into `bn_approval_policy`. Idempotent — never
+ * overwrites an existing `bn_approval_policy` row unless `force=true`.
+ *
+ * Mapping (legacy → unified):
+ *   target               → policy_area
+ *   allowed_role         → approval_role
+ *   maker_checker        → requires_supervisor_approval
+ *   max_amount           → max_override_amount
+ *   is_active            → is_enabled
+ *   field_path / rule    → allowed_rule_codes (appended)
+ */
+import { supabase } from '@/integrations/supabase/client';
+import type { PolicyArea } from './types';
+
+const db = supabase as any;
+
+const AREA_MAP: Record<string, PolicyArea> = {
+  ELIGIBILITY: 'ELIGIBILITY',
+  CALCULATION: 'CALCULATION',
+  DOCUMENTS: 'DOCUMENTS',
+  DOCUMENT: 'DOCUMENTS',
+  AMENDMENT: 'AMENDMENTS',
+  AMENDMENTS: 'AMENDMENTS',
+  PARTICIPANT: 'PARTICIPANTS',
+  PARTICIPANTS: 'PARTICIPANTS',
+  WORKFLOW: 'WORKFLOW',
+  AWARD: 'AWARD',
+  PAYMENT: 'PAYMENT',
+  COMMUNICATION: 'COMMUNICATION',
+};
+
+export interface MigrationStats {
+  productVersionId: string | null;
+  legacyRows: number;
+  inserted: number;
+  updated: number;
+  skipped: number;
+  errors: string[];
+}
+
+export interface MigrationOptions {
+  productVersionId?: string;
+  actor: string;
+  force?: boolean;
+}
+
+export async function migrateLegacyOverridePoliciesToApprovalPolicies(
+  opts: MigrationOptions,
+): Promise<MigrationStats> {
+  const stats: MigrationStats = {
+    productVersionId: opts.productVersionId ?? null,
+    legacyRows: 0,
+    inserted: 0,
+    updated: 0,
+    skipped: 0,
+    errors: [],
+  };
+
+  let q = db.from('bn_override_policy').select('*').eq('is_active', true);
+  const { data: legacy, error } = await q;
+  if (error) {
+    stats.errors.push(`Legacy fetch failed: ${error.message}`);
+    return stats;
+  }
+
+  // Resolve target product versions. Legacy rows are keyed by product_id,
+  // not product_version_id — fan out to every active/draft version of that
+  // product, or restrict to a single version when caller passed one.
+  const productIds = Array.from(new Set((legacy ?? []).map((r: any) => r.product_id).filter(Boolean)));
+  if (productIds.length === 0) return stats;
+  let versionsQ = db
+    .from('bn_product_version')
+    .select('id, product_id, status')
+    .in('product_id', productIds)
+    .in('status', ['DRAFT', 'PENDING_APPROVAL', 'ACTIVE']);
+  if (opts.productVersionId) versionsQ = versionsQ.eq('id', opts.productVersionId);
+  const { data: versions, error: vErr } = await versionsQ;
+  if (vErr) {
+    stats.errors.push(`Version fetch failed: ${vErr.message}`);
+    return stats;
+  }
+  const versionsByProduct = new Map<string, string[]>();
+  for (const v of versions ?? []) {
+    const arr = versionsByProduct.get(v.product_id) ?? [];
+    arr.push(v.id);
+    versionsByProduct.set(v.product_id, arr);
+  }
+
+  const expanded: Array<{ row: any; versionId: string }> = [];
+  for (const row of legacy as any[]) {
+    const versionIds = versionsByProduct.get(row.product_id) ?? [];
+    for (const vid of versionIds) expanded.push({ row, versionId: vid });
+  }
+  stats.legacyRows = expanded.length;
+  if (expanded.length === 0) return stats;
+
+  for (const { row, versionId } of expanded) {
+    try {
+      const area = AREA_MAP[String(row.override_target ?? '').toUpperCase()];
+      if (!area) {
+        stats.skipped++;
+        continue;
+      }
+
+      const { data: existing } = await db
+        .from('bn_approval_policy')
+        .select('*')
+        .eq('product_version_id', versionId)
+        .eq('policy_area', area)
+        .eq('action_code', 'DEFAULT')
+        .maybeSingle();
+
+      const extractedRule = row.field_path || null;
+      const mergedRuleCodes = Array.from(
+        new Set([
+          ...((existing?.allowed_rule_codes as string[]) ?? []),
+          ...(extractedRule ? [extractedRule] : []),
+        ]),
+      );
+
+      const payload: any = {
+        product_version_id: versionId,
+        policy_area: area,
+        action_code: 'DEFAULT',
+        is_enabled: existing ? existing.is_enabled || !!row.is_active : !!row.is_active,
+        requires_supervisor_approval:
+          existing?.requires_supervisor_approval ?? !!row.requires_maker_checker,
+        requires_justification:
+          existing?.requires_justification ?? !!row.requires_justification,
+        approval_role:
+          existing?.approval_role ??
+          (row.allowed_role_code
+            ? String(row.allowed_role_code).toUpperCase()
+            : row.allowed_role
+              ? String(row.allowed_role).toUpperCase()
+              : null),
+        max_override_amount:
+          existing?.max_override_amount ?? row.max_override_amount ?? null,
+        allowed_rule_codes: mergedRuleCodes,
+        self_approval_allowed: existing?.self_approval_allowed ?? false,
+        updated_by: opts.actor,
+      };
+
+
+      if (existing) {
+        if (!opts.force) {
+          stats.skipped++;
+          continue;
+        }
+        const { error: updErr } = await db
+          .from('bn_approval_policy')
+          .update(payload)
+          .eq('id', existing.id);
+        if (updErr) {
+          stats.errors.push(`update ${versionId}/${area}: ${updErr.message}`);
+        } else {
+          stats.updated++;
+        }
+      } else {
+        payload.created_by = opts.actor;
+        const { error: insErr } = await db.from('bn_approval_policy').insert(payload);
+        if (insErr) {
+          stats.errors.push(`insert ${versionId}/${area}: ${insErr.message}`);
+        } else {
+          stats.inserted++;
+        }
+      }
+    } catch (e: any) {
+      stats.errors.push(e?.message ?? String(e));
+    }
+  }
+  return stats;
+}
+
+export async function countLegacyOverridePolicies(productId?: string): Promise<number> {
+  let q = db
+    .from('bn_override_policy')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_active', true);
+  if (productId) q = q.eq('product_id', productId);
+  const { count, error } = await q;
+  if (error) return 0;
+  return count ?? 0;
+}
