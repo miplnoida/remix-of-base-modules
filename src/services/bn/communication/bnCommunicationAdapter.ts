@@ -304,14 +304,61 @@ async function createLetter(params: {
   recipientType: BnRecipientType; recipient: any; subject: string;
   mergeContext: Record<string, any>; isMandatoryLetter: boolean; userCode?: string;
 }) {
+  // Snapshot the latest active version (subject + html_body + version_no) at
+  // generation time so the letter preserves what was actually communicated.
+  let renderedSubject: string | null = null;
+  let renderedHtml: string | null = null;
+  let renderedText: string | null = null;
+  let templateVersionId: string | null = null;
+  let templateVersionNo: number | null = null;
+  if (params.templateId) {
+    const { data: versionRows } = await db
+      .from('notification_template_versions')
+      .select('id, version_no, subject, html_body, body')
+      .eq('template_id', params.templateId)
+      .order('version_no', { ascending: false })
+      .limit(1);
+    const ver = Array.isArray(versionRows) ? versionRows[0] : null;
+    let subjectTpl = ver?.subject || '';
+    let htmlTpl = ver?.html_body || (ver?.body ? `<pre style="white-space:pre-wrap">${ver.body}</pre>` : null);
+    let textTpl = ver?.body || null;
+    templateVersionId = ver?.id || null;
+    templateVersionNo = ver?.version_no || null;
+    if (!htmlTpl) {
+      const { data: tpl } = await db
+        .from('notification_templates')
+        .select('subject, html_body, body, version_no')
+        .eq('id', params.templateId).maybeSingle();
+      subjectTpl = subjectTpl || tpl?.subject || '';
+      htmlTpl = htmlTpl || tpl?.html_body || (tpl?.body ? `<pre style="white-space:pre-wrap">${tpl.body}</pre>` : null);
+      textTpl = textTpl || tpl?.body || null;
+      templateVersionNo = templateVersionNo ?? tpl?.version_no ?? null;
+    }
+    const ctx = params.mergeContext || {};
+    const merge = (s: string) => s.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
+      const lc = k.toLowerCase();
+      for (const key of Object.keys(ctx)) if (key.toLowerCase() === lc) return String(ctx[key] ?? '');
+      return '';
+    });
+    renderedSubject = subjectTpl ? merge(subjectTpl) : null;
+    renderedHtml = htmlTpl ? merge(htmlTpl) : null;
+    renderedText = textTpl ? merge(textTpl) : null;
+  }
+
   const { data, error } = await db.from('bn_letter').insert({
     claim_id: params.claimId,
     event_code: params.eventCode,
     template_id: params.templateId,
+    template_version_id: templateVersionId,
+    template_version_no: templateVersionNo,
     recipient_type: params.recipientType,
     recipient_name: params.recipient?.name || '',
     recipient_address_snapshot: params.recipient?.address || null,
-    subject: params.subject,
+    subject: renderedSubject || params.subject,
+    body_html: renderedHtml,
+    rendered_subject: renderedSubject,
+    rendered_body_html: renderedHtml,
+    rendered_body_text: renderedText,
     merge_context: params.mergeContext,
     status: params.isMandatoryLetter ? 'PENDING_APPROVAL' : 'GENERATED',
     generated_at: new Date().toISOString(),
