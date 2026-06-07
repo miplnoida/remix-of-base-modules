@@ -7,7 +7,7 @@
  * a "Configuration health" panel and (in a follow-up) by the publish gate.
  */
 import { supabase } from '@/integrations/supabase/client';
-import { ELIGIBILITY_FACT_REGISTRY } from '@/services/bn/eligibility/eligibilityFactRegistry';
+import { ELIGIBILITY_FACTS } from '@/services/bn/eligibility/eligibilityFactRegistry';
 
 const db = supabase as any;
 
