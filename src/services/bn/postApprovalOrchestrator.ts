@@ -64,6 +64,14 @@ export async function orchestrateApproval(
     .single();
   if (prodErr || !product) throw new Error('Product not found');
 
+  // Load product version to honour its configured payment_frequency / duration type.
+  const { data: pv } = await db
+    .from('bn_product_version')
+    .select('payment_frequency, benefit_duration_type')
+    .eq('id', claim.product_version_id)
+    .maybeSingle();
+
+
   // 2. Latest calculation
   const { data: calcs } = await db
     .from('bn_claim_calculation')
