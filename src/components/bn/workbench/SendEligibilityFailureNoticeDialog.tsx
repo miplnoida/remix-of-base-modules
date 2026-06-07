@@ -109,6 +109,13 @@ export function SendEligibilityFailureNoticeDialog({
   eligibilitySnapshot,
 }: Props) {
   const trigger = useBnTriggerCommunication();
+  const { userId: currentUserId, fullName: currentUserName } = useUserCode();
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data: { user } }) => { if (!cancelled) setCurrentUserEmail(user?.email || undefined); });
+    return () => { cancelled = true; };
+  }, []);
   const { data: mappings = [], isLoading } = useQuery({
     queryKey: ['bn', 'comm-mapping', EVENT_CODE, productVersionId ?? 'global'],
     queryFn: () => loadMappings(productVersionId),
