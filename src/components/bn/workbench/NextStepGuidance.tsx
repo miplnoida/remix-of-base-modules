@@ -141,7 +141,7 @@ export const NextStepGuidance: React.FC<Props> = ({
         title: 'Decision approved — no payable yet',
         body: 'Generate the entitlement / payable record so the claim can be paid.',
         actionLabel: 'Generate Payable',
-        onAction: () => generateMut.mutate(),
+        onAction: () => { if (guard()) generateMut.mutate(); },
         pending: generateMut.isPending,
       };
     }
