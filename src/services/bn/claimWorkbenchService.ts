@@ -281,6 +281,27 @@ export async function executeClaimAction(
       });
     } catch (e) { /* non-blocking */ }
 
+    // ── 5. Mirror to central workflow engine (Phase 3) — non-blocking ──
+    try {
+      const { mirrorClaimActionToCentralEngine } = await import('./bnWorkflowRuntimeService');
+      const { data: claimMeta } = await db
+        .from('bn_claim')
+        .select('claim_number, ssn')
+        .eq('id', claimId)
+        .maybeSingle();
+      await mirrorClaimActionToCentralEngine({
+        claimId,
+        claimNumber: claimMeta?.claim_number ?? null,
+        ssn: claimMeta?.ssn ?? null,
+        action,
+        fromStatus,
+        toStatus,
+        userCode,
+        narrative,
+      });
+    } catch (e) { /* non-blocking */ }
+
+
     const friendly =
       action === 'CHECK_ELIGIBILITY'
         ? `Eligibility evaluated — ${sideEffect.overallResult ? 'PASS' : 'FAIL'} (${sideEffect.ruleCount ?? 0} rules)`
