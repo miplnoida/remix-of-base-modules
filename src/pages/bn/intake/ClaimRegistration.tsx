@@ -290,6 +290,22 @@ export default function ClaimRegistration() {
         const summary = await getContributionSummary(effectiveSsn, claimDate, resolvedVersion.version.id);
         if (!cancel) setContribution(summary);
       }
+      // Audit precheck run (non-blocking)
+      if (userCode) {
+        void auditClaimAction({
+          action: 'ELIGIBILITY_PRECHECK_RUN',
+          entityType: 'bn_claim_intake',
+          entityId: resolvedVersion.version.id,
+          performedBy: userCode,
+          afterValue: {
+            productCode: (selectedProduct as any)?.benefit_code,
+            ssn: effectiveSsn || null,
+            claimDate,
+            ruleCount: rules.length,
+          },
+          critical: false,
+        }).catch(() => {});
+      }
     }
     run();
     return () => { cancel = true; };
