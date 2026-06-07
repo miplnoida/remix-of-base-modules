@@ -17,6 +17,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { bnDocumentTypeFor } from '@/services/reference/referenceNumberService';
+import { ensureBnLetterSnapshot, mergePlaceholders } from './bnLetterRenderer';
 
 const db = supabase as any;
 
@@ -276,21 +277,66 @@ export async function resolveRecipient(claimId: string, recipientType: BnRecipie
 
 // ─── Channel dispatchers ──────────────────────────────────────────
 async function queueNotificationQueue(channel: 'EMAIL' | 'SMS', recipient: any, templateId: string | null, subject: string | null, mergeContext: Record<string, any>, claimId: string, eventCode: string) {
+  const template = templateId ? await loadTemplateForChannel(templateId, channel) : null;
+  const renderedSubject = template?.subject ? mergePlaceholders(template.subject, mergeContext) : subject;
+  const renderedBody = template?.body ? mergePlaceholders(template.body, mergeContext) : '';
   const row = {
-    template_key: templateId || `bn-${eventCode}`,
-    recipient_email: channel === 'EMAIL' ? recipient?.email : null,
-    recipient_phone: channel === 'SMS' ? recipient?.phone : null,
-    recipient_name: recipient?.name || '',
+    template_id: templateId,
     channel: channel.toLowerCase(),
-    template_data: { ...mergeContext, claimId, eventCode },
-    module: 'benefit_management',
-    entity_type: 'bn_claim',
-    entity_id: claimId,
-    status: 'pending',
+    recipient_address: channel === 'EMAIL' ? recipient?.email : recipient?.phone,
+    subject: renderedSubject,
+    title: renderedSubject,
+    body: renderedBody,
+    status: 'queued',
+    trigger_source: 'benefit_management',
+    metadata: { ...mergeContext, claimId, eventCode, recipientName: recipient?.name || '' },
+    created_at: new Date().toISOString(),
   };
-  const { data, error } = await db.from('notification_queue').insert(row).select('id').single();
+  const { data, error } = await db.from('notification_logs').insert(row).select('id').single();
   if (error) throw error;
   return data?.id as string;
+}
+
+async function loadTemplateForChannel(templateId: string, channel: BnChannel) {
+  const expected = channel === 'INTERNAL_EMAIL' ? 'email' : channel.toLowerCase();
+  const { data, error } = await db
+    .from('notification_templates')
+    .select('id, template_code, name, channel, subject, body, html_body, is_enabled')
+    .eq('id', templateId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data || String(data.channel || '').toLowerCase() !== expected) {
+    if (channel === 'LETTER') throw new Error('No letter template configured for this event/product.');
+    throw new Error(`Template channel mismatch: ${channel} mapping must use a ${expected.toUpperCase()} template.`);
+  }
+  return data;
+}
+
+async function resolveTemplateForEventChannel(eventCode: string, channel: BnChannel, templateId?: string | null) {
+  if (templateId) {
+    try {
+      const template = await loadTemplateForChannel(templateId, channel);
+      return template.id as string;
+    } catch (error) {
+      if (channel !== 'LETTER') throw error;
+      // Digital-to-letter fallback may pass the original EMAIL/SMS/IN_APP template.
+      // Ignore it and resolve the proper LETTER template by event below.
+    }
+  }
+  const expected = channel === 'INTERNAL_EMAIL' ? 'email' : channel.toLowerCase();
+  const { data, error } = await db
+    .from('notification_templates')
+    .select('id')
+    .eq('trigger_event', eventCode)
+    .eq('channel', expected)
+    .eq('is_enabled', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data?.id && channel === 'LETTER') throw new Error('No letter template configured for this event/product.');
+  if (!data?.id) throw new Error(`No ${expected.toUpperCase()} template configured for this event/product.`);
+  return data.id as string;
 }
 
 async function createInAppNotification(userIdOrCode: string | undefined, subject: string, body: string, claimId: string, eventCode: string) {
@@ -315,82 +361,31 @@ async function createLetter(params: {
   recipientType: BnRecipientType; recipient: any; subject: string;
   mergeContext: Record<string, any>; isMandatoryLetter: boolean; userCode?: string;
 }) {
-  // Snapshot the latest active version (subject + html_body + version_no) at
-  // generation time so the letter preserves what was actually communicated.
-  let renderedSubject: string | null = null;
-  let renderedHtml: string | null = null;
-  let renderedText: string | null = null;
-  let templateVersionId: string | null = null;
-  let templateVersionNo: number | null = null;
-
-  // Convert a plain-text body (with real or literal \n) into safe formatted HTML.
-  const escapeHtml = (s: string) => s
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const normalizeNewlines = (s: string) => s.replace(/\\r\\n|\\n|\\r/g, '\n');
-  const textToHtml = (s: string) => {
-    const norm = normalizeNewlines(s);
-    return norm
-      .split(/\n{2,}/)
-      .map((p) => `<p style="margin:0 0 10px">${escapeHtml(p).replace(/\n/g, '<br/>')}</p>`)
-      .join('');
-  };
-
-  if (params.templateId) {
-    const { data: versionRows } = await db
-      .from('notification_template_versions')
-      .select('id, version_no, subject, html_body, body')
-      .eq('template_id', params.templateId)
-      .order('version_no', { ascending: false })
-      .limit(1);
-    const ver = Array.isArray(versionRows) ? versionRows[0] : null;
-    let subjectTpl = ver?.subject || '';
-    let htmlTpl: string | null = ver?.html_body || (ver?.body ? textToHtml(ver.body) : null);
-    let textTpl = ver?.body ? normalizeNewlines(ver.body) : null;
-    templateVersionId = ver?.id || null;
-    templateVersionNo = ver?.version_no || null;
-    if (!htmlTpl) {
-      const { data: tpl } = await db
-        .from('notification_templates')
-        .select('subject, html_body, body, version_no')
-        .eq('id', params.templateId).maybeSingle();
-      subjectTpl = subjectTpl || tpl?.subject || '';
-      htmlTpl = htmlTpl || tpl?.html_body || (tpl?.body ? textToHtml(tpl.body) : null);
-      textTpl = textTpl || (tpl?.body ? normalizeNewlines(tpl.body) : null);
-      templateVersionNo = templateVersionNo ?? tpl?.version_no ?? null;
-    }
-    const ctx = params.mergeContext || {};
-    const merge = (s: string) => s.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, k) => {
-      const lc = k.toLowerCase();
-      for (const key of Object.keys(ctx)) if (key.toLowerCase() === lc) return String(ctx[key] ?? '');
-      return '';
-    });
-    renderedSubject = subjectTpl ? merge(subjectTpl) : null;
-    renderedHtml = htmlTpl ? merge(htmlTpl) : null;
-    renderedText = textTpl ? merge(textTpl) : null;
-  }
+  const letterTemplateId = await resolveTemplateForEventChannel(params.eventCode, 'LETTER', params.templateId);
 
   const { data, error } = await db.from('bn_letter').insert({
     claim_id: params.claimId,
     event_code: params.eventCode,
-    template_id: params.templateId,
-    template_version_id: templateVersionId,
-    template_version_no: templateVersionNo,
+    template_id: letterTemplateId,
     recipient_type: params.recipientType,
     recipient_name: params.recipient?.name || '',
     recipient_address_snapshot: params.recipient?.address || null,
-    subject: renderedSubject || params.subject,
-    body_html: renderedHtml,
-    rendered_subject: renderedSubject,
-    rendered_body_html: renderedHtml,
-    rendered_body_text: renderedText,
+    subject: params.subject,
     merge_context: params.mergeContext,
     department_code: 'BENEFITS',
+    issued_department_code: 'BENEFITS',
     document_type: bnDocumentTypeFor(params.eventCode),
     status: params.isMandatoryLetter ? 'PENDING_APPROVAL' : 'GENERATED',
     generated_at: new Date().toISOString(),
     created_by: params.userCode || null,
   }).select('id').single();
   if (error) throw error;
+  try {
+    await ensureBnLetterSnapshot(data.id);
+  } catch (snapshotError: any) {
+    await db.from('bn_letter').update({ status: 'FAILED', notes: snapshotError?.message || 'Letter rendering failed' }).eq('id', data.id);
+    throw snapshotError;
+  }
   return data?.id as string;
 }
 
