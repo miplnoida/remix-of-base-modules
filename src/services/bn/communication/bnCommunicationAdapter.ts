@@ -33,6 +33,9 @@ export interface BnCommContext {
   reasonDescription?: string;
   appealDeadline?: string;
   userCode?: string;
+  currentUserId?: string;
+  currentUserEmail?: string;
+  currentUserName?: string;
   extra?: Record<string, any>;
 }
 
@@ -62,8 +65,9 @@ export async function diagnoseRecipient(
   claimId: string,
   recipientType: BnRecipientType,
   channel: BnChannel,
+  ctx?: BnCommContext,
 ): Promise<RecipientDiagnosis> {
-  const recipient = await resolveRecipient(claimId, recipientType, channel);
+  const recipient = await resolveRecipient(claimId, recipientType, channel, ctx);
   if (!recipient) {
     return { resolvable: false, missing: ['recipient'], reason: `${recipientType} record not found on claim` };
   }
@@ -192,18 +196,16 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
 
 
 // ─── Recipient resolution ─────────────────────────────────────────
-export async function resolveRecipient(claimId: string, recipientType: BnRecipientType, channel: BnChannel): Promise<{ name?: string; email?: string; phone?: string; address?: any; userId?: string } | null> {
+export async function resolveRecipient(claimId: string, recipientType: BnRecipientType, channel: BnChannel, ctx?: BnCommContext): Promise<{ name?: string; email?: string; phone?: string; address?: any; userId?: string; fallbackUsed?: string } | null> {
   const { data: claim } = await db.from('bn_claim').select('ssn, employer_regno, assigned_to').eq('id', claimId).maybeSingle();
   if (!claim) return null;
 
   if (recipientType === 'CLAIMANT' || recipientType === 'PAYEE') {
     const ssn = claim.ssn ? String(claim.ssn).trim() : null;
     if (!ssn) return null;
-    // ip_master uses firstname/surname/email_addr/contact_email/phone_mobile/phone/mail_addr1
     const { data: p } = await db.from('ip_master')
-      .select('firstname, surname, email_addr, contact_email, phone_mobile, phone, telephone, mail_addr1, mail_addr2')
+      .select('firstname, surname, email_addr, contact_email, mobile, phone_mobile, contact_mobile, phone, telephone, mail_addr1, mail_addr2')
       .eq('ssn', ssn).maybeSingle();
-    // Fallback to the application snapshot contact info if ip_master is sparse
     const { data: appSnap } = await db.from('bn_claim_application')
       .select('raw_application_json')
       .eq('claim_id', claimId)
@@ -212,21 +214,30 @@ export async function resolveRecipient(claimId: string, recipientType: BnRecipie
     const raw = appSnap?.raw_application_json || {};
     const contact = raw.contact || raw.claimant || raw.applicant || {};
     const addrSrc = raw.address || raw.mailing_address || contact.address || {};
-    // Resolve linked external user (for IN_APP delivery to claimant)
+
+    // Resolve linked external (claimant portal) user, plus fallback phone via verified link
     let userId: string | undefined;
-    if (channel === 'IN_APP') {
-      const { data: link } = await db.from('external_user_person_link')
-        .select('user_id, is_primary, verification_status')
-        .eq('ssn', ssn)
-        .order('is_primary', { ascending: false })
-        .limit(1).maybeSingle();
-      userId = link?.user_id || undefined;
+    let linkedPhone: string | undefined;
+    const { data: link } = await db.from('external_user_person_link')
+      .select('user_id, is_primary, verification_status')
+      .eq('ssn', ssn)
+      .order('is_primary', { ascending: false })
+      .limit(1).maybeSingle();
+    if (link?.user_id) {
+      if (channel === 'IN_APP') userId = link.user_id;
+      // best-effort: pull verified phone from profile if present
+      const { data: extProf } = await db.from('profiles')
+        .select('phone, mobile, contact_phone')
+        .eq('id', link.user_id)
+        .maybeSingle();
+      linkedPhone = (extProf as any)?.phone || (extProf as any)?.mobile || (extProf as any)?.contact_phone || undefined;
     }
     const name = `${p?.firstname || contact.firstname || contact.first_name || ''} ${p?.surname || contact.surname || contact.last_name || ''}`.trim();
     return {
       name: name || recipientType,
       email: p?.email_addr || p?.contact_email || contact.email || contact.email_addr || undefined,
-      phone: p?.phone_mobile || p?.phone || p?.telephone || contact.phone || contact.phone_mobile || undefined,
+      // phone_cell-equivalent → mobile first, then phone_mobile, contact_mobile, phone, telephone, linked, snapshot
+      phone: p?.mobile || p?.phone_mobile || p?.contact_mobile || p?.phone || p?.telephone || contact.phone || contact.phone_mobile || linkedPhone || undefined,
       address: {
         line1: p?.mail_addr1 || addrSrc.line1 || addrSrc.address_line1 || addrSrc.street || undefined,
         line2: p?.mail_addr2 || addrSrc.line2 || addrSrc.address_line2 || undefined,
@@ -252,8 +263,8 @@ export async function resolveRecipient(claimId: string, recipientType: BnRecipie
 
   // Internal recipients (ASSIGNED_OFFICER / SUPERVISOR / FINANCE / etc.)
   let officerId: string | undefined = claim.assigned_to || undefined;
+  let fallbackUsed: string | undefined;
   if (!officerId) {
-    // Fallback to most-recent active queue assignment
     const { data: q } = await db.from('bn_claim_queue_assignment')
       .select('assigned_to')
       .eq('claim_id', claimId)
@@ -262,17 +273,26 @@ export async function resolveRecipient(claimId: string, recipientType: BnRecipie
       .limit(1).maybeSingle();
     officerId = q?.assigned_to || undefined;
   }
-  // Try to resolve an email for that user (best effort)
-  let officerEmail: string | undefined;
+  // Fallback: current logged-in user (officer-initiated comms)
+  if (!officerId && ctx?.currentUserId) {
+    officerId = ctx.currentUserId;
+    fallbackUsed = 'current-user';
+  }
+
   if (officerId) {
     const { data: prof } = await db.from('profiles')
-      .select('email, full_name, user_code')
+      .select('id, email, full_name, user_code')
       .or(`id.eq.${officerId},user_code.eq.${officerId}`)
       .limit(1).maybeSingle();
-    officerEmail = prof?.email || undefined;
-    return { name: prof?.full_name || recipientType, email: officerEmail, userId: officerId };
+    const resolvedUserId = (prof as any)?.id || officerId;
+    return {
+      name: prof?.full_name || ctx?.currentUserName || recipientType,
+      email: prof?.email || ctx?.currentUserEmail || undefined,
+      userId: resolvedUserId,
+      fallbackUsed,
+    };
   }
-  return { name: recipientType, userId: officerId };
+  return { name: ctx?.currentUserName || recipientType, email: ctx?.currentUserEmail, userId: undefined };
 }
 
 // ─── Channel dispatchers ──────────────────────────────────────────
@@ -419,6 +439,25 @@ async function writeCommLog(row: {
   return data?.id as string;
 }
 
+// ─── Diagnostics suggested-fix builder ─────────────────────────────
+function buildSuggestedFix(channel: string, recipientType: string, missing: string[]): string {
+  if (missing.includes('mapping')) return 'Configure mapping in Product Catalog → Communications';
+  if (missing.includes('recipient')) {
+    if (recipientType === 'ASSIGNED_OFFICER') return 'Assign claim to an officer (or log in as the officer triggering the action).';
+    if (recipientType === 'CLAIMANT' || recipientType === 'PAYEE') return 'Open the claimant record and verify SSN/contact details exist.';
+    return `Verify the ${recipientType} master record exists for this claim.`;
+  }
+  if (missing.includes('email')) return `Add an email address to the ${recipientType.toLowerCase()} record.`;
+  if (missing.includes('phone')) return `Add a mobile number to the ${recipientType.toLowerCase()} record (ip_master.mobile / phone_mobile).`;
+  if (missing.includes('postal address')) return `Add a mailing address (mail_addr1 / city) to the ${recipientType.toLowerCase()} record.`;
+  if (missing.includes('internal user account')) {
+    if (recipientType === 'CLAIMANT') return 'Claimant has no linked portal account; in-app delivery requires external_user_person_link.';
+    if (recipientType === 'ASSIGNED_OFFICER') return 'Claim has no assigned officer and no current logged-in user available; assign the claim or trigger as a logged-in officer.';
+    return `No internal user resolved for ${recipientType}; configure assignment or fallback.`;
+  }
+  return 'Review communication mapping, template and recipient configuration.';
+}
+
 // ─── Top-level event dispatcher ────────────────────────────────────
 export async function triggerClaimCommunication(eventCode: string, claimId: string, ctx?: BnCommContext): Promise<BnCommDispatchResult> {
   const result: BnCommDispatchResult = { eventCode, dispatched: 0, skipped: 0, failed: 0, blocked: 0, letters: [], logIds: [], warnings: [] };
@@ -486,7 +525,7 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
   for (const m of mappings) {
     const isRequired = m.is_required === true || event.is_mandatory_letter === true;
     try {
-      const diag = await diagnoseRecipient(claimId, m.recipient_type as BnRecipientType, m.channel as BnChannel);
+      const diag = await diagnoseRecipient(claimId, m.recipient_type as BnRecipientType, m.channel as BnChannel, ctx);
       const recipient = diag.recipient;
       const subject = `${event.event_name}${mergeContext.ClaimNumber ? ` — ${mergeContext.ClaimNumber}` : ''}`;
 
@@ -514,15 +553,23 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
 
         const status: 'BLOCKED' | 'SKIPPED' = isRequired ? 'BLOCKED' : 'SKIPPED';
         if (status === 'BLOCKED') result.blocked += 1; else result.skipped += 1;
+        const suggestedFix = buildSuggestedFix(m.channel, m.recipient_type, diag.missing);
         const id = await writeCommLog({
           claimId, eventCode, channel: m.channel, recipientType: m.recipient_type,
           status, error: diag.reason || 'Recipient not resolved',
           templateId: m.template_id, workflowStepId: ctx?.workflowStepId, userCode: ctx?.userCode,
-          context: { missing: diag.missing, required: isRequired },
+          context: {
+            missing: diag.missing, required: isRequired, suggestedFix,
+            resolvedRecipient: diag.recipient ? { name: diag.recipient.name, email: diag.recipient.email, phone: diag.recipient.phone, userId: diag.recipient.userId } : null,
+          },
         });
         if (id) result.logIds.push(id);
         continue;
       }
+
+      const fallbackNote = (recipient as any)?.fallbackUsed === 'current-user'
+        ? 'Assigned officer fallback used: current user'
+        : undefined;
 
       // Channel-specific dispatch
       if (m.channel === 'EMAIL' || m.channel === 'INTERNAL_EMAIL') {
@@ -531,6 +578,7 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
           claimId, eventCode, channel: m.channel, recipientType: m.recipient_type, recipientAddress: recipient!.email,
           templateId: m.template_id, subject, status: 'QUEUED', providerId, userCode: ctx?.userCode,
           workflowStepId: ctx?.workflowStepId,
+          context: fallbackNote ? { fallbackNote } : undefined,
         });
         if (id) result.logIds.push(id);
         result.dispatched += 1;
@@ -540,6 +588,7 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
           claimId, eventCode, channel: 'SMS', recipientType: m.recipient_type, recipientAddress: recipient!.phone,
           templateId: m.template_id, subject, status: 'QUEUED', providerId, userCode: ctx?.userCode,
           workflowStepId: ctx?.workflowStepId,
+          context: fallbackNote ? { fallbackNote } : undefined,
         });
         if (id) result.logIds.push(id);
         result.dispatched += 1;
@@ -549,7 +598,10 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
           claimId, eventCode, channel: 'IN_APP', recipientType: m.recipient_type, recipientAddress: recipient!.userId,
           templateId: m.template_id, subject, status: inAppId ? 'SENT' : (isRequired ? 'BLOCKED' : 'SKIPPED'),
           providerId: inAppId, userCode: ctx?.userCode, workflowStepId: ctx?.workflowStepId,
-          error: inAppId ? undefined : 'In-app delivery failed',
+          error: inAppId ? undefined : 'No internal user account resolved for in-app delivery',
+          context: inAppId
+            ? (fallbackNote ? { fallbackNote } : undefined)
+            : { missing: ['internal user account'], suggestedFix: buildSuggestedFix('IN_APP', m.recipient_type, ['internal user account']) },
         });
         if (id) result.logIds.push(id);
         if (inAppId) result.dispatched += 1;
@@ -565,16 +617,26 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
           claimId, eventCode, channel: 'LETTER', recipientType: m.recipient_type, recipientAddress: recipient!.name,
           templateId: m.template_id, subject, status: 'GENERATED', letterId, userCode: ctx?.userCode,
           workflowStepId: ctx?.workflowStepId,
+          context: fallbackNote ? { fallbackNote } : undefined,
         });
         if (id) result.logIds.push(id);
         result.dispatched += 1;
       }
     } catch (err: any) {
       result.failed += 1;
+      const msg = err?.message || 'Unknown error';
+      const isMissingTable = /notification_queue|schema cache|relation .* does not exist/i.test(msg);
+      const isTemplateIssue = /template/i.test(msg);
+      const suggestedFix = isMissingTable
+        ? 'notification_queue table missing or stale schema cache: apply latest migrations.'
+        : isTemplateIssue
+          ? 'Check the Communication template (channel match, enabled, body present).'
+          : 'Review server logs and retry; if persistent, contact admin.';
       const id = await writeCommLog({
         claimId, eventCode, channel: m.channel, recipientType: m.recipient_type,
-        status: 'FAILED', error: err?.message || 'Unknown error',
+        status: 'FAILED', error: msg,
         templateId: m.template_id, workflowStepId: ctx?.workflowStepId, userCode: ctx?.userCode,
+        context: { suggestedFix, technicalError: msg },
       });
       if (id) result.logIds.push(id);
     }

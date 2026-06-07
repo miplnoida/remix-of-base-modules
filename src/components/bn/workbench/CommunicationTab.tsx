@@ -48,8 +48,18 @@ const channelIcon = (ch: string) => {
 const formatTime = (iso?: string) => (iso ? formatAuditTimestamp(iso) : '—');
 
 export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId }) => {
-  const { userCode: userCodeRaw } = useUserCode();
+  const { userCode: userCodeRaw, userId: currentUserId, fullName: currentUserName } = useUserCode();
   const userCode = userCodeRaw || 'SYSTEM';
+  const [currentUserEmail, setCurrentUserEmail] = React.useState<string | undefined>(undefined);
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!cancelled) setCurrentUserEmail(user?.email || undefined);
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const { data, isLoading } = useBnClaimCommunicationHistory(claimId);
   const trigger = useBnTriggerCommunication();
   const updateLetter = useBnUpdateLetterStatus();
@@ -72,8 +82,12 @@ export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId })
 
   const handleTrigger = async (eventCode: string) => {
     try {
-      const r = await trigger.mutateAsync({ eventCode, claimId, ctx: { userCode, productVersionId } });
-      toast.success(`Dispatched ${r.dispatched}, skipped ${r.skipped}, failed ${r.failed}`);
+      const r = await trigger.mutateAsync({
+        eventCode,
+        claimId,
+        ctx: { userCode, productVersionId, currentUserId: currentUserId || undefined, currentUserEmail, currentUserName: currentUserName || undefined },
+      });
+      toast.success(`Dispatched ${r.dispatched}, skipped ${r.skipped}, failed ${r.failed}${r.blocked ? `, blocked ${r.blocked}` : ''}`);
     } catch (e: any) {
       toast.error(e?.message || 'Trigger failed');
     }
@@ -204,6 +218,12 @@ const LogList: React.FC<LogListProps> = ({ rows, loading, onRetry, onGenerateLet
             )}
             {missing.length > 0 && (
               <p className="text-xs text-orange-700 mt-0.5">Missing: {missing.join(', ')}</p>
+            )}
+            {r.context?.suggestedFix && (
+              <p className="text-xs text-blue-700 mt-0.5"><strong>Fix:</strong> {r.context.suggestedFix}</p>
+            )}
+            {r.context?.fallbackNote && (
+              <p className="text-xs text-muted-foreground italic mt-0.5">{r.context.fallbackNote}</p>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
