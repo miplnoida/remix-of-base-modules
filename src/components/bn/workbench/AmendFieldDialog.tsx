@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import { amendClaimField } from '@/services/bn/amendClaimField';
 import type { FieldArea } from '@/types/bn/amendment';
 import type { FieldMeta } from './DynamicSectionRenderer';
-import { useAuth } from '@/contexts/SupabaseAuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface Props {
@@ -41,7 +41,7 @@ function inferArea(sectionCode: string): FieldArea {
 }
 
 export const AmendFieldDialog: React.FC<Props> = ({ claimId, field, currentValue, fieldArea, open, onOpenChange }) => {
-  const { profile } = useAuth() as any;
+  const { profile } = useSupabaseAuth() as any;
   const qc = useQueryClient();
   const [value, setValue] = useState<any>('');
   const [reason, setReason] = useState('');
