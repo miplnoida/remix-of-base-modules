@@ -93,9 +93,10 @@ export const bnPersonAdapter: IBnPersonAdapter = {
 
 function mapPersonStatus(raw: string | null): PersonSummary['status'] {
   if (!raw) return 'pending';
-  const s = raw.trim().toLowerCase();
-  if (s === 'deceased' || s === 'dead') return 'deceased';
-  if (s === 'suspended' || s === 'blocked') return 'suspended';
-  if (s === 'active' || s === 'verified') return 'active';
+  const s = raw.trim().toUpperCase();
+  // Legacy ip_master single-letter codes: A=Active, V=Verified, D=Deceased, S=Suspended, I=Inactive, P=Pending
+  if (['D', 'DEAD', 'DECEASED'].includes(s)) return 'deceased';
+  if (['S', 'B', 'SUSPENDED', 'BLOCKED'].includes(s)) return 'suspended';
+  if (['A', 'V', 'R', 'ACTIVE', 'VERIFIED', 'REGISTERED'].includes(s)) return 'active';
   return 'pending';
 }
