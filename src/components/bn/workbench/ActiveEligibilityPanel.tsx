@@ -2,31 +2,60 @@
  * Active Eligibility Panel
  *
  * Shows the latest eligibility check with a full rule trace and
- * exposes Run / Re-run buttons. Empty state offers a single
- * "Run Eligibility Check" CTA so the user is never stuck.
+ * exposes Run / Re-run buttons. Each failed rule gets a "Request Override"
+ * action which opens a maker-checker dialog; supervisors then approve or
+ * reject the request from the EligibilityOverridesPanel below.
  */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Play, RefreshCw, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Play, RefreshCw, CheckCircle2, XCircle, AlertCircle, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { runClaimEligibility } from '@/services/bn/claimActionRunner';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { BnEmptyState } from '@/components/bn/shared/BnEmptyState';
+import { OverrideEligibilityDialog } from './OverrideEligibilityDialog';
+import { EligibilityOverridesPanel } from './EligibilityOverridesPanel';
+import { isRuleOverrideable, loadOverridePolicy, type ProductOverridePolicy } from '@/services/bn/eligibilityOverrideService';
 
 interface Props {
   claimId: string;
   userCode: string;
   eligibility: any[];
+  userRoles?: string[];
+  productVersionId?: string | null;
 }
 
-export const ActiveEligibilityPanel: React.FC<Props> = ({ claimId, userCode, eligibility }) => {
+const SUPERVISOR_ROLES = ['BN_SUPERVISOR', 'BN_MANAGER', 'SUPERVISOR', 'MANAGER', 'ADMIN', 'SUPER_ADMIN'];
+const REQUESTER_ROLES = ['BN_OFFICER', 'BN_CLERK', 'BN_SUPERVISOR', 'BN_MANAGER', 'ADMIN', 'SUPER_ADMIN', 'OFFICER'];
+
+const hasAnyRole = (roles: string[] | undefined, allowed: string[]) =>
+  !!roles?.some((r) => allowed.map((x) => x.toUpperCase()).includes(String(r).toUpperCase()));
+
+export const ActiveEligibilityPanel: React.FC<Props> = ({
+  claimId,
+  userCode,
+  eligibility,
+  userRoles,
+  productVersionId,
+}) => {
   const [running, setRunning] = useState(false);
   const qc = useQueryClient();
   const latest = eligibility?.[0];
+
+  const { data: policy } = useQuery<ProductOverridePolicy | null>({
+    queryKey: ['bn', 'override-policy', productVersionId],
+    queryFn: () => (productVersionId ? loadOverridePolicy(productVersionId) : Promise.resolve(null)),
+    enabled: !!productVersionId,
+  });
+
+  const canRequest = hasAnyRole(userRoles, REQUESTER_ROLES);
+  const canReview = hasAnyRole(userRoles, SUPERVISOR_ROLES);
+
+  const [overrideRule, setOverrideRule] = useState<any | null>(null);
 
   const handleRun = async () => {
     if (!userCode) {
@@ -50,6 +79,11 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({ claimId, userCode, eli
     }
   };
 
+  const overrideAllowedByPolicy = useMemo(
+    () => (ruleCode: string) => isRuleOverrideable(policy ?? null, ruleCode),
+    [policy],
+  );
+
   if (!latest) {
     return (
       <Card>
@@ -70,6 +104,11 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({ claimId, userCode, eli
 
   const passed = latest.overall_result || latest.override_applied;
   const rules: any[] = Array.isArray(latest.rule_results) ? latest.rule_results : [];
+  const overallLabel = latest.override_applied
+    ? 'PASSED WITH OVERRIDE'
+    : passed
+      ? 'PASSED'
+      : 'FAILED';
 
   return (
     <div className="space-y-4">
@@ -78,19 +117,14 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({ claimId, userCode, eli
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <CardTitle className="text-base font-medium flex items-center gap-2">
               {passed ? (
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                <CheckCircle2 className={`h-5 w-5 ${latest.override_applied ? 'text-amber-600' : 'text-emerald-600'}`} />
               ) : (
                 <XCircle className="h-5 w-5 text-destructive" />
               )}
-              Eligibility {passed ? 'PASSED' : 'FAILED'}
+              Eligibility {overallLabel}
               <Badge variant="outline" className="ml-2 text-xs font-mono">
                 {formatDateForDisplay(latest.check_date)}
               </Badge>
-              {latest.override_applied && (
-                <Badge className="bg-amber-500/15 text-amber-700 border-amber-300" variant="outline">
-                  Override applied
-                </Badge>
-              )}
             </CardTitle>
             <div className="flex items-center gap-2">
               <Button size="sm" variant="outline" onClick={handleRun} disabled={running} className="gap-1">
@@ -121,32 +155,59 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({ claimId, userCode, eli
                     <TableHead>Required</TableHead>
                     <TableHead>Source</TableHead>
                     <TableHead>Message</TableHead>
+                    <TableHead className="w-[110px] text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rules.map((r: any, i: number) => (
-                    <TableRow key={i} className={!r.passed ? 'bg-destructive/5' : undefined}>
-                      <TableCell>
-                        {r.passed ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        ) : r.fail_action === 'WARN' ? (
-                          <AlertCircle className="h-4 w-4 text-amber-600" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-destructive" />
-                        )}
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <div className="text-sm">{r.rule_name}</div>
-                        <div className="text-xs text-muted-foreground font-mono">{r.rule_code}</div>
-                      </TableCell>
-                      <TableCell className="text-xs font-mono">{r.field_key ?? '—'}</TableCell>
-                      <TableCell className="text-xs">{formatVal(r.actual_value)}</TableCell>
-                      <TableCell className="text-xs font-mono">{r.operator ?? '—'}</TableCell>
-                      <TableCell className="text-xs">{formatVal(r.expected_value)}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{r.source ?? '—'}</TableCell>
-                      <TableCell className="text-xs">{r.message}</TableCell>
-                    </TableRow>
-                  ))}
+                  {rules.map((r: any, i: number) => {
+                    const isOverridden = r.result_state === 'OVERRIDDEN';
+                    const showOverride =
+                      !r.passed &&
+                      canRequest &&
+                      !!productVersionId &&
+                      overrideAllowedByPolicy(r.rule_code);
+                    return (
+                      <TableRow key={i} className={!r.passed ? 'bg-destructive/5' : isOverridden ? 'bg-amber-500/5' : undefined}>
+                        <TableCell>
+                          {isOverridden ? (
+                            <ShieldAlert className="h-4 w-4 text-amber-600" />
+                          ) : r.passed ? (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                          ) : r.fail_action === 'WARN' ? (
+                            <AlertCircle className="h-4 w-4 text-amber-600" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-destructive" />
+                          )}
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          <div className="text-sm">{r.rule_name}</div>
+                          <div className="text-xs text-muted-foreground font-mono">{r.rule_code}</div>
+                        </TableCell>
+                        <TableCell className="text-xs font-mono">{r.field_key ?? '—'}</TableCell>
+                        <TableCell className="text-xs">{formatVal(r.actual_value)}</TableCell>
+                        <TableCell className="text-xs font-mono">{r.operator ?? '—'}</TableCell>
+                        <TableCell className="text-xs">{formatVal(r.expected_value)}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{r.source ?? '—'}</TableCell>
+                        <TableCell className="text-xs">{r.message}</TableCell>
+                        <TableCell className="text-right">
+                          {showOverride && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs"
+                              onClick={() => setOverrideRule({ ...r, eligibility_result_id: latest.id })}>
+                              Request Override
+                            </Button>
+                          )}
+                          {!r.passed && !showOverride && !!productVersionId && !overrideAllowedByPolicy(r.rule_code) && (
+                            <span className="text-[10px] text-muted-foreground">Not overrideable</span>
+                          )}
+                          {isOverridden && (
+                            <Badge className="bg-amber-500/15 text-amber-700 border-amber-300 text-[10px]" variant="outline">
+                              Overridden
+                            </Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -154,10 +215,24 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({ claimId, userCode, eli
         </CardContent>
       </Card>
 
+      <EligibilityOverridesPanel claimId={claimId} userCode={userCode} canReview={canReview} />
+
       {eligibility.length > 1 && (
         <p className="text-xs text-muted-foreground">
           {eligibility.length} historical checks — only latest shown. Earlier runs preserved in bn_claim_eligibility.
         </p>
+      )}
+
+      {overrideRule && (
+        <OverrideEligibilityDialog
+          open={!!overrideRule}
+          onOpenChange={(o) => !o && setOverrideRule(null)}
+          claimId={claimId}
+          eligibilityResultId={overrideRule.eligibility_result_id}
+          rule={overrideRule}
+          userCode={userCode}
+          policy={policy ?? null}
+        />
       )}
     </div>
   );
