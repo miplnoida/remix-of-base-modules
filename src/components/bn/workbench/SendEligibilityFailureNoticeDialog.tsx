@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useBnTriggerCommunication } from '@/hooks/bn/useBnClaimCommunication';
+import { useUserCode } from '@/hooks/useUserCode';
 
 const EVENT_CODE = 'bn.eligibility.failed';
 const db = supabase as any;
