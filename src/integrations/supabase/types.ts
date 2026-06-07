@@ -4471,8 +4471,12 @@ export type Database = {
           expiry_status: string | null
           id: string
           is_enabled: boolean
+          level: number
+          max_amount: number | null
           max_override_amount: number | null
           max_override_percent: number | null
+          min_amount: number | null
+          next_level_workbasket_id: string | null
           non_waivable: boolean
           notes: string | null
           policy_area: string
@@ -4500,8 +4504,12 @@ export type Database = {
           expiry_status?: string | null
           id?: string
           is_enabled?: boolean
+          level?: number
+          max_amount?: number | null
           max_override_amount?: number | null
           max_override_percent?: number | null
+          min_amount?: number | null
+          next_level_workbasket_id?: string | null
           non_waivable?: boolean
           notes?: string | null
           policy_area: string
@@ -4529,8 +4537,12 @@ export type Database = {
           expiry_status?: string | null
           id?: string
           is_enabled?: boolean
+          level?: number
+          max_amount?: number | null
           max_override_amount?: number | null
           max_override_percent?: number | null
+          min_amount?: number | null
+          next_level_workbasket_id?: string | null
           non_waivable?: boolean
           notes?: string | null
           policy_area?: string
@@ -6716,6 +6728,7 @@ export type Database = {
           action_label: string
           allowed_roles: string[]
           country_code: string | null
+          creates_task_type: string | null
           entered_at: string
           entered_by: string | null
           from_status: string
@@ -6724,6 +6737,7 @@ export type Database = {
           min_override_level: number | null
           modified_at: string
           modified_by: string | null
+          next_workbasket_id: string | null
           product_category: string | null
           requires_calculation: boolean
           requires_eligibility_pass: boolean
@@ -6739,6 +6753,7 @@ export type Database = {
           action_label: string
           allowed_roles?: string[]
           country_code?: string | null
+          creates_task_type?: string | null
           entered_at?: string
           entered_by?: string | null
           from_status: string
@@ -6747,6 +6762,7 @@ export type Database = {
           min_override_level?: number | null
           modified_at?: string
           modified_by?: string | null
+          next_workbasket_id?: string | null
           product_category?: string | null
           requires_calculation?: boolean
           requires_eligibility_pass?: boolean
@@ -6762,6 +6778,7 @@ export type Database = {
           action_label?: string
           allowed_roles?: string[]
           country_code?: string | null
+          creates_task_type?: string | null
           entered_at?: string
           entered_by?: string | null
           from_status?: string
@@ -6770,6 +6787,7 @@ export type Database = {
           min_override_level?: number | null
           modified_at?: string
           modified_by?: string | null
+          next_workbasket_id?: string | null
           product_category?: string | null
           requires_calculation?: boolean
           requires_eligibility_pass?: boolean

@@ -16,6 +16,13 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { auditClaimAction, auditAwardAction } from '@/services/bn/audit/bnAuditService';
+import {
+  resolveApprovalRouting,
+  getUserRoleNames,
+  getTransitionSideEffect,
+  assignClaimToWorkbasket,
+} from '@/services/bn/approvalLevelService';
+
 
 const db = supabase as any;
 
@@ -88,15 +95,29 @@ export async function orchestrateApproval(
     };
   }
 
-  const periodic = isPeriodic(product.category, product.payment_type);
+  const periodicDefault = isPeriodic(product.category, product.payment_type);
   const weekly = Number(calc?.weekly_rate || 0);
   const monthly = Number(calc?.monthly_rate || (weekly * 52 / 12) || 0);
   const lump = Number(calc?.lump_sum || 0);
   const today = new Date().toISOString().slice(0, 10);
 
+  // ─── Phase 4: transition-rule drives post-approve routing ─────
+  // If a `bn_claim_transition_rule` row for (current status, APPROVE)
+  // declares `creates_task_type`, it wins over the legacy in-code
+  // periodic/lump-sum branching.
+  const sideEffect = await getTransitionSideEffect({
+    fromStatus: claim.status,
+    actionCode: 'APPROVE',
+    productCategory: product.category,
+  });
+  const taskType = sideEffect.createsTaskType
+    ?? (periodicDefault ? 'AWARD_SETUP' : 'PAYMENT_QUEUE');
+  const periodic = taskType === 'AWARD_SETUP';
+
   let entitlementId: string | undefined;
   let paymentInstructionId: string | undefined;
-  let toStatus = 'AWARD_SETUP';
+  let toStatus = taskType;
+
 
   if (periodic) {
     // ─── Periodic / long-term ────────────────────────────────────
@@ -181,6 +202,12 @@ export async function orchestrateApproval(
     .update({ status: toStatus, modified_by: performedBy, modified_at: new Date().toISOString() })
     .eq('id', claimId);
 
+  // Phase 4: route to next workbasket if transition rule declared one.
+  if (sideEffect.nextWorkbasketId) {
+    await assignClaimToWorkbasket(claimId, sideEffect.nextWorkbasketId, performedBy, `Auto-routed by ${taskType}`);
+  }
+
+
   await db.from('bn_claim_event').insert({
     claim_id: claimId,
     event_type: periodic ? 'AWARD_CREATED' : 'PAYABLE_QUEUED',
@@ -250,8 +277,12 @@ export async function submitClaimForDecision(claimId: string, performedBy: strin
 }
 
 /**
- * Approve a claim. Inserts a bn_claim_decision row (so the decision history
- * is preserved) and runs the post-approval orchestrator.
+ * Approve a claim. Multi-level routing (Phase 4):
+ *  - Loads claim + latest calculation + applicable approval-level policies.
+ *  - If the actor satisfies the highest required level for the amount,
+ *    records a final APPROVE decision and runs orchestrateApproval.
+ *  - Otherwise records a RECOMMEND_APPROVAL decision, moves the claim to
+ *    PENDING_APPROVAL, and routes it to the next-level workbasket.
  */
 export async function approveClaim(
   claimId: string,
@@ -261,11 +292,89 @@ export async function approveClaim(
 ): Promise<OrchestrationResult> {
   const { data: claim } = await db
     .from('bn_claim')
-    .select('id, status')
+    .select('id, status, product_version_id, product_id')
     .eq('id', claimId)
     .single();
   if (!claim) throw new Error('Claim not found');
 
+  // Pull latest calculated amount for level threshold matching.
+  const { data: calcRows } = await db
+    .from('bn_claim_calculation')
+    .select('weekly_rate, monthly_rate, lump_sum')
+    .eq('claim_id', claimId)
+    .order('calc_date', { ascending: false })
+    .limit(1);
+  const c = calcRows?.[0];
+  const amount = Number(c?.lump_sum || c?.monthly_rate || (Number(c?.weekly_rate || 0) * 52) || 0);
+
+  const userRoles = await getUserRoleNames(performedBy);
+  const routing = await resolveApprovalRouting({
+    productVersionId: claim.product_version_id,
+    amount,
+    userRoles,
+    area: 'AWARD',
+  });
+
+  // ── Recommendation path: actor cannot fully approve ──
+  if (!routing.canFullyApprove && routing.nextLevel) {
+    const fromStatus = claim.status;
+    const recStatus = 'PENDING_APPROVAL';
+
+    await db.from('bn_claim_decision').insert({
+      claim_id: claimId,
+      action_code: 'RECOMMEND_APPROVAL',
+      from_status: fromStatus,
+      to_status: recStatus,
+      reason_code_id: reasonCodeId || null,
+      narrative: narrative || null,
+      performed_by: performedBy,
+    });
+
+    await db.from('bn_claim').update({
+      status: recStatus,
+      modified_by: performedBy,
+      modified_at: new Date().toISOString(),
+    }).eq('id', claimId);
+
+    if (routing.nextWorkbasketId) {
+      await assignClaimToWorkbasket(
+        claimId, routing.nextWorkbasketId, performedBy,
+        `Recommended for level ${routing.nextLevel.level} approval`,
+      );
+    }
+
+    await db.from('bn_claim_event').insert({
+      claim_id: claimId,
+      event_type: 'RECOMMENDED_FOR_APPROVAL',
+      from_status: fromStatus,
+      to_status: recStatus,
+      performed_by: performedBy,
+      metadata: {
+        next_level: routing.nextLevel.level,
+        approval_role: routing.nextLevel.approval_role,
+        amount,
+      },
+    });
+
+    await auditClaimAction({
+      entityType: 'bn_claim',
+      entityId: claimId,
+      action: 'CLAIM_RECOMMENDED',
+      beforeValue: { status: fromStatus },
+      afterValue: { status: recStatus, next_level: routing.nextLevel.level },
+      notes: narrative,
+      performedBy,
+      critical: true,
+    });
+
+    return {
+      success: true,
+      toStatus: recStatus,
+      message: `Recommended. Awaiting level ${routing.nextLevel.level} approval (${routing.nextLevel.approval_role || 'reviewer'}).`,
+    };
+  }
+
+  // ── Full approve path ──
   await db.from('bn_claim_decision').insert({
     claim_id: claimId,
     action_code: 'APPROVE',
@@ -291,7 +400,7 @@ export async function approveClaim(
     entityId: claimId,
     action: 'CLAIM_APPROVED',
     beforeValue: { status: claim.status },
-    afterValue: { status: 'APPROVED' },
+    afterValue: { status: 'APPROVED', actor_level: routing.actorMaxLevel },
     notes: narrative,
     performedBy,
     critical: true,
@@ -299,6 +408,7 @@ export async function approveClaim(
 
   return orchestrateApproval(claimId, performedBy);
 }
+
 
 /** Manually generate the payable / entitlement for an already-approved
  *  claim where the orchestrator didn't fire. */
