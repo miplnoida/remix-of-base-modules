@@ -484,6 +484,22 @@ export default function ClaimRegistration() {
       if (result.workflowInstanceId) {
         toast.info('Workflow started and routed to worklist.');
       }
+      // Audit application-registered event (critical)
+      void auditClaimAction({
+        action: 'APPLICATION_REGISTERED',
+        entityType: 'bn_claim',
+        entityId: result.claimId,
+        performedBy: userCode,
+        afterValue: {
+          claimNumber: result.claimNumber,
+          productCode: (selectedProduct as any).benefit_code,
+          channel: 'STAFF_OFFLINE',
+          workflowInstanceId: result.workflowInstanceId ?? null,
+          workbasket: workbasket || null,
+          priority,
+        },
+        critical: true,
+      }).catch(() => {});
       navigate(`/bn/claims/${result.claimId}`);
     } catch (e: any) {
       toast.error('Failed to register claim', { description: e?.message });
