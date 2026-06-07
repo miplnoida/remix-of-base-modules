@@ -79,13 +79,13 @@ export const ContributorSection: React.FC<ContributorSectionProps> = ({
             </Badge>
           </div>
           {person.phone && <ReadField icon={Phone} label="Registry Phone" value={person.phone} />}
-          {person.email && <ReadField icon={Mail} label="Registry Email" value={person.email} />}
+          {person.email && <ReadField icon={Mail} label="Registry Email" value={person.email} className="col-span-2 md:col-span-2" />}
           {person.address && (
             <ReadField
               icon={MapPin}
               label="Address"
               value={[person.address.line1, person.address.line2, person.address.city, person.address.parish].filter(Boolean).join(', ')}
-              className="col-span-2"
+              className="col-span-2 md:col-span-2"
             />
           )}
         </div>
