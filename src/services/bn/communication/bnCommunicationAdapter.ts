@@ -70,8 +70,8 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
   const maskedSsn = ssnRaw ? ssnRaw.replace(/.(?=.{2})/g, '*') : '';
   const dec = latestDecision?.[0];
   const calc = latestCalc?.[0];
-  const elig = (extra?.eligibility as any) ?? (Array.isArray((arguments as any)) ? null : null);
-  const latestElig = (extra?.latestEligibility as any) ?? null;
+  const latestElig = (extra?.latestEligibility as any) ?? (Array.isArray(latestEligArr) ? latestEligArr[0] : null);
+
 
   // Build failed rules summary from extra.failedRules (preferred) or latest eligibility snapshot
   const failedRulesArr: any[] = Array.isArray(extra?.failedRules)
