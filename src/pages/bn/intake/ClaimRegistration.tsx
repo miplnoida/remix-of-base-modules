@@ -224,13 +224,13 @@ export default function ClaimRegistration() {
   async function togglePendingVerification(on: boolean) {
     setPendingVerification(on);
     if (on) {
-      await logAuditTrail({
-        action: 'pending_verification_enabled',
+      await auditClaimAction({
+        action: 'PENDING_VERIFICATION_ENABLED',
         entityType: 'bn_claim_intake',
         entityId: ssn || 'unknown',
-        module: 'benefits',
-        userCode,
-        metadata: { ssn, reason: 'SSN not found in ip_master' },
+        performedBy: userCode,
+        severity: 'warning',
+        afterValue: { ssn, reason: 'SSN not found in ip_master' },
       });
     }
   }
@@ -298,13 +298,12 @@ export default function ClaimRegistration() {
   // ─── Document operations (audited) ───────────────────────────────
   async function markDocPending(code: string, reason: string) {
     setDocState(prev => ({ ...prev, [code]: { status: 'PENDING', pendingReason: reason } }));
-    await logAuditTrail({
-      action: 'document_marked_pending',
+    await auditDocumentAction({
+      action: 'DOCUMENT_MARKED_PENDING',
       entityType: 'bn_claim_intake',
       entityId: code,
-      module: 'benefits',
-      userCode,
-      metadata: { ssn: person?.ssn ?? ssn, productCode: (selectedProduct as any)?.benefit_code, document: code, reason },
+      performedBy: userCode,
+      afterValue: { ssn: person?.ssn ?? ssn, productCode: (selectedProduct as any)?.benefit_code, document: code, reason },
     });
   }
 
@@ -314,26 +313,26 @@ export default function ClaimRegistration() {
       return;
     }
     setDocState(prev => ({ ...prev, [code]: { status: 'WAIVED', waiverReason: reason } }));
-    await logAuditTrail({
-      action: 'document_waiver_requested',
+    await auditDocumentAction({
+      action: 'DOCUMENT_WAIVER_REQUESTED',
       entityType: 'bn_claim_intake',
       entityId: code,
-      module: 'benefits',
-      userCode,
-      metadata: { ssn: person?.ssn ?? ssn, productCode: (selectedProduct as any)?.benefit_code, document: code, reason },
+      performedBy: userCode,
+      severity: 'warning',
+      afterValue: { ssn: person?.ssn ?? ssn, productCode: (selectedProduct as any)?.benefit_code, document: code, reason },
     });
   }
 
   async function setBasketWithAudit(value: string) {
     setWorkbasket(value);
     if (value) {
-      await logAuditTrail({
-        action: 'workflow_basket_override',
+      await auditWorkflowAction({
+        action: 'WORKFLOW_BASKET_OVERRIDE',
         entityType: 'bn_claim_intake',
         entityId: person?.ssn ?? ssn,
-        module: 'benefits',
-        userCode,
-        metadata: { workbasket: value, productCode: (selectedProduct as any)?.benefit_code },
+        performedBy: userCode,
+        severity: 'warning',
+        afterValue: { workbasket: value, productCode: (selectedProduct as any)?.benefit_code },
       });
     }
   }
@@ -341,13 +340,13 @@ export default function ClaimRegistration() {
   async function toggleEscalation(on: boolean) {
     setEscalateSupervisor(on);
     if (on) {
-      await logAuditTrail({
-        action: 'supervisor_escalation_requested',
+      await auditWorkflowAction({
+        action: 'SUPERVISOR_ESCALATION_REQUESTED',
         entityType: 'bn_claim_intake',
         entityId: person?.ssn ?? ssn,
-        module: 'benefits',
-        userCode,
-        metadata: { reason: escalationReason || '(not yet supplied)', productCode: (selectedProduct as any)?.benefit_code },
+        performedBy: userCode,
+        severity: 'warning',
+        afterValue: { reason: escalationReason || '(not yet supplied)', productCode: (selectedProduct as any)?.benefit_code },
       });
     }
   }
