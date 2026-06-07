@@ -378,50 +378,67 @@ export const PAYABLE_ROLE_MATRIX: Record<string, { canView: boolean; canAct: boo
 // ─── Fetch Payables ─────────────────────────────────────────────────
 
 export async function fetchPayables(filters: PayableFilters = {}): Promise<PayableWithContext[]> {
+  // NOTE: bn_payment_instruction currently has a minimal legacy schema.
+  // Embed only the FK-related bn_entitlement; resolve claim/product
+  // metadata via a separate lookup to avoid PostgREST relation errors.
   let query = db
     .from('bn_payment_instruction')
     .select(`
       *,
-      bn_entitlement(id, status, ssn, claim_number, claim_id, weekly_rate, remaining_amount),
-      bn_claim(claim_number, ssn, status, priority, bn_product(benefit_name, category))
+      bn_entitlement(id, status, ssn, claim_number, claim_id, weekly_rate, remaining_amount)
     `)
-    .order('entered_at', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(500);
 
   if (filters.status?.length) {
     query = query.in('status', filters.status);
   }
-  if (filters.instructionType) {
-    query = query.eq('instruction_type', filters.instructionType);
-  }
   if (filters.search) {
-    query = query.or(`ssn.ilike.%${filters.search}%,claim_number.ilike.%${filters.search}%,payee_name.ilike.%${filters.search}%`);
-  }
-  if (filters.benefitCategory) {
-    // Filter via claim→product category
+    query = query.or(`ssn.ilike.%${filters.search}%`);
   }
   if (filters.scheduledFrom) {
-    query = query.gte('scheduled_date', filters.scheduledFrom);
+    query = query.gte('due_date', filters.scheduledFrom);
   }
   if (filters.scheduledTo) {
-    query = query.lte('scheduled_date', filters.scheduledTo);
+    query = query.lte('due_date', filters.scheduledTo);
   }
 
   const { data, error } = await query;
   if (error) throw error;
 
+  const claimIds = Array.from(
+    new Set(((data ?? []) as any[]).map(p => p.claim_id || p.bn_entitlement?.claim_id).filter(Boolean))
+  );
+  const claimMap: Record<string, any> = {};
+  if (claimIds.length) {
+    const { data: claims } = await db
+      .from('bn_claim')
+      .select('id, claim_number, ssn, status, priority, product_id, bn_product:product_id(benefit_name, category)')
+      .in('id', claimIds);
+    (claims ?? []).forEach((c: any) => { claimMap[c.id] = c; });
+  }
+
   const now = new Date();
-  return (data ?? []).map((p: any) => {
-    const enteredAt = new Date(p.entered_at);
+  return ((data ?? []) as any[]).map((p) => {
+    const claimId = p.claim_id || p.bn_entitlement?.claim_id;
+    const claim = claimId ? claimMap[claimId] : null;
+    const enteredAtRaw = p.entered_at || p.created_at;
+    const enteredAt = enteredAtRaw ? new Date(enteredAtRaw) : now;
     const ageDays = Math.floor((now.getTime() - enteredAt.getTime()) / (1000 * 60 * 60 * 24));
     return {
       ...p,
-      benefit_name: p.bn_claim?.bn_product?.benefit_name || null,
-      product_category: p.bn_claim?.bn_product?.category || null,
+      entered_at: enteredAtRaw,
+      instruction_type: (p.instruction_type || p.frequency || 'PERIODIC').toString().toUpperCase(),
+      scheduled_date: p.scheduled_date || p.due_date,
+      payee_name: p.payee_name || null,
+      readiness_score: p.readiness_score ?? 0,
+      readiness_flags: p.readiness_flags ?? {},
+      benefit_name: claim?.bn_product?.benefit_name || null,
+      product_category: claim?.bn_product?.category || null,
       claimant_name: null,
       entitlement_status: p.bn_entitlement?.status || null,
-      claim_status: p.bn_claim?.status || null,
-      claim_number: p.bn_claim?.claim_number || p.claim_number,
+      claim_status: claim?.status || null,
+      claim_number: claim?.claim_number || p.bn_entitlement?.claim_number || p.claim_number || null,
       age_days: ageDays,
     } as PayableWithContext;
   });
@@ -434,28 +451,46 @@ export async function fetchPayableDetail(instructionId: string): Promise<Payable
     .from('bn_payment_instruction')
     .select(`
       *,
-      bn_entitlement(id, status, ssn, claim_number, claim_id, weekly_rate, monthly_rate, remaining_amount, total_entitlement, effective_from, effective_to),
-      bn_claim(claim_number, ssn, status, priority, entered_by, bn_product(benefit_name, category))
+      bn_entitlement(id, status, ssn, claim_number, claim_id, weekly_rate, monthly_rate, remaining_amount, total_entitlement, effective_from, effective_to)
     `)
     .eq('id', instructionId)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   if (!data) return null;
 
+  const claimId = (data as any).claim_id || (data as any).bn_entitlement?.claim_id;
+  let claim: any = null;
+  if (claimId) {
+    const { data: c } = await db
+      .from('bn_claim')
+      .select('id, claim_number, ssn, status, priority, entered_by, product_id, bn_product:product_id(benefit_name, category)')
+      .eq('id', claimId)
+      .maybeSingle();
+    claim = c;
+  }
+
   const now = new Date();
-  const enteredAt = new Date(data.entered_at);
+  const enteredAtRaw = (data as any).entered_at || (data as any).created_at;
+  const enteredAt = enteredAtRaw ? new Date(enteredAtRaw) : now;
   return {
-    ...data,
-    benefit_name: data.bn_claim?.bn_product?.benefit_name || null,
-    product_category: data.bn_claim?.bn_product?.category || null,
+    ...(data as any),
+    entered_at: enteredAtRaw,
+    instruction_type: ((data as any).instruction_type || (data as any).frequency || 'PERIODIC').toString().toUpperCase(),
+    scheduled_date: (data as any).scheduled_date || (data as any).due_date,
+    payee_name: (data as any).payee_name || null,
+    readiness_score: (data as any).readiness_score ?? 0,
+    readiness_flags: (data as any).readiness_flags ?? {},
+    benefit_name: claim?.bn_product?.benefit_name || null,
+    product_category: claim?.bn_product?.category || null,
     claimant_name: null,
-    entitlement_status: data.bn_entitlement?.status || null,
-    claim_status: data.bn_claim?.status || null,
-    claim_number: data.bn_claim?.claim_number || data.claim_number,
+    entitlement_status: (data as any).bn_entitlement?.status || null,
+    claim_status: claim?.status || null,
+    claim_number: claim?.claim_number || (data as any).bn_entitlement?.claim_number || (data as any).claim_number || null,
     age_days: Math.floor((now.getTime() - enteredAt.getTime()) / (1000 * 60 * 60 * 24)),
-  };
+  } as PayableWithContext;
 }
+
 
 // ─── Check for Duplicates ───────────────────────────────────────────
 
