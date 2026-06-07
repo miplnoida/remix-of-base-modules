@@ -333,7 +333,8 @@ Deno.serve(async (req: Request) => {
         success: true,
         user: {
           id: newUserId,
-          email: authData.user.email,
+          email: normalizedEmail,
+          adopted_orphan: adoptedOrphan,
           full_name: `${first_name} ${last_name}`.trim(),
         },
       }),
