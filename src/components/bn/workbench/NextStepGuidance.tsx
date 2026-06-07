@@ -119,7 +119,7 @@ export const NextStepGuidance: React.FC<Props> = ({
         title: 'Calculation complete — Submit for Decision',
         body: 'Send this claim to the decision queue for approval.',
         actionLabel: 'Submit for Decision',
-        onAction: () => submitMut.mutate(),
+        onAction: () => { if (guard()) submitMut.mutate(); },
         pending: submitMut.isPending,
       };
     }
