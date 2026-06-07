@@ -183,7 +183,10 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus, prod
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Eligibility Rules</CardTitle><CardDescription>Define checks that must pass before a claim is eligible</CardDescription></div>
-          <Button onClick={openNew} className="gap-2" disabled={isReadOnly}><Plus className="h-4 w-4" /> Add Rule</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => { setWizardInitial(null); setWizardOpen(true); }} className="gap-2" disabled={isReadOnly}><Wand2 className="h-4 w-4" /> New (Wizard)</Button>
+            <Button onClick={openNew} className="gap-2" disabled={isReadOnly}><Plus className="h-4 w-4" /> Add Rule</Button>
+          </div>
         </CardHeader>
         <CardContent>
           <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
