@@ -7349,6 +7349,87 @@ export type Database = {
         }
         Relationships: []
       }
+      bn_eligibility_override_request: {
+        Row: {
+          actual_value: Json | null
+          claim_id: string
+          created_at: string
+          eligibility_result_id: string | null
+          expected_value: Json | null
+          field_key: string | null
+          id: string
+          justification: string
+          operator: string | null
+          override_scope: string
+          reason_code: string
+          requested_at: string
+          requested_by: string
+          review_decision: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rule_code: string
+          rule_group_code: string | null
+          source_record_id: string | null
+          source_table: string | null
+          status: string
+          supporting_document_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          actual_value?: Json | null
+          claim_id: string
+          created_at?: string
+          eligibility_result_id?: string | null
+          expected_value?: Json | null
+          field_key?: string | null
+          id?: string
+          justification: string
+          operator?: string | null
+          override_scope?: string
+          reason_code: string
+          requested_at?: string
+          requested_by: string
+          review_decision?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rule_code: string
+          rule_group_code?: string | null
+          source_record_id?: string | null
+          source_table?: string | null
+          status?: string
+          supporting_document_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          actual_value?: Json | null
+          claim_id?: string
+          created_at?: string
+          eligibility_result_id?: string | null
+          expected_value?: Json | null
+          field_key?: string | null
+          id?: string
+          justification?: string
+          operator?: string | null
+          override_scope?: string
+          reason_code?: string
+          requested_at?: string
+          requested_by?: string
+          review_decision?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rule_code?: string
+          rule_group_code?: string | null
+          source_record_id?: string | null
+          source_table?: string | null
+          status?: string
+          supporting_document_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bn_eligibility_rule: {
         Row: {
           data_source: string | null
@@ -9806,6 +9887,7 @@ export type Database = {
       }
       bn_product_version: {
         Row: {
+          allow_eligibility_override: boolean
           award_creation_rule: string
           benefit_duration_type: string
           builder_canvas: Json
@@ -9825,6 +9907,10 @@ export type Database = {
           medical_review_policy: Json
           modified_at: string
           modified_by: string | null
+          override_allowed_rule_codes: string[]
+          override_blocked_rule_codes: string[]
+          override_requires_document: boolean
+          override_requires_supervisor: boolean
           payment_frequency: string | null
           product_id: string
           requires_employer_verification: boolean
@@ -9840,6 +9926,7 @@ export type Database = {
           workflow_template_id: string | null
         }
         Insert: {
+          allow_eligibility_override?: boolean
           award_creation_rule?: string
           benefit_duration_type?: string
           builder_canvas?: Json
@@ -9859,6 +9946,10 @@ export type Database = {
           medical_review_policy?: Json
           modified_at?: string
           modified_by?: string | null
+          override_allowed_rule_codes?: string[]
+          override_blocked_rule_codes?: string[]
+          override_requires_document?: boolean
+          override_requires_supervisor?: boolean
           payment_frequency?: string | null
           product_id: string
           requires_employer_verification?: boolean
@@ -9874,6 +9965,7 @@ export type Database = {
           workflow_template_id?: string | null
         }
         Update: {
+          allow_eligibility_override?: boolean
           award_creation_rule?: string
           benefit_duration_type?: string
           builder_canvas?: Json
@@ -9893,6 +9985,10 @@ export type Database = {
           medical_review_policy?: Json
           modified_at?: string
           modified_by?: string | null
+          override_allowed_rule_codes?: string[]
+          override_blocked_rule_codes?: string[]
+          override_requires_document?: boolean
+          override_requires_supervisor?: boolean
           payment_frequency?: string | null
           product_id?: string
           requires_employer_verification?: boolean
