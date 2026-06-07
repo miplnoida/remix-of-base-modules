@@ -90,7 +90,7 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
 
   const [{ data: person }, { data: product }, { data: latestDecision }, { data: latestCalc }, { data: missingDocs }, { data: latestEligArr }] = await Promise.all([
     claim.ssn
-      ? db.from('ip_master').select('first_name, surname, email, phone_cell, phone_home, mailing_address').eq('ssn', String(claim.ssn).trim()).maybeSingle()
+      ? db.from('ip_master').select('firstname, surname, email_addr, contact_email, phone_mobile, phone, mail_addr1, mail_addr2').eq('ssn', String(claim.ssn).trim()).maybeSingle()
       : Promise.resolve({ data: null }),
     claim.product_id
       ? db.from('bn_product').select('product_name, product_code').eq('id', claim.product_id).maybeSingle()
@@ -124,7 +124,7 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
   const missingDocsText = (missingDocs || []).map((d: any) => d.document_label).join(', ');
   const product_name = product?.product_name || '';
   const claim_number = claim.claim_number || claim.id;
-  const claimant_name = person ? `${person.first_name || ''} ${person.surname || ''}`.trim() : '';
+  const claimant_name = person ? `${person.firstname || ''} ${person.surname || ''}`.trim() : '';
   const today = new Date().toISOString().slice(0, 10);
   const decision_date = dec?.decided_at || today;
 
