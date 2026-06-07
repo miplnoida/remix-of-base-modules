@@ -301,6 +301,98 @@ export function WorkflowTab({ versionId, isReadOnly, versionStatus }: Props) {
           )}
         </CardContent>
       </Card>
+
+      <RoleActionPreview transitions={transitions} />
+      <EscalationRunnerCard />
     </div>
   );
 }
+
+// ─── Phase 6: Available actions by role preview ─────────────────────
+function RoleActionPreview({ transitions }: { transitions: any[] }) {
+  const roles = useMemo(() => {
+    const set = new Set<string>();
+    (transitions || []).forEach((t: any) => (t.allowed_roles || []).forEach((r: string) => set.add(r)));
+    return Array.from(set).sort();
+  }, [transitions]);
+  const [role, setRole] = useState<string>('');
+  useEffect(() => { if (!role && roles.length) setRole(roles[0]); }, [roles, role]);
+
+  const filtered = useMemo(() => {
+    if (!role) return [];
+    return (transitions || []).filter((t: any) => !t.allowed_roles?.length || t.allowed_roles.includes(role));
+  }, [transitions, role]);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Available Actions by Role</CardTitle>
+        <CardDescription>Preview which transitions a given role can perform.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Label className="text-xs">Role</Label>
+          <Select value={role} onValueChange={setRole}>
+            <SelectTrigger className="w-64 h-8"><SelectValue placeholder="Select role" /></SelectTrigger>
+            <SelectContent>
+              {roles.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        {filtered.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No actions available for this role.</p>
+        ) : (
+          <ul className="text-xs space-y-1">
+            {filtered.map((t: any, i: number) => (
+              <li key={i} className="flex items-center gap-2">
+                <Badge variant="outline" className="font-mono">{t.from_status}</Badge>
+                <span>→</span>
+                <span>{t.action_label}</span>
+                <Badge variant="outline" className="font-mono">{t.to_status}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Phase 5: Manual escalation runner trigger ──────────────────────
+function EscalationRunnerCard() {
+  const { toast } = useToast();
+  const [running, setRunning] = useState(false);
+  const [last, setLast] = useState<string | null>(null);
+
+  const run = async () => {
+    setRunning(true);
+    try {
+      const { escalateOverdueExternalTasks } = await import('@/services/bn/bnEscalationRunnerService');
+      const r = await escalateOverdueExternalTasks('CONFIG_RUN');
+      setLast(`Scanned ${r.scanned} · Escalated ${r.escalated} · Skipped ${r.skipped}${r.errors.length ? ` · Errors ${r.errors.length}` : ''}`);
+      toast({ title: 'Escalation run complete', description: `Escalated ${r.escalated} task(s)` });
+    } catch (e: any) {
+      toast({ title: 'Escalation failed', description: e?.message || String(e), variant: 'destructive' });
+    } finally { setRunning(false); }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <AlertCircle className="h-4 w-4" /> Escalation Runner
+        </CardTitle>
+        <CardDescription>
+          Scan overdue external tasks (employer/doctor/claimant) and fire matching escalation policies.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex items-center gap-3">
+        <Button size="sm" onClick={run} disabled={running}>
+          {running ? 'Running…' : 'Run Now'}
+        </Button>
+        {last && <span className="text-xs text-muted-foreground">{last}</span>}
+      </CardContent>
+    </Card>
+  );
+}
+
