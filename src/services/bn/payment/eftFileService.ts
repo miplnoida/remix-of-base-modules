@@ -1,8 +1,12 @@
 /**
  * EFT File Service
- * Generates configurable bank files (CSV/PSV) for EFT batches using country pack templates.
+ * Generates configurable bank files for EFT batches. When a batch has
+ * `eft_format_code` set, the master-format builder (bn_eft_format /
+ * bn_eft_format_field) is used. Otherwise it falls back to the legacy
+ * bn_country_payment_config template path.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { buildEftFileFromMaster } from './eftFormatService';
 const db = supabase as any;
 
 export interface EftFile {
