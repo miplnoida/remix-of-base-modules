@@ -8082,72 +8082,200 @@ export type Database = {
           },
         ]
       }
+      bn_eligibility_diagnostic: {
+        Row: {
+          actual_value: string | null
+          context_claim_id: string | null
+          context_ssn: string | null
+          created_by: string | null
+          evaluated_at: string
+          expected_value: string | null
+          id: string
+          message: string | null
+          notes: Json | null
+          operator: string | null
+          override_status: string | null
+          result: string
+          rule_code: string | null
+          rule_id: string | null
+          rule_kind:
+            | Database["public"]["Enums"]["bn_eligibility_rule_kind"]
+            | null
+          run_id: string
+          severity:
+            | Database["public"]["Enums"]["bn_eligibility_rule_severity"]
+            | null
+          source_fact: string | null
+          source_resolver: string | null
+          source_table: string | null
+          unit: Database["public"]["Enums"]["bn_eligibility_rule_unit"] | null
+        }
+        Insert: {
+          actual_value?: string | null
+          context_claim_id?: string | null
+          context_ssn?: string | null
+          created_by?: string | null
+          evaluated_at?: string
+          expected_value?: string | null
+          id?: string
+          message?: string | null
+          notes?: Json | null
+          operator?: string | null
+          override_status?: string | null
+          result: string
+          rule_code?: string | null
+          rule_id?: string | null
+          rule_kind?:
+            | Database["public"]["Enums"]["bn_eligibility_rule_kind"]
+            | null
+          run_id: string
+          severity?:
+            | Database["public"]["Enums"]["bn_eligibility_rule_severity"]
+            | null
+          source_fact?: string | null
+          source_resolver?: string | null
+          source_table?: string | null
+          unit?: Database["public"]["Enums"]["bn_eligibility_rule_unit"] | null
+        }
+        Update: {
+          actual_value?: string | null
+          context_claim_id?: string | null
+          context_ssn?: string | null
+          created_by?: string | null
+          evaluated_at?: string
+          expected_value?: string | null
+          id?: string
+          message?: string | null
+          notes?: Json | null
+          operator?: string | null
+          override_status?: string | null
+          result?: string
+          rule_code?: string | null
+          rule_id?: string | null
+          rule_kind?:
+            | Database["public"]["Enums"]["bn_eligibility_rule_kind"]
+            | null
+          run_id?: string
+          severity?:
+            | Database["public"]["Enums"]["bn_eligibility_rule_severity"]
+            | null
+          source_fact?: string | null
+          source_resolver?: string | null
+          source_table?: string | null
+          unit?: Database["public"]["Enums"]["bn_eligibility_rule_unit"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_eligibility_diagnostic_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "bn_eligibility_rule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_eligibility_rule: {
         Row: {
+          compare_fact_key: string | null
+          conditional_when: Json | null
           data_source: string | null
+          document_type_code: string | null
+          end_fact_key: string | null
           entered_at: string
           entered_by: string | null
+          existence_check_code: string | null
           fact_key: string | null
           fail_action: string
           fail_message: string | null
+          fallback_end_fact_key: string | null
           group_code: string | null
           id: string
           is_active: boolean
+          message_template: string | null
           override_policy_code: string | null
           overrideable: boolean
           product_version_id: string
+          reason_code_group: string | null
+          required_status: string | null
           rule_code: string
           rule_definition: Json
           rule_group: string
           rule_group_id: string | null
+          rule_kind: Database["public"]["Enums"]["bn_eligibility_rule_kind"]
           rule_name: string
           rule_type: string
           severity: string
           sort_order: number
+          start_fact_key: string | null
+          unit: Database["public"]["Enums"]["bn_eligibility_rule_unit"] | null
         }
         Insert: {
+          compare_fact_key?: string | null
+          conditional_when?: Json | null
           data_source?: string | null
+          document_type_code?: string | null
+          end_fact_key?: string | null
           entered_at?: string
           entered_by?: string | null
+          existence_check_code?: string | null
           fact_key?: string | null
           fail_action?: string
           fail_message?: string | null
+          fallback_end_fact_key?: string | null
           group_code?: string | null
           id?: string
           is_active?: boolean
+          message_template?: string | null
           override_policy_code?: string | null
           overrideable?: boolean
           product_version_id: string
+          reason_code_group?: string | null
+          required_status?: string | null
           rule_code: string
           rule_definition?: Json
           rule_group?: string
           rule_group_id?: string | null
+          rule_kind?: Database["public"]["Enums"]["bn_eligibility_rule_kind"]
           rule_name: string
           rule_type: string
           severity?: string
           sort_order?: number
+          start_fact_key?: string | null
+          unit?: Database["public"]["Enums"]["bn_eligibility_rule_unit"] | null
         }
         Update: {
+          compare_fact_key?: string | null
+          conditional_when?: Json | null
           data_source?: string | null
+          document_type_code?: string | null
+          end_fact_key?: string | null
           entered_at?: string
           entered_by?: string | null
+          existence_check_code?: string | null
           fact_key?: string | null
           fail_action?: string
           fail_message?: string | null
+          fallback_end_fact_key?: string | null
           group_code?: string | null
           id?: string
           is_active?: boolean
+          message_template?: string | null
           override_policy_code?: string | null
           overrideable?: boolean
           product_version_id?: string
+          reason_code_group?: string | null
+          required_status?: string | null
           rule_code?: string
           rule_definition?: Json
           rule_group?: string
           rule_group_id?: string | null
+          rule_kind?: Database["public"]["Enums"]["bn_eligibility_rule_kind"]
           rule_name?: string
           rule_type?: string
           severity?: string
           sort_order?: number
+          start_fact_key?: string | null
+          unit?: Database["public"]["Enums"]["bn_eligibility_rule_unit"] | null
         }
         Relationships: [
           {
@@ -60651,6 +60779,17 @@ export type Database = {
         | "suspended"
       bema_registration_type: "employer" | "self_employed" | "voluntary"
       bema_waiver_status: "pending" | "approved" | "rejected"
+      bn_eligibility_rule_kind:
+        | "LITERAL"
+        | "FACT_TO_FACT"
+        | "DATE_DIFFERENCE"
+        | "DOCUMENT_STATUS"
+        | "EXISTS"
+        | "CROSS_PRODUCT"
+        | "DERIVED_FACT"
+        | "CONDITIONAL"
+      bn_eligibility_rule_severity: "BLOCKING" | "REFER" | "WARNING" | "INFO"
+      bn_eligibility_rule_unit: "DAYS" | "WEEKS" | "MONTHS" | "YEARS"
       bn_participant_role:
         | "APPLICANT"
         | "CLAIMANT"
@@ -61127,6 +61266,18 @@ export const Constants = {
       ],
       bema_registration_type: ["employer", "self_employed", "voluntary"],
       bema_waiver_status: ["pending", "approved", "rejected"],
+      bn_eligibility_rule_kind: [
+        "LITERAL",
+        "FACT_TO_FACT",
+        "DATE_DIFFERENCE",
+        "DOCUMENT_STATUS",
+        "EXISTS",
+        "CROSS_PRODUCT",
+        "DERIVED_FACT",
+        "CONDITIONAL",
+      ],
+      bn_eligibility_rule_severity: ["BLOCKING", "REFER", "WARNING", "INFO"],
+      bn_eligibility_rule_unit: ["DAYS", "WEEKS", "MONTHS", "YEARS"],
       bn_participant_role: [
         "APPLICANT",
         "CLAIMANT",
