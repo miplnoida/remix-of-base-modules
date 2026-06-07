@@ -131,7 +131,7 @@ export async function validateProductChannelConfig(
     .select('id, rule_code, fact_key, severity, is_active')
     .eq('product_version_id', cfg.product_version_id);
 
-  const knownFactKeys = new Set(ELIGIBILITY_FACT_REGISTRY.map((f: any) => f.factKey ?? f.key));
+  const knownFactKeys = new Set(ELIGIBILITY_FACTS.map((f) => f.fact_key));
 
   for (const r of rules ?? []) {
     if (r.is_active === false) continue;
