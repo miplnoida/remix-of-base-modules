@@ -1,73 +1,75 @@
-# BN Workflow Refactor — Phased Plan
+## BN Payment Preparation Rework
 
-## Why phased
-Today the Claim Workbench drives status with two hardcoded layers:
-1. `CLAIM_TRANSITIONS` matrix in `claimWorkbenchService` / `claimActionRunner`
-2. The new `NextStepGuidance` + `postApprovalOrchestrator` we just added
+Note: The BEMA legacy `.sru/.srd` files are not in this workspace. I'll model the concepts (cheque batch + range, reprint/cancel/correct, direct deposit export, reconciliation, long/short term separation) from your spec and prior BEMA notes already in repo memory. If you have the legacy files to upload, share them and I'll align field-by-field.
 
-In parallel, the platform already has a generic engine (`workflow_definitions`, `workflow_instances`, `workflow_steps`, `workflow_tasks`, `workflow_step_actions`, `bn_workflow_template`, `bn_claim_transition_rule`, `bn_approval_policy`, `bn_override_policy`, `bn_escalation_policy`, `bn_workbasket`, `bn_external_task`).
+### Phase A — Schema (single migration)
+Tables created/extended:
+- `bn_payment_instruction` — extend with `payment_type`, `currency`, `validation_status`, `validated_at/by`, `bank_account_snapshot` (jsonb), `cheque_address_snapshot` (jsonb). Status enum widened.
+- `bn_payment_batch` — extend with `batch_type` (EFT/CHEQUE/MIXED), `benefit_type`, `payment_period`, `bank_account_ref`, `prepared_by/at`.
+- `bn_batch_item` — already exists; add `bank_account_snapshot`, `cheque_number`, `error_message`.
+- `bn_eft_file` (new) — file metadata + hash + submission tracking.
+- `bn_cheque_register` (new) — per-cheque row with print/reprint/cancel/dispatch fields + reasons.
+- `bn_cheque_stock` (new) — bank account → cheque-book ranges, next number, used/cancelled counters.
+- `bn_country_payment_config` — extend with EFT format fields (header/detail/trailer specs, file naming, date format, account/routing rules).
+- `bn_payment_reconciliation` (new) — bank response items: accepted/rejected/returned, reason, link to batch_item.
 
-We must route BN through the generic engine without breaking the live workbench. Big-bang rewrite = high risk. Below is the phased path.
+All public-schema tables get GRANTs to `authenticated` + `service_role`. RLS stays off per project rule.
 
----
+Number sequences added to `system_reference_sequence` for `BN/PAY/EFT/YYYY` and `BN/PAY/CHQ/YYYY`.
 
-## Phase 0 — Discovery report (no code changes)
-Deliverable: `docs/bn/workflow_refactor_audit.md`
-- Inventory hardcoded `if status === …` / direct `update bn_claim` calls in workbench, runner, orchestrator, decisionEngine.
-- Map current BN statuses ↔ `bn_claim_status_def` ↔ `bn_claim_transition_rule` rows.
-- Note workbasket / escalation / approval-policy tables already present but unused by runtime.
-- Output: gap list with file:line refs, drives every later phase.
+### Phase B — Services (`src/services/bn/payment/`)
+- `payableValidationService.ts` — runs the 8 validation checks; flips `validation_status` + writes blockers.
+- `paymentBatchService.ts` — create batch, add items, validate, approve, lock.
+- `eftFileService.ts` — render bank file from country pack template, hash, store, mark generated/submitted, ingest response file.
+- `chequePrintService.ts` — assign cheque numbers from stock, print/reprint/cancel/correct, dispatch.
+- `chequeStockService.ts` — register & consume cheque ranges.
+- `paymentIssueService.ts` — finalize batch → write history → update entitlement/claim status → fire notifications.
+- `postIssueService.ts` — bank rejection, returned/stale cheque, stop payment, reissue.
+- `paymentReconciliationService.ts` — import bank response, match by reference, mark reconciled.
+- `paymentNumberingService.ts` — central batch number + cheque sequence allocation.
+- Extend `postApprovalOrchestrator.ts` to call new validation service before queuing payable; short-term → instant payable, long-term → schedule-driven payable (duplicate-period guard).
 
-## Phase 1 — Product Catalog workflow wiring (config only, runtime unchanged)
-- Extend `bn_product_version` with: `transition_matrix_id`, `default_workbasket_id`, per-stage workbasket FKs, `escalation_policy_id`, `external_task_policy_id` (approval_policy_id already exists via `bn_approval_policy.product_version_id`).
-- New tab section in `WorkflowTab.tsx`: workbasket per stage, escalation policy, approval policy picker; visual step list rendered from the selected `bn_workflow_template` + `bn_claim_transition_rule` rows.
-- Read-only "Validate Workflow" button reusing existing validation service — surfaces missing template / orphan statuses / missing workbaskets.
-- No runtime change yet — Workbench still uses current code path.
+### Phase C — UI
 
-## Phase 2 — Transition matrix as source of truth
-- Migrate hardcoded `CLAIM_TRANSITIONS` into `bn_claim_transition_rule` seed for default product versions.
-- Add columns if missing: `requires_reason`, `requires_comment`, `triggers_comm_event`, `creates_task_type`, `closes_task_type`, `next_workbasket_id`, `policy_check_required`, `required_role`, `required_permission`.
-- Update `claimActionRunner.executeClaimAction` to look up allowed transitions from DB first, fall back to in-code matrix with a console warning (gives us a safe rollout window).
+Updated routes (existing routes kept, content reworked):
+- `/bn/payables` — Payables Queue with filters (benefit type, method, payee, amount, status, hold reason, period) + actions Validate/Hold/Release/Add to Batch/View.
+- `/bn/batches` — Batch list + Batch Wizard (type, date, period, benefit, bank account) + per-batch detail (items, validation, approve).
+- `/bn/eft` (new under batch detail) — EFT generator panel: validate, generate file, download, mark submitted, upload bank response.
+- `/bn/cheques` (new) — Cheque batch panel: assign numbers (start no + auto-range), preview, print, reprint, correct, annul, mark dispatched.
+- `/bn/cheque-stock` (new admin) — register cheque books per bank account.
+- `/bn/issue` — issue EFT or cheque batch (locks batch, writes history).
+- `/bn/post-issue` — exceptions: rejected/returned/stale/stop/reissue.
+- `/bn/config/payment` (under existing BN Config) — Country Pack payment & EFT format editor.
+- Claim Workbench panel — adds Payment block: instruction status, batch #, EFT/cheque ref, issued date, history; if approved-no-payable shows "Generate Payable" action.
 
-## Phase 3 — `bnWorkflowRuntimeService`
-New file `src/services/bn/workflow/bnWorkflowRuntimeService.ts`:
-- `getClaimWorkflowState(claimId)` — joins claim → product version → template → current step → workbasket → open tasks.
-- `getAvailableActions(claimId, user)` — DB transitions ∩ user role/permission ∩ approval policy.
-- `getWorkflowBlockers(claimId)` — central replacement for the scattered checks (docs, external tasks, eligibility override, stale calc, missing approval, mandatory letter, payment details, active hold).
-- `executeWorkflowAction`, `createNextTask`, `completeCurrentTask`, `sendBack`, `escalateTask`.
-- Writes `workflow_logs` + `bn_claim_event` + `system_audit_trail` in one transactional helper.
+Components live in `src/components/bn/payment/*` and reuse existing `SearchableSelect`, `BlockingOverlay`, and `useBlockingMutation` patterns.
 
-Workbench keeps existing buttons but they now delegate to runtime service. `NextStepGuidance` reads from `getAvailableActions` + `getWorkflowBlockers` instead of inline rules.
+### Phase D — Communications & Audit
+- Wire payment lifecycle events to `bn_communication_log` via existing notification engine: payment_queued (internal), eft_generated (internal), cheque_printed (internal), payment_issued (claimant if configured), bank_rejected/cheque_returned (claimant + officer).
+- Every action writes to `system_audit_trail` + `bn_claim_event`.
 
-## Phase 4 — Decision / approval levels via policy
-- Approval policy already supports levels (`bn_approval_policy.level`, amount threshold). Wire `executeWorkflowAction('RECOMMEND_APPROVAL' | 'APPROVE')` to evaluate `evaluateApprovalPolicy` and create the next approval task / workbasket assignment automatically.
-- Remove hardcoded approve→entitlement branching in `postApprovalOrchestrator`; instead it becomes a transition-rule side effect (`creates_task_type=AWARD_SETUP` or `PAYMENT_QUEUE`) selected per product version.
+### Phase E — Duplicate-period guard
+Unique partial index on `bn_payment_instruction (entitlement_id, period_start, period_end)` where status not in cancelled/voided. Service-level pre-check returns friendly error.
 
-## Phase 5 — External tasks & escalation
-- Connect `bn_external_task` (employer/doctor/claimant) to `EXTERNAL_TASK_WAIT` step. Runtime blocks forward transitions until matching task closes.
-- Hook `bn_escalation_policy` into runtime — overdue tasks fire `escalateTask` via the existing escalation runner.
+### Phase F — Acceptance verification
+Manual run-through with SSN 950001:
+1. Approved EI claim → instruction created → appears in /bn/payables READY.
+2. Validate → add to CHEQUE batch → assign cheque numbers → print → issue → reconcile.
+3. Long-term pension scenario: entitlement → scheduled instruction → EFT batch → file download → submit → response import.
+4. TypeScript build passes.
 
-## Phase 6 — Catalog UI polish + validation
-- Visual workflow designer (step cards + transitions; no drag-drop in v1 — keep it list-based for review).
-- "Available Actions by Role" preview using `getAvailableActions` with a role selector.
-- Configuration Validation card adds: workflow template present, every non-final status has onward transition, workbasket/escalation/approval refs exist, payment step exists for payment products, no hardcoded transitions remain (greps tracker file written in Phase 2).
+### Out of scope (this round)
+- Actual bank-specific binary formats (we ship a configurable text/CSV template; you can plug NACHA/SWIFT/local formats via Country Pack later).
+- Physical printer integration (we generate a print-ready HTML/PDF batch).
+- Cheque MICR layout (HTML template only; can extend later).
 
-## Phase 7 — Remove fallbacks & acceptance tests
-- Delete in-code `CLAIM_TRANSITIONS` fallback once two product versions ship cleanly on DB-driven flow.
-- Vitest specs covering the 14 acceptance scenarios you listed.
-- Final TypeScript build check.
+### Delivery order
+1. Migration (await approval).
+2. Services + numbering + validation.
+3. Payables Queue + Batch wizard.
+4. EFT file + Cheque print/stock UI.
+5. Issue + Post-issue + Reconciliation.
+6. Workbench panel + comms + audit.
+7. Build check + walkthrough notes.
 
----
-
-## Technical notes
-- All schema changes via migrations with GRANTs; no RLS (per project rule).
-- Audit writes use existing `writeBnAudit` critical path — already extended for the new action codes.
-- No breaking changes to public claim submission API in any phase before Phase 7.
-- Each phase is independently shippable; we stop and verify before moving on.
-
----
-
-## What I need from you before I start
-1. Confirm phased rollout (vs. big-bang) — I strongly recommend phased.
-2. Approve starting with **Phase 0 audit + Phase 1 catalog wiring** in this turn. Phases 2–7 land in subsequent turns after you review each.
-3. Any product versions you want migrated first (so seed data in Phase 2 targets the right rows)?
+Approve and I'll start with the migration.
