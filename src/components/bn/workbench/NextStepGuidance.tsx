@@ -104,16 +104,23 @@ export const NextStepGuidance: React.FC<Props> = ({
         body: 'Run eligibility (or have an override approved) before submitting for decision.',
       };
     }
-    if (!hasCalculation && ['CALCULATION', 'ELIGIBILITY_CHECK', 'EVIDENCE_REVIEW'].includes(status)) {
+    if (!hasCalculation && ['INTAKE', 'CALCULATION', 'ELIGIBILITY_CHECK', 'EVIDENCE_REVIEW'].includes(status)) {
       return {
-        tone: 'info' as const,
-        title: 'Calculation pending',
-        body: 'Run calculation in the Calculation tab. Once complete, you can submit for decision.',
+        tone: 'action' as const,
+        title: 'Eligibility passed — Run Calculation',
+        body: 'Open the Calculation tab and run the calculation engine. Once complete, you can submit for decision.',
+        actionLabel: 'Go to Calculation',
+        onAction: () => {
+          const url = new URL(window.location.href);
+          url.searchParams.set('tab', 'calculation');
+          window.location.hash = '';
+          navigate(url.pathname + url.search);
+        },
       };
     }
 
-    // CALCULATION → submit for decision
-    if (status === 'CALCULATION' && hasCalculation) {
+    // CALCULATION → submit for decision (also handles INTAKE if officer skipped status change)
+    if (['CALCULATION', 'INTAKE', 'ELIGIBILITY_CHECK'].includes(status) && hasCalculation) {
       return {
         tone: 'action' as const,
         title: 'Calculation complete — Submit for Decision',
