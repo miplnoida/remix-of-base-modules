@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import type { BnSimFormulaTrace } from '@/types/bnSimulation';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface Props {
   trace: BnSimFormulaTrace[];
 }
@@ -29,7 +30,7 @@ const layerColors: Record<string, string> = {
 
 function formatValue(v: number | null | undefined): string {
   if (v == null) return '—';
-  return v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return formatNumber(v, 2);
 }
 
 // ── Stats ────────────────────────────────────────────────

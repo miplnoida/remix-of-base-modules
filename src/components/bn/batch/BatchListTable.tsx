@@ -7,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { formatDateForDisplay } from '@/lib/format-config';
 import type { BnPaymentBatch } from '@/services/bn/batchOperationsService';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface Props {
   batches: BnPaymentBatch[];
   isLoading: boolean;
@@ -67,7 +68,7 @@ export const BatchListTable: React.FC<Props> = ({ batches, isLoading, onSelect }
                 )}
               </TableCell>
               <TableCell className="text-right font-mono text-sm">
-                {b.currency} {b.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {b.currency} {formatNumber(b.total_amount, 2)}
               </TableCell>
               <TableCell className="text-xs">{b.office_code}</TableCell>
               <TableCell className="text-xs text-muted-foreground">{b.created_by}</TableCell>

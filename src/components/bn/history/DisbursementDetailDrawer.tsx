@@ -10,6 +10,7 @@ import { formatDateForDisplay } from '@/lib/format-config';
 import type { HistoricalDisbursementRecord } from '@/services/bn/historicalInquiryService';
 import { useNavigate } from 'react-router-dom';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface DisbursementDetailDrawerProps {
   record: HistoricalDisbursementRecord | null;
   open: boolean;
@@ -55,7 +56,7 @@ export const DisbursementDetailDrawer: React.FC<DisbursementDetailDrawerProps> =
             <div className="space-y-1">
               <div className="flex items-center gap-3">
                 <span className="text-2xl font-bold font-mono">
-                  ${record.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  ${formatNumber(record.amount, 2)}
                 </span>
                 <BnStatusBadge status={record.status} dot />
               </div>

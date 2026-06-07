@@ -16,6 +16,7 @@ import { getAvailableBatchActions, type BatchAction, type ExecuteBatchActionPara
 import { formatDateForDisplay } from '@/lib/format-config';
 import { AddPayablesDialog } from '@/components/bn/batch/AddPayablesDialog';
 
+import { formatNumber } from '@/lib/culture/culture';
 const ACTION_CONFIG: Record<string, { label: string; icon: any; variant: any; requiresNarrative: boolean }> = {
   VALIDATE:  { label: 'Validate',  icon: CheckCircle2, variant: 'outline',     requiresNarrative: false },
   APPROVE:   { label: 'Approve',   icon: ShieldCheck,  variant: 'default',     requiresNarrative: true },
@@ -114,7 +115,7 @@ export const BatchDetailDrawer: React.FC<Props> = ({ batchId, open, onClose, onA
                 <div className="grid grid-cols-4 gap-3">
                   {[
                     { label: 'Total Items', value: batch.total_items },
-                    { label: 'Total Amount', value: `${batch.currency} ${batch.total_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}` },
+                    { label: 'Total Amount', value: `${batch.currency} ${formatNumber(batch.total_amount, 2)}` },
                     { label: 'Validated', value: batch.validated_items },
                     { label: 'Issued', value: batch.issued_items },
                   ].map(({ label, value }) => (
@@ -163,7 +164,7 @@ export const BatchDetailDrawer: React.FC<Props> = ({ batchId, open, onClose, onA
                             <TableCell className="text-xs">{item.claim_number || '—'}</TableCell>
                             <TableCell className="text-xs">{item.instruction_type}</TableCell>
                             <TableCell className="text-right font-mono text-xs">
-                              {item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              {formatNumber(item.amount, 2)}
                             </TableCell>
                             <TableCell><BnStatusBadge status={item.item_status} size="sm" /></TableCell>
                             {canRemove && (

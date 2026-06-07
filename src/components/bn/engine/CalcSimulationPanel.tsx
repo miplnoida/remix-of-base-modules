@@ -13,6 +13,7 @@ import CalcTraceViewer from './CalcTraceViewer';
 import type { BnCalcEngineInput, BnCalcEngineOutput, BnCalcRunMode } from '@/types/bnCalcEngine';
 import { toast } from 'sonner';
 
+import { formatNumber } from '@/lib/culture/culture';
 export default function CalcSimulationPanel() {
   const [ssn, setSSN] = useState('');
   const [productId, setProductId] = useState('');
@@ -176,7 +177,7 @@ export default function CalcSimulationPanel() {
                     <div key={i} className="border rounded-lg p-3 bg-muted/30">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium">Step {step.stepNumber}: {step.description}</span>
-                        <span className="font-mono text-sm font-bold text-emerald-700">${step.result.toLocaleString()}</span>
+                        <span className="font-mono text-sm font-bold text-emerald-700">${formatNumber(step.result, 0)}</span>
                       </div>
                       <p className="text-xs font-mono text-muted-foreground">{step.formula}</p>
                       <div className="flex gap-3 mt-1">

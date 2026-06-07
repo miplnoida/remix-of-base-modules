@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Star } from 'lucide-react';
 import type { PostIssueTask } from '@/services/bn/postIssueService';
 
+import { formatNumber } from '@/lib/culture/culture';
 const TYPE_LABELS: Record<string, string> = {
   CL_HEAD_UPDATE: 'Claim Header',
   CLAIM_CLOSURE: 'Claim Closure',
@@ -78,7 +79,7 @@ export const PostIssueTaskList: React.FC<Props> = ({ tasks, isLoading, onSelect 
                 {t.cheque_number || '—'}
               </TableCell>
               <TableCell className="text-right font-mono text-xs">
-                {t.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {formatNumber(t.amount, 2)}
               </TableCell>
               <TableCell><BnStatusBadge status={t.status} dot size="sm" /></TableCell>
               <TableCell>

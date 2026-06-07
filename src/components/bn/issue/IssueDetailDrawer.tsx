@@ -19,6 +19,7 @@ import {
 import { formatDateForDisplay } from '@/lib/format-config';
 import { toast } from 'sonner';
 
+import { formatNumber } from '@/lib/culture/culture';
 const ACTION_CONFIG: Record<string, { label: string; icon: any; variant: any; requiresReason: boolean }> = {
   ISSUE:      { label: 'Issue Now',    icon: Zap,        variant: 'default',     requiresReason: false },
   VOID:       { label: 'Void',         icon: XCircle,    variant: 'destructive', requiresReason: true },
@@ -100,7 +101,7 @@ export const IssueDetailDrawer: React.FC<Props> = ({ issueId, open, onClose, onA
 
               {/* Payment Details */}
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-muted-foreground">Amount:</span> <span className="font-mono font-semibold">{record.currency} {record.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+                <div><span className="text-muted-foreground">Amount:</span> <span className="font-mono font-semibold">{record.currency} {formatNumber(record.amount, 2)}</span></div>
                 <div><span className="text-muted-foreground">Method:</span> {record.issue_method}</div>
                 <div><span className="text-muted-foreground">Type:</span> {record.instruction_type}</div>
                 {record.period_start && (

@@ -18,6 +18,7 @@ import {
 } from '@/services/bn/postIssueService';
 import { formatDateForDisplay } from '@/lib/format-config';
 
+import { formatNumber } from '@/lib/culture/culture';
 const TYPE_LABELS: Record<string, string> = {
   CL_HEAD_UPDATE: 'Update Claim Header',
   CLAIM_CLOSURE: 'Claim Closure',
@@ -93,7 +94,7 @@ export const PostIssueTaskDrawer: React.FC<Props> = ({ taskId, open, onClose, on
                 <div><span className="text-muted-foreground">SSN:</span> <span className="font-mono">{task.ssn}</span></div>
                 <div><span className="text-muted-foreground">Claim:</span> {task.claim_number || '—'}</div>
                 <div><span className="text-muted-foreground">Cheque/Ref:</span> <span className="font-mono">{task.cheque_number || '—'}</span></div>
-                <div><span className="text-muted-foreground">Amount:</span> <span className="font-mono font-semibold">{task.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
+                <div><span className="text-muted-foreground">Amount:</span> <span className="font-mono font-semibold">{formatNumber(task.amount, 2)}</span></div>
                 {task.target_table && (
                   <div><span className="text-muted-foreground">Target:</span> <span className="font-mono text-xs">{task.target_table}</span></div>
                 )}

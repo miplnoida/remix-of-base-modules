@@ -20,6 +20,7 @@ import { Search } from 'lucide-react';
 import { formatDateForDisplay } from '@/lib/format-config';
 import type { Person360Disbursement } from '@/services/bn/person360Service';
 
+import { formatNumber } from '@/lib/culture/culture';
 const paymentStatusColor: Record<string, string> = {
   ISSUED: 'bg-emerald-500/15 text-emerald-700',
   CANCELLED: 'bg-destructive/15 text-destructive',
@@ -72,7 +73,7 @@ export const DisbursementsTab: React.FC<DisbursementsTabProps> = ({ disbursement
           </SelectContent>
         </Select>
         <div className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-          Total: <span className="text-foreground font-bold">${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+          Total: <span className="text-foreground font-bold">${formatNumber(totalAmount, 2)}</span>
         </div>
       </div>
 

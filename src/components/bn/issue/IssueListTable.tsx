@@ -7,6 +7,7 @@ import { BnStatusBadge } from '@/components/bn/shared/BnStatusBadge';
 import { Loader2 } from 'lucide-react';
 import type { IssueRecord } from '@/services/bn/paymentIssueService';
 
+import { formatNumber } from '@/lib/culture/culture';
 const TARGET_LABELS: Record<string, string> = {
   cl_cheques: 'Standard',
   cl_cheques_holding: 'Holding',
@@ -90,7 +91,7 @@ export const IssueListTable: React.FC<Props> = ({
               </TableCell>
               <TableCell><BnStatusBadge status={r.status} dot size="sm" /></TableCell>
               <TableCell className="text-right font-mono text-xs">
-                {r.currency} {r.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                {r.currency} {formatNumber(r.amount, 2)}
               </TableCell>
               <TableCell className="font-mono text-xs text-muted-foreground">
                 {r.cheque_number || r.dd_reference || '—'}

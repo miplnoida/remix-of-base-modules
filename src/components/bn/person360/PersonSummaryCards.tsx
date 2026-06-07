@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { FileText, CheckCircle2, Wallet, CreditCard, Clock, CalendarCheck } from 'lucide-react';
 import type { Person360Summary } from '@/services/bn/person360Service';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface PersonSummaryCardsProps {
   summary: Person360Summary;
 }
@@ -34,8 +35,8 @@ export const PersonSummaryCards: React.FC<PersonSummaryCardsProps> = ({ summary 
           </div>
           <p className="text-2xl font-bold text-foreground">
             {(isCurrency as boolean)
-              ? `$${(summary[key] as number).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
-              : (summary[key] as number).toLocaleString()
+              ? `$${formatNumber((summary[key] as number), 2)}`
+              : formatNumber((summary[key] as number), 0)
             }
           </p>
         </CardContent>

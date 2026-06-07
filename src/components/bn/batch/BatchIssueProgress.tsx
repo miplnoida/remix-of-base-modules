@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Loader2, Clock } from 'lucide-react';
 import type { BnPaymentBatch } from '@/services/bn/batchOperationsService';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface Props {
   batch: BnPaymentBatch;
 }
@@ -60,10 +61,10 @@ export const BatchIssueProgress: React.FC<Props> = ({ batch }) => {
         {batch.issue_started_at && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
-            Started: {new Date(batch.issue_started_at).toLocaleString()}
+            Started: {new formatNumber(Date(batch.issue_started_at), 0)}
             {batch.issue_completed_at && (
               <span className="ml-2">
-                Completed: {new Date(batch.issue_completed_at).toLocaleString()}
+                Completed: {new formatNumber(Date(batch.issue_completed_at), 0)}
               </span>
             )}
           </div>

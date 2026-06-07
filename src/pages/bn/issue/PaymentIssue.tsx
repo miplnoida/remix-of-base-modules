@@ -30,6 +30,7 @@ import { IssueFiltersBar } from '@/components/bn/issue/IssueFiltersBar';
 import { IssueActionBar } from '@/components/bn/issue/IssueActionBar';
 import type { IssueFilters } from '@/services/bn/paymentIssueService';
 
+import { formatNumber } from '@/lib/culture/culture';
 const STAT_CARDS = [
   { key: 'total', label: 'Total', icon: Banknote, color: 'text-foreground' },
   { key: 'pending', label: 'Pending', icon: Clock, color: 'text-amber-600' },
@@ -125,7 +126,7 @@ export default function PaymentIssue() {
           <CardContent className="p-3 text-center">
             <Banknote className="h-5 w-5 mx-auto mb-1 text-green-600" />
             <div className="text-lg font-bold">
-              {(summary?.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              {formatNumber((summary?.totalAmount || 0), 2)}
             </div>
             <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Issued Amt</div>
           </CardContent>
@@ -190,7 +191,7 @@ export default function PaymentIssue() {
               <div className="rounded border p-2 text-center">
                 <p className="text-[10px] text-muted-foreground">Total Amount</p>
                 <p className="font-mono font-bold">
-                  XCD {totalIssueAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  XCD {formatNumber(totalIssueAmount, 2)}
                 </p>
               </div>
             </div>

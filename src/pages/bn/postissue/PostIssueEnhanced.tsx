@@ -26,6 +26,7 @@ import type { PostIssueFilters } from '@/services/bn/postIssueService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+import { formatDate, formatNumber } from '@/lib/culture/culture';
 const db = supabase as any;
 
 const STAT_CARDS = [
@@ -302,13 +303,13 @@ export default function PostIssueEnhanced() {
                         <div>
                           <p className="text-xs text-muted-foreground">Claim: {c.claim_number || '—'}</p>
                           <p className="text-xs text-muted-foreground">
-                            Issued: {c.issued_at ? new Date(c.issued_at).toLocaleDateString() : '—'}
+                            Issued: {c.issued_at ? new formatDate(Date(c.issued_at)) : '—'}
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="font-mono font-medium">
-                          {c.amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          {c.amount?formatNumber(, 2)}
                         </p>
                         <Button
                           variant="ghost"

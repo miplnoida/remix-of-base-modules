@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Person360Employer } from '@/services/bn/person360Service';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface EmployersTabProps {
   employers: Person360Employer[];
   isLoading?: boolean;
@@ -52,7 +53,7 @@ export const EmployersTab: React.FC<EmployersTabProps> = ({ employers, isLoading
               </TableCell>
               <TableCell>{emp.lastContributionPeriod || '—'}</TableCell>
               <TableCell className="font-mono">{emp.totalWeeks}</TableCell>
-              <TableCell className="font-mono">${emp.totalWages.toLocaleString('en-US', { minimumFractionDigits: 2 })}</TableCell>
+              <TableCell className="font-mono">${formatNumber(emp.totalWages, 2)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
