@@ -144,6 +144,13 @@ const _bnMenuItemsRaw = [
         description: "Register cheque-book ranges per bank account",
       },
       {
+        title: "Payment Profiles",
+        url: "/bn/payment-profiles",
+        icon: Package,
+        requiresPermission: "benefits_management",
+        description: "Verified bank / cheque address profiles used for payments",
+      },
+      {
         title: "Payment History",
         url: "/bn/payment-history",
         icon: History,
