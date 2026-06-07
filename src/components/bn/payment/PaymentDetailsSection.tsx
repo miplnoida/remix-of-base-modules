@@ -11,7 +11,8 @@
  *   • EFT Update service
  *
  * Screens MUST NOT build their own bank form. Pass `channel` + `productId` and
- * this component pulls the right policy and persists via paymentProfileService.
+ * this component pulls the right policy, uses master-data selectors for
+ * bank/branch/method, and persists via paymentProfileService.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +30,10 @@ import {
   getPendingChangeRequest,
   submitChangeRequest,
 } from '@/services/bn/payment/paymentProfileService';
+import { writeBnAudit } from '@/services/bn/audit/bnAuditService';
+import BankSelector from '@/components/bn/selectors/BankSelector';
+import BranchSelector from '@/components/bn/selectors/BranchSelector';
+import PaymentMethodSelector from '@/components/bn/selectors/PaymentMethodSelector';
 import type {
   BnPaymentChannel,
   BnPaymentMethod,
@@ -48,18 +53,30 @@ export interface PaymentDetailsSectionProps {
   claimId?: string | null;
   entitlementId?: string | null;
   userCode?: string;
+  countryCode?: string | null;
   onSaved?: (profileOrRequest: BnPaymentProfile | BnPaymentProfileChangeRequest) => void;
+  /** Callback fired once the product policy resolves — lets parent screens read flags
+   *  like payment_required_at_application without re-querying. */
+  onPolicyResolved?: (policy: BnPaymentPolicy, activeProfile: BnPaymentProfile | null) => void;
 }
 
-const METHOD_LABEL: Record<BnPaymentMethod, string> = {
-  EFT: 'Electronic Funds Transfer (EFT)',
-  CHEQUE: 'Cheque',
-  CASH_PICKUP: 'Cash Pickup',
-  INTERNAL_TRANSFER: 'Internal Transfer',
-};
+const ACCOUNT_TYPES = [
+  { value: 'SAVINGS', label: 'Savings' },
+  { value: 'CHEQUING', label: 'Chequing / Current' },
+  { value: 'FIXED_DEPOSIT', label: 'Fixed Deposit' },
+];
+const HOLDER_RELATIONSHIPS = [
+  { value: 'SELF', label: 'Self' },
+  { value: 'GUARDIAN', label: 'Guardian' },
+  { value: 'THIRD_PARTY_PAYEE', label: 'Third-party Payee' },
+  { value: 'JOINT', label: 'Joint Holder' },
+];
 
 export default function PaymentDetailsSection(props: PaymentDetailsSectionProps) {
-  const { mode = 'edit', channel, productId, personSsn, payeeId = null, claimId = null, entitlementId = null, userCode = 'SYSTEM', onSaved } = props;
+  const {
+    mode = 'edit', channel, productId, personSsn, payeeId = null, claimId = null,
+    entitlementId = null, userCode = 'SYSTEM', countryCode = null, onSaved, onPolicyResolved,
+  } = props;
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -103,13 +120,13 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
         postal_address_snapshot: prof?.postal_address_snapshot ?? null,
       });
       setLoading(false);
+      onPolicyResolved?.(pol, prof);
     })();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId, personSsn, payeeId, claimId]);
 
-  const methodOptions = useMemo(
+  const allowedMethods = useMemo(
     () => policy.allowed_payment_methods.filter(Boolean),
     [policy.allowed_payment_methods],
   );
@@ -122,10 +139,9 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
   }
 
   async function handleSubmit() {
-    // Validate
     if (draft.payment_method === 'EFT') {
-      if (!draft.bank_name || !draft.bank_code || (!rawAccount && !draft.account_number_masked) || !draft.account_holder_name) {
-        toast.error('Please complete bank name, code, account number and account holder name');
+      if (!draft.bank_code || !draft.branch_code || (!rawAccount && !draft.account_number_masked) || !draft.account_holder_name) {
+        toast.error('Please select bank, branch and complete account number and holder name');
         return;
       }
     }
@@ -146,14 +162,9 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
     setSaving(true);
     try {
       const result = await submitChangeRequest({
-        personSsn,
-        payeeId,
-        channel,
-        claimId,
-        entitlementId,
+        personSsn, payeeId, channel, claimId, entitlementId,
         reason: reason || undefined,
-        policy,
-        userCode,
+        policy, userCode,
         draft: { ...draft, account_number_masked: masked } as BnPaymentProfileDraft,
       });
       toast.success(
@@ -161,9 +172,30 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
           ? 'Payment details updated'
           : 'Change submitted for approval',
       );
+
+      // Audit: payment profile changed (non-critical trail, fire-and-forget shielded).
+      void writeBnAudit({
+        module: 'BN_PAYMENT',
+        entityType: 'bn_payment_profile',
+        entityId: (result as any).id ?? null,
+        action: 'PAYMENT_PROFILE_CHANGED',
+        afterValue: {
+          person_ssn: personSsn,
+          payment_method: draft.payment_method,
+          bank_code: draft.bank_code,
+          branch_code: draft.branch_code,
+          account_number_masked: masked,
+          status: (result as any).status ?? 'APPROVED',
+          channel,
+          claim_id: claimId,
+        },
+        performedBy: userCode,
+        severity: 'info',
+        notes: reason || null,
+      }).catch((e) => console.warn('[PaymentDetails] audit failed', e));
+
       setRawAccount('');
       onSaved?.(result);
-      // refresh
       const [prof, pend] = await Promise.all([
         getActiveProfile(personSsn, { payeeId, currency: 'XCD' }),
         getPendingChangeRequest(personSsn, { claimId }),
@@ -187,7 +219,11 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
     );
   }
 
-  const readOnly = mode === 'view';
+  // Respect product-level visibility.
+  if (policy.payment_details_visibility === 'HIDE') return null;
+  const effectiveMode: 'view' | 'edit' | 'amend' =
+    policy.payment_details_visibility === 'READONLY' ? 'view' : mode;
+  const readOnly = effectiveMode === 'view';
 
   return (
     <Card>
@@ -204,6 +240,9 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
             {pending && (
               <Badge variant="outline" className="gap-1"><Clock className="h-3 w-3" /> Pending change</Badge>
             )}
+            {policy.payment_details_visibility === 'READONLY' && (
+              <Badge variant="outline">Read-only (product policy)</Badge>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -212,7 +251,7 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
           <div className="rounded-md border bg-muted/30 p-3 text-xs">
             <div className="font-medium mb-1">Current active profile</div>
             <div className="grid grid-cols-2 gap-1 text-muted-foreground">
-              <div>Method: {METHOD_LABEL[active.payment_method]}</div>
+              <div>Method: {active.payment_method}</div>
               <div>Currency: {active.payment_currency}</div>
               {active.bank_name && <div>Bank: {active.bank_name}</div>}
               {active.account_number_masked && <div>Account: {active.account_number_masked}</div>}
@@ -227,17 +266,11 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
             <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <Label>Payment method</Label>
-                <Select
+                <PaymentMethodSelector
                   value={draft.payment_method}
-                  onValueChange={(v) => update('payment_method', v as BnPaymentMethod)}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {methodOptions.map((m) => (
-                      <SelectItem key={m} value={m}>{METHOD_LABEL[m]}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChange={(m) => update('payment_method', m)}
+                  allowedMethods={allowedMethods}
+                />
               </div>
               <div>
                 <Label>Currency</Label>
@@ -251,20 +284,35 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
             {draft.payment_method === 'EFT' && (
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <Label>Bank name</Label>
-                  <Input value={draft.bank_name ?? ''} onChange={(e) => update('bank_name', e.target.value)} />
+                  <Label>Bank</Label>
+                  <BankSelector
+                    value={draft.bank_code ?? ''}
+                    countryCode={countryCode}
+                    onChange={(b) => {
+                      setDraft((d) => ({
+                        ...d,
+                        bank_code: b?.bank_code ?? null,
+                        bank_name: b?.bank_name ?? null,
+                        // clear branch when bank changes
+                        branch_code: null,
+                        branch_name: null,
+                      }));
+                    }}
+                  />
                 </div>
                 <div>
-                  <Label>Bank code</Label>
-                  <Input value={draft.bank_code ?? ''} onChange={(e) => update('bank_code', e.target.value)} />
-                </div>
-                <div>
-                  <Label>Branch name</Label>
-                  <Input value={draft.branch_name ?? ''} onChange={(e) => update('branch_name', e.target.value)} />
-                </div>
-                <div>
-                  <Label>Branch code</Label>
-                  <Input value={draft.branch_code ?? ''} onChange={(e) => update('branch_code', e.target.value)} />
+                  <Label>Branch</Label>
+                  <BranchSelector
+                    bankCode={draft.bank_code ?? null}
+                    value={draft.branch_code ?? ''}
+                    onChange={(br) => {
+                      setDraft((d) => ({
+                        ...d,
+                        branch_code: br?.branch_code ?? null,
+                        branch_name: br?.branch_name ?? null,
+                      }));
+                    }}
+                  />
                 </div>
                 <div>
                   <Label>Account number</Label>
@@ -277,7 +325,17 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
                 </div>
                 <div>
                   <Label>Account type</Label>
-                  <Input value={draft.account_type ?? ''} onChange={(e) => update('account_type', e.target.value)} placeholder="Savings / Chequing" />
+                  <Select
+                    value={draft.account_type ?? ''}
+                    onValueChange={(v) => update('account_type', v)}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                    <SelectContent>
+                      {ACCOUNT_TYPES.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label>Account holder name</Label>
@@ -286,7 +344,23 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
                 {(policy.allow_third_party_payee || policy.allow_guardian_payee) && (
                   <div>
                     <Label>Holder relationship</Label>
-                    <Input value={draft.account_holder_relationship ?? ''} onChange={(e) => update('account_holder_relationship', e.target.value)} placeholder="Self / Guardian / Payee" />
+                    <Select
+                      value={draft.account_holder_relationship ?? ''}
+                      onValueChange={(v) => update('account_holder_relationship', v)}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                      <SelectContent>
+                        {HOLDER_RELATIONSHIPS
+                          .filter((r) => {
+                            if (r.value === 'GUARDIAN') return policy.allow_guardian_payee;
+                            if (r.value === 'THIRD_PARTY_PAYEE') return policy.allow_third_party_payee;
+                            return true;
+                          })
+                          .map((r) => (
+                            <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
               </div>
@@ -321,7 +395,7 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
               </div>
             )}
 
-            {(policy.require_proof_for_change || mode === 'amend') && (
+            {(policy.require_proof_for_change || effectiveMode === 'amend') && (
               <div>
                 <Label>Reason for change</Label>
                 <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} />
@@ -331,7 +405,7 @@ export default function PaymentDetailsSection(props: PaymentDetailsSectionProps)
             <div className="flex items-center justify-end gap-2 pt-2">
               <Button onClick={handleSubmit} disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === 'amend' ? 'Submit amendment' : 'Save payment details'}
+                {effectiveMode === 'amend' ? 'Submit amendment' : 'Save payment details'}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
