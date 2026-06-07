@@ -624,10 +624,19 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
       }
     } catch (err: any) {
       result.failed += 1;
+      const msg = err?.message || 'Unknown error';
+      const isMissingTable = /notification_queue|schema cache|relation .* does not exist/i.test(msg);
+      const isTemplateIssue = /template/i.test(msg);
+      const suggestedFix = isMissingTable
+        ? 'notification_queue table missing or stale schema cache: apply latest migrations.'
+        : isTemplateIssue
+          ? 'Check the Communication template (channel match, enabled, body present).'
+          : 'Review server logs and retry; if persistent, contact admin.';
       const id = await writeCommLog({
         claimId, eventCode, channel: m.channel, recipientType: m.recipient_type,
-        status: 'FAILED', error: err?.message || 'Unknown error',
+        status: 'FAILED', error: msg,
         templateId: m.template_id, workflowStepId: ctx?.workflowStepId, userCode: ctx?.userCode,
+        context: { suggestedFix, technicalError: msg },
       });
       if (id) result.logIds.push(id);
     }
