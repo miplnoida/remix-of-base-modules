@@ -10121,6 +10121,7 @@ export type Database = {
           payee_id: string | null
           payee_name: string | null
           payment_method: string
+          payment_profile_id: string | null
           payment_reference: string | null
           payment_type: string | null
           period_end: string | null
@@ -10169,6 +10170,7 @@ export type Database = {
           payee_id?: string | null
           payee_name?: string | null
           payment_method?: string
+          payment_profile_id?: string | null
           payment_reference?: string | null
           payment_type?: string | null
           period_end?: string | null
@@ -10217,6 +10219,7 @@ export type Database = {
           payee_id?: string | null
           payee_name?: string | null
           payment_method?: string
+          payment_profile_id?: string | null
           payment_reference?: string | null
           payment_type?: string | null
           period_end?: string | null
@@ -10243,6 +10246,174 @@ export type Database = {
             columns: ["entitlement_id"]
             isOneToOne: false
             referencedRelation: "bn_entitlement"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_payment_instruction_payment_profile_id_fkey"
+            columns: ["payment_profile_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_payment_profile: {
+        Row: {
+          account_holder_name: string | null
+          account_holder_relationship: string | null
+          account_number_masked: string | null
+          account_number_token: string | null
+          account_type: string | null
+          active: boolean
+          bank_code: string | null
+          bank_name: string | null
+          branch_code: string | null
+          branch_name: string | null
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          modified_at: string | null
+          modified_by: string | null
+          notes: string | null
+          payee_id: string | null
+          payment_currency: string
+          payment_method: string
+          person_ssn: string
+          postal_address_snapshot: Json | null
+          updated_at: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          account_holder_name?: string | null
+          account_holder_relationship?: string | null
+          account_number_masked?: string | null
+          account_number_token?: string | null
+          account_type?: string | null
+          active?: boolean
+          bank_code?: string | null
+          bank_name?: string | null
+          branch_code?: string | null
+          branch_name?: string | null
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string | null
+          modified_by?: string | null
+          notes?: string | null
+          payee_id?: string | null
+          payment_currency?: string
+          payment_method: string
+          person_ssn: string
+          postal_address_snapshot?: Json | null
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          account_holder_name?: string | null
+          account_holder_relationship?: string | null
+          account_number_masked?: string | null
+          account_number_token?: string | null
+          account_type?: string | null
+          active?: boolean
+          bank_code?: string | null
+          bank_name?: string | null
+          branch_code?: string | null
+          branch_name?: string | null
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_at?: string | null
+          modified_by?: string | null
+          notes?: string | null
+          payee_id?: string | null
+          payment_currency?: string
+          payment_method?: string
+          person_ssn?: string
+          postal_address_snapshot?: Json | null
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      bn_payment_profile_change_request: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          channel: string
+          claim_id: string | null
+          created_at: string
+          entitlement_id: string | null
+          id: string
+          new_profile_snapshot: Json
+          old_profile_snapshot: Json | null
+          person_ssn: string
+          profile_id: string | null
+          proof_document_ids: string[]
+          reason: string | null
+          rejected_reason: string | null
+          requested_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          channel: string
+          claim_id?: string | null
+          created_at?: string
+          entitlement_id?: string | null
+          id?: string
+          new_profile_snapshot: Json
+          old_profile_snapshot?: Json | null
+          person_ssn: string
+          profile_id?: string | null
+          proof_document_ids?: string[]
+          reason?: string | null
+          rejected_reason?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          channel?: string
+          claim_id?: string | null
+          created_at?: string
+          entitlement_id?: string | null
+          id?: string
+          new_profile_snapshot?: Json
+          old_profile_snapshot?: Json | null
+          person_ssn?: string
+          profile_id?: string | null
+          proof_document_ids?: string[]
+          reason?: string | null
+          rejected_reason?: string | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_payment_profile_change_request_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_profile"
             referencedColumns: ["id"]
           },
         ]
@@ -10681,19 +10852,24 @@ export type Database = {
           allow_apply_for_self: boolean
           allow_doctor_initiated: boolean
           allow_employer_initiated: boolean
+          allow_guardian_payee: boolean
           allow_managed_contributor_selection: boolean
           allow_save_draft: boolean
+          allow_third_party_payee: boolean
           allow_upload_later: boolean
           allowed_applicant_types: string[]
+          allowed_payment_methods: string[]
           allowed_subject_types: string[]
           applicant_must_equal_insured: boolean
           assisted_screen_template_id: string | null
           blocks_submission_if_documents_missing: boolean
           blocks_submission_if_precheck_fails: boolean
           channel_code: string
+          cheque_address_required: boolean
           confirmation_template_id: string | null
           correction_allowed: boolean
           correction_deadline_days: number | null
+          default_payment_method: string | null
           default_source: string | null
           document_profile_id: string | null
           entered_at: string
@@ -10705,6 +10881,9 @@ export type Database = {
           metadata: Json
           modified_at: string
           modified_by: string | null
+          payment_required_at_application: boolean
+          payment_required_before_approval: boolean
+          payment_required_before_payment: boolean
           product_id: string
           product_version_id: string
           public_card_message: string | null
@@ -10714,6 +10893,9 @@ export type Database = {
           public_screen_template_id: string | null
           public_short_description: string | null
           public_who_can_apply: string | null
+          require_bank_verification: boolean
+          require_proof_for_change: boolean
+          require_supervisor_approval_for_change: boolean
           required_participant_roles: string[]
           requires_active_award: boolean
           requires_deceased_person: boolean
@@ -10738,19 +10920,24 @@ export type Database = {
           allow_apply_for_self?: boolean
           allow_doctor_initiated?: boolean
           allow_employer_initiated?: boolean
+          allow_guardian_payee?: boolean
           allow_managed_contributor_selection?: boolean
           allow_save_draft?: boolean
+          allow_third_party_payee?: boolean
           allow_upload_later?: boolean
           allowed_applicant_types?: string[]
+          allowed_payment_methods?: string[]
           allowed_subject_types?: string[]
           applicant_must_equal_insured?: boolean
           assisted_screen_template_id?: string | null
           blocks_submission_if_documents_missing?: boolean
           blocks_submission_if_precheck_fails?: boolean
           channel_code: string
+          cheque_address_required?: boolean
           confirmation_template_id?: string | null
           correction_allowed?: boolean
           correction_deadline_days?: number | null
+          default_payment_method?: string | null
           default_source?: string | null
           document_profile_id?: string | null
           entered_at?: string
@@ -10762,6 +10949,9 @@ export type Database = {
           metadata?: Json
           modified_at?: string
           modified_by?: string | null
+          payment_required_at_application?: boolean
+          payment_required_before_approval?: boolean
+          payment_required_before_payment?: boolean
           product_id: string
           product_version_id: string
           public_card_message?: string | null
@@ -10771,6 +10961,9 @@ export type Database = {
           public_screen_template_id?: string | null
           public_short_description?: string | null
           public_who_can_apply?: string | null
+          require_bank_verification?: boolean
+          require_proof_for_change?: boolean
+          require_supervisor_approval_for_change?: boolean
           required_participant_roles?: string[]
           requires_active_award?: boolean
           requires_deceased_person?: boolean
@@ -10795,19 +10988,24 @@ export type Database = {
           allow_apply_for_self?: boolean
           allow_doctor_initiated?: boolean
           allow_employer_initiated?: boolean
+          allow_guardian_payee?: boolean
           allow_managed_contributor_selection?: boolean
           allow_save_draft?: boolean
+          allow_third_party_payee?: boolean
           allow_upload_later?: boolean
           allowed_applicant_types?: string[]
+          allowed_payment_methods?: string[]
           allowed_subject_types?: string[]
           applicant_must_equal_insured?: boolean
           assisted_screen_template_id?: string | null
           blocks_submission_if_documents_missing?: boolean
           blocks_submission_if_precheck_fails?: boolean
           channel_code?: string
+          cheque_address_required?: boolean
           confirmation_template_id?: string | null
           correction_allowed?: boolean
           correction_deadline_days?: number | null
+          default_payment_method?: string | null
           default_source?: string | null
           document_profile_id?: string | null
           entered_at?: string
@@ -10819,6 +11017,9 @@ export type Database = {
           metadata?: Json
           modified_at?: string
           modified_by?: string | null
+          payment_required_at_application?: boolean
+          payment_required_before_approval?: boolean
+          payment_required_before_payment?: boolean
           product_id?: string
           product_version_id?: string
           public_card_message?: string | null
@@ -10828,6 +11029,9 @@ export type Database = {
           public_screen_template_id?: string | null
           public_short_description?: string | null
           public_who_can_apply?: string | null
+          require_bank_verification?: boolean
+          require_proof_for_change?: boolean
+          require_supervisor_approval_for_change?: boolean
           required_participant_roles?: string[]
           requires_active_award?: boolean
           requires_deceased_person?: boolean
