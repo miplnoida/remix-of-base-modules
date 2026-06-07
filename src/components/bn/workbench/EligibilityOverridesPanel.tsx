@@ -32,9 +32,10 @@ interface Props {
   claimId: string;
   userCode: string;
   canReview: boolean;
+  userRoles?: string[];
 }
 
-export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, canReview }) => {
+export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, canReview, userRoles = [] }) => {
   const qc = useQueryClient();
   const { data: rows = [] } = useQuery({
     queryKey: ['bn', 'eligibility-overrides', claimId],
