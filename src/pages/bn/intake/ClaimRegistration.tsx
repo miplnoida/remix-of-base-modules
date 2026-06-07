@@ -714,15 +714,38 @@ export default function ClaimRegistration() {
                 <div className="grid gap-3 md:grid-cols-2">
                   {factFields.map(f => (
                     <Field key={f.field_code} label={f.field_label}>
-                      <FactInput field={f} value={factValues[f.field_code]} onChange={v => setFactValues(prev => ({ ...prev, [f.field_code]: v }))} />
+                      <FactInput
+                        field={f}
+                        value={factValues[f.field_code]}
+                        onChange={v => setFactValues(prev => ({ ...prev, [f.field_code]: v }))}
+                        existingClaims={existingClaims}
+                      />
                     </Field>
                   ))}
                 </div>
               </StepCard>
             )}
 
+            {step === 'banking' && (
+              <StepCard title="9. Banking / Payment Details" desc="Captured via the unified Payment Details framework — same form, validation, and policy as the claimant portal and online application.">
+                {ssn ? (
+                  <PaymentDetailsSection
+                    mode="edit"
+                    channel="STAFF_OFFLINE"
+                    productId={productId || null}
+                    personSsn={ssn}
+                    userCode={userCode}
+                  />
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Bank / payment details become available once an SSN is captured.
+                  </p>
+                )}
+              </StepCard>
+            )}
+
             {step === 'internal' && (
-              <StepCard title="9. Internal Options" desc="Priority, notes, basket routing, and supervisor escalation.">
+              <StepCard title="10. Internal Options" desc="Priority, notes, basket routing, and supervisor escalation.">
                 <div className="grid gap-3 md:grid-cols-2">
                   <Field label="Priority">
                     <Select value={priority} onValueChange={v => setPriority(v as any)}>
@@ -748,20 +771,6 @@ export default function ClaimRegistration() {
                   <Field label="Contact Phone"><Input value={contactPhone} onChange={e => setContactPhone(e.target.value)} /></Field>
                   <Field label="Contact Email"><Input value={contactEmail} onChange={e => setContactEmail(e.target.value)} /></Field>
                 </div>
-                {ssn && (
-                  <PaymentDetailsSection
-                    mode="edit"
-                    channel="STAFF_OFFLINE"
-                    productId={productId || null}
-                    personSsn={ssn}
-                    userCode={userCode}
-                  />
-                )}
-                {!ssn && (
-                  <p className="text-xs text-muted-foreground">
-                    Bank / payment details become available once an SSN is captured. Uses the unified Payment Details framework.
-                  </p>
-                )}
                 <Field label="Internal Notes">
                   <Textarea value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={3} maxLength={500} />
                 </Field>
