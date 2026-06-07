@@ -26,10 +26,12 @@ import { resolveField, type ResolvedValue } from '@/services/bn/eligibility/fiel
 import { evaluateOperator } from '@/services/bn/eligibility/operatorEvaluator';
 import { RULE_GROUPS, defaultGroupForFact } from '@/services/bn/eligibility/eligibilityFactRegistry';
 import { RULE_TEMPLATES, type RuleTemplate } from '@/services/bn/eligibility/ruleTemplates';
+import { RuleWizardDialog } from './RuleWizardDialog';
+import { Wand2 } from 'lucide-react';
 
 import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
+interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; productCode?: string | null; }
 
 const emptyRule: Partial<BnEligibilityRule> = {
   rule_code: '', rule_name: '', rule_type: 'CONTRIBUTION', rule_group: 'GENERAL',
@@ -38,13 +40,15 @@ const emptyRule: Partial<BnEligibilityRule> = {
   group_code: 'CORE_IDENTITY', severity: 'BLOCK', overrideable: false, override_policy_code: null, fact_key: null,
 };
 
-export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Props) {
+export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus, productCode }: Props) {
   const { toast } = useToast();
   const { data: rules = [], isLoading } = useBnEligibilityRules(versionId);
   const { data: ruleGroups = [] } = useBnRuleGroups();
   const upsertMutation = useUpsertBnEligibilityRule();
   const deleteMutation = useDeleteBnEligibilityRule();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardInitial, setWizardInitial] = useState<Partial<BnEligibilityRule> | null>(null);
   const [editing, setEditing] = useState<Partial<BnEligibilityRule>>(emptyRule);
 
   // Preview state
@@ -179,7 +183,10 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Pr
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Eligibility Rules</CardTitle><CardDescription>Define checks that must pass before a claim is eligible</CardDescription></div>
-          <Button onClick={openNew} className="gap-2" disabled={isReadOnly}><Plus className="h-4 w-4" /> Add Rule</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => { setWizardInitial(null); setWizardOpen(true); }} className="gap-2" disabled={isReadOnly}><Wand2 className="h-4 w-4" /> New (Wizard)</Button>
+            <Button onClick={openNew} className="gap-2" disabled={isReadOnly}><Plus className="h-4 w-4" /> Add Rule</Button>
+          </div>
         </CardHeader>
         <CardContent>
           <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
@@ -218,7 +225,8 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Pr
                       <TableCell>{rule.is_active ? <Badge variant="default">Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={() => openEdit(rule)}><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" disabled={isReadOnly} title="Edit (Wizard)" onClick={() => { setWizardInitial(rule); setWizardOpen(true); }}><Wand2 className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" disabled={isReadOnly} title="Edit (Legacy)" onClick={() => openEdit(rule)}><Edit className="h-4 w-4" /></Button>
                           <Button variant="ghost" size="icon" disabled={isReadOnly} onClick={() => handleDelete(rule.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
                       </TableCell>
@@ -471,6 +479,16 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Pr
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {versionId && (
+        <RuleWizardDialog
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+          productVersionId={versionId}
+          productCode={productCode ?? null}
+          initial={wizardInitial}
+        />
+      )}
     </>
   );
 }

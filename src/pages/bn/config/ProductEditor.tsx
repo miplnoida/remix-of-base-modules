@@ -378,7 +378,7 @@ export default function ProductEditor() {
 
 
         <TabsContent value="eligibility" className="mt-6">
-          <EligibilityRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
+          <EligibilityRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} productCode={form.benefit_code} />
         </TabsContent>
 
         <TabsContent value="calculation" className="mt-6">
