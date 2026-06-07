@@ -322,6 +322,19 @@ async function createLetter(params: {
   let renderedText: string | null = null;
   let templateVersionId: string | null = null;
   let templateVersionNo: number | null = null;
+
+  // Convert a plain-text body (with real or literal \n) into safe formatted HTML.
+  const escapeHtml = (s: string) => s
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const normalizeNewlines = (s: string) => s.replace(/\\r\\n|\\n|\\r/g, '\n');
+  const textToHtml = (s: string) => {
+    const norm = normalizeNewlines(s);
+    return norm
+      .split(/\n{2,}/)
+      .map((p) => `<p style="margin:0 0 10px">${escapeHtml(p).replace(/\n/g, '<br/>')}</p>`)
+      .join('');
+  };
+
   if (params.templateId) {
     const { data: versionRows } = await db
       .from('notification_template_versions')
@@ -331,8 +344,8 @@ async function createLetter(params: {
       .limit(1);
     const ver = Array.isArray(versionRows) ? versionRows[0] : null;
     let subjectTpl = ver?.subject || '';
-    let htmlTpl = ver?.html_body || (ver?.body ? `<pre style="white-space:pre-wrap">${ver.body}</pre>` : null);
-    let textTpl = ver?.body || null;
+    let htmlTpl: string | null = ver?.html_body || (ver?.body ? textToHtml(ver.body) : null);
+    let textTpl = ver?.body ? normalizeNewlines(ver.body) : null;
     templateVersionId = ver?.id || null;
     templateVersionNo = ver?.version_no || null;
     if (!htmlTpl) {
@@ -341,8 +354,8 @@ async function createLetter(params: {
         .select('subject, html_body, body, version_no')
         .eq('id', params.templateId).maybeSingle();
       subjectTpl = subjectTpl || tpl?.subject || '';
-      htmlTpl = htmlTpl || tpl?.html_body || (tpl?.body ? `<pre style="white-space:pre-wrap">${tpl.body}</pre>` : null);
-      textTpl = textTpl || tpl?.body || null;
+      htmlTpl = htmlTpl || tpl?.html_body || (tpl?.body ? textToHtml(tpl.body) : null);
+      textTpl = textTpl || (tpl?.body ? normalizeNewlines(tpl.body) : null);
       templateVersionNo = templateVersionNo ?? tpl?.version_no ?? null;
     }
     const ctx = params.mergeContext || {};
