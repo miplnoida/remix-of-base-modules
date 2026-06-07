@@ -130,7 +130,7 @@ export const NextStepGuidance: React.FC<Props> = ({
         title: 'Awaiting decision',
         body: 'Approve, deny or send back. Approval auto-creates the entitlement or payable.',
         actionLabel: 'Approve Claim',
-        onAction: () => approveMut.mutate(),
+        onAction: () => { if (guard()) approveMut.mutate(); },
         pending: approveMut.isPending,
       };
     }
