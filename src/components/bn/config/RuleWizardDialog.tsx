@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Wand2 } from 'lucide-react';
+import { TestRulePanel } from './TestRulePanel';
 import type { BnEligibilityRule } from '@/types/bn';
 import { useToast } from '@/hooks/use-toast';
 import { useUpsertBnEligibilityRule } from '@/hooks/bn/useBnProduct';
