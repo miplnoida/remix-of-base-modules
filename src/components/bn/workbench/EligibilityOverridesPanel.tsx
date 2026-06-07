@@ -18,15 +18,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { CheckCircle2, XCircle, Clock, Ban } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Ban, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   usePendingOverrides,
   useReviewOverride,
   useCancelOverride,
+  useRevokeOverride,
 } from '@/hooks/bn/usePolicy';
 import type { OverrideRequest } from '@/services/bn/policies/types';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { runClaimEligibility } from '@/services/bn/claimActionRunner';
 
 interface Props {
   claimId: string;
@@ -39,13 +41,17 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
   const { data: rows = [] } = usePendingOverrides(claimId, 'ELIGIBILITY');
   const review = useReviewOverride(claimId);
   const cancel = useCancelOverride(claimId);
+  const revoke = useRevokeOverride(claimId);
 
   const [reviewing, setReviewing] = useState<{ row: OverrideRequest; decision: 'APPROVED' | 'REJECTED' } | null>(null);
+  const [revoking, setRevoking] = useState<OverrideRequest | null>(null);
+  const [revokeReason, setRevokeReason] = useState('');
   const [reviewNotes, setReviewNotes] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const pending = rows.filter((r) => r.status === 'PENDING_APPROVAL');
   const approved = rows.filter((r) => r.status === 'APPROVED');
+  const revoked = rows.filter((r) => r.status === 'REVOKED');
   const rejected = rows.filter((r) => r.status === 'REJECTED');
   const cancelled = rows.filter((r) => r.status === 'CANCELLED');
 
@@ -77,6 +83,32 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
       toast.success('Override request cancelled.');
     } catch (err: any) {
       toast.error('Cancel failed', { description: err?.message });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const submitRevoke = async () => {
+    if (!revoking) return;
+    if (!revokeReason.trim()) {
+      toast.error('A reason is required to revoke this override.');
+      return;
+    }
+    setBusyId(revoking.id);
+    try {
+      await revoke.mutateAsync({ requestId: revoking.id, revokedBy: userCode, reason: revokeReason.trim() });
+      // Auto re-run eligibility so the rule re-evaluates without the override.
+      try {
+        await runClaimEligibility(claimId, userCode);
+        toast.success('Override revoked and eligibility re-run.');
+      } catch (e: any) {
+        toast.success('Override revoked.');
+        toast.error('Auto re-run failed', { description: e?.message });
+      }
+      setRevoking(null);
+      setRevokeReason('');
+    } catch (err: any) {
+      toast.error('Revoke failed', { description: err?.message });
     } finally {
       setBusyId(null);
     }
@@ -125,8 +157,31 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
           )}
 
           {approved.length > 0 && (
-            <Section title="Approved Overrides" icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}>
-              {approved.map((r) => <OverrideRow key={r.id} row={r} />)}
+            <Section title="Active Approved Overrides" icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}>
+              {approved.map((r) => (
+                <OverrideRow key={r.id} row={r}>
+                  {canReview && (
+                    <div className="flex gap-2 flex-wrap pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-destructive border-destructive/40 hover:bg-destructive/5"
+                        disabled={busyId === r.id}
+                        onClick={() => { setRevoking(r); setRevokeReason(''); }}
+                      >
+                        <ShieldOff className="h-3.5 w-3.5" />
+                        Remove Override
+                      </Button>
+                    </div>
+                  )}
+                </OverrideRow>
+              ))}
+            </Section>
+          )}
+
+          {revoked.length > 0 && (
+            <Section title="Revoked Overrides" icon={<ShieldOff className="h-4 w-4 text-destructive" />}>
+              {revoked.map((r) => <OverrideRow key={r.id} row={r} />)}
             </Section>
           )}
 
@@ -187,6 +242,43 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!revoking} onOpenChange={(o) => !o && setRevoking(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Eligibility Override</DialogTitle>
+          </DialogHeader>
+          {revoking && (
+            <div className="space-y-3 py-2">
+              <div className="text-sm">
+                Rule <span className="font-mono">{revoking.rule_code ?? '—'}</span>
+                {' '}— approved by {revoking.reviewed_by ?? '—'} on {formatDateForDisplay(revoking.reviewed_at ?? '')}.
+              </div>
+              <p className="text-xs text-amber-700 bg-amber-500/10 border border-amber-300 rounded px-3 py-2">
+                Removing this override will mark it REVOKED and re-run eligibility.
+                If the rule still fails, the claim may move back to a failed eligibility state.
+              </p>
+              <Textarea
+                rows={3}
+                placeholder="Reason for removing this override (required)"
+                value={revokeReason}
+                onChange={(e) => setRevokeReason(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRevoking(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={submitRevoke}
+              disabled={busyId === revoking?.id || !revokeReason.trim()}
+            >
+              Confirm Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
@@ -222,6 +314,16 @@ const OverrideRow: React.FC<React.PropsWithChildren<{ row: OverrideRequest }>> =
           {row.review_notes ? ` — ${row.review_notes}` : ''}
         </div>
       )}
+      {row.status === 'APPROVED' && (
+        <div className="text-[11px] text-emerald-700 font-medium">Status: ACTIVE — applied on re-runs until explicitly removed.</div>
+      )}
+      {(row as any).revoked_by && (
+        <div className="text-xs text-destructive">
+          Removed by {(row as any).revoked_by} on {formatDateForDisplay((row as any).revoked_at ?? '')}
+          {(row as any).revocation_reason ? ` — ${(row as any).revocation_reason}` : ''}
+        </div>
+      )}
+      <div className="text-[10px] text-muted-foreground font-mono">Override ID: {row.id}</div>
       {children}
     </div>
   );

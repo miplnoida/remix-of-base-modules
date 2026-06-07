@@ -15,6 +15,7 @@ import {
   submitOverrideRequest,
   reviewOverrideRequest,
   cancelOverrideRequest,
+  revokeOverrideRequest,
   listOverrideRequests,
 } from '@/services/bn/policies/bnPolicyActionHandler';
 import type {
@@ -89,6 +90,19 @@ export function useCancelOverride(claimId?: string) {
       cancelOverrideRequest(vars.requestId, vars.cancelledBy, vars.notes),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bn', 'override-requests', claimId] });
+    },
+  });
+}
+
+export function useRevokeOverride(claimId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { requestId: string; revokedBy: string; reason: string }) =>
+      revokeOverrideRequest(vars.requestId, vars.revokedBy, vars.reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bn', 'override-requests', claimId] });
+      qc.invalidateQueries({ queryKey: ['bn', 'claim-eligibility', claimId] });
+      qc.invalidateQueries({ queryKey: ['bn', 'claim-events', claimId] });
     },
   });
 }

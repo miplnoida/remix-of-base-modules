@@ -9263,6 +9263,9 @@ export type Database = {
           review_notes: string | null
           reviewed_at: string | null
           reviewed_by: string | null
+          revocation_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
           rule_code: string | null
           status: string
           supporting_document_id: string | null
@@ -9292,6 +9295,9 @@ export type Database = {
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           rule_code?: string | null
           status?: string
           supporting_document_id?: string | null
@@ -9321,6 +9327,9 @@ export type Database = {
           review_notes?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
           rule_code?: string | null
           status?: string
           supporting_document_id?: string | null

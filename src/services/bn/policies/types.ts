@@ -25,7 +25,9 @@ export type OverrideStatus =
   | 'APPROVED'
   | 'REJECTED'
   | 'CANCELLED'
-  | 'EXPIRED';
+  | 'EXPIRED'
+  | 'REVOKED'
+  | 'SUPERSEDED';
 
 export type PolicyActionKind = 'REQUEST' | 'APPROVE' | 'APPLY';
 
@@ -119,6 +121,9 @@ export interface OverrideRequest {
   applied_by: string | null;
   expires_at: string | null;
   policy_id: string | null;
+  revoked_by?: string | null;
+  revoked_at?: string | null;
+  revocation_reason?: string | null;
 }
 
 export interface SubmitOverrideInput {
