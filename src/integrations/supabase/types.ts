@@ -4881,6 +4881,104 @@ export type Database = {
           },
         ]
       }
+      bn_bank_branch: {
+        Row: {
+          active: boolean
+          address_snapshot: Json | null
+          bank_code: string
+          branch_code: string
+          branch_name: string
+          created_at: string
+          created_by: string | null
+          id: string
+          routing_number: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          address_snapshot?: Json | null
+          bank_code: string
+          branch_code: string
+          branch_name: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          routing_number?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          address_snapshot?: Json | null
+          bank_code?: string
+          branch_code?: string
+          branch_name?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          routing_number?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_bank_branch_bank_code_fkey"
+            columns: ["bank_code"]
+            isOneToOne: false
+            referencedRelation: "bn_bank_master"
+            referencedColumns: ["bank_code"]
+          },
+        ]
+      }
+      bn_bank_master: {
+        Row: {
+          active: boolean
+          bank_code: string
+          bank_name: string
+          clearing_code: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          default_currency: string | null
+          id: string
+          notes: string | null
+          swift_code: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          bank_code: string
+          bank_name: string
+          clearing_code?: string | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          default_currency?: string | null
+          id?: string
+          notes?: string | null
+          swift_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          bank_code?: string
+          bank_name?: string
+          clearing_code?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          default_currency?: string | null
+          id?: string
+          notes?: string | null
+          swift_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       bn_batch_item: {
         Row: {
           added_at: string
@@ -7772,6 +7870,7 @@ export type Database = {
           control_amount: number | null
           control_count: number | null
           created_at: string
+          eft_format_code: string | null
           file_format: string
           file_hash: string | null
           file_name: string
@@ -7794,6 +7893,7 @@ export type Database = {
           control_amount?: number | null
           control_count?: number | null
           created_at?: string
+          eft_format_code?: string | null
           file_format?: string
           file_hash?: string | null
           file_name: string
@@ -7816,6 +7916,7 @@ export type Database = {
           control_amount?: number | null
           control_count?: number | null
           created_at?: string
+          eft_format_code?: string | null
           file_format?: string
           file_hash?: string | null
           file_name?: string
@@ -7839,6 +7940,145 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "bn_payment_batch"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_eft_format: {
+        Row: {
+          active: boolean
+          amount_decimals: number
+          amount_format: string
+          bank_code: string | null
+          country_code: string | null
+          created_at: string
+          created_by: string | null
+          date_format: string
+          delimiter: string | null
+          encoding: string
+          file_extension: string
+          format_code: string
+          format_name: string
+          header_required: boolean
+          id: string
+          notes: string | null
+          record_separator: string
+          trailer_required: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          amount_decimals?: number
+          amount_format?: string
+          bank_code?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_format?: string
+          delimiter?: string | null
+          encoding?: string
+          file_extension?: string
+          format_code: string
+          format_name: string
+          header_required?: boolean
+          id?: string
+          notes?: string | null
+          record_separator?: string
+          trailer_required?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          amount_decimals?: number
+          amount_format?: string
+          bank_code?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_format?: string
+          delimiter?: string | null
+          encoding?: string
+          file_extension?: string
+          format_code?: string
+          format_name?: string
+          header_required?: boolean
+          id?: string
+          notes?: string | null
+          record_separator?: string
+          trailer_required?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_eft_format_bank_code_fkey"
+            columns: ["bank_code"]
+            isOneToOne: false
+            referencedRelation: "bn_bank_master"
+            referencedColumns: ["bank_code"]
+          },
+        ]
+      }
+      bn_eft_format_field: {
+        Row: {
+          created_at: string
+          default_value: string | null
+          field_name: string
+          format_code: string
+          id: string
+          length: number | null
+          order_index: number
+          pad_char: string
+          padding: string
+          record_type: string
+          required: boolean
+          source_field: string | null
+          start_position: number | null
+          transform: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_value?: string | null
+          field_name: string
+          format_code: string
+          id?: string
+          length?: number | null
+          order_index: number
+          pad_char?: string
+          padding?: string
+          record_type: string
+          required?: boolean
+          source_field?: string | null
+          start_position?: number | null
+          transform?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_value?: string | null
+          field_name?: string
+          format_code?: string
+          id?: string
+          length?: number | null
+          order_index?: number
+          pad_char?: string
+          padding?: string
+          record_type?: string
+          required?: boolean
+          source_field?: string | null
+          start_position?: number | null
+          transform?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_eft_format_field_format_code_fkey"
+            columns: ["format_code"]
+            isOneToOne: false
+            referencedRelation: "bn_eft_format"
+            referencedColumns: ["format_code"]
           },
         ]
       }
@@ -9922,6 +10162,8 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           bank_account_ref: string | null
+          bank_response_at: string | null
+          bank_response_status: string | null
           batch_date: string
           batch_number: string
           batch_type: string | null
@@ -9932,6 +10174,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           currency: string
+          eft_format_code: string | null
           failed_items: number
           id: string
           issue_completed_at: string | null
@@ -9957,6 +10200,8 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           bank_account_ref?: string | null
+          bank_response_at?: string | null
+          bank_response_status?: string | null
           batch_date?: string
           batch_number: string
           batch_type?: string | null
@@ -9967,6 +10212,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          eft_format_code?: string | null
           failed_items?: number
           id?: string
           issue_completed_at?: string | null
@@ -9992,6 +10238,8 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           bank_account_ref?: string | null
+          bank_response_at?: string | null
+          bank_response_status?: string | null
           batch_date?: string
           batch_number?: string
           batch_type?: string | null
@@ -10002,6 +10250,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          eft_format_code?: string | null
           failed_items?: number
           id?: string
           issue_completed_at?: string | null
@@ -10256,6 +10505,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bn_payment_method: {
+        Row: {
+          active: boolean
+          consumes_cheque_stock: boolean
+          created_at: string
+          generates_eft_file: boolean
+          id: string
+          method_code: string
+          method_name: string
+          requires_bank_account: boolean
+          requires_postal_address: boolean
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          consumes_cheque_stock?: boolean
+          created_at?: string
+          generates_eft_file?: boolean
+          id?: string
+          method_code: string
+          method_name: string
+          requires_bank_account?: boolean
+          requires_postal_address?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          consumes_cheque_stock?: boolean
+          created_at?: string
+          generates_eft_file?: boolean
+          id?: string
+          method_code?: string
+          method_name?: string
+          requires_bank_account?: boolean
+          requires_postal_address?: boolean
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       bn_payment_profile: {
         Row: {
