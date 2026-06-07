@@ -53,6 +53,8 @@ export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId })
   const trigger = useBnTriggerCommunication();
   const updateLetter = useBnUpdateLetterStatus();
   const retry = useBnRetryCommunication();
+  const genLetter = useBnGenerateLetterFromBlocked();
+  const markDispatched = useBnMarkManuallyDispatched();
   const [subTab, setSubTab] = useState('timeline');
 
   const logs = data?.logs || [];
