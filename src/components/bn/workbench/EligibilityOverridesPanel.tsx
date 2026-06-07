@@ -88,6 +88,32 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
     }
   };
 
+  const submitRevoke = async () => {
+    if (!revoking) return;
+    if (!revokeReason.trim()) {
+      toast.error('A reason is required to revoke this override.');
+      return;
+    }
+    setBusyId(revoking.id);
+    try {
+      await revoke.mutateAsync({ requestId: revoking.id, revokedBy: userCode, reason: revokeReason.trim() });
+      // Auto re-run eligibility so the rule re-evaluates without the override.
+      try {
+        await runClaimEligibility(claimId, userCode);
+        toast.success('Override revoked and eligibility re-run.');
+      } catch (e: any) {
+        toast.success('Override revoked.');
+        toast.error('Auto re-run failed', { description: e?.message });
+      }
+      setRevoking(null);
+      setRevokeReason('');
+    } catch (err: any) {
+      toast.error('Revoke failed', { description: err?.message });
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   if (rows.length === 0) return null;
 
   return (
