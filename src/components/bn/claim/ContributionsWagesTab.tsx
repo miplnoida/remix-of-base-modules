@@ -9,6 +9,7 @@ import { useBnContributionSummary } from '@/hooks/bn/useBnIntegration';
 import { BnDetailRow, BnDetailSection, BnEmptyState, BnStatCard } from '@/components/bn/shared';
 
 import { formatNumber } from '@/lib/culture/culture';
+import { formatDisplayDate } from '@/lib/dateFormat';
 interface ContributionsWagesTabProps {
   ssn: string;
   windowStart?: string;
@@ -42,7 +43,7 @@ export const ContributionsWagesTab: React.FC<ContributionsWagesTabProps> = ({
           title="Total Weeks"
           value={summary.totalWeeks}
           icon={BarChart3}
-          subtitle={`${start} to ${end}`}
+          subtitle={`${formatDisplayDate(start)} to ${formatDisplayDate(end)}`}
         />
         <BnStatCard
           title="Total Contributions"

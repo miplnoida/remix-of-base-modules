@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { User, Phone, Mail, MapPin, Calendar, Hash, AlertTriangle } from 'lucide-react';
-import { formatDateForDisplay } from '@/lib/format-config';
+import { formatDisplayDate } from '@/lib/dateFormat';
 import type { PersonSummary } from '@/services/bn/integration/contracts';
 
 interface ContributorSectionProps {
@@ -67,7 +67,7 @@ export const ContributorSection: React.FC<ContributorSectionProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <ReadField icon={Hash} label="SSN" value={person.ssn} mono />
           <ReadField icon={User} label="Full Name" value={person.fullName} />
-          <ReadField icon={Calendar} label="Date of Birth" value={person.dateOfBirth ? formatDateForDisplay(person.dateOfBirth) : '—'} />
+          <ReadField icon={Calendar} label="Date of Birth" value={person.dateOfBirth ? formatDisplayDate(person.dateOfBirth) : '—'} />
           <div>
             <Label className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> Gender</Label>
             <p className="text-foreground mt-1">{genderLabel}</p>
@@ -79,13 +79,13 @@ export const ContributorSection: React.FC<ContributorSectionProps> = ({
             </Badge>
           </div>
           {person.phone && <ReadField icon={Phone} label="Registry Phone" value={person.phone} />}
-          {person.email && <ReadField icon={Mail} label="Registry Email" value={person.email} />}
+          {person.email && <ReadField icon={Mail} label="Registry Email" value={person.email} className="col-span-2 md:col-span-2" />}
           {person.address && (
             <ReadField
               icon={MapPin}
               label="Address"
               value={[person.address.line1, person.address.line2, person.address.city, person.address.parish].filter(Boolean).join(', ')}
-              className="col-span-2"
+              className="col-span-2 md:col-span-2"
             />
           )}
         </div>
@@ -137,9 +137,9 @@ function ReadField({ icon: Icon, label, value, mono, className }: {
   icon: any; label: string; value: string; mono?: boolean; className?: string;
 }) {
   return (
-    <div className={className}>
+    <div className={`min-w-0 ${className || ''}`}>
       <Label className="text-xs text-muted-foreground flex items-center gap-1"><Icon className="h-3 w-3" /> {label}</Label>
-      <p className={`text-foreground mt-1 ${mono ? 'font-mono' : ''}`}>{value}</p>
+      <p className={`text-foreground mt-1 break-words ${mono ? 'font-mono' : ''}`}>{value}</p>
     </div>
   );
 }

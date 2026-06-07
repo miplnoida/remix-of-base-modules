@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BnStatusBadge } from '@/components/bn/shared';
 import { BN_CLAIM_STATUS_LABELS } from '@/types/bn';
-import { formatDateForDisplay } from '@/lib/format-config';
+import { formatDisplayDate } from '@/lib/dateFormat';
 
 interface ClaimHeaderSectionProps {
   claim: {
@@ -77,13 +77,13 @@ export const ClaimHeaderSection: React.FC<ClaimHeaderSectionProps> = ({
           {/* claim_date */}
           <div>
             <Label className="text-xs text-muted-foreground">Claim Date</Label>
-            <p className="font-medium text-foreground mt-1">{formatDateForDisplay(claim.claim_date)}</p>
+            <p className="font-medium text-foreground mt-1">{formatDisplayDate(claim.claim_date)}</p>
           </div>
 
           {/* submission_date — read-only */}
           <div>
             <Label className="text-xs text-muted-foreground">Submission Date</Label>
-            <p className="text-foreground mt-1">{claim.submission_date ? formatDateForDisplay(claim.submission_date) : '—'}</p>
+            <p className="text-foreground mt-1">{claim.submission_date ? formatDisplayDate(claim.submission_date) : '—'}</p>
           </div>
 
           {/* legacy_claim_ref — read-only */}
