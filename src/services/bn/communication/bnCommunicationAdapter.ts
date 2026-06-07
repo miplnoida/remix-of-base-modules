@@ -439,6 +439,25 @@ async function writeCommLog(row: {
   return data?.id as string;
 }
 
+// ─── Diagnostics suggested-fix builder ─────────────────────────────
+function buildSuggestedFix(channel: string, recipientType: string, missing: string[]): string {
+  if (missing.includes('mapping')) return 'Configure mapping in Product Catalog → Communications';
+  if (missing.includes('recipient')) {
+    if (recipientType === 'ASSIGNED_OFFICER') return 'Assign claim to an officer (or log in as the officer triggering the action).';
+    if (recipientType === 'CLAIMANT' || recipientType === 'PAYEE') return 'Open the claimant record and verify SSN/contact details exist.';
+    return `Verify the ${recipientType} master record exists for this claim.`;
+  }
+  if (missing.includes('email')) return `Add an email address to the ${recipientType.toLowerCase()} record.`;
+  if (missing.includes('phone')) return `Add a mobile number to the ${recipientType.toLowerCase()} record (ip_master.mobile / phone_mobile).`;
+  if (missing.includes('postal address')) return `Add a mailing address (mail_addr1 / city) to the ${recipientType.toLowerCase()} record.`;
+  if (missing.includes('internal user account')) {
+    if (recipientType === 'CLAIMANT') return 'Claimant has no linked portal account; in-app delivery requires external_user_person_link.';
+    if (recipientType === 'ASSIGNED_OFFICER') return 'Claim has no assigned officer and no current logged-in user available; assign the claim or trigger as a logged-in officer.';
+    return `No internal user resolved for ${recipientType}; configure assignment or fallback.`;
+  }
+  return 'Review communication mapping, template and recipient configuration.';
+}
+
 // ─── Top-level event dispatcher ────────────────────────────────────
 export async function triggerClaimCommunication(eventCode: string, claimId: string, ctx?: BnCommContext): Promise<BnCommDispatchResult> {
   const result: BnCommDispatchResult = { eventCode, dispatched: 0, skipped: 0, failed: 0, blocked: 0, letters: [], logIds: [], warnings: [] };
