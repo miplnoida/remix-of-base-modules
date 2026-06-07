@@ -40,13 +40,15 @@ const emptyRule: Partial<BnEligibilityRule> = {
   group_code: 'CORE_IDENTITY', severity: 'BLOCK', overrideable: false, override_policy_code: null, fact_key: null,
 };
 
-export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Props) {
+export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus, productCode }: Props) {
   const { toast } = useToast();
   const { data: rules = [], isLoading } = useBnEligibilityRules(versionId);
   const { data: ruleGroups = [] } = useBnRuleGroups();
   const upsertMutation = useUpsertBnEligibilityRule();
   const deleteMutation = useDeleteBnEligibilityRule();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardInitial, setWizardInitial] = useState<Partial<BnEligibilityRule> | null>(null);
   const [editing, setEditing] = useState<Partial<BnEligibilityRule>>(emptyRule);
 
   // Preview state
