@@ -309,6 +309,49 @@ export async function runClaimEligibility(
     });
   }
 
+  // ─── Apply ACTIVE APPROVED eligibility overrides ───────────────────
+  // Rule per spec: re-run evaluates every rule, but any failure that has an
+  // ACTIVE approved override is downgraded to OVERRIDDEN (passed=true) so
+  // the claim does not regress. Only explicit revoke removes an override.
+  const { data: activeOverrides } = await db
+    .from('bn_override_request')
+    .select('id, rule_code, reason_code, justification, reviewed_by, reviewed_at, requested_by, current_value, requested_value')
+    .eq('claim_id', claim.id)
+    .eq('policy_area', 'ELIGIBILITY')
+    .eq('status', 'APPROVED');
+
+  const overrideByRule = new Map<string, any>();
+  for (const ov of (activeOverrides ?? [])) {
+    if (ov.rule_code && !overrideByRule.has(ov.rule_code)) overrideByRule.set(ov.rule_code, ov);
+  }
+
+  let anyOverrideApplied = false;
+  const overrideReasons: string[] = [];
+  let firstOverrideBy: string | null = null;
+
+  for (const t of traces) {
+    if (!t.passed && overrideByRule.has(t.rule_code)) {
+      const ov = overrideByRule.get(t.rule_code);
+      anyOverrideApplied = true;
+      firstOverrideBy = firstOverrideBy || ov.reviewed_by || ov.requested_by;
+      if (ov.justification || ov.reason_code) {
+        overrideReasons.push(`${t.rule_code}: ${ov.justification || ov.reason_code}`);
+      }
+      (t as any).original_actual_value = t.actual_value;
+      (t as any).original_passed = false;
+      t.passed = true;
+      (t as any).result_state = 'OVERRIDDEN';
+      (t as any).status = 'OVERRIDDEN';
+      (t as any).override_request_id = ov.id;
+      (t as any).overridden_by = ov.reviewed_by || ov.requested_by;
+      (t as any).override_approved_by = ov.reviewed_by;
+      (t as any).override_approved_at = ov.reviewed_at;
+      (t as any).override_reason_code = ov.reason_code;
+      (t as any).override_justification = ov.justification;
+      t.message = `${t.message} — OVERRIDDEN by ${ov.reviewed_by || ov.requested_by} (${ov.reason_code || 'policy override'})`;
+    }
+  }
+
   const overall = !traces.some((t) => !t.passed && t.fail_action === 'REJECT');
 
   const { data: inserted, error: insErr } = await db
@@ -320,6 +363,9 @@ export async function runClaimEligibility(
       rule_results: traces,
       contribution_summary: {},
       entered_by: userCode,
+      override_applied: anyOverrideApplied,
+      override_by: anyOverrideApplied ? firstOverrideBy : null,
+      override_reason: anyOverrideApplied ? overrideReasons.join(' | ') || 'Active approved override applied' : null,
     })
     .select('id')
     .single();
