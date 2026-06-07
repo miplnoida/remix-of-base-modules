@@ -53,7 +53,7 @@ export async function buildBnMergeContext(claimId: string, extra?: Record<string
     .maybeSingle();
   if (!claim) return { ClaimNumber: '', ClaimantName: '', ...(extra || {}) };
 
-  const [{ data: person }, { data: product }, { data: latestDecision }, { data: latestCalc }, { data: missingDocs }] = await Promise.all([
+  const [{ data: person }, { data: product }, { data: latestDecision }, { data: latestCalc }, { data: missingDocs }, { data: latestEligArr }] = await Promise.all([
     claim.ssn
       ? db.from('ip_master').select('first_name, surname, email, phone_cell, phone_home, mailing_address').eq('ssn', String(claim.ssn).trim()).maybeSingle()
       : Promise.resolve({ data: null }),
