@@ -446,13 +446,15 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
         else result.skipped += 1;
       } else if (m.channel === 'LETTER') {
         const letterId = await createLetter({
+      } else if (m.channel === 'LETTER') {
+        const letterId = await createLetter({
           claimId, eventCode, templateId: m.template_id, recipientType: m.recipient_type,
-          recipient, subject, mergeContext, isMandatoryLetter: !!event.is_mandatory_letter, userCode: ctx?.userCode,
+          recipient: recipient!, subject, mergeContext, isMandatoryLetter: !!event.is_mandatory_letter, userCode: ctx?.userCode,
         });
         result.letters.push(letterId);
         const id = await writeCommLog({
-          claimId, eventCode, channel: 'LETTER', recipientType: m.recipient_type, recipientAddress: recipient.name,
-          templateId: m.template_id, subject, status: 'QUEUED', letterId, userCode: ctx?.userCode,
+          claimId, eventCode, channel: 'LETTER', recipientType: m.recipient_type, recipientAddress: recipient!.name,
+          templateId: m.template_id, subject, status: 'GENERATED', letterId, userCode: ctx?.userCode,
           workflowStepId: ctx?.workflowStepId,
         });
         if (id) result.logIds.push(id);
