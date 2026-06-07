@@ -1,182 +1,104 @@
-# Eligibility Rule Builder — Realistic Redesign
+# Plan — BN Register / Assist Application: Enterprise Hardening
 
-Replace the current free-text eligibility rule editor with a **fact-registry-driven**, business-friendly rule builder that maps every rule to a real source table and a real resolver, with templates, grouping, preview, testing, and validation.
+## Audit Summary (key gaps)
 
-This plan is delivered in **four phases**. Each phase is independently shippable and ends with a working UI/runtime. Phases 2–4 only proceed after Phase 1 review.
+The intake page (`src/pages/bn/intake/ClaimRegistration.tsx`, 1,047 lines, single route `/bn/intake/register`) already uses the shared `PaymentDetailsSection` and derives workflow from the product version. But it still has these gaps:
 
----
+1. **Bank / branch / account-type are free-text** inside `PaymentDetailsSection` even though `bn_bank_master`, `bn_bank_branch`, `bn_payment_method` and a `bankMasterService` already exist — the section never calls them.
+2. **Workbasket override is a free-text Input** at `ClaimRegistration.tsx:779` — no validation against `bn_workbasket`.
+3. **Priority and Source dropdowns are hardcoded enums** (LOW/NORMAL/HIGH/URGENT, PAPER/WALK_IN/PHONE).
+4. **`payment_required_at_application` flag exists** on `bn_product_channel_config` but is **never checked** — step 9 is always optional regardless of product policy.
+5. **`payment_details_visibility` column is missing** on `bn_product_channel_config` — products that never need payment at intake cannot hide step 9.
+6. **`window.prompt()`** used at lines 686/689 for document pending / waiver reasons.
+7. **Legacy `logAuditTrail`** mixed with BN-domain `auditSubmission` / `writeBnAudit` — inconsistent.
+8. **`PAYMENT_PROFILE_CHANGED` audit event missing** when `submitChangeRequest()` writes the change request.
+9. **No `src/components/bn/selectors/`** directory exists; no smart selectors at all.
 
-## Phase 1 — Fact Registry + Resolvers (foundation)
+Other selectors named in the request (WorkflowTemplate, Transition, ReasonCode, RuleGroup, RuleCode, Formula, DocumentType, ScreenTemplate, ProductVersion) are **not used by the intake page** — they belong to the Configuration / Product Catalog screens. Those will be scoped to a follow-up.
 
-**New file:** `src/services/bn/eligibility/eligibilityFactRegistry.ts`
+## Phase 1 — Master-Data Selectors (new)
 
-Central, typed registry. Each entry:
+Create `src/components/bn/selectors/`:
 
-```ts
-{
-  fact_key, label, category, description,
-  source_table, source_column,
-  resolver_function,           // name in resolver map
-  data_type,                   // 'number' | 'date' | 'enum' | 'bool' | 'string'
-  allowed_operators,           // subset of OPERATORS
-  allowed_values?,             // for enum/bool
-  applicable_products,         // ['*'] or specific benefit codes
-  example_value,
-}
+- `BankSelector.tsx` — `SearchableSelect` over `listBanks()`; props `{ value, onChange, countryCode?, disabled }`. Shows `bank_code — bank_name` with status badge; filter inactive unless `includeInactive`.
+- `BranchSelector.tsx` — depends on selected `bankCode`; calls `listBranches(bankCode)`; clears when bank changes.
+- `PaymentMethodSelector.tsx` — over `listPaymentMethods()`; respects optional `allowedMethods: string[]` from product policy.
+- `WorkbasketSelector.tsx` — over `bn_workbasket`; supports `productVersionId` filter; SearchableSelect.
+
+Each selector follows the project's `SearchableSelect` standard, shows `code · name · active badge`, only active selectable by default, search enabled, inactive shown only when explicitly editing a historic record.
+
+Add hooks under `src/hooks/bn/useBnPaymentMasters.ts`:
+- `useBanks(countryCode?)`, `useBankBranches(bankCode?)`, `usePaymentMethods()`, `useWorkbaskets(productVersionId?)`.
+
+## Phase 2 — Wire Selectors into the Intake & Payment UI
+
+**`src/components/bn/payment/PaymentDetailsSection.tsx`**
+- Replace four free-text bank/branch inputs (lines 253–268) with `BankSelector` + `BranchSelector`. On bank change → set `bank_code`+`bank_name`, clear branch fields. On branch change → set `branch_code`+`branch_name`.
+- Replace payment-method label map (lines 54–58) with `PaymentMethodSelector` driven by `policy.allowed_methods`.
+- Replace account-type and account-holder-relationship free-text with `Select` bound to fixed code lists pulled from `bn_country_payment_config` (`account_types`, `payee_relationships` — already JSON columns on the table). Fall back to a safe default list when null.
+- After `submitChangeRequest()` succeeds, emit `PAYMENT_PROFILE_CHANGED` via `writeBnAudit`.
+
+**`src/pages/bn/intake/ClaimRegistration.tsx`**
+- Step 10 workbasket override: replace `<Input placeholder="basket code" />` with `<WorkbasketSelector productVersionId={resolvedVersion?.version.id} />`. Only render if `policy.allow_manual_workbasket_override` is true.
+- Priority + Source dropdowns: read options from `bn_country_payment_config.intake_priorities` / `intake_sources` JSON arrays with hardcoded fallbacks (transitional — full move to a master table is out of scope here).
+- Replace both `window.prompt()` calls with a single `<ReasonCaptureDialog />` (new component in `src/components/bn/intake/ReasonCaptureDialog.tsx`).
+- Replace `logAuditTrail` usages with `bnAuditService` (`auditWorkflowAction`, `auditDocumentAction`, `auditApplicationAction`) for consistency.
+
+## Phase 3 — Product Catalog Enforcement
+
+**Migration** — add the missing visibility flag and one consolidated guard column:
+
+```sql
+ALTER TABLE public.bn_product_channel_config
+  ADD COLUMN IF NOT EXISTS payment_details_visibility VARCHAR(20)
+    NOT NULL DEFAULT 'SHOW',  -- SHOW | HIDE | READONLY
+  ADD COLUMN IF NOT EXISTS allow_manual_workbasket_override BOOLEAN
+    NOT NULL DEFAULT false;
 ```
 
-**Categories** (fixed enum): `PERSON`, `CONTRIBUTION`, `EMPLOYER`, `CLAIM_EVENT`, `MEDICAL`, `DOCUMENTS`, `EXISTING_BENEFITS`, `PAYMENT_AWARD`, `SPECIAL`.
+**Runtime checks** in `ClaimRegistration.tsx`:
+- Skip step 9 entirely when `policy.payment_details_visibility === 'HIDE'`.
+- Render step 9 read-only when `'READONLY'`.
+- Block "Next" in `canAdvanceFrom('banking')` when `payment_required_at_application` is true and no active payment profile is captured.
+- Block submit (`handleSubmit`) when `payment_required_before_payment` is true and no profile exists (warning) — record the gap on the claim review summary.
 
-**Seeded facts (initial set, all backed by real tables):**
+**`PaymentDetailsSection`** consumes the same flags via the existing `getPaymentPolicy()` and exposes a `policy` prop upward via `onPolicyResolved` so the intake page can read it without re-querying.
 
-| fact_key | source | resolver |
-|---|---|---|
-| `person.age_at_claim_date` | `ip_master.date_of_birth` | `resolvePersonAge` |
-| `person.gender` | `ip_master.gender` | `resolvePersonGender` |
-| `person.alive_status` | `ip_master.status` | `resolvePersonAlive` |
-| `contribution.total_weeks` | `bn_claim_contribution_snapshot` / `ip_wages` | `resolveContribTotalWeeks` |
-| `contribution.paid_weeks` | same | `resolveContribPaidWeeks` |
-| `contribution.recent_weeks` | same | `resolveContribRecentWeeks` |
-| `contribution.average_weekly_wage` | same | `resolveContribAvgWage` |
-| `contribution.last_contribution_date` | `ip_wages` | `resolveContribLastDate` |
-| `employer.exists` | `er_master` | `resolveEmployerExists` |
-| `employer.status` | `er_master.status` | `resolveEmployerStatus` |
-| `employer.active_on_injury_date` | `er_master` + claim event | `resolveEmployerActiveOnDate` |
-| `claim.injury_date` | `bn_claim` | `resolveClaimInjuryDate` |
-| `claim.submission_date` | `bn_claim.created_at` | `resolveClaimSubmissionDate` |
-| `claim.days_since_event` | derived | `resolveDaysSinceEvent` |
-| `claim.application_channel` | `bn_claim_application.application_channel` | `resolveClaimChannel` |
-| `document.medical_certificate_received` | `bn_claim_document` | `resolveDocReceived('MEDICAL_CERT')` |
-| `document.death_certificate_received` | same | `resolveDocReceived('DEATH_CERT')` |
-| `document.birth_certificate_received` | same | `resolveDocReceived('BIRTH_CERT')` |
-| `document.employer_report_received` | same | `resolveDocReceived('EMPLOYER_RPT')` |
-| `existing.active_award` | `bn_award` | `resolveActiveAward` |
-| `existing.duplicate_claim_same_period` | `bn_claim` | `resolveDuplicateClaim` |
-| `existing.previous_maternity_claim` | `bn_claim` | `resolvePreviousMaternity` |
+## Phase 4 — Configuration Validation
 
-**New file:** `src/services/bn/eligibility/eligibilityFactResolver.ts`
-Single entry point `resolveFact(factKey, ctx)` that dispatches to the resolver functions above. All eligibility evaluation goes through this — no raw JSON key reads.
+Extend `src/services/bn/eligibility/validateRuleSet.ts` (created in the Eligibility redesign) and a new `validateProductChannelConfig.ts`:
 
-`ctx = { ssn, claimId, claimDate, productCode, employerRegno, ... }`.
+- Product has `payment_required_*` but no `PAYMENT_DETAILS` screen section → ERROR.
+- `EFT` in `allowed_payment_methods` but `bn_bank_master` empty for the country → ERROR.
+- `CHEQUE` allowed but `cheque_address_required` not set or no postal address fields in screen template → WARN.
+- `workflow_definition_id` / `default_workbasket_id` null on channel config → ERROR.
+- Any rule using a `fact_key` not in the registry → ERROR (already covered by validateRuleSet; surface in the same panel).
 
-**New file:** `src/services/bn/eligibility/operators.ts`
-Pure functions for `>=`, `<=`, `=`, `!=`, `exists`, `not_exists`, `in`, `between`. Each operator declares which `data_type`s it accepts — the UI consumes this to gate the operator dropdown.
+Surface results in `BN → Configuration → Validation` tab (existing component if present, otherwise a small `ConfigValidationPanel` reused on product version detail). No runtime gating in this phase — only visibility.
 
-**Acceptance Phase 1:**
-- Registry compiles, every fact has a real resolver, resolver throws on unknown key.
-- Unit test (vitest) covers one fact per category against seeded data.
+## Phase 5 — Audit Coverage
 
----
+Add the missing business events through `writeBnAudit`:
 
-## Phase 2 — Rule Builder UI
+| Event | Trigger |
+|---|---|
+| `APPLICATION_REGISTERED` | When step 2 (confirm person) completes for the first time |
+| `PAYMENT_DETAILS_CHANGED` | After `submitChangeRequest` succeeds |
+| `ELIGIBILITY_PRECHECK_RUN` | When user clicks "Run pre-check" on step 6 (also adds the button — currently rules are display-only) |
+| `WORKFLOW_BASKET_OVERRIDE` | Already audited; migrate from legacy logger |
+| `CLAIM_SUBMITTED` | Already audited |
 
-**Edit:** `src/pages/bn/admin/products/EligibilityRulesTab.tsx` (or current equivalent — will locate first).
+## Out of Scope (deferred)
 
-**Rule row UX (Add Rule wizard inline):**
+- Building the eight non-intake selectors (WorkflowTemplate, Transition, ReasonCode, RuleGroup, RuleCode, Formula, DocumentType, ScreenTemplate, ProductVersion) — they belong to the Product Catalog / Workflow Designer screens; tracked separately.
+- Replacing `sectionCatalogue.getDefaultFieldsForBenefit()` SELECT options with master-data lookups — needs a separate field-mapping layer.
+- Extracting the 1,047-line monolithic intake into sub-components — purely structural, no behaviour change.
 
-```
-[Category ▼] → [Fact ▼] → [Operator ▼] → [Value input]
-            → [Group ▼] [Severity ▼] [Overrideable ☐] [Save]
-```
+## Acceptance
 
-- Category, Fact, Operator are dropdowns sourced from the registry.
-- Value input is rendered per `data_type` (number / date / enum select / yes-no / multi-select for `in`/`between`).
-- Group dropdown is the fixed list below.
-- Free-text field keys are no longer accepted.
-
-**Rule groups (fixed):**
-`CORE_IDENTITY`, `CONTRIBUTION`, `EMPLOYMENT`, `EVENT`, `EVIDENCE`, `EXISTING_BENEFIT`, `SPECIAL`.
-
-Rules are displayed grouped under collapsible group headers, with a count badge per group.
-
-**Templates panel (right side of builder):**
-
-A "Quick Add" list. Clicking a template pre-fills the row — user can adjust the value before saving.
-
-Templates: `Minimum Age`, `Maximum Age`, `Minimum Paid Contributions`, `Minimum Recent Contributions`, `Employer Must Be Active`, `Medical Certificate Required`, `Death Certificate Required`, `No Duplicate Claim`, `Existing Award Required`, `Active Award Required`, `Injury Reported Within X Days`, `Must Be Female`, `Must Be Deceased Contributor`, `School Certificate Required`, `Means Test Passed`.
-
-**Rule preview block** under each row:
-
-```
-Business: Total paid contributions must be at least 150 weeks.
-Fact: contribution.paid_weeks
-Source: bn_claim_contribution_snapshot / ip_wages
-Operator: >=
-Value: 150
-```
-
-**Storage:** `bn_eligibility_rule` (already exists, 15 columns). Persist
-`{ fact_key, operator, value, group_code, severity, overrideable, override_policy_code }`.
-A small migration adds `group_code`, `severity` (default `BLOCK`), and `overrideable` (default false) if not present.
-
----
-
-## Phase 3 — Validation, Test Runner, Seeds
-
-**Configuration validation** (`validateRuleSet(productVersionId)`):
-Run on Save and on Product Version activation. Fails activation if:
-- any rule's `fact_key` is not in the registry,
-- any fact has no resolver,
-- any rule has no `group_code` or `severity`,
-- `overrideable=true` rules have no `override_policy_code`,
-- product is missing required groups (e.g., Sickness must have `CONTRIBUTION` and `EVIDENCE`),
-- duplicate conflicting rules (same fact + operator with contradictory values).
-
-UI surfaces these as inline errors at the bottom of the rules tab; Product version activation is blocked.
-
-**Rule tester** (inside the builder):
-Inputs: claim id **or** SSN + product. Click "Test this rule" → calls `resolveFact` with that context and shows:
-
-| Rule | Actual | Expected | Source | Pass/Fail |
-
-Read-only; no writes.
-
-**Seed migration** (`bn_eligibility_rule` + product mapping) — realistic baselines for: Sickness, Maternity, Employment Injury, Age Pension, Age Grant, Invalidity, Survivors, Funeral Grant, Life Certificate, School Certificate, EFT Update. Per the brief.
-
----
-
-## Phase 4 — Runtime Wiring
-
-**Edit:** `src/services/bn/productService.ts` and `src/services/bn/forms/sectionCatalogue.ts`'s eligibility evaluator (will locate exact file in Phase 4).
-
-- Replace direct JSON-key lookups with `resolveFact(rule.fact_key, ctx)`.
-- Engine returns `{ ruleId, factKey, actual, expected, operator, pass, source }` for every rule — drives the Eligibility Pre-checks step on intake and the rule tester.
-- Backwards compatibility: any legacy rule whose `fact_key` is missing in the registry surfaces as `WARN` and blocks activation of any *new* version.
-
----
-
-## Technical details
-
-**Files created**
-- `src/services/bn/eligibility/eligibilityFactRegistry.ts`
-- `src/services/bn/eligibility/eligibilityFactResolver.ts`
-- `src/services/bn/eligibility/operators.ts`
-- `src/services/bn/eligibility/ruleTemplates.ts`
-- `src/services/bn/eligibility/validateRuleSet.ts`
-- `src/components/bn/eligibility/RuleBuilderRow.tsx`
-- `src/components/bn/eligibility/RuleTemplatesPanel.tsx`
-- `src/components/bn/eligibility/RuleTester.tsx`
-- `src/services/bn/eligibility/__tests__/resolver.test.ts`
-
-**Files edited**
-- Product eligibility tab (located in Phase 2).
-- Eligibility evaluator (located in Phase 4).
-- `bnMenuItems.ts` — no change required (lives under existing Product Catalog).
-
-**Migration**
-- `bn_eligibility_rule`: add `group_code text`, `severity text default 'BLOCK'`, `overrideable boolean default false`, `override_policy_code text null` if missing. No RLS changes (per project rule).
-
-**Out of scope (for this redesign)**
-- Editing the underlying source tables.
-- Adding new resolver categories beyond those listed — extension is trivial in the registry but not in scope here.
-
----
-
-## Delivery order
-
-1. **Phase 1** — registry + resolvers + operators + tests. ✅ ship & review.
-2. **Phase 2** — Rule Builder UI + templates + preview.
-3. **Phase 3** — validation + tester + seeds.
-4. **Phase 4** — runtime wiring, legacy compatibility.
-
-Approve Phase 1 to start, or tell me to bundle phases differently.
+- Bank, branch, payment method, workbasket: all SearchableSelect, master-data driven, no free text.
+- Intake honours `payment_details_visibility`, `payment_required_at_application`, `allow_manual_workbasket_override`.
+- `window.prompt()` removed.
+- All intake audit events flow through `bnAuditService` → `system_audit_trail`.
+- Config Validation panel flags missing PAYMENT_DETAILS section, missing bank master, missing workflow template, unknown rule fact keys.
+- TypeScript build passes; existing `PaymentDetailsSection` callers (claimant portal, EFT Update, Claim Workbench, Entitlement, Payment Preparation) continue to work unchanged.

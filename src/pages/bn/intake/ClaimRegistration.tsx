@@ -54,7 +54,14 @@ import { useBnClaimIntake } from '@/hooks/bn/useBnClaimIntake';
 import type { BnProduct } from '@/types/bn';
 import { formatDate as formatDateForDisplay } from '@/lib/culture/culture';
 import { useAuth } from '@/contexts/AuthContext';
-import { logAuditTrail } from '@/services/auditService';
+import {
+  auditWorkflowAction,
+  auditDocumentAction,
+  auditClaimAction,
+} from '@/services/bn/audit/bnAuditService';
+import WorkbasketSelector from '@/components/bn/selectors/WorkbasketSelector';
+import ReasonCaptureDialog from '@/components/bn/intake/ReasonCaptureDialog';
+import { DEFAULT_PAYMENT_POLICY, type BnPaymentPolicy, type BnPaymentProfile } from '@/types/bnPaymentProfile';
 import { resolveProductVersion, type ResolvedProductVersion } from '@/services/bn/productVersionResolver';
 import {
   lookupPersonBySSN,
@@ -160,6 +167,16 @@ export default function ClaimRegistration() {
   const [escalateSupervisor, setEscalateSupervisor] = useState(false);
   const [escalationReason, setEscalationReason] = useState('');
 
+  // Payment policy resolved by PaymentDetailsSection; used to enforce intake gates.
+  const [paymentPolicy, setPaymentPolicy] = useState<BnPaymentPolicy>(DEFAULT_PAYMENT_POLICY);
+  const [paymentProfile, setPaymentProfile] = useState<BnPaymentProfile | null>(null);
+
+  // Reason-capture dialog state (replaces window.prompt for doc pending/waiver).
+  const [reasonDialog, setReasonDialog] = useState<
+    | null
+    | { kind: 'PENDING' | 'WAIVE'; code: string; title: string; description?: string }
+  >(null);
+
   const selectedProduct = useMemo(
     () => activeProducts.find(p => p.id === productId),
     [activeProducts, productId],
@@ -207,13 +224,13 @@ export default function ClaimRegistration() {
   async function togglePendingVerification(on: boolean) {
     setPendingVerification(on);
     if (on) {
-      await logAuditTrail({
-        action: 'pending_verification_enabled',
+      await auditClaimAction({
+        action: 'PENDING_VERIFICATION_ENABLED',
         entityType: 'bn_claim_intake',
         entityId: ssn || 'unknown',
-        module: 'benefits',
-        userCode,
-        metadata: { ssn, reason: 'SSN not found in ip_master' },
+        performedBy: userCode,
+        severity: 'warning',
+        afterValue: { ssn, reason: 'SSN not found in ip_master' },
       });
     }
   }
@@ -281,13 +298,12 @@ export default function ClaimRegistration() {
   // ─── Document operations (audited) ───────────────────────────────
   async function markDocPending(code: string, reason: string) {
     setDocState(prev => ({ ...prev, [code]: { status: 'PENDING', pendingReason: reason } }));
-    await logAuditTrail({
-      action: 'document_marked_pending',
+    await auditDocumentAction({
+      action: 'DOCUMENT_MARKED_PENDING',
       entityType: 'bn_claim_intake',
       entityId: code,
-      module: 'benefits',
-      userCode,
-      metadata: { ssn: person?.ssn ?? ssn, productCode: (selectedProduct as any)?.benefit_code, document: code, reason },
+      performedBy: userCode,
+      afterValue: { ssn: person?.ssn ?? ssn, productCode: (selectedProduct as any)?.benefit_code, document: code, reason },
     });
   }
 
@@ -297,26 +313,26 @@ export default function ClaimRegistration() {
       return;
     }
     setDocState(prev => ({ ...prev, [code]: { status: 'WAIVED', waiverReason: reason } }));
-    await logAuditTrail({
-      action: 'document_waiver_requested',
+    await auditDocumentAction({
+      action: 'DOCUMENT_WAIVER_REQUESTED',
       entityType: 'bn_claim_intake',
       entityId: code,
-      module: 'benefits',
-      userCode,
-      metadata: { ssn: person?.ssn ?? ssn, productCode: (selectedProduct as any)?.benefit_code, document: code, reason },
+      performedBy: userCode,
+      severity: 'warning',
+      afterValue: { ssn: person?.ssn ?? ssn, productCode: (selectedProduct as any)?.benefit_code, document: code, reason },
     });
   }
 
   async function setBasketWithAudit(value: string) {
     setWorkbasket(value);
     if (value) {
-      await logAuditTrail({
-        action: 'workflow_basket_override',
+      await auditWorkflowAction({
+        action: 'WORKFLOW_BASKET_OVERRIDE',
         entityType: 'bn_claim_intake',
         entityId: person?.ssn ?? ssn,
-        module: 'benefits',
-        userCode,
-        metadata: { workbasket: value, productCode: (selectedProduct as any)?.benefit_code },
+        performedBy: userCode,
+        severity: 'warning',
+        afterValue: { workbasket: value, productCode: (selectedProduct as any)?.benefit_code },
       });
     }
   }
@@ -324,13 +340,13 @@ export default function ClaimRegistration() {
   async function toggleEscalation(on: boolean) {
     setEscalateSupervisor(on);
     if (on) {
-      await logAuditTrail({
-        action: 'supervisor_escalation_requested',
+      await auditWorkflowAction({
+        action: 'SUPERVISOR_ESCALATION_REQUESTED',
         entityType: 'bn_claim_intake',
         entityId: person?.ssn ?? ssn,
-        module: 'benefits',
-        userCode,
-        metadata: { reason: escalationReason || '(not yet supplied)', productCode: (selectedProduct as any)?.benefit_code },
+        performedBy: userCode,
+        severity: 'warning',
+        afterValue: { reason: escalationReason || '(not yet supplied)', productCode: (selectedProduct as any)?.benefit_code },
       });
     }
   }
@@ -368,7 +384,17 @@ export default function ClaimRegistration() {
       case 'eligibility':
       case 'documents':
       case 'facts':
+        return null;
       case 'banking':
+        // Honour product policy: if payment is required at application, a profile must exist.
+        if (
+          paymentPolicy.payment_required_at_application &&
+          paymentPolicy.payment_details_visibility !== 'HIDE' &&
+          !paymentProfile
+        ) {
+          return 'This product requires payment details before continuing.';
+        }
+        return null;
       case 'internal':
         return null;
       case 'review': return null;
@@ -683,11 +709,19 @@ export default function ClaimRegistration() {
                                 if (opt === 'PROVIDED') {
                                   setDocState(prev => ({ ...prev, [d.document_type_code]: { status: 'PROVIDED' } }));
                                 } else if (opt === 'PENDING') {
-                                  const r = window.prompt('Reason for marking pending?') ?? '';
-                                  if (r) markDocPending(d.document_type_code, r);
+                                  setReasonDialog({
+                                    kind: 'PENDING',
+                                    code: d.document_type_code,
+                                    title: 'Mark document as pending',
+                                    description: d.description ?? d.document_type_code,
+                                  });
                                 } else {
-                                  const r = window.prompt('Waiver justification?') ?? '';
-                                  if (r) requestDocWaiver(d.document_type_code, r);
+                                  setReasonDialog({
+                                    kind: 'WAIVE',
+                                    code: d.document_type_code,
+                                    title: 'Request document waiver',
+                                    description: d.description ?? d.document_type_code,
+                                  });
                                 }
                               }}
                             >
@@ -726,21 +760,43 @@ export default function ClaimRegistration() {
               </StepCard>
             )}
 
-            {step === 'banking' && (
+            {step === 'banking' && paymentPolicy.payment_details_visibility !== 'HIDE' && (
               <StepCard title="9. Banking / Payment Details" desc="Captured via the unified Payment Details framework — same form, validation, and policy as the claimant portal and online application.">
                 {ssn ? (
-                  <PaymentDetailsSection
-                    mode="edit"
-                    channel="STAFF_OFFLINE"
-                    productId={productId || null}
-                    personSsn={ssn}
-                    userCode={userCode}
-                  />
+                  <>
+                    <PaymentDetailsSection
+                      mode="edit"
+                      channel="STAFF_OFFLINE"
+                      productId={productId || null}
+                      personSsn={ssn}
+                      userCode={userCode}
+                      onPolicyResolved={(pol, prof) => { setPaymentPolicy(pol); setPaymentProfile(prof); }}
+                      onSaved={(saved) => {
+                        // Optimistically reflect the new profile in policy gating.
+                        if ((saved as any)?.payment_method) setPaymentProfile(saved as any);
+                      }}
+                    />
+                    {paymentPolicy.payment_required_at_application && !paymentProfile && (
+                      <Alert variant="destructive" className="mt-2">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Payment details required</AlertTitle>
+                        <AlertDescription>
+                          This product requires bank/payment details to be captured before the application can progress.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </>
                 ) : (
                   <p className="text-xs text-muted-foreground">
                     Bank / payment details become available once an SSN is captured.
                   </p>
                 )}
+              </StepCard>
+            )}
+
+            {step === 'banking' && paymentPolicy.payment_details_visibility === 'HIDE' && (
+              <StepCard title="9. Banking / Payment Details" desc="Skipped — this product does not collect payment details at application.">
+                <p className="text-sm text-muted-foreground">No action required. Payment details will be captured later in the lifecycle.</p>
               </StepCard>
             )}
 
@@ -774,10 +830,20 @@ export default function ClaimRegistration() {
                 <Field label="Internal Notes">
                   <Textarea value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={3} maxLength={500} />
                 </Field>
-                {can('benefits.workflow_routing') && (
+                {can('benefits.workflow_routing') && paymentPolicy.allow_manual_workbasket_override && (
                   <Field label="Workflow Basket Override">
-                    <Input value={workbasket} onChange={e => setBasketWithAudit(e.target.value)} placeholder="basket code" />
+                    <WorkbasketSelector
+                      value={workbasket}
+                      onChange={(b) => setBasketWithAudit(b?.basket_code ?? '')}
+                      productCategory={(selectedProduct as any)?.benefit_code ?? null}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Only active workbaskets are selectable. Override is audited.</p>
                   </Field>
+                )}
+                {can('benefits.workflow_routing') && !paymentPolicy.allow_manual_workbasket_override && (
+                  <p className="text-xs text-muted-foreground">
+                    Manual workbasket override is disabled by product policy — routing is automatic.
+                  </p>
                 )}
                 <div className="rounded border p-2 space-y-2">
                   <div className="flex items-center gap-2">
@@ -840,6 +906,22 @@ export default function ClaimRegistration() {
           />
         </div>
       </div>
+
+      <ReasonCaptureDialog
+        open={!!reasonDialog}
+        title={reasonDialog?.title ?? ''}
+        description={reasonDialog?.description}
+        label={reasonDialog?.kind === 'WAIVE' ? 'Waiver justification' : 'Reason'}
+        confirmLabel={reasonDialog?.kind === 'WAIVE' ? 'Request waiver' : 'Mark pending'}
+        onCancel={() => setReasonDialog(null)}
+        onConfirm={(reason) => {
+          const d = reasonDialog;
+          setReasonDialog(null);
+          if (!d || !reason) return;
+          if (d.kind === 'PENDING') void markDocPending(d.code, reason);
+          else void requestDocWaiver(d.code, reason);
+        }}
+      />
     </PermissionWrapper>
   );
 }

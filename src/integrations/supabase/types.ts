@@ -11160,6 +11160,7 @@ export type Database = {
           allow_employer_initiated: boolean
           allow_guardian_payee: boolean
           allow_managed_contributor_selection: boolean
+          allow_manual_workbasket_override: boolean
           allow_save_draft: boolean
           allow_third_party_payee: boolean
           allow_upload_later: boolean
@@ -11187,6 +11188,7 @@ export type Database = {
           metadata: Json
           modified_at: string
           modified_by: string | null
+          payment_details_visibility: string
           payment_required_at_application: boolean
           payment_required_before_approval: boolean
           payment_required_before_payment: boolean
@@ -11228,6 +11230,7 @@ export type Database = {
           allow_employer_initiated?: boolean
           allow_guardian_payee?: boolean
           allow_managed_contributor_selection?: boolean
+          allow_manual_workbasket_override?: boolean
           allow_save_draft?: boolean
           allow_third_party_payee?: boolean
           allow_upload_later?: boolean
@@ -11255,6 +11258,7 @@ export type Database = {
           metadata?: Json
           modified_at?: string
           modified_by?: string | null
+          payment_details_visibility?: string
           payment_required_at_application?: boolean
           payment_required_before_approval?: boolean
           payment_required_before_payment?: boolean
@@ -11296,6 +11300,7 @@ export type Database = {
           allow_employer_initiated?: boolean
           allow_guardian_payee?: boolean
           allow_managed_contributor_selection?: boolean
+          allow_manual_workbasket_override?: boolean
           allow_save_draft?: boolean
           allow_third_party_payee?: boolean
           allow_upload_later?: boolean
@@ -11323,6 +11328,7 @@ export type Database = {
           metadata?: Json
           modified_at?: string
           modified_by?: string | null
+          payment_details_visibility?: string
           payment_required_at_application?: boolean
           payment_required_before_approval?: boolean
           payment_required_before_payment?: boolean
