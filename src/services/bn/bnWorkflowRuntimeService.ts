@@ -111,10 +111,11 @@ export async function getAvailableActions(
 export async function getWorkflowBlockers(claimId: string): Promise<WorkflowBlocker[]> {
   const blockers: WorkflowBlocker[] = [];
 
-  const [{ data: elig }, { data: calc }, { data: evidence }] = await Promise.all([
+  const [{ data: elig }, { data: calc }, { data: evidence }, { data: extTasks }] = await Promise.all([
     db.from('bn_claim_eligibility').select('id, overall_result').eq('claim_id', claimId).order('created_at', { ascending: false }).limit(1),
     db.from('bn_claim_calculation').select('id').eq('claim_id', claimId).limit(1),
     db.from('bn_evidence_checklist').select('id, status, is_blocking').eq('claim_id', claimId),
+    db.from('bn_external_task').select('id, participant_kind, task_type, due_at, blocks_workflow, status').eq('claim_id', claimId).eq('status', 'PENDING'),
   ]);
 
   if (!elig || elig.length === 0) {
@@ -150,8 +151,21 @@ export async function getWorkflowBlockers(claimId: string): Promise<WorkflowBloc
     });
   }
 
+  // Phase 5: external (employer/doctor/claimant) tasks block forward transitions.
+  const blockingExt = (extTasks || []).filter((t: any) => t.blocks_workflow !== false);
+  if (blockingExt.length > 0) {
+    const kinds = Array.from(new Set(blockingExt.map((t: any) => t.participant_kind))).join(', ');
+    const overdue = blockingExt.filter((t: any) => t.due_at && new Date(t.due_at) < new Date()).length;
+    blockers.push({
+      code: 'EXTERNAL_TASK_PENDING',
+      message: `${blockingExt.length} external task(s) pending (${kinds})${overdue ? ` — ${overdue} overdue` : ''}.`,
+      severity: overdue > 0 ? 'error' : 'warning',
+    });
+  }
+
   return blockers;
 }
+
 
 // ─── Mirror to central workflow engine ──────────────────────────────
 
