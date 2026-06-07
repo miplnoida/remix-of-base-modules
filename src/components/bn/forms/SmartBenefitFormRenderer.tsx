@@ -62,6 +62,7 @@ import {
   type LegacyClaimRecord,
 } from '@/services/bn/forms/formLookupService';
 import type { PersonSummary, EmployerSummary, Dependant } from '@/services/bn/integration';
+import PaymentDetailsSection from '@/components/bn/payment/PaymentDetailsSection';
 
 interface Props {
   definition: FormDefinition;
