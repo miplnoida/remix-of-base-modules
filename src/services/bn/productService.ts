@@ -204,9 +204,10 @@ export async function copyVersionRules(
     .select('*')
     .eq('product_version_id', sourceVersionId);
   if (srcPolicies && srcPolicies.length > 0) {
+    const performedBy = await actor();
     const rows = srcPolicies.map((r: any) => {
       const { id, created_at, updated_at, created_by, updated_by, ...rest } = r;
-      return { ...rest, product_version_id: targetVersionId, created_by: await actor(), updated_by: await actor() };
+      return { ...rest, product_version_id: targetVersionId, created_by: performedBy, updated_by: performedBy };
     });
     const { error } = await db.from('bn_approval_policy').insert(rows);
     if (!error) counts.overrides = rows.length;
