@@ -151,6 +151,13 @@ const _bnMenuItemsRaw = [
         description: "Verified bank / cheque address profiles used for payments",
       },
       {
+        title: "Payment Masters",
+        url: "/bn/config/payment-masters",
+        icon: Wrench,
+        requiresPermission: "benefits_management",
+        description: "Banks, branches, payment methods and EFT file layouts",
+      },
+      {
         title: "Payment History",
         url: "/bn/payment-history",
         icon: History,
