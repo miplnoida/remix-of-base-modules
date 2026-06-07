@@ -3,12 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Mail, MessageSquare, FileText, Bell, AlertTriangle, RefreshCw, Printer, Send, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Mail, MessageSquare, FileText, Bell, AlertTriangle, RefreshCw, Printer, Send, CheckCircle2, XCircle, Clock, Ban, FileSignature, MailCheck } from 'lucide-react';
 import {
   useBnClaimCommunicationHistory,
   useBnTriggerCommunication,
   useBnUpdateLetterStatus,
   useBnRetryCommunication,
+  useBnGenerateLetterFromBlocked,
+  useBnMarkManuallyDispatched,
 } from '@/hooks/bn/useBnClaimCommunication';
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
