@@ -68,11 +68,11 @@ export const benefitsMenuItems = [
         requiresPermission: "benefits_management",
         subItems: [
           {
-            title: "Templates",
-            url: "/benefits/templates",
+            title: "Communication Templates",
+            url: "/bn/config/communication-templates",
             icon: FileText,
             requiresPermission: "benefits_management",
-            description: "Manage benefits notification templates"
+            description: "Manage benefit notification templates — letters, emails, SMS, in-app"
           }
         ]
       }
