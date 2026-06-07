@@ -19,7 +19,9 @@ import { BnEmptyState, BnStatusBadge } from '@/components/bn/shared';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { DynamicSectionRenderer } from './DynamicSectionRenderer';
+import { DynamicSectionRenderer, type FieldMeta } from './DynamicSectionRenderer';
+import { AmendFieldDialog } from './AmendFieldDialog';
+import { useClaimEditability } from '@/hooks/bn/useClaimEditability';
 
 const db = supabase as any;
 
@@ -39,6 +41,9 @@ export function channelLabel(code?: string | null) {
 // ─── Application Details + Product Version Used ──────────────────────
 export const ApplicationDetailsPanel: React.FC<{ claimId: string; productVersionId?: string | null }>
 = ({ claimId, productVersionId }) => {
+  const [amendField, setAmendField] = React.useState<FieldMeta | null>(null);
+  const { data: editability } = useClaimEditability(claimId);
+  const canAmend = !!editability?.anyEditable;
   const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['bn-claim-application', claimId, productVersionId],
     enabled: !!claimId,
@@ -124,8 +129,17 @@ export const ApplicationDetailsPanel: React.FC<{ claimId: string; productVersion
           channelCode={app?.application_channel === 'PUBLIC_ONLINE' ? 'ONLINE' : 'OFFLINE'}
           payload={rawJson}
           title="Submitted Application (catalog-driven view)"
+          onEditField={canAmend ? (f) => setAmendField(f) : undefined}
         />
       )}
+
+      <AmendFieldDialog
+        claimId={claimId}
+        field={amendField}
+        currentValue={amendField ? (rawJson?.[amendField.field_code] ?? rawJson?.benefit_facts?.[amendField.field_code]) : undefined}
+        open={!!amendField}
+        onOpenChange={(o) => !o && setAmendField(null)}
+      />
 
       {rawJson && (
         <Card>
