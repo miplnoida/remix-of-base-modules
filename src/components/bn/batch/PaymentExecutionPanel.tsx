@@ -21,6 +21,7 @@ import {
   cancelCheque, correctChequeNumber, markDispatched,
 } from '@/services/bn/payment/chequePrintService';
 import { recordReconciliation } from '@/services/bn/payment/paymentReconciliationService';
+import { ChequePrintView } from '@/components/bn/payment/ChequePrintView';
 import { toast } from 'sonner';
 import { Download, Send, FileText, Printer, RotateCw, XCircle, Pencil, Truck } from 'lucide-react';
 import { formatNumber } from '@/lib/culture/culture';
