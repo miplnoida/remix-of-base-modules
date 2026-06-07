@@ -54,7 +54,14 @@ import { useBnClaimIntake } from '@/hooks/bn/useBnClaimIntake';
 import type { BnProduct } from '@/types/bn';
 import { formatDate as formatDateForDisplay } from '@/lib/culture/culture';
 import { useAuth } from '@/contexts/AuthContext';
-import { logAuditTrail } from '@/services/auditService';
+import {
+  auditWorkflowAction,
+  auditDocumentAction,
+  auditClaimAction,
+} from '@/services/bn/audit/bnAuditService';
+import WorkbasketSelector from '@/components/bn/selectors/WorkbasketSelector';
+import ReasonCaptureDialog from '@/components/bn/intake/ReasonCaptureDialog';
+import { DEFAULT_PAYMENT_POLICY, type BnPaymentPolicy, type BnPaymentProfile } from '@/types/bnPaymentProfile';
 import { resolveProductVersion, type ResolvedProductVersion } from '@/services/bn/productVersionResolver';
 import {
   lookupPersonBySSN,
@@ -159,6 +166,16 @@ export default function ClaimRegistration() {
   const [workbasket, setWorkbasket] = useState('');
   const [escalateSupervisor, setEscalateSupervisor] = useState(false);
   const [escalationReason, setEscalationReason] = useState('');
+
+  // Payment policy resolved by PaymentDetailsSection; used to enforce intake gates.
+  const [paymentPolicy, setPaymentPolicy] = useState<BnPaymentPolicy>(DEFAULT_PAYMENT_POLICY);
+  const [paymentProfile, setPaymentProfile] = useState<BnPaymentProfile | null>(null);
+
+  // Reason-capture dialog state (replaces window.prompt for doc pending/waiver).
+  const [reasonDialog, setReasonDialog] = useState<
+    | null
+    | { kind: 'PENDING' | 'WAIVE'; code: string; title: string; description?: string }
+  >(null);
 
   const selectedProduct = useMemo(
     () => activeProducts.find(p => p.id === productId),
