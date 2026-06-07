@@ -517,7 +517,7 @@ export async function updateLetterStatus(letterId: string, newStatus: string, us
 export async function retryCommunication(logId: string, userCode: string) {
   const { data: log } = await db.from('bn_communication_log').select('*').eq('id', logId).maybeSingle();
   if (!log) throw new Error('Log entry not found');
-  if (!['FAILED', 'SKIPPED'].includes(log.status)) throw new Error('Only failed/skipped entries can be retried');
+  if (!['FAILED', 'SKIPPED', 'BLOCKED'].includes(log.status)) throw new Error('Only failed/skipped/blocked entries can be retried');
   await db.from('bn_communication_log').update({
     retry_count: (log.retry_count || 0) + 1,
     last_retry_at: new Date().toISOString(),
