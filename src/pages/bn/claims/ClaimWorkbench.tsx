@@ -506,7 +506,13 @@ export default function ClaimWorkbench() {
         {/* ELIGIBILITY — active */}
         <TabsContent value="eligibility" className="mt-6">
           <ClaimWorkbenchTabBoundary tabName="Eligibility">
-            <ActiveEligibilityPanel claimId={claim.id} userCode={userCode} eligibility={eligibility as any[]} />
+            <ActiveEligibilityPanel
+              claimId={claim.id}
+              userCode={userCode}
+              eligibility={eligibility as any[]}
+              userRoles={userRoles}
+              productVersionId={(claim as any).product_version_id}
+            />
           </ClaimWorkbenchTabBoundary>
         </TabsContent>
 
