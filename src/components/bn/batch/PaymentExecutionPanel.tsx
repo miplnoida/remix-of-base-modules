@@ -21,6 +21,7 @@ import {
   cancelCheque, correctChequeNumber, markDispatched,
 } from '@/services/bn/payment/chequePrintService';
 import { recordReconciliation } from '@/services/bn/payment/paymentReconciliationService';
+import { ChequePrintView } from '@/components/bn/payment/ChequePrintView';
 import { toast } from 'sonner';
 import { Download, Send, FileText, Printer, RotateCw, XCircle, Pencil, Truck } from 'lucide-react';
 import { formatNumber } from '@/lib/culture/culture';
@@ -252,15 +253,18 @@ export const PaymentExecutionPanel: React.FC<Props> = ({
             </div>
           )}
 
-          {(chequesQ.data || []).some((c) => c.status === 'ASSIGNED') && (
-            <Button size="sm" variant="outline" disabled={busy}
-              onClick={() => run(
-                () => markPrinted((chequesQ.data || []).filter((c) => c.status === 'ASSIGNED').map((c) => c.id), userCode),
-                'All assigned cheques marked printed',
-              )}>
-              Mark All Printed
-            </Button>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {(chequesQ.data || []).some((c) => c.status === 'ASSIGNED') && (
+              <Button size="sm" variant="outline" disabled={busy}
+                onClick={() => run(
+                  () => markPrinted((chequesQ.data || []).filter((c) => c.status === 'ASSIGNED').map((c) => c.id), userCode),
+                  'All assigned cheques marked printed',
+                )}>
+                Mark All Printed
+              </Button>
+            )}
+            <ChequePrintView cheques={chequesQ.data || []} />
+          </div>
 
           <div className="flex items-end gap-2">
             <div className="flex-1">

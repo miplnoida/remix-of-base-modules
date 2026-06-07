@@ -915,6 +915,16 @@ export interface BnCountryPaymentConfig {
   is_active: boolean;
   entered_by: string | null;
   entered_at: string;
+  // EFT / bank file format
+  bank_file_format?: string | null;
+  header_record_format?: string | null;
+  detail_record_format?: string | null;
+  trailer_record_format?: string | null;
+  file_date_format?: string | null;
+  account_number_rule?: string | null;
+  routing_number_rule?: string | null;
+  file_naming_convention?: string | null;
+  bank_code?: string | null;
 }
 
 export interface BnCountryLegalRef {
