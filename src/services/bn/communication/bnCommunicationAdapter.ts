@@ -525,3 +525,50 @@ export async function retryCommunication(logId: string, userCode: string) {
   }).eq('id', logId);
   return triggerClaimCommunication(log.event_code, log.claim_id, { userCode });
 }
+
+// ─── Manual / fallback actions ────────────────────────────────────
+
+/**
+ * "Generate Letter Instead" — used when a digital channel is BLOCKED but the
+ * user still wants to dispatch via mail. Creates a bn_letter row and a
+ * GENERATED comm log entry against the same event.
+ */
+export async function generateLetterFromBlocked(logId: string, userCode: string): Promise<string> {
+  const { data: log } = await db.from('bn_communication_log').select('*').eq('id', logId).maybeSingle();
+  if (!log) throw new Error('Communication entry not found');
+  const diag = await diagnoseRecipient(log.claim_id, log.recipient_type, 'LETTER');
+  const merge = await buildBnMergeContext(log.claim_id);
+  const letterId = await createLetter({
+    claimId: log.claim_id, eventCode: log.event_code, templateId: log.template_id || null,
+    recipientType: log.recipient_type, recipient: diag.recipient || { name: log.recipient_type },
+    subject: log.subject || log.event_code, mergeContext: merge, isMandatoryLetter: false, userCode,
+  });
+  await writeCommLog({
+    claimId: log.claim_id, eventCode: log.event_code, channel: 'LETTER',
+    recipientType: log.recipient_type, recipientAddress: diag.recipient?.name,
+    templateId: log.template_id || null, subject: log.subject || undefined,
+    status: 'GENERATED', letterId, userCode, context: { generatedFromBlockedLogId: logId },
+  });
+  // Resolve the original BLOCKED entry
+  await db.from('bn_communication_log').update({
+    status: 'SKIPPED',
+    error_message: 'Replaced by manually generated letter',
+    context: { ...(log.context || {}), replacedByLetterId: letterId },
+  }).eq('id', logId);
+  return letterId;
+}
+
+/**
+ * "Mark Manually Dispatched" — operator confirms they delivered the message
+ * outside the system (e.g. phone call, hand-delivered letter). Closes the
+ * communication entry to DISPATCHED.
+ */
+export async function markCommunicationManuallyDispatched(logId: string, userCode: string, note?: string) {
+  const { error } = await db.from('bn_communication_log').update({
+    status: 'DISPATCHED',
+    error_message: null,
+    context: { manualDispatch: true, note: note || null, by: userCode, at: new Date().toISOString() },
+  }).eq('id', logId);
+  if (error) throw error;
+  return true;
+}
