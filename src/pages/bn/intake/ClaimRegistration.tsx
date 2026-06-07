@@ -44,7 +44,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   ArrowLeft, ArrowRight, Save, Search, ShieldCheck, AlertCircle,
   AlertTriangle, Loader2, FileText, CheckCircle2, Link2, UserPlus,
-  StickyNote, FlagTriangleRight, Inbox, ListChecks, Stethoscope,
+  StickyNote, FlagTriangleRight, Inbox, ListChecks, Stethoscope, Banknote,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
