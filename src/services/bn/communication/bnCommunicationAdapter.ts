@@ -474,7 +474,7 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
     await db.from('bn_claim_event').insert({
       claim_id: claimId,
       event_type: `COMM_${eventCode}`,
-      notes: `Dispatched ${result.dispatched} • Skipped ${result.skipped} • Failed ${result.failed}`,
+      notes: `Dispatched ${result.dispatched} • Skipped ${result.skipped} • Blocked ${result.blocked} • Failed ${result.failed}`,
       performed_by: ctx?.userCode || 'SYSTEM',
       performed_at: new Date().toISOString(),
       metadata: { eventCode, ...result },
