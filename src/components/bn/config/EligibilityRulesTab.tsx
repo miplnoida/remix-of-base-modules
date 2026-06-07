@@ -479,6 +479,16 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus, prod
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {versionId && (
+        <RuleWizardDialog
+          open={wizardOpen}
+          onOpenChange={setWizardOpen}
+          productVersionId={versionId}
+          productCode={productCode ?? null}
+          initial={wizardInitial}
+        />
+      )}
     </>
   );
 }
