@@ -6,21 +6,36 @@ import type { IBnEmployerAdapter, EmployerSummary, EmploymentVerification } from
 
 const db = supabase as any;
 
+/**
+ * Normalize raw er_master.status codes into a canonical token used by
+ * eligibility rules. Legacy codes: A=Active, V=Verified/Registered,
+ * R=Registered, T=Terminated, C=Ceased, I=Inactive, S=Suspended.
+ */
+function normalizeEmployerStatus(raw: string | null | undefined): string {
+  if (!raw) return 'unknown';
+  const s = String(raw).trim().toUpperCase();
+  if (['A', 'V', 'R', 'ACTIVE', 'VERIFIED', 'REGISTERED'].includes(s)) return 'A';
+  if (['T', 'C', 'CEASED', 'TERMINATED', 'CLOSED'].includes(s)) return 'C';
+  if (['S', 'SUSPENDED', 'BLOCKED'].includes(s)) return 'S';
+  if (['I', 'INACTIVE'].includes(s)) return 'I';
+  return s; // preserve unknown raw value
+}
+
 export const bnEmployerAdapter: IBnEmployerAdapter = {
   async lookupEmployer(regNo): Promise<EmployerSummary | null> {
     const { data, error } = await db
       .from('er_master')
-      .select('reg_no, employer_name, status, address_1, industrial_code')
-      .eq('reg_no', regNo.trim())
+      .select('regno, name, status, address_1, industrial_code')
+      .eq('regno', regNo.trim())
       .maybeSingle();
 
     if (error) throw error;
     if (!data) return null;
 
     return {
-      regNo: data.reg_no,
-      name: data.employer_name,
-      status: data.status || 'unknown',
+      regNo: data.regno,
+      name: data.name,
+      status: normalizeEmployerStatus(data.status),
       address: data.address_1,
       industry: data.industrial_code,
     };
@@ -30,26 +45,26 @@ export const bnEmployerAdapter: IBnEmployerAdapter = {
     const { data, error } = await db
       .from('er_master')
       .select('status')
-      .eq('reg_no', regNo.trim())
+      .eq('regno', regNo.trim())
       .maybeSingle();
     if (error) throw error;
-    return data?.status || 'unknown';
+    return normalizeEmployerStatus(data?.status);
   },
 
   async verifyEmployment(ssn, regNo, asOfDate): Promise<EmploymentVerification> {
-    // Check ip_wages for contribution records linking this SSN to this employer
+    // ip_wages uses payer_id (not employer_reg_no) for the employer linkage.
     const { data, error } = await db
       .from('ip_wages')
-      .select('period, wages, weeks')
+      .select('period, total_wages, payer_id')
       .eq('ssn', ssn.trim())
-      .eq('employer_reg_no', regNo.trim())
+      .eq('payer_id', regNo.trim())
       .order('period', { ascending: false })
       .limit(1);
 
     if (error) throw error;
 
     const employer = await this.lookupEmployer(regNo);
-    const hasRecords = data && data.length > 0;
+    const hasRecords = !!data && data.length > 0;
 
     return {
       verified: hasRecords,

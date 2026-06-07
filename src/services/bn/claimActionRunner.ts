@@ -103,6 +103,85 @@ export interface EligibilityRunResult {
   rules: EligibilityRuleTrace[];
 }
 
+/**
+ * Extract the expected value from a rule.rule_definition for a known field_key.
+ * Old/legacy rules use a wide variety of property names (employer_status,
+ * person_status, min_age, max_age, min_weeks, max_report_days, required_value, ...).
+ * Returns { value, operator, hint } — `hint` is set when the rule only carries
+ * intent flags (no comparable value) so the runner can mark it INFO instead of FAIL.
+ */
+function extractExpected(
+  fieldKey: string,
+  def: Record<string, any>,
+  defaultOp: string,
+): { value: unknown; operator: string; hint?: string } {
+  const op = def.operator || defaultOp;
+  // Direct value first
+  const direct = def.value ?? def.required_value ?? def.expected_value;
+  if (direct !== undefined && direct !== null) return { value: direct, operator: op };
+
+  switch (fieldKey) {
+    case 'employer.status': {
+      const v = def.employer_status ?? def.status ?? def.required_status;
+      if (v != null) return { value: v, operator: op || '==' };
+      if (def.requires_active_employer || def.requires_employer_verification) {
+        return { value: 'A', operator: '==' };
+      }
+      return { value: null, operator: op, hint: 'No expected employer status provided' };
+    }
+    case 'person.status': {
+      const v = def.person_status ?? def.status ?? def.required_status;
+      if (v != null) return { value: v, operator: op || '==' };
+      if (def.requires_active_employment || def.exclude_self_employed) {
+        return { value: null, operator: op, hint: 'Rule expresses intent only — no comparable value (treat as INFO).' };
+      }
+      return { value: null, operator: op, hint: 'No expected person status provided' };
+    }
+    case 'person.age_at_claim_date': {
+      if (def.min_age != null) return { value: def.min_age, operator: '>=' };
+      if (def.max_age != null) return { value: def.max_age, operator: '<=' };
+      return { value: null, operator: op, hint: 'No age threshold defined' };
+    }
+    case 'contribution.total_weeks':
+    case 'contribution.total_wages':
+    case 'contribution.avg_weekly_wage': {
+      const v = def.min_weeks ?? def.min_contributions_weeks ?? def.recent_contributions_weeks
+        ?? def.min_wages ?? def.min_value ?? def.threshold;
+      if (v != null) return { value: v, operator: op || '>=' };
+      return { value: null, operator: op, hint: 'No contribution threshold defined' };
+    }
+    case 'claim.claim_date': {
+      // Intent-only; date threshold checks (max_report_days etc.) need an incident date
+      // which isn't available on bn_claim today — surface as INFO rather than fail.
+      if (def.max_report_days != null || def.min_report_days != null) {
+        return { value: null, operator: op, hint: `Reporting window (${def.max_report_days ?? def.min_report_days} days) — incident date not yet captured; skipped.` };
+      }
+      return { value: null, operator: op, hint: 'No date threshold defined' };
+    }
+    case 'evidence.required_docs_complete':
+    case 'evidence.document_verified': {
+      return { value: true, operator: '==' };
+    }
+    case 'claim.has_duplicate_active_claim': {
+      return { value: false, operator: '==' };
+    }
+    default:
+      return { value: null, operator: op, hint: 'No expected value extracted' };
+  }
+}
+
+async function resolveEmployerForClaim(claim: ClaimContext): Promise<string | null> {
+  if (claim.employer_regno) return claim.employer_regno;
+  // Latest wage row gives us the most recent employer (payer_id) for this SSN.
+  const { data } = await db
+    .from('ip_wages')
+    .select('payer_id, period')
+    .eq('ssn', claim.ssn)
+    .order('period', { ascending: false })
+    .limit(1);
+  return data?.[0]?.payer_id ?? null;
+}
+
 export async function runClaimEligibility(
   claimId: string,
   userCode: string,
@@ -118,11 +197,13 @@ export async function runClaimEligibility(
     .order('sort_order');
   if (rulesErr) throw rulesErr;
 
+  const resolvedEmployer = await resolveEmployerForClaim(claim);
+
   const ctx = {
     ssn: claim.ssn,
     claimId: claim.id,
     claimDate: claim.claim_date,
-    employerRegNo: claim.employer_regno ?? undefined,
+    employerRegNo: resolvedEmployer ?? undefined,
   };
 
   const traces: EligibilityRuleTrace[] = [];
@@ -130,29 +211,27 @@ export async function runClaimEligibility(
   for (const rule of rules ?? []) {
     const def = (rule.rule_definition || {}) as Record<string, any>;
     const fieldKey: string | null = def.field_key ?? null;
-    const operator: string = def.operator || '==';
-    const expected = def.value ?? def.required_value ?? def.min_weeks ?? def.min_age ?? null;
 
     let actual: unknown = null;
     let passed = false;
     let message = '';
     let source: string | null = null;
+    let operator: string = def.operator || '==';
+    let expected: unknown = null;
 
     if (!fieldKey) {
-      // Legacy rule shape — mark as not evaluable but keep visible.
-      message = 'Rule has no field_key — skipped (legacy definition).';
       traces.push({
         rule_code: rule.rule_code,
         rule_name: rule.rule_name,
         rule_group: rule.rule_group,
         field_key: null,
         operator,
-        expected_value: expected,
+        expected_value: null,
         actual_value: null,
-        passed: rule.fail_action === 'WARN', // don't fail overall on legacy
-        fail_action: rule.fail_action,
+        passed: true, // INFO — legacy definition, do not block
+        fail_action: 'INFO',
         source: rule.data_source ?? null,
-        message,
+        message: 'Legacy rule — no field_key; treated as INFO.',
       });
       continue;
     }
@@ -160,25 +239,56 @@ export async function runClaimEligibility(
     try {
       const fieldDef = getFieldDef(fieldKey);
       if (!fieldDef) {
-        message = `Unknown field_key: ${fieldKey}`;
-      } else {
-        const resolved = await resolveField(fieldKey, ctx, {
-          windowType: def.window_type,
-          windowFrom: def.window_from,
-          windowTo: def.window_to,
-          documentTypeCode: def.document_type_code,
+        // Unknown field — INFO, do not block
+        traces.push({
+          rule_code: rule.rule_code, rule_name: rule.rule_name, rule_group: rule.rule_group,
+          field_key: fieldKey, operator, expected_value: null, actual_value: null,
+          passed: true, fail_action: 'INFO', source: null,
+          message: `Unknown field_key: ${fieldKey} (treated as INFO).`,
         });
-        actual = resolved.value;
-        source = resolved.sourceLabel;
-        const evalRes = evaluateOperator(actual, operator as any, expected, fieldDef.valueType, {
-          rangeFrom: def.range_from,
-          rangeTo: def.range_to,
-        });
-        passed = evalRes.passed;
-        message = passed
-          ? `${fieldDef.label}: ${evalRes.reason}`
-          : rule.fail_message || `${fieldDef.label}: ${evalRes.reason}`;
+        continue;
       }
+
+      const ex = extractExpected(fieldKey, def, fieldDef.operators[0] ?? '==');
+      operator = ex.operator;
+      expected = ex.value;
+
+      const resolved = await resolveField(fieldKey, ctx, {
+        windowType: def.window_type,
+        windowFrom: def.window_from,
+        windowTo: def.window_to,
+        documentTypeCode: def.document_type_code,
+      });
+      actual = resolved.value;
+      source = resolved.sourceLabel;
+
+      if (ex.hint && (expected === null || expected === undefined)) {
+        // Intent-only or non-comparable rule — INFO, do not block
+        traces.push({
+          rule_code: rule.rule_code, rule_name: rule.rule_name, rule_group: rule.rule_group,
+          field_key: fieldKey, operator, expected_value: null, actual_value: actual,
+          passed: true, fail_action: 'INFO', source,
+          message: `${fieldDef.label}: ${ex.hint}`,
+        });
+        continue;
+      }
+
+      // Case-insensitive string normalisation for equality on enumerated codes
+      let actualForEval = actual;
+      let expectedForEval = expected;
+      if (fieldDef.valueType === 'string' && (operator === '==' || operator === '!=' || operator === 'IN')) {
+        if (typeof actual === 'string') actualForEval = actual.trim().toUpperCase();
+        if (typeof expected === 'string') expectedForEval = expected.trim().toUpperCase();
+      }
+
+      const evalRes = evaluateOperator(actualForEval, operator as any, expectedForEval, fieldDef.valueType, {
+        rangeFrom: def.range_from,
+        rangeTo: def.range_to,
+      });
+      passed = evalRes.passed;
+      message = passed
+        ? `${fieldDef.label}: ${evalRes.reason}`
+        : rule.fail_message || `${fieldDef.label}: ${evalRes.reason}`;
     } catch (err: any) {
       message = `Evaluation error: ${err?.message || err}`;
       passed = false;
