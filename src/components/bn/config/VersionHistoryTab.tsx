@@ -1,20 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, CheckCircle, XCircle, Clock, Send, Copy, Loader2 } from 'lucide-react';
+import { Plus, CheckCircle, XCircle, Clock, Send, Copy, Loader2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUpdateBnProductVersion, useCopyBnVersionRules, usePublishBnProductVersion, useRetireBnProductVersion } from '@/hooks/bn/useBnProduct';
-import { useBnVersionApprovals, useCreateBnVersionApproval } from '@/hooks/bn/useBnConfig';
+import { useCreateBnVersionApproval } from '@/hooks/bn/useBnConfig';
 import { BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProductVersion, BnProductStatus } from '@/types/bn';
 import { useState } from 'react';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { useUserCode } from '@/hooks/useUserCode';
 
 interface Props {
   productId: string | undefined;
@@ -37,13 +38,25 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
   const copyRulesMutation = useCopyBnVersionRules();
   const publishMutation = usePublishBnProductVersion();
   const retireMutation = useRetireBnProductVersion();
+  const { userCode } = useUserCode();
   const [approvalDialog, setApprovalDialog] = useState<{ versionId: string; action: string } | null>(null);
   const [copyDialog, setCopyDialog] = useState<{ targetVersionId: string } | null>(null);
   const [copySourceId, setCopySourceId] = useState('');
   const [comments, setComments] = useState('');
+  const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+
+  const retireBlockReason = (version: BnProductVersion) => {
+    if (version.status !== 'ACTIVE') return 'Only ACTIVE versions can be retired.';
+    const replacement = versions.find(v => v.id !== version.id && v.status === 'ACTIVE');
+    if (!replacement && !version.effective_to) {
+      return 'Publish the replacement version first. Publishing auto-closes the current active version; manual retire requires another ACTIVE version or an Effective To date.';
+    }
+    return null;
+  };
 
   const handleStatusAction = async (versionId: string, action: string, toStatus: string) => {
     try {
+      setLifecycleError(null);
       if (action === 'REJECT' && !comments.trim()) {
         toast({ title: 'Validation', description: 'Comments are required when rejecting.', variant: 'destructive' });
         return;
@@ -56,15 +69,23 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
         const effFrom = version?.effective_from || new Date().toISOString().slice(0, 10);
         await publishMutation.mutateAsync({ versionId, effectiveFrom: effFrom });
       } else if (action === 'RETIRE') {
+        if (version) {
+          const reason = retireBlockReason(version);
+          if (reason) throw new Error(reason);
+        }
         await retireMutation.mutateAsync(versionId);
       } else {
         await updateVersionMutation.mutateAsync({ id: versionId, updates: { status: toStatus } as any });
       }
-      await createApprovalMutation.mutateAsync({ product_version_id: versionId, action, from_status: fromStatus, to_status: toStatus, comments, performed_by: 'system' });
+      await createApprovalMutation.mutateAsync({ product_version_id: versionId, action, from_status: fromStatus, to_status: toStatus, comments, performed_by: userCode || 'system' });
       toast({ title: 'Success', description: `Version ${action.toLowerCase()}d.` });
       setApprovalDialog(null);
       setComments('');
-    } catch (err: any) { toast({ title: 'Error', description: err?.message, variant: 'destructive' }); }
+    } catch (err: any) {
+      const message = err?.message || 'Version lifecycle action failed.';
+      setLifecycleError(message);
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    }
   };
 
   const handleCopyRules = async () => {
@@ -87,7 +108,6 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
 
   if (!productId) return <Card><CardContent className="py-8 text-center text-muted-foreground">Save the product first.</CardContent></Card>;
 
-  const draftVersions = versions.filter(v => v.status === 'DRAFT');
   const sourceVersions = versions.filter(v => v.status !== 'DRAFT' || v.id !== copyDialog?.targetVersionId);
 
   return (
@@ -100,7 +120,20 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
           </div>
           <Button onClick={onCreateVersion} className="gap-2"><Plus className="h-4 w-4" /> New Version</Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {lifecycleError && (
+            <Alert variant="destructive">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Version action blocked</AlertTitle>
+              <AlertDescription className="whitespace-pre-line">{lifecycleError}</AlertDescription>
+            </Alert>
+          )}
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              Correct flow: create or copy into a DRAFT, submit it for approval, approve it to publish as ACTIVE, then the old active version is closed automatically to the day before the new effective date. Manual retire is only for an already closed/replaced active version.
+            </AlertDescription>
+          </Alert>
           {versions.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">No versions yet. Click "New Version" to create the first one.</p>
           ) : (
@@ -141,7 +174,13 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
                           </>
                         )}
                         {v.status === 'ACTIVE' && (
-                          <Button variant="outline" size="sm" onClick={() => setApprovalDialog({ versionId: v.id, action: 'RETIRE' })}>Retire</Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!!retireBlockReason(v)}
+                            title={retireBlockReason(v) || 'Retire this active version'}
+                            onClick={() => setApprovalDialog({ versionId: v.id, action: 'RETIRE' })}
+                          >Retire</Button>
                         )}
                       </div>
                     </TableCell>

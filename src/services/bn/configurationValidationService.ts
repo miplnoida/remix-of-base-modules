@@ -50,7 +50,17 @@ async function loadProductByCode(code: string) {
   return data;
 }
 
-async function loadActiveVersion(productId: string) {
+async function loadValidationVersion(productId: string, productVersionId?: string) {
+  if (productVersionId) {
+    const { data } = await supabase
+      .from('bn_product_version')
+      .select('*')
+      .eq('id', productVersionId)
+      .eq('product_id', productId)
+      .maybeSingle();
+    return data;
+  }
+
   const { data } = await supabase
     .from('bn_product_version')
     .select('*')
@@ -62,7 +72,10 @@ async function loadActiveVersion(productId: string) {
   return data;
 }
 
-export async function validateProduct(baseline: SknBenefitBaseline): Promise<ProductValidationReport> {
+export async function validateProduct(
+  baseline: SknBenefitBaseline,
+  options: { productVersionId?: string } = {},
+): Promise<ProductValidationReport> {
   const issues: string[] = [...baseline.warnings];
   const product = await loadProductByCode(baseline.benefit_code);
 
@@ -93,10 +106,10 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
 
   const productCheck: CheckResult = { status: 'PASS', message: `Product found (${product.status})` };
 
-  const activeVersion = await loadActiveVersion(product.id);
+  const activeVersion = await loadValidationVersion(product.id, options.productVersionId);
   const activeVersionCheck: CheckResult = activeVersion
-    ? { status: 'PASS', message: `v${activeVersion.version_number} active` }
-    : { status: 'FAIL', message: 'No ACTIVE version' };
+    ? { status: 'PASS', message: options.productVersionId ? `v${activeVersion.version_number} selected for publish validation` : `v${activeVersion.version_number} active` }
+    : { status: 'FAIL', message: options.productVersionId ? 'Selected version not found for this product' : 'No ACTIVE version' };
 
   let eligibilityCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
   let calculationCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
@@ -273,20 +286,20 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
       ? { status: 'PASS', message: 'Workflow template linked' }
       : { status: 'WARNING', message: 'No workflow_template_id — relies on fallback transition matrix' };
 
-    // Workflow definition exists?
+    // Workflow definition/template exists?
     if (activeVersion.workflow_template_id) {
-      const { data: wfDef } = await supabase
-        .from('workflow_definitions')
-        .select('id, name, is_active')
+      const { data: wfTemplate } = await supabase
+        .from('bn_workflow_template')
+        .select('id, template_name, is_active')
         .eq('id', activeVersion.workflow_template_id)
         .maybeSingle();
-      if (!wfDef) {
-        workflowExistsCheck = { status: 'FAIL', message: 'workflow_template_id points to missing workflow_definitions row' };
+      if (!wfTemplate) {
+        workflowExistsCheck = { status: 'FAIL', message: 'workflow_template_id points to missing bn_workflow_template row' };
         issues.push('Workflow definition missing.');
-      } else if (wfDef.is_active === false) {
-        workflowExistsCheck = { status: 'WARNING', message: `Workflow "${wfDef.name}" exists but inactive` };
+      } else if (wfTemplate.is_active === false) {
+        workflowExistsCheck = { status: 'WARNING', message: `Workflow "${wfTemplate.template_name}" exists but inactive` };
       } else {
-        workflowExistsCheck = { status: 'PASS', message: `Workflow "${wfDef.name}" present` };
+        workflowExistsCheck = { status: 'PASS', message: `Workflow "${wfTemplate.template_name}" present` };
       }
     } else {
       workflowExistsCheck = { status: 'NOT_APPLICABLE', message: 'No workflow linked' };
