@@ -506,7 +506,7 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
   for (const m of mappings) {
     const isRequired = m.is_required === true || event.is_mandatory_letter === true;
     try {
-      const diag = await diagnoseRecipient(claimId, m.recipient_type as BnRecipientType, m.channel as BnChannel);
+      const diag = await diagnoseRecipient(claimId, m.recipient_type as BnRecipientType, m.channel as BnChannel, ctx);
       const recipient = diag.recipient;
       const subject = `${event.event_name}${mergeContext.ClaimNumber ? ` — ${mergeContext.ClaimNumber}` : ''}`;
 
