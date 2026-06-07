@@ -152,8 +152,8 @@ export default function ClaimRegistration() {
   const [source, setSource] = useState<'WALK_IN' | 'PAPER' | 'PHONE'>('PAPER');
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
-  const [bankAccount, setBankAccount] = useState('');
-  const [bankRouting, setBankRouting] = useState('');
+  // Bank/EFT details are captured via the unified PaymentDetailsSection
+  // (bn_payment_profile) — no longer stored as free-text on the application.
   const [internalNotes, setInternalNotes] = useState('');
   const [workbasket, setWorkbasket] = useState('');
   const [escalateSupervisor, setEscalateSupervisor] = useState(false);
