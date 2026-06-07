@@ -62,7 +62,7 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
     if (!reviewing) return;
     setBusyId(reviewing.row.id);
     try {
-      await reviewOverride(reviewing.row.id, reviewing.decision, userCode, reviewNotes || undefined);
+      await reviewOverride(reviewing.row.id, reviewing.decision, userCode, reviewNotes || undefined, userRoles);
       toast.success(`Override ${reviewing.decision.toLowerCase()}`);
       setReviewing(null);
       setReviewNotes('');
