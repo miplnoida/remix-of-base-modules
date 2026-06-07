@@ -91,6 +91,7 @@ import { ClaimStaleBanner } from '@/components/bn/workbench/ClaimStaleBanner';
 import { AmendmentHistoryDrawer } from '@/components/bn/workbench/AmendmentHistoryDrawer';
 import { CorrectionRequestDialog } from '@/components/bn/workbench/CorrectionRequestDialog';
 import { useClaimEditability, useFieldOwnership } from '@/hooks/bn/useClaimEditability';
+import { NextStepGuidance } from '@/components/bn/workbench/NextStepGuidance';
 
 
 const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW', 'PENDING_INFO'];
