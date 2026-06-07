@@ -148,26 +148,26 @@ export async function getTransitionSideEffect(params: {
   };
 }
 
-/** Assign the claim to a workbasket (idempotent for the active row). */
+/** Assign the claim to a workbasket (idempotent — closes prior active row). */
 export async function assignClaimToWorkbasket(
   claimId: string,
   workbasketId: string,
   performedBy: string,
-  note?: string,
+  _note?: string,
 ): Promise<void> {
   if (!workbasketId) return;
-  // Close any open assignment.
   await db
     .from('bn_claim_queue_assignment')
-    .update({ released_at: new Date().toISOString(), released_by: performedBy })
+    .update({ is_active: false, completed_at: new Date().toISOString() })
     .eq('claim_id', claimId)
-    .is('released_at', null);
+    .eq('is_active', true);
 
   await db.from('bn_claim_queue_assignment').insert({
     claim_id: claimId,
     workbasket_id: workbasketId,
-    assigned_by: performedBy,
+    assigned_to: performedBy,
     assigned_at: new Date().toISOString(),
-    note: note || null,
+    is_active: true,
   });
 }
+
