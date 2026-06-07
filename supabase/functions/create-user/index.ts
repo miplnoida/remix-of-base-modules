@@ -173,7 +173,7 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      // Orphan auth user (no profile) – adopt it: reset password + reuse id.
+      // Orphan auth user (no profile) – adopt it: reuse id, try to reset password.
       adoptedOrphan = true;
       newUserId = existingUser.id;
       const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(newUserId, {
@@ -182,11 +182,29 @@ Deno.serve(async (req: Request) => {
         user_metadata: { full_name: `${first_name} ${last_name}`.trim() },
       });
       if (updErr) {
-        return new Response(
-          JSON.stringify({ error: `Failed to adopt existing auth account: ${updErr.message}`, code: "ORPHAN_ADOPT_FAILED" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        // If password is rejected (e.g. HIBP weak password), retry without password
+        // so we can still adopt the orphan; existing auth password remains in effect.
+        const msg = String(updErr.message || "");
+        const isWeakPwd = /weak|pwned|known to be|compromised/i.test(msg);
+        if (isWeakPwd) {
+          const { error: retryErr } = await supabaseAdmin.auth.admin.updateUserById(newUserId, {
+            email_confirm: true,
+            user_metadata: { full_name: `${first_name} ${last_name}`.trim() },
+          });
+          if (retryErr) {
+            return new Response(
+              JSON.stringify({ error: `Failed to adopt existing auth account: ${retryErr.message}`, code: "ORPHAN_ADOPT_FAILED" }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } else {
+          return new Response(
+            JSON.stringify({ error: `Failed to adopt existing auth account: ${msg}`, code: "ORPHAN_ADOPT_FAILED" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
+
     } else {
       // Create the user using admin API (doesn't affect caller's session)
       const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
