@@ -73,13 +73,12 @@ export function ApprovalPoliciesTab({ versionId, isReadOnly }: Props) {
   const save = async (area: PolicyArea) => {
     const current = policyByArea[area];
     const next = merged(area);
-    if (!current?.id) {
-      toast({ variant: 'destructive', title: 'Missing policy row', description: 'Re-run the Phase-1 backfill.' });
-      return;
-    }
     setSavingArea(area);
     try {
       const payload: any = {
+        product_version_id: versionId,
+        policy_area: area,
+        action_code: 'DEFAULT',
         is_enabled: !!next.is_enabled,
         requires_reason_code: !!next.requires_reason_code,
         requires_justification: !!next.requires_justification,
@@ -100,8 +99,14 @@ export function ApprovalPoliciesTab({ versionId, isReadOnly }: Props) {
         notes: next.notes || null,
         updated_by: userCode || 'SYSTEM',
       };
-      const { error } = await db.from('bn_approval_policy').update(payload).eq('id', current.id);
-      if (error) throw error;
+      if (current?.id) {
+        const { error } = await db.from('bn_approval_policy').update(payload).eq('id', current.id);
+        if (error) throw error;
+      } else {
+        payload.created_by = userCode || 'SYSTEM';
+        const { error } = await db.from('bn_approval_policy').insert(payload);
+        if (error) throw error;
+      }
       toast({ title: 'Saved', description: `${AREA_META[area].title} updated.` });
       setDraft((d) => { const { [area]: _, ...rest } = d; return rest; });
       qc.invalidateQueries({ queryKey: ['bn', 'approval-policies', versionId] });

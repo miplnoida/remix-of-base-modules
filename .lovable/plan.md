@@ -1,57 +1,110 @@
-# Benefits Communications & Central Reference Numbering
+# BN Approval / Override Policy Consolidation
 
-## Scope
-Complete the Benefits communication framework so that:
-1. All Benefits emails/SMS/letters/in-app go through central `notification_templates`.
-2. A new **central reference-number service** issues unique IDs (e.g. `BN/LETTER/2026/000001`) usable by every module.
-3. Every generated letter carries logo, office details, reference number, and a frozen snapshot of rendered content.
+## Goal
+Make `bn_approval_policy` + `bnPolicyEvaluator` the **only** runtime authority for every override / approval / waiver / amendment decision in Benefits. Demote `bn_override_policy` to a legacy migration source. Unify Product Catalog UX, fix Workbench eligibility override visibility for claim `BN-20260607-75991` (EI-EMP-ACTIVE), and add a runtime-consistency diagnostic.
 
-This builds on what already exists (BenefitCommunicationTemplates page, bnPlaceholderRegistry, letter snapshotting, menu/permissions) and adds the missing pieces.
+---
 
-## Work plan
+## Phase 1 — Inventory (no code changes)
+Search and classify every reference to:
+- `bn_override_policy`, `fetchOverridePolicies`, `upsertOverridePolicy`, `deleteOverridePolicy`, `OverridePolicies`, `Overrides (Legacy)`
+- `bn_approval_policy`, `useProductPolicies`, `bnPolicyEvaluator`, `eligibilityOverrideService`
 
-### A. Database migration (single migration)
-- Create `system_reference_sequence` (department_code, module_code, document_type, prefix_pattern, current_number, padding, financial_year, active). Grants + no RLS (per project rule).
-- Create `system_office_settings` (office_code, office_name, department_name, address_line_1/2, phone, email, logo_url, signature_block, is_default).
-- Extend `bn_letter` with: `reference_number`, `department_code`, `document_type`, `issued_by_office` (if not already present).
-- Add SQL function `next_reference_number(p_module, p_dept, p_doc_type)` that atomically increments and returns formatted string.
+Deliverable: short report listing
+- runtime files reading `bn_override_policy` (to be cut over)
+- Product Catalog UI files
+- Workbench override path
+- Eligibility override service path
 
-### B. Seed data (insert calls after migration)
-- Seed default office row (SKN SSB head office) with logo URL placeholder.
-- Seed reference sequences: BN/LETTER, BN/CLAIM_NOTICE, BN/DECISION_LETTER, BN/EVIDENCE_REQUEST, FIN/PAYMENT_NOTICE, COM/GENERAL_NOTICE.
-- Seed/Upsert the full set of central templates listed (Acknowledgement, Eligibility, Evidence, Decision, Award/Payment, Servicing) — email/SMS/letter variants — with REFERENCE_NUMBER placeholder where letters.
+## Phase 2 — Runtime cutover to `bn_approval_policy`
+Refactor each runtime consumer to call `bnPolicyEvaluator` (`canRequestOverride`, `canApproveOverride`, area-specific helpers):
+- `services/bn/eligibilityOverrideService.ts`
+- Calculation override action
+- Document waiver action
+- Amendment / participant change actions
+- Workflow / award / payment / communication override actions
+- Workbench claim-detail action resolver
 
-### C. Services
-- `src/services/reference/referenceNumberService.ts` — `generate / preview / reserve / markUsed` wrapping the SQL function.
-- `src/services/system/officeSettingsService.ts` — fetch default + by-code office.
-- Extend `bnPlaceholderRegistry.ts` with REFERENCE_NUMBER, OFFICE_NAME, OFFICE_ADDRESS, DEPARTMENT_NAME.
-- Update `letterGenerator.ts`:
-  - On generate, call reference service if `bn_letter.reference_number` is null → persist.
-  - Merge office context (logo, address, signature) into render context.
-  - Render branded letter header (logo + office block) into the HTML before body.
-  - Persist `department_code`, `document_type`, `issued_by_office`, snapshot fields (already done).
-- Update `bnCommunicationAdapter.createLetter` to set `department_code` + `document_type` from the comm mapping/event when creating the row.
+Remove direct `from('bn_override_policy')` reads from any non-migration file.
 
-### D. UI
-- `BenefitCommunicationTemplates.tsx` — already exists; add a "Reference Sequences" link/notice and surface REFERENCE_NUMBER in the placeholder palette (auto from registry).
-- `LetterPreviewDialog.tsx` — show reference number, office, department, document type.
-- `CommunicationTab.tsx` — when generation blocked due to missing reference sequence/office, show actionable BLOCKED reason.
-- New page `src/pages/system/ReferenceSequencesAdmin.tsx` (Super Admin) for managing sequences. Route + sidebar entry under System Admin.
+## Phase 3 — Policy evaluator hardening
+Extend `bnPolicyEvaluator.evaluatePolicy` to return a richer diagnostic:
+```
+{ allowed, reasons, policyId, productVersionId, policyArea,
+  currentUserRoles, requiredRole, claimStatus, allowedStatuses,
+  ruleCode, allowedRuleCodes, blockedRuleCodes,
+  makerCheckerRequired, requesterUser, requires }
+```
+Cover: enabled, status allowed/blocked, rule allowed/blocked, role/permission, maker-checker, self-approval, reason/document required, amount/percent thresholds. Add unit-style smoke logging.
 
-### E. Audit
-- Reuse `writeBnAudit` for: REFERENCE_NUMBER_GENERATED, LETTER_GENERATED (already), TEMPLATE_PUBLISHED (already).
-- Log reference generation centrally too via `system_audit_trail` insert.
+## Phase 4 — Eligibility override flow (Workbench)
+On the Workbench Eligibility tab:
+- Fetch latest failed rules from `bn_claim_eligibility`.
+- For each failed rule call `canRequestOverride({area:'ELIGIBILITY', ruleCode, claimStatus, ...})`.
+- Show **Request Override** button when allowed; show denial reason inline when blocked (never hide silently).
+- Show **Pending Override** badge when `bn_override_request` row exists for that rule.
+- Show **Approve / Reject** only when `canApproveOverride` returns allowed (different reviewer than requester unless `self_approval_allowed`).
+- On approval: insert/update eligibility override, recompute overall result → `ELIGIBLE_WITH_OVERRIDE` only if no other blocking failures, mark calc stale, write `bn_claim_event` + `system_audit_trail`.
 
-### F. Verification
-- TypeScript build passes (harness).
-- Spot-check: generate eligibility-failed letter end-to-end (reference number + branded header + snapshot persisted).
+Backed by existing `bn_override_request` (acts as the eligibility-override-request table).
 
-## Out of scope
-- Rewriting the existing template management UI.
-- Migrating non-BN modules to call the reference service (service is created and seeded so they can adopt it; only BN letters wired now).
-- Real PDF logo asset upload (uses a configurable `logo_url`, defaults to placeholder).
+## Phase 5 — Product Catalog UI cleanup
+- Keep a single **Approval / Override Policies** tab covering all 9 policy areas (ELIGIBILITY, CALCULATION, DOCUMENTS, AMENDMENTS, PARTICIPANTS, WORKFLOW, AWARD, PAYMENT, COMMUNICATION).
+- Remove / hide the legacy Overrides tab and menu entries from the normal UI.
+- Add a Super-Admin-only **Legacy Override Policies** diagnostic panel listing old rows, migration status, and the target `bn_approval_policy` row id.
 
-## Notes / assumptions
-- No RLS per project rule; grants to authenticated + service_role.
-- Sequences are per (module, department, document_type, financial_year). FY computed from current year unless overridden.
-- Reference format: `{MODULE}/{DOC_TYPE}/{YYYY}/{padded_number}` by default; overridable via `prefix_pattern`.
+## Phase 6 — ApprovalPoliciesTab UX upgrade
+Replace free-text fields with structured pickers:
+- Approver role → dropdown from `roles` master
+- Reason code group → dropdown from `bn_reason_code` groups
+- Allowed / blocked statuses → multi-select from `bn_claim_status_def`
+- Allowed / blocked rule codes → searchable multi-select from product-version `bn_eligibility_rule` / `bn_calculation_rule`
+- Workbasket → dropdown from `bn_workbasket`
+- Live policy diagnostic preview (sample claim → evaluator output)
+- Help text differentiating **Workflow** ("controls claim movement between stages") vs **Approval / Override Policies** ("controls exceptions, overrides, waivers, amendments, and who approves").
+
+## Phase 7 — Migration utility
+Add `migrateLegacyOverridePoliciesToApprovalPolicies()` (server RPC + admin button):
+- `target` → `policy_area`
+- `field_path` / rule → `allowed_rule_codes`
+- `allowed_role` → `approval_role`
+- `requires_maker_checker` → `requires_supervisor_approval`
+- `requires_justification` → `requires_justification`
+- `max_amount` → `max_override_amount`
+- `is_active` → `is_enabled`
+Idempotent — never overwrite existing `bn_approval_policy` rows unless `force=true` confirmed.
+
+## Phase 8 — Configuration Validation card
+New "Policy Runtime Consistency" card in Product Catalog Admin:
+- 0 runtime reads of `bn_override_policy` (static scan flag)
+- every active product version has ≥1 `bn_approval_policy` row
+- enabled policies requiring supervisor approval have an `approval_role`
+- reason group exists when `requires_reason_code`
+- allowed statuses ⊂ `bn_claim_status_def`
+- allowed rule codes ⊂ product rules
+- unmigrated legacy rows count
+- duplicate / conflicting policy rows
+
+## Phase 9 — Targeted fix for claim `BN-20260607-75991` (EI-EMP-ACTIVE)
+After cutover:
+1. Insert / verify `bn_approval_policy` row: `policy_area=ELIGIBILITY`, `action_code=DEFAULT`, `is_enabled=true`, `approval_role=Admin`, `allowed_rule_codes={EI-EMP-ACTIVE}`, `allowed_statuses={INTAKE,ELIGIBILITY_REVIEW,...}`, `requires_justification=true`, `requires_supervisor_approval=false`, `self_approval_allowed=true`.
+2. Run evaluator and surface diagnostics in the Workbench panel.
+3. Expected: **Request Override** is now visible to `admin@secureserve.gov`.
+
+## Acceptance
+- Single Approval / Override Policies tab in Product Catalog.
+- Legacy override UI hidden from normal users; Super-Admin diagnostic only.
+- Workbench reads `bn_approval_policy` exclusively.
+- Override buttons show with diagnostic denial reasons, never silently hidden.
+- Maker-checker enforced; self-approval gated by policy.
+- All override actions write `bn_claim_event` + `system_audit_trail`.
+- TypeScript build passes.
+
+## Technical notes
+- `bn_override_request` is reused as the cross-area request table (`policy_area=ELIGIBILITY` plays the role of `bn_eligibility_override_request`).
+- No RLS added (per project rule); access stays role-gated.
+- Migration file only for any new helper RPC (`migrate_legacy_override_policies`, `evaluate_policy_diagnostic`). No schema-destructive changes; `bn_override_policy` table stays for migration input.
+- All `created_by` / `updated_by` use logged-in user's `user_code`.
+
+## Scope size
+Large — touches Product Catalog UI, Workbench, services layer, and one DB helper. No destructive migrations. Estimate ~15–25 files changed plus 1 SQL migration.

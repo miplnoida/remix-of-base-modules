@@ -25,7 +25,6 @@ import { ScreenTemplateTab } from '@/components/bn/config/ScreenTemplateTab';
 import ParticipantWorkflowTab from '@/components/bn/config/ParticipantWorkflowTab';
 import PublicFormRulesTab from '@/components/bn/config/PublicFormRulesTab';
 import { InteractionRulesTab } from '@/components/bn/config/InteractionRulesTab';
-import { OverridePoliciesTab } from '@/components/bn/config/OverridePoliciesTab';
 import { ApprovalPoliciesTab } from '@/components/bn/config/ApprovalPoliciesTab';
 import { VersionHistoryTab } from '@/components/bn/config/VersionHistoryTab';
 import { PreviewTab } from '@/components/bn/config/PreviewTab';
@@ -284,8 +283,7 @@ export default function ProductEditor() {
           <TabsTrigger value="channels" disabled={isNew}>Application Channels</TabsTrigger>
           <TabsTrigger value="communications" disabled={isNew}>Communications</TabsTrigger>
           <TabsTrigger value="interactions" disabled={isNew}>Interactions</TabsTrigger>
-          <TabsTrigger value="overrides" disabled={isNew}>Overrides (legacy)</TabsTrigger>
-          <TabsTrigger value="approval-policies" disabled={isNew}>Approval Policies</TabsTrigger>
+         <TabsTrigger value="approval-policies" disabled={isNew}>Approval / Override Policies</TabsTrigger>
           <TabsTrigger value="preview" disabled={isNew}>Preview</TabsTrigger>
         </TabsList>
 
@@ -421,10 +419,6 @@ export default function ProductEditor() {
 
         <TabsContent value="interactions" className="mt-6">
           <InteractionRulesTab productId={isNew ? undefined : id} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
-        </TabsContent>
-
-        <TabsContent value="overrides" className="mt-6">
-          <OverridePoliciesTab productId={isNew ? undefined : id} versionStatus={activeVersion?.status} />
         </TabsContent>
 
         <TabsContent value="approval-policies" className="mt-6">

@@ -58,14 +58,18 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
   const allowedRules = approvalPolicy?.allowed_rule_codes ?? [];
   const blockedRules = approvalPolicy?.blocked_rule_codes ?? [];
 
-  const isRuleOverrideable = useMemo(
-    () => (ruleCode: string) => {
-      if (!approvalPolicy?.is_enabled) return false;
-      if (blockedRules.includes(ruleCode)) return false;
-      if (allowedRules.length > 0) return allowedRules.includes(ruleCode);
-      return true;
+  // Returns null when the rule is overrideable, or a short denial reason.
+  const overrideDenialReason = useMemo(
+    () => (ruleCode: string): string | null => {
+      if (!productVersionId) return 'No product version on claim';
+      if (!approvalPolicy) return 'No approval policy configured for this product';
+      if (!approvalPolicy.is_enabled) return 'Eligibility overrides are disabled for this product';
+      if (blockedRules.includes(ruleCode)) return `Rule ${ruleCode} is blocked from override`;
+      if (allowedRules.length > 0 && !allowedRules.includes(ruleCode))
+        return `Rule ${ruleCode} is not in the allowed list (${allowedRules.join(', ')})`;
+      return null;
     },
-    [approvalPolicy, allowedRules, blockedRules],
+    [approvalPolicy, allowedRules, blockedRules, productVersionId],
   );
 
   const [overrideRule, setOverrideRule] = useState<any | null>(null);
@@ -177,11 +181,12 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
                 <TableBody>
                   {rules.map((r: any, i: number) => {
                     const isOverridden = r.result_state === 'OVERRIDDEN' || r.status === 'OVERRIDDEN';
+                    const denialReason = !r.passed ? overrideDenialReason(r.rule_code) : null;
                     const showOverride =
                       !r.passed &&
                       canRequest &&
                       !!productVersionId &&
-                      isRuleOverrideable(r.rule_code);
+                      denialReason === null;
                     return (
                       <TableRow key={i} className={!r.passed ? 'bg-destructive/5' : isOverridden ? 'bg-amber-500/5' : undefined}>
                         <TableCell>
@@ -212,8 +217,10 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
                               Request Override
                             </Button>
                           )}
-                          {!r.passed && !showOverride && !!productVersionId && !isRuleOverrideable(r.rule_code) && (
-                            <span className="text-[10px] text-muted-foreground">Not overrideable</span>
+                          {!r.passed && !showOverride && denialReason && (
+                            <span className="text-[10px] text-muted-foreground" title={denialReason}>
+                              {denialReason}
+                            </span>
                           )}
                           {isOverridden && (
                             <Badge className="bg-amber-500/15 text-amber-700 border-amber-300 text-[10px]" variant="outline">
