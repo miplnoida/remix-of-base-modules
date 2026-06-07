@@ -446,8 +446,6 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
         else result.skipped += 1;
       } else if (m.channel === 'LETTER') {
         const letterId = await createLetter({
-      } else if (m.channel === 'LETTER') {
-        const letterId = await createLetter({
           claimId, eventCode, templateId: m.template_id, recipientType: m.recipient_type,
           recipient: recipient!, subject, mergeContext, isMandatoryLetter: !!event.is_mandatory_letter, userCode: ctx?.userCode,
         });
