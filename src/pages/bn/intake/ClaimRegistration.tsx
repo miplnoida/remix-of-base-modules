@@ -94,6 +94,7 @@ const STEPS = [
   { key: 'eligibility', label: 'Eligibility Pre-checks', icon: CheckCircle2 },
   { key: 'documents', label: 'Required Documents', icon: ListChecks },
   { key: 'facts', label: 'Benefit Facts', icon: Stethoscope },
+  { key: 'banking', label: 'Banking / Payment', icon: Banknote },
   { key: 'internal', label: 'Internal Options', icon: StickyNote },
   { key: 'review', label: 'Review & Submit', icon: Save },
 ] as const;
