@@ -146,54 +146,83 @@ Deno.serve(async (req: Request) => {
     // Pre-check: does an auth user with this email already exist?
     let existingUser: any = null;
     try {
-      const { data: existingList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
+      const { data: existingList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
       existingUser = existingList?.users?.find((u: any) => (u.email || "").toLowerCase() === normalizedEmail) || null;
     } catch (_) { /* ignore – fall through to createUser */ }
 
+    let newUserId: string;
+    let adoptedOrphan = false;
+
     if (existingUser) {
-      return new Response(
-        JSON.stringify({
-          error: `A user with email "${normalizedEmail}" already exists. Please use a different email or edit the existing user.`,
-          code: "EMAIL_ALREADY_EXISTS",
-          existing_user_id: existingUser.id,
-        }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Check whether a profile row exists for this auth user.
+      const { data: existingProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("id", existingUser.id)
+        .maybeSingle();
+
+      if (existingProfile) {
+        // Real duplicate – visible in User Management.
+        return new Response(
+          JSON.stringify({
+            error: `A user with email "${normalizedEmail}" already exists. Please use a different email or edit the existing user.`,
+            code: "EMAIL_ALREADY_EXISTS",
+            existing_user_id: existingUser.id,
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Orphan auth user (no profile) – adopt it: reset password + reuse id.
+      adoptedOrphan = true;
+      newUserId = existingUser.id;
+      const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(newUserId, {
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: `${first_name} ${last_name}`.trim() },
+      });
+      if (updErr) {
+        return new Response(
+          JSON.stringify({ error: `Failed to adopt existing auth account: ${updErr.message}`, code: "ORPHAN_ADOPT_FAILED" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      // Create the user using admin API (doesn't affect caller's session)
+      const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email: normalizedEmail,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: `${first_name} ${last_name}`.trim() },
+      });
+
+      if (createError) {
+        const msg = String(createError.message || "");
+        const isDup = /already been registered|already exists|duplicate/i.test(msg);
+        await logToSystem(supabaseAdmin, 'system_error_logs', {
+          api_name: 'create-user',
+          module: 'UserManagement',
+          error_type: 'UserCreationError',
+          error_message: msg,
+          severity: isDup ? 'warning' : 'error',
+          user_id: callingUser.id,
+          payload_json: { email: normalizedEmail },
+        }, correlationId);
+
+        return new Response(
+          JSON.stringify({
+            error: isDup
+              ? `A user with email "${normalizedEmail}" already exists. Please use a different email.`
+              : msg,
+            code: isDup ? "EMAIL_ALREADY_EXISTS" : "USER_CREATE_FAILED",
+          }),
+          { status: isDup ? 409 : 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      newUserId = authData.user.id;
     }
 
-    // Create the user using admin API (doesn't affect caller's session)
-    const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: normalizedEmail,
-      password,
-      email_confirm: true,
-      user_metadata: { full_name: `${first_name} ${last_name}`.trim() },
-    });
-
-    if (createError) {
-      const msg = String(createError.message || "");
-      const isDup = /already been registered|already exists|duplicate/i.test(msg);
-      await logToSystem(supabaseAdmin, 'system_error_logs', {
-        api_name: 'create-user',
-        module: 'UserManagement',
-        error_type: 'UserCreationError',
-        error_message: msg,
-        severity: isDup ? 'warning' : 'error',
-        user_id: callingUser.id,
-        payload_json: { email: normalizedEmail },
-      }, correlationId);
-
-      return new Response(
-        JSON.stringify({
-          error: isDup
-            ? `A user with email "${normalizedEmail}" already exists. Please use a different email.`
-            : msg,
-          code: isDup ? "EMAIL_ALREADY_EXISTS" : "USER_CREATE_FAILED",
-        }),
-        { status: isDup ? 409 : 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const newUserId = authData.user.id;
 
     // Resolve office_code: prefer explicit office_code, fall back to office_id for backward compat
     const resolvedOfficeCode = office_code || office_id || null;
