@@ -906,6 +906,22 @@ export default function ClaimRegistration() {
           />
         </div>
       </div>
+
+      <ReasonCaptureDialog
+        open={!!reasonDialog}
+        title={reasonDialog?.title ?? ''}
+        description={reasonDialog?.description}
+        label={reasonDialog?.kind === 'WAIVE' ? 'Waiver justification' : 'Reason'}
+        confirmLabel={reasonDialog?.kind === 'WAIVE' ? 'Request waiver' : 'Mark pending'}
+        onCancel={() => setReasonDialog(null)}
+        onConfirm={(reason) => {
+          const d = reasonDialog;
+          setReasonDialog(null);
+          if (!d || !reason) return;
+          if (d.kind === 'PENDING') void markDocPending(d.code, reason);
+          else void requestDocWaiver(d.code, reason);
+        }}
+      />
     </PermissionWrapper>
   );
 }
