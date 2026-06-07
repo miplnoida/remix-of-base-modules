@@ -284,8 +284,7 @@ export default function ProductEditor() {
           <TabsTrigger value="channels" disabled={isNew}>Application Channels</TabsTrigger>
           <TabsTrigger value="communications" disabled={isNew}>Communications</TabsTrigger>
           <TabsTrigger value="interactions" disabled={isNew}>Interactions</TabsTrigger>
-          <TabsTrigger value="overrides" disabled={isNew}>Overrides (legacy)</TabsTrigger>
-          <TabsTrigger value="approval-policies" disabled={isNew}>Approval Policies</TabsTrigger>
+         <TabsTrigger value="approval-policies" disabled={isNew}>Approval / Override Policies</TabsTrigger>
           <TabsTrigger value="preview" disabled={isNew}>Preview</TabsTrigger>
         </TabsList>
 
