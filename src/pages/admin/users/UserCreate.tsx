@@ -107,7 +107,7 @@ const UserCreate = () => {
             'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            email: formData.email,
+            email: formData.email.trim().toLowerCase(),
             password: formData.password,
             first_name: formData.first_name,
             last_name: formData.last_name,
@@ -323,11 +323,11 @@ const UserCreate = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="password">Initial Password *</Label>
-                <Input id="password" type="password" required value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+                <Input id="password" type="password" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm_password">Confirm Password *</Label>
-                <Input id="confirm_password" type="password" required value={formData.confirm_password} onChange={(e) => setFormData({...formData, confirm_password: e.target.value})} />
+                <Input id="confirm_password" type="password" value={formData.confirm_password} onChange={(e) => setFormData({...formData, confirm_password: e.target.value})} />
               </div>
             </div>
 
