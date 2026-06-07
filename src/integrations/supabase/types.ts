@@ -10151,14 +10151,21 @@ export type Database = {
           builder_canvas_updated_at: string | null
           builder_canvas_updated_by: string | null
           calculation_config: Json
+          calculation_workbasket_id: string | null
+          decision_workbasket_id: string | null
+          default_workbasket_id: string | null
           description: string | null
           document_profile_id: string | null
           effective_from: string
           effective_to: string | null
           eligibility_config: Json
+          eligibility_workbasket_id: string | null
           entered_at: string
           entered_by: string | null
+          escalation_policy_id: string | null
+          external_task_policy: Json
           id: string
+          intake_workbasket_id: string | null
           life_certificate_policy: Json
           max_concurrent_claims: number
           medical_review_policy: Json
@@ -10169,6 +10176,7 @@ export type Database = {
           override_requires_document: boolean
           override_requires_supervisor: boolean
           payment_frequency: string | null
+          payment_workbasket_id: string | null
           product_id: string
           requires_employer_verification: boolean
           requires_means_test: boolean
@@ -10190,14 +10198,21 @@ export type Database = {
           builder_canvas_updated_at?: string | null
           builder_canvas_updated_by?: string | null
           calculation_config?: Json
+          calculation_workbasket_id?: string | null
+          decision_workbasket_id?: string | null
+          default_workbasket_id?: string | null
           description?: string | null
           document_profile_id?: string | null
           effective_from: string
           effective_to?: string | null
           eligibility_config?: Json
+          eligibility_workbasket_id?: string | null
           entered_at?: string
           entered_by?: string | null
+          escalation_policy_id?: string | null
+          external_task_policy?: Json
           id?: string
+          intake_workbasket_id?: string | null
           life_certificate_policy?: Json
           max_concurrent_claims?: number
           medical_review_policy?: Json
@@ -10208,6 +10223,7 @@ export type Database = {
           override_requires_document?: boolean
           override_requires_supervisor?: boolean
           payment_frequency?: string | null
+          payment_workbasket_id?: string | null
           product_id: string
           requires_employer_verification?: boolean
           requires_means_test?: boolean
@@ -10229,14 +10245,21 @@ export type Database = {
           builder_canvas_updated_at?: string | null
           builder_canvas_updated_by?: string | null
           calculation_config?: Json
+          calculation_workbasket_id?: string | null
+          decision_workbasket_id?: string | null
+          default_workbasket_id?: string | null
           description?: string | null
           document_profile_id?: string | null
           effective_from?: string
           effective_to?: string | null
           eligibility_config?: Json
+          eligibility_workbasket_id?: string | null
           entered_at?: string
           entered_by?: string | null
+          escalation_policy_id?: string | null
+          external_task_policy?: Json
           id?: string
+          intake_workbasket_id?: string | null
           life_certificate_policy?: Json
           max_concurrent_claims?: number
           medical_review_policy?: Json
@@ -10247,6 +10270,7 @@ export type Database = {
           override_requires_document?: boolean
           override_requires_supervisor?: boolean
           payment_frequency?: string | null
+          payment_workbasket_id?: string | null
           product_id?: string
           requires_employer_verification?: boolean
           requires_means_test?: boolean
@@ -10262,10 +10286,59 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "bn_product_version_calculation_workbasket_id_fkey"
+            columns: ["calculation_workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workbasket"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_version_decision_workbasket_id_fkey"
+            columns: ["decision_workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workbasket"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_version_default_workbasket_id_fkey"
+            columns: ["default_workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workbasket"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bn_product_version_document_profile_id_fkey"
             columns: ["document_profile_id"]
             isOneToOne: false
             referencedRelation: "bn_document_profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_version_eligibility_workbasket_id_fkey"
+            columns: ["eligibility_workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workbasket"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_version_escalation_policy_id_fkey"
+            columns: ["escalation_policy_id"]
+            isOneToOne: false
+            referencedRelation: "bn_escalation_policy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_version_intake_workbasket_id_fkey"
+            columns: ["intake_workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workbasket"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_version_payment_workbasket_id_fkey"
+            columns: ["payment_workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workbasket"
             referencedColumns: ["id"]
           },
           {
