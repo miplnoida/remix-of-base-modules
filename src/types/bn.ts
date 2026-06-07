@@ -138,6 +138,12 @@ export interface BnEligibilityRule {
   is_active: boolean;
   entered_by: string | null;
   entered_at: string;
+  // Phase 2 — Rule Builder redesign
+  group_code: string | null;
+  severity: 'BLOCK' | 'WARN';
+  overrideable: boolean;
+  override_policy_code: string | null;
+  fact_key: string | null;
 }
 
 export interface BnFormulaTemplate {
