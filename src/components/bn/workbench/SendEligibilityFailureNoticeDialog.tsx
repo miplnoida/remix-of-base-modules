@@ -44,6 +44,8 @@ interface MappingRow {
   template?: { template_code: string; name: string; subject: string | null } | null;
 }
 
+const normalizeMethod = (value?: string | null) => String(value || '').trim().toUpperCase();
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -64,16 +66,36 @@ const channelIcon = (m: string) => {
 async function loadMappings(productVersionId?: string | null): Promise<MappingRow[]> {
   const { data, error } = await db
     .from('bn_comm_mapping')
-    .select('id, delivery_method, channel, recipient_type, template_id, is_required, bn_product_version_id, template:notification_templates(template_code, name, subject)')
+    .select('id, delivery_method, channel, recipient_type, template_id, is_required, bn_product_version_id')
     .eq('event_code', EVENT_CODE)
     .eq('active', true);
   if (error || !data) return [];
-  const rows = data as MappingRow[];
+  const rows = (data as MappingRow[]).map((row) => ({
+    ...row,
+    delivery_method: normalizeMethod(row.delivery_method || row.channel),
+    channel: normalizeMethod(row.channel || row.delivery_method),
+  }));
+
+  const templateIds = Array.from(new Set(rows.map((r) => r.template_id).filter(Boolean)));
+  const templateById = new Map<string, MappingRow['template']>();
+  if (templateIds.length > 0) {
+    const { data: templates } = await db
+      .from('notification_templates')
+      .select('id, template_code, name, subject')
+      .in('id', templateIds);
+    (templates || []).forEach((template: any) => templateById.set(template.id, template));
+  }
+
+  const withTemplates = rows.map((row) => ({
+    ...row,
+    template: row.template_id ? templateById.get(row.template_id) ?? null : null,
+  }));
+
   if (productVersionId) {
-    const scoped = rows.filter((r) => r.bn_product_version_id === productVersionId);
+    const scoped = withTemplates.filter((r) => r.bn_product_version_id === productVersionId);
     if (scoped.length > 0) return scoped;
   }
-  return rows.filter((r) => !r.bn_product_version_id);
+  return withTemplates.filter((r) => !r.bn_product_version_id);
 }
 
 export function SendEligibilityFailureNoticeDialog({
