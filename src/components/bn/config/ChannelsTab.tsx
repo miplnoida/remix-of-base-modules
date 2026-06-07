@@ -18,6 +18,7 @@ import {
 } from '@/hooks/bn/useBnConfig';
 import type { BnProductChannelConfig, BnChannelCode } from '@/types/bn';
 import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
+import { ChannelConfigValidationPanel } from './ChannelConfigValidationPanel';
 
 interface Props {
   productId: string | undefined;
