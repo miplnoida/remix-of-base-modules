@@ -534,15 +534,23 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
 
         const status: 'BLOCKED' | 'SKIPPED' = isRequired ? 'BLOCKED' : 'SKIPPED';
         if (status === 'BLOCKED') result.blocked += 1; else result.skipped += 1;
+        const suggestedFix = buildSuggestedFix(m.channel, m.recipient_type, diag.missing);
         const id = await writeCommLog({
           claimId, eventCode, channel: m.channel, recipientType: m.recipient_type,
           status, error: diag.reason || 'Recipient not resolved',
           templateId: m.template_id, workflowStepId: ctx?.workflowStepId, userCode: ctx?.userCode,
-          context: { missing: diag.missing, required: isRequired },
+          context: {
+            missing: diag.missing, required: isRequired, suggestedFix,
+            resolvedRecipient: diag.recipient ? { name: diag.recipient.name, email: diag.recipient.email, phone: diag.recipient.phone, userId: diag.recipient.userId } : null,
+          },
         });
         if (id) result.logIds.push(id);
         continue;
       }
+
+      const fallbackNote = (recipient as any)?.fallbackUsed === 'current-user'
+        ? 'Assigned officer fallback used: current user'
+        : undefined;
 
       // Channel-specific dispatch
       if (m.channel === 'EMAIL' || m.channel === 'INTERNAL_EMAIL') {
@@ -551,6 +559,7 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
           claimId, eventCode, channel: m.channel, recipientType: m.recipient_type, recipientAddress: recipient!.email,
           templateId: m.template_id, subject, status: 'QUEUED', providerId, userCode: ctx?.userCode,
           workflowStepId: ctx?.workflowStepId,
+          context: fallbackNote ? { fallbackNote } : undefined,
         });
         if (id) result.logIds.push(id);
         result.dispatched += 1;
@@ -560,6 +569,7 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
           claimId, eventCode, channel: 'SMS', recipientType: m.recipient_type, recipientAddress: recipient!.phone,
           templateId: m.template_id, subject, status: 'QUEUED', providerId, userCode: ctx?.userCode,
           workflowStepId: ctx?.workflowStepId,
+          context: fallbackNote ? { fallbackNote } : undefined,
         });
         if (id) result.logIds.push(id);
         result.dispatched += 1;
@@ -569,7 +579,10 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
           claimId, eventCode, channel: 'IN_APP', recipientType: m.recipient_type, recipientAddress: recipient!.userId,
           templateId: m.template_id, subject, status: inAppId ? 'SENT' : (isRequired ? 'BLOCKED' : 'SKIPPED'),
           providerId: inAppId, userCode: ctx?.userCode, workflowStepId: ctx?.workflowStepId,
-          error: inAppId ? undefined : 'In-app delivery failed',
+          error: inAppId ? undefined : 'No internal user account resolved for in-app delivery',
+          context: inAppId
+            ? (fallbackNote ? { fallbackNote } : undefined)
+            : { missing: ['internal user account'], suggestedFix: buildSuggestedFix('IN_APP', m.recipient_type, ['internal user account']) },
         });
         if (id) result.logIds.push(id);
         if (inAppId) result.dispatched += 1;
@@ -585,6 +598,7 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
           claimId, eventCode, channel: 'LETTER', recipientType: m.recipient_type, recipientAddress: recipient!.name,
           templateId: m.template_id, subject, status: 'GENERATED', letterId, userCode: ctx?.userCode,
           workflowStepId: ctx?.workflowStepId,
+          context: fallbackNote ? { fallbackNote } : undefined,
         });
         if (id) result.logIds.push(id);
         result.dispatched += 1;
