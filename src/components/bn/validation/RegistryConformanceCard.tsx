@@ -19,7 +19,7 @@ import {
   type RegistryFinding,
 } from '@/services/bn/bnRegistryValidationService';
 
-import { formatNumber } from '@/lib/culture/culture';
+import { formatAuditTimestamp, formatNumber } from '@/lib/culture/culture';
 const CATEGORY_LABEL: Record<RegistryFinding['category'], string> = {
   TRANSITION: 'Transition Matrix',
   FORMULA_VARIABLE: 'Formula Variables',
@@ -125,7 +125,7 @@ export function RegistryConformanceCard() {
               <AlertTitle>
                 {report.errors} error(s), {report.warnings} warning(s)
               </AlertTitle>
-              <AlertDescription>Last run: {new formatNumber(Date(report.ranAt), 0)}</AlertDescription>
+              <AlertDescription>Last run: {formatAuditTimestamp(report.ranAt)}</AlertDescription>
             </Alert>
 
             {hasDrift && (

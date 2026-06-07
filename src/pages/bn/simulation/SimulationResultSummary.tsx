@@ -13,7 +13,7 @@ import SimConfigSnapshotViewer from '@/components/bn/simulation/SimConfigSnapsho
 import { useSimPermission } from '@/hooks/bn/useSimPermission';
 import SimAccessDenied from '@/components/bn/simulation/SimAccessDenied';
 
-import { formatNumber } from '@/lib/culture/culture';
+import { formatAuditTimestamp, formatNumber } from '@/lib/culture/culture';
 export default function SimulationResultSummary() {
   const { id: scenarioId, runId } = useParams<{ id: string; runId: string }>();
   const navigate = useNavigate();
@@ -118,8 +118,8 @@ export default function SimulationResultSummary() {
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">Run Metadata</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Started</span><span>{run.started_at ? new formatNumber(Date(run.started_at), 0) : '—'}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Completed</span><span>{run.completed_at ? new formatNumber(Date(run.completed_at), 0) : '—'}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Started</span><span>{run.started_at ? formatAuditTimestamp(run.started_at) : '—'}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Completed</span><span>{run.completed_at ? formatAuditTimestamp(run.completed_at) : '—'}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Duration</span><span>{run.duration_ms}ms</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Triggered By</span><span>{run.triggered_by || 'Unknown'}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Country</span><span>{run.country_code}</span></div>

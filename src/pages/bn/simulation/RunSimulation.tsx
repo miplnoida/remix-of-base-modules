@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { useSimPermission } from '@/hooks/bn/useSimPermission';
 import SimAccessDenied from '@/components/bn/simulation/SimAccessDenied';
 
-import { formatNumber } from '@/lib/culture/culture';
+import { formatAuditTimestamp, formatNumber } from '@/lib/culture/culture';
 const RUN_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   PENDING: 'outline',
   RUNNING: 'secondary',
@@ -150,7 +150,7 @@ export default function RunSimulation() {
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-muted-foreground">
-                          {run.started_at ? new formatNumber(Date(run.started_at), 0) : '—'}
+                          {run.started_at ? formatAuditTimestamp(run.started_at) : '—'}
                         </span>
                         <Button variant="ghost" size="sm">
                           <Eye className="h-3 w-3 mr-1" /> View

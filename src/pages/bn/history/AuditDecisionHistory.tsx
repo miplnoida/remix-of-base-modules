@@ -32,7 +32,7 @@ import { formatDateForDisplay } from '@/lib/format-config';
 import { supabase } from '@/integrations/supabase/client';
 import { useTablePagination } from '@/hooks/useTablePagination';
 
-import { formatNumber } from '@/lib/culture/culture';
+import { formatAuditTimestamp, formatNumber } from '@/lib/culture/culture';
 const db = supabase as any;
 
 interface AuditEvent {
@@ -270,7 +270,7 @@ export default function AuditDecisionHistory() {
                             <TableCell className="font-mono text-xs">{e.ssn || '—'}</TableCell>
                             <TableCell className="text-xs">{e.performed_by}</TableCell>
                             <TableCell className="text-xs text-muted-foreground">
-                              {e.performed_at ? new formatNumber(Date(e.performed_at), 0) : '—'}
+                              {e.performed_at ? formatAuditTimestamp(e.performed_at) : '—'}
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
                               {e.narrative || '—'}
@@ -348,7 +348,7 @@ export default function AuditDecisionHistory() {
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase">Date/Time</p>
-                    <p className="text-sm">{new formatNumber(Date(selected.performed_at), 0)}</p>
+                    <p className="text-sm">{formatAuditTimestamp(selected.performed_at)}</p>
                   </div>
                 </div>
 
