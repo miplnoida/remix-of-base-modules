@@ -75,6 +75,7 @@ import {
   type FormFieldDef,
 } from '@/services/bn/forms/sectionCatalogue';
 import type { PersonSummary, Dependant } from '@/services/bn/integration';
+import PaymentDetailsSection from '@/components/bn/payment/PaymentDetailsSection';
 
 
 type DocStatus = 'PROVIDED' | 'PENDING' | 'WAIVED';
