@@ -176,15 +176,15 @@ export function SendEligibilityFailureNoticeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="p-6 pb-2 shrink-0 border-b">
           <DialogTitle>Send Eligibility Failure Notice</DialogTitle>
           <DialogDescription>
             Event <span className="font-mono">{EVENT_CODE}</span> — delivery methods, recipients and templates are driven by Product Catalog → Communications. All actions are audited.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 px-6 py-4 overflow-y-auto flex-1 min-h-0">
           {/* Failed rules summary */}
           <section className="rounded border p-3 bg-muted/30">
             <div className="text-xs font-medium mb-1.5 flex items-center gap-2">
@@ -273,7 +273,7 @@ export function SendEligibilityFailureNoticeDialog({
           </section>
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 p-4 border-t shrink-0 bg-background">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={trigger.isPending}>
             Cancel
           </Button>
