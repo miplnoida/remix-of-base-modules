@@ -309,7 +309,7 @@ export default function PostIssueEnhanced() {
                       </div>
                       <div className="text-right">
                         <p className="font-mono font-medium">
-                          {c.amount?formatNumber(, 2)}
+                          {formatNumber(c.amount ?? 0, 2)}
                         </p>
                         <Button
                           variant="ghost"

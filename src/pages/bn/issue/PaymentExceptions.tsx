@@ -497,7 +497,7 @@ export default function PaymentExceptions() {
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase">Amount</p>
-                    <p className="font-mono text-sm">{selectedEx.amount?formatNumber(, 2) || '—'}</p>
+                    <p className="font-mono text-sm">{selectedEx.amount != null ? formatNumber(selectedEx.amount, 2) : '—'}</p>
                   </div>
                 </div>
 
