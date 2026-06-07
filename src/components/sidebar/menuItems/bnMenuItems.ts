@@ -137,6 +137,13 @@ const _bnMenuItemsRaw = [
         description: "Complete claim-side updates after payment issue",
       },
       {
+        title: "Cheque Stock",
+        url: "/bn/cheque-stock",
+        icon: Package,
+        requiresPermission: "benefits_management",
+        description: "Register cheque-book ranges per bank account",
+      },
+      {
         title: "Payment History",
         url: "/bn/payment-history",
         icon: History,
