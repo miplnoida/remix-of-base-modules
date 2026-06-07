@@ -189,17 +189,6 @@ const EFFECT_APPLIERS: Record<PolicyArea, (r: OverrideRequest, actor: string) =>
   COMMUNICATION: applyCommunication,
 };
 
-const EFFECT_APPLIERS: Record<PolicyArea, (r: OverrideRequest) => Promise<EffectResult>> = {
-  ELIGIBILITY: applyEligibility,
-  CALCULATION: applyCalculation,
-  DOCUMENTS: applyDocument,
-  AMENDMENTS: applyAmendment,
-  PARTICIPANTS: applyParticipant,
-  WORKFLOW: applyWorkflow,
-  AWARD: applyAward,
-  PAYMENT: applyPayment,
-  COMMUNICATION: applyCommunication,
-};
 
 // ─── Helpers ───────────────────────────────────────────────────────────
 
