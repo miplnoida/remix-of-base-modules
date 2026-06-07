@@ -32,6 +32,7 @@ import {
   PauseCircle,
   Wrench,
   FlaskConical,
+  Mail,
 } from "lucide-react";
 import { filterMenuByFeatures } from "@/lib/bn/featureToggles";
 
@@ -277,6 +278,13 @@ const _bnMenuItemsRaw = [
         description: "Library · Classification of product rules.",
       },
       // ── Governance ──
+      {
+        title: "Communication Templates",
+        url: "/bn/config/communication-templates",
+        icon: Mail,
+        requiresPermission: "benefits_management",
+        description: "Manage benefit notification templates centrally — letters, emails, SMS, in-app messages.",
+      },
       {
         title: "Rule Version Governance",
         url: "/bn/config/rules-admin",
