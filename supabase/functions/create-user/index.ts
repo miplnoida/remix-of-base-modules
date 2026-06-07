@@ -140,31 +140,56 @@ Deno.serve(async (req: Request) => {
       payload_json: { email, first_name, last_name, roles: assignRoles },
     }, correlationId);
 
+    // Normalize email (auth stores lowercase)
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    // Pre-check: does an auth user with this email already exist?
+    let existingUser: any = null;
+    try {
+      const { data: existingList } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
+      existingUser = existingList?.users?.find((u: any) => (u.email || "").toLowerCase() === normalizedEmail) || null;
+    } catch (_) { /* ignore – fall through to createUser */ }
+
+    if (existingUser) {
+      return new Response(
+        JSON.stringify({
+          error: `A user with email "${normalizedEmail}" already exists. Please use a different email or edit the existing user.`,
+          code: "EMAIL_ALREADY_EXISTS",
+          existing_user_id: existingUser.id,
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Create the user using admin API (doesn't affect caller's session)
     const { data: authData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: normalizedEmail,
       password,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: {
-        full_name: `${first_name} ${last_name}`.trim(),
-      },
+      email_confirm: true,
+      user_metadata: { full_name: `${first_name} ${last_name}`.trim() },
     });
 
     if (createError) {
-      // Log error
+      const msg = String(createError.message || "");
+      const isDup = /already been registered|already exists|duplicate/i.test(msg);
       await logToSystem(supabaseAdmin, 'system_error_logs', {
         api_name: 'create-user',
         module: 'UserManagement',
         error_type: 'UserCreationError',
-        error_message: createError.message,
-        severity: 'error',
+        error_message: msg,
+        severity: isDup ? 'warning' : 'error',
         user_id: callingUser.id,
-        payload_json: { email },
+        payload_json: { email: normalizedEmail },
       }, correlationId);
 
       return new Response(
-        JSON.stringify({ error: createError.message }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: isDup
+            ? `A user with email "${normalizedEmail}" already exists. Please use a different email.`
+            : msg,
+          code: isDup ? "EMAIL_ALREADY_EXISTS" : "USER_CREATE_FAILED",
+        }),
+        { status: isDup ? 409 : 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
