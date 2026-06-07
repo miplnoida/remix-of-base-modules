@@ -159,6 +159,9 @@ export function SendEligibilityFailureNoticeDialog({
         ctx: {
           productVersionId: productVersionId || undefined,
           userCode,
+          currentUserId: currentUserId || undefined,
+          currentUserEmail,
+          currentUserName: currentUserName || undefined,
           reasonCode: 'ELIGIBILITY_FAILED',
           reasonDescription: officerNote || undefined,
           appealDeadline: appealDeadline || undefined,
