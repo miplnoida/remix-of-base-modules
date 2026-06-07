@@ -5,6 +5,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
 import type { BnCalcTraceEntry, BnEngineLayer } from '@/types/bnCalcEngine';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface Props {
   trace: BnCalcTraceEntry[];
 }
@@ -89,7 +90,7 @@ export default function CalcTraceViewer({ trace }: Props) {
                       <TableCell className="text-sm font-medium">{item.stepLabel}</TableCell>
                       <TableCell className="text-xs font-mono text-muted-foreground">{item.ruleCode || '—'}</TableCell>
                       <TableCell className="text-sm font-mono">
-                        {item.outputValue != null ? item.outputValue.toLocaleString() : item.outputText || '—'}
+                        {item.outputValue != null ? formatNumber(item.outputValue, 0) : item.outputText || '—'}
                       </TableCell>
                       <TableCell>{severityBadge(item.severity)}</TableCell>
                       <TableCell className="text-xs max-w-xs truncate">{item.message || ''}</TableCell>

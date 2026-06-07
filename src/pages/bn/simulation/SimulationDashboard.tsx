@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useSimPermission } from '@/hooks/bn/useSimPermission';
 import SimAccessDenied from '@/components/bn/simulation/SimAccessDenied';
 
+import { formatDate } from '@/lib/culture/culture';
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'outline',
   RUNNING: 'secondary',
@@ -99,7 +100,7 @@ export default function SimulationDashboard() {
                     </div>
                     {s.description && <p className="text-xs text-muted-foreground mt-1 truncate">{s.description}</p>}
                     <p className="text-xs text-muted-foreground mt-1">
-                      Created {new Date(s.entered_at).toLocaleDateString()} · {s.country_code}
+                      Created {new formatDate(Date(s.entered_at))} · {s.country_code}
                     </p>
                   </div>
                   <div className="flex gap-2" onClick={e => e.stopPropagation()}>

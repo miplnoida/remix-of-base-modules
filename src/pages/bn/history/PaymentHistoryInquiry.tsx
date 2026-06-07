@@ -32,6 +32,7 @@ import { formatDateForDisplay } from '@/lib/format-config';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 
+import { formatNumber } from '@/lib/culture/culture';
 const db = supabase as any;
 
 interface PaymentRecord {
@@ -256,7 +257,7 @@ export default function PaymentHistoryInquiry() {
               <div>
                 <p className="text-xs text-muted-foreground">Total Amount</p>
                 <p className="text-xl font-bold font-mono">
-                  {stats.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  {formatNumber(stats.totalAmount, 2)}
                 </p>
               </div>
             </CardContent>
@@ -320,7 +321,7 @@ export default function PaymentHistoryInquiry() {
                         <TableCell className="text-xs">{r.claim_number || '—'}</TableCell>
                         <TableCell className="font-mono text-xs">{r.cheque_number || r.dd_reference || '—'}</TableCell>
                         <TableCell className="text-right font-mono text-xs">
-                          {r.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          {formatNumber(r.amount, 2)}
                         </TableCell>
                         <TableCell className="text-xs">{r.payment_method}</TableCell>
                         <TableCell><BnStatusBadge status={r.status} size="sm" dot /></TableCell>
@@ -383,7 +384,7 @@ export default function PaymentHistoryInquiry() {
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase">Amount</p>
                     <p className="font-mono text-sm font-medium">
-                      {selected.currency} {selected.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      {selected.currency} {formatNumber(selected.amount, 2)}
                     </p>
                   </div>
                   <div>

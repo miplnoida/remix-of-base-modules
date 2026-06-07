@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { formatDateForDisplay } from '@/lib/format-config';
 import type { HistoricalDisbursementRecord } from '@/services/bn/historicalInquiryService';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface DisbursementsHistoryTableProps {
   data: HistoricalDisbursementRecord[];
   onViewDetail: (record: HistoricalDisbursementRecord) => void;
@@ -61,7 +62,7 @@ export const DisbursementsHistoryTable: React.FC<DisbursementsHistoryTableProps>
                 <TableCell className="font-mono text-xs">{rec.ssn}</TableCell>
                 <TableCell className="text-sm">{rec.payee_name}</TableCell>
                 <TableCell className="text-right font-mono text-sm font-medium">
-                  ${rec.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  ${formatNumber(rec.amount, 2)}
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-[10px]">{rec.payment_method}</Badge>

@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Mail, MessageSquare, FileText, Bell, AlertTriangle, RefreshCw, Printer, Send, CheckCircle2, XCircle, Clock } from 'lucide-react';
-import { format } from 'date-fns';
 import {
   useBnClaimCommunicationHistory,
   useBnTriggerCommunication,
@@ -14,6 +13,7 @@ import {
 import { useUserCode } from '@/hooks/useUserCode';
 import { toast } from 'sonner';
 
+import { formatAuditTimestamp } from '@/lib/culture/culture';
 interface Props { claimId: string; productVersionId?: string; }
 
 const STATUS_TONE: Record<string, string> = {
@@ -40,7 +40,7 @@ const channelIcon = (ch: string) => {
   return <Bell className="h-3.5 w-3.5" />;
 };
 
-const formatTime = (iso?: string) => (iso ? format(new Date(iso), 'dd/MM/yyyy HH:mm') : '—');
+const formatTime = (iso?: string) => (iso ? formatAuditTimestamp(iso) : '—');
 
 export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId }) => {
   const { userCode: userCodeRaw } = useUserCode();

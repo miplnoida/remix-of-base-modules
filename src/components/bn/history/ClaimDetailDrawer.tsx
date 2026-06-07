@@ -11,6 +11,7 @@ import { useBnHistoricalClaimDetail } from '@/hooks/bn/useBnHistoricalInquiry';
 import type { HistoricalClaimRecord } from '@/services/bn/historicalInquiryService';
 import { useNavigate } from 'react-router-dom';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface ClaimDetailDrawerProps {
   claim: HistoricalClaimRecord | null;
   open: boolean;
@@ -149,7 +150,7 @@ export const ClaimDetailDrawer: React.FC<ClaimDetailDrawerProps> = ({ claim, ope
                         </div>
                         <div className="text-right">
                           <span className="font-mono text-sm font-medium">
-                            ${d.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            ${formatNumber(d.amount, 2)}
                           </span>
                           <Badge variant="outline" className="text-[9px] ml-2">
                             {d.source_table.replace('cl_cheques', 'STD').replace('_holding', 'HELD').replace('_survivor', 'SURV')}

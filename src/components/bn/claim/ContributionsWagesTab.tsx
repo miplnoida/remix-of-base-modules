@@ -8,6 +8,7 @@ import { BarChart3, TrendingUp } from 'lucide-react';
 import { useBnContributionSummary } from '@/hooks/bn/useBnIntegration';
 import { BnDetailRow, BnDetailSection, BnEmptyState, BnStatCard } from '@/components/bn/shared';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface ContributionsWagesTabProps {
   ssn: string;
   windowStart?: string;
@@ -45,7 +46,7 @@ export const ContributionsWagesTab: React.FC<ContributionsWagesTabProps> = ({
         />
         <BnStatCard
           title="Total Contributions"
-          value={`$${summary.totalAmount.toLocaleString('en', { minimumFractionDigits: 2 })}`}
+          value={`$${formatNumber(summary.totalAmount, 2)}`}
           icon={TrendingUp}
         />
         <BnStatCard

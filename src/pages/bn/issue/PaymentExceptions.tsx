@@ -37,6 +37,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDateForDisplay } from '@/lib/format-config';
 
+import { formatNumber } from '@/lib/culture/culture';
 const db = supabase as any;
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -429,7 +430,7 @@ export default function PaymentExceptions() {
                       <TableCell className="text-xs">{ex.claim_number || '—'}</TableCell>
                       <TableCell className="font-mono text-xs">{ex.related_cheque_no || '—'}</TableCell>
                       <TableCell className="text-right font-mono text-xs">
-                        {ex.amount ? ex.amount.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '—'}
+                        {ex.amount ? formatNumber(ex.amount, 2) : '—'}
                       </TableCell>
                       <TableCell><BnStatusBadge status={ex.status} size="sm" dot /></TableCell>
                       <TableCell className="text-xs text-muted-foreground">
@@ -496,7 +497,7 @@ export default function PaymentExceptions() {
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground uppercase">Amount</p>
-                    <p className="font-mono text-sm">{selectedEx.amount?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '—'}</p>
+                    <p className="font-mono text-sm">{selectedEx.amount?formatNumber(, 2) || '—'}</p>
                   </div>
                 </div>
 

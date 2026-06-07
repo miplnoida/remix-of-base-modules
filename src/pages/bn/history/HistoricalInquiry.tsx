@@ -17,6 +17,7 @@ import type {
   HistoricalDisbursementRecord,
 } from '@/services/bn/historicalInquiryService';
 
+import { formatNumber } from '@/lib/culture/culture';
 const StatCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; color?: string }> = ({
   icon: Icon, label, value, color = 'text-primary',
 }) => (
@@ -89,7 +90,7 @@ export default function HistoricalInquiry() {
             <>
               <StatCard icon={CreditCard} label="Results" value={disbQuery.data?.length || 0} />
               <StatCard icon={TrendingUp} label="Total Disbursed" value={
-                `$${(disbQuery.data?.reduce((s, d) => s + d.amount, 0) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+                `$${formatNumber((disbQuery.data?.reduce((s, d) => s + d.amount, 0) || 0), 2)}`
               } />
               <StatCard icon={Lock} label="Held" value={disbQuery.data?.filter(d => d.source_table === 'cl_cheques_holding').length || 0} />
               <StatCard icon={AlertCircle} label="Survivor" value={disbQuery.data?.filter(d => d.source_table === 'cl_cheques_survivor').length || 0} />

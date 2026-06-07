@@ -13,6 +13,7 @@ import SimConfigSnapshotViewer from '@/components/bn/simulation/SimConfigSnapsho
 import { useSimPermission } from '@/hooks/bn/useSimPermission';
 import SimAccessDenied from '@/components/bn/simulation/SimAccessDenied';
 
+import { formatNumber } from '@/lib/culture/culture';
 export default function SimulationResultSummary() {
   const { id: scenarioId, runId } = useParams<{ id: string; runId: string }>();
   const navigate = useNavigate();
@@ -69,7 +70,7 @@ export default function SimulationResultSummary() {
               <DollarSign className="h-4 w-4 text-primary" />
               <span className="text-xs text-muted-foreground">Weekly Rate</span>
             </div>
-            <p className="text-lg font-bold text-emerald-700">${numVal('weekly_rate').toLocaleString()}</p>
+            <p className="text-lg font-bold text-emerald-700">${formatNumber(numVal('weekly_rate'), 0)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -78,7 +79,7 @@ export default function SimulationResultSummary() {
               <DollarSign className="h-4 w-4 text-primary" />
               <span className="text-xs text-muted-foreground">Monthly Rate</span>
             </div>
-            <p className="text-lg font-bold text-emerald-700">${numVal('monthly_rate').toLocaleString()}</p>
+            <p className="text-lg font-bold text-emerald-700">${formatNumber(numVal('monthly_rate'), 0)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -87,7 +88,7 @@ export default function SimulationResultSummary() {
               <DollarSign className="h-4 w-4 text-primary" />
               <span className="text-xs text-muted-foreground">Lump Sum</span>
             </div>
-            <p className="text-lg font-bold text-emerald-700">${numVal('lump_sum').toLocaleString()}</p>
+            <p className="text-lg font-bold text-emerald-700">${formatNumber(numVal('lump_sum'), 0)}</p>
           </CardContent>
         </Card>
       </div>
@@ -109,7 +110,7 @@ export default function SimulationResultSummary() {
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Calc Type</span><Badge variant="outline">{strVal('calc_type')}</Badge></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Rounding</span><span>{strVal('rounding_rule')}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Annual Amount</span><span className="font-bold">${numVal('annual_amount').toLocaleString()}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Annual Amount</span><span className="font-bold">${formatNumber(numVal('annual_amount'), 0)}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Errors</span><Badge variant={numVal('error_count') > 0 ? 'destructive' : 'outline'}>{numVal('error_count')}</Badge></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Warnings</span><Badge variant={numVal('warning_count') > 0 ? 'secondary' : 'outline'}>{numVal('warning_count')}</Badge></div>
               </CardContent>
@@ -117,8 +118,8 @@ export default function SimulationResultSummary() {
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm">Run Metadata</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-muted-foreground">Started</span><span>{run.started_at ? new Date(run.started_at).toLocaleString() : '—'}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Completed</span><span>{run.completed_at ? new Date(run.completed_at).toLocaleString() : '—'}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Started</span><span>{run.started_at ? new formatNumber(Date(run.started_at), 0) : '—'}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Completed</span><span>{run.completed_at ? new formatNumber(Date(run.completed_at), 0) : '—'}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Duration</span><span>{run.duration_ms}ms</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Triggered By</span><span>{run.triggered_by || 'Unknown'}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Country</span><span>{run.country_code}</span></div>

@@ -27,6 +27,7 @@ import {
   type BnOverpaymentRow,
 } from '@/services/bn/awardServicingService';
 
+import { formatNumber } from '@/lib/culture/culture';
 const statusConfig: Record<string, { label: string; color: string }> = {
   OPEN: { label: 'Open', color: 'bg-amber-500/10 text-amber-700 border-amber-300' },
   DETECTED: { label: 'Detected', color: 'bg-amber-500/10 text-amber-700 border-amber-300' },
@@ -45,7 +46,7 @@ interface EnrichedOP extends BnOverpaymentRow {
   claimantName: string;
 }
 
-const fmt = (n: number) => `$${(n ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+const fmt = (n: number) => `$${formatNumber((n ?? 0), 2)}`;
 
 const OverpaymentRecovery: React.FC = () => {
   const { isAuthReady, isAuthenticated, profile, hasAnyRole } = useSupabaseAuth();

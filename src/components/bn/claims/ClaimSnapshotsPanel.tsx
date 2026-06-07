@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle2, AlertTriangle, XCircle, User, Building2, Wallet } from 'lucide-react';
 import { useBnClaimWorkspace } from '@/hooks/bn/useBnClaimIntake';
 
+import { formatNumber } from '@/lib/culture/culture';
 const statusIcon = (s: string) =>
   s === 'PASS' ? <CheckCircle2 className="h-4 w-4 text-success" />
   : s === 'WARN' ? <AlertTriangle className="h-4 w-4 text-warning" />
@@ -47,7 +48,7 @@ export function ClaimSnapshotsPanel({ claimId }: Props) {
           </CardHeader>
           <CardContent className="text-sm grid sm:grid-cols-2 gap-2">
             <div><span className="text-muted-foreground">Submitted by:</span> {application.submitted_by_user_id ?? '—'} ({application.submitted_by_type})</div>
-            <div><span className="text-muted-foreground">Submitted at:</span> {new Date(application.submitted_at).toLocaleString()}</div>
+            <div><span className="text-muted-foreground">Submitted at:</span> {new formatNumber(Date(application.submitted_at), 0)}</div>
             <div><span className="text-muted-foreground">Declaration:</span> {application.declaration_accepted ? 'Accepted' : 'Not accepted'}</div>
             <div><span className="text-muted-foreground">Source IP:</span> {application.source_ip ?? '—'}</div>
           </CardContent>

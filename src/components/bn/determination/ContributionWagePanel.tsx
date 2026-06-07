@@ -4,6 +4,7 @@ import { BnStatCard, BnEmptyState } from '@/components/bn/shared';
 import { BarChart3, TrendingUp, Wallet, Calendar } from 'lucide-react';
 import type { ContributionSummary } from '@/services/bn/determinationService';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface Props {
   summary: ContributionSummary | null;
 }
@@ -34,7 +35,7 @@ export const ContributionWagePanel: React.FC<Props> = ({ summary }) => {
       <CardContent>
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <BnStatCard title="Total Weeks" value={summary.totalWeeks} icon={BarChart3} subtitle={`${summary.windowStart} – ${summary.windowEnd}`} />
-          <BnStatCard title="Total Amount" value={`$${summary.totalAmount.toLocaleString('en', { minimumFractionDigits: 2 })}`} icon={TrendingUp} />
+          <BnStatCard title="Total Amount" value={`$${formatNumber(summary.totalAmount, 2)}`} icon={TrendingUp} />
           <BnStatCard title="Avg Weekly Wage" value={`$${summary.averageWeeklyWage.toFixed(2)}`} icon={BarChart3} />
           <BnStatCard title="Window" value={`${summary.windowStart} – ${summary.windowEnd}`} icon={Calendar} />
         </div>

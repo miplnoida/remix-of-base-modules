@@ -5,6 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { CheckCircle, XCircle, DollarSign, Calendar, Users, AlertTriangle } from 'lucide-react';
 import type { BnCalcEngineOutput } from '@/types/bnCalcEngine';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface Props {
   result: BnCalcEngineOutput;
 }
@@ -82,9 +83,9 @@ export default function CalcResultSummary({ result }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <div className="flex justify-between"><span className="text-muted-foreground">Avg Weekly Wage</span><span className="font-semibold">${wageAggregation.averageWeeklyWage.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Avg Annual Wage</span><span>${wageAggregation.averageAnnualWage.toLocaleString()}</span></div>
-          <div className="flex justify-between"><span className="text-muted-foreground">Total Wages</span><span>${wageAggregation.totalWages.toLocaleString()}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Avg Weekly Wage</span><span className="font-semibold">${formatNumber(wageAggregation.averageWeeklyWage, 0)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Avg Annual Wage</span><span>${formatNumber(wageAggregation.averageAnnualWage, 0)}</span></div>
+          <div className="flex justify-between"><span className="text-muted-foreground">Total Wages</span><span>${formatNumber(wageAggregation.totalWages, 0)}</span></div>
           {wageAggregation.wagesCapped && <Badge className="bg-amber-100 text-amber-800 text-xs">Capped at ${wageAggregation.cappedAmount}</Badge>}
         </CardContent>
       </Card>
@@ -99,9 +100,9 @@ export default function CalcResultSummary({ result }: Props) {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <div className="flex justify-between"><span className="text-muted-foreground">Calc Type</span><Badge variant="outline">{formulaResult.calcType}</Badge></div>
-          {formulaResult.finalWeeklyRate > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Weekly Rate</span><span className="font-bold text-emerald-700">${formulaResult.finalWeeklyRate.toLocaleString()}</span></div>}
-          {formulaResult.finalMonthlyRate > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Monthly Rate</span><span className="font-bold text-emerald-700">${formulaResult.finalMonthlyRate.toLocaleString()}</span></div>}
-          {formulaResult.finalLumpSum > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Lump Sum</span><span className="font-bold text-emerald-700">${formulaResult.finalLumpSum.toLocaleString()}</span></div>}
+          {formulaResult.finalWeeklyRate > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Weekly Rate</span><span className="font-bold text-emerald-700">${formatNumber(formulaResult.finalWeeklyRate, 0)}</span></div>}
+          {formulaResult.finalMonthlyRate > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Monthly Rate</span><span className="font-bold text-emerald-700">${formatNumber(formulaResult.finalMonthlyRate, 0)}</span></div>}
+          {formulaResult.finalLumpSum > 0 && <div className="flex justify-between"><span className="text-muted-foreground">Lump Sum</span><span className="font-bold text-emerald-700">${formatNumber(formulaResult.finalLumpSum, 0)}</span></div>}
           <Separator />
           <div className="flex justify-between text-xs">
             <span>Rounding: {formulaResult.roundingRule}</span>
@@ -149,7 +150,7 @@ export default function CalcResultSummary({ result }: Props) {
           {beneficiarySplits.map((b, i) => (
             <div key={i} className="flex justify-between text-sm">
               <span>{b.beneficiaryName} ({b.relationship})</span>
-              <span className="font-semibold">{b.percentage}% — ${b.amount.toLocaleString()}</span>
+              <span className="font-semibold">{b.percentage}% — ${formatNumber(b.amount, 0)}</span>
             </div>
           ))}
         </CardContent>
@@ -183,8 +184,8 @@ export default function CalcResultSummary({ result }: Props) {
                       <td className="py-1 px-2">{p.sequenceNumber}</td>
                       <td className="py-1 px-2">{p.paymentDate}</td>
                       <td className="py-1 px-2">{p.periodFrom} — {p.periodTo}</td>
-                      <td className="py-1 px-2 text-right">${p.grossAmount.toLocaleString()}</td>
-                      <td className="py-1 px-2 text-right font-semibold">${p.netAmount.toLocaleString()}</td>
+                      <td className="py-1 px-2 text-right">${formatNumber(p.grossAmount, 0)}</td>
+                      <td className="py-1 px-2 text-right font-semibold">${formatNumber(p.netAmount, 0)}</td>
                       <td className="py-1 px-2"><Badge variant="outline" className="text-xs">{p.paymentType}</Badge></td>
                     </tr>
                   ))}

@@ -10,6 +10,7 @@ import {
 import { Loader2 } from 'lucide-react';
 import { useBnAvailablePayables } from '@/hooks/bn/useBnBatchOperations';
 
+import { formatNumber } from '@/lib/culture/culture';
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -99,7 +100,7 @@ export const AddPayablesDialog: React.FC<Props> = ({
                         : '—'}
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs">
-                      {(p.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      {formatNumber((p.amount || 0), 2)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -110,7 +111,7 @@ export const AddPayablesDialog: React.FC<Props> = ({
 
         <DialogFooter className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            {selected.size} selected • Total: {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            {selected.size} selected • Total: {formatNumber(totalAmount, 2)}
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={onClose} disabled={isAdding}>Cancel</Button>
