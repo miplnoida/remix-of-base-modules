@@ -202,6 +202,12 @@ export async function orchestrateApproval(
     .update({ status: toStatus, modified_by: performedBy, modified_at: new Date().toISOString() })
     .eq('id', claimId);
 
+  // Phase 4: route to next workbasket if transition rule declared one.
+  if (sideEffect.nextWorkbasketId) {
+    await assignClaimToWorkbasket(claimId, sideEffect.nextWorkbasketId, performedBy, `Auto-routed by ${taskType}`);
+  }
+
+
   await db.from('bn_claim_event').insert({
     claim_id: claimId,
     event_type: periodic ? 'AWARD_CREATED' : 'PAYABLE_QUEUED',
