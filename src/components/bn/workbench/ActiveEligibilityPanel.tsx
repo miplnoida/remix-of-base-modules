@@ -136,7 +136,7 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
               </Badge>
             </CardTitle>
             <div className="flex items-center gap-2">
-              {!passed && productVersionId && (
+              {!passed && (
                 <Button size="sm" variant="default" onClick={() => setNoticeOpen(true)} className="gap-1">
                   <Send className="h-3.5 w-3.5" />
                   Send Eligibility Failure Notice
@@ -258,16 +258,15 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
         />
       )}
 
-      {productVersionId && (
-        <SendEligibilityFailureNoticeDialog
-          open={noticeOpen}
-          onOpenChange={setNoticeOpen}
-          claimId={claimId}
-          productVersionId={productVersionId}
-          userCode={userCode}
-          failedRules={rules.filter((r: any) => !r.passed)}
-        />
-      )}
+      <SendEligibilityFailureNoticeDialog
+        open={noticeOpen}
+        onOpenChange={setNoticeOpen}
+        claimId={claimId}
+        productVersionId={productVersionId}
+        userCode={userCode}
+        failedRules={rules.filter((r: any) => !r.passed)}
+        eligibilitySnapshot={latest}
+      />
     </div>
   );
 };
