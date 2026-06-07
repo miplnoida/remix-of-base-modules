@@ -18,6 +18,7 @@ import {
 } from '@/hooks/bn/useBnConfig';
 import type { BnProductChannelConfig, BnChannelCode } from '@/types/bn';
 import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
+import { ChannelConfigValidationPanel } from './ChannelConfigValidationPanel';
 
 interface Props {
   productId: string | undefined;
@@ -223,6 +224,10 @@ export function ChannelsTab({ productId, versionId, isReadOnly, versionStatus }:
                     { k: 'blocks_submission_if_documents_missing', label: 'Block Submission if Documents Missing' },
                     { k: 'blocks_submission_if_precheck_fails', label: 'Block Submission if Precheck Fails' },
                     { k: 'correction_allowed', label: 'Allow Corrections After Submission' },
+                    { k: 'payment_required_at_application', label: 'Payment Required at Application' },
+                    { k: 'payment_required_before_approval', label: 'Payment Required Before Approval' },
+                    { k: 'payment_required_before_payment', label: 'Payment Required Before Payment' },
+                    { k: 'allow_manual_workbasket_override', label: 'Allow Manual Workbasket Override' },
                   ].map(({ k, label }) => (
                     <div key={k} className="flex items-center justify-between">
                       <Label className="text-sm">{label}</Label>
@@ -232,6 +237,20 @@ export function ChannelsTab({ productId, versionId, isReadOnly, versionStatus }:
                       />
                     </div>
                   ))}
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="text-sm">Payment Details Visibility</Label>
+                    <Select
+                      value={(cfg as any)?.payment_details_visibility ?? 'SHOW'}
+                      onValueChange={v => save(channel, { payment_details_visibility: v } as any)}
+                    >
+                      <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="SHOW">Show (editable)</SelectItem>
+                        <SelectItem value="READONLY">Read-only</SelectItem>
+                        <SelectItem value="HIDE">Hide</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="flex items-center justify-between gap-2">
                     <Label className="text-sm">Correction Deadline (days)</Label>
                     <Input
@@ -249,6 +268,8 @@ export function ChannelsTab({ productId, versionId, isReadOnly, versionStatus }:
           );
         })}
       </div>
+
+      <ChannelConfigValidationPanel productVersionId={versionId} />
     </div>
   );
 }
