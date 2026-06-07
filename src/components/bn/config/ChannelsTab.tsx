@@ -268,6 +268,8 @@ export function ChannelsTab({ productId, versionId, isReadOnly, versionStatus }:
           );
         })}
       </div>
+
+      <ChannelConfigValidationPanel productVersionId={versionId} />
     </div>
   );
 }
