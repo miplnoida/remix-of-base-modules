@@ -80,17 +80,28 @@ export async function validatePayable(
     errors.push('Payment method not set');
   }
 
-  // 6/7) Method-specific snapshots
-  if (instr.payment_method === 'DIRECT_DEPOSIT' || instr.payment_method === 'EFT') {
-    const snap = instr.bank_account_snapshot || {};
-    if (!snap.account_number || !snap.routing_number) {
-      errors.push('Bank account/routing details missing for EFT');
+  // 6/7) Verified payment profile via unified resolver (new framework).
+  //       Falls back to legacy snapshot fields if no profile exists yet.
+  try {
+    const resolved = await resolveProfileForPayable({
+      personSsn: instr.ssn,
+      method: instr.payment_method,
+      currency: instr.currency,
+      payeeId: instr.payee_id ?? null,
+    });
+    if (resolved.blocked) {
+      // If a legacy snapshot is present, downgrade to warning to avoid breaking existing batches.
+      const hasLegacy =
+        (instr.payment_method === 'EFT' && instr.bank_account_snapshot?.account_number) ||
+        (instr.payment_method === 'CHEQUE' && (instr.cheque_address_snapshot?.line1 || instr.cheque_address_snapshot?.address));
+      if (hasLegacy) warnings.push(`Payment profile: ${resolved.reason} (using legacy snapshot)`);
+      else errors.push(`Payment profile: ${resolved.reason}`);
+    } else if (resolved.profile && !instr.payment_profile_id) {
+      // Link the resolved profile for traceability
+      await db.from('bn_payment_instruction').update({ payment_profile_id: resolved.profile.id }).eq('id', instructionId);
     }
-  } else if (instr.payment_method === 'CHEQUE') {
-    const addr = instr.cheque_address_snapshot || {};
-    if (!addr.line1 && !addr.address) {
-      warnings.push('Cheque mailing address not captured');
-    }
+  } catch (e) {
+    warnings.push('Could not resolve payment profile');
   }
 
   // 8) Duplicate payment for same period
