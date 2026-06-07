@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, CheckCircle, XCircle, Clock, Send, Copy, Loader2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useUpdateBnProductVersion, useCopyBnVersionRules, usePublishBnProductVersion, useRetireBnProductVersion } from '@/hooks/bn/useBnProduct';
-import { useBnVersionApprovals, useCreateBnVersionApproval } from '@/hooks/bn/useBnConfig';
+import { useCreateBnVersionApproval } from '@/hooks/bn/useBnConfig';
 import { BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProductVersion, BnProductStatus } from '@/types/bn';
 import { useState } from 'react';
@@ -108,7 +108,6 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
 
   if (!productId) return <Card><CardContent className="py-8 text-center text-muted-foreground">Save the product first.</CardContent></Card>;
 
-  const draftVersions = versions.filter(v => v.status === 'DRAFT');
   const sourceVersions = versions.filter(v => v.status !== 'DRAFT' || v.id !== copyDialog?.targetVersionId);
 
   return (
