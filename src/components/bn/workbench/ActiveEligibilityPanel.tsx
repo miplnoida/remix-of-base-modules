@@ -29,11 +29,7 @@ interface Props {
   productVersionId?: string | null;
 }
 
-const SUPERVISOR_ROLES = ['BN_SUPERVISOR', 'BN_MANAGER', 'SUPERVISOR', 'MANAGER', 'ADMIN', 'SUPER_ADMIN'];
-const REQUESTER_ROLES = ['BN_OFFICER', 'BN_CLERK', 'BN_SUPERVISOR', 'BN_MANAGER', 'ADMIN', 'SUPER_ADMIN', 'OFFICER'];
-
-const hasAnyRole = (roles: string[] | undefined, allowed: string[]) =>
-  !!roles?.some((r) => allowed.map((x) => x.toUpperCase()).includes(String(r).toUpperCase()));
+import { usePolicy } from '@/hooks/bn/usePolicy';
 
 export const ActiveEligibilityPanel: React.FC<Props> = ({
   claimId,
@@ -46,14 +42,27 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
   const qc = useQueryClient();
   const latest = eligibility?.[0];
 
+  // Legacy policy (kept for rule-overrideability metadata until eligibilityOverrideService is fully migrated)
   const { data: policy } = useQuery<ProductOverridePolicy | null>({
     queryKey: ['bn', 'override-policy', productVersionId],
     queryFn: () => (productVersionId ? loadOverridePolicy(productVersionId) : Promise.resolve(null)),
     enabled: !!productVersionId,
   });
 
-  const canRequest = hasAnyRole(userRoles, REQUESTER_ROLES);
-  const canReview = hasAnyRole(userRoles, SUPERVISOR_ROLES);
+  // New policy-driven gating: who may request / approve eligibility overrides
+  const { data: approvalPolicy } = usePolicy(productVersionId || undefined, 'ELIGIBILITY');
+
+  const normalizedRoles = (userRoles ?? []).map((r) => String(r || '').toUpperCase());
+  const requiredApproverRole = approvalPolicy?.approval_role?.toUpperCase();
+
+  // Request gate: policy must be enabled. Any signed-in user may request unless
+  // a specific approver role is also configured as the requester gate (rare).
+  const canRequest = !!approvalPolicy?.is_enabled;
+
+  // Approve gate: must hold the configured approver role.
+  const canReview =
+    !!approvalPolicy?.is_enabled &&
+    (!requiredApproverRole || normalizedRoles.includes(requiredApproverRole));
 
   const [overrideRule, setOverrideRule] = useState<any | null>(null);
 

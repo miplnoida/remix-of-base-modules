@@ -243,9 +243,31 @@ export async function reviewOverride(
   if (be || !before) throw be ?? new Error('Override request not found.');
   if (before.status !== 'PENDING') throw new Error('This request has already been reviewed.');
   if (before.requested_by === reviewedBy) {
-    const isSuperAdmin = reviewerRoles.some((r) => r?.toUpperCase() === 'SUPER_ADMIN');
-    if (!isSuperAdmin) {
-      throw new Error('Maker-checker: a different supervisor must approve this override. Only Super Admin can self-approve.');
+    // Self-approval is controlled by the product's ELIGIBILITY approval policy
+    // (bn_approval_policy.self_approval_allowed) — never by a hardcoded role.
+    let selfApprovalAllowed = false;
+    try {
+      const { data: pv } = await db
+        .from('bn_claim')
+        .select('product_version_id')
+        .eq('id', before.claim_id)
+        .maybeSingle();
+      const productVersionId = pv?.product_version_id;
+      if (productVersionId) {
+        const { data: pol } = await db
+          .from('bn_approval_policy')
+          .select('self_approval_allowed,is_enabled')
+          .eq('product_version_id', productVersionId)
+          .eq('policy_area', 'ELIGIBILITY')
+          .eq('action_code', 'DEFAULT')
+          .maybeSingle();
+        selfApprovalAllowed = !!pol?.is_enabled && !!pol?.self_approval_allowed;
+      }
+    } catch {
+      // fall through — selfApprovalAllowed stays false
+    }
+    if (!selfApprovalAllowed) {
+      throw new Error('Maker-checker: a different reviewer must approve this override (self-approval is disabled for this product).');
     }
   }
 

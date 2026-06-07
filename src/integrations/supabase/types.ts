@@ -4456,6 +4456,111 @@ export type Database = {
         }
         Relationships: []
       }
+      bn_approval_policy: {
+        Row: {
+          action_code: string
+          allowed_rule_codes: string[]
+          allowed_statuses: string[]
+          approval_role: string | null
+          approval_workbasket_id: string | null
+          audit_required: boolean
+          blocked_rule_codes: string[]
+          blocked_statuses: string[]
+          created_at: string
+          created_by: string | null
+          expiry_status: string | null
+          id: string
+          is_enabled: boolean
+          max_override_amount: number | null
+          max_override_percent: number | null
+          non_waivable: boolean
+          notes: string | null
+          policy_area: string
+          product_version_id: string
+          reason_code_group: string | null
+          requires_document: boolean
+          requires_justification: boolean
+          requires_reason_code: boolean
+          requires_supervisor_approval: boolean
+          self_approval_allowed: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          action_code?: string
+          allowed_rule_codes?: string[]
+          allowed_statuses?: string[]
+          approval_role?: string | null
+          approval_workbasket_id?: string | null
+          audit_required?: boolean
+          blocked_rule_codes?: string[]
+          blocked_statuses?: string[]
+          created_at?: string
+          created_by?: string | null
+          expiry_status?: string | null
+          id?: string
+          is_enabled?: boolean
+          max_override_amount?: number | null
+          max_override_percent?: number | null
+          non_waivable?: boolean
+          notes?: string | null
+          policy_area: string
+          product_version_id: string
+          reason_code_group?: string | null
+          requires_document?: boolean
+          requires_justification?: boolean
+          requires_reason_code?: boolean
+          requires_supervisor_approval?: boolean
+          self_approval_allowed?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          action_code?: string
+          allowed_rule_codes?: string[]
+          allowed_statuses?: string[]
+          approval_role?: string | null
+          approval_workbasket_id?: string | null
+          audit_required?: boolean
+          blocked_rule_codes?: string[]
+          blocked_statuses?: string[]
+          created_at?: string
+          created_by?: string | null
+          expiry_status?: string | null
+          id?: string
+          is_enabled?: boolean
+          max_override_amount?: number | null
+          max_override_percent?: number | null
+          non_waivable?: boolean
+          notes?: string | null
+          policy_area?: string
+          product_version_id?: string
+          reason_code_group?: string | null
+          requires_document?: boolean
+          requires_justification?: boolean
+          requires_reason_code?: boolean
+          requires_supervisor_approval?: boolean
+          self_approval_allowed?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_approval_policy_policy_area_fkey"
+            columns: ["policy_area"]
+            isOneToOne: false
+            referencedRelation: "bn_policy_area"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "bn_approval_policy_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_award: {
         Row: {
           award_number: string | null
@@ -9175,6 +9280,162 @@ export type Database = {
           },
         ]
       }
+      bn_override_request: {
+        Row: {
+          action_code: string
+          applied_at: string | null
+          applied_by: string | null
+          claim_id: string
+          correlation_id: string | null
+          created_at: string
+          current_value: Json | null
+          expires_at: string | null
+          id: string
+          justification: string | null
+          policy_area: string
+          policy_id: string | null
+          product_version_id: string
+          reason_code: string | null
+          requested_at: string
+          requested_by: string
+          requested_value: Json | null
+          review_decision: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rule_code: string | null
+          status: string
+          supporting_document_id: string | null
+          target_entity_id: string | null
+          target_entity_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_code?: string
+          applied_at?: string | null
+          applied_by?: string | null
+          claim_id: string
+          correlation_id?: string | null
+          created_at?: string
+          current_value?: Json | null
+          expires_at?: string | null
+          id?: string
+          justification?: string | null
+          policy_area: string
+          policy_id?: string | null
+          product_version_id: string
+          reason_code?: string | null
+          requested_at?: string
+          requested_by: string
+          requested_value?: Json | null
+          review_decision?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rule_code?: string | null
+          status?: string
+          supporting_document_id?: string | null
+          target_entity_id?: string | null
+          target_entity_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_code?: string
+          applied_at?: string | null
+          applied_by?: string | null
+          claim_id?: string
+          correlation_id?: string | null
+          created_at?: string
+          current_value?: Json | null
+          expires_at?: string | null
+          id?: string
+          justification?: string | null
+          policy_area?: string
+          policy_id?: string | null
+          product_version_id?: string
+          reason_code?: string | null
+          requested_at?: string
+          requested_by?: string
+          requested_value?: Json | null
+          review_decision?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rule_code?: string | null
+          status?: string
+          supporting_document_id?: string | null
+          target_entity_id?: string | null
+          target_entity_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_override_request_policy_area_fkey"
+            columns: ["policy_area"]
+            isOneToOne: false
+            referencedRelation: "bn_policy_area"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "bn_override_request_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "bn_approval_policy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_override_request_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_override_request_event: {
+        Row: {
+          actor: string
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          notes: string | null
+          payload: Json | null
+          request_id: string
+          to_status: string | null
+        }
+        Insert: {
+          actor: string
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          payload?: Json | null
+          request_id: string
+          to_status?: string | null
+        }
+        Update: {
+          actor?: string
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          notes?: string | null
+          payload?: Json | null
+          request_id?: string
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_override_request_event_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "bn_override_request"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_payment_instruction: {
         Row: {
           account_number: string | null
@@ -9323,6 +9584,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bn_policy_area: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          display_name: string
+          is_active: boolean
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          display_name: string
+          is_active?: boolean
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          is_active?: boolean
+          sort_order?: number
+        }
+        Relationships: []
       }
       bn_product: {
         Row: {
