@@ -140,10 +140,23 @@ export interface BnEligibilityRule {
   entered_at: string;
   // Phase 2 — Rule Builder redesign
   group_code: string | null;
-  severity: 'BLOCK' | 'WARN';
+  severity: 'BLOCK' | 'WARN' | 'BLOCKING' | 'REFER' | 'WARNING' | 'INFO';
   overrideable: boolean;
   override_policy_code: string | null;
   fact_key: string | null;
+  // Phase 3 — Typed rule engine
+  rule_kind?: 'LITERAL' | 'FACT_TO_FACT' | 'DATE_DIFFERENCE' | 'DOCUMENT_STATUS' | 'EXISTS' | 'CROSS_PRODUCT' | 'DERIVED_FACT' | 'CONDITIONAL' | null;
+  start_fact_key?: string | null;
+  end_fact_key?: string | null;
+  fallback_end_fact_key?: string | null;
+  compare_fact_key?: string | null;
+  document_type_code?: string | null;
+  required_status?: string | null;
+  existence_check_code?: string | null;
+  unit?: 'DAYS' | 'WEEKS' | 'MONTHS' | 'YEARS' | null;
+  reason_code_group?: string | null;
+  conditional_when?: Record<string, unknown> | null;
+  message_template?: string | null;
 }
 
 export interface BnFormulaTemplate {
