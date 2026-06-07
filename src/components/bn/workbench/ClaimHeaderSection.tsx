@@ -22,7 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BnStatusBadge } from '@/components/bn/shared';
 import { BN_CLAIM_STATUS_LABELS } from '@/types/bn';
-import { formatDateForDisplay } from '@/lib/format-config';
+import { formatDisplayDate } from '@/lib/dateFormat';
 
 interface ClaimHeaderSectionProps {
   claim: {
