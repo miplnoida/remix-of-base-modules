@@ -65,8 +65,9 @@ export async function diagnoseRecipient(
   claimId: string,
   recipientType: BnRecipientType,
   channel: BnChannel,
+  ctx?: BnCommContext,
 ): Promise<RecipientDiagnosis> {
-  const recipient = await resolveRecipient(claimId, recipientType, channel);
+  const recipient = await resolveRecipient(claimId, recipientType, channel, ctx);
   if (!recipient) {
     return { resolvable: false, missing: ['recipient'], reason: `${recipientType} record not found on claim` };
   }
