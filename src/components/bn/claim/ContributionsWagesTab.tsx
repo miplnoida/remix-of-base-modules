@@ -9,6 +9,7 @@ import { useBnContributionSummary } from '@/hooks/bn/useBnIntegration';
 import { BnDetailRow, BnDetailSection, BnEmptyState, BnStatCard } from '@/components/bn/shared';
 
 import { formatNumber } from '@/lib/culture/culture';
+import { formatDisplayDate } from '@/lib/dateFormat';
 interface ContributionsWagesTabProps {
   ssn: string;
   windowStart?: string;
