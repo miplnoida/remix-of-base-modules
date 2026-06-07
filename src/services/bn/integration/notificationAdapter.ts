@@ -33,7 +33,7 @@ export const bnNotificationAdapter: IBnNotificationAdapter = {
     // Look up the person's contact info
     const { data: person } = await db
       .from('ip_master')
-      .select('email, phone_cell, first_name, surname')
+      .select('email_addr, contact_email, mobile, phone_mobile, contact_mobile, phone, telephone, firstname, surname')
       .eq('ssn', request.recipientSsn.trim())
       .maybeSingle();
 
@@ -42,20 +42,23 @@ export const bnNotificationAdapter: IBnNotificationAdapter = {
       return { sent: false };
     }
 
+    const email = person.email_addr || person.contact_email || null;
+    const phone = person.mobile || person.phone_mobile || person.contact_mobile || person.phone || person.telephone || null;
+
     // Insert into the platform's notification queue
     const { data, error } = await db
       .from('notification_queue')
       .insert({
         template_key: templateKey,
-        recipient_email: request.channel !== 'sms' ? person.email : null,
-        recipient_phone: request.channel !== 'email' ? person.phone_cell : null,
-        recipient_name: `${person.first_name || ''} ${person.surname || ''}`.trim(),
+        recipient_email: request.channel !== 'sms' ? email : null,
+        recipient_phone: request.channel !== 'email' ? phone : null,
+        recipient_name: `${person.firstname || ''} ${person.surname || ''}`.trim(),
         channel: request.channel,
         template_data: {
           ...request.templateData,
           claimId: request.claimId,
           awardId: request.awardId,
-          recipientName: `${person.first_name || ''} ${person.surname || ''}`.trim(),
+          recipientName: `${person.firstname || ''} ${person.surname || ''}`.trim(),
         },
         module: 'benefit_management',
         entity_type: request.claimId ? 'claim' : 'award',
