@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, Edit, GripVertical, FlaskConical, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Trash2, Edit, GripVertical, FlaskConical, CheckCircle2, XCircle, Sparkles, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBnEligibilityRules, useUpsertBnEligibilityRule, useDeleteBnEligibilityRule } from '@/hooks/bn/useBnProduct';
 import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
@@ -24,6 +24,8 @@ import {
 } from '@/services/bn/eligibility/fieldRegistry';
 import { resolveField, type ResolvedValue } from '@/services/bn/eligibility/fieldResolver';
 import { evaluateOperator } from '@/services/bn/eligibility/operatorEvaluator';
+import { RULE_GROUPS, defaultGroupForFact } from '@/services/bn/eligibility/eligibilityFactRegistry';
+import { RULE_TEMPLATES, type RuleTemplate } from '@/services/bn/eligibility/ruleTemplates';
 
 import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
@@ -33,6 +35,7 @@ const emptyRule: Partial<BnEligibilityRule> = {
   rule_code: '', rule_name: '', rule_type: 'CONTRIBUTION', rule_group: 'GENERAL',
   rule_definition: { field_key: '', operator: '>=', value: 0, window_type: 'LIFETIME' },
   data_source: '', fail_message: '', fail_action: 'REJECT', sort_order: 0, is_active: true,
+  group_code: 'CORE_IDENTITY', severity: 'BLOCK', overrideable: false, override_policy_code: null, fact_key: null,
 };
 
 export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Props) {
