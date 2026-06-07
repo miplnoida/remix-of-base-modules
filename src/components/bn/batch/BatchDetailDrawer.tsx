@@ -15,6 +15,7 @@ import { useBnBatchDetail, useBnBatchItems } from '@/hooks/bn/useBnBatchOperatio
 import { getAvailableBatchActions, type BatchAction, type ExecuteBatchActionParams } from '@/services/bn/batchOperationsService';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { AddPayablesDialog } from '@/components/bn/batch/AddPayablesDialog';
+import { PaymentExecutionPanel } from '@/components/bn/batch/PaymentExecutionPanel';
 
 import { formatNumber } from '@/lib/culture/culture';
 const ACTION_CONFIG: Record<string, { label: string; icon: any; variant: any; requiresNarrative: boolean }> = {
