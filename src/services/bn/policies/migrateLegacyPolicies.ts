@@ -176,9 +176,12 @@ export async function migrateLegacyOverridePoliciesToApprovalPolicies(
   return stats;
 }
 
-export async function countLegacyOverridePolicies(productVersionId?: string): Promise<number> {
-  let q = db.from('bn_override_policy').select('id', { count: 'exact', head: true });
-  if (productVersionId) q = q.eq('product_version_id', productVersionId);
+export async function countLegacyOverridePolicies(productId?: string): Promise<number> {
+  let q = db
+    .from('bn_override_policy')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_active', true);
+  if (productId) q = q.eq('product_id', productId);
   const { count, error } = await q;
   if (error) return 0;
   return count ?? 0;
