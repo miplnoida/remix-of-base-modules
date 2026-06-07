@@ -44,7 +44,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   ArrowLeft, ArrowRight, Save, Search, ShieldCheck, AlertCircle,
   AlertTriangle, Loader2, FileText, CheckCircle2, Link2, UserPlus,
-  StickyNote, FlagTriangleRight, Inbox, ListChecks, Stethoscope,
+  StickyNote, FlagTriangleRight, Inbox, ListChecks, Stethoscope, Banknote,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -94,6 +94,7 @@ const STEPS = [
   { key: 'eligibility', label: 'Eligibility Pre-checks', icon: CheckCircle2 },
   { key: 'documents', label: 'Required Documents', icon: ListChecks },
   { key: 'facts', label: 'Benefit Facts', icon: Stethoscope },
+  { key: 'banking', label: 'Banking / Payment', icon: Banknote },
   { key: 'internal', label: 'Internal Options', icon: StickyNote },
   { key: 'review', label: 'Review & Submit', icon: Save },
 ] as const;
@@ -367,6 +368,7 @@ export default function ClaimRegistration() {
       case 'eligibility':
       case 'documents':
       case 'facts':
+      case 'banking':
       case 'internal':
         return null;
       case 'review': return null;
@@ -712,15 +714,38 @@ export default function ClaimRegistration() {
                 <div className="grid gap-3 md:grid-cols-2">
                   {factFields.map(f => (
                     <Field key={f.field_code} label={f.field_label}>
-                      <FactInput field={f} value={factValues[f.field_code]} onChange={v => setFactValues(prev => ({ ...prev, [f.field_code]: v }))} />
+                      <FactInput
+                        field={f}
+                        value={factValues[f.field_code]}
+                        onChange={v => setFactValues(prev => ({ ...prev, [f.field_code]: v }))}
+                        existingClaims={existingClaims}
+                      />
                     </Field>
                   ))}
                 </div>
               </StepCard>
             )}
 
+            {step === 'banking' && (
+              <StepCard title="9. Banking / Payment Details" desc="Captured via the unified Payment Details framework — same form, validation, and policy as the claimant portal and online application.">
+                {ssn ? (
+                  <PaymentDetailsSection
+                    mode="edit"
+                    channel="STAFF_OFFLINE"
+                    productId={productId || null}
+                    personSsn={ssn}
+                    userCode={userCode}
+                  />
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Bank / payment details become available once an SSN is captured.
+                  </p>
+                )}
+              </StepCard>
+            )}
+
             {step === 'internal' && (
-              <StepCard title="9. Internal Options" desc="Priority, notes, basket routing, and supervisor escalation.">
+              <StepCard title="10. Internal Options" desc="Priority, notes, basket routing, and supervisor escalation.">
                 <div className="grid gap-3 md:grid-cols-2">
                   <Field label="Priority">
                     <Select value={priority} onValueChange={v => setPriority(v as any)}>
@@ -746,20 +771,6 @@ export default function ClaimRegistration() {
                   <Field label="Contact Phone"><Input value={contactPhone} onChange={e => setContactPhone(e.target.value)} /></Field>
                   <Field label="Contact Email"><Input value={contactEmail} onChange={e => setContactEmail(e.target.value)} /></Field>
                 </div>
-                {ssn && (
-                  <PaymentDetailsSection
-                    mode="edit"
-                    channel="STAFF_OFFLINE"
-                    productId={productId || null}
-                    personSsn={ssn}
-                    userCode={userCode}
-                  />
-                )}
-                {!ssn && (
-                  <p className="text-xs text-muted-foreground">
-                    Bank / payment details become available once an SSN is captured. Uses the unified Payment Details framework.
-                  </p>
-                )}
                 <Field label="Internal Notes">
                   <Textarea value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={3} maxLength={500} />
                 </Field>
@@ -880,7 +891,40 @@ function FactInput({
   field,
   value,
   onChange,
-}: { field: FormFieldDef; value: any; onChange: (v: any) => void }) {
+  existingClaims,
+}: {
+  field: FormFieldDef;
+  value: any;
+  onChange: (v: any) => void;
+  existingClaims: ExistingClaimRecord[];
+}) {
+  // Special case: Prior Injury Claim Reference must be picked from the
+  // claimant's prior injury claims, not entered as free text.
+  if (field.field_code === 'prior_injury_claim_ref') {
+    const injuryClaims = existingClaims.filter(c => {
+      const code = (c.product_code ?? '').toUpperCase();
+      return code.includes('EI') || code.includes('INJ');
+    });
+    if (injuryClaims.length === 0) {
+      return (
+        <Input value="" disabled placeholder="No prior injury claims on file" />
+      );
+    }
+    return (
+      <Select value={value ?? ''} onValueChange={onChange}>
+        <SelectTrigger><SelectValue placeholder="Select prior injury claim…" /></SelectTrigger>
+        <SelectContent>
+          {injuryClaims.map(c => (
+            <SelectItem key={c.id} value={c.claim_number ?? c.id}>
+              {(c.claim_number ?? c.id)} — {c.product_code ?? '—'} · {c.status ?? '—'}
+              {c.claim_date ? ` · ${formatDateForDisplay(c.claim_date)}` : ''}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    );
+  }
+
   switch (field.field_type) {
     case 'TEXTAREA':
       return <Textarea value={value ?? ''} onChange={e => onChange(e.target.value)} />;
