@@ -404,6 +404,10 @@ function formatValue(v: unknown): string {
   return String(v);
 }
 
+function safeDefaultGroup(factKey: string): string {
+  try { return defaultGroupForFact(factKey); } catch { return 'SPECIAL'; }
+}
+
 function mapCategoryToRuleType(cat: string): string {
   switch (cat) {
     case 'CONTRIBUTION': return 'CONTRIBUTION';
