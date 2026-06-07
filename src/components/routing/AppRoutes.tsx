@@ -1846,6 +1846,7 @@ export const AppRoutes = () => {
       <Route path="/bn/batches" element={<BnFeatureGate flag="bn.payments"><BnBatchOperations /></BnFeatureGate>} />
       <Route path="/bn/issue" element={<BnFeatureGate flag="bn.payments"><BnPaymentIssue /></BnFeatureGate>} />
       <Route path="/bn/post-issue" element={<BnFeatureGate flag="bn.payments"><BnPostIssueReview /></BnFeatureGate>} />
+      <Route path="/bn/cheque-stock" element={<BnFeatureGate flag="bn.payments"><BnChequeStock /></BnFeatureGate>} />
       <Route path="/bn/history" element={<BnFeatureGate flag="bn.historicalInquiry"><BnHistoricalInquiry /></BnFeatureGate>} />
       <Route path="/bn/exceptions" element={<BnFeatureGate flag="bn.payments"><BnPaymentExceptions /></BnFeatureGate>} />
       <Route path="/bn/post-issue-enhanced" element={<BnFeatureGate flag="bn.payments"><BnPostIssueEnhanced /></BnFeatureGate>} />
