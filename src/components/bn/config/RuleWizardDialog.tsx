@@ -16,6 +16,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Wand2 } from 'lucide-react';
+import { TestRulePanel } from './TestRulePanel';
 import type { BnEligibilityRule } from '@/types/bn';
 import { useToast } from '@/hooks/use-toast';
 import { useUpsertBnEligibilityRule } from '@/hooks/bn/useBnProduct';
@@ -364,7 +365,10 @@ export function RuleWizardDialog({ open, onOpenChange, productVersionId, product
           <div className="space-y-1">
             <Label className="text-xs">Fail message (legacy fallback)</Label>
             <Textarea rows={2} value={rule.fail_message ?? ''} onChange={(e) => set({ fail_message: e.target.value })} />
-          </div>
+
+
+          <TestRulePanel rule={rule} productCode={productCode} />
+        </div>
         </div>
 
         <DialogFooter>
