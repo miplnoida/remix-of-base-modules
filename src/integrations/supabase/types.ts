@@ -4881,6 +4881,90 @@ export type Database = {
           },
         ]
       }
+      bn_batch_item: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          amount: number
+          batch_id: string
+          beneficiary_name: string | null
+          cl_cheque_no: string | null
+          claim_number: string | null
+          currency: string
+          id: string
+          instruction_id: string
+          instruction_type: string
+          issue_error: string | null
+          issued_at: string | null
+          item_status: string
+          payment_method: string | null
+          period_end: string | null
+          period_start: string | null
+          sequence_number: number
+          ssn: string
+          validation_errors: Json | null
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          amount: number
+          batch_id: string
+          beneficiary_name?: string | null
+          cl_cheque_no?: string | null
+          claim_number?: string | null
+          currency?: string
+          id?: string
+          instruction_id: string
+          instruction_type?: string
+          issue_error?: string | null
+          issued_at?: string | null
+          item_status?: string
+          payment_method?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          sequence_number?: number
+          ssn: string
+          validation_errors?: Json | null
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          amount?: number
+          batch_id?: string
+          beneficiary_name?: string | null
+          cl_cheque_no?: string | null
+          claim_number?: string | null
+          currency?: string
+          id?: string
+          instruction_id?: string
+          instruction_type?: string
+          issue_error?: string | null
+          issued_at?: string | null
+          item_status?: string
+          payment_method?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          sequence_number?: number
+          ssn?: string
+          validation_errors?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_batch_item_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_batch"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_batch_item_instruction_id_fkey"
+            columns: ["instruction_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_instruction"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_branch: {
         Row: {
           branch_code: string
@@ -8273,6 +8357,130 @@ export type Database = {
           },
         ]
       }
+      bn_issue_record: {
+        Row: {
+          amount: number
+          batch_id: string | null
+          batch_item_id: string | null
+          beneficiary_name: string | null
+          cheque_number: string | null
+          claim_number: string | null
+          created_at: string
+          currency: string
+          dd_reference: string | null
+          error_message: string | null
+          hold_reason: string | null
+          hold_released_at: string | null
+          hold_released_by: string | null
+          id: string
+          instruction_id: string | null
+          instruction_type: string | null
+          issue_method: string
+          issued_at: string | null
+          issued_by: string | null
+          max_retries: number
+          period_end: string | null
+          period_start: string | null
+          reissue_of: string | null
+          retry_count: number
+          ssn: string
+          status: string
+          survivor_id: string | null
+          target_table: string
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          amount: number
+          batch_id?: string | null
+          batch_item_id?: string | null
+          beneficiary_name?: string | null
+          cheque_number?: string | null
+          claim_number?: string | null
+          created_at?: string
+          currency?: string
+          dd_reference?: string | null
+          error_message?: string | null
+          hold_reason?: string | null
+          hold_released_at?: string | null
+          hold_released_by?: string | null
+          id?: string
+          instruction_id?: string | null
+          instruction_type?: string | null
+          issue_method?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          max_retries?: number
+          period_end?: string | null
+          period_start?: string | null
+          reissue_of?: string | null
+          retry_count?: number
+          ssn: string
+          status?: string
+          survivor_id?: string | null
+          target_table?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          amount?: number
+          batch_id?: string | null
+          batch_item_id?: string | null
+          beneficiary_name?: string | null
+          cheque_number?: string | null
+          claim_number?: string | null
+          created_at?: string
+          currency?: string
+          dd_reference?: string | null
+          error_message?: string | null
+          hold_reason?: string | null
+          hold_released_at?: string | null
+          hold_released_by?: string | null
+          id?: string
+          instruction_id?: string | null
+          instruction_type?: string | null
+          issue_method?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          max_retries?: number
+          period_end?: string | null
+          period_start?: string | null
+          reissue_of?: string | null
+          retry_count?: number
+          ssn?: string
+          status?: string
+          survivor_id?: string | null
+          target_table?: string
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_issue_record_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_batch"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_issue_record_batch_item_id_fkey"
+            columns: ["batch_item_id"]
+            isOneToOne: false
+            referencedRelation: "bn_batch_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_issue_record_instruction_id_fkey"
+            columns: ["instruction_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_instruction"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_letter: {
         Row: {
           approved_at: string | null
@@ -9423,24 +9631,192 @@ export type Database = {
           },
         ]
       }
+      bn_payment_batch: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          batch_date: string
+          batch_number: string
+          cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          failed_items: number
+          id: string
+          issue_completed_at: string | null
+          issue_error_count: number
+          issue_started_at: string | null
+          issued_items: number
+          notes: string | null
+          office_code: string
+          payment_method: string
+          released_at: string | null
+          released_by: string | null
+          status: string
+          total_amount: number
+          total_items: number
+          validated_at: string | null
+          validated_by: string | null
+          validated_items: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          batch_date?: string
+          batch_number: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          failed_items?: number
+          id?: string
+          issue_completed_at?: string | null
+          issue_error_count?: number
+          issue_started_at?: string | null
+          issued_items?: number
+          notes?: string | null
+          office_code?: string
+          payment_method?: string
+          released_at?: string | null
+          released_by?: string | null
+          status?: string
+          total_amount?: number
+          total_items?: number
+          validated_at?: string | null
+          validated_by?: string | null
+          validated_items?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          batch_date?: string
+          batch_number?: string
+          cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          failed_items?: number
+          id?: string
+          issue_completed_at?: string | null
+          issue_error_count?: number
+          issue_started_at?: string | null
+          issued_items?: number
+          notes?: string | null
+          office_code?: string
+          payment_method?: string
+          released_at?: string | null
+          released_by?: string | null
+          status?: string
+          total_amount?: number
+          total_items?: number
+          validated_at?: string | null
+          validated_by?: string | null
+          validated_items?: number
+        }
+        Relationships: []
+      }
+      bn_payment_exception: {
+        Row: {
+          batch_id: string | null
+          claim_id: string | null
+          description: string | null
+          exception_type: string
+          id: string
+          instruction_id: string | null
+          raised_at: string
+          raised_by: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+        }
+        Insert: {
+          batch_id?: string | null
+          claim_id?: string | null
+          description?: string | null
+          exception_type: string
+          id?: string
+          instruction_id?: string | null
+          raised_at?: string
+          raised_by?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Update: {
+          batch_id?: string | null
+          claim_id?: string | null
+          description?: string | null
+          exception_type?: string
+          id?: string
+          instruction_id?: string | null
+          raised_at?: string
+          raised_by?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_payment_exception_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_batch"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_payment_exception_instruction_id_fkey"
+            columns: ["instruction_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_instruction"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_payment_instruction: {
         Row: {
           account_number: string | null
           amount: number
           award_id: string | null
           bank_code: string | null
+          batch_id: string | null
+          beneficiary_name: string | null
           cancel_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           claim_id: string | null
           created_at: string
           currency: string
           description: string | null
           due_date: string
           entitlement_id: string | null
+          exception_at: string | null
+          exception_code: string | null
+          exception_detail: string | null
           frequency: string
+          hold_at: string | null
+          hold_by: string | null
+          hold_reason: string | null
           id: string
+          instruction_type: string | null
+          modified_at: string | null
+          modified_by: string | null
+          office_code: string | null
+          original_instruction_id: string | null
           paid_date: string | null
           payment_method: string
           payment_reference: string | null
+          period_end: string | null
+          period_start: string | null
+          reissue_reason: string | null
           ssn: string
           status: string
           updated_at: string
@@ -9450,18 +9826,36 @@ export type Database = {
           amount: number
           award_id?: string | null
           bank_code?: string | null
+          batch_id?: string | null
+          beneficiary_name?: string | null
           cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           claim_id?: string | null
           created_at?: string
           currency?: string
           description?: string | null
           due_date: string
           entitlement_id?: string | null
+          exception_at?: string | null
+          exception_code?: string | null
+          exception_detail?: string | null
           frequency?: string
+          hold_at?: string | null
+          hold_by?: string | null
+          hold_reason?: string | null
           id?: string
+          instruction_type?: string | null
+          modified_at?: string | null
+          modified_by?: string | null
+          office_code?: string | null
+          original_instruction_id?: string | null
           paid_date?: string | null
           payment_method?: string
           payment_reference?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          reissue_reason?: string | null
           ssn: string
           status?: string
           updated_at?: string
@@ -9471,23 +9865,48 @@ export type Database = {
           amount?: number
           award_id?: string | null
           bank_code?: string | null
+          batch_id?: string | null
+          beneficiary_name?: string | null
           cancel_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           claim_id?: string | null
           created_at?: string
           currency?: string
           description?: string | null
           due_date?: string
           entitlement_id?: string | null
+          exception_at?: string | null
+          exception_code?: string | null
+          exception_detail?: string | null
           frequency?: string
+          hold_at?: string | null
+          hold_by?: string | null
+          hold_reason?: string | null
           id?: string
+          instruction_type?: string | null
+          modified_at?: string | null
+          modified_by?: string | null
+          office_code?: string | null
+          original_instruction_id?: string | null
           paid_date?: string | null
           payment_method?: string
           payment_reference?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          reissue_reason?: string | null
           ssn?: string
           status?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "bn_payment_instruction_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_batch"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bn_payment_instruction_entitlement_id_fkey"
             columns: ["entitlement_id"]
@@ -9598,6 +10017,96 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      bn_post_issue_task: {
+        Row: {
+          amount: number | null
+          batch_id: string | null
+          cheque_number: string | null
+          claim_number: string | null
+          created_at: string
+          deferred_reason: string | null
+          error_message: string | null
+          executed_at: string | null
+          executed_by: string | null
+          id: string
+          is_required: boolean
+          issue_record_id: string | null
+          max_retries: number
+          notes: string | null
+          result_data: Json | null
+          retry_count: number
+          skip_reason: string | null
+          ssn: string | null
+          status: string
+          target_table: string | null
+          task_order: number
+          task_type: string
+        }
+        Insert: {
+          amount?: number | null
+          batch_id?: string | null
+          cheque_number?: string | null
+          claim_number?: string | null
+          created_at?: string
+          deferred_reason?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          id?: string
+          is_required?: boolean
+          issue_record_id?: string | null
+          max_retries?: number
+          notes?: string | null
+          result_data?: Json | null
+          retry_count?: number
+          skip_reason?: string | null
+          ssn?: string | null
+          status?: string
+          target_table?: string | null
+          task_order?: number
+          task_type: string
+        }
+        Update: {
+          amount?: number | null
+          batch_id?: string | null
+          cheque_number?: string | null
+          claim_number?: string | null
+          created_at?: string
+          deferred_reason?: string | null
+          error_message?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          id?: string
+          is_required?: boolean
+          issue_record_id?: string | null
+          max_retries?: number
+          notes?: string | null
+          result_data?: Json | null
+          retry_count?: number
+          skip_reason?: string | null
+          ssn?: string | null
+          status?: string
+          target_table?: string | null
+          task_order?: number
+          task_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_post_issue_task_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_batch"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_post_issue_task_issue_record_id_fkey"
+            columns: ["issue_record_id"]
+            isOneToOne: false
+            referencedRelation: "bn_issue_record"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_product: {
         Row: {
