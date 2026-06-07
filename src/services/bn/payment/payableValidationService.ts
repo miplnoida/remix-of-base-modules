@@ -3,6 +3,7 @@
  * Runs the 8 readiness checks for a payment instruction before it can be batched/issued.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { resolveProfileForPayable } from './paymentProfileService';
 const db = supabase as any;
 
 export interface PayableValidationResult {
