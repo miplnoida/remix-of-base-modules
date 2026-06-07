@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Save, Plus, History, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useBnProduct, useCreateBnProduct, useUpdateBnProduct, useBnProductVersions, useCreateBnProductVersion, useCopyBnVersionRules } from '@/hooks/bn/useBnProduct';
+import { useBnProduct, useCreateBnProduct, useUpdateBnProduct, useBnProductVersions, useCreateBnProductVersion, useCopyBnVersionRules, useCloneBnVersionToDraft } from '@/hooks/bn/useBnProduct';
+import { auditAttemptedActiveMutation } from '@/services/bn/productService';
+import { LiveVersionGuardDialog } from '@/components/bn/config/LiveVersionGuardDialog';
 import { useBnSchemes, useBnBranches } from '@/hooks/bn/useBnConfig';
 import { BN_CATEGORY_LABELS, BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProduct, BnProductVersion, BnProductStatus } from '@/types/bn';
