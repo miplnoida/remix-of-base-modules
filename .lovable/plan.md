@@ -1,162 +1,106 @@
 
-# Standardize BN Payment / EFT Details
+# BN Bank / EFT / Cheque — Configurable Masters
 
-A single Payment Details framework — used by claimant portal, public application, intake (staff/assisted), Claim Workbench, Entitlement setup, Payment Preparation, and the EFT Update service. No screen builds its own bank form.
+Treat BEMA as **operational reference only**. BN ships configurable masters instead of hardcoded DataWindow exports. A background research agent is parsing the BEMA artefacts (`d_t_directdepositrpt.srd`, `p_d_t_DirectDepositRpt.sql`, `d_export.srq`, `u_tab_cheque.sru`, `n_bso_cheque_print.sru`, `q_dbd_cheques*`, `ds_cheques_recon.srd`, DDL); its findings will be appended to the legacy-mapping doc in Phase 1 — they do **not** block the BN build because BN owns its own schema.
 
----
+## Phase 1 — Legacy mapping doc (no code)
+Output a short markdown file `docs/bn/legacy-payment-mapping.md`:
+- BEMA tables found vs. missing (bank master, branch master, EFT format, cheque stock, recon).
+- BEMA hardcoded export layout (header/detail/trailer) quoted verbatim so it can be entered as a seeded BN format.
+- Field-by-field map: BEMA column → `bn_payment_profile` / `bn_eft_format_field.source_field`.
+- Cheque concepts kept from BEMA: batch, number range, print / reprint / cancel / correct.
 
-## Phase 1 — Discovery (read-only)
+## Phase 2 — Schema migration (single migration, GRANTs included)
 
-Inspect and map current payment-detail touchpoints to identify the canonical fields and pick the strongest existing implementation as the base for the shared component.
+New tables (all with `service_role` + `authenticated` grants, audit triggers, updated_at):
 
-Files/areas to inspect:
-- Claimant portal EFT/bank update (existing claimant-side flow)
-- `src/components/bn/intake/*` — Register Claim / intake forms
-- `src/components/bn/workbench/*` — Claim Workbench award/payment tabs
-- `src/components/bn/entitlement/*` — Entitlement setup
-- `src/components/bn/batch/PaymentExecutionPanel.tsx` + `src/services/bn/payment/*` — payment prep
-- `src/pages/bn/product/*` — Product Catalog Screen & Fields, channel config, amendment policy
-- `bn_product_channel_config`, `bn_product_amendment_policy`, `bn_claim`, `bn_award`, `bn_entitlement`, `bn_payment_instruction` — current payment columns
-- Public online benefit application form
-- EFT Update service product definition
+- **`bn_bank_master`** — `bank_code` (PK), `country_code`, `bank_name`, `swift_code`, `clearing_code`, `default_currency`, `active`.
+- **`bn_bank_branch`** — `(bank_code, branch_code)` PK, `branch_name`, `routing_number`, `address_snapshot` JSONB, `active`.
+- **`bn_payment_method`** — `method_code` (`EFT`/`CHEQUE`/`CASH_PICKUP`/`INTERNAL_TRANSFER`), `method_name`, `requires_bank_account`, `requires_postal_address`, `active`.
+- **`bn_eft_format`** — `format_code` PK, `country_code`, `bank_code` (nullable = generic), `format_name`, `file_extension`, `delimiter`, `record_separator`, `date_format`, `amount_format`, `amount_decimals`, `header_required`, `trailer_required`, `encoding`, `active`.
+- **`bn_eft_format_field`** — `(format_code, record_type, order_index)` PK, `record_type` enum `HEADER|DETAIL|TRAILER`, `field_name`, `source_field` (dotted path into `bn_payment_instruction` + joined profile/bank/branch/batch), `start_position`, `length`, `padding` (`L`/`R`/`ZERO`/`NONE`), `pad_char`, `required`, `default_value`, `transform` (`UPPER`/`DIGITS`/`DATE_FMT`/...).
+- **`bn_cheque_stock`** — `(bank_account_code, cheque_start_no)` PK, `bank_code`, `branch_code`, `cheque_end_no`, `next_cheque_no`, `status` (`ACTIVE|EXHAUSTED|VOIDED`), `assigned_to_office`, `received_at`.
+- **`bn_cheque_register`** — `cheque_number` PK, `bank_account_code`, `batch_id` FK `bn_payment_batch`, `payment_instruction_id` FK, `payee_name`, `amount`, `currency`, `status` (`ASSIGNED|PRINTED|DELIVERED|REPRINTED|CANCELLED|RECONCILED`), `printed_at`, `printed_by`, `reprint_of`, `cancelled_at`, `cancel_reason`, `correction_of`, `reconciled_at`.
+- Extend `bn_payment_batch`: `eft_format_code`, `eft_file_storage_path`, `eft_control_total`, `eft_control_count`, `bank_response_status`, `bank_response_at`.
+- Extend `bn_payment_profile`: `bank_code` FK `bn_bank_master`, `branch_code` (paired with `bank_code` → `bn_bank_branch`).
 
-Deliverable: a short mapping doc (in-PR comment) of "where bank fields live today" and which become deprecated.
+Seed rows (channel `SEED-`): generic `EFT_GENERIC_FIXED`, `EFT_GENERIC_DELIMITED`, one per `eftFormatPresets.ts` entry; `CHEQUE` method; seed `bn_payment_method` rows.
 
----
+Register screens in `app_modules` + `module_actions` (auto-granted to Admin):
+`bn_bank_master`, `bn_bank_branch`, `bn_payment_method`, `bn_eft_format`, `bn_cheque_stock_admin`, `bn_cheque_register` — all under existing Payment Preparation parent.
 
-## Phase 2 — Data model
+## Phase 3 — Configuration UI
 
-New normalized tables:
+New page at `/bn/config/payment-masters` with tabs (single shell, lazy-loaded panels):
+1. **Payment Methods** — toggle per country.
+2. **Bank Master** — CRUD, search by SWIFT/clearing.
+3. **Bank Branches** — nested under selected bank, routing-number validation.
+4. **EFT Formats** — header card (delimiter/date/amount) + preset selector that seeds from `eftFormatPresets.ts`.
+5. **EFT Field Layout** — drag-reorderable rows per record type, live preview of one sample detail line built from a sample `bn_payment_instruction`.
+6. **Cheque Stock** — replaces existing simple `/bn/cheque-stock` page (keep route, swap content); add range allocation, status, next-number guard.
+7. **Cheque Number Rules** — per-bank-account: prefix, length, void-on-cancel?, reprint policy.
 
-**`bn_payment_profile`** — one verified profile per (person/payee, currency, method)
-- `id`, `person_ssn`, `payee_id` (nullable, FK `bn_claim_participant`)
-- `payment_method` (`EFT|CHEQUE|CASH_PICKUP|INTERNAL_TRANSFER`)
-- `bank_name`, `bank_code`, `branch_name`, `branch_code`
-- `account_number_masked`, `account_number_token` (nullable — encrypted/tokenized when vault available)
-- `account_holder_name`, `account_holder_relationship`, `account_type`
-- `payment_currency`
-- `postal_address_snapshot` (JSONB) — for cheque
-- `verification_status` (`UNVERIFIED|PENDING|VERIFIED|REJECTED`), `verified_by`, `verified_at`
-- `active` (bool), `effective_from`, `effective_to`
-- Unique partial index: one `active` profile per `(person_ssn, payee_id, payment_method, payment_currency)`.
+`CountryPaymentConfig` (existing EFT preset tab) stays for country-level defaults; it links across to the new EFT Format master rather than duplicating fields.
 
-**`bn_payment_profile_change_request`**
-- `id`, `profile_id` (nullable for first-time create), `claim_id` (nullable), `entitlement_id` (nullable)
-- `requested_by`, `channel` (`PUBLIC_ONLINE|STAFF_OFFLINE|ASSISTED_COUNTER|CLAIM_WORKBENCH|EFT_UPDATE_SERVICE|CLAIMANT_PORTAL`)
-- `old_profile_snapshot` (JSONB), `new_profile_snapshot` (JSONB)
-- `status` (`DRAFT|SUBMITTED|UNDER_REVIEW|APPROVED|REJECTED|CANCELLED`)
-- `reason`, `proof_document_ids` (uuid[]), `approved_by`, `approved_at`, `rejected_reason`
+## Phase 4 — Service layer
 
-Extensions:
-- `bn_payment_instruction` → add `payment_profile_id` (FK) and keep `bank_account_snapshot` as the audit snapshot.
-- `bn_claim_application` → keep raw submitted payment as JSONB snapshot only (no operational use).
-- `bn_product_channel_config` → add booleans: `payment_required_at_application`, `payment_required_before_approval`, `payment_required_before_payment`, `allow_third_party_payee`, `allow_guardian_payee`, `require_bank_verification`, `require_supervisor_approval_for_change`, `require_proof_for_change`, `cheque_address_required`; plus `allowed_payment_methods` (text[]), `default_payment_method`.
+- `bankMasterService.ts` — CRUD + lookup helpers.
+- `eftFormatService.ts`:
+  - `getFormatForBatch(batchId)` → resolves via `eft_format_code` → falls back to country preset.
+  - `buildEftFile(batchId)` — pure function over `bn_eft_format` + `bn_eft_format_field`, materialises HEADER/DETAILs/TRAILER, computes control totals, returns `{ filename, content, controlTotal, controlCount }`.
+  - `validateFormat(formatCode)` — required fields present, positions don't overlap, lengths > 0.
+- `chequeStockService.ts` (extend existing): `allocateNextNumbers(batchId, count)` — atomic update of `next_cheque_no`; writes `bn_cheque_register` rows in `ASSIGNED` state.
+- `chequePrintService.ts` (extend): transitions `ASSIGNED → PRINTED`; supports `reprint`, `cancel(reason)`, `correct(newAmount/newPayee)` — every state change audited via `bn_claim_event` + `system_audit_trail`.
 
-GRANTs + standard timestamp/audit triggers on every new table. Auto-grant trigger gives Admin permissions on the new module rows.
+## Phase 5 — Payment Preparation wiring
 
----
+`PaymentExecutionPanel` (Batch Detail drawer):
+- **EFT path**: pick `eft_format_code` (defaulted from country+bank); preview first 3 detail lines; generate → store in Supabase Storage `bn-payments/eft/{batchId}/...`; persist `eft_file_storage_path`, `eft_control_total`, `eft_control_count`; show "Mark Submitted to Bank" + later "Upload Bank Response" → reconcile.
+- **Cheque path**: enforce bank-account selection → allocate from `bn_cheque_stock` → render `ChequePrintView` per cheque → on confirm, mark `PRINTED`; expose Reprint / Cancel / Correct from the row menu.
 
-## Phase 3 — Product Catalog
+`payableValidationService` adds these blockers:
+- EFT method but no `bn_bank_master` row for profile's `bank_code`.
+- EFT method but no active `bn_eft_format` resolved for batch.
+- Missing `branch_code` on profile when format requires it.
+- Cheque method but no `ACTIVE` `bn_cheque_stock` with capacity for batch size.
+- Duplicate cheque number detected (unique-constraint catch with friendly message).
+- Verified bank profile missing (already covered).
+- EFT file generation refuses unless control total + count are computed.
 
-Add a built-in section `PAYMENT_DETAILS` with the canonical field list to the Product Catalog Screen & Fields registry, and surface a "Payment Policy" tab on the product editor backed by the new `bn_product_channel_config` columns.
+## Phase 6 — Audit & acceptance
 
-Catalog validation rules (Phase 10):
-- product requires payment → `PAYMENT_DETAILS` must be present
-- `allowed_payment_methods` not empty
-- EFT allowed but `require_bank_verification` not set → warn
-- cheque allowed but `cheque_address_required` not set → warn
-- change policy missing → warn
-- any product screen that hardcodes bank fields → error (lint via field registry scan)
+- All bank/branch/method/format/stock CUD writes to `system_audit_trail` with `user_code`.
+- Cheque state machine events written to `bn_claim_event` (`CHEQUE_PRINTED`, `CHEQUE_REPRINTED`, `CHEQUE_CANCELLED`, `CHEQUE_CORRECTED`).
 
----
+Acceptance checklist:
+- Legacy mapping doc committed.
+- Admin can create a bank → branch → EFT format → field layout end-to-end with no code change.
+- Cheque stock allocation + register lifecycle works for a sample batch.
+- EFT file regenerable, byte-stable for the same batch input.
+- Payables Queue blocks all six validation cases above with actionable reasons.
+- TypeScript build passes.
 
-## Phase 4 — Shared component
+## Files (new / edited)
 
-`src/components/bn/payment/PaymentDetailsSection.tsx` — single source of truth.
+**New**
+- `supabase/migrations/<ts>_bn_bank_eft_cheque_masters.sql`
+- `docs/bn/legacy-payment-mapping.md`
+- `src/services/bn/payment/bankMasterService.ts`
+- `src/services/bn/payment/eftFormatService.ts` (replaces inline preset use)
+- `src/pages/bn/config/payment-masters/PaymentMastersPage.tsx`
+- `src/pages/bn/config/payment-masters/{BankMasterTab,BranchTab,MethodsTab,EftFormatTab,EftLayoutTab,ChequeStockTab,ChequeRulesTab}.tsx`
+- `src/types/bnBankEft.ts`
 
-Props:
-```ts
-{
-  mode: 'view' | 'edit' | 'amend',
-  channel: 'PUBLIC_ONLINE' | 'STAFF_OFFLINE' | 'ASSISTED_COUNTER'
-         | 'CLAIM_WORKBENCH' | 'EFT_UPDATE_SERVICE' | 'CLAIMANT_PORTAL',
-  productId?: string,         // pulls policy from bn_product_channel_config
-  personSsn: string,
-  payeeId?: string,
-  claimId?: string,
-  entitlementId?: string,
-  value?: PaymentProfileDraft,
-  onChange?: (v: PaymentProfileDraft) => void,
-  onSubmit?: (req: ChangeRequestPayload) => void
-}
-```
+**Edited**
+- `src/components/bn/batch/PaymentExecutionPanel.tsx`
+- `src/services/bn/payment/payableValidationService.ts`
+- `src/services/bn/payment/chequeStockService.ts`, `chequePrintService.ts`, `eftFileService.ts`
+- `src/components/sidebar/menuItems/bnMenuItems.ts`
+- `src/components/routing/AppRoutes.tsx`
+- `src/pages/bn/admin/ChequeStock.tsx` (point to new tab or thin wrapper)
+- `mem://features/bn/payment-details-framework.md` (cross-link to bank/EFT masters)
 
-Behavior:
-- Dynamically renders fields based on `payment_method` (EFT → bank fields; CHEQUE → postal address; CASH_PICKUP → office/ID; INTERNAL_TRANSFER → internal ref).
-- Validation via zod schema derived from product policy.
-- Calls `paymentProfileService` for read/write; never writes directly to tables.
-- View mode shows: submitted (snapshot) • current verified profile • pending change request • blockers.
-- Honours `allow_third_party_payee`, `allow_guardian_payee`, `require_proof_for_change`.
-
-Replace all existing inline bank forms in: claimant portal, public application, intake, workbench, entitlement, EFT update service, payment execution panel.
-
----
-
-## Phase 5 — Service layer
-
-`src/services/bn/payment/paymentProfileService.ts`
-- `getActiveProfile(personSsn, opts)` 
-- `getProfileHistory(personSsn)`
-- `submitChangeRequest(payload)` — channel-aware; staff direct-edit auto-approves when policy allows, otherwise inserts a change request.
-- `approveChangeRequest(id)` / `rejectChangeRequest(id, reason)` — supervisor only when `require_supervisor_approval_for_change`.
-- `verifyBank(profileId, evidence)` — sets `verification_status=VERIFIED`.
-- `resolveProfileForPayable(entitlementId)` — returns verified profile or a `BLOCKED` reason (used by `payableValidationService`).
-
-All actions audited via `system_audit_trail` and `bn_claim_event` (shielded errors, non-blocking log).
-
----
-
-## Phase 6 — Payment Preparation integration
-
-Update `payableValidationService.ts`:
-- Calls `resolveProfileForPayable`.
-- EFT: requires `VERIFIED` profile with `bank_code` + `account_number_token`.
-- CHEQUE: requires `postal_address_snapshot`.
-- On failure: `validation_status='BLOCKED'`, reason persisted, item visible in Payables Queue with a "Request Claimant Update" action that opens `PaymentDetailsSection` in `amend` mode.
-
-`bn_payment_instruction.payment_profile_id` is set at batch build time; `bank_account_snapshot` records what was actually used.
-
----
-
-## Phase 7 — Workbench actions
-
-Buttons on the Workbench Payment panel (gated by product policy + role):
-Add Payment Details · Amend · Request Claimant Update · Verify Bank Details · Approve Change · Reject Change.
-
-Each action delegates to `paymentProfileService` — no inline mutations.
-
----
-
-## Phase 8 — Audit + acceptance
-
-Audit events for all 7 actions in section 11. Acceptance checklist matches section 12.
-
----
-
-## Suggested rollout (sequenced PRs)
-
-1. Phase 1 discovery doc + Phase 2 migration (tables, columns, GRANTs, app_modules + actions for `bn_payment_profile`).
-2. Phase 3 Product Catalog policy UI + validation.
-3. Phase 4–5 shared component + service.
-4. Phase 6 swap-in across all channels (claimant portal → public app → intake → workbench → entitlement → EFT service → payment prep).
-5. Phase 7–8 audit wiring + acceptance pass.
-
----
-
-### Confirm before I start
-
-This is a large, multi-PR change touching the claimant portal, public form, internal intake, workbench, entitlement, EFT service, and payment preparation.
-
-Two questions:
-1. **Start with Phase 1 (discovery + mapping doc)** and come back with the concrete file list before any code change — yes/no?
-2. **Account-number protection**: is there an existing vault/encryption helper I should use, or should the first pass store only masked + cleartext (with `account_number_token` left null until a vault is provisioned)?
+## Decisions needed
+1. **Phasing** — ship Phase 2 (schema) + Phase 4 (services) + minimal admin CRUD first, then Phase 3 polish + Phase 5 wiring in a follow-up — or all-in-one?
+2. **Country scoping** — should `bn_bank_master` be hard-scoped per country (FK to `bn_country`) or global with a country tag (current draft)?
+3. **EFT response reconciliation** — minimal "mark submitted/upload response file" now, or full parser per format in this pass?
