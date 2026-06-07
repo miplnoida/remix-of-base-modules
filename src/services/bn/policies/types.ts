@@ -25,7 +25,9 @@ export type OverrideStatus =
   | 'APPROVED'
   | 'REJECTED'
   | 'CANCELLED'
-  | 'EXPIRED';
+  | 'EXPIRED'
+  | 'REVOKED'
+  | 'SUPERSEDED';
 
 export type PolicyActionKind = 'REQUEST' | 'APPROVE' | 'APPLY';
 
