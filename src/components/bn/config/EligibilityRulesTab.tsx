@@ -235,11 +235,45 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Pr
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing.id ? 'Edit' : 'Add'} Eligibility Rule</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
+            {/* Quick Templates */}
+            <div className="col-span-2 space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <Label className="text-sm font-semibold">Quick Templates</Label>
+                <span className="text-xs text-muted-foreground">Click to pre-fill from a common eligibility pattern</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {RULE_TEMPLATES.map(t => (
+                  <Button key={t.template_code} type="button" size="sm" variant="outline"
+                    className="h-7 text-xs" title={t.description} onClick={() => applyTemplate(t)}>
+                    + {t.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2"><Label>Rule Code *</Label><Input value={editing.rule_code || ''} onChange={e => updateEditing('rule_code', e.target.value.toUpperCase())} maxLength={30} /></div>
             <div className="space-y-2"><Label>Rule Name *</Label><Input value={editing.rule_name || ''} onChange={e => updateEditing('rule_name', e.target.value)} /></div>
 
             <div className="space-y-2">
-              <Label>Rule Group</Label>
+              <Label>Eligibility Group *</Label>
+              <Select value={editing.group_code || 'CORE_IDENTITY'} onValueChange={v => updateEditing('group_code', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {RULE_GROUPS.map(g => (
+                    <SelectItem key={g.code} value={g.code}>
+                      <div>
+                        <div className="font-medium">{g.label}</div>
+                        <div className="text-xs text-muted-foreground">{g.description}</div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Custom Rule Group (optional)</Label>
               <Select value={editing.rule_group_id || '__none__'} onValueChange={v => updateEditing('rule_group_id', v === '__none__' ? '' : v)}>
                 <SelectTrigger><SelectValue placeholder="Select group" /></SelectTrigger>
                 <SelectContent>
@@ -250,11 +284,35 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Pr
             </div>
 
             <div className="space-y-2">
+              <Label>Severity</Label>
+              <Select value={editing.severity || 'BLOCK'} onValueChange={v => updateEditing('severity', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="BLOCK"><div className="flex items-center gap-2"><ShieldAlert className="h-3 w-3 text-destructive" /> Block (hard fail)</div></SelectItem>
+                  <SelectItem value="WARN"><div className="flex items-center gap-2"><ShieldCheck className="h-3 w-3 text-amber-600" /> Warn (soft warning)</div></SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label>Fail Action</Label>
               <Select value={editing.fail_action || 'REJECT'} onValueChange={v => updateEditing('fail_action', v)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{BN_FAIL_ACTIONS.map(a => <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>)}</SelectContent>
               </Select>
+            </div>
+
+            <div className="col-span-2 flex items-center gap-6 rounded-md border bg-muted/30 p-3">
+              <div className="flex items-center gap-2">
+                <Switch checked={editing.overrideable ?? false} onCheckedChange={v => updateEditing('overrideable', v)} />
+                <Label>Allow supervisor override</Label>
+              </div>
+              {editing.overrideable && (
+                <div className="flex items-center gap-2 flex-1">
+                  <Label className="text-xs whitespace-nowrap">Override policy code</Label>
+                  <Input value={editing.override_policy_code || ''} onChange={e => updateEditing('override_policy_code', e.target.value || null)} placeholder="e.g. SUPERVISOR_L2" />
+                </div>
+              )}
             </div>
 
             <div className="col-span-2 space-y-3 rounded-lg border p-4">
