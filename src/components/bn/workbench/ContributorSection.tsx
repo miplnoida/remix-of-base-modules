@@ -67,7 +67,7 @@ export const ContributorSection: React.FC<ContributorSectionProps> = ({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <ReadField icon={Hash} label="SSN" value={person.ssn} mono />
           <ReadField icon={User} label="Full Name" value={person.fullName} />
-          <ReadField icon={Calendar} label="Date of Birth" value={person.dateOfBirth ? formatDateForDisplay(person.dateOfBirth) : '—'} />
+          <ReadField icon={Calendar} label="Date of Birth" value={person.dateOfBirth ? formatDisplayDate(person.dateOfBirth) : '—'} />
           <div>
             <Label className="text-xs text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> Gender</Label>
             <p className="text-foreground mt-1">{genderLabel}</p>
