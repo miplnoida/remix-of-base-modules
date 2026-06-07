@@ -1,102 +1,97 @@
+# Unified BN Claim Workbench + Catalog-Driven Data, Amendments & Communications
 
-# Benefit Product Approval / Override Policies — Implementation Plan
+This is a large, multi-week initiative spanning schema, services, and UI. Delivering it in one shot would be unsafe — it would touch dozens of tables and ~50+ Workbench/Catalog files. I'm proposing a phased rollout where each phase ships a working slice with tests, then the next phase builds on it.
 
-This is a large, foundational refactor. I'll deliver it in 6 phased PRs so you can review, test, and stop at any phase. Nothing existing breaks until a phase is merged.
+Most of the backbone already exists in the codebase:
+- `bn_product_channel_config`, `bn_product_amendment_policy`, `bn_claim_field_ownership`, `bn_claim_amendment_log`, `bn_claim_correction_request/_field`
+- `bn_comm_mapping`, `bn_comm_event`, `bn_communication_log`, central `notification_templates`
+- `bn_claim_application` (submission snapshot), `bn_claim_event`, `system_audit_trail`
+- `useClaimEditability`, `useApplicationFormDefinition`, `bnCommunicationAdapter`, `bnAuditService`
 
-## Current state (from scan)
+So this is mostly **wiring + UI standardization + gap-filling**, not greenfield.
 
-- Only **Eligibility** has an override flow today: `bn_eligibility_override_request`, `eligibilityOverrideService.ts`, `EligibilityOverridesPanel.tsx`, `OverrideEligibilityDialog.tsx`, and a partial policy on `bn_product_version` (`override_*` columns) + `bn_override_policy` table (exists, but barely consumed).
-- Hardcoded role arrays in `ActiveEligibilityPanel.tsx` (`SUPERVISOR_ROLES`, `REQUESTER_ROLES`) and self-approve guard in `eligibilityOverrideService.ts` (`SUPER_ADMIN` literal).
-- `amendmentPolicyService.ts` exists for amendments but is not unified with overrides.
-- Calculation, Documents, Workflow, Award, Payment, Communication, Participant — **no override mechanism**.
-- No central policy evaluator. No unified override request table. No Product Catalog → Approval/Override Policies tab.
+---
 
-## Target architecture
+## Phase A — Catalog completeness & validation (foundation)
+
+Goal: Product Catalog truly drives everything before Workbench depends on it.
+
+- Audit `bn_product_channel_config` / `bn_field_metadata` and seed missing field configs for every active product version (public, offline, workbench visibility, editable roles/channels, editable-until status, validation).
+- Seed default sections per product family (Claimant, Insured, Deceased, Employer, Injury, Medical, Survivors, Funeral, Bank, Documents, Declaration).
+- Seed Injury section field set (Incident / Medical / Employment Context / Questionnaire) for EI products.
+- Seed amendment policy rows for every active product version.
+- Add a `bn_catalog_validation` service + admin screen that lints each product version: missing sections, missing amendment policy, missing comm mappings, orphan templates, channel/method mismatch, unresolved placeholders. Surface results in Product Catalog → Validation tab.
+
+## Phase B — Submission snapshot + Application tab
+
+- Ensure every new claim writes an immutable `bn_claim_application` snapshot (payload, participants, product version, channel, submitted_by/date). Add DB trigger or service guard so it's never overwritten.
+- Backfill snapshots for existing claims from current claim record (best-effort, flagged as `reconstructed=true`).
+- New Workbench **Application tab** with sub-tabs: *Submitted Application* (read-only snapshot, dynamic render from catalog), *Current Record* (live), *Differences* (field-by-field diff with changed_by / date / reason), *Amendment History* (from `bn_claim_amendment_log`).
+- Reusable `<DynamicSectionRenderer>` that walks catalog sections and renders fields with status badges (Original / Amended / Stale).
+
+## Phase C — Dynamic Benefit Details + Injury
+
+- Replace any hardcoded EI injury UI with `<DynamicSectionRenderer>` reading catalog `INJURY` section.
+- Wire amendment controls (per `useClaimEditability` + `bn_claim_field_ownership`) — show *Amend*, *Request Correction*, *View History* buttons only where policy + channel allow.
+- On amendment of any field where `affects_eligibility` or `affects_calculation` is true, mark the eligibility/calculation run stale and surface a banner with *Re-run* actions.
+- All writes go through a single `amendClaimField()` service that enforces reason, before/after, channel, status, and writes both `bn_claim_amendment_log` and `system_audit_trail` atomically.
+
+## Phase D — Communications: diagnostics, statuses, retry
+
+- Extend `bnCommunicationAdapter` with a **recipient diagnostics** pre-flight: resolves recipient by participant + delivery method, returns a structured `{ resolvable, missing: [...], reason }`.
+- Introduce status taxonomy in `bn_communication_log`: `SENT | GENERATED | PRINT_PENDING | PRINTED | DISPATCHED | SKIPPED | FAILED | BLOCKED` (migration to add CHECK + backfill).
+- Stop returning SKIPPED when the real cause is missing data — return BLOCKED with reason.
+- New Workbench **Communications tab** with sub-tabs Timeline / Letters / Emails / SMS / In-App / Failed-Blocked / Diagnostics.
+- Per-row actions: *View Failure Details*, *Retry*, *Update Contact Details* (deep-link to participant edit), *Generate Letter Instead*, *Mark Manually Dispatched*.
+
+## Phase E — Letter pipeline
+
+- Standard letter generator: render catalog-bound template → PDF (use existing `htmlToPdf`), store as `bn_letter` row + storage object, link to `bn_communication_log`.
+- Preview / Print / Download / Mark Printed / Mark Dispatched / Reprint actions, each audited.
+
+## Phase F — Benefit Communication Templates screen
+
+- New route under BN → Configuration → Benefit Communication Templates.
+- Thin Benefits-scoped view over central `notification_templates` (no duplicate table) — filter `module='benefit_management'`.
+- Features: list, filter by product/event/channel, create/edit version, clone, preview with sample claim data, placeholder validator, retire, show linked products (via `bn_comm_mapping`), audit changes.
+- Seed default templates (BN_ACKNOWLEDGEMENT_*, BN_ELIGIBILITY_FAILED_*, BN_EVIDENCE_REQUEST_*, BN_APPROVAL_LETTER, BN_DENIAL_LETTER) and standard placeholders.
+
+## Phase G — Audit hardening & acceptance tests
+
+- Wrap every Workbench mutation through `useAuditedMutation` / `writeBnAudit` with `critical: true` for amendments, decisions, comms send/print/dispatch, template changes, contact updates.
+- Add acceptance test fixtures matching the spec (EI claim amend flow, comm SENT/BLOCKED flows, catalog-driven new injury question round-trip).
+
+---
+
+## Technical notes
+
+- No new tables required for most of this; we extend existing ones. New migrations are limited to: (1) status enum/check on `bn_communication_log`, (2) `bn_letter` columns if missing (print/dispatch timestamps), (3) `bn_claim_application.reconstructed` boolean, (4) optional `bn_catalog_validation_result` cache table.
+- Per project rule: no RLS; role-based only. All new tables get explicit GRANTs.
+- All Workbench rendering goes through one renderer reading catalog metadata — zero hardcoded product fields.
+- Communications adapter becomes the single resolver; no component-level recipient logic.
+
+---
+
+## Suggested order of execution
 
 ```text
-Product Catalog (Approval/Override Policies tab)
-        │ writes
-        ▼
- bn_approval_policy  (one row per product_version × policy_area × action_code)
-        │ read by
-        ▼
- bnPolicyEvaluator  ── canRequest / canApprove / evaluatePolicy
-        │ used by
-        ▼
- bnPolicyActionHandler  (one handler per area)
-        │ writes
-        ▼
- bn_override_request (unified)  +  system_audit_trail  +  bn_claim_event
-        │ consumed by
-        ▼
- Workbench panels (Eligibility, Calc, Docs, Amend, Workflow, Award, Payment)
+A (1–2 days)  Catalog seed + validator
+B (1 day)     Application tab + snapshot guard
+C (1–2 days)  Dynamic Benefit Details + injury + amendments
+D (1–2 days)  Comm diagnostics + statuses + retry
+E (1 day)     Letter pipeline
+F (1 day)     Templates management screen
+G (0.5 day)   Audit + acceptance
 ```
 
-## Phase 1 — Schema (single migration)
+---
 
-New tables (all in `public`, RLS off per project rule, GRANTs included):
+## What I need from you
 
-1. **`bn_approval_policy`** — one row per `product_version_id` × `policy_area` × `action_code`. Columns: `is_enabled`, `requires_reason_code`, `requires_justification`, `requires_document`, `requires_supervisor_approval`, `approval_role`, `approval_workbasket_id`, `allowed_statuses text[]`, `blocked_statuses text[]`, `max_override_amount numeric`, `max_override_percent numeric`, `allowed_rule_codes text[]`, `blocked_rule_codes text[]`, `expiry_status text`, `audit_required bool default true`, `self_approval_allowed bool default false`, `reason_code_group text`, `non_waivable bool default false`.
-2. **`bn_override_request`** (unified, per the spec): all fields from #5 in your brief. Statuses: `DRAFT|PENDING_APPROVAL|APPROVED|REJECTED|CANCELLED|EXPIRED`.
-3. **`bn_override_request_event`** — append-only history (status, actor, notes).
-4. **`bn_policy_area`** (lookup) — seed: `ELIGIBILITY, CALCULATION, DOCUMENTS, AMENDMENTS, PARTICIPANTS, WORKFLOW, AWARD, PAYMENT, COMMUNICATION`.
+This is too large to ship in a single turn safely. Please confirm one of:
 
-Migration also:
-- Backfills one default `bn_approval_policy` row per existing product version × area (disabled by default, except `ELIGIBILITY` which mirrors current `bn_product_version.override_*` columns so behavior doesn't regress).
-- Leaves the existing `bn_eligibility_override_request` table in place; a Phase-6 cleanup will dual-write then deprecate.
+1. **Proceed phase-by-phase**, starting with **Phase A** in this turn. I'll seed catalog config + build the validator screen and report back before Phase B.
+2. **Start with a different phase** (e.g. Phase D — fix the comms status/diagnostics issues you're hitting right now), then loop back to the foundation.
+3. **Adjust scope** — drop or merge phases.
 
-## Phase 2 — Central evaluator + handler scaffolding
-
-- `src/services/bn/policies/bnPolicyEvaluator.ts` — pure read/decision layer. Exports: `getProductPolicies`, `evaluatePolicy(policyCode, ctx)`, `canRequestOverride`, `canApproveOverride`, `canWaiveDocument`, `canOverrideCalculation`, `canAmendClaim`, `canOverrideWorkflow`, `canApproveAward`, `canApprovePayment`. Returns `{ allowed: boolean; reasons: string[]; requires: { reasonCode, justification, document, supervisorApproval }; approverRole?, workbasketId? }`.
-- `src/services/bn/policies/bnPolicyActionHandler.ts` — write layer. One handler per area, all going through a single `submitOverrideRequest(ctx)` + `reviewOverrideRequest(ctx)` core that: validates via evaluator → inserts `bn_override_request` → writes `system_audit_trail` (critical) + `bn_claim_event` → returns request id. On approve: marks downstream stale, applies effect via area-specific applier.
-- `src/services/bn/policies/types.ts` — `PolicyArea`, `PolicyContext`, `PolicyDecision`, `OverrideRequest`.
-- `src/hooks/bn/usePolicy.ts` — React hook wrappers (`usePolicyDecision`, `useSubmitOverride`, `useReviewOverride`, `usePendingOverrides`).
-
-## Phase 3 — Product Catalog UI (Approval / Override Policies tab)
-
-- New tab in `ProductEditor.tsx` → `OverridePoliciesTab.tsx` with 9 grouped cards (Eligibility, Calculation, Documents, Amendments, Participants, Workflow, Award, Payment, Communication).
-- Each card has the toggles/inputs from §13. Saves to `bn_approval_policy`.
-- Adds **Coverage Validation card** (§15): runs checks, lists gaps, links to fix.
-
-## Phase 4 — Workbench wiring (remove hardcoded checks)
-
-- Replace `SUPERVISOR_ROLES`/`REQUESTER_ROLES` arrays in `ActiveEligibilityPanel.tsx` with `usePolicyDecision({ area: 'ELIGIBILITY', action: 'REQUEST'|'APPROVE', ... })`.
-- Replace `SUPER_ADMIN` literal in `eligibilityOverrideService.ts` with `policy.self_approval_allowed`.
-- Add Override/Approval panels to:
-  - `ActiveCalculationPanel.tsx` — Request Calculation Override, Manual Adjustment
-  - Documents tab (`EvidenceChecklist.tsx` area) — Request Waiver / Accept Alternate
-  - Benefit Details / Amendments — Request Amendment Override (consume existing `amendmentPolicyService`, wrapped by evaluator)
-  - Workflow actions — Request Workflow Override
-  - Awards/Payments panels — Request Payment/Award Override
-- Each panel: `<OverridePanel area="CALCULATION" claimId=... />` — one shared component, area-specific config from policy.
-
-## Phase 5 — Area handlers (effect appliers)
-
-For each area, the "apply on approval" effect:
-- ELIGIBILITY: set rule result to `OVERRIDDEN`, recompute overall → `ELIGIBLE_WITH_OVERRIDE`, mark calc stale.
-- CALCULATION: write `bn_calc_override` row, mark payment blocked until re-run.
-- DOCUMENTS: set `bn_claim_document.status='WAIVED'` with reason; respect `non_waivable`.
-- AMENDMENTS: unlock specified field area in `bn_product_amendment_policy` scope for this claim only.
-- PARTICIPANTS: allow add/remove/edit participant outside normal stage lock.
-- WORKFLOW: allow re-routing or skipping a step in current workflow instance.
-- AWARD: write `bn_award_status_event` with override reason; backdate effective date.
-- PAYMENT: release hold, override method/bank, adjust amount within policy thresholds.
-- COMMUNICATION: re-send / suppress / re-template.
-
-Every applier: audit (critical) + claim event + downstream-stale markers.
-
-## Phase 6 — Cleanup, codemod, tests
-
-- Codemod scan & replace remaining hardcoded role/status checks (will produce a report first; not blind-replace).
-- Dual-write `bn_eligibility_override_request` → `bn_override_request`, switch reads, deprecate old table in a follow-up.
-- Vitest cases per §17 acceptance list.
-- Update `.lovable/rules/workflow-maker-checker.md` to point to the new evaluator.
-
-## What I need from you before starting
-
-1. **Confirm scope** — should I execute all 6 phases now, or stop after Phase 1+2+3 (foundation + catalog UI) so you can review before wiring up every workbench tab?
-2. **Self-approval rule** — keep current "Super Admin can self-approve" as the *default* value of `self_approval_allowed` per area? Or default to `false` everywhere and require explicit opt-in per product?
-3. **Existing `bn_override_policy` table** (already in schema, barely used) — fold into the new `bn_approval_policy` and drop, or keep both? Recommend: fold + drop in Phase 6 after data backfill.
-4. **Threshold currency** — `max_override_amount` per product currency from `bn_country_payment_config`, correct?
-
-Once you answer these I'll start with Phase 1 (the migration).
+My recommendation: do **D first** (it solves the live pain — SKIPPED-when-actually-BLOCKED, missing retry, no diagnostics), then **A → B → C → E → F → G**. That gives you a working Communications tab in one turn while we build the catalog foundation underneath.
