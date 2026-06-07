@@ -157,8 +157,31 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
           )}
 
           {approved.length > 0 && (
-            <Section title="Approved Overrides" icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}>
-              {approved.map((r) => <OverrideRow key={r.id} row={r} />)}
+            <Section title="Active Approved Overrides" icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}>
+              {approved.map((r) => (
+                <OverrideRow key={r.id} row={r}>
+                  {canReview && (
+                    <div className="flex gap-2 flex-wrap pt-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 text-destructive border-destructive/40 hover:bg-destructive/5"
+                        disabled={busyId === r.id}
+                        onClick={() => { setRevoking(r); setRevokeReason(''); }}
+                      >
+                        <ShieldOff className="h-3.5 w-3.5" />
+                        Remove Override
+                      </Button>
+                    </div>
+                  )}
+                </OverrideRow>
+              ))}
+            </Section>
+          )}
+
+          {revoked.length > 0 && (
+            <Section title="Revoked Overrides" icon={<ShieldOff className="h-4 w-4 text-destructive" />}>
+              {revoked.map((r) => <OverrideRow key={r.id} row={r} />)}
             </Section>
           )}
 
