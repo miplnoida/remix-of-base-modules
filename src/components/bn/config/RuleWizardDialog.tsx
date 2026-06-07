@@ -365,7 +365,10 @@ export function RuleWizardDialog({ open, onOpenChange, productVersionId, product
           <div className="space-y-1">
             <Label className="text-xs">Fail message (legacy fallback)</Label>
             <Textarea rows={2} value={rule.fail_message ?? ''} onChange={(e) => set({ fail_message: e.target.value })} />
-          </div>
+
+
+          <TestRulePanel rule={rule} productCode={productCode} />
+        </div>
         </div>
 
         <DialogFooter>
