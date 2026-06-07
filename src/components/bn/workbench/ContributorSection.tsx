@@ -137,9 +137,9 @@ function ReadField({ icon: Icon, label, value, mono, className }: {
   icon: any; label: string; value: string; mono?: boolean; className?: string;
 }) {
   return (
-    <div className={className}>
+    <div className={`min-w-0 ${className || ''}`}>
       <Label className="text-xs text-muted-foreground flex items-center gap-1"><Icon className="h-3 w-3" /> {label}</Label>
-      <p className={`text-foreground mt-1 ${mono ? 'font-mono' : ''}`}>{value}</p>
+      <p className={`text-foreground mt-1 break-words ${mono ? 'font-mono' : ''}`}>{value}</p>
     </div>
   );
 }
