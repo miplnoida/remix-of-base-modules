@@ -282,7 +282,8 @@ async function createLetter(params: {
 async function writeCommLog(row: {
   claimId: string; eventCode: string; channel: BnChannel; recipientType: BnRecipientType;
   recipientAddress?: string; templateId?: string | null; subject?: string;
-  status: 'QUEUED' | 'SENT' | 'FAILED' | 'SKIPPED'; providerId?: string | null;
+  status: 'QUEUED' | 'SENT' | 'FAILED' | 'SKIPPED' | 'BLOCKED' | 'GENERATED' | 'PRINT_PENDING' | 'PRINTED' | 'DISPATCHED' | 'RETRYING' | 'DELIVERED';
+  providerId?: string | null;
   letterId?: string | null; workflowStepId?: string; error?: string;
   context?: Record<string, any>; userCode?: string;
 }) {
