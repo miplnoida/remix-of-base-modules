@@ -128,6 +128,13 @@ export async function copyVersionRules(
     workflow: 0, screen_template: 0, channels: 0, overrides: 0,
   };
 
+  await Promise.all([
+    db.from('bn_eligibility_rule').delete().eq('product_version_id', targetVersionId),
+    db.from('bn_calculation_rule').delete().eq('product_version_id', targetVersionId),
+    db.from('bn_timeline_rule').delete().eq('product_version_id', targetVersionId),
+    db.from('bn_approval_policy').delete().eq('product_version_id', targetVersionId),
+  ]);
+
   // Eligibility
   const eligRules = await fetchEligibilityRules(sourceVersionId);
   for (const rule of eligRules) {
@@ -191,17 +198,17 @@ export async function copyVersionRules(
     if (!error) counts.channels = rows.length;
   }
 
-  // Override policies (version-specific only)
-  const { data: srcOverrides } = await db
-    .from('bn_override_policy')
+  // Approval / override policies (runtime source)
+  const { data: srcPolicies } = await db
+    .from('bn_approval_policy')
     .select('*')
     .eq('product_version_id', sourceVersionId);
-  if (srcOverrides && srcOverrides.length > 0) {
-    const rows = srcOverrides.map((r: any) => {
-      const { id, entered_at, modified_at, entered_by, modified_by, ...rest } = r;
-      return { ...rest, product_version_id: targetVersionId };
+  if (srcPolicies && srcPolicies.length > 0) {
+    const rows = srcPolicies.map((r: any) => {
+      const { id, created_at, updated_at, created_by, updated_by, ...rest } = r;
+      return { ...rest, product_version_id: targetVersionId, created_by: await actor(), updated_by: await actor() };
     });
-    const { error } = await db.from('bn_override_policy').insert(rows);
+    const { error } = await db.from('bn_approval_policy').insert(rows);
     if (!error) counts.overrides = rows.length;
   }
 
