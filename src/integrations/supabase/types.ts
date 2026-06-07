@@ -8278,10 +8278,15 @@ export type Database = {
           recipient_address_snapshot: Json | null
           recipient_name: string | null
           recipient_type: string
+          rendered_body_html: string | null
+          rendered_body_text: string | null
+          rendered_subject: string | null
           returned_at: string | null
           status: string
           subject: string | null
           template_id: string | null
+          template_version_id: string | null
+          template_version_no: number | null
           updated_at: string
         }
         Insert: {
@@ -8306,10 +8311,15 @@ export type Database = {
           recipient_address_snapshot?: Json | null
           recipient_name?: string | null
           recipient_type: string
+          rendered_body_html?: string | null
+          rendered_body_text?: string | null
+          rendered_subject?: string | null
           returned_at?: string | null
           status?: string
           subject?: string | null
           template_id?: string | null
+          template_version_id?: string | null
+          template_version_no?: number | null
           updated_at?: string
         }
         Update: {
@@ -8334,13 +8344,26 @@ export type Database = {
           recipient_address_snapshot?: Json | null
           recipient_name?: string | null
           recipient_type?: string
+          rendered_body_html?: string | null
+          rendered_body_text?: string | null
+          rendered_subject?: string | null
           returned_at?: string | null
           status?: string
           subject?: string | null
           template_id?: string | null
+          template_version_id?: string | null
+          template_version_no?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bn_letter_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "notification_template_versions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_life_certificate: {
         Row: {
