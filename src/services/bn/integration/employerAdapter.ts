@@ -52,19 +52,19 @@ export const bnEmployerAdapter: IBnEmployerAdapter = {
   },
 
   async verifyEmployment(ssn, regNo, asOfDate): Promise<EmploymentVerification> {
-    // Check ip_wages for contribution records linking this SSN to this employer
+    // ip_wages uses payer_id (not employer_reg_no) for the employer linkage.
     const { data, error } = await db
       .from('ip_wages')
-      .select('period, wages, weeks')
+      .select('period, total_wages, payer_id')
       .eq('ssn', ssn.trim())
-      .eq('employer_reg_no', regNo.trim())
+      .eq('payer_id', regNo.trim())
       .order('period', { ascending: false })
       .limit(1);
 
     if (error) throw error;
 
     const employer = await this.lookupEmployer(regNo);
-    const hasRecords = data && data.length > 0;
+    const hasRecords = !!data && data.length > 0;
 
     return {
       verified: hasRecords,
