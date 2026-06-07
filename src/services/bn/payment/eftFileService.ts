@@ -41,6 +41,34 @@ export async function generateEftFile(input: {
 }): Promise<EftFile> {
   const { batchId, countryCode, bankCode, userCode } = input;
 
+  // 1) Prefer master format (bn_eft_format) when batch.eft_format_code is set.
+  const master = await buildEftFileFromMaster({ batchId }).catch(() => null);
+  if (master) {
+    const hash = await sha256(master.content);
+    const row = {
+      batch_id: batchId,
+      file_reference: `${master.filename}-${Date.now().toString(36).toUpperCase()}`,
+      bank_code: bankCode || null,
+      file_format: master.format_code,
+      eft_format_code: master.format_code,
+      file_name: master.filename,
+      file_hash: hash,
+      file_payload: master.content,
+      control_count: master.controlCount,
+      control_amount: master.controlTotal,
+      generated_by: userCode,
+      status: 'GENERATED' as const,
+    };
+    const { data, error } = await db.from('bn_eft_file').insert(row).select().single();
+    if (error) throw error;
+    await audit('eft_file_generated', userCode, {
+      batch_id: batchId, file_id: data.id, format_code: master.format_code, hash,
+    });
+    return data;
+  }
+
+  // 2) Legacy country-config template path.
+
   // Country payment config (EFT template)
   const { data: cfg } = await db
     .from('bn_country_payment_config')
