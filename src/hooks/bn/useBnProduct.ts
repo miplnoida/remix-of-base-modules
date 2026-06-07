@@ -88,6 +88,15 @@ export function useRetireBnProductVersion() {
   });
 }
 
+export function useCloneBnVersionToDraft() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ productId, sourceVersionId, effectiveFrom }: { productId: string; sourceVersionId: string; effectiveFrom?: string }) =>
+      productService.cloneToNewDraft(productId, sourceVersionId, effectiveFrom),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bn'] }),
+  });
+}
+
 // Eligibility Rules
 export function useBnEligibilityRules(versionId: string | undefined) {
   return useQuery({

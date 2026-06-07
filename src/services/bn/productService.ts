@@ -209,6 +209,63 @@ export async function copyVersionRules(
 }
 
 /**
+ * Clone a non-DRAFT product version into a brand-new DRAFT version with the
+ * next version number and the full configuration copied across. Returns the
+ * id of the newly created draft. Used by the UI's "Create Draft from Active"
+ * flow so users never directly edit a live version.
+ */
+export async function cloneToNewDraft(
+  productId: string,
+  sourceVersionId: string,
+  effectiveFrom?: string,
+): Promise<{ newVersionId: string; versionNumber: number; counts: Awaited<ReturnType<typeof copyVersionRules>> }> {
+  const versions = await fetchVersionsByProduct(productId);
+  const nextNum = versions.length > 0 ? Math.max(...versions.map(v => v.version_number)) + 1 : 1;
+  const source = versions.find(v => v.id === sourceVersionId);
+  if (!source) throw new Error('Source version not found.');
+
+  const draft = await createProductVersion({
+    product_id: productId,
+    version_number: nextNum,
+    status: 'DRAFT',
+    effective_from: effectiveFrom ?? new Date().toISOString().slice(0, 10),
+    description: `Draft cloned from V${source.version_number} (${source.status})`,
+  });
+
+  const counts = await copyVersionRules(sourceVersionId, draft.id);
+
+  await auditConfigChange({
+    action: 'CLONE_TO_DRAFT',
+    entityType: 'bn_product_version',
+    entityId: draft.id,
+    beforeValue: { source_version_id: sourceVersionId, source_version: source.version_number, source_status: source.status },
+    afterValue: { new_version_id: draft.id, new_version_number: nextNum, copied: counts },
+    performedBy: await actor(),
+    critical: true,
+  });
+
+  return { newVersionId: draft.id, versionNumber: nextNum, counts };
+}
+
+/**
+ * Lightweight audit record for "user attempted to edit/delete an ACTIVE
+ * version" interactions, even when the UI intercepts and blocks them.
+ */
+export async function auditAttemptedActiveMutation(
+  versionId: string,
+  intent: 'EDIT' | 'DELETE',
+  note?: string,
+): Promise<void> {
+  await auditConfigChange({
+    action: intent === 'EDIT' ? 'ATTEMPT_EDIT_ACTIVE' : 'ATTEMPT_DELETE_ACTIVE',
+    entityType: 'bn_product_version',
+    entityId: versionId,
+    afterValue: { note: note ?? null },
+    performedBy: await actor(),
+  });
+}
+
+/**
  * Publish a DRAFT/APPROVED version as ACTIVE with effective_from date.
  * Auto-closes any currently ACTIVE version for the same product by setting
  * its effective_to = newEffectiveFrom - 1 day when no end date is set.
