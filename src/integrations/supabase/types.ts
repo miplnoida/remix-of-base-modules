@@ -46231,6 +46231,87 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_queue: {
+        Row: {
+          body: string | null
+          channel: string
+          created_at: string
+          created_by: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error_message: string | null
+          id: string
+          module: string | null
+          provider: string | null
+          provider_message_id: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          recipient_phone: string | null
+          recipient_user_id: string | null
+          retry_count: number
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string | null
+          template_data: Json | null
+          template_id: string | null
+          template_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          id?: string
+          module?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          recipient_user_id?: string | null
+          retry_count?: number
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_data?: Json | null
+          template_id?: string | null
+          template_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          error_message?: string | null
+          id?: string
+          module?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_phone?: string | null
+          recipient_user_id?: string | null
+          retry_count?: number
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string | null
+          template_data?: Json | null
+          template_id?: string | null
+          template_key?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notification_template_audit_logs: {
         Row: {
           action: string
