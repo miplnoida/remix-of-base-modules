@@ -27,7 +27,8 @@ describe('eligibility operators', () => {
   it('operatorsForType gates by data type', () => {
     const numericOps = operatorsForType('number').map((o) => o.key);
     expect(numericOps).toContain('>=');
-    expect(numericOps).not.toContain('exists' as any); // exists is universal, kept for all types
+    const boolOps = operatorsForType('bool').map((o) => o.key);
+    expect(boolOps).not.toContain('>=');
   });
 
   it('isKnownOperator rejects garbage', () => {
