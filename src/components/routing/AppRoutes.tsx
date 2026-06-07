@@ -449,6 +449,7 @@ const RollbackScreen = lazy(() => import('@/pages/admin/system-cleanup/RollbackS
 // Online Applications Module
 const ApiConfiguration = lazy(() => import('@/pages/admin/settings/ApiConfiguration'));
 const GlobalSettings = lazy(() => import('@/pages/systemAdmin/GlobalSettings'));
+const DateCultureConsistency = lazy(() => import('@/pages/admin/DateCultureConsistency'));
 const C3CalculationConfigPage = lazy(() => import('@/pages/admin/C3CalculationConfigPage'));
 const C3PeriodConfigPage = lazy(() => import('@/pages/admin/C3PeriodConfigPage'));
 const C3ConfigurationPage = lazy(() => import('@/pages/admin/C3ConfigurationPage'));
@@ -1681,6 +1682,7 @@ export const AppRoutes = () => {
       <Route path="/admin/c3-period-config" element={<C3PeriodConfigPage />} />
       <Route path="/admin/c3-configuration" element={<C3ConfigurationPage />} />
       <Route path="/admin/global-settings" element={<GlobalSettings />} />
+      <Route path="/admin/date-culture-consistency" element={<DateCultureConsistency />} />
       <Route path="/admin/document-configuration" element={<DocumentConfigurationPage />} />
       <Route path="/admin/ip-card-configuration" element={<IPCardConfiguration />} />
       <Route path="/admin/knowledge-base" element={<KnowledgeBaseAdmin />} />
