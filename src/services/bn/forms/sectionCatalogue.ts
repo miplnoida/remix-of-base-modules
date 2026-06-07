@@ -95,9 +95,20 @@ export const SHARED_FIELDS: FormFieldDef[] = [
   // contribution (staff only)
   { field_code: 'legacy_claim_ref', field_label: 'Legacy Claim Reference', field_type: 'TEXT', section_code: 'contribution_context', is_required: false, visibleForChannels: STAFF, sort_order: 1 },
 
-  // banking
-  { field_code: 'bank_account',        field_label: 'Bank Account Number', field_type: 'TEXT', section_code: 'banking_payee_details', is_required: false, visibleForChannels: ALL, sort_order: 1 },
-  { field_code: 'bank_routing_number', field_label: 'Bank Routing Number', field_type: 'TEXT', section_code: 'banking_payee_details', is_required: false, visibleForChannels: ALL, sort_order: 2 },
+  // banking — canonical payment-profile fields (rendered by PaymentDetailsSection,
+  // not as plain inputs). Kept here so the Product Catalog / Screen Builder can
+  // toggle them in the same way as other shared fields.
+  { field_code: 'payment_method',              field_label: 'Payment Method',         field_type: 'SELECT', section_code: 'banking_payee_details', is_required: true,  visibleForChannels: ALL, sort_order: 1, validation_rules: { options: ['EFT', 'CHEQUE', 'CASH_PICKUP', 'INTERNAL_TRANSFER'], smart_type: 'PAYMENT_PROFILE' } },
+  { field_code: 'payment_currency',            field_label: 'Currency',               field_type: 'TEXT',   section_code: 'banking_payee_details', is_required: true,  visibleForChannels: ALL, sort_order: 2, default_value: 'XCD' },
+  { field_code: 'bank_name',                   field_label: 'Bank Name',              field_type: 'TEXT',   section_code: 'banking_payee_details', is_required: false, visibleForChannels: ALL, sort_order: 3 },
+  { field_code: 'bank_code',                   field_label: 'Bank Code',              field_type: 'TEXT',   section_code: 'banking_payee_details', is_required: false, visibleForChannels: ALL, sort_order: 4 },
+  { field_code: 'branch_name',                 field_label: 'Branch Name',            field_type: 'TEXT',   section_code: 'banking_payee_details', is_required: false, visibleForChannels: ALL, sort_order: 5 },
+  { field_code: 'branch_code',                 field_label: 'Branch Code',            field_type: 'TEXT',   section_code: 'banking_payee_details', is_required: false, visibleForChannels: ALL, sort_order: 6 },
+  { field_code: 'account_number',              field_label: 'Account Number',         field_type: 'TEXT',   section_code: 'banking_payee_details', is_required: false, visibleForChannels: ALL, sort_order: 7, help_text: 'Stored masked. Raw digits never displayed back.' },
+  { field_code: 'account_type',                field_label: 'Account Type',           field_type: 'TEXT',   section_code: 'banking_payee_details', is_required: false, visibleForChannels: ALL, sort_order: 8 },
+  { field_code: 'account_holder_name',         field_label: 'Account Holder Name',    field_type: 'TEXT',   section_code: 'banking_payee_details', is_required: false, visibleForChannels: ALL, sort_order: 9 },
+  { field_code: 'account_holder_relationship', field_label: 'Holder Relationship',    field_type: 'TEXT',   section_code: 'banking_payee_details', is_required: false, visibleForChannels: ALL, sort_order: 10, help_text: 'Self / Guardian / Third-party payee (subject to product policy).' },
+  { field_code: 'postal_address',              field_label: 'Postal Address (cheque)', field_type: 'TEXTAREA', section_code: 'banking_payee_details', is_required: false, visibleForChannels: ALL, sort_order: 11, help_text: 'Required when payment method is Cheque.' },
 
   // declaration
   { field_code: 'declaration', field_label: 'I declare the information provided is true and complete.', field_type: 'CHECKBOX', section_code: 'declaration_consent', is_required: true, visibleForChannels: ALL, sort_order: 1 },

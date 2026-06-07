@@ -75,6 +75,7 @@ import {
   type FormFieldDef,
 } from '@/services/bn/forms/sectionCatalogue';
 import type { PersonSummary, Dependant } from '@/services/bn/integration';
+import PaymentDetailsSection from '@/components/bn/payment/PaymentDetailsSection';
 
 
 type DocStatus = 'PROVIDED' | 'PENDING' | 'WAIVED';
@@ -151,8 +152,8 @@ export default function ClaimRegistration() {
   const [source, setSource] = useState<'WALK_IN' | 'PAPER' | 'PHONE'>('PAPER');
   const [contactPhone, setContactPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
-  const [bankAccount, setBankAccount] = useState('');
-  const [bankRouting, setBankRouting] = useState('');
+  // Bank/EFT details are captured via the unified PaymentDetailsSection
+  // (bn_payment_profile) — no longer stored as free-text on the application.
   const [internalNotes, setInternalNotes] = useState('');
   const [workbasket, setWorkbasket] = useState('');
   const [escalateSupervisor, setEscalateSupervisor] = useState(false);
@@ -415,8 +416,8 @@ export default function ClaimRegistration() {
           priority,
           contact_phone: contactPhone,
           contact_email: contactEmail,
-          bank_account: bankAccount,
-          bank_routing_number: bankRouting,
+          // Bank/EFT details handled via bn_payment_profile (PaymentDetailsSection)
+          payment_profile_source: 'bn_payment_profile',
           internal_notes: internalNotes,
           workbasket_override: workbasket || null,
           supervisor_escalation: escalateSupervisor
@@ -744,9 +745,21 @@ export default function ClaimRegistration() {
                   </Field>
                   <Field label="Contact Phone"><Input value={contactPhone} onChange={e => setContactPhone(e.target.value)} /></Field>
                   <Field label="Contact Email"><Input value={contactEmail} onChange={e => setContactEmail(e.target.value)} /></Field>
-                  <Field label="Bank Account"><Input value={bankAccount} onChange={e => setBankAccount(e.target.value)} /></Field>
-                  <Field label="Bank Routing"><Input value={bankRouting} onChange={e => setBankRouting(e.target.value)} /></Field>
                 </div>
+                {ssn && (
+                  <PaymentDetailsSection
+                    mode="edit"
+                    channel="STAFF_OFFLINE"
+                    productId={productId || null}
+                    personSsn={ssn}
+                    userCode={userCode}
+                  />
+                )}
+                {!ssn && (
+                  <p className="text-xs text-muted-foreground">
+                    Bank / payment details become available once an SSN is captured. Uses the unified Payment Details framework.
+                  </p>
+                )}
                 <Field label="Internal Notes">
                   <Textarea value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={3} maxLength={500} />
                 </Field>

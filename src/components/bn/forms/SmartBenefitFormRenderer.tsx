@@ -62,6 +62,7 @@ import {
   type LegacyClaimRecord,
 } from '@/services/bn/forms/formLookupService';
 import type { PersonSummary, EmployerSummary, Dependant } from '@/services/bn/integration';
+import PaymentDetailsSection from '@/components/bn/payment/PaymentDetailsSection';
 
 interface Props {
   definition: FormDefinition;
@@ -414,28 +415,50 @@ export function SmartBenefitFormRenderer({
                 />
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {sectionEntries.map(({ field, smartType }) => (
-                  <SmartFieldRenderer
-                    key={field.field_code}
-                    field={field}
-                    smartType={smartType}
-                    value={values[field.field_code]}
-                    error={errors[field.field_code]}
-                    readOnly={readOnly}
-                    channel={channel}
-                    hasPermission={hasPermission}
-                    hydrated={hydratedFields.has(field.field_code)}
-                    dependants={dependants}
-                    onChange={v => setField(field.field_code, v)}
-                    onSSNLookup={runSSNLookup}
-                    onEmployerLookup={runEmployerLookup}
-                    onLegacyLookup={runLegacyLookup}
-                    onRequestOverride={() => setOverrideOpen(field.field_code)}
-                    legacyMatches={legacyMatches}
+              {section.section_code === 'banking_payee_details' ? (
+                values.ssn ? (
+                  <PaymentDetailsSection
+                    mode={readOnly ? 'view' : 'edit'}
+                    channel={
+                      channel === 'PUBLIC'
+                        ? 'PUBLIC_ONLINE'
+                        : channel === 'ASSISTED_OFFLINE'
+                          ? 'ASSISTED_COUNTER'
+                          : 'STAFF_OFFLINE'
+                    }
+                    productId={definition.productId ?? null}
+                    personSsn={String(values.ssn)}
+                    userCode={userCode}
                   />
-                ))}
-              </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Payment details become available once the SSN is captured above.
+                  </p>
+                )
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {sectionEntries.map(({ field, smartType }) => (
+                    <SmartFieldRenderer
+                      key={field.field_code}
+                      field={field}
+                      smartType={smartType}
+                      value={values[field.field_code]}
+                      error={errors[field.field_code]}
+                      readOnly={readOnly}
+                      channel={channel}
+                      hasPermission={hasPermission}
+                      hydrated={hydratedFields.has(field.field_code)}
+                      dependants={dependants}
+                      onChange={v => setField(field.field_code, v)}
+                      onSSNLookup={runSSNLookup}
+                      onEmployerLookup={runEmployerLookup}
+                      onLegacyLookup={runLegacyLookup}
+                      onRequestOverride={() => setOverrideOpen(field.field_code)}
+                      legacyMatches={legacyMatches}
+                    />
+                  ))}
+                </div>
+              )}
 
               {section.section_code === 'documents' && (
                 <DocumentChecklistPanel
