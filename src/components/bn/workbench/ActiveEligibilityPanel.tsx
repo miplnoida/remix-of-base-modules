@@ -257,6 +257,17 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
           claimStatus={claimStatus}
         />
       )}
+
+      {productVersionId && (
+        <SendEligibilityFailureNoticeDialog
+          open={noticeOpen}
+          onOpenChange={setNoticeOpen}
+          claimId={claimId}
+          productVersionId={productVersionId}
+          userCode={userCode}
+          failedRules={rules.filter((r: any) => !r.passed)}
+        />
+      )}
     </div>
   );
 };
