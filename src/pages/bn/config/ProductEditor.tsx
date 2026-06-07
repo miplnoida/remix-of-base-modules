@@ -100,33 +100,52 @@ export default function ProductEditor() {
   const activeVersion = versions.find((v: BnProductVersion) => v.id === selectedVersionId);
   const isEditableVersion = activeVersion?.status === 'DRAFT';
   const copyRulesMutation = useCopyBnVersionRules();
+  const cloneToDraftMutation = useCloneBnVersionToDraft();
+
+  const [guard, setGuard] = useState<{ open: boolean; intent: 'EDIT' | 'DELETE' }>({ open: false, intent: 'EDIT' });
+
+  // Clone current (locked) version into a new DRAFT and navigate the user to it.
+  const handleCloneToDraft = async () => {
+    if (!id || isNew || !activeVersion) return;
+    try {
+      const result = await cloneToDraftMutation.mutateAsync({
+        productId: id,
+        sourceVersionId: activeVersion.id,
+      });
+      toast({
+        title: 'Draft version created',
+        description: 'You can now make changes safely.',
+      });
+      setSelectedVersionId(result.newVersionId);
+      setGuard({ open: false, intent: 'EDIT' });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err?.message || 'Failed to clone version.', variant: 'destructive' });
+    }
+  };
+
+  const openEditGuard = async () => {
+    if (activeVersion) {
+      // Non-blocking audit of the attempt
+      auditAttemptedActiveMutation(activeVersion.id, 'EDIT').catch(() => {});
+    }
+    setGuard({ open: true, intent: 'EDIT' });
+  };
 
   const handleCreateVersion = async () => {
     if (!id || isNew) return;
+
+    // If user is on a non-DRAFT version, open the guided dialog instead of
+    // jumping straight into the legacy "empty draft" flow.
+    if (activeVersion && activeVersion.status !== 'DRAFT') {
+      openEditGuard();
+      return;
+    }
+
     const nextNum = versions.length > 0 ? Math.max(...versions.map((v: BnProductVersion) => v.version_number)) + 1 : 1;
     try {
       const today = new Date().toISOString().slice(0, 10);
       const created = await createVersionMutation.mutateAsync({ product_id: id, version_number: nextNum, status: 'DRAFT', effective_from: today });
-      // Offer to copy from current selected or active version
-      const sourceId =
-        (activeVersion && window.confirm(
-          `New draft Version ${nextNum} created. Copy full configuration from currently selected V${activeVersion.version_number} [${activeVersion.status}]?\n\nOK = copy from selected, Cancel = leave empty.`,
-        ))
-          ? activeVersion.id
-          : null;
-      if (sourceId) {
-        try {
-          const c = await copyRulesMutation.mutateAsync({ sourceVersionId: sourceId, targetVersionId: created.id });
-          toast({
-            title: `Version ${nextNum} created and populated`,
-            description: `Copied ${c.eligibility} eligibility, ${c.calculation} calculation, ${c.timeline} timeline, ${c.documents} documents, ${c.channels} channels, ${c.overrides} overrides.`,
-          });
-        } catch (copyErr: any) {
-          toast({ title: 'Version created — copy failed', description: copyErr?.message, variant: 'destructive' });
-        }
-      } else {
-        toast({ title: 'Success', description: `Version ${nextNum} created (empty draft).` });
-      }
+      toast({ title: 'Success', description: `Version ${nextNum} created (empty draft).` });
       setSelectedVersionId(created.id);
     } catch (err: any) {
       toast({ title: 'Error', description: err?.message || 'Failed to create version.', variant: 'destructive' });
