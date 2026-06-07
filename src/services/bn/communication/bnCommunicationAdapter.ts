@@ -358,99 +358,92 @@ export async function triggerClaimCommunication(eventCode: string, claimId: stri
     });
   }
 
-  // 5. If no mappings at all, log a SKIPPED entry so the timeline shows the event still happened
+  // 5. If no mappings at all, log a BLOCKED entry — required event with no configured mapping.
   if (mappings.length === 0) {
     const id = await writeCommLog({
       claimId, eventCode, channel: 'IN_APP', recipientType: 'ASSIGNED_OFFICER',
-      status: 'SKIPPED', error: 'No communication mappings configured', userCode: ctx?.userCode,
-      workflowStepId: ctx?.workflowStepId,
+      status: 'BLOCKED', error: 'No communication mapping configured for this event in Product Catalog',
+      userCode: ctx?.userCode, workflowStepId: ctx?.workflowStepId,
+      context: { missing: ['mapping'], action: 'Configure mapping in Product Catalog → Communications' },
     });
     if (id) result.logIds.push(id);
+    result.blocked += 1;
     return result;
   }
 
   // 6. Dispatch each mapping
   for (const m of mappings) {
+    const isRequired = m.is_required === true || event.is_mandatory_letter === true;
     try {
-      const recipient = await resolveRecipient(claimId, m.recipient_type as BnRecipientType, m.channel as BnChannel);
-      if (!recipient) {
-        result.skipped += 1;
+      const diag = await diagnoseRecipient(claimId, m.recipient_type as BnRecipientType, m.channel as BnChannel);
+      const recipient = diag.recipient;
+      const subject = `${event.event_name}${mergeContext.ClaimNumber ? ` — ${mergeContext.ClaimNumber}` : ''}`;
+
+      if (!diag.resolvable) {
+        // If channel is digital but event mandates a letter, fall back to letter generation
+        const canFallbackToLetter = event.is_mandatory_letter && m.channel !== 'LETTER';
+        if (canFallbackToLetter) {
+          const letterId = await createLetter({
+            claimId, eventCode, templateId: m.template_id, recipientType: m.recipient_type,
+            recipient: recipient || { name: m.recipient_type }, subject, mergeContext,
+            isMandatoryLetter: true, userCode: ctx?.userCode,
+          });
+          result.letters.push(letterId);
+          const id = await writeCommLog({
+            claimId, eventCode, channel: 'LETTER', recipientType: m.recipient_type,
+            recipientAddress: recipient?.name, templateId: m.template_id, subject,
+            status: 'GENERATED', letterId, userCode: ctx?.userCode,
+            workflowStepId: ctx?.workflowStepId,
+            context: { fallbackFrom: m.channel, missing: diag.missing, reason: diag.reason },
+          });
+          if (id) result.logIds.push(id);
+          result.dispatched += 1;
+          continue;
+        }
+
+        const status: 'BLOCKED' | 'SKIPPED' = isRequired ? 'BLOCKED' : 'SKIPPED';
+        if (status === 'BLOCKED') result.blocked += 1; else result.skipped += 1;
         const id = await writeCommLog({
           claimId, eventCode, channel: m.channel, recipientType: m.recipient_type,
-          status: 'SKIPPED', error: 'Recipient not resolved', userCode: ctx?.userCode,
-          templateId: m.template_id, workflowStepId: ctx?.workflowStepId,
+          status, error: diag.reason || 'Recipient not resolved',
+          templateId: m.template_id, workflowStepId: ctx?.workflowStepId, userCode: ctx?.userCode,
+          context: { missing: diag.missing, required: isRequired },
         });
         if (id) result.logIds.push(id);
         continue;
       }
 
-      const subject = `${event.event_name}${mergeContext.ClaimNumber ? ` — ${mergeContext.ClaimNumber}` : ''}`;
-
-      // Channel-specific
+      // Channel-specific dispatch
       if (m.channel === 'EMAIL' || m.channel === 'INTERNAL_EMAIL') {
-        if (!recipient.email) {
-          // Fallback to letter if formal event
-          if (event.is_mandatory_letter) {
-            const letterId = await createLetter({
-              claimId, eventCode, templateId: m.template_id, recipientType: m.recipient_type,
-              recipient, subject, mergeContext, isMandatoryLetter: true, userCode: ctx?.userCode,
-            });
-            result.letters.push(letterId);
-            const id = await writeCommLog({
-              claimId, eventCode, channel: 'LETTER', recipientType: m.recipient_type, recipientAddress: recipient.name,
-              templateId: m.template_id, subject, status: 'QUEUED', letterId, userCode: ctx?.userCode,
-              workflowStepId: ctx?.workflowStepId, context: { fallbackFrom: m.channel },
-            });
-            if (id) result.logIds.push(id);
-            result.dispatched += 1;
-            continue;
-          }
-          result.skipped += 1;
-          const id = await writeCommLog({
-            claimId, eventCode, channel: m.channel, recipientType: m.recipient_type,
-            status: 'SKIPPED', error: 'No email on file', templateId: m.template_id,
-            workflowStepId: ctx?.workflowStepId, userCode: ctx?.userCode,
-          });
-          if (id) result.logIds.push(id);
-          continue;
-        }
         const providerId = await queueNotificationQueue('EMAIL', recipient, m.template_id, subject, mergeContext, claimId, eventCode);
         const id = await writeCommLog({
-          claimId, eventCode, channel: m.channel, recipientType: m.recipient_type, recipientAddress: recipient.email,
+          claimId, eventCode, channel: m.channel, recipientType: m.recipient_type, recipientAddress: recipient!.email,
           templateId: m.template_id, subject, status: 'QUEUED', providerId, userCode: ctx?.userCode,
           workflowStepId: ctx?.workflowStepId,
         });
         if (id) result.logIds.push(id);
         result.dispatched += 1;
       } else if (m.channel === 'SMS') {
-        if (!recipient.phone) {
-          result.skipped += 1;
-          const id = await writeCommLog({
-            claimId, eventCode, channel: 'SMS', recipientType: m.recipient_type,
-            status: 'SKIPPED', error: 'No phone on file', templateId: m.template_id,
-            workflowStepId: ctx?.workflowStepId, userCode: ctx?.userCode,
-          });
-          if (id) result.logIds.push(id);
-          continue;
-        }
         const providerId = await queueNotificationQueue('SMS', recipient, m.template_id, subject, mergeContext, claimId, eventCode);
         const id = await writeCommLog({
-          claimId, eventCode, channel: 'SMS', recipientType: m.recipient_type, recipientAddress: recipient.phone,
+          claimId, eventCode, channel: 'SMS', recipientType: m.recipient_type, recipientAddress: recipient!.phone,
           templateId: m.template_id, subject, status: 'QUEUED', providerId, userCode: ctx?.userCode,
           workflowStepId: ctx?.workflowStepId,
         });
         if (id) result.logIds.push(id);
         result.dispatched += 1;
       } else if (m.channel === 'IN_APP') {
-        const inAppId = await createInAppNotification(recipient.userId, subject, mergeContext.ReasonDescription || event.description || '', claimId, eventCode);
+        const inAppId = await createInAppNotification(recipient!.userId, subject, mergeContext.ReasonDescription || event.description || '', claimId, eventCode);
         const id = await writeCommLog({
-          claimId, eventCode, channel: 'IN_APP', recipientType: m.recipient_type, recipientAddress: recipient.userId,
-          templateId: m.template_id, subject, status: inAppId ? 'SENT' : 'SKIPPED',
+          claimId, eventCode, channel: 'IN_APP', recipientType: m.recipient_type, recipientAddress: recipient!.userId,
+          templateId: m.template_id, subject, status: inAppId ? 'SENT' : (isRequired ? 'BLOCKED' : 'SKIPPED'),
           providerId: inAppId, userCode: ctx?.userCode, workflowStepId: ctx?.workflowStepId,
-          error: inAppId ? undefined : 'No internal user resolved',
+          error: inAppId ? undefined : 'In-app delivery failed',
         });
         if (id) result.logIds.push(id);
-        if (inAppId) result.dispatched += 1; else result.skipped += 1;
+        if (inAppId) result.dispatched += 1;
+        else if (isRequired) result.blocked += 1;
+        else result.skipped += 1;
       } else if (m.channel === 'LETTER') {
         const letterId = await createLetter({
           claimId, eventCode, templateId: m.template_id, recipientType: m.recipient_type,
