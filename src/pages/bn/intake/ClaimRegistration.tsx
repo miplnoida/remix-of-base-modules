@@ -699,6 +699,38 @@ export default function ClaimRegistration() {
 
             {step === 'eligibility' && (
               <StepCard title="6. Eligibility Pre-checks" desc="Loaded from the resolved product version. Editable values come later.">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    {eligRules.length} rule{eligRules.length === 1 ? '' : 's'} loaded for this product version.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!resolvedVersion}
+                    onClick={async () => {
+                      if (!resolvedVersion) return;
+                      const fresh = await fetchEligibilityRules(resolvedVersion.version.id).catch(() => []);
+                      setEligRules(fresh);
+                      void auditClaimAction({
+                        action: 'ELIGIBILITY_PRECHECK_RUN',
+                        entityType: 'bn_claim_intake',
+                        entityId: resolvedVersion.version.id,
+                        performedBy: userCode,
+                        afterValue: {
+                          trigger: 'manual',
+                          productCode: (selectedProduct as any)?.benefit_code,
+                          ssn: person?.ssn ?? (pendingVerification ? ssn : null),
+                          claimDate,
+                          ruleCount: fresh.length,
+                        },
+                        critical: false,
+                      }).catch(() => {});
+                      toast.success('Pre-check re-run', { description: `${fresh.length} rule(s) evaluated.` });
+                    }}
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5 mr-1" /> Run Pre-check
+                  </Button>
+                </div>
                 {eligRules.length === 0 && <p className="text-sm text-muted-foreground">No eligibility rules configured.</p>}
                 {eligRules.length > 0 && (
                   <ul className="space-y-1 text-sm">
