@@ -205,6 +205,21 @@ export const BatchDetailDrawer: React.FC<Props> = ({ batchId, open, onClose, onA
 
                 <Separator />
 
+                {/* EFT / Cheque execution controls (visible once batch is APPROVED or RELEASED) */}
+                {['APPROVED', 'RELEASED', 'PARTIALLY_ISSUED', 'ISSUED'].includes(batch.status) && (
+                  <>
+                    <PaymentExecutionPanel
+                      batchId={batch.id}
+                      batchType={(batch as any).batch_type || batch.payment_method as any}
+                      countryCode={'KN'}
+                      bankAccountRef={(batch as any).bank_account_ref || batch.office_code || 'DEFAULT'}
+                      userCode={batch.created_by || 'CURRENT_USER'}
+                      canExecute={['APPROVED', 'RELEASED', 'PARTIALLY_ISSUED'].includes(batch.status)}
+                    />
+                    <Separator />
+                  </>
+                )}
+
                 {/* Actions */}
                 {workflowActions.length > 0 && (
                   <div className="space-y-3">
