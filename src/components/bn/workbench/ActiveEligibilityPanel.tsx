@@ -69,6 +69,7 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
   );
 
   const [overrideRule, setOverrideRule] = useState<any | null>(null);
+  const [noticeOpen, setNoticeOpen] = useState(false);
 
   const handleRun = async () => {
     if (!userCode) {
@@ -254,6 +255,17 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
           userCode={userCode}
           userRoles={roles}
           claimStatus={claimStatus}
+        />
+      )}
+
+      {productVersionId && (
+        <SendEligibilityFailureNoticeDialog
+          open={noticeOpen}
+          onOpenChange={setNoticeOpen}
+          claimId={claimId}
+          productVersionId={productVersionId}
+          userCode={userCode}
+          failedRules={rules.filter((r: any) => !r.passed)}
         />
       )}
     </div>
