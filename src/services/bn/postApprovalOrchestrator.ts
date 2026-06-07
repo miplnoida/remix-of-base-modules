@@ -95,15 +95,29 @@ export async function orchestrateApproval(
     };
   }
 
-  const periodic = isPeriodic(product.category, product.payment_type);
+  const periodicDefault = isPeriodic(product.category, product.payment_type);
   const weekly = Number(calc?.weekly_rate || 0);
   const monthly = Number(calc?.monthly_rate || (weekly * 52 / 12) || 0);
   const lump = Number(calc?.lump_sum || 0);
   const today = new Date().toISOString().slice(0, 10);
 
+  // ─── Phase 4: transition-rule drives post-approve routing ─────
+  // If a `bn_claim_transition_rule` row for (current status, APPROVE)
+  // declares `creates_task_type`, it wins over the legacy in-code
+  // periodic/lump-sum branching.
+  const sideEffect = await getTransitionSideEffect({
+    fromStatus: claim.status,
+    actionCode: 'APPROVE',
+    productCategory: product.category,
+  });
+  const taskType = sideEffect.createsTaskType
+    ?? (periodicDefault ? 'AWARD_SETUP' : 'PAYMENT_QUEUE');
+  const periodic = taskType === 'AWARD_SETUP';
+
   let entitlementId: string | undefined;
   let paymentInstructionId: string | undefined;
-  let toStatus = 'AWARD_SETUP';
+  let toStatus = taskType;
+
 
   if (periodic) {
     // ─── Periodic / long-term ────────────────────────────────────
