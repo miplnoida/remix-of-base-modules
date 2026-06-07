@@ -290,16 +290,16 @@ export async function validateProduct(
     if (activeVersion.workflow_template_id) {
       const { data: wfTemplate } = await supabase
         .from('bn_workflow_template')
-        .select('id, name, is_active')
+        .select('id, template_name, is_active')
         .eq('id', activeVersion.workflow_template_id)
         .maybeSingle();
       if (!wfTemplate) {
         workflowExistsCheck = { status: 'FAIL', message: 'workflow_template_id points to missing bn_workflow_template row' };
         issues.push('Workflow definition missing.');
       } else if (wfTemplate.is_active === false) {
-        workflowExistsCheck = { status: 'WARNING', message: `Workflow "${wfTemplate.name}" exists but inactive` };
+        workflowExistsCheck = { status: 'WARNING', message: `Workflow "${wfTemplate.template_name}" exists but inactive` };
       } else {
-        workflowExistsCheck = { status: 'PASS', message: `Workflow "${wfTemplate.name}" present` };
+        workflowExistsCheck = { status: 'PASS', message: `Workflow "${wfTemplate.template_name}" present` };
       }
     } else {
       workflowExistsCheck = { status: 'NOT_APPLICABLE', message: 'No workflow linked' };
