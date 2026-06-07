@@ -50,7 +50,17 @@ async function loadProductByCode(code: string) {
   return data;
 }
 
-async function loadActiveVersion(productId: string) {
+async function loadValidationVersion(productId: string, productVersionId?: string) {
+  if (productVersionId) {
+    const { data } = await supabase
+      .from('bn_product_version')
+      .select('*')
+      .eq('id', productVersionId)
+      .eq('product_id', productId)
+      .maybeSingle();
+    return data;
+  }
+
   const { data } = await supabase
     .from('bn_product_version')
     .select('*')
@@ -62,7 +72,10 @@ async function loadActiveVersion(productId: string) {
   return data;
 }
 
-export async function validateProduct(baseline: SknBenefitBaseline): Promise<ProductValidationReport> {
+export async function validateProduct(
+  baseline: SknBenefitBaseline,
+  options: { productVersionId?: string } = {},
+): Promise<ProductValidationReport> {
   const issues: string[] = [...baseline.warnings];
   const product = await loadProductByCode(baseline.benefit_code);
 
@@ -93,10 +106,10 @@ export async function validateProduct(baseline: SknBenefitBaseline): Promise<Pro
 
   const productCheck: CheckResult = { status: 'PASS', message: `Product found (${product.status})` };
 
-  const activeVersion = await loadActiveVersion(product.id);
+  const activeVersion = await loadValidationVersion(product.id, options.productVersionId);
   const activeVersionCheck: CheckResult = activeVersion
-    ? { status: 'PASS', message: `v${activeVersion.version_number} active` }
-    : { status: 'FAIL', message: 'No ACTIVE version' };
+    ? { status: 'PASS', message: options.productVersionId ? `v${activeVersion.version_number} selected for publish validation` : `v${activeVersion.version_number} active` }
+    : { status: 'FAIL', message: options.productVersionId ? 'Selected version not found for this product' : 'No ACTIVE version' };
 
   let eligibilityCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
   let calculationCheck: CheckResult = { status: 'NOT_APPLICABLE', message: 'Active version required' };
