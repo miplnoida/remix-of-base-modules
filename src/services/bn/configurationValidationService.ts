@@ -286,20 +286,20 @@ export async function validateProduct(
       ? { status: 'PASS', message: 'Workflow template linked' }
       : { status: 'WARNING', message: 'No workflow_template_id — relies on fallback transition matrix' };
 
-    // Workflow definition exists?
+    // Workflow definition/template exists?
     if (activeVersion.workflow_template_id) {
-      const { data: wfDef } = await supabase
-        .from('workflow_definitions')
+      const { data: wfTemplate } = await supabase
+        .from('bn_workflow_template')
         .select('id, name, is_active')
         .eq('id', activeVersion.workflow_template_id)
         .maybeSingle();
-      if (!wfDef) {
-        workflowExistsCheck = { status: 'FAIL', message: 'workflow_template_id points to missing workflow_definitions row' };
+      if (!wfTemplate) {
+        workflowExistsCheck = { status: 'FAIL', message: 'workflow_template_id points to missing bn_workflow_template row' };
         issues.push('Workflow definition missing.');
-      } else if (wfDef.is_active === false) {
-        workflowExistsCheck = { status: 'WARNING', message: `Workflow "${wfDef.name}" exists but inactive` };
+      } else if (wfTemplate.is_active === false) {
+        workflowExistsCheck = { status: 'WARNING', message: `Workflow "${wfTemplate.name}" exists but inactive` };
       } else {
-        workflowExistsCheck = { status: 'PASS', message: `Workflow "${wfDef.name}" present` };
+        workflowExistsCheck = { status: 'PASS', message: `Workflow "${wfTemplate.name}" present` };
       }
     } else {
       workflowExistsCheck = { status: 'NOT_APPLICABLE', message: 'No workflow linked' };
