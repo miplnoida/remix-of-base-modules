@@ -26,10 +26,12 @@ import { resolveField, type ResolvedValue } from '@/services/bn/eligibility/fiel
 import { evaluateOperator } from '@/services/bn/eligibility/operatorEvaluator';
 import { RULE_GROUPS, defaultGroupForFact } from '@/services/bn/eligibility/eligibilityFactRegistry';
 import { RULE_TEMPLATES, type RuleTemplate } from '@/services/bn/eligibility/ruleTemplates';
+import { RuleWizardDialog } from './RuleWizardDialog';
+import { Wand2 } from 'lucide-react';
 
 import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
-interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
+interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; productCode?: string | null; }
 
 const emptyRule: Partial<BnEligibilityRule> = {
   rule_code: '', rule_name: '', rule_type: 'CONTRIBUTION', rule_group: 'GENERAL',
