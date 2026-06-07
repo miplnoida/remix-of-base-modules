@@ -608,3 +608,104 @@ export async function executeBulkPayableAction(
 
   return { succeeded, failed, errors };
 }
+
+// ─── Validation Diagnostics ─────────────────────────────────────────
+//
+// Spec section 5 + 9: before a payable can be issued, verify every
+// prerequisite. Returns a structured list of blockers so the UI can
+// render exact reasons (missing bank, no approved decision, etc).
+
+export interface PayableBlocker {
+  code: string;
+  message: string;
+}
+
+export interface PayableValidation {
+  payableId: string;
+  claimId: string | null;
+  ok: boolean;
+  blockers: PayableBlocker[];
+}
+
+export async function validatePayable(instructionId: string): Promise<PayableValidation> {
+  const blockers: PayableBlocker[] = [];
+
+  const { data: pi } = await db
+    .from('bn_payment_instruction')
+    .select('id, claim_id, ssn, amount, payment_method, bank_code, account_number, status')
+    .eq('id', instructionId)
+    .single();
+
+  if (!pi) {
+    return { payableId: instructionId, claimId: null, ok: false, blockers: [{ code: 'NOT_FOUND', message: 'Payable not found' }] };
+  }
+
+  if (pi.status === 'HELD' || pi.status === 'BLOCKED') {
+    blockers.push({ code: 'HELD', message: `Payable is on hold (${pi.status})` });
+  }
+
+  if (!pi.amount || Number(pi.amount) <= 0) {
+    blockers.push({ code: 'NO_AMOUNT', message: 'Calculation has produced no payable amount' });
+  }
+
+  if (pi.payment_method === 'EFT' && (!pi.account_number || !pi.bank_code)) {
+    blockers.push({ code: 'MISSING_BANK', message: 'Bank details missing — required for EFT payment' });
+  }
+
+  if (pi.claim_id) {
+    const [{ data: decisions }, { data: eligibility }, { data: calcs }] = await Promise.all([
+      db.from('bn_claim_decision')
+        .select('action_code, to_status, performed_at')
+        .eq('claim_id', pi.claim_id)
+        .order('performed_at', { ascending: false })
+        .limit(1),
+      db.from('bn_claim_eligibility')
+        .select('overall_result, override_applied')
+        .eq('claim_id', pi.claim_id)
+        .order('check_date', { ascending: false })
+        .limit(1),
+      db.from('bn_claim_calculation')
+        .select('id, weekly_rate, lump_sum, monthly_rate')
+        .eq('claim_id', pi.claim_id)
+        .order('calc_date', { ascending: false })
+        .limit(1),
+    ]);
+
+    const decision = decisions?.[0];
+    if (!decision || decision.action_code !== 'APPROVE') {
+      blockers.push({ code: 'NO_APPROVED_DECISION', message: 'No approved claim decision exists' });
+    }
+
+    const elig = eligibility?.[0];
+    if (!elig || (!elig.overall_result && !elig.override_applied)) {
+      blockers.push({ code: 'NOT_ELIGIBLE', message: 'Claim is not eligible (and no approved override)' });
+    }
+
+    if (!calcs?.[0]) {
+      blockers.push({ code: 'NO_CALCULATION', message: 'Calculation has not been finalized' });
+    }
+  } else {
+    blockers.push({ code: 'NO_CLAIM_LINK', message: 'Payable is not linked to a claim' });
+  }
+
+  // Mandatory document check (only blocks if any required doc is unverified)
+  if (pi.claim_id) {
+    const { data: missingDocs } = await db
+      .from('bn_claim_evidence')
+      .select('id, is_mandatory, status')
+      .eq('claim_id', pi.claim_id)
+      .eq('is_mandatory', true)
+      .neq('status', 'VERIFIED');
+    if ((missingDocs?.length || 0) > 0) {
+      blockers.push({ code: 'MISSING_MANDATORY_DOC', message: `${missingDocs!.length} mandatory document(s) not verified` });
+    }
+  }
+
+  return {
+    payableId: pi.id,
+    claimId: pi.claim_id,
+    ok: blockers.length === 0,
+    blockers,
+  };
+}
+
