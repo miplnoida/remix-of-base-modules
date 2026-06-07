@@ -1,10 +1,9 @@
 /**
  * Active Eligibility Panel
  *
- * Shows the latest eligibility check with a full rule trace and
- * exposes Run / Re-run buttons. Each failed rule gets a "Request Override"
- * action which opens a maker-checker dialog; supervisors then approve or
- * reject the request from the EligibilityOverridesPanel below.
+ * Shows the latest eligibility check with a full rule trace and exposes
+ * Run / Re-run buttons. Each failed rule gets a "Request Override" action
+ * which opens the policy-driven maker-checker dialog (unified handler).
  */
 import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -13,13 +12,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Play, RefreshCw, CheckCircle2, XCircle, AlertCircle, ShieldAlert } from 'lucide-react';
 import { toast } from 'sonner';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { runClaimEligibility } from '@/services/bn/claimActionRunner';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { BnEmptyState } from '@/components/bn/shared/BnEmptyState';
 import { OverrideEligibilityDialog } from './OverrideEligibilityDialog';
 import { EligibilityOverridesPanel } from './EligibilityOverridesPanel';
-import { isRuleOverrideable, loadOverridePolicy, type ProductOverridePolicy } from '@/services/bn/eligibilityOverrideService';
+import { usePolicy } from '@/hooks/bn/usePolicy';
 
 interface Props {
   claimId: string;
@@ -27,9 +26,8 @@ interface Props {
   eligibility: any[];
   userRoles?: string[];
   productVersionId?: string | null;
+  claimStatus?: string;
 }
-
-import { usePolicy } from '@/hooks/bn/usePolicy';
 
 export const ActiveEligibilityPanel: React.FC<Props> = ({
   claimId,
@@ -37,32 +35,36 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
   eligibility,
   userRoles,
   productVersionId,
+  claimStatus,
 }) => {
   const [running, setRunning] = useState(false);
   const qc = useQueryClient();
   const latest = eligibility?.[0];
 
-  // Legacy policy (kept for rule-overrideability metadata until eligibilityOverrideService is fully migrated)
-  const { data: policy } = useQuery<ProductOverridePolicy | null>({
-    queryKey: ['bn', 'override-policy', productVersionId],
-    queryFn: () => (productVersionId ? loadOverridePolicy(productVersionId) : Promise.resolve(null)),
-    enabled: !!productVersionId,
-  });
-
-  // New policy-driven gating: who may request / approve eligibility overrides
+  // Single policy-driven gating source
   const { data: approvalPolicy } = usePolicy(productVersionId || undefined, 'ELIGIBILITY');
 
-  const normalizedRoles = (userRoles ?? []).map((r) => String(r || '').toUpperCase());
+  const roles = userRoles ?? [];
+  const normalizedRoles = roles.map((r) => String(r || '').toUpperCase());
   const requiredApproverRole = approvalPolicy?.approval_role?.toUpperCase();
 
-  // Request gate: policy must be enabled. Any signed-in user may request unless
-  // a specific approver role is also configured as the requester gate (rare).
   const canRequest = !!approvalPolicy?.is_enabled;
-
-  // Approve gate: must hold the configured approver role.
   const canReview =
     !!approvalPolicy?.is_enabled &&
     (!requiredApproverRole || normalizedRoles.includes(requiredApproverRole));
+
+  const allowedRules = approvalPolicy?.allowed_rule_codes ?? [];
+  const blockedRules = approvalPolicy?.blocked_rule_codes ?? [];
+
+  const isRuleOverrideable = useMemo(
+    () => (ruleCode: string) => {
+      if (!approvalPolicy?.is_enabled) return false;
+      if (blockedRules.includes(ruleCode)) return false;
+      if (allowedRules.length > 0) return allowedRules.includes(ruleCode);
+      return true;
+    },
+    [approvalPolicy, allowedRules, blockedRules],
+  );
 
   const [overrideRule, setOverrideRule] = useState<any | null>(null);
 
@@ -87,11 +89,6 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
       setRunning(false);
     }
   };
-
-  const overrideAllowedByPolicy = useMemo(
-    () => (ruleCode: string) => isRuleOverrideable(policy ?? null, ruleCode),
-    [policy],
-  );
 
   if (!latest) {
     return (
@@ -169,12 +166,12 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
                 </TableHeader>
                 <TableBody>
                   {rules.map((r: any, i: number) => {
-                    const isOverridden = r.result_state === 'OVERRIDDEN';
+                    const isOverridden = r.result_state === 'OVERRIDDEN' || r.status === 'OVERRIDDEN';
                     const showOverride =
                       !r.passed &&
                       canRequest &&
                       !!productVersionId &&
-                      overrideAllowedByPolicy(r.rule_code);
+                      isRuleOverrideable(r.rule_code);
                     return (
                       <TableRow key={i} className={!r.passed ? 'bg-destructive/5' : isOverridden ? 'bg-amber-500/5' : undefined}>
                         <TableCell>
@@ -205,7 +202,7 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
                               Request Override
                             </Button>
                           )}
-                          {!r.passed && !showOverride && !!productVersionId && !overrideAllowedByPolicy(r.rule_code) && (
+                          {!r.passed && !showOverride && !!productVersionId && !isRuleOverrideable(r.rule_code) && (
                             <span className="text-[10px] text-muted-foreground">Not overrideable</span>
                           )}
                           {isOverridden && (
@@ -224,7 +221,12 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
         </CardContent>
       </Card>
 
-      <EligibilityOverridesPanel claimId={claimId} userCode={userCode} canReview={canReview} userRoles={userRoles} />
+      <EligibilityOverridesPanel
+        claimId={claimId}
+        userCode={userCode}
+        userRoles={roles}
+        canReview={canReview}
+      />
 
       {eligibility.length > 1 && (
         <p className="text-xs text-muted-foreground">
@@ -232,15 +234,17 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
         </p>
       )}
 
-      {overrideRule && (
+      {overrideRule && productVersionId && (
         <OverrideEligibilityDialog
           open={!!overrideRule}
           onOpenChange={(o) => !o && setOverrideRule(null)}
           claimId={claimId}
+          productVersionId={productVersionId}
           eligibilityResultId={overrideRule.eligibility_result_id}
           rule={overrideRule}
           userCode={userCode}
-          policy={policy ?? null}
+          userRoles={roles}
+          claimStatus={claimStatus}
         />
       )}
     </div>
