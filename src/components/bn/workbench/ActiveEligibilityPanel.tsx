@@ -133,11 +133,18 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
               </Badge>
             </CardTitle>
             <div className="flex items-center gap-2">
+              {!passed && productVersionId && (
+                <Button size="sm" variant="default" onClick={() => setNoticeOpen(true)} className="gap-1">
+                  <Send className="h-3.5 w-3.5" />
+                  Send Eligibility Failure Notice
+                </Button>
+              )}
               <Button size="sm" variant="outline" onClick={handleRun} disabled={running} className="gap-1">
                 <RefreshCw className={`h-3.5 w-3.5 ${running ? 'animate-spin' : ''}`} />
                 Re-run
               </Button>
             </div>
+
           </div>
         </CardHeader>
         <CardContent>
