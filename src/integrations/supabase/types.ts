@@ -4886,11 +4886,14 @@ export type Database = {
           added_at: string
           added_by: string | null
           amount: number
+          bank_account_snapshot: Json | null
           batch_id: string
           beneficiary_name: string | null
+          cheque_number: string | null
           cl_cheque_no: string | null
           claim_number: string | null
           currency: string
+          error_message: string | null
           id: string
           instruction_id: string
           instruction_type: string
@@ -4908,11 +4911,14 @@ export type Database = {
           added_at?: string
           added_by?: string | null
           amount: number
+          bank_account_snapshot?: Json | null
           batch_id: string
           beneficiary_name?: string | null
+          cheque_number?: string | null
           cl_cheque_no?: string | null
           claim_number?: string | null
           currency?: string
+          error_message?: string | null
           id?: string
           instruction_id: string
           instruction_type?: string
@@ -4930,11 +4936,14 @@ export type Database = {
           added_at?: string
           added_by?: string | null
           amount?: number
+          bank_account_snapshot?: Json | null
           batch_id?: string
           beneficiary_name?: string | null
+          cheque_number?: string | null
           cl_cheque_no?: string | null
           claim_number?: string | null
           currency?: string
+          error_message?: string | null
           id?: string
           instruction_id?: string
           instruction_type?: string
@@ -5453,6 +5462,179 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bn_cheque_register: {
+        Row: {
+          amount: number | null
+          batch_id: string | null
+          batch_item_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cheque_date: string | null
+          cheque_number: string
+          cheque_stock_id: string | null
+          corrected_at: string | null
+          corrected_by: string | null
+          corrected_from: string | null
+          created_at: string
+          dispatch_reference: string | null
+          dispatched_at: string | null
+          dispatched_by: string | null
+          id: string
+          notes: string | null
+          payee_name: string | null
+          payment_instruction_id: string | null
+          printed_at: string | null
+          printed_by: string | null
+          reprint_reason: string | null
+          reprinted_at: string | null
+          reprinted_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          batch_id?: string | null
+          batch_item_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cheque_date?: string | null
+          cheque_number: string
+          cheque_stock_id?: string | null
+          corrected_at?: string | null
+          corrected_by?: string | null
+          corrected_from?: string | null
+          created_at?: string
+          dispatch_reference?: string | null
+          dispatched_at?: string | null
+          dispatched_by?: string | null
+          id?: string
+          notes?: string | null
+          payee_name?: string | null
+          payment_instruction_id?: string | null
+          printed_at?: string | null
+          printed_by?: string | null
+          reprint_reason?: string | null
+          reprinted_at?: string | null
+          reprinted_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          batch_id?: string | null
+          batch_item_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          cheque_date?: string | null
+          cheque_number?: string
+          cheque_stock_id?: string | null
+          corrected_at?: string | null
+          corrected_by?: string | null
+          corrected_from?: string | null
+          created_at?: string
+          dispatch_reference?: string | null
+          dispatched_at?: string | null
+          dispatched_by?: string | null
+          id?: string
+          notes?: string | null
+          payee_name?: string | null
+          payment_instruction_id?: string | null
+          printed_at?: string | null
+          printed_by?: string | null
+          reprint_reason?: string | null
+          reprinted_at?: string | null
+          reprinted_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_cheque_register_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_batch"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_cheque_register_batch_item_id_fkey"
+            columns: ["batch_item_id"]
+            isOneToOne: false
+            referencedRelation: "bn_batch_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_cheque_register_cheque_stock_id_fkey"
+            columns: ["cheque_stock_id"]
+            isOneToOne: false
+            referencedRelation: "bn_cheque_stock"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_cheque_register_payment_instruction_id_fkey"
+            columns: ["payment_instruction_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_instruction"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_cheque_stock: {
+        Row: {
+          bank_account_ref: string
+          bank_code: string | null
+          cancelled_count: number
+          created_at: string
+          id: string
+          next_number: number
+          notes: string | null
+          range_end: number
+          range_start: number
+          registered_at: string
+          registered_by: string | null
+          series_prefix: string | null
+          status: string
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          bank_account_ref: string
+          bank_code?: string | null
+          cancelled_count?: number
+          created_at?: string
+          id?: string
+          next_number: number
+          notes?: string | null
+          range_end: number
+          range_start: number
+          registered_at?: string
+          registered_by?: string | null
+          series_prefix?: string | null
+          status?: string
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          bank_account_ref?: string
+          bank_code?: string | null
+          cancelled_count?: number
+          created_at?: string
+          id?: string
+          next_number?: number
+          notes?: string | null
+          range_end?: number
+          range_start?: number
+          registered_at?: string
+          registered_by?: string | null
+          series_prefix?: string | null
+          status?: string
+          updated_at?: string
+          used_count?: number
+        }
+        Relationships: []
       }
       bn_claim: {
         Row: {
@@ -7373,11 +7555,18 @@ export type Database = {
       }
       bn_country_payment_config: {
         Row: {
+          account_number_rule: string | null
+          bank_code: string | null
+          bank_file_format: string | null
           calendar_config: Json
           country_code: string
           cut_off_day: number | null
+          detail_record_format: string | null
           entered_at: string
           entered_by: string | null
+          file_date_format: string | null
+          file_naming_convention: string | null
+          header_record_format: string | null
           id: string
           is_active: boolean
           is_default: boolean
@@ -7387,13 +7576,22 @@ export type Database = {
           processing_days: number
           requires_bank_account: boolean
           requires_mobile_number: boolean
+          routing_number_rule: string | null
+          trailer_record_format: string | null
         }
         Insert: {
+          account_number_rule?: string | null
+          bank_code?: string | null
+          bank_file_format?: string | null
           calendar_config?: Json
           country_code: string
           cut_off_day?: number | null
+          detail_record_format?: string | null
           entered_at?: string
           entered_by?: string | null
+          file_date_format?: string | null
+          file_naming_convention?: string | null
+          header_record_format?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
@@ -7403,13 +7601,22 @@ export type Database = {
           processing_days?: number
           requires_bank_account?: boolean
           requires_mobile_number?: boolean
+          routing_number_rule?: string | null
+          trailer_record_format?: string | null
         }
         Update: {
+          account_number_rule?: string | null
+          bank_code?: string | null
+          bank_file_format?: string | null
           calendar_config?: Json
           country_code?: string
           cut_off_day?: number | null
+          detail_record_format?: string | null
           entered_at?: string
           entered_by?: string | null
+          file_date_format?: string | null
+          file_naming_convention?: string | null
+          header_record_format?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
@@ -7419,6 +7626,8 @@ export type Database = {
           processing_days?: number
           requires_bank_account?: boolean
           requires_mobile_number?: boolean
+          routing_number_rule?: string | null
+          trailer_record_format?: string | null
         }
         Relationships: [
           {
@@ -7555,6 +7764,83 @@ export type Database = {
           profile_name?: string
         }
         Relationships: []
+      }
+      bn_eft_file: {
+        Row: {
+          bank_code: string | null
+          batch_id: string
+          control_amount: number | null
+          control_count: number | null
+          created_at: string
+          file_format: string
+          file_hash: string | null
+          file_name: string
+          file_payload: string | null
+          file_reference: string
+          generated_at: string
+          generated_by: string | null
+          id: string
+          notes: string | null
+          response_at: string | null
+          response_payload: string | null
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          bank_code?: string | null
+          batch_id: string
+          control_amount?: number | null
+          control_count?: number | null
+          created_at?: string
+          file_format?: string
+          file_hash?: string | null
+          file_name: string
+          file_payload?: string | null
+          file_reference: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          notes?: string | null
+          response_at?: string | null
+          response_payload?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bank_code?: string | null
+          batch_id?: string
+          control_amount?: number | null
+          control_count?: number | null
+          created_at?: string
+          file_format?: string
+          file_hash?: string | null
+          file_name?: string
+          file_payload?: string | null
+          file_reference?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          notes?: string | null
+          response_at?: string | null
+          response_payload?: string | null
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_eft_file_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_batch"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_eligibility_rule: {
         Row: {
@@ -9635,8 +9921,11 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          bank_account_ref: string | null
           batch_date: string
           batch_number: string
+          batch_type: string | null
+          benefit_type: string | null
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
@@ -9652,6 +9941,9 @@ export type Database = {
           notes: string | null
           office_code: string
           payment_method: string
+          payment_period: string | null
+          prepared_at: string | null
+          prepared_by: string | null
           released_at: string | null
           released_by: string | null
           status: string
@@ -9664,8 +9956,11 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          bank_account_ref?: string | null
           batch_date?: string
           batch_number: string
+          batch_type?: string | null
+          benefit_type?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -9681,6 +9976,9 @@ export type Database = {
           notes?: string | null
           office_code?: string
           payment_method?: string
+          payment_period?: string | null
+          prepared_at?: string | null
+          prepared_by?: string | null
           released_at?: string | null
           released_by?: string | null
           status?: string
@@ -9693,8 +9991,11 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          bank_account_ref?: string | null
           batch_date?: string
           batch_number?: string
+          batch_type?: string | null
+          benefit_type?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
@@ -9710,6 +10011,9 @@ export type Database = {
           notes?: string | null
           office_code?: string
           payment_method?: string
+          payment_period?: string | null
+          prepared_at?: string | null
+          prepared_by?: string | null
           released_at?: string | null
           released_by?: string | null
           status?: string
@@ -9786,12 +10090,14 @@ export type Database = {
           account_number: string | null
           amount: number
           award_id: string | null
+          bank_account_snapshot: Json | null
           bank_code: string | null
           batch_id: string | null
           beneficiary_name: string | null
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          cheque_address_snapshot: Json | null
           claim_id: string | null
           created_at: string
           currency: string
@@ -9812,25 +10118,34 @@ export type Database = {
           office_code: string | null
           original_instruction_id: string | null
           paid_date: string | null
+          payee_id: string | null
+          payee_name: string | null
           payment_method: string
           payment_reference: string | null
+          payment_type: string | null
           period_end: string | null
           period_start: string | null
           reissue_reason: string | null
           ssn: string
           status: string
           updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          validation_errors: Json | null
+          validation_status: string | null
         }
         Insert: {
           account_number?: string | null
           amount: number
           award_id?: string | null
+          bank_account_snapshot?: Json | null
           bank_code?: string | null
           batch_id?: string | null
           beneficiary_name?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          cheque_address_snapshot?: Json | null
           claim_id?: string | null
           created_at?: string
           currency?: string
@@ -9851,25 +10166,34 @@ export type Database = {
           office_code?: string | null
           original_instruction_id?: string | null
           paid_date?: string | null
+          payee_id?: string | null
+          payee_name?: string | null
           payment_method?: string
           payment_reference?: string | null
+          payment_type?: string | null
           period_end?: string | null
           period_start?: string | null
           reissue_reason?: string | null
           ssn: string
           status?: string
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_errors?: Json | null
+          validation_status?: string | null
         }
         Update: {
           account_number?: string | null
           amount?: number
           award_id?: string | null
+          bank_account_snapshot?: Json | null
           bank_code?: string | null
           batch_id?: string | null
           beneficiary_name?: string | null
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          cheque_address_snapshot?: Json | null
           claim_id?: string | null
           created_at?: string
           currency?: string
@@ -9890,14 +10214,21 @@ export type Database = {
           office_code?: string | null
           original_instruction_id?: string | null
           paid_date?: string | null
+          payee_id?: string | null
+          payee_name?: string | null
           payment_method?: string
           payment_reference?: string | null
+          payment_type?: string | null
           period_end?: string | null
           period_start?: string | null
           reissue_reason?: string | null
           ssn?: string
           status?: string
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_errors?: Json | null
+          validation_status?: string | null
         }
         Relationships: [
           {
@@ -9912,6 +10243,83 @@ export type Database = {
             columns: ["entitlement_id"]
             isOneToOne: false
             referencedRelation: "bn_entitlement"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_payment_reconciliation: {
+        Row: {
+          bank_reference: string | null
+          batch_id: string | null
+          batch_item_id: string | null
+          cheque_register_id: string | null
+          created_at: string
+          eft_file_id: string | null
+          id: string
+          notes: string | null
+          reason_code: string | null
+          reason_detail: string | null
+          reconciled_at: string
+          reconciled_by: string | null
+          result: string
+        }
+        Insert: {
+          bank_reference?: string | null
+          batch_id?: string | null
+          batch_item_id?: string | null
+          cheque_register_id?: string | null
+          created_at?: string
+          eft_file_id?: string | null
+          id?: string
+          notes?: string | null
+          reason_code?: string | null
+          reason_detail?: string | null
+          reconciled_at?: string
+          reconciled_by?: string | null
+          result: string
+        }
+        Update: {
+          bank_reference?: string | null
+          batch_id?: string | null
+          batch_item_id?: string | null
+          cheque_register_id?: string | null
+          created_at?: string
+          eft_file_id?: string | null
+          id?: string
+          notes?: string | null
+          reason_code?: string | null
+          reason_detail?: string | null
+          reconciled_at?: string
+          reconciled_by?: string | null
+          result?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_payment_reconciliation_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "bn_payment_batch"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_payment_reconciliation_batch_item_id_fkey"
+            columns: ["batch_item_id"]
+            isOneToOne: false
+            referencedRelation: "bn_batch_item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_payment_reconciliation_cheque_register_id_fkey"
+            columns: ["cheque_register_id"]
+            isOneToOne: false
+            referencedRelation: "bn_cheque_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_payment_reconciliation_eft_file_id_fkey"
+            columns: ["eft_file_id"]
+            isOneToOne: false
+            referencedRelation: "bn_eft_file"
             referencedColumns: ["id"]
           },
         ]
