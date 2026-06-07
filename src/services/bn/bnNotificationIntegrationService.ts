@@ -1012,7 +1012,7 @@ export async function notifyIssueStarted(batchId: string, batchNumber: string, i
   return dispatchBnNotification({
     eventCode: 'bn.issue.started',
     entityId: batchId,
-    templateData: { BatchNumber: batchNumber, InstructionCount: instructionCount, TotalAmount: totalAmount, IssueStartTime: formatAuditTimestamp(), PaymentMethod: paymentMethod },
+    templateData: { BatchNumber: batchNumber, InstructionCount: instructionCount, TotalAmount: totalAmount, IssueStartTime: formatAuditTimestamp(new Date()), PaymentMethod: paymentMethod },
     triggeredBy,
   });
 }

@@ -535,7 +535,8 @@ export async function detectCommunicationConflicts(versionId: string): Promise<C
   }
 
   // critical events missing letter mapping
-  const criticalEvents = ['CLAIM_APPROVED', 'CLAIM_REJECTED', 'CLAIM_SUSPENDED', 'OVERPAYMENT_RAISED'];
+  // Canonical dotted event codes used by bn_comm_mapping (see notification_templates).
+  const criticalEvents = ['bn.claim.approved', 'bn.claim.denied', 'bn.claim.suspended', 'bn.overpayment.created'];
   for (const ev of criticalEvents) {
     const hasLetter = list.some((m: any) => m.event_code === ev && m.channel === 'LETTER');
     if (!hasLetter) {
