@@ -120,7 +120,7 @@ export async function generateEftFile(input: {
     file_format: fileFormat,
     file_name: fileName,
     file_hash: hash,
-    file_payload: payload_json: payload,
+    file_payload: payload,
     control_count: items.length,
     control_amount: totalAmount,
     generated_by: userCode,
