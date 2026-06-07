@@ -418,6 +418,7 @@ export default function ClaimRegistration() {
           contact_email: contactEmail,
           // Bank/EFT details handled via bn_payment_profile (PaymentDetailsSection)
           payment_profile_source: 'bn_payment_profile',
+          internal_notes: internalNotes,
           workbasket_override: workbasket || null,
           supervisor_escalation: escalateSupervisor
             ? { requested: true, reason: escalationReason }
