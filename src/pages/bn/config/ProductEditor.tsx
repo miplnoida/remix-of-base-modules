@@ -24,6 +24,7 @@ import ParticipantWorkflowTab from '@/components/bn/config/ParticipantWorkflowTa
 import PublicFormRulesTab from '@/components/bn/config/PublicFormRulesTab';
 import { InteractionRulesTab } from '@/components/bn/config/InteractionRulesTab';
 import { OverridePoliciesTab } from '@/components/bn/config/OverridePoliciesTab';
+import { ApprovalPoliciesTab } from '@/components/bn/config/ApprovalPoliciesTab';
 import { VersionHistoryTab } from '@/components/bn/config/VersionHistoryTab';
 import { PreviewTab } from '@/components/bn/config/PreviewTab';
 import { ChannelsTab } from '@/components/bn/config/ChannelsTab';
