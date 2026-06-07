@@ -121,7 +121,20 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
           </div>
           <Button onClick={onCreateVersion} className="gap-2"><Plus className="h-4 w-4" /> New Version</Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {lifecycleError && (
+            <Alert variant="destructive">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Version action blocked</AlertTitle>
+              <AlertDescription className="whitespace-pre-line">{lifecycleError}</AlertDescription>
+            </Alert>
+          )}
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              Correct flow: create or copy into a DRAFT, submit it for approval, approve it to publish as ACTIVE, then the old active version is closed automatically to the day before the new effective date. Manual retire is only for an already closed/replaced active version.
+            </AlertDescription>
+          </Alert>
           {versions.length === 0 ? (
             <p className="text-muted-foreground py-8 text-center">No versions yet. Click "New Version" to create the first one.</p>
           ) : (
@@ -162,7 +175,13 @@ export function VersionHistoryTab({ productId, versions, onCreateVersion }: Prop
                           </>
                         )}
                         {v.status === 'ACTIVE' && (
-                          <Button variant="outline" size="sm" onClick={() => setApprovalDialog({ versionId: v.id, action: 'RETIRE' })}>Retire</Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={!!retireBlockReason(v)}
+                            title={retireBlockReason(v) || 'Retire this active version'}
+                            onClick={() => setApprovalDialog({ versionId: v.id, action: 'RETIRE' })}
+                          >Retire</Button>
                         )}
                       </div>
                     </TableCell>
