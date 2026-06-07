@@ -32,6 +32,7 @@ import {
   PauseCircle,
   Wrench,
   FlaskConical,
+  Mail,
 } from "lucide-react";
 import { filterMenuByFeatures } from "@/lib/bn/featureToggles";
 
