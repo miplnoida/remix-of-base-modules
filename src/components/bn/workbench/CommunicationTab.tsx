@@ -219,6 +219,12 @@ const LogList: React.FC<LogListProps> = ({ rows, loading, onRetry, onGenerateLet
             {missing.length > 0 && (
               <p className="text-xs text-orange-700 mt-0.5">Missing: {missing.join(', ')}</p>
             )}
+            {r.context?.suggestedFix && (
+              <p className="text-xs text-blue-700 mt-0.5"><strong>Fix:</strong> {r.context.suggestedFix}</p>
+            )}
+            {r.context?.fallbackNote && (
+              <p className="text-xs text-muted-foreground italic mt-0.5">{r.context.fallbackNote}</p>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span><Clock className="h-3 w-3 inline mr-1" />{formatTime(r.created_at)}</span>
