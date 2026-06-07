@@ -85,8 +85,11 @@ export const LetterPreviewDialog: React.FC<Props> = ({ letterId, open, onOpenCha
           <div className="space-y-4 text-sm">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Field label="Status" value={<Badge variant="outline">{letter.status}</Badge>} />
+              <Field label="Reference No." value={letter.reference_number || <span className="text-muted-foreground italic">not yet allocated</span>} />
               <Field label="Recipient" value={letter.recipient_name || '—'} />
               <Field label="Type" value={letter.recipient_type} />
+              <Field label="Document Type" value={letter.document_type || '—'} />
+              <Field label="Department" value={letter.department_code || '—'} />
               <Field label="Created" value={formatAuditTimestamp(letter.created_at)} />
             </div>
 
