@@ -125,34 +125,73 @@ export async function validateProductChannelConfig(
     }
   }
 
-  // ─── Eligibility rules — fact keys must resolve ─────────────────
+  // ─── Eligibility rules — typed-rule & fact-key validation ───────
   const { data: rules } = await db
     .from('bn_eligibility_rule')
-    .select('id, rule_code, fact_key, severity, is_active')
+    .select('id, rule_code, fact_key, severity, is_active, rule_kind, start_fact_key, end_fact_key, fallback_end_fact_key, compare_fact_key, document_type_code, required_status, existence_check_code, unit, rule_definition')
     .eq('product_version_id', cfg.product_version_id);
 
   const knownFactKeys = new Set(ELIGIBILITY_FACTS.map((f) => f.fact_key));
+  const PLACEHOLDER_VALUES = new Set(['refer', 'yes', 'no', 'claim', 'reject']);
 
   for (const r of rules ?? []) {
     if (r.is_active === false) continue;
-    if (!r.fact_key) {
-      push(bucket, {
-        code: 'RULE_FACT_KEY_MISSING',
-        severity: 'WARN',
-        message: `Eligibility rule ${r.rule_code} has no fact_key.`,
-        fixHint: 'Open Eligibility Rules and pick a field from the registry.',
-        details: { rule_id: r.id, rule_code: r.rule_code },
-      });
-      continue;
-    }
-    if (!knownFactKeys.has(r.fact_key)) {
-      push(bucket, {
-        code: 'RULE_FACT_KEY_UNKNOWN',
-        severity: 'ERROR',
-        message: `Eligibility rule ${r.rule_code} references unknown fact key "${r.fact_key}".`,
-        fixHint: 'Re-pick the field from the Eligibility Fact Registry.',
-        details: { rule_id: r.id, rule_code: r.rule_code, fact_key: r.fact_key },
-      });
+    const kind = r.rule_kind ?? 'LITERAL';
+    const def = (r.rule_definition ?? {}) as Record<string, unknown>;
+    const checkFact = (key: string | null | undefined, label: string) => {
+      if (!key) {
+        push(bucket, { code: 'RULE_FACT_KEY_MISSING', severity: 'ERROR', message: `Rule ${r.rule_code}: ${label} fact key is missing.`, details: { rule_id: r.id } });
+        return false;
+      }
+      if (!knownFactKeys.has(key)) {
+        push(bucket, { code: 'RULE_FACT_KEY_UNKNOWN', severity: 'ERROR', message: `Rule ${r.rule_code}: ${label} fact "${key}" is not in the registry.`, details: { rule_id: r.id, fact_key: key } });
+        return false;
+      }
+      return true;
+    };
+
+    if (kind === 'DATE_DIFFERENCE') {
+      checkFact(r.start_fact_key, 'start');
+      if (!r.end_fact_key && !r.fallback_end_fact_key) {
+        push(bucket, { code: 'RULE_DATE_DIFF_NO_END', severity: 'ERROR', message: `Rule ${r.rule_code}: DATE_DIFFERENCE rule has no end or fallback end fact.`, details: { rule_id: r.id } });
+      } else {
+        if (r.end_fact_key) checkFact(r.end_fact_key, 'end');
+        if (r.fallback_end_fact_key) checkFact(r.fallback_end_fact_key, 'fallback end');
+      }
+      if (!r.unit) push(bucket, { code: 'RULE_DATE_DIFF_NO_UNIT', severity: 'WARN', message: `Rule ${r.rule_code}: no unit specified — defaulting to DAYS.`, details: { rule_id: r.id } });
+      if (typeof def['value'] !== 'number') push(bucket, { code: 'RULE_DATE_DIFF_NO_VALUE', severity: 'ERROR', message: `Rule ${r.rule_code}: numeric threshold value is required.`, details: { rule_id: r.id } });
+    } else if (kind === 'DOCUMENT_STATUS') {
+      if (!r.document_type_code && !r.fact_key) {
+        push(bucket, { code: 'RULE_DOC_NO_TYPE', severity: 'ERROR', message: `Rule ${r.rule_code}: DOCUMENT_STATUS rule needs a document_type_code or document status fact.`, details: { rule_id: r.id } });
+      }
+      if (!r.required_status) {
+        push(bucket, { code: 'RULE_DOC_NO_STATUS', severity: 'WARN', message: `Rule ${r.rule_code}: required_status not set — defaulting to VERIFIED.`, details: { rule_id: r.id } });
+      }
+    } else if (kind === 'FACT_TO_FACT') {
+      checkFact(r.fact_key, 'left');
+      checkFact(r.compare_fact_key, 'right');
+    } else if (kind === 'EXISTS' || kind === 'CROSS_PRODUCT') {
+      checkFact(r.fact_key ?? r.existence_check_code, 'existence');
+    } else {
+      // LITERAL / DERIVED_FACT / CONDITIONAL
+      if (r.fact_key && !knownFactKeys.has(r.fact_key)) {
+        push(bucket, { code: 'RULE_FACT_KEY_UNKNOWN', severity: 'ERROR', message: `Rule ${r.rule_code} references unknown fact "${r.fact_key}".`, details: { rule_id: r.id, fact_key: r.fact_key } });
+      } else if (!r.fact_key) {
+        push(bucket, { code: 'RULE_FACT_KEY_MISSING', severity: 'WARN', message: `Rule ${r.rule_code} has no fact_key.`, details: { rule_id: r.id } });
+      }
+      // Type mismatch / placeholder detection
+      const v = def['value'];
+      if (typeof v === 'string' && PLACEHOLDER_VALUES.has(v.trim().toLowerCase())) {
+        push(bucket, { code: 'RULE_PLACEHOLDER_VALUE', severity: 'ERROR', message: `Rule ${r.rule_code}: expected value "${v}" is a placeholder, not a real value. Re-author this rule using a proper rule kind (DATE_DIFFERENCE, DOCUMENT_STATUS, etc.).`, details: { rule_id: r.id, value: v } });
+      }
+      const factDef = r.fact_key ? ELIGIBILITY_FACTS.find((f) => f.fact_key === r.fact_key) : null;
+      if (factDef) {
+        const t = factDef.data_type;
+        if ((t === 'number' && v !== undefined && v !== null && typeof v !== 'number') ||
+            (t === 'bool' && v !== undefined && v !== null && typeof v !== 'boolean')) {
+          push(bucket, { code: 'RULE_VALUE_TYPE_MISMATCH', severity: 'WARN', message: `Rule ${r.rule_code}: expected value type does not match fact type (${t}).`, details: { rule_id: r.id, value: v, fact_type: t } });
+        }
+      }
     }
   }
 
