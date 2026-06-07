@@ -157,7 +157,44 @@ export async function orchestrateApproval(
       performedBy,
       critical: true,
     });
+
+    // Also raise the first periodic payment instruction so the claim
+    // becomes visible in the Payables Queue and in the Workbench
+    // Payments tab immediately after activation.
+    const firstAmt = monthly > 0 ? monthly : (weekly > 0 ? weekly : 0);
+    if (firstAmt > 0) {
+      const { data: firstPi } = await db
+        .from('bn_payment_instruction')
+        .insert({
+          entitlement_id: entitlementId,
+          claim_id: claimId,
+          ssn: claim.ssn,
+          amount: firstAmt,
+          currency: 'XCD',
+          payment_method: claim.bank_account ? 'EFT' : 'CHEQUE',
+          bank_code: claim.bank_routing_number || null,
+          account_number: claim.bank_account || null,
+          due_date: today,
+          frequency: monthly > 0 ? 'MONTHLY' : 'WEEKLY',
+          status: 'queued',
+          description: `${product.benefit_name} — first periodic payment`,
+        })
+        .select('id')
+        .single();
+      paymentInstructionId = firstPi?.id;
+      if (paymentInstructionId) {
+        await auditClaimAction({
+          entityType: 'bn_payment_instruction',
+          entityId: paymentInstructionId,
+          action: 'PAYMENT_INSTRUCTION_CREATED',
+          afterValue: { claim_id: claimId, entitlement_id: entitlementId, amount: firstAmt, kind: 'PERIODIC_FIRST' },
+          performedBy,
+          critical: true,
+        });
+      }
+    }
     toStatus = 'AWARD_SETUP';
+
   } else {
     // ─── Lump-sum / short-term one-off payable ───────────────────
     const amt = lump > 0 ? lump : (weekly > 0 ? weekly : monthly);
