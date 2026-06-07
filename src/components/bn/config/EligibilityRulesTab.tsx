@@ -90,7 +90,29 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Pr
       },
       data_source: fd?.dataSource ?? '',
       rule_type: fd ? mapCategoryToRuleType(fd.category) : prev.rule_type,
+      fact_key: key,
+      group_code: prev.group_code || safeDefaultGroup(key),
     }));
+  };
+
+  const applyTemplate = (tpl: RuleTemplate) => {
+    setEditing(prev => ({
+      ...prev,
+      rule_code: prev.rule_code || tpl.template_code,
+      rule_name: prev.rule_name || tpl.label,
+      fail_message: prev.fail_message || tpl.description,
+      group_code: tpl.group_code,
+      severity: tpl.severity ?? 'BLOCK',
+      overrideable: tpl.overrideable ?? false,
+      fact_key: tpl.fact_key,
+      rule_definition: {
+        ...(prev.rule_definition as Record<string, unknown>),
+        field_key: tpl.fact_key,
+        operator: tpl.operator,
+        value: tpl.default_value,
+      },
+    }));
+    toast({ title: 'Template applied', description: `${tpl.label} pre-filled. Adjust the expected value before saving.` });
   };
 
   const handleSave = async () => {
