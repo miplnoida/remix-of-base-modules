@@ -44,6 +44,12 @@ export const BN_PLACEHOLDERS: BnPlaceholder[] = [
   { key: 'REASON_DESCRIPTION', label: 'Reason Description', aliases: ['ReasonDescription'], description: 'Reason narrative' },
   { key: 'TODAY', label: 'Today', description: 'Today\'s date (yyyy-mm-dd)', aliases: ['Today'] },
   { key: 'DUE_DATE', label: 'Due Date', aliases: ['DueDate'], description: 'Due date provided by caller' },
+  // Branding / reference (resolved by letterGenerator)
+  { key: 'REFERENCE_NUMBER', label: 'Reference Number', aliases: ['ReferenceNumber'], description: 'Central reference number for the letter' },
+  { key: 'OFFICE_NAME', label: 'Office Name', description: 'Issuing office name', aliases: ['OfficeName'] },
+  { key: 'OFFICE_ADDRESS', label: 'Office Address', description: 'Full office postal address', aliases: ['OfficeAddress'] },
+  { key: 'DEPARTMENT_NAME', label: 'Department Name', description: 'Issuing department', aliases: ['DepartmentName'] },
+  { key: 'SIGNATURE_BLOCK', label: 'Signature Block', description: 'Department signatory block', aliases: ['SignatureBlock'] },
 ];
 
 const _knownLowercase = new Set<string>();
