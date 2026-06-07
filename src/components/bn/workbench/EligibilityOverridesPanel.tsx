@@ -32,9 +32,10 @@ interface Props {
   claimId: string;
   userCode: string;
   canReview: boolean;
+  userRoles?: string[];
 }
 
-export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, canReview }) => {
+export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, canReview, userRoles = [] }) => {
   const qc = useQueryClient();
   const { data: rows = [] } = useQuery({
     queryKey: ['bn', 'eligibility-overrides', claimId],
@@ -61,7 +62,7 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
     if (!reviewing) return;
     setBusyId(reviewing.row.id);
     try {
-      await reviewOverride(reviewing.row.id, reviewing.decision, userCode, reviewNotes || undefined);
+      await reviewOverride(reviewing.row.id, reviewing.decision, userCode, reviewNotes || undefined, userRoles);
       toast.success(`Override ${reviewing.decision.toLowerCase()}`);
       setReviewing(null);
       setReviewNotes('');

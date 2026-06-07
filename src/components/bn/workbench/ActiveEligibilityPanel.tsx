@@ -215,7 +215,7 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
         </CardContent>
       </Card>
 
-      <EligibilityOverridesPanel claimId={claimId} userCode={userCode} canReview={canReview} />
+      <EligibilityOverridesPanel claimId={claimId} userCode={userCode} canReview={canReview} userRoles={userRoles} />
 
       {eligibility.length > 1 && (
         <p className="text-xs text-muted-foreground">
