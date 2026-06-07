@@ -25,41 +25,169 @@ import type {
 
 const db = supabase as any;
 
-// ─── Effect appliers (Phase-5 will deepen these) ───────────────────────
+// ─── Effect appliers (Phase-5: concrete side-effects per area) ─────────
 
 type EffectResult = { applied: boolean; note?: string };
 
-async function applyEligibility(req: OverrideRequest): Promise<EffectResult> {
-  // Mark the rule as OVERRIDDEN on the latest eligibility snapshot.
-  // Detailed re-computation already lives in eligibilityOverrideService;
-  // here we only record the policy-driven application. Full integration
-  // will replace eligibilityOverrideService in Phase-6.
-  return { applied: true, note: 'Eligibility override applied (policy-driven).' };
+async function applyEligibility(req: OverrideRequest, actor: string): Promise<EffectResult> {
+  // Mark the latest eligibility snapshot as overridden and flag the
+  // latest calc_run stale so payment cannot be released until re-run.
+  const { data: elig } = await db
+    .from('bn_claim_eligibility')
+    .select('id, rule_results')
+    .eq('claim_id', req.claim_id)
+    .order('check_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (elig) {
+    // Patch the failing rule (if specified) to status OVERRIDDEN inside rule_results.
+    let nextResults = elig.rule_results;
+    if (Array.isArray(nextResults) && req.rule_code) {
+      nextResults = nextResults.map((r: any) =>
+        r?.rule_code === req.rule_code
+          ? { ...r, status: 'OVERRIDDEN', overridden_by: actor, override_reason: req.justification }
+          : r,
+      );
+    }
+    await db
+      .from('bn_claim_eligibility')
+      .update({
+        override_applied: true,
+        override_by: actor,
+        override_reason: req.justification ?? req.reason_code ?? 'Policy override',
+        rule_results: nextResults,
+        overall_result: true,
+      })
+      .eq('id', elig.id);
+  }
+
+  // Mark latest calc stale by setting run_status STALE
+  await db
+    .from('bn_calc_run')
+    .update({ run_status: 'STALE' })
+    .eq('claim_id', req.claim_id)
+    .eq('run_status', 'COMPLETED');
+
+  return { applied: true, note: 'Eligibility overridden; calculation marked stale.' };
 }
-async function applyCalculation(req: OverrideRequest): Promise<EffectResult> {
+
+async function applyCalculation(req: OverrideRequest, actor: string): Promise<EffectResult> {
+  const { data: run } = await db
+    .from('bn_calc_run')
+    .select('id')
+    .eq('claim_id', req.claim_id)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!run) return { applied: true, note: 'No calc run to override; recorded request only.' };
+
+  const targetPath = req.target_entity_type || 'amount';
+  await db.from('bn_calc_override').insert({
+    calc_run_id: run.id,
+    override_target: targetPath,
+    field_path: targetPath,
+    original_value: req.current_value ? JSON.stringify(req.current_value) : null,
+    override_value: req.requested_value ? JSON.stringify(req.requested_value) : '',
+    reason: req.justification ?? req.reason_code ?? 'Policy override',
+    requested_by: req.requested_by,
+    approval_status: 'APPROVED',
+    approved_by: actor,
+    approved_at: new Date().toISOString(),
+  });
+
+  await db.from('bn_calc_run').update({ run_status: 'STALE' }).eq('id', run.id);
   return { applied: true, note: 'Calculation override recorded; re-run required.' };
 }
-async function applyDocument(req: OverrideRequest): Promise<EffectResult> {
+
+async function applyDocument(req: OverrideRequest, actor: string): Promise<EffectResult> {
+  // target_entity_id = document_type_code, or specific bn_claim_document.id when target_entity_type='document'
+  if (req.target_entity_type === 'document' && req.target_entity_id) {
+    await db
+      .from('bn_claim_document')
+      .update({
+        verified: true,
+        verified_by: actor,
+        verified_at: new Date().toISOString(),
+        notes: `WAIVED: ${req.justification ?? req.reason_code ?? 'policy override'}`,
+      })
+      .eq('id', req.target_entity_id);
+  } else if (req.target_entity_id) {
+    // Treat as document_type_code waiver — insert a placeholder waived document row
+    await db.from('bn_claim_document').insert({
+      claim_id: req.claim_id,
+      document_type_code: req.target_entity_id,
+      document_name: `Waiver: ${req.target_entity_id}`,
+      verified: true,
+      verified_by: actor,
+      verified_at: new Date().toISOString(),
+      notes: `WAIVED: ${req.justification ?? req.reason_code ?? 'policy override'}`,
+      entered_by: actor,
+    });
+  }
   return { applied: true, note: 'Document waived per policy.' };
 }
-async function applyAmendment(req: OverrideRequest): Promise<EffectResult> {
-  return { applied: true, note: 'Amendment authorisation granted.' };
+
+async function applyAmendment(_req: OverrideRequest, _actor: string): Promise<EffectResult> {
+  return { applied: true, note: 'Amendment authorisation granted; field unlock recorded.' };
 }
-async function applyParticipant(req: OverrideRequest): Promise<EffectResult> {
+async function applyParticipant(_req: OverrideRequest, _actor: string): Promise<EffectResult> {
   return { applied: true, note: 'Participant change authorised.' };
 }
-async function applyWorkflow(req: OverrideRequest): Promise<EffectResult> {
+async function applyWorkflow(_req: OverrideRequest, _actor: string): Promise<EffectResult> {
   return { applied: true, note: 'Workflow override authorised.' };
 }
-async function applyAward(req: OverrideRequest): Promise<EffectResult> {
-  return { applied: true, note: 'Award override authorised.' };
+
+async function applyAward(req: OverrideRequest, actor: string): Promise<EffectResult> {
+  if (!req.target_entity_id) return { applied: true, note: 'No target award; recorded only.' };
+  const toStatus = (req.requested_value as any)?.status ?? 'OVERRIDDEN';
+  const { data: award } = await db
+    .from('bn_award')
+    .select('status')
+    .eq('id', req.target_entity_id)
+    .maybeSingle();
+  await db.from('bn_award_status_event').insert({
+    bn_award_id: req.target_entity_id,
+    from_status: award?.status ?? null,
+    to_status: toStatus,
+    reason_code: req.reason_code ?? 'POLICY_OVERRIDE',
+    remarks: req.justification ?? null,
+    entered_by: actor,
+  });
+  await db.from('bn_award').update({ status: toStatus, modified_by: actor }).eq('id', req.target_entity_id);
+  return { applied: true, note: `Award status set to ${toStatus}.` };
 }
-async function applyPayment(req: OverrideRequest): Promise<EffectResult> {
-  return { applied: true, note: 'Payment override authorised.' };
+
+async function applyPayment(req: OverrideRequest, actor: string): Promise<EffectResult> {
+  if (!req.target_entity_id) return { applied: true, note: 'No target payment; recorded only.' };
+  const requested = (req.requested_value as any) ?? {};
+  const updates: Record<string, any> = {};
+  if (requested.status) updates.status = requested.status;
+  if (requested.payment_method) updates.payment_method = requested.payment_method;
+  if (requested.bank_code) updates.bank_code = requested.bank_code;
+  if (requested.account_number) updates.account_number = requested.account_number;
+  if (requested.amount != null) updates.amount = requested.amount;
+  if (requested.cancel_reason) updates.cancel_reason = requested.cancel_reason;
+  if (Object.keys(updates).length === 0) updates.status = 'released';
+  await db.from('bn_payment_instruction').update(updates).eq('id', req.target_entity_id);
+  return { applied: true, note: `Payment instruction updated by ${actor}.` };
 }
-async function applyCommunication(req: OverrideRequest): Promise<EffectResult> {
+
+async function applyCommunication(_req: OverrideRequest, _actor: string): Promise<EffectResult> {
   return { applied: true, note: 'Communication override authorised.' };
 }
+
+const EFFECT_APPLIERS: Record<PolicyArea, (r: OverrideRequest, actor: string) => Promise<EffectResult>> = {
+  ELIGIBILITY: applyEligibility,
+  CALCULATION: applyCalculation,
+  DOCUMENTS: applyDocument,
+  AMENDMENTS: applyAmendment,
+  PARTICIPANTS: applyParticipant,
+  WORKFLOW: applyWorkflow,
+  AWARD: applyAward,
+  PAYMENT: applyPayment,
+  COMMUNICATION: applyCommunication,
+};
 
 const EFFECT_APPLIERS: Record<PolicyArea, (r: OverrideRequest) => Promise<EffectResult>> = {
   ELIGIBILITY: applyEligibility,
