@@ -120,7 +120,7 @@ export async function generateEftFile(input: {
     file_format: fileFormat,
     file_name: fileName,
     file_hash: hash,
-    file_payload: payload,
+    file_payload: payload_json: payload,
     control_count: items.length,
     control_amount: totalAmount,
     generated_by: userCode,
@@ -179,8 +179,8 @@ async function audit(action: string, userCode: string, payload: any) {
       module: 'bn_payment',
       entity_type: 'bn_eft_file',
       action,
-      action_by: userCode,
-      payload,
+      user_name: userCode,
+      payload_json: payload,
       severity: 'info',
     });
   } catch { /* non-blocking */ }

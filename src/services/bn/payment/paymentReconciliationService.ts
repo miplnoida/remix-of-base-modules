@@ -46,7 +46,7 @@ export async function recordReconciliation(input: {
       entity_type: 'bn_payment_reconciliation',
       action: 'reconciliation_recorded',
       action_by: input.userCode,
-      payload: input,
+      payload_json: input,
       severity: 'info',
     });
   } catch { /* non-blocking */ }

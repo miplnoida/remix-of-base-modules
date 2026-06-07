@@ -182,8 +182,8 @@ async function logEvent(batchId: string | null, action: string, userCode: string
       entity_type: 'bn_cheque_register',
       entity_id: batchId,
       action,
-      action_by: userCode,
-      payload,
+      user_name: userCode,
+      payload_json: payload,
       severity: 'info',
     });
   } catch { /* non-blocking */ }
