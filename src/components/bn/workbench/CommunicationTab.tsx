@@ -141,41 +141,56 @@ export const CommunicationTab: React.FC<Props> = ({ claimId, productVersionId })
         </TabsList>
 
         <TabsContent value="timeline" className="mt-4">
-          <LogList rows={logs} loading={isLoading} onRetry={handleRetry} />
+          <LogList rows={logs} loading={isLoading} onRetry={handleRetry} onGenerateLetter={handleGenerateLetter} onMarkDispatched={handleMarkDispatched} />
         </TabsContent>
         <TabsContent value="letters" className="mt-4">
           <LetterList rows={letters} onUpdate={handleLetterStatus} />
         </TabsContent>
         <TabsContent value="emails" className="mt-4">
-          <LogList rows={split.emails} loading={isLoading} onRetry={handleRetry} />
+          <LogList rows={split.emails} loading={isLoading} onRetry={handleRetry} onGenerateLetter={handleGenerateLetter} onMarkDispatched={handleMarkDispatched} />
         </TabsContent>
         <TabsContent value="sms" className="mt-4">
-          <LogList rows={split.sms} loading={isLoading} onRetry={handleRetry} />
+          <LogList rows={split.sms} loading={isLoading} onRetry={handleRetry} onGenerateLetter={handleGenerateLetter} onMarkDispatched={handleMarkDispatched} />
         </TabsContent>
         <TabsContent value="inapp" className="mt-4">
-          <LogList rows={split.inapp} loading={isLoading} onRetry={handleRetry} />
+          <LogList rows={split.inapp} loading={isLoading} onRetry={handleRetry} onGenerateLetter={handleGenerateLetter} onMarkDispatched={handleMarkDispatched} />
         </TabsContent>
         <TabsContent value="failed" className="mt-4">
-          <LogList rows={split.failed} loading={isLoading} onRetry={handleRetry} highlightFailed />
+          <LogList rows={split.failed} loading={isLoading} onRetry={handleRetry} onGenerateLetter={handleGenerateLetter} onMarkDispatched={handleMarkDispatched} highlightFailed />
         </TabsContent>
       </Tabs>
     </div>
   );
 };
 
-const LogList: React.FC<{ rows: any[]; loading?: boolean; onRetry: (id: string) => void; highlightFailed?: boolean }> = ({ rows, loading, onRetry, highlightFailed }) => {
+interface LogListProps {
+  rows: any[];
+  loading?: boolean;
+  onRetry: (id: string) => void;
+  onGenerateLetter?: (id: string) => void;
+  onMarkDispatched?: (id: string) => void;
+  highlightFailed?: boolean;
+}
+
+const LogList: React.FC<LogListProps> = ({ rows, loading, onRetry, onGenerateLetter, onMarkDispatched }) => {
   if (loading) return <p className="text-sm text-muted-foreground p-4">Loading…</p>;
   if (!rows.length) return <p className="text-sm text-muted-foreground p-4">No communications recorded.</p>;
   return (
     <div className="rounded-md border divide-y">
       {rows.map((r) => {
         const dm = r.delivery_method || r.channel;
+        const missing: string[] = Array.isArray(r.context?.missing) ? r.context.missing : [];
+        const isBlocked = r.status === 'BLOCKED';
+        const canRetry = r.status === 'FAILED' || r.status === 'SKIPPED' || r.status === 'BLOCKED';
         return (
-        <div key={r.id} className="p-3 flex flex-col md:flex-row md:items-center gap-3 text-sm">
+        <div key={r.id} className="p-3 flex flex-col md:flex-row md:items-start gap-3 text-sm">
           <div className="flex items-center gap-2 min-w-[160px]">
             {channelIcon(dm)}
             <span className="font-medium">{dm}</span>
-            <Badge variant="outline" className={STATUS_TONE[r.status] || ''}>{r.status}</Badge>
+            <Badge variant="outline" className={STATUS_TONE[r.status] || ''}>
+              {isBlocked && <Ban className="h-3 w-3 mr-1 inline" />}
+              {r.status}
+            </Badge>
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-mono text-xs text-muted-foreground">{r.event_code}</p>
@@ -186,12 +201,25 @@ const LogList: React.FC<{ rows: any[]; loading?: boolean; onRetry: (id: string) 
                 <AlertTriangle className="h-3 w-3" /> {r.error_message}
               </p>
             )}
+            {missing.length > 0 && (
+              <p className="text-xs text-orange-700 mt-0.5">Missing: {missing.join(', ')}</p>
+            )}
           </div>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span><Clock className="h-3 w-3 inline mr-1" />{formatTime(r.created_at)}</span>
-            {(r.status === 'FAILED' || r.status === 'SKIPPED') && (
+            {canRetry && (
               <Button size="sm" variant="outline" onClick={() => onRetry(r.id)}>
                 <RefreshCw className="h-3 w-3 mr-1" /> Retry
+              </Button>
+            )}
+            {isBlocked && dm !== 'LETTER' && onGenerateLetter && (
+              <Button size="sm" variant="outline" onClick={() => onGenerateLetter(r.id)}>
+                <FileSignature className="h-3 w-3 mr-1" /> Generate Letter
+              </Button>
+            )}
+            {(isBlocked || r.status === 'FAILED') && onMarkDispatched && (
+              <Button size="sm" variant="outline" onClick={() => onMarkDispatched(r.id)}>
+                <MailCheck className="h-3 w-3 mr-1" /> Mark Dispatched
               </Button>
             )}
           </div>
