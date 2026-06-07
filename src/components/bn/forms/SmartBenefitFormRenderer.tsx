@@ -421,7 +421,7 @@ export function SmartBenefitFormRenderer({
                     mode={readOnly ? 'view' : 'edit'}
                     channel={
                       channel === 'PUBLIC'
-                        ? 'PUBLIC_PORTAL'
+                        ? 'PUBLIC_ONLINE'
                         : channel === 'ASSISTED_OFFLINE'
                           ? 'ASSISTED_COUNTER'
                           : 'STAFF_OFFLINE'
