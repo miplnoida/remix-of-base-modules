@@ -242,6 +242,43 @@ export const EligibilityOverridesPanel: React.FC<Props> = ({ claimId, userCode, 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!revoking} onOpenChange={(o) => !o && setRevoking(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Eligibility Override</DialogTitle>
+          </DialogHeader>
+          {revoking && (
+            <div className="space-y-3 py-2">
+              <div className="text-sm">
+                Rule <span className="font-mono">{revoking.rule_code ?? '—'}</span>
+                {' '}— approved by {revoking.reviewed_by ?? '—'} on {formatDateForDisplay(revoking.reviewed_at ?? '')}.
+              </div>
+              <p className="text-xs text-amber-700 bg-amber-500/10 border border-amber-300 rounded px-3 py-2">
+                Removing this override will mark it REVOKED and re-run eligibility.
+                If the rule still fails, the claim may move back to a failed eligibility state.
+              </p>
+              <Textarea
+                rows={3}
+                placeholder="Reason for removing this override (required)"
+                value={revokeReason}
+                onChange={(e) => setRevokeReason(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRevoking(null)}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={submitRevoke}
+              disabled={busyId === revoking?.id || !revokeReason.trim()}
+            >
+              Confirm Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
