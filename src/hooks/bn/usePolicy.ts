@@ -93,3 +93,16 @@ export function useCancelOverride(claimId?: string) {
     },
   });
 }
+
+export function useRevokeOverride(claimId?: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { requestId: string; revokedBy: string; reason: string }) =>
+      revokeOverrideRequest(vars.requestId, vars.revokedBy, vars.reason),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bn', 'override-requests', claimId] });
+      qc.invalidateQueries({ queryKey: ['bn', 'claim-eligibility', claimId] });
+      qc.invalidateQueries({ queryKey: ['bn', 'claim-events', claimId] });
+    },
+  });
+}
