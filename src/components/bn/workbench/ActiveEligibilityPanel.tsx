@@ -18,7 +18,9 @@ import { formatDateForDisplay } from '@/lib/format-config';
 import { BnEmptyState } from '@/components/bn/shared/BnEmptyState';
 import { OverrideEligibilityDialog } from './OverrideEligibilityDialog';
 import { EligibilityOverridesPanel } from './EligibilityOverridesPanel';
+import { SendEligibilityFailureNoticeDialog } from './SendEligibilityFailureNoticeDialog';
 import { usePolicy } from '@/hooks/bn/usePolicy';
+
 
 interface Props {
   claimId: string;
