@@ -1,106 +1,182 @@
+# Eligibility Rule Builder — Realistic Redesign
 
-# BN Bank / EFT / Cheque — Configurable Masters
+Replace the current free-text eligibility rule editor with a **fact-registry-driven**, business-friendly rule builder that maps every rule to a real source table and a real resolver, with templates, grouping, preview, testing, and validation.
 
-Treat BEMA as **operational reference only**. BN ships configurable masters instead of hardcoded DataWindow exports. A background research agent is parsing the BEMA artefacts (`d_t_directdepositrpt.srd`, `p_d_t_DirectDepositRpt.sql`, `d_export.srq`, `u_tab_cheque.sru`, `n_bso_cheque_print.sru`, `q_dbd_cheques*`, `ds_cheques_recon.srd`, DDL); its findings will be appended to the legacy-mapping doc in Phase 1 — they do **not** block the BN build because BN owns its own schema.
+This plan is delivered in **four phases**. Each phase is independently shippable and ends with a working UI/runtime. Phases 2–4 only proceed after Phase 1 review.
 
-## Phase 1 — Legacy mapping doc (no code)
-Output a short markdown file `docs/bn/legacy-payment-mapping.md`:
-- BEMA tables found vs. missing (bank master, branch master, EFT format, cheque stock, recon).
-- BEMA hardcoded export layout (header/detail/trailer) quoted verbatim so it can be entered as a seeded BN format.
-- Field-by-field map: BEMA column → `bn_payment_profile` / `bn_eft_format_field.source_field`.
-- Cheque concepts kept from BEMA: batch, number range, print / reprint / cancel / correct.
+---
 
-## Phase 2 — Schema migration (single migration, GRANTs included)
+## Phase 1 — Fact Registry + Resolvers (foundation)
 
-New tables (all with `service_role` + `authenticated` grants, audit triggers, updated_at):
+**New file:** `src/services/bn/eligibility/eligibilityFactRegistry.ts`
 
-- **`bn_bank_master`** — `bank_code` (PK), `country_code`, `bank_name`, `swift_code`, `clearing_code`, `default_currency`, `active`.
-- **`bn_bank_branch`** — `(bank_code, branch_code)` PK, `branch_name`, `routing_number`, `address_snapshot` JSONB, `active`.
-- **`bn_payment_method`** — `method_code` (`EFT`/`CHEQUE`/`CASH_PICKUP`/`INTERNAL_TRANSFER`), `method_name`, `requires_bank_account`, `requires_postal_address`, `active`.
-- **`bn_eft_format`** — `format_code` PK, `country_code`, `bank_code` (nullable = generic), `format_name`, `file_extension`, `delimiter`, `record_separator`, `date_format`, `amount_format`, `amount_decimals`, `header_required`, `trailer_required`, `encoding`, `active`.
-- **`bn_eft_format_field`** — `(format_code, record_type, order_index)` PK, `record_type` enum `HEADER|DETAIL|TRAILER`, `field_name`, `source_field` (dotted path into `bn_payment_instruction` + joined profile/bank/branch/batch), `start_position`, `length`, `padding` (`L`/`R`/`ZERO`/`NONE`), `pad_char`, `required`, `default_value`, `transform` (`UPPER`/`DIGITS`/`DATE_FMT`/...).
-- **`bn_cheque_stock`** — `(bank_account_code, cheque_start_no)` PK, `bank_code`, `branch_code`, `cheque_end_no`, `next_cheque_no`, `status` (`ACTIVE|EXHAUSTED|VOIDED`), `assigned_to_office`, `received_at`.
-- **`bn_cheque_register`** — `cheque_number` PK, `bank_account_code`, `batch_id` FK `bn_payment_batch`, `payment_instruction_id` FK, `payee_name`, `amount`, `currency`, `status` (`ASSIGNED|PRINTED|DELIVERED|REPRINTED|CANCELLED|RECONCILED`), `printed_at`, `printed_by`, `reprint_of`, `cancelled_at`, `cancel_reason`, `correction_of`, `reconciled_at`.
-- Extend `bn_payment_batch`: `eft_format_code`, `eft_file_storage_path`, `eft_control_total`, `eft_control_count`, `bank_response_status`, `bank_response_at`.
-- Extend `bn_payment_profile`: `bank_code` FK `bn_bank_master`, `branch_code` (paired with `bank_code` → `bn_bank_branch`).
+Central, typed registry. Each entry:
 
-Seed rows (channel `SEED-`): generic `EFT_GENERIC_FIXED`, `EFT_GENERIC_DELIMITED`, one per `eftFormatPresets.ts` entry; `CHEQUE` method; seed `bn_payment_method` rows.
+```ts
+{
+  fact_key, label, category, description,
+  source_table, source_column,
+  resolver_function,           // name in resolver map
+  data_type,                   // 'number' | 'date' | 'enum' | 'bool' | 'string'
+  allowed_operators,           // subset of OPERATORS
+  allowed_values?,             // for enum/bool
+  applicable_products,         // ['*'] or specific benefit codes
+  example_value,
+}
+```
 
-Register screens in `app_modules` + `module_actions` (auto-granted to Admin):
-`bn_bank_master`, `bn_bank_branch`, `bn_payment_method`, `bn_eft_format`, `bn_cheque_stock_admin`, `bn_cheque_register` — all under existing Payment Preparation parent.
+**Categories** (fixed enum): `PERSON`, `CONTRIBUTION`, `EMPLOYER`, `CLAIM_EVENT`, `MEDICAL`, `DOCUMENTS`, `EXISTING_BENEFITS`, `PAYMENT_AWARD`, `SPECIAL`.
 
-## Phase 3 — Configuration UI
+**Seeded facts (initial set, all backed by real tables):**
 
-New page at `/bn/config/payment-masters` with tabs (single shell, lazy-loaded panels):
-1. **Payment Methods** — toggle per country.
-2. **Bank Master** — CRUD, search by SWIFT/clearing.
-3. **Bank Branches** — nested under selected bank, routing-number validation.
-4. **EFT Formats** — header card (delimiter/date/amount) + preset selector that seeds from `eftFormatPresets.ts`.
-5. **EFT Field Layout** — drag-reorderable rows per record type, live preview of one sample detail line built from a sample `bn_payment_instruction`.
-6. **Cheque Stock** — replaces existing simple `/bn/cheque-stock` page (keep route, swap content); add range allocation, status, next-number guard.
-7. **Cheque Number Rules** — per-bank-account: prefix, length, void-on-cancel?, reprint policy.
+| fact_key | source | resolver |
+|---|---|---|
+| `person.age_at_claim_date` | `ip_master.date_of_birth` | `resolvePersonAge` |
+| `person.gender` | `ip_master.gender` | `resolvePersonGender` |
+| `person.alive_status` | `ip_master.status` | `resolvePersonAlive` |
+| `contribution.total_weeks` | `bn_claim_contribution_snapshot` / `ip_wages` | `resolveContribTotalWeeks` |
+| `contribution.paid_weeks` | same | `resolveContribPaidWeeks` |
+| `contribution.recent_weeks` | same | `resolveContribRecentWeeks` |
+| `contribution.average_weekly_wage` | same | `resolveContribAvgWage` |
+| `contribution.last_contribution_date` | `ip_wages` | `resolveContribLastDate` |
+| `employer.exists` | `er_master` | `resolveEmployerExists` |
+| `employer.status` | `er_master.status` | `resolveEmployerStatus` |
+| `employer.active_on_injury_date` | `er_master` + claim event | `resolveEmployerActiveOnDate` |
+| `claim.injury_date` | `bn_claim` | `resolveClaimInjuryDate` |
+| `claim.submission_date` | `bn_claim.created_at` | `resolveClaimSubmissionDate` |
+| `claim.days_since_event` | derived | `resolveDaysSinceEvent` |
+| `claim.application_channel` | `bn_claim_application.application_channel` | `resolveClaimChannel` |
+| `document.medical_certificate_received` | `bn_claim_document` | `resolveDocReceived('MEDICAL_CERT')` |
+| `document.death_certificate_received` | same | `resolveDocReceived('DEATH_CERT')` |
+| `document.birth_certificate_received` | same | `resolveDocReceived('BIRTH_CERT')` |
+| `document.employer_report_received` | same | `resolveDocReceived('EMPLOYER_RPT')` |
+| `existing.active_award` | `bn_award` | `resolveActiveAward` |
+| `existing.duplicate_claim_same_period` | `bn_claim` | `resolveDuplicateClaim` |
+| `existing.previous_maternity_claim` | `bn_claim` | `resolvePreviousMaternity` |
 
-`CountryPaymentConfig` (existing EFT preset tab) stays for country-level defaults; it links across to the new EFT Format master rather than duplicating fields.
+**New file:** `src/services/bn/eligibility/eligibilityFactResolver.ts`
+Single entry point `resolveFact(factKey, ctx)` that dispatches to the resolver functions above. All eligibility evaluation goes through this — no raw JSON key reads.
 
-## Phase 4 — Service layer
+`ctx = { ssn, claimId, claimDate, productCode, employerRegno, ... }`.
 
-- `bankMasterService.ts` — CRUD + lookup helpers.
-- `eftFormatService.ts`:
-  - `getFormatForBatch(batchId)` → resolves via `eft_format_code` → falls back to country preset.
-  - `buildEftFile(batchId)` — pure function over `bn_eft_format` + `bn_eft_format_field`, materialises HEADER/DETAILs/TRAILER, computes control totals, returns `{ filename, content, controlTotal, controlCount }`.
-  - `validateFormat(formatCode)` — required fields present, positions don't overlap, lengths > 0.
-- `chequeStockService.ts` (extend existing): `allocateNextNumbers(batchId, count)` — atomic update of `next_cheque_no`; writes `bn_cheque_register` rows in `ASSIGNED` state.
-- `chequePrintService.ts` (extend): transitions `ASSIGNED → PRINTED`; supports `reprint`, `cancel(reason)`, `correct(newAmount/newPayee)` — every state change audited via `bn_claim_event` + `system_audit_trail`.
+**New file:** `src/services/bn/eligibility/operators.ts`
+Pure functions for `>=`, `<=`, `=`, `!=`, `exists`, `not_exists`, `in`, `between`. Each operator declares which `data_type`s it accepts — the UI consumes this to gate the operator dropdown.
 
-## Phase 5 — Payment Preparation wiring
+**Acceptance Phase 1:**
+- Registry compiles, every fact has a real resolver, resolver throws on unknown key.
+- Unit test (vitest) covers one fact per category against seeded data.
 
-`PaymentExecutionPanel` (Batch Detail drawer):
-- **EFT path**: pick `eft_format_code` (defaulted from country+bank); preview first 3 detail lines; generate → store in Supabase Storage `bn-payments/eft/{batchId}/...`; persist `eft_file_storage_path`, `eft_control_total`, `eft_control_count`; show "Mark Submitted to Bank" + later "Upload Bank Response" → reconcile.
-- **Cheque path**: enforce bank-account selection → allocate from `bn_cheque_stock` → render `ChequePrintView` per cheque → on confirm, mark `PRINTED`; expose Reprint / Cancel / Correct from the row menu.
+---
 
-`payableValidationService` adds these blockers:
-- EFT method but no `bn_bank_master` row for profile's `bank_code`.
-- EFT method but no active `bn_eft_format` resolved for batch.
-- Missing `branch_code` on profile when format requires it.
-- Cheque method but no `ACTIVE` `bn_cheque_stock` with capacity for batch size.
-- Duplicate cheque number detected (unique-constraint catch with friendly message).
-- Verified bank profile missing (already covered).
-- EFT file generation refuses unless control total + count are computed.
+## Phase 2 — Rule Builder UI
 
-## Phase 6 — Audit & acceptance
+**Edit:** `src/pages/bn/admin/products/EligibilityRulesTab.tsx` (or current equivalent — will locate first).
 
-- All bank/branch/method/format/stock CUD writes to `system_audit_trail` with `user_code`.
-- Cheque state machine events written to `bn_claim_event` (`CHEQUE_PRINTED`, `CHEQUE_REPRINTED`, `CHEQUE_CANCELLED`, `CHEQUE_CORRECTED`).
+**Rule row UX (Add Rule wizard inline):**
 
-Acceptance checklist:
-- Legacy mapping doc committed.
-- Admin can create a bank → branch → EFT format → field layout end-to-end with no code change.
-- Cheque stock allocation + register lifecycle works for a sample batch.
-- EFT file regenerable, byte-stable for the same batch input.
-- Payables Queue blocks all six validation cases above with actionable reasons.
-- TypeScript build passes.
+```
+[Category ▼] → [Fact ▼] → [Operator ▼] → [Value input]
+            → [Group ▼] [Severity ▼] [Overrideable ☐] [Save]
+```
 
-## Files (new / edited)
+- Category, Fact, Operator are dropdowns sourced from the registry.
+- Value input is rendered per `data_type` (number / date / enum select / yes-no / multi-select for `in`/`between`).
+- Group dropdown is the fixed list below.
+- Free-text field keys are no longer accepted.
 
-**New**
-- `supabase/migrations/<ts>_bn_bank_eft_cheque_masters.sql`
-- `docs/bn/legacy-payment-mapping.md`
-- `src/services/bn/payment/bankMasterService.ts`
-- `src/services/bn/payment/eftFormatService.ts` (replaces inline preset use)
-- `src/pages/bn/config/payment-masters/PaymentMastersPage.tsx`
-- `src/pages/bn/config/payment-masters/{BankMasterTab,BranchTab,MethodsTab,EftFormatTab,EftLayoutTab,ChequeStockTab,ChequeRulesTab}.tsx`
-- `src/types/bnBankEft.ts`
+**Rule groups (fixed):**
+`CORE_IDENTITY`, `CONTRIBUTION`, `EMPLOYMENT`, `EVENT`, `EVIDENCE`, `EXISTING_BENEFIT`, `SPECIAL`.
 
-**Edited**
-- `src/components/bn/batch/PaymentExecutionPanel.tsx`
-- `src/services/bn/payment/payableValidationService.ts`
-- `src/services/bn/payment/chequeStockService.ts`, `chequePrintService.ts`, `eftFileService.ts`
-- `src/components/sidebar/menuItems/bnMenuItems.ts`
-- `src/components/routing/AppRoutes.tsx`
-- `src/pages/bn/admin/ChequeStock.tsx` (point to new tab or thin wrapper)
-- `mem://features/bn/payment-details-framework.md` (cross-link to bank/EFT masters)
+Rules are displayed grouped under collapsible group headers, with a count badge per group.
 
-## Decisions needed
-1. **Phasing** — ship Phase 2 (schema) + Phase 4 (services) + minimal admin CRUD first, then Phase 3 polish + Phase 5 wiring in a follow-up — or all-in-one?
-2. **Country scoping** — should `bn_bank_master` be hard-scoped per country (FK to `bn_country`) or global with a country tag (current draft)?
-3. **EFT response reconciliation** — minimal "mark submitted/upload response file" now, or full parser per format in this pass?
+**Templates panel (right side of builder):**
+
+A "Quick Add" list. Clicking a template pre-fills the row — user can adjust the value before saving.
+
+Templates: `Minimum Age`, `Maximum Age`, `Minimum Paid Contributions`, `Minimum Recent Contributions`, `Employer Must Be Active`, `Medical Certificate Required`, `Death Certificate Required`, `No Duplicate Claim`, `Existing Award Required`, `Active Award Required`, `Injury Reported Within X Days`, `Must Be Female`, `Must Be Deceased Contributor`, `School Certificate Required`, `Means Test Passed`.
+
+**Rule preview block** under each row:
+
+```
+Business: Total paid contributions must be at least 150 weeks.
+Fact: contribution.paid_weeks
+Source: bn_claim_contribution_snapshot / ip_wages
+Operator: >=
+Value: 150
+```
+
+**Storage:** `bn_eligibility_rule` (already exists, 15 columns). Persist
+`{ fact_key, operator, value, group_code, severity, overrideable, override_policy_code }`.
+A small migration adds `group_code`, `severity` (default `BLOCK`), and `overrideable` (default false) if not present.
+
+---
+
+## Phase 3 — Validation, Test Runner, Seeds
+
+**Configuration validation** (`validateRuleSet(productVersionId)`):
+Run on Save and on Product Version activation. Fails activation if:
+- any rule's `fact_key` is not in the registry,
+- any fact has no resolver,
+- any rule has no `group_code` or `severity`,
+- `overrideable=true` rules have no `override_policy_code`,
+- product is missing required groups (e.g., Sickness must have `CONTRIBUTION` and `EVIDENCE`),
+- duplicate conflicting rules (same fact + operator with contradictory values).
+
+UI surfaces these as inline errors at the bottom of the rules tab; Product version activation is blocked.
+
+**Rule tester** (inside the builder):
+Inputs: claim id **or** SSN + product. Click "Test this rule" → calls `resolveFact` with that context and shows:
+
+| Rule | Actual | Expected | Source | Pass/Fail |
+
+Read-only; no writes.
+
+**Seed migration** (`bn_eligibility_rule` + product mapping) — realistic baselines for: Sickness, Maternity, Employment Injury, Age Pension, Age Grant, Invalidity, Survivors, Funeral Grant, Life Certificate, School Certificate, EFT Update. Per the brief.
+
+---
+
+## Phase 4 — Runtime Wiring
+
+**Edit:** `src/services/bn/productService.ts` and `src/services/bn/forms/sectionCatalogue.ts`'s eligibility evaluator (will locate exact file in Phase 4).
+
+- Replace direct JSON-key lookups with `resolveFact(rule.fact_key, ctx)`.
+- Engine returns `{ ruleId, factKey, actual, expected, operator, pass, source }` for every rule — drives the Eligibility Pre-checks step on intake and the rule tester.
+- Backwards compatibility: any legacy rule whose `fact_key` is missing in the registry surfaces as `WARN` and blocks activation of any *new* version.
+
+---
+
+## Technical details
+
+**Files created**
+- `src/services/bn/eligibility/eligibilityFactRegistry.ts`
+- `src/services/bn/eligibility/eligibilityFactResolver.ts`
+- `src/services/bn/eligibility/operators.ts`
+- `src/services/bn/eligibility/ruleTemplates.ts`
+- `src/services/bn/eligibility/validateRuleSet.ts`
+- `src/components/bn/eligibility/RuleBuilderRow.tsx`
+- `src/components/bn/eligibility/RuleTemplatesPanel.tsx`
+- `src/components/bn/eligibility/RuleTester.tsx`
+- `src/services/bn/eligibility/__tests__/resolver.test.ts`
+
+**Files edited**
+- Product eligibility tab (located in Phase 2).
+- Eligibility evaluator (located in Phase 4).
+- `bnMenuItems.ts` — no change required (lives under existing Product Catalog).
+
+**Migration**
+- `bn_eligibility_rule`: add `group_code text`, `severity text default 'BLOCK'`, `overrideable boolean default false`, `override_policy_code text null` if missing. No RLS changes (per project rule).
+
+**Out of scope (for this redesign)**
+- Editing the underlying source tables.
+- Adding new resolver categories beyond those listed — extension is trivial in the registry but not in scope here.
+
+---
+
+## Delivery order
+
+1. **Phase 1** — registry + resolvers + operators + tests. ✅ ship & review.
+2. **Phase 2** — Rule Builder UI + templates + preview.
+3. **Phase 3** — validation + tester + seeds.
+4. **Phase 4** — runtime wiring, legacy compatibility.
+
+Approve Phase 1 to start, or tell me to bundle phases differently.
