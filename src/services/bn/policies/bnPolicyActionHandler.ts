@@ -447,6 +447,65 @@ export async function cancelOverrideRequest(
   });
 }
 
+/**
+ * Explicitly revoke a previously-APPROVED override.
+ * Override remains visible in history but is no longer treated as ACTIVE
+ * by re-runs (eligibility / calculation). Caller is responsible for
+ * triggering the appropriate re-run after revocation if desired.
+ */
+export async function revokeOverrideRequest(
+  requestId: string,
+  revokedBy: string,
+  reason: string,
+): Promise<OverrideRequest> {
+  if (!reason || !reason.trim()) {
+    throw new Error('A reason is required to revoke an override.');
+  }
+  const { data: existing } = await db
+    .from('bn_override_request')
+    .select('*')
+    .eq('id', requestId)
+    .maybeSingle();
+  if (!existing) throw new Error('Override request not found.');
+  if (existing.status !== 'APPROVED') {
+    throw new Error(`Only APPROVED overrides can be revoked (current: ${existing.status}).`);
+  }
+
+  const { data: updated, error } = await db
+    .from('bn_override_request')
+    .update({
+      status: 'REVOKED',
+      revoked_by: revokedBy,
+      revoked_at: new Date().toISOString(),
+      revocation_reason: reason,
+    })
+    .eq('id', requestId)
+    .select('*')
+    .single();
+  if (error) throw new Error(error.message);
+  const request = updated as OverrideRequest;
+
+  await writeRequestEvent(requestId, 'REVOKED', existing.status, 'REVOKED', revokedBy, reason);
+  await writeBnAudit({
+    entityType: 'bn_override_request',
+    entityId: requestId,
+    action: 'OVERRIDE_REVOKED',
+    beforeValue: existing as any,
+    afterValue: request as any,
+    performedBy: revokedBy,
+    module: 'BN_POLICY',
+    critical: true,
+    notes: reason,
+  });
+  await writeClaimEvent(request.claim_id, 'OVERRIDE_REVOKED', revokedBy, {
+    area: request.policy_area,
+    requestId,
+    reason,
+  });
+
+  return request;
+}
+
 export async function listOverrideRequests(
   claimId: string,
   area?: PolicyArea,
