@@ -18,15 +18,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { CheckCircle2, XCircle, Clock, Ban } from 'lucide-react';
+import { CheckCircle2, XCircle, Clock, Ban, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   usePendingOverrides,
   useReviewOverride,
   useCancelOverride,
+  useRevokeOverride,
 } from '@/hooks/bn/usePolicy';
 import type { OverrideRequest } from '@/services/bn/policies/types';
 import { formatDateForDisplay } from '@/lib/format-config';
+import { runClaimEligibility } from '@/services/bn/claimActionRunner';
 
 interface Props {
   claimId: string;
