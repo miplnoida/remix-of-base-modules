@@ -69,6 +69,7 @@ export const ActiveEligibilityPanel: React.FC<Props> = ({
   );
 
   const [overrideRule, setOverrideRule] = useState<any | null>(null);
+  const [noticeOpen, setNoticeOpen] = useState(false);
 
   const handleRun = async () => {
     if (!userCode) {
