@@ -39,7 +39,7 @@ export const LetterPreviewDialog: React.FC<Props> = ({ letterId, open, onOpenCha
       if (!letter) return null;
       const [{ data: template }, { data: logs }] = await Promise.all([
         letter.template_id
-          ? db.from('notification_templates').select('id, name, subject, body_html, body_text, template_key').eq('id', letter.template_id).maybeSingle()
+          ? db.from('notification_templates').select('id, name, subject, html_body, body, template_code, version_no').eq('id', letter.template_id).maybeSingle()
           : Promise.resolve({ data: null }),
         db.from('bn_communication_log').select('id, status, created_at, channel, delivery_method, error_message, context')
           .eq('letter_id', letterId).order('created_at', { ascending: true }),
@@ -51,10 +51,10 @@ export const LetterPreviewDialog: React.FC<Props> = ({ letterId, open, onOpenCha
   const letter = data?.letter;
   const template = data?.template;
   const merge = letter?.merge_context || {};
-  const subject = letter?.subject || renderMerged(template?.subject || '', merge) || '—';
-  const body = letter?.body_html
-    ? letter.body_html
-    : renderMerged(template?.body_html || template?.body_text || '', merge);
+  const subject = letter?.rendered_subject || letter?.subject || renderMerged(template?.subject || '', merge) || '—';
+  const body = letter?.rendered_body_html
+    || letter?.body_html
+    || renderMerged(template?.html_body || template?.body || '', merge);
   const addr = letter?.recipient_address_snapshot || {};
 
   const events: Array<{ label: string; at?: string | null; by?: string | null }> = letter ? [
@@ -73,7 +73,9 @@ export const LetterPreviewDialog: React.FC<Props> = ({ letterId, open, onOpenCha
         <DialogHeader>
           <DialogTitle>Letter detail</DialogTitle>
           <DialogDescription>
-            {letter?.event_code || ''}{template?.name ? ` · Template: ${template.name}` : ' · No template linked'}
+            {letter?.event_code || ''}
+            {template?.name ? ` · Template: ${template.name}` : ' · No template linked'}
+            {letter?.template_version_no ? ` · v${letter.template_version_no}` : ''}
           </DialogDescription>
         </DialogHeader>
 
@@ -114,9 +116,11 @@ export const LetterPreviewDialog: React.FC<Props> = ({ letterId, open, onOpenCha
 
             {template && (
               <details>
-                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">Show raw template</summary>
+                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
+                  Show raw template ({template.template_code} v{template.version_no})
+                </summary>
                 <pre className="mt-2 text-xs bg-muted/50 rounded p-2 overflow-auto max-h-60">
-{`Subject: ${template.subject || '—'}\n\n${template.body_html || template.body_text || ''}`}
+{`Subject: ${template.subject || '—'}\n\n${template.html_body || template.body || ''}`}
                 </pre>
               </details>
             )}
