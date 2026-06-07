@@ -414,6 +414,25 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus }: Pr
               )}
             </div>
 
+            {/* Business-readable rule preview */}
+            {fieldDef && def.field_key && (
+              <div className="col-span-2 rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
+                <Label className="text-xs font-semibold uppercase text-primary">Rule Preview</Label>
+                <p className="text-sm">
+                  <strong>{fieldDef.label}</strong>{' '}
+                  <span className="text-muted-foreground">{ELIGIBILITY_OPERATOR_LABELS[def.operator as EligibilityOperator] ?? def.operator}</span>{' '}
+                  <span className="font-mono">{def.operator === 'BETWEEN' ? `${def.range_from} … ${def.range_to}` : formatValue(def.value)}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Group: <Badge variant="outline" className="ml-1">{editing.group_code}</Badge>{' '}
+                  Severity: <Badge variant={editing.severity === 'WARN' ? 'secondary' : 'destructive'} className="ml-1">{editing.severity}</Badge>{' '}
+                  Source: <span className="font-mono">{fieldDef.dataSource}</span>
+                  {editing.overrideable && <> · Overrideable{editing.override_policy_code ? ` (${editing.override_policy_code})` : ''}</>}
+                </p>
+              </div>
+            )}
+
+
             <div className="col-span-2 space-y-2"><Label>Fail Message</Label><Textarea value={editing.fail_message || ''} onChange={e => updateEditing('fail_message', e.target.value)} rows={2} placeholder="Message shown when rule fails" /></div>
             <div className="space-y-2"><Label>Sort Order</Label><Input type="number" value={editing.sort_order ?? 0} onChange={e => updateEditing('sort_order', parseInt(e.target.value) || 0)} /></div>
             <div className="flex items-center gap-2 pt-6"><Switch checked={editing.is_active ?? true} onCheckedChange={v => updateEditing('is_active', v)} /><Label>Active</Label></div>
