@@ -110,13 +110,21 @@ export function validateFactAgainstRegistry(
     }
   };
 
+  // For RESOLVER_ONLY / DERIVED_AGGREGATE, source_column may be null or '*'
+  // (the value is derived by the resolver, not a physical column).
+  const skipSourceColumnCheck =
+    input.source_type === 'RESOLVER_ONLY' ||
+    input.source_type === 'DERIVED_AGGREGATE' ||
+    input.source_column === '*';
+
   checkTable(input.source_table, 'Source table');
-  checkColumn(input.source_table, input.source_column, 'Source column');
+  if (!skipSourceColumnCheck) checkColumn(input.source_table, input.source_column, 'Source column');
   checkTable(input.base_table, 'Base table');
   checkColumn(input.base_table, input.base_date_column, 'Base date column');
   for (const c of input.base_value_columns ?? []) checkColumn(input.base_table, c, 'Base value column');
   for (const c of input.base_code_columns ?? []) checkColumn(input.base_table, c, 'Base code column');
   checkTable(input.output_table, 'Output table');
+  // output_column refers to a real (often JSONB) column on the snapshot table; output_json_key is NEVER a physical column.
   checkColumn(input.output_table, input.output_column, 'Output column');
 
   if (input.source_type === 'DERIVED_AGGREGATE') {
