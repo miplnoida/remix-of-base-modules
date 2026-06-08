@@ -24,6 +24,7 @@ import {
 } from '@/hooks/bn/useRuleCatalogue';
 import { useEligibilityFacts } from '@/hooks/bn/useEligibilityFacts';
 import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
+import { useRuleCatalogueGroupUsage } from '@/hooks/bn/useRuleCatalogueGroupUsage';
 import {
   RULE_GROUP_TYPES, RULE_OPERATORS, FAIL_ACTIONS,
   validateRuleCatalogue,
