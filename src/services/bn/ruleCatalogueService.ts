@@ -97,6 +97,21 @@ export async function getRuleCatalogueUsage(): Promise<Record<string, number>> {
 export async function upsertRuleCatalogue(input: RuleCatalogueInput, userCode: string): Promise<RuleCatalogueItem> {
   const payload: any = { ...input, updated_by: userCode };
   if (!input.id) payload.created_by = userCode;
+  // Auto-populate denormalized rule_group_code/name from rule_group_id
+  if (input.rule_group_id) {
+    const { data: g } = await (supabase as any)
+      .from('bn_rule_group')
+      .select('group_code, group_name')
+      .eq('id', input.rule_group_id)
+      .maybeSingle();
+    if (g) {
+      payload.rule_group_code = g.group_code;
+      payload.rule_group_name = g.group_name;
+    }
+  } else {
+    payload.rule_group_code = null;
+    payload.rule_group_name = null;
+  }
   const { data, error } = await (supabase as any)
     .from('bn_rule_catalogue')
     .upsert(payload)
