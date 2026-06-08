@@ -742,6 +742,108 @@ export const RULE_GROUPS: Array<{ code: RuleGroupCode; label: string; descriptio
   { code: 'SPECIAL', label: 'Special Conditions', description: 'Means tests, student status, guardian/payee, etc.' },
 ];
 
+// ───────── Extended contribution window facts ─────────
+const WINDOW_FACTS: EligibilityFact[] = [
+  {
+    fact_key: 'contribution.credited_weeks',
+    label: 'Credited contribution weeks',
+    category: 'CONTRIBUTION',
+    description: 'Credited (non-paid) weeks from snapshot.',
+    source_table: 'bn_claim_contribution_snapshot',
+    source_column: 'credited_weeks',
+    resolver_function: 'resolveContribCreditedWeeks',
+    data_type: 'number',
+    allowed_operators: ['>=', '<=', '=', '!=', 'between'],
+    applicable_products: ['*'],
+    example_value: 20,
+  },
+  ...([13, 26, 39, 52].map((n) => ({
+    fact_key: `contribution.weeks_last_${n}`,
+    label: `Contribution weeks in last ${n}`,
+    category: 'CONTRIBUTION' as EligibilityCategory,
+    description: `Paid weeks in the ${n} weeks preceding the claim date.`,
+    source_table: 'bn_claim_contribution_snapshot / ip_wages',
+    source_column: `window_${n}`,
+    resolver_function: `resolveContribWeeksLast${n}`,
+    data_type: 'number' as EligibilityDataType,
+    allowed_operators: ['>=', '<=', '=', '!=', 'between'] as EligibilityOperator[],
+    applicable_products: ['*'],
+    example_value: Math.round(n * 0.7),
+  })) as EligibilityFact[]),
+  {
+    fact_key: 'contribution.weeks_last_12_months',
+    label: 'Contribution weeks in last 12 months',
+    category: 'CONTRIBUTION',
+    description: 'Paid weeks in the 12 months preceding the claim date.',
+    source_table: 'bn_claim_contribution_snapshot / ip_wages',
+    source_column: 'window_12m',
+    resolver_function: 'resolveContribWeeksLast12Months',
+    data_type: 'number',
+    allowed_operators: ['>=', '<=', '=', '!=', 'between'],
+    applicable_products: ['*'],
+    example_value: 40,
+  },
+];
+
+// ───────── Deceased contributor facts (Funeral / Survivors) ─────────
+const DECEASED_FACTS: EligibilityFact[] = [
+  {
+    fact_key: 'deceased.contribution.total_weeks',
+    label: 'Deceased: total contribution weeks',
+    category: 'CONTRIBUTION',
+    description: 'Total contribution weeks for the deceased contributor.',
+    source_table: 'bn_claim_contribution_snapshot / ip_wages',
+    source_column: 'total_weeks',
+    resolver_function: 'resolveDeceasedContribTotalWeeks',
+    data_type: 'number',
+    allowed_operators: ['>=', '<=', '=', '!=', 'between'],
+    applicable_products: ['SKN-FUN', 'SKN-SURV'],
+    example_value: 150,
+  },
+  {
+    fact_key: 'deceased.contribution.paid_weeks',
+    label: 'Deceased: paid contribution weeks',
+    category: 'CONTRIBUTION',
+    description: 'Paid contribution weeks for the deceased.',
+    source_table: 'bn_claim_contribution_snapshot / ip_wages',
+    source_column: 'paid_weeks',
+    resolver_function: 'resolveDeceasedContribPaidWeeks',
+    data_type: 'number',
+    allowed_operators: ['>=', '<=', '=', '!=', 'between'],
+    applicable_products: ['SKN-FUN', 'SKN-SURV'],
+    example_value: 120,
+  },
+  {
+    fact_key: 'deceased.contribution.recent_weeks',
+    label: 'Deceased: recent contribution weeks',
+    category: 'CONTRIBUTION',
+    description: 'Recent paid weeks for the deceased.',
+    source_table: 'bn_claim_contribution_snapshot / ip_wages',
+    source_column: 'recent_weeks',
+    resolver_function: 'resolveDeceasedContribRecentWeeks',
+    data_type: 'number',
+    allowed_operators: ['>=', '<=', '=', '!=', 'between'],
+    applicable_products: ['SKN-FUN', 'SKN-SURV'],
+    example_value: 8,
+  },
+  {
+    fact_key: 'deceased.contribution.weeks_last_12_months',
+    label: 'Deceased: contribution weeks in last 12 months',
+    category: 'CONTRIBUTION',
+    description: 'Paid weeks in the 12 months preceding death.',
+    source_table: 'bn_claim_contribution_snapshot / ip_wages',
+    source_column: 'window_12m',
+    resolver_function: 'resolveDeceasedContribWeeksLast12Months',
+    data_type: 'number',
+    allowed_operators: ['>=', '<=', '=', '!=', 'between'],
+    applicable_products: ['SKN-FUN', 'SKN-SURV'],
+    example_value: 40,
+  },
+];
+
+ELIGIBILITY_FACTS.push(...WINDOW_FACTS, ...DECEASED_FACTS);
+for (const f of [...WINDOW_FACTS, ...DECEASED_FACTS]) FACT_INDEX.set(f.fact_key, f);
+
 /** Default group suggestion for a fact (used by the rule builder). */
 export function defaultGroupForFact(factKey: string): RuleGroupCode {
   const fact = getFact(factKey);
