@@ -64,6 +64,7 @@ export default function RuleCatalogue() {
   const { data: rules = [], isLoading } = useRuleCatalogue();
   const { data: usage = {} } = useRuleCatalogueUsage();
   const { data: facts = [], isLoading: factsLoading } = useEligibilityFacts();
+  const { data: ruleGroups = [] } = useBnRuleGroups();
   const upsert = useUpsertRuleCatalogue();
   const clone = useCloneRuleCatalogue();
   const remove = useDeleteRuleCatalogue();
