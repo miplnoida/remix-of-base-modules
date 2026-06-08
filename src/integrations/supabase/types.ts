@@ -8542,6 +8542,7 @@ export type Database = {
           product_version_id: string
           reason_code_group: string | null
           required_status: string | null
+          rule_category: string | null
           rule_code: string
           rule_definition: Json
           rule_group: string
@@ -8553,6 +8554,8 @@ export type Database = {
           sort_order: number
           source_document: string | null
           source_name: string | null
+          source_rule_group_code: string | null
+          source_rule_group_id: string | null
           source_section: string | null
           source_url: string | null
           start_fact_key: string | null
@@ -8592,6 +8595,7 @@ export type Database = {
           product_version_id: string
           reason_code_group?: string | null
           required_status?: string | null
+          rule_category?: string | null
           rule_code: string
           rule_definition?: Json
           rule_group?: string
@@ -8603,6 +8607,8 @@ export type Database = {
           sort_order?: number
           source_document?: string | null
           source_name?: string | null
+          source_rule_group_code?: string | null
+          source_rule_group_id?: string | null
           source_section?: string | null
           source_url?: string | null
           start_fact_key?: string | null
@@ -8642,6 +8648,7 @@ export type Database = {
           product_version_id?: string
           reason_code_group?: string | null
           required_status?: string | null
+          rule_category?: string | null
           rule_code?: string
           rule_definition?: Json
           rule_group?: string
@@ -8653,6 +8660,8 @@ export type Database = {
           sort_order?: number
           source_document?: string | null
           source_name?: string | null
+          source_rule_group_code?: string | null
+          source_rule_group_id?: string | null
           source_section?: string | null
           source_url?: string | null
           start_fact_key?: string | null
@@ -8677,6 +8686,13 @@ export type Database = {
           {
             foreignKeyName: "bn_eligibility_rule_rule_group_id_fkey"
             columns: ["rule_group_id"]
+            isOneToOne: false
+            referencedRelation: "bn_rule_group"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_eligibility_rule_source_rule_group_id_fkey"
+            columns: ["source_rule_group_id"]
             isOneToOne: false
             referencedRelation: "bn_rule_group"
             referencedColumns: ["id"]
@@ -12680,6 +12696,63 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      bn_rule_group_item: {
+        Row: {
+          catalogue_rule_id: string
+          created_at: string
+          created_by: string | null
+          default_active: boolean
+          id: string
+          notes: string | null
+          rule_code: string
+          rule_group_id: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          catalogue_rule_id: string
+          created_at?: string
+          created_by?: string | null
+          default_active?: boolean
+          id?: string
+          notes?: string | null
+          rule_code: string
+          rule_group_id: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          catalogue_rule_id?: string
+          created_at?: string
+          created_by?: string | null
+          default_active?: boolean
+          id?: string
+          notes?: string | null
+          rule_code?: string
+          rule_group_id?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_rule_group_item_catalogue_rule_id_fkey"
+            columns: ["catalogue_rule_id"]
+            isOneToOne: false
+            referencedRelation: "bn_rule_catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_rule_group_item_rule_group_id_fkey"
+            columns: ["rule_group_id"]
+            isOneToOne: false
+            referencedRelation: "bn_rule_group"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_scheme: {
         Row: {
@@ -57732,6 +57805,23 @@ export type Database = {
       }
     }
     Views: {
+      bn_rule_catalogue_group_usage: {
+        Row: {
+          catalogue_rule_id: string | null
+          group_codes: string[] | null
+          group_count: number | null
+          group_ids: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_rule_group_item_catalogue_rule_id_fkey"
+            columns: ["catalogue_rule_id"]
+            isOneToOne: false
+            referencedRelation: "bn_rule_catalogue"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ce_employer_contact_view: {
         Row: {
           authorized_contact_email: string | null
