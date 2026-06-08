@@ -25,7 +25,7 @@ import {
 import { useEligibilityFacts } from '@/hooks/bn/useEligibilityFacts';
 import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
 import {
-  RULE_GROUP_TYPES, RULE_PARAMETERS, RULE_OPERATORS, FAIL_ACTIONS,
+  RULE_GROUP_TYPES, RULE_OPERATORS, FAIL_ACTIONS,
   validateRuleCatalogue,
   type RuleCatalogueItem, type RuleCatalogueInput, type FailAction,
 } from '@/services/bn/ruleCatalogueService';
@@ -44,7 +44,7 @@ import { Progress } from '@/components/ui/progress';
 
 const emptyInput: RuleCatalogueInput = {
   rule_code: '', rule_name: '', description: '', group_type: 'CONTRIBUTION',
-  category: 'CONTRIBUTION', parameter: 'TOTAL_CONTRIBUTIONS', fact_key: null,
+  category: 'CONTRIBUTION', parameter: null, fact_key: null,
   operator: 'GREATER_OR_EQUAL',
   value_from: '', value_to: '', values: null,
   default_fail_action: 'REJECT', failure_message_text: '',
@@ -465,34 +465,11 @@ export default function RuleCatalogue() {
               </Select>
               <p className="text-xs text-muted-foreground">Broad classification (AGE, CONTRIBUTION, …). Distinct from the reusable Rule Group below.</p>
             </div>
-            <div className="space-y-2">
-              <Label>Linked Rule Group</Label>
-              <Select
-                value={editing.rule_group_id ?? '__none__'}
-                onValueChange={v => {
-                  if (v === '__none__') {
-                    setEditing({ ...editing, rule_group_id: null, rule_group_code: null, rule_group_name: null });
-                  } else {
-                    const g = (ruleGroups as any[]).find(x => x.id === v);
-                    setEditing({ ...editing, rule_group_id: v, rule_group_code: g?.group_code ?? null, rule_group_name: g?.group_name ?? null });
-                  }
-                }}>
-                <SelectTrigger><SelectValue placeholder="Optional — pick an existing Rule Group" /></SelectTrigger>
-                <SelectContent className="max-h-72">
-                  <SelectItem value="__none__">— None —</SelectItem>
-                  {(ruleGroups as any[]).filter(g => g.is_active).map(g => (
-                    <SelectItem key={g.id} value={g.id}>{g.group_code} — {g.group_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">Master reusable group (managed in Rule Groups screen). Products can add eligibility rules by Rule Group.</p>
-            </div>
-            <div className="space-y-2">
-              <Label>Legacy Parameter</Label>
-              <Select value={editing.parameter} onValueChange={v => setEditing({ ...editing, parameter: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{RULE_PARAMETERS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
-              </Select>
+            <div className="space-y-2 col-span-2">
+              <p className="text-xs text-muted-foreground">
+                Rule Groups are now managed as optional templates from the <strong>Rule Groups</strong> screen.
+                Use it to add this rule to one or more groups.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Operator *</Label>

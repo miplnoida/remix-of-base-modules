@@ -12448,7 +12448,7 @@ export type Database = {
           is_active: boolean
           legislative_reference: string | null
           operator: string
-          parameter: string
+          parameter: string | null
           priority: number
           product_type: string | null
           rule_code: string
@@ -12491,7 +12491,7 @@ export type Database = {
           is_active?: boolean
           legislative_reference?: string | null
           operator: string
-          parameter: string
+          parameter?: string | null
           priority?: number
           product_type?: string | null
           rule_code: string
@@ -12534,7 +12534,7 @@ export type Database = {
           is_active?: boolean
           legislative_reference?: string | null
           operator?: string
-          parameter?: string
+          parameter?: string | null
           priority?: number
           product_type?: string | null
           rule_code?: string
