@@ -37,6 +37,7 @@ import { ValidationTab } from '@/components/bn/ruleCatalogue/ValidationTab';
 import { ImpactTab } from '@/components/bn/ruleCatalogue/ImpactTab';
 import { FactsTab } from '@/components/bn/ruleCatalogue/FactsTab';
 import { RuntimeTestTab } from '@/components/bn/ruleCatalogue/RuntimeTestTab';
+import { AuditTab } from '@/components/bn/ruleCatalogue/AuditTab';
 import { validateAllRules } from '@/services/bn/ruleValidationService';
 import { computeAllRuleReadiness } from '@/services/bn/readinessService';
 import { Progress } from '@/components/ui/progress';
@@ -209,6 +210,7 @@ export default function RuleCatalogue() {
           <TabsTrigger value="coverage-types" className="gap-2"><GitBranch className="h-4 w-4" /> Coverage Types</TabsTrigger>
           <TabsTrigger value="coverage" className="gap-2"><ShieldCheck className="h-4 w-4" /> Implementation Coverage</TabsTrigger>
           <TabsTrigger value="validation" className="gap-2"><BadgeCheck className="h-4 w-4" /> Validation</TabsTrigger>
+          <TabsTrigger value="audit" className="gap-2"><ShieldCheck className="h-4 w-4" /> Audit</TabsTrigger>
           <TabsTrigger value="test" className="gap-2"><FlaskConical className="h-4 w-4" /> Test</TabsTrigger>
           <TabsTrigger value="impact" className="gap-2"><Activity className="h-4 w-4" /> Impact</TabsTrigger>
           <TabsTrigger value="usage" className="gap-2"><Activity className="h-4 w-4" /> Usage</TabsTrigger>
@@ -224,6 +226,10 @@ export default function RuleCatalogue() {
 
         <TabsContent value="validation">
           <ValidationTab rules={rules} facts={facts} />
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <AuditTab />
         </TabsContent>
 
         <TabsContent value="impact">

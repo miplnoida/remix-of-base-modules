@@ -50,16 +50,25 @@ export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId,
     enabled: !!groupId,
   });
 
-  const coverage = (factKey: string | null): { label: string; ok: boolean } => {
-    if (!factKey) return { label: 'NO FACT', ok: false };
+  const coverage = (factKey: string | null): { label: string; band: 'READY' | 'PARTIAL' | 'BLOCKED' } => {
+    if (!factKey) return { label: 'NO FACT', band: 'BLOCKED' };
     const f = factByKey.get(factKey);
-    if (!f) return { label: 'UNLINKED', ok: false };
-    if (f.implementation_status === 'NOT_IMPLEMENTED') return { label: 'NOT_IMPLEMENTED', ok: false };
-    return { label: f.implementation_status, ok: true };
+    if (!f) return { label: 'UNLINKED', band: 'BLOCKED' };
+    if (!f.is_active) return { label: 'INACTIVE FACT', band: 'BLOCKED' };
+    if (f.implementation_status === 'NOT_IMPLEMENTED') return { label: 'NOT_IMPLEMENTED', band: 'BLOCKED' };
+    if (f.implementation_status === 'PARTIAL') return { label: 'PARTIAL', band: 'PARTIAL' };
+    return { label: 'READY', band: 'READY' };
   };
 
   const handleAdd = async () => {
     if (!groupId || linked.length === 0) { onOpenChange(false); return; }
+    const blocked = linked.filter((r: any) => coverage(r.fact_key).band === 'BLOCKED');
+    if (blocked.length) {
+      toast.error('Cannot add — some rules are BLOCKED', {
+        description: `${blocked.length} rule(s) have missing/unimplemented facts. Only READY (and PARTIAL with warning) rules can be added.`,
+      });
+      return;
+    }
     const userCode = await getCurrentUserCode();
     if (!userCode) { toast.error('Authenticated user_code required'); return; }
     const group = (groups as any[]).find(g => g.id === groupId);
@@ -94,7 +103,10 @@ export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId,
         .from('bn_eligibility_rule')
         .upsert(rows, { onConflict: 'product_version_id,rule_code' });
       if (error) throw error;
-      toast.success(`${rows.length} rule(s) added from group ${group?.group_code}`);
+      const partial = linked.filter((r: any) => coverage(r.fact_key).band === 'PARTIAL').length;
+      toast.success(`${rows.length} rule(s) added from group ${group?.group_code}`, {
+        description: partial > 0 ? `${partial} use PARTIAL facts — review before publish.` : undefined,
+      });
       setGroupId('');
       onAdded?.();
       onOpenChange(false);
@@ -105,7 +117,8 @@ export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId,
     }
   };
 
-  const blockingCount = linked.filter((r: any) => !coverage(r.fact_key).ok).length;
+  const blockedCount = linked.filter((r: any) => coverage(r.fact_key).band === 'BLOCKED').length;
+  const partialCount = linked.filter((r: any) => coverage(r.fact_key).band === 'PARTIAL').length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -131,9 +144,14 @@ export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId,
                 <p className="text-sm text-muted-foreground py-4">No active catalogue rules linked to this group.</p>
               ) : (
                 <>
-                  {blockingCount > 0 && (
+                  {blockedCount > 0 && (
                     <p className="text-xs text-destructive">
-                      {blockingCount} rule(s) have missing/unimplemented facts and may block publish.
+                      {blockedCount} rule(s) are BLOCKED (missing/unimplemented fact) — add disabled.
+                    </p>
+                  )}
+                  {partialCount > 0 && blockedCount === 0 && (
+                    <p className="text-xs text-amber-600">
+                      {partialCount} rule(s) use PARTIAL facts — allowed with warning, cannot publish until READY.
                     </p>
                   )}
                   <Table>
@@ -150,6 +168,7 @@ export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId,
                     <TableBody>
                       {linked.map((r: any) => {
                         const c = coverage(r.fact_key);
+                        const v = c.band === 'READY' ? 'default' : c.band === 'PARTIAL' ? 'secondary' : 'destructive';
                         return (
                           <TableRow key={r.id}>
                             <TableCell className="font-mono text-xs">{r.rule_code}</TableCell>
@@ -157,7 +176,7 @@ export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId,
                             <TableCell className="font-mono text-xs">{r.fact_key ?? '—'}</TableCell>
                             <TableCell className="text-xs">{r.operator}</TableCell>
                             <TableCell className="text-xs">{r.value_from ?? '(per product)'}</TableCell>
-                            <TableCell><Badge variant={c.ok ? 'default' : 'destructive'}>{c.label}</Badge></TableCell>
+                            <TableCell><Badge variant={v}>{c.label}</Badge></TableCell>
                           </TableRow>
                         );
                       })}
@@ -171,7 +190,7 @@ export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId,
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleAdd} disabled={busy || !groupId || linked.length === 0}>
+          <Button onClick={handleAdd} disabled={busy || !groupId || linked.length === 0 || blockedCount > 0}>
             {busy ? 'Adding…' : `Add ${linked.length} rule(s)`}
           </Button>
         </DialogFooter>

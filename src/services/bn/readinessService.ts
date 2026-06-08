@@ -17,7 +17,20 @@ export function bandFor(percent: number): ReadinessBand {
 }
 
 export function isFactReady(f: EligibilityFact): boolean {
-  return !!(f.resolver_function && f.source_table && f.source_column && f.implementation_status === 'IMPLEMENTED');
+  if (f.implementation_status !== 'IMPLEMENTED') return false;
+  switch (f.source_type) {
+    case 'DIRECT_FIELD':
+      return !!(f.source_table && f.source_column && f.source_column !== '*');
+    case 'DERIVED_AGGREGATE':
+      return !!(f.resolver_function && f.base_table && f.output_table && f.output_column && f.output_json_key && f.snapshot_builder);
+    case 'DOCUMENT_CHECK':
+    case 'EXISTENCE_CHECK':
+      return !!(f.resolver_function && f.source_table);
+    case 'RESOLVER_ONLY':
+      return !!f.resolver_function;
+    default:
+      return !!(f.resolver_function && f.source_table);
+  }
 }
 
 export interface RuleReadiness {

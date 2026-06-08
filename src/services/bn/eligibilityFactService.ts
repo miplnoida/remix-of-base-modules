@@ -169,6 +169,9 @@ export async function setEligibilityFactActive(id: string, isActive: boolean, us
   if (error) throw error;
 }
 
+/** Patterns disallowed in a physical column name (block comma/expression/spaces). */
+const INVALID_COLUMN_RE = /[,+\s]|(?:^|[^a-z0-9_])-/i;
+
 /** Metadata validation — no claim context needed. */
 export function validateEligibilityFact(input: Partial<EligibilityFactInput>): string | null {
   if (!input.fact_key?.trim()) return 'Fact key is required';
@@ -178,6 +181,7 @@ export function validateEligibilityFact(input: Partial<EligibilityFactInput>): s
   if (!input.category?.trim()) return 'Category is required';
   if (!input.source_type) return 'Source type is required';
   if (!input.data_type) return 'Data type is required';
+  if (!input.implementation_status) return 'Implementation status is required';
   if (!input.allowed_operators?.length) return 'At least one allowed operator is required';
 
   const status = input.implementation_status ?? 'NOT_IMPLEMENTED';
@@ -187,6 +191,8 @@ export function validateEligibilityFact(input: Partial<EligibilityFactInput>): s
     case 'DIRECT_FIELD':
       if (!input.source_table) return 'DIRECT_FIELD requires source table';
       if (!input.source_column) return 'DIRECT_FIELD requires source column';
+      if (input.source_column !== '*' && INVALID_COLUMN_RE.test(input.source_column))
+        return 'DIRECT_FIELD source column must be a single physical column (no comma, expression, or spaces). Switch to RESOLVER_ONLY for derived values.';
       break;
     case 'DERIVED_AGGREGATE':
       if (!input.base_table) return 'DERIVED_AGGREGATE requires base table';
@@ -195,6 +201,8 @@ export function validateEligibilityFact(input: Partial<EligibilityFactInput>): s
       if (!input.output_column) return 'DERIVED_AGGREGATE requires output column';
       if (!input.output_json_key) return 'DERIVED_AGGREGATE requires output JSON key';
       if (!input.snapshot_builder) return 'DERIVED_AGGREGATE requires a snapshot builder';
+      if (!input.resolver_function && status !== 'NOT_IMPLEMENTED')
+        return 'DERIVED_AGGREGATE requires a resolver_function when status is IMPLEMENTED/PARTIAL';
       break;
     case 'DOCUMENT_CHECK':
     case 'EXISTENCE_CHECK':
@@ -203,10 +211,12 @@ export function validateEligibilityFact(input: Partial<EligibilityFactInput>): s
       break;
     case 'RESOLVER_ONLY':
       if (!input.resolver_function) return 'RESOLVER_ONLY requires a resolver function';
+      if (input.source_column && input.source_column !== '*' && INVALID_COLUMN_RE.test(input.source_column))
+        return 'RESOLVER_ONLY source column should be empty or "*" (derived by resolver).';
       break;
   }
 
-  if ((status === 'IMPLEMENTED' || status === 'PARTIAL') && !input.resolver_function) {
+  if ((status === 'IMPLEMENTED' || status === 'PARTIAL') && !input.resolver_function && input.source_type !== 'DIRECT_FIELD') {
     return 'IMPLEMENTED/PARTIAL facts require a resolver function';
   }
   if (input.resolver_function && !registered.has(input.resolver_function) && status === 'IMPLEMENTED') {
@@ -252,7 +262,9 @@ export function describeFactSource(f: EligibilityFact): string {
       return f.resolver_function ? `Resolver: ${f.resolver_function}` : 'Resolver only';
     case 'DIRECT_FIELD':
     default:
-      return f.source_table ? `${f.source_table}${f.source_column ? '.' + f.source_column : ''}` : '—';
+      if (!f.source_table) return '—';
+      if (!f.source_column || f.source_column === '*') return `${f.source_table} (derived by resolver)`;
+      return `${f.source_table}.${f.source_column}`;
   }
 }
 
