@@ -9,6 +9,8 @@ import { CheckCircle2, AlertTriangle, XCircle, Search } from 'lucide-react';
 import { validateAllRules, type CheckResult } from '@/services/bn/ruleValidationService';
 import type { RuleCatalogueItem } from '@/services/bn/ruleCatalogueService';
 import type { EligibilityFact } from '@/services/bn/eligibilityFactService';
+import { LegalConfidenceBadge } from './LegalConfidenceBadge';
+
 
 function ResultIcon({ r }: { r: CheckResult }) {
   if (r === 'PASS') return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
