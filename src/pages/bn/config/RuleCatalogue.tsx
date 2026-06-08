@@ -44,7 +44,7 @@ import { Progress } from '@/components/ui/progress';
 
 const emptyInput: RuleCatalogueInput = {
   rule_code: '', rule_name: '', description: '', group_type: 'CONTRIBUTION',
-  category: 'CONTRIBUTION', parameter: 'TOTAL_CONTRIBUTIONS', fact_key: null,
+  category: 'CONTRIBUTION', parameter: null, fact_key: null,
   operator: 'GREATER_OR_EQUAL',
   value_from: '', value_to: '', values: null,
   default_fail_action: 'REJECT', failure_message_text: '',
