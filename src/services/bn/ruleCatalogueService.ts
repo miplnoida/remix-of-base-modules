@@ -1,0 +1,133 @@
+/**
+ * Rule Catalogue Service — reusable eligibility rules shared across products.
+ */
+import { supabase } from '@/integrations/supabase/client';
+
+export type FailAction = 'REJECT' | 'BLOCK' | 'REFER';
+
+export const RULE_GROUP_TYPES = [
+  'AGE','CONTRIBUTION','EMPLOYMENT','MEDICAL','DEPENDENCY',
+  'MEANS_TEST','INJURY','FUNERAL','MATERNITY','RESIDENCE','TIMING',
+] as const;
+
+export const RULE_PARAMETERS = [
+  'AGE_AT_CLAIM','TOTAL_CONTRIBUTIONS','CONTRIBUTIONS_LAST_13_WEEKS','CONTRIBUTIONS_LAST_12_MONTHS',
+  'PAID_CONTRIBUTIONS','HAS_MEDICAL_CERTIFICATE','HAS_EMPLOYER_VERIFICATION','IS_SPOUSE','IS_CHILD',
+  'IS_DEPENDENT','CHILD_AGE','CHILD_IN_EDUCATION','INJURY_TYPE','INJURY_WORK_RELATED',
+  'DECEASED_CONTRIBUTIONS','MEANS_TEST_INCOME','RESIDENCE_CONFIRMED','DISABILITY_PERCENTAGE',
+  'MEDICAL_BOARD_CERTIFIED','EMPLOYMENT_STATUS','SELF_EMPLOYED','CLAIM_SUBMISSION_DAYS',
+  'LAST_DAY_WORKED','EXPECTED_DELIVERY_DATE','CONFINEMENT_DATE','DEATH_DATE','FUNERAL_INVOICE_AMOUNT',
+] as const;
+
+export const RULE_OPERATORS = [
+  'EQUALS','NOT_EQUALS','GREATER_THAN','GREATER_OR_EQUAL','LESS_THAN','LESS_OR_EQUAL',
+  'BETWEEN','IN','NOT_IN','BOOLEAN','EXISTS','CONTAINS',
+] as const;
+
+export const FAIL_ACTIONS: FailAction[] = ['REJECT','BLOCK','REFER'];
+
+export interface RuleCatalogueItem {
+  id: string;
+  rule_code: string;
+  rule_name: string;
+  description: string | null;
+  group_type: string;
+  parameter: string;
+  operator: string;
+  value_from: string | null;
+  value_to: string | null;
+  values: any | null;
+  default_fail_action: FailAction;
+  failure_message_text: string | null;
+  is_active: boolean;
+  allow_product_override: boolean;
+  tags: string[];
+  version: number;
+  effective_from: string | null;
+  effective_to: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type RuleCatalogueInput = Omit<
+  RuleCatalogueItem,
+  'id' | 'created_at' | 'updated_at' | 'version' | 'created_by' | 'updated_by'
+> & { id?: string };
+
+export async function listRuleCatalogue(): Promise<RuleCatalogueItem[]> {
+  const { data, error } = await (supabase as any)
+    .from('bn_rule_catalogue')
+    .select('*')
+    .order('group_type', { ascending: true })
+    .order('rule_code', { ascending: true });
+  if (error) throw error;
+  return (data || []) as RuleCatalogueItem[];
+}
+
+export async function getRuleCatalogueUsage(): Promise<Record<string, number>> {
+  const { data, error } = await (supabase as any)
+    .from('bn_eligibility_rule')
+    .select('catalogue_rule_code')
+    .not('catalogue_rule_code', 'is', null);
+  if (error) throw error;
+  const counts: Record<string, number> = {};
+  for (const row of (data as any[]) || []) {
+    const code = row.catalogue_rule_code as string;
+    counts[code] = (counts[code] || 0) + 1;
+  }
+  return counts;
+}
+
+export async function upsertRuleCatalogue(input: RuleCatalogueInput, userCode: string): Promise<RuleCatalogueItem> {
+  const payload: any = { ...input, updated_by: userCode };
+  if (!input.id) payload.created_by = userCode;
+  const { data, error } = await (supabase as any)
+    .from('bn_rule_catalogue')
+    .upsert(payload)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as RuleCatalogueItem;
+}
+
+export async function cloneRuleCatalogue(source: RuleCatalogueItem, newCode: string, userCode: string): Promise<RuleCatalogueItem> {
+  const { id, created_at, updated_at, version, created_by, updated_by, ...rest } = source;
+  return upsertRuleCatalogue({ ...rest, rule_code: newCode, rule_name: `${source.rule_name} (copy)` }, userCode);
+}
+
+export async function deleteRuleCatalogue(id: string, code: string): Promise<void> {
+  const { count, error: usageErr } = await (supabase as any)
+    .from('bn_eligibility_rule')
+    .select('id', { count: 'exact', head: true })
+    .eq('catalogue_rule_code', code);
+  if (usageErr) throw usageErr;
+  if ((count ?? 0) > 0) {
+    throw new Error(`Rule is in use by ${count} product rule(s). Deactivate instead.`);
+  }
+  const { error } = await (supabase as any).from('bn_rule_catalogue').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function setRuleCatalogueActive(id: string, isActive: boolean, userCode: string): Promise<void> {
+  const { error } = await (supabase as any)
+    .from('bn_rule_catalogue')
+    .update({ is_active: isActive, updated_by: userCode })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export function validateRuleCatalogue(input: Partial<RuleCatalogueInput>): string | null {
+  if (!input.rule_code?.trim()) return 'Rule code is required';
+  if (!/^[A-Z0-9_]+$/.test(input.rule_code)) return 'Rule code must be uppercase letters, digits, underscores';
+  if (!input.rule_name?.trim()) return 'Rule name is required';
+  if (!input.group_type) return 'Group is required';
+  if (!input.parameter) return 'Parameter is required';
+  if (!input.operator) return 'Operator is required';
+  const op = input.operator;
+  if (op === 'BOOLEAN' && !['true','false'].includes(String(input.value_from))) return 'BOOLEAN requires value true/false';
+  if (op === 'BETWEEN' && (!input.value_from || !input.value_to)) return 'BETWEEN requires value from and value to';
+  if ((op === 'IN' || op === 'NOT_IN') && (!Array.isArray(input.values) || input.values.length === 0)) return 'IN/NOT_IN requires at least one value';
+  return null;
+}
