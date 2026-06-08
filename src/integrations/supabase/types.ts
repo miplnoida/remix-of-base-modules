@@ -5747,6 +5747,7 @@ export type Database = {
           claim_number: string | null
           contact_email: string | null
           contact_phone: string | null
+          death_date: string | null
           decision_date: string | null
           declaration: boolean
           digital_signature: string | null
@@ -5754,7 +5755,9 @@ export type Database = {
           employer_regno: string | null
           entered_at: string
           entered_by: string | null
+          expected_confinement_date: string | null
           id: string
+          last_worked_date: string | null
           legacy_benefit_type: string | null
           legacy_claim_ref: string | null
           modified_at: string
@@ -5762,7 +5765,9 @@ export type Database = {
           priority: string
           product_id: string
           product_version_id: string | null
+          reported_date: string | null
           screen_template_id: string | null
+          sickness_start_date: string | null
           source: string
           ssn: string
           status: string
@@ -5783,6 +5788,7 @@ export type Database = {
           claim_number?: string | null
           contact_email?: string | null
           contact_phone?: string | null
+          death_date?: string | null
           decision_date?: string | null
           declaration?: boolean
           digital_signature?: string | null
@@ -5790,7 +5796,9 @@ export type Database = {
           employer_regno?: string | null
           entered_at?: string
           entered_by?: string | null
+          expected_confinement_date?: string | null
           id?: string
+          last_worked_date?: string | null
           legacy_benefit_type?: string | null
           legacy_claim_ref?: string | null
           modified_at?: string
@@ -5798,7 +5806,9 @@ export type Database = {
           priority?: string
           product_id: string
           product_version_id?: string | null
+          reported_date?: string | null
           screen_template_id?: string | null
+          sickness_start_date?: string | null
           source?: string
           ssn: string
           status?: string
@@ -5819,6 +5829,7 @@ export type Database = {
           claim_number?: string | null
           contact_email?: string | null
           contact_phone?: string | null
+          death_date?: string | null
           decision_date?: string | null
           declaration?: boolean
           digital_signature?: string | null
@@ -5826,7 +5837,9 @@ export type Database = {
           employer_regno?: string | null
           entered_at?: string
           entered_by?: string | null
+          expected_confinement_date?: string | null
           id?: string
+          last_worked_date?: string | null
           legacy_benefit_type?: string | null
           legacy_claim_ref?: string | null
           modified_at?: string
@@ -5834,7 +5847,9 @@ export type Database = {
           priority?: string
           product_id?: string
           product_version_id?: string | null
+          reported_date?: string | null
           screen_template_id?: string | null
+          sickness_start_date?: string | null
           source?: string
           ssn?: string
           status?: string
@@ -6356,6 +6371,8 @@ export type Database = {
           id: string
           mime_type: string | null
           notes: string | null
+          uploaded_at: string | null
+          verification_status: string | null
           verified: boolean
           verified_at: string | null
           verified_by: string | null
@@ -6372,6 +6389,8 @@ export type Database = {
           id?: string
           mime_type?: string | null
           notes?: string | null
+          uploaded_at?: string | null
+          verification_status?: string | null
           verified?: boolean
           verified_at?: string | null
           verified_by?: string | null
@@ -6388,6 +6407,8 @@ export type Database = {
           id?: string
           mime_type?: string | null
           notes?: string | null
+          uploaded_at?: string | null
+          verification_status?: string | null
           verified?: boolean
           verified_at?: string | null
           verified_by?: string | null
@@ -12522,6 +12543,45 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "bn_rule_catalogue_rule_group_id_fkey"
+            columns: ["rule_group_id"]
+            isOneToOne: false
+            referencedRelation: "bn_rule_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_rule_catalogue_group: {
+        Row: {
+          catalogue_id: string
+          created_at: string
+          created_by: string | null
+          rule_group_id: string
+          sort_order: number
+        }
+        Insert: {
+          catalogue_id: string
+          created_at?: string
+          created_by?: string | null
+          rule_group_id: string
+          sort_order?: number
+        }
+        Update: {
+          catalogue_id?: string
+          created_at?: string
+          created_by?: string | null
+          rule_group_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_rule_catalogue_group_catalogue_id_fkey"
+            columns: ["catalogue_id"]
+            isOneToOne: false
+            referencedRelation: "bn_rule_catalogue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_rule_catalogue_group_rule_group_id_fkey"
             columns: ["rule_group_id"]
             isOneToOne: false
             referencedRelation: "bn_rule_group"
@@ -58755,6 +58815,18 @@ export type Database = {
       bn_clone_product_version_to_draft: {
         Args: { p_source_id: string; p_user_code: string }
         Returns: string
+      }
+      bn_config_health_check: {
+        Args: { p_product_version_id?: string }
+        Returns: {
+          category: string
+          object_code: string
+          object_name: string
+          object_type: string
+          product_version_id: string
+          reason: string
+          severity: string
+        }[]
       }
       bn_get_contribution_summary: {
         Args: { p_from_date?: string; p_ssn: string; p_to_date?: string }
