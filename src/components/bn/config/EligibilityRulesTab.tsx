@@ -51,6 +51,7 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus, prod
   const [dialogOpen, setDialogOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [wizardInitial, setWizardInitial] = useState<Partial<BnEligibilityRule> | null>(null);
   const [editing, setEditing] = useState<Partial<BnEligibilityRule>>(emptyRule);
 
