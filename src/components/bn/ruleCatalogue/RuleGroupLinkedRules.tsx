@@ -25,15 +25,19 @@ interface CatRow {
   default_rule_sort_order: number;
 }
 
+import { listCatalogueRulesByGroup, unlinkCatalogueRuleFromGroup, reorderCatalogueRulesInGroup } from '@/services/bn/ruleCatalogueService';
+
 async function fetchLinkedRules(groupId: string): Promise<CatRow[]> {
-  const { data, error } = await (supabase as any)
-    .from('bn_rule_catalogue')
-    .select('id, rule_code, rule_name, fact_key, operator, is_active, default_rule_sort_order')
-    .eq('rule_group_id', groupId)
-    .order('default_rule_sort_order', { ascending: true })
-    .order('rule_code', { ascending: true });
-  if (error) throw error;
-  return data || [];
+  const rows = await listCatalogueRulesByGroup(groupId, false);
+  return rows.map(r => ({
+    id: r.id,
+    rule_code: r.rule_code,
+    rule_name: r.rule_name,
+    fact_key: r.fact_key,
+    operator: r.operator,
+    is_active: r.is_active,
+    default_rule_sort_order: (r as any).link_sort_order ?? 0,
+  }));
 }
 
 export function RuleGroupLinkedRules({ groupId, groupCode }: Props) {
@@ -57,14 +61,8 @@ export function RuleGroupLinkedRules({ groupId, groupCode }: Props) {
   };
 
   const updateSort = useMutation({
-    mutationFn: async (rows: { id: string; default_rule_sort_order: number }[]) => {
-      for (const r of rows) {
-        const { error } = await (supabase as any)
-          .from('bn_rule_catalogue')
-          .update({ default_rule_sort_order: r.default_rule_sort_order })
-          .eq('id', r.id);
-        if (error) throw error;
-      }
+    mutationFn: async (orderedIds: string[]) => {
+      await reorderCatalogueRulesInGroup(groupId, orderedIds);
     },
     onSuccess: () => { invalidate(); toast.success('Order updated'); },
     onError: (e: any) => toast.error('Reorder failed', { description: e?.message }),
@@ -72,24 +70,18 @@ export function RuleGroupLinkedRules({ groupId, groupCode }: Props) {
 
   const unlink = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
-        .from('bn_rule_catalogue')
-        .update({ rule_group_id: null, rule_group_code: null })
-        .eq('id', id);
-      if (error) throw error;
+      await unlinkCatalogueRuleFromGroup(id, groupId);
     },
-    onSuccess: () => { invalidate(); toast.success('Rule unlinked'); },
+    onSuccess: () => { invalidate(); toast.success('Rule unlinked from group'); },
     onError: (e: any) => toast.error('Unlink failed', { description: e?.message }),
   });
 
   const move = (idx: number, dir: -1 | 1) => {
     const j = idx + dir;
     if (j < 0 || j >= rules.length) return;
-    const a = rules[idx]; const b = rules[j];
-    updateSort.mutate([
-      { id: a.id, default_rule_sort_order: j },
-      { id: b.id, default_rule_sort_order: idx },
-    ]);
+    const arr = rules.slice();
+    [arr[idx], arr[j]] = [arr[j], arr[idx]];
+    updateSort.mutate(arr.map(r => r.id));
   };
 
   const readiness = (r: CatRow): { label: string; variant: 'default' | 'secondary' | 'destructive' } => {
