@@ -280,7 +280,10 @@ export default function RuleConfiguration() {
                   <Switch id="rg_active" checked={form.is_active}
                     onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
                   <Label htmlFor="rg_active">Active</Label>
-                </div>
+              </div>
+              {form.id && (
+                <RuleGroupLinkedRules groupId={form.id} groupCode={form.group_code} />
+              )}
               </div>
             </div>
             <DialogFooter>
