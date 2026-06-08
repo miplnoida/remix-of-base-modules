@@ -79,6 +79,7 @@ export default function RuleCatalogue() {
   const [tab, setTab] = useState('rules');
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState<string>('ALL');
+  const [ruleGroupFilter, setRuleGroupFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<RuleCatalogueInput>(emptyInput);
@@ -86,6 +87,11 @@ export default function RuleCatalogue() {
 
   const filtered = useMemo(() => rules.filter(r => {
     if (groupFilter !== 'ALL' && r.group_type !== groupFilter) return false;
+    if (ruleGroupFilter !== 'ALL') {
+      if (ruleGroupFilter === '__none__') {
+        if (r.rule_group_id) return false;
+      } else if (r.rule_group_id !== ruleGroupFilter) return false;
+    }
     if (statusFilter === 'ACTIVE' && !r.is_active) return false;
     if (statusFilter === 'INACTIVE' && r.is_active) return false;
     if (search) {
@@ -96,7 +102,7 @@ export default function RuleCatalogue() {
           !(r.fact_key ?? '').toLowerCase().includes(s)) return false;
     }
     return true;
-  }), [rules, search, groupFilter, statusFilter]);
+  }), [rules, search, groupFilter, ruleGroupFilter, statusFilter]);
 
   const summary = useMemo(() => {
     const used = new Set(Object.keys(usage));
