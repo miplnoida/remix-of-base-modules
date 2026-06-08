@@ -248,6 +248,16 @@ export default function RuleCatalogue() {
                     {RULE_GROUP_TYPES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <Select value={ruleGroupFilter} onValueChange={setRuleGroupFilter}>
+                  <SelectTrigger className="w-56"><SelectValue placeholder="Rule Group" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Rule Groups</SelectItem>
+                    <SelectItem value="__none__">— Unassigned —</SelectItem>
+                    {ruleGroups.filter((g: any) => g.is_active).map((g: any) => (
+                      <SelectItem key={g.id} value={g.id}>{g.group_code} — {g.group_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                   <SelectContent>
