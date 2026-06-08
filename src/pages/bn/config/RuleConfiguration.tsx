@@ -169,18 +169,24 @@ export default function RuleConfiguration() {
                         <TableHead>Code</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Country</TableHead>
+                        <TableHead>Linked Rules</TableHead>
+                        <TableHead>Active</TableHead>
                         <TableHead>Description</TableHead>
                         <TableHead className="w-[60px]">Edit</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filtered.map((rg: BnRuleGroup) => (
+                      {filtered.map((rg: BnRuleGroup) => {
+                        const count = linkCounts[rg.id] ?? 0;
+                        return (
                         <TableRow key={rg.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEdit(rg)}>
                           <TableCell className="font-mono text-sm">{rg.group_code}</TableCell>
                           <TableCell className="font-medium text-sm">{rg.group_name}</TableCell>
                           <TableCell>
                             <Badge variant="outline">{rg.country_code || 'Global'}</Badge>
                           </TableCell>
+                          <TableCell><Badge variant={count > 0 ? 'secondary' : 'outline'}>{count}</Badge></TableCell>
+                          <TableCell>{rg.is_active ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
                           <TableCell className="text-sm text-muted-foreground max-w-[300px] truncate">{rg.description}</TableCell>
                           <TableCell onClick={(e) => e.stopPropagation()}>
                             <Button variant="ghost" size="icon" onClick={() => openEdit(rg)}>
@@ -188,7 +194,7 @@ export default function RuleConfiguration() {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}
+                      );})}
                     </TableBody>
                   </Table>
                 )}
