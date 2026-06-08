@@ -802,6 +802,7 @@ const BnCountryParticipantTypes = lazy(() => import('@/pages/bn/config/country/C
 const BnCountryPaymentConfig = lazy(() => import('@/pages/bn/config/country/CountryPaymentConfig'));
 const BnCountryLegalRefs = lazy(() => import('@/pages/bn/config/country/CountryLegalRefs'));
 const BnRuleConfiguration = lazy(() => import('@/pages/bn/config/RuleConfiguration'));
+const BnRuleCatalogue = lazy(() => import('@/pages/bn/config/RuleCatalogue'));
 const BnRulesAdministration = lazy(() => import('@/pages/bn/config/RulesAdministration'));
 const BnFormulaConfiguration = lazy(() => import('@/pages/bn/config/FormulaConfiguration'));
 const BnDocumentSetup = lazy(() => import('@/pages/bn/config/DocumentSetup'));
@@ -1879,6 +1880,7 @@ export const AppRoutes = () => {
       <Route path="/bn/config/country/payment-config" element={<BnFeatureGate flag="bn.config.rules"><BnCountryPaymentConfig /></BnFeatureGate>} />
       <Route path="/bn/config/country/legal-refs" element={<BnFeatureGate flag="bn.config.rules"><BnCountryLegalRefs /></BnFeatureGate>} />
       <Route path="/bn/config/rules" element={<BnFeatureGate flag="bn.config.rules"><BnRuleConfiguration /></BnFeatureGate>} />
+      <Route path="/bn/config/rule-catalogue" element={<BnFeatureGate flag="bn.config.rules"><BnRuleCatalogue /></BnFeatureGate>} />
       <Route path="/bn/config/rules-admin" element={<BnFeatureGate flag="bn.config.rules"><BnRulesAdministration /></BnFeatureGate>} />
       <Route path="/bn/config/formulas" element={<BnFeatureGate flag="bn.config.rules"><BnFormulaConfiguration /></BnFeatureGate>} />
       <Route path="/bn/config/document-setup" element={<BnFeatureGate flag="bn.config.rules"><BnDocumentSetup /></BnFeatureGate>} />

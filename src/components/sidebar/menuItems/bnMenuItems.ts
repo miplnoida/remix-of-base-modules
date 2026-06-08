@@ -292,6 +292,13 @@ const _bnMenuItemsRaw = [
         description: "Library · Reusable fallback status/action matrix used when central workflow is missing or disabled.",
       },
       {
+        title: "Rule Catalogue",
+        url: "/bn/config/rule-catalogue",
+        icon: ListChecks,
+        requiresPermission: "benefits_management",
+        description: "Library · Reusable eligibility rules shared across products. Configure once, map per product.",
+      },
+      {
         title: "Rule Group Library",
         url: "/bn/config/rules",
         icon: BookOpen,
