@@ -42,7 +42,7 @@ export const FACT_TEMPLATES: FactTemplate[] = [
     description: 'A literal column on a known table (e.g. ip_master.status).',
     defaults: {
       source_type: 'DIRECT_FIELD',
-      data_type: 'STRING',
+      data_type: 'string',
       requires_snapshot: false,
       requires_claim_context: false,
       allowed_operators: ['EQUALS','NOT_EQUALS','IN','NOT_IN','EXISTS'],
@@ -54,7 +54,7 @@ export const FACT_TEMPLATES: FactTemplate[] = [
     description: 'Age in years at a chosen anchor date, computed from ip_master.dob.',
     defaults: {
       source_type: 'DERIVED_AGGREGATE',
-      data_type: 'NUMBER',
+      data_type: 'number',
       base_table: 'ip_master',
       base_date_column: 'dob',
       window_anchor: 'claim_date',
@@ -70,7 +70,7 @@ export const FACT_TEMPLATES: FactTemplate[] = [
     description: 'Calendar days between an event date and an anchor date.',
     defaults: {
       source_type: 'DERIVED_AGGREGATE',
-      data_type: 'NUMBER',
+      data_type: 'number',
       window_anchor: 'claim_date',
       count_logic: 'days between event_date and anchor',
       requires_claim_context: true,
@@ -83,7 +83,7 @@ export const FACT_TEMPLATES: FactTemplate[] = [
     description: 'Counts weekly wage rows in a rolling window (e.g. last 13 weeks). Output stored in contribution_json.window_N.',
     defaults: {
       source_type: 'DERIVED_AGGREGATE',
-      data_type: 'NUMBER',
+      data_type: 'number',
       window_type: 'WEEKS',
       window_size: 13,
       window_anchor: 'claim_date',
@@ -101,7 +101,7 @@ export const FACT_TEMPLATES: FactTemplate[] = [
     description: 'Checks whether a specific document type is attached to the claim.',
     defaults: {
       source_type: 'DOCUMENT_CHECK',
-      data_type: 'BOOLEAN',
+      data_type: 'boolean',
       source_table: 'bn_claim_document',
       source_column: 'doc_type',
       requires_claim_context: true,
@@ -114,7 +114,7 @@ export const FACT_TEMPLATES: FactTemplate[] = [
     description: 'Reads the status of an expected document type on the claim.',
     defaults: {
       source_type: 'DOCUMENT_CHECK',
-      data_type: 'STRING',
+      data_type: 'string',
       source_table: 'bn_claim_document',
       source_column: 'status',
       requires_claim_context: true,
@@ -127,7 +127,7 @@ export const FACT_TEMPLATES: FactTemplate[] = [
     description: 'Reads employer registration status from er_master.',
     defaults: {
       source_type: 'DIRECT_FIELD',
-      data_type: 'STRING',
+      data_type: 'string',
       source_table: 'er_master',
       source_column: 'status',
       allowed_operators: ['EQUALS','NOT_EQUALS','IN','NOT_IN'],
@@ -139,7 +139,7 @@ export const FACT_TEMPLATES: FactTemplate[] = [
     description: 'Asserts a row exists in a registered table for the SSN / claim.',
     defaults: {
       source_type: 'EXISTENCE_CHECK',
-      data_type: 'BOOLEAN',
+      data_type: 'boolean',
       allowed_operators: ['EXISTS','BOOLEAN'],
     },
   },
@@ -149,7 +149,7 @@ export const FACT_TEMPLATES: FactTemplate[] = [
     description: 'Reads contribution windows from the deceased contributor (Survivor / Funeral benefits).',
     defaults: {
       source_type: 'DERIVED_AGGREGATE',
-      data_type: 'NUMBER',
+      data_type: 'number',
       window_type: 'WEEKS',
       window_size: 156,
       window_anchor: 'death_date',
@@ -166,7 +166,7 @@ export const FACT_TEMPLATES: FactTemplate[] = [
     description: 'No physical table — value comes entirely from a developer-registered resolver.',
     defaults: {
       source_type: 'RESOLVER_ONLY',
-      data_type: 'STRING',
+      data_type: 'string',
       allowed_operators: ['EQUALS','NOT_EQUALS','EXISTS'],
     },
   },
