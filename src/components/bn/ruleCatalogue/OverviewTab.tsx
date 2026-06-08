@@ -4,18 +4,18 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { computeAllRuleReadiness, computeCoverageTypeReadiness, isFactReady } from '@/services/bn/readinessService';
+import { useCoverageTypes, useCoverageTypeRules } from '@/hooks/bn/useCoverageTypes';
 import type { RuleCatalogueItem } from '@/services/bn/ruleCatalogueService';
 import type { EligibilityFact } from '@/services/bn/eligibilityFactService';
-import type { CoverageType, CoverageTypeRule } from '@/services/bn/coverageTypeService';
 
 interface Props {
   rules: RuleCatalogueItem[];
   facts: EligibilityFact[];
-  coverageTypes: CoverageType[];
-  coverageRules: CoverageTypeRule[];
 }
 
-export function OverviewTab({ rules, facts, coverageTypes, coverageRules }: Props) {
+export function OverviewTab({ rules, facts }: Props) {
+  const { data: coverageTypes = [] } = useCoverageTypes();
+  const { data: coverageRules = [] } = useCoverageTypeRules();
   const factsReady = useMemo(() => facts.filter(isFactReady).length, [facts]);
   const factsPartial = useMemo(() => facts.filter(f => f.implementation_status === 'PARTIAL').length, [facts]);
   const factsMissing = useMemo(() => facts.filter(f => f.implementation_status === 'NOT_IMPLEMENTED').length, [facts]);
