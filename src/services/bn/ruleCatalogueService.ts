@@ -32,7 +32,9 @@ export interface RuleCatalogueItem {
   rule_name: string;
   description: string | null;
   group_type: string;
+  category: string | null;
   parameter: string;
+  fact_key: string | null;
   operator: string;
   value_from: string | null;
   value_to: string | null;

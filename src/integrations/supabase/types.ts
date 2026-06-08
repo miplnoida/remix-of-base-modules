@@ -8174,6 +8174,81 @@ export type Database = {
           },
         ]
       }
+      bn_eligibility_fact: {
+        Row: {
+          allowed_operators: string[]
+          applicable_products: string[]
+          category: string
+          created_at: string
+          created_by: string | null
+          data_type: string
+          description: string | null
+          example_value: string | null
+          fact_key: string
+          id: string
+          implementation_status: string
+          is_active: boolean
+          label: string
+          requires_claim_context: boolean
+          requires_deceased_ssn: boolean
+          requires_snapshot: boolean
+          requires_ssn: boolean
+          resolver_function: string | null
+          source_column: string | null
+          source_table: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_operators?: string[]
+          applicable_products?: string[]
+          category: string
+          created_at?: string
+          created_by?: string | null
+          data_type?: string
+          description?: string | null
+          example_value?: string | null
+          fact_key: string
+          id?: string
+          implementation_status?: string
+          is_active?: boolean
+          label: string
+          requires_claim_context?: boolean
+          requires_deceased_ssn?: boolean
+          requires_snapshot?: boolean
+          requires_ssn?: boolean
+          resolver_function?: string | null
+          source_column?: string | null
+          source_table?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_operators?: string[]
+          applicable_products?: string[]
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          data_type?: string
+          description?: string | null
+          example_value?: string | null
+          fact_key?: string
+          id?: string
+          implementation_status?: string
+          is_active?: boolean
+          label?: string
+          requires_claim_context?: boolean
+          requires_deceased_ssn?: boolean
+          requires_snapshot?: boolean
+          requires_ssn?: boolean
+          resolver_function?: string | null
+          source_column?: string | null
+          source_table?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       bn_eligibility_rule: {
         Row: {
           catalogue_rule_code: string | null
@@ -12033,12 +12108,14 @@ export type Database = {
       bn_rule_catalogue: {
         Row: {
           allow_product_override: boolean
+          category: string | null
           created_at: string
           created_by: string | null
           default_fail_action: string
           description: string | null
           effective_from: string | null
           effective_to: string | null
+          fact_key: string | null
           failure_message_text: string | null
           group_type: string
           id: string
@@ -12057,12 +12134,14 @@ export type Database = {
         }
         Insert: {
           allow_product_override?: boolean
+          category?: string | null
           created_at?: string
           created_by?: string | null
           default_fail_action?: string
           description?: string | null
           effective_from?: string | null
           effective_to?: string | null
+          fact_key?: string | null
           failure_message_text?: string | null
           group_type: string
           id?: string
@@ -12081,12 +12160,14 @@ export type Database = {
         }
         Update: {
           allow_product_override?: boolean
+          category?: string | null
           created_at?: string
           created_by?: string | null
           default_fail_action?: string
           description?: string | null
           effective_from?: string | null
           effective_to?: string | null
+          fact_key?: string | null
           failure_message_text?: string | null
           group_type?: string
           id?: string
