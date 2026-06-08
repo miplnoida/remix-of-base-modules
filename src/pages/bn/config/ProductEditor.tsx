@@ -382,8 +382,14 @@ export default function ProductEditor() {
           <EligibilityRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} productCode={form.benefit_code} />
         </TabsContent>
 
-        <TabsContent value="calculation" className="mt-6">
-          <CalculationRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
+        <TabsContent value="calculation" className="mt-6 space-y-6">
+          <CalculationBuilder versionId={selectedVersionId} isReadOnly={!isEditableVersion} />
+          <details className="rounded-md border bg-muted/30">
+            <summary className="cursor-pointer px-4 py-2 text-sm font-medium">Advanced: per-version calculation rules (legacy)</summary>
+            <div className="p-4 pt-0">
+              <CalculationRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
+            </div>
+          </details>
         </TabsContent>
 
         <TabsContent value="timelines" className="mt-6">
