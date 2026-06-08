@@ -330,7 +330,11 @@ export default function RuleCatalogue() {
                           <TableCell className="font-mono text-xs">{r.rule_code}</TableCell>
                           <TableCell className="font-medium">{r.rule_name}</TableCell>
                           <TableCell><Badge variant="outline">{r.category ?? r.group_type}</Badge></TableCell>
-                          <TableCell className="text-xs">{r.rule_group_code ? <Badge variant="secondary">{r.rule_group_code}</Badge> : <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="text-xs">
+                            {(linksByCatalogue[r.id] ?? []).length === 0
+                              ? <span className="text-muted-foreground">—</span>
+                              : <div className="flex flex-wrap gap-1">{(linksByCatalogue[r.id] ?? []).map(l => <Badge key={l.rule_group_id} variant="secondary">{l.group_code}</Badge>)}</div>}
+                          </TableCell>
                           <TableCell className="font-mono text-xs">{r.fact_key ?? <span className="text-destructive">— missing —</span>}</TableCell>
                           <TableCell className="text-xs">{r.operator}</TableCell>
                           <TableCell className="text-xs">{fmtValue(r)}</TableCell>
