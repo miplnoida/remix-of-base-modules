@@ -492,6 +492,14 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus, prod
           initial={wizardInitial}
         />
       )}
+
+      {versionId && (
+        <CataloguePickerDialog
+          open={pickerOpen}
+          onOpenChange={setPickerOpen}
+          versionId={versionId}
+        />
+      )}
     </>
   );
 }
