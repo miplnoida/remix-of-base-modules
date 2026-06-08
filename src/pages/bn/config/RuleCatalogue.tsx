@@ -12,7 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Edit, Copy, Trash2, Power, Search, AlertTriangle, CheckCircle2, FlaskConical, Database, ListChecks, Activity } from 'lucide-react';
+import { Plus, Edit, Copy, Trash2, Power, Search, AlertTriangle, CheckCircle2, FlaskConical, Database, ListChecks, Activity, ShieldCheck, XCircle, PlayCircle } from 'lucide-react';
+import { resolveFact } from '@/services/bn/eligibility/eligibilityFactResolver';
+import { computeRuleCoverage, type CoverageRow } from '@/services/bn/eligibility/factCoverageService';
+import { runProductEligibilityTest, type ProductTestResult } from '@/services/bn/eligibility/productEligibilityTest';
+import { ensureContributionSnapshot } from '@/services/bn/eligibility/contributionSnapshotService';
 import { toast } from 'sonner';
 import {
   useRuleCatalogue, useRuleCatalogueUsage, useUpsertRuleCatalogue,
