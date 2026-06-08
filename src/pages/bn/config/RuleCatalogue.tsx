@@ -48,6 +48,8 @@ const emptyInput: RuleCatalogueInput = {
   default_fail_action: 'REJECT', failure_message_text: '',
   is_active: true, allow_product_override: true, tags: [],
   effective_from: null, effective_to: null,
+  rule_group_id: null, rule_group_code: null,
+  default_group_sort_order: 0, default_rule_sort_order: 0,
 };
 
 function fmtValue(r: RuleCatalogueItem): string {
