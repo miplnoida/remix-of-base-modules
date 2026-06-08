@@ -28,7 +28,8 @@ import { RULE_GROUPS, defaultGroupForFact } from '@/services/bn/eligibility/elig
 import { RULE_TEMPLATES, type RuleTemplate } from '@/services/bn/eligibility/ruleTemplates';
 import { RuleWizardDialog } from './RuleWizardDialog';
 import { CataloguePickerDialog } from './CataloguePickerDialog';
-import { Wand2, Library } from 'lucide-react';
+import { AddRuleGroupFromCatalogueDialog } from './AddRuleGroupFromCatalogueDialog';
+import { Wand2, Library, FolderPlus } from 'lucide-react';
 
 import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
@@ -50,6 +51,7 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus, prod
   const [dialogOpen, setDialogOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [wizardInitial, setWizardInitial] = useState<Partial<BnEligibilityRule> | null>(null);
   const [editing, setEditing] = useState<Partial<BnEligibilityRule>>(emptyRule);
 
@@ -186,6 +188,7 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus, prod
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Eligibility Rules</CardTitle><CardDescription>Define checks that must pass before a claim is eligible</CardDescription></div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setGroupPickerOpen(true)} className="gap-2" disabled={isReadOnly || !versionId}><FolderPlus className="h-4 w-4" /> Add Rule Group from Catalogue</Button>
             <Button variant="outline" onClick={() => setPickerOpen(true)} className="gap-2" disabled={isReadOnly || !versionId}><Library className="h-4 w-4" /> Add from Catalogue</Button>
             <Button variant="outline" onClick={() => { setWizardInitial(null); setWizardOpen(true); }} className="gap-2" disabled={isReadOnly}><Wand2 className="h-4 w-4" /> New (Wizard)</Button>
             <Button onClick={openNew} className="gap-2" disabled={isReadOnly}><Plus className="h-4 w-4" /> Add Rule</Button>
@@ -494,11 +497,18 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus, prod
       )}
 
       {versionId && (
-        <CataloguePickerDialog
-          open={pickerOpen}
-          onOpenChange={setPickerOpen}
-          versionId={versionId}
-        />
+        <>
+          <CataloguePickerDialog
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            versionId={versionId}
+          />
+          <AddRuleGroupFromCatalogueDialog
+            open={groupPickerOpen}
+            onOpenChange={setGroupPickerOpen}
+            versionId={versionId}
+          />
+        </>
       )}
     </>
   );

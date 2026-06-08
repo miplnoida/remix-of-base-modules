@@ -8492,6 +8492,7 @@ export type Database = {
           approved_at: string | null
           approved_by: string | null
           catalogue_rule_code: string | null
+          catalogue_rule_id: string | null
           catalogue_rule_version: number | null
           compare_fact_key: string | null
           conditional_when: Json | null
@@ -8541,6 +8542,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           catalogue_rule_code?: string | null
+          catalogue_rule_id?: string | null
           catalogue_rule_version?: number | null
           compare_fact_key?: string | null
           conditional_when?: Json | null
@@ -8590,6 +8592,7 @@ export type Database = {
           approved_at?: string | null
           approved_by?: string | null
           catalogue_rule_code?: string | null
+          catalogue_rule_id?: string | null
           catalogue_rule_version?: number | null
           compare_fact_key?: string | null
           conditional_when?: Json | null
@@ -8636,6 +8639,13 @@ export type Database = {
           unit?: Database["public"]["Enums"]["bn_eligibility_rule_unit"] | null
         }
         Relationships: [
+          {
+            foreignKeyName: "bn_eligibility_rule_catalogue_rule_id_fkey"
+            columns: ["catalogue_rule_id"]
+            isOneToOne: false
+            referencedRelation: "bn_rule_catalogue"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "bn_eligibility_rule_product_version_id_fkey"
             columns: ["product_version_id"]
@@ -12389,6 +12399,8 @@ export type Database = {
           created_at: string
           created_by: string | null
           default_fail_action: string
+          default_group_sort_order: number
+          default_rule_sort_order: number
           description: string | null
           effective_from: string | null
           effective_to: string | null
@@ -12403,6 +12415,8 @@ export type Database = {
           priority: number
           product_type: string | null
           rule_code: string
+          rule_group_code: string | null
+          rule_group_id: string | null
           rule_name: string
           rule_status: string
           source_document: string | null
@@ -12427,6 +12441,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_fail_action?: string
+          default_group_sort_order?: number
+          default_rule_sort_order?: number
           description?: string | null
           effective_from?: string | null
           effective_to?: string | null
@@ -12441,6 +12457,8 @@ export type Database = {
           priority?: number
           product_type?: string | null
           rule_code: string
+          rule_group_code?: string | null
+          rule_group_id?: string | null
           rule_name: string
           rule_status?: string
           source_document?: string | null
@@ -12465,6 +12483,8 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_fail_action?: string
+          default_group_sort_order?: number
+          default_rule_sort_order?: number
           description?: string | null
           effective_from?: string | null
           effective_to?: string | null
@@ -12479,6 +12499,8 @@ export type Database = {
           priority?: number
           product_type?: string | null
           rule_code?: string
+          rule_group_code?: string | null
+          rule_group_id?: string | null
           rule_name?: string
           rule_status?: string
           source_document?: string | null
@@ -12494,7 +12516,15 @@ export type Database = {
           values?: Json | null
           version?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bn_rule_catalogue_rule_group_id_fkey"
+            columns: ["rule_group_id"]
+            isOneToOne: false
+            referencedRelation: "bn_rule_group"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_rule_condition: {
         Row: {

@@ -23,6 +23,7 @@ import {
   useCloneRuleCatalogue, useDeleteRuleCatalogue, useToggleRuleCatalogueActive,
 } from '@/hooks/bn/useRuleCatalogue';
 import { useEligibilityFacts } from '@/hooks/bn/useEligibilityFacts';
+import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
 import {
   RULE_GROUP_TYPES, RULE_PARAMETERS, RULE_OPERATORS, FAIL_ACTIONS,
   validateRuleCatalogue,
@@ -48,6 +49,8 @@ const emptyInput: RuleCatalogueInput = {
   default_fail_action: 'REJECT', failure_message_text: '',
   is_active: true, allow_product_override: true, tags: [],
   effective_from: null, effective_to: null,
+  rule_group_id: null, rule_group_code: null,
+  default_group_sort_order: 0, default_rule_sort_order: 0,
 };
 
 function fmtValue(r: RuleCatalogueItem): string {
@@ -61,6 +64,7 @@ export default function RuleCatalogue() {
   const { data: rules = [], isLoading } = useRuleCatalogue();
   const { data: usage = {} } = useRuleCatalogueUsage();
   const { data: facts = [], isLoading: factsLoading } = useEligibilityFacts();
+  const { data: ruleGroups = [] } = useBnRuleGroups();
   const upsert = useUpsertRuleCatalogue();
   const clone = useCloneRuleCatalogue();
   const remove = useDeleteRuleCatalogue();
@@ -75,6 +79,7 @@ export default function RuleCatalogue() {
   const [tab, setTab] = useState('rules');
   const [search, setSearch] = useState('');
   const [groupFilter, setGroupFilter] = useState<string>('ALL');
+  const [ruleGroupFilter, setRuleGroupFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<RuleCatalogueInput>(emptyInput);
@@ -82,6 +87,11 @@ export default function RuleCatalogue() {
 
   const filtered = useMemo(() => rules.filter(r => {
     if (groupFilter !== 'ALL' && r.group_type !== groupFilter) return false;
+    if (ruleGroupFilter !== 'ALL') {
+      if (ruleGroupFilter === '__none__') {
+        if (r.rule_group_id) return false;
+      } else if (r.rule_group_id !== ruleGroupFilter) return false;
+    }
     if (statusFilter === 'ACTIVE' && !r.is_active) return false;
     if (statusFilter === 'INACTIVE' && r.is_active) return false;
     if (search) {
@@ -92,7 +102,7 @@ export default function RuleCatalogue() {
           !(r.fact_key ?? '').toLowerCase().includes(s)) return false;
     }
     return true;
-  }), [rules, search, groupFilter, statusFilter]);
+  }), [rules, search, groupFilter, ruleGroupFilter, statusFilter]);
 
   const summary = useMemo(() => {
     const used = new Set(Object.keys(usage));
@@ -118,6 +128,9 @@ export default function RuleCatalogue() {
       default_fail_action: r.default_fail_action, failure_message_text: r.failure_message_text,
       is_active: r.is_active, allow_product_override: r.allow_product_override,
       tags: r.tags ?? [], effective_from: r.effective_from, effective_to: r.effective_to,
+      rule_group_id: r.rule_group_id ?? null, rule_group_code: r.rule_group_code ?? null,
+      default_group_sort_order: r.default_group_sort_order ?? 0,
+      default_rule_sort_order: r.default_rule_sort_order ?? 0,
     });
     setValuesText(Array.isArray(r.values) ? r.values.join(', ') : '');
     setDialogOpen(true);
@@ -235,6 +248,16 @@ export default function RuleCatalogue() {
                     {RULE_GROUP_TYPES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <Select value={ruleGroupFilter} onValueChange={setRuleGroupFilter}>
+                  <SelectTrigger className="w-56"><SelectValue placeholder="Rule Group" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Rule Groups</SelectItem>
+                    <SelectItem value="__none__">— Unassigned —</SelectItem>
+                    {ruleGroups.filter((g: any) => g.is_active).map((g: any) => (
+                      <SelectItem key={g.id} value={g.id}>{g.group_code} — {g.group_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -256,6 +279,7 @@ export default function RuleCatalogue() {
                     <TableRow>
                       <TableHead>Code</TableHead>
                       <TableHead>Name</TableHead>
+                      <TableHead>Group</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Fact Key</TableHead>
                       <TableHead>Operator</TableHead>
@@ -275,6 +299,7 @@ export default function RuleCatalogue() {
                         <TableRow key={r.id}>
                           <TableCell className="font-mono text-xs">{r.rule_code}</TableCell>
                           <TableCell className="font-medium">{r.rule_name}</TableCell>
+                          <TableCell className="text-xs">{r.rule_group_code ? <Badge variant="secondary">{r.rule_group_code}</Badge> : <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell><Badge variant="outline">{r.category ?? r.group_type}</Badge></TableCell>
                           <TableCell className="font-mono text-xs">{r.fact_key ?? <span className="text-destructive">— missing —</span>}</TableCell>
                           <TableCell className="text-xs">{r.operator}</TableCell>
@@ -431,6 +456,28 @@ export default function RuleCatalogue() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{RULE_GROUP_TYPES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Rule Group (existing library)</Label>
+              <Select
+                value={editing.rule_group_id ?? '__none__'}
+                onValueChange={v => {
+                  if (v === '__none__') {
+                    setEditing({ ...editing, rule_group_id: null, rule_group_code: null });
+                  } else {
+                    const g = (ruleGroups as any[]).find(x => x.id === v);
+                    setEditing({ ...editing, rule_group_id: v, rule_group_code: g?.group_code ?? null });
+                  }
+                }}>
+                <SelectTrigger><SelectValue placeholder="Optional — pick existing Rule Group" /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="__none__">— None —</SelectItem>
+                  {(ruleGroups as any[]).filter(g => g.is_active).map(g => (
+                    <SelectItem key={g.id} value={g.id}>{g.group_code} — {g.group_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Manage groups in Configuration → Rule Group Library. Recommended for draft rules; required before Product Catalogue can add by group.</p>
             </div>
             <div className="space-y-2">
               <Label>Legacy Parameter</Label>

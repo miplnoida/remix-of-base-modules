@@ -24,6 +24,7 @@ import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/s
 import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import type { BnRuleGroup } from '@/types/bn';
+import { RuleGroupLinkedRules } from '@/components/bn/ruleCatalogue/RuleGroupLinkedRules';
 
 type RuleGroupForm = {
   id?: string;
@@ -279,7 +280,10 @@ export default function RuleConfiguration() {
                   <Switch id="rg_active" checked={form.is_active}
                     onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
                   <Label htmlFor="rg_active">Active</Label>
-                </div>
+              </div>
+              {form.id && (
+                <RuleGroupLinkedRules groupId={form.id} groupCode={form.group_code} />
+              )}
               </div>
             </div>
             <DialogFooter>
