@@ -309,7 +309,7 @@ export default function RuleCatalogue() {
                           <TableCell className="font-mono text-xs">{r.rule_code}</TableCell>
                           <TableCell className="font-medium">{r.rule_name}</TableCell>
                           <TableCell><Badge variant="outline">{r.category ?? r.group_type}</Badge></TableCell>
-                          <TableCell className="text-xs">{r.rule_group_code ? <Badge variant="secondary" title="Legacy single-link; manage memberships via Rule Groups screen">{r.rule_group_code}</Badge> : <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="text-xs">{(() => { const u = groupUsage[r.id]; if (!u || u.group_count === 0) return <span className="text-muted-foreground">—</span>; return <Badge variant="secondary" title={(u.group_codes ?? []).join(', ')}>{u.group_count}</Badge>; })()}</TableCell>
                           <TableCell className="font-mono text-xs">{r.fact_key ?? <span className="text-destructive">— missing —</span>}</TableCell>
                           <TableCell className="text-xs">{r.operator}</TableCell>
                           <TableCell className="text-xs">{fmtValue(r)}</TableCell>
