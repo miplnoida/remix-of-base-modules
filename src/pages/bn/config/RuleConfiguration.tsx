@@ -48,6 +48,7 @@ const emptyForm: RuleGroupForm = {
 
 export default function RuleConfiguration() {
   const [search, setSearch] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<RuleGroupForm>(emptyForm);
   const { data: ruleGroups = [], isLoading } = useBnRuleGroups();
@@ -56,10 +57,13 @@ export default function RuleConfiguration() {
   const { userCode } = useUserCode();
   const audit = useBnConfigAudit();
 
-  const filtered = ruleGroups.filter((rg: BnRuleGroup) =>
-    !search || rg.group_name?.toLowerCase().includes(search.toLowerCase()) ||
-    rg.group_code?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = ruleGroups.filter((rg: BnRuleGroup) => {
+    if (!showInactive && rg.is_active === false) return false;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return rg.group_name?.toLowerCase().includes(q) || rg.group_code?.toLowerCase().includes(q);
+  });
+  const inactiveCount = ruleGroups.filter((rg: BnRuleGroup) => rg.is_active === false).length;
 
   const otherCodes = ruleGroups
     .filter((rg: BnRuleGroup) => rg.id !== form.id)
