@@ -18,6 +18,7 @@ import { BN_CATEGORY_LABELS, BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProduct, BnProductVersion, BnProductStatus } from '@/types/bn';
 import { EligibilityRulesTab } from '@/components/bn/config/EligibilityRulesTab';
 import { CalculationRulesTab } from '@/components/bn/config/CalculationRulesTab';
+import { CalculationBuilder } from '@/components/bn/config/CalculationBuilder';
 import { TimelineRulesTab } from '@/components/bn/config/TimelineRulesTab';
 import { DocumentRulesTab } from '@/components/bn/config/DocumentRulesTab';
 import { WorkflowTab } from '@/components/bn/config/WorkflowTab';
