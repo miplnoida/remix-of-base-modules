@@ -65,6 +65,7 @@ function fmtValue(r: RuleCatalogueItem): string {
 export default function RuleCatalogue() {
   const { data: rules = [], isLoading } = useRuleCatalogue();
   const { data: usage = {} } = useRuleCatalogueUsage();
+  const { data: groupUsage = {} } = useRuleCatalogueGroupUsage();
   const { data: facts = [], isLoading: factsLoading } = useEligibilityFacts();
   const { data: ruleGroups = [] } = useBnRuleGroups();
   const upsert = useUpsertRuleCatalogue();
