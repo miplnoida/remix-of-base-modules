@@ -497,11 +497,18 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus, prod
       )}
 
       {versionId && (
-        <CataloguePickerDialog
-          open={pickerOpen}
-          onOpenChange={setPickerOpen}
-          versionId={versionId}
-        />
+        <>
+          <CataloguePickerDialog
+            open={pickerOpen}
+            onOpenChange={setPickerOpen}
+            versionId={versionId}
+          />
+          <AddRuleGroupFromCatalogueDialog
+            open={groupPickerOpen}
+            onOpenChange={setGroupPickerOpen}
+            versionId={versionId}
+          />
+        </>
       )}
     </>
   );
