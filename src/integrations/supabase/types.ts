@@ -8261,8 +8261,13 @@ export type Database = {
         Row: {
           allowed_operators: string[]
           applicable_products: string[]
+          base_code_columns: string[]
+          base_date_column: string | null
+          base_table: string | null
+          base_value_columns: string[]
           business_domain: string | null
           category: string
+          count_logic: string | null
           created_at: string
           created_by: string | null
           data_type: string
@@ -8273,6 +8278,9 @@ export type Database = {
           implementation_status: string
           is_active: boolean
           label: string
+          output_column: string | null
+          output_json_key: string | null
+          output_table: string | null
           owner: string | null
           required_context: string
           requires_claim_context: boolean
@@ -8281,17 +8289,27 @@ export type Database = {
           requires_ssn: boolean
           resolver_function: string | null
           sample_values: Json | null
+          snapshot_builder: string | null
           source_column: string | null
           source_system: string | null
           source_table: string | null
+          source_type: string
           updated_at: string
           updated_by: string | null
+          window_anchor: string | null
+          window_size: number | null
+          window_type: string | null
         }
         Insert: {
           allowed_operators?: string[]
           applicable_products?: string[]
+          base_code_columns?: string[]
+          base_date_column?: string | null
+          base_table?: string | null
+          base_value_columns?: string[]
           business_domain?: string | null
           category: string
+          count_logic?: string | null
           created_at?: string
           created_by?: string | null
           data_type?: string
@@ -8302,6 +8320,9 @@ export type Database = {
           implementation_status?: string
           is_active?: boolean
           label: string
+          output_column?: string | null
+          output_json_key?: string | null
+          output_table?: string | null
           owner?: string | null
           required_context?: string
           requires_claim_context?: boolean
@@ -8310,17 +8331,27 @@ export type Database = {
           requires_ssn?: boolean
           resolver_function?: string | null
           sample_values?: Json | null
+          snapshot_builder?: string | null
           source_column?: string | null
           source_system?: string | null
           source_table?: string | null
+          source_type?: string
           updated_at?: string
           updated_by?: string | null
+          window_anchor?: string | null
+          window_size?: number | null
+          window_type?: string | null
         }
         Update: {
           allowed_operators?: string[]
           applicable_products?: string[]
+          base_code_columns?: string[]
+          base_date_column?: string | null
+          base_table?: string | null
+          base_value_columns?: string[]
           business_domain?: string | null
           category?: string
+          count_logic?: string | null
           created_at?: string
           created_by?: string | null
           data_type?: string
@@ -8331,6 +8362,9 @@ export type Database = {
           implementation_status?: string
           is_active?: boolean
           label?: string
+          output_column?: string | null
+          output_json_key?: string | null
+          output_table?: string | null
           owner?: string | null
           required_context?: string
           requires_claim_context?: boolean
@@ -8339,11 +8373,16 @@ export type Database = {
           requires_ssn?: boolean
           resolver_function?: string | null
           sample_values?: Json | null
+          snapshot_builder?: string | null
           source_column?: string | null
           source_system?: string | null
           source_table?: string | null
+          source_type?: string
           updated_at?: string
           updated_by?: string | null
+          window_anchor?: string | null
+          window_size?: number | null
+          window_type?: string | null
         }
         Relationships: []
       }
