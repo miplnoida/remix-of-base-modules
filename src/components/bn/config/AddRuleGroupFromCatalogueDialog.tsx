@@ -142,6 +142,23 @@ export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId,
         </DialogHeader>
 
         <div className="space-y-3">
+          {recommended.length > 0 && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <div className="text-xs font-semibold">Recommended for {productCode}</div>
+              <div className="flex flex-wrap gap-2">
+                {recommended.map(code => {
+                  const g = (groups as any[]).find(x => x.group_code === code && x.is_active);
+                  return (
+                    <Button key={code} type="button" size="sm" variant={g ? 'outline' : 'ghost'}
+                      disabled={!g} onClick={() => g && setGroupId(g.id)}
+                      title={g ? 'Click to load this template' : 'Group not seeded yet'}>
+                      {code}{!g && ' (missing)'}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <Select value={groupId} onValueChange={setGroupId}>
             <SelectTrigger><SelectValue placeholder="Select an existing Rule Group" /></SelectTrigger>
             <SelectContent className="max-h-72">
