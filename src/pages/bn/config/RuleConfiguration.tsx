@@ -24,6 +24,7 @@ import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/s
 import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import type { BnRuleGroup } from '@/types/bn';
+import { RuleGroupLinkedRules } from '@/components/bn/ruleCatalogue/RuleGroupLinkedRules';
 
 type RuleGroupForm = {
   id?: string;
