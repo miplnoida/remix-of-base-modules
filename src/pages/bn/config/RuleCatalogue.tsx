@@ -458,6 +458,28 @@ export default function RuleCatalogue() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label>Rule Group (existing library)</Label>
+              <Select
+                value={editing.rule_group_id ?? '__none__'}
+                onValueChange={v => {
+                  if (v === '__none__') {
+                    setEditing({ ...editing, rule_group_id: null, rule_group_code: null });
+                  } else {
+                    const g = (ruleGroups as any[]).find(x => x.id === v);
+                    setEditing({ ...editing, rule_group_id: v, rule_group_code: g?.group_code ?? null });
+                  }
+                }}>
+                <SelectTrigger><SelectValue placeholder="Optional — pick existing Rule Group" /></SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="__none__">— None —</SelectItem>
+                  {(ruleGroups as any[]).filter(g => g.is_active).map(g => (
+                    <SelectItem key={g.id} value={g.id}>{g.group_code} — {g.group_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Manage groups in Configuration → Rule Group Library. Recommended for draft rules; required before Product Catalogue can add by group.</p>
+            </div>
+            <div className="space-y-2">
               <Label>Legacy Parameter</Label>
               <Select value={editing.parameter} onValueChange={v => setEditing({ ...editing, parameter: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
