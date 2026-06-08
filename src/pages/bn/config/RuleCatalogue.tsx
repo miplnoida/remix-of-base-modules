@@ -249,9 +249,9 @@ export default function RuleCatalogue() {
                   <Input className="pl-8" placeholder="Search code, name, fact" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
                 <Select value={groupFilter} onValueChange={setGroupFilter}>
-                  <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-44"><SelectValue placeholder="Category" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ALL">All Groups</SelectItem>
+                    <SelectItem value="ALL">All Categories</SelectItem>
                     {RULE_GROUP_TYPES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                   </SelectContent>
                 </Select>
