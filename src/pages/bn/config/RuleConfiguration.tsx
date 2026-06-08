@@ -25,6 +25,7 @@ import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import type { BnRuleGroup } from '@/types/bn';
 import { RuleGroupLinkedRules } from '@/components/bn/ruleCatalogue/RuleGroupLinkedRules';
+import { useRuleGroupLinkCounts } from '@/hooks/bn/useRuleGroupLinkCounts';
 
 type RuleGroupForm = {
   id?: string;
