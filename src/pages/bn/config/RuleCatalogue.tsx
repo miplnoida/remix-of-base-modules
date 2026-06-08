@@ -23,6 +23,7 @@ import {
   useCloneRuleCatalogue, useDeleteRuleCatalogue, useToggleRuleCatalogueActive,
 } from '@/hooks/bn/useRuleCatalogue';
 import { useEligibilityFacts } from '@/hooks/bn/useEligibilityFacts';
+import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
 import {
   RULE_GROUP_TYPES, RULE_PARAMETERS, RULE_OPERATORS, FAIL_ACTIONS,
   validateRuleCatalogue,
