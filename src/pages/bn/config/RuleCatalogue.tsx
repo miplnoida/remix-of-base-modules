@@ -306,8 +306,8 @@ export default function RuleCatalogue() {
                         <TableRow key={r.id}>
                           <TableCell className="font-mono text-xs">{r.rule_code}</TableCell>
                           <TableCell className="font-medium">{r.rule_name}</TableCell>
-                          <TableCell className="text-xs">{r.rule_group_code ? <Badge variant="secondary">{r.rule_group_code}</Badge> : <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell><Badge variant="outline">{r.category ?? r.group_type}</Badge></TableCell>
+                          <TableCell className="text-xs">{r.rule_group_code ? <Badge variant="secondary">{r.rule_group_code}</Badge> : <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="font-mono text-xs">{r.fact_key ?? <span className="text-destructive">— missing —</span>}</TableCell>
                           <TableCell className="text-xs">{r.operator}</TableCell>
                           <TableCell className="text-xs">{fmtValue(r)}</TableCell>
