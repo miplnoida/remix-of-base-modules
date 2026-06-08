@@ -36,16 +36,23 @@ export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId,
   }, [facts]);
 
   const { data: linked = [] } = useQuery({
-    queryKey: ['bn', 'group-linked-active', groupId],
+    queryKey: ['bn', 'group-linked-active-mm', groupId],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from('bn_rule_catalogue')
-        .select('id, rule_code, rule_name, fact_key, operator, value_from, value_to, values, default_fail_action, failure_message_text, version, default_rule_sort_order')
+        .from('bn_rule_group_item')
+        .select(`
+          sort_order, default_active,
+          bn_rule_catalogue:catalogue_rule_id (
+            id, rule_code, rule_name, fact_key, operator, value_from, value_to, values,
+            default_fail_action, failure_message_text, version, is_active, category, group_type
+          )
+        `)
         .eq('rule_group_id', groupId)
-        .eq('is_active', true)
-        .order('default_rule_sort_order', { ascending: true });
+        .order('sort_order', { ascending: true });
       if (error) throw error;
-      return data || [];
+      return (data || [])
+        .map((row: any) => ({ ...row.bn_rule_catalogue, sort_order: row.sort_order, default_active: row.default_active }))
+        .filter((r: any) => r && r.is_active);
     },
     enabled: !!groupId,
   });
