@@ -12529,45 +12529,6 @@ export type Database = {
           },
         ]
       }
-      bn_rule_catalogue_group: {
-        Row: {
-          catalogue_id: string
-          created_at: string
-          created_by: string | null
-          rule_group_id: string
-          sort_order: number
-        }
-        Insert: {
-          catalogue_id: string
-          created_at?: string
-          created_by?: string | null
-          rule_group_id: string
-          sort_order?: number
-        }
-        Update: {
-          catalogue_id?: string
-          created_at?: string
-          created_by?: string | null
-          rule_group_id?: string
-          sort_order?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bn_rule_catalogue_group_catalogue_id_fkey"
-            columns: ["catalogue_id"]
-            isOneToOne: false
-            referencedRelation: "bn_rule_catalogue"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bn_rule_catalogue_group_rule_group_id_fkey"
-            columns: ["rule_group_id"]
-            isOneToOne: false
-            referencedRelation: "bn_rule_group"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       bn_rule_condition: {
         Row: {
           created_at: string
