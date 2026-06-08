@@ -15,19 +15,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
 import { useEligibilityFacts } from '@/hooks/bn/useEligibilityFacts';
 import { getCurrentUserCode } from '@/services/bn/audit/getCurrentUserCode';
+import { recommendedGroupsForProduct } from '@/services/bn/eligibility/recommendedGroups';
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   versionId: string;
+  productCode?: string | null;
   onAdded?: () => void;
 }
 
-export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId, onAdded }: Props) {
+export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId, productCode, onAdded }: Props) {
   const { data: groups = [] } = useBnRuleGroups();
   const { data: facts = [] } = useEligibilityFacts();
   const [groupId, setGroupId] = useState<string>('');
   const [busy, setBusy] = useState(false);
+  const recommended = recommendedGroupsForProduct(productCode);
 
   const factByKey = useMemo(() => {
     const m = new Map<string, any>();
@@ -139,6 +142,23 @@ export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId,
         </DialogHeader>
 
         <div className="space-y-3">
+          {recommended.length > 0 && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <div className="text-xs font-semibold">Recommended for {productCode}</div>
+              <div className="flex flex-wrap gap-2">
+                {recommended.map(code => {
+                  const g = (groups as any[]).find(x => x.group_code === code && x.is_active);
+                  return (
+                    <Button key={code} type="button" size="sm" variant={g ? 'outline' : 'ghost'}
+                      disabled={!g} onClick={() => g && setGroupId(g.id)}
+                      title={g ? 'Click to load this template' : 'Group not seeded yet'}>
+                      {code}{!g && ' (missing)'}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <Select value={groupId} onValueChange={setGroupId}>
             <SelectTrigger><SelectValue placeholder="Select an existing Rule Group" /></SelectTrigger>
             <SelectContent className="max-h-72">

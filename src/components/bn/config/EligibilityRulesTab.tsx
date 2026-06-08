@@ -512,6 +512,7 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus, prod
             open={groupPickerOpen}
             onOpenChange={setGroupPickerOpen}
             versionId={versionId}
+            productCode={productCode ?? null}
           />
           <AddRulesByCategoryDialog
             open={categoryPickerOpen}
