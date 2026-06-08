@@ -183,8 +183,10 @@ export default function RuleCatalogue() {
         <TabsList>
           <TabsTrigger value="rules" className="gap-2"><ListChecks className="h-4 w-4" /> Rules</TabsTrigger>
           <TabsTrigger value="facts" className="gap-2"><Database className="h-4 w-4" /> Facts / Data Sources</TabsTrigger>
+          <TabsTrigger value="coverage" className="gap-2"><ShieldCheck className="h-4 w-4" /> Coverage</TabsTrigger>
           <TabsTrigger value="usage" className="gap-2"><Activity className="h-4 w-4" /> Usage</TabsTrigger>
           <TabsTrigger value="test" className="gap-2"><FlaskConical className="h-4 w-4" /> Test Rule</TabsTrigger>
+          <TabsTrigger value="product-test" className="gap-2"><PlayCircle className="h-4 w-4" /> Product Test</TabsTrigger>
         </TabsList>
 
         {/* RULES TAB */}
