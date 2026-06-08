@@ -40,7 +40,7 @@ export interface RuleCatalogueItem {
   description: string | null;
   group_type: string;
   category: string | null;
-  parameter: string;
+  parameter: string | null;
   fact_key: string | null;
   operator: string;
   value_from: string | null;
