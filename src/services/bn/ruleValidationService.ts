@@ -110,8 +110,44 @@ export function validateRule(
     checks.push({ check: 'effective_dates', result: 'PASS', message: 'OK' });
   }
 
-  // 8) (Stub) circular dependencies — no derived facts yet
-  checks.push({ check: 'no_cycles', result: 'PASS', message: 'No derived facts in catalogue' });
+  // 8) Derived-aggregate readiness checks (snapshot, anchor, window, output key)
+  const factForChecks = rule.fact_key ? facts.get(rule.fact_key) : null;
+  if (factForChecks && factForChecks.source_type === 'DERIVED_AGGREGATE') {
+    if (!factForChecks.snapshot_builder) {
+      checks.push({ check: 'snapshot_builder', result: 'FAIL', message: 'Derived fact has no snapshot_builder registered' });
+    } else {
+      checks.push({ check: 'snapshot_builder', result: 'PASS', message: factForChecks.snapshot_builder });
+    }
+    if (!factForChecks.window_anchor) {
+      checks.push({ check: 'window_anchor', result: 'FAIL', message: 'Derived fact missing window_anchor (e.g. claim_date)' });
+    } else {
+      checks.push({ check: 'window_anchor', result: 'PASS', message: factForChecks.window_anchor });
+    }
+    if (!factForChecks.window_type) {
+      checks.push({ check: 'window_definition', result: 'FAIL', message: 'Derived fact missing window_type' });
+    } else {
+      checks.push({ check: 'window_definition', result: 'PASS', message: `${factForChecks.window_size ?? '∞'} ${factForChecks.window_type}` });
+    }
+    if (!factForChecks.base_table || (factForChecks.base_value_columns?.length ?? 0) === 0) {
+      checks.push({ check: 'base_columns', result: 'FAIL', message: 'Derived fact missing base_table / base_value_columns' });
+    } else {
+      checks.push({ check: 'base_columns', result: 'PASS', message: `${factForChecks.base_table} (${factForChecks.base_value_columns.join(',')})` });
+    }
+    if (!factForChecks.output_table || !factForChecks.output_column || !factForChecks.output_json_key) {
+      checks.push({ check: 'output_target', result: 'FAIL', message: 'Derived fact missing output_table/column/json_key' });
+    } else {
+      checks.push({ check: 'output_target', result: 'PASS', message: `${factForChecks.output_table}.${factForChecks.output_column}.${factForChecks.output_json_key}` });
+    }
+    if (!factForChecks.resolver_function) {
+      checks.push({ check: 'derived_resolver', result: 'FAIL', message: 'Derived fact has no resolver_function to read snapshot' });
+    } else {
+      checks.push({ check: 'derived_resolver', result: 'PASS', message: factForChecks.resolver_function });
+    }
+  }
+
+  // 9) (Stub) circular dependencies — no fact->fact derivation yet
+  checks.push({ check: 'no_cycles', result: 'PASS', message: 'No derived fact-to-fact references' });
+
 
   // touch allRuleCodes to satisfy lint and reserve for future cross-rule checks
   void allRuleCodes;
