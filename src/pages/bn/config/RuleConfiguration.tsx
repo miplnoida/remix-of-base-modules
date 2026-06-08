@@ -48,6 +48,7 @@ const emptyForm: RuleGroupForm = {
 
 export default function RuleConfiguration() {
   const [search, setSearch] = useState('');
+  const [showInactive, setShowInactive] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<RuleGroupForm>(emptyForm);
   const { data: ruleGroups = [], isLoading } = useBnRuleGroups();
@@ -56,10 +57,13 @@ export default function RuleConfiguration() {
   const { userCode } = useUserCode();
   const audit = useBnConfigAudit();
 
-  const filtered = ruleGroups.filter((rg: BnRuleGroup) =>
-    !search || rg.group_name?.toLowerCase().includes(search.toLowerCase()) ||
-    rg.group_code?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = ruleGroups.filter((rg: BnRuleGroup) => {
+    if (!showInactive && rg.is_active === false) return false;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return rg.group_name?.toLowerCase().includes(q) || rg.group_code?.toLowerCase().includes(q);
+  });
+  const inactiveCount = ruleGroups.filter((rg: BnRuleGroup) => rg.is_active === false).length;
 
   const otherCodes = ruleGroups
     .filter((rg: BnRuleGroup) => rg.id !== form.id)
@@ -151,9 +155,17 @@ export default function RuleConfiguration() {
                   searchPlaceholder="Search rule groups..."
                   filters={[]}
                   actions={
-                    <Button size="sm" className="gap-1.5" onClick={openAdd}>
-                      <Plus className="h-3.5 w-3.5" /> Add Group
-                    </Button>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Switch id="show_inactive" checked={showInactive} onCheckedChange={setShowInactive} />
+                        <Label htmlFor="show_inactive" className="text-xs cursor-pointer">
+                          Show deprecated ({inactiveCount})
+                        </Label>
+                      </div>
+                      <Button size="sm" className="gap-1.5" onClick={openAdd}>
+                        <Plus className="h-3.5 w-3.5" /> Add Group
+                      </Button>
+                    </div>
                   }
                 />
               </CardHeader>
