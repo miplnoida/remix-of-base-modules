@@ -50,7 +50,7 @@ const emptyInput: RuleCatalogueInput = {
   default_fail_action: 'REJECT', failure_message_text: '',
   is_active: true, allow_product_override: true, tags: [],
   effective_from: null, effective_to: null,
-  rule_group_id: null, rule_group_code: null,
+  rule_group_id: null, rule_group_code: null, rule_group_name: null,
   default_group_sort_order: 0, default_rule_sort_order: 0,
 };
 
@@ -130,6 +130,7 @@ export default function RuleCatalogue() {
       is_active: r.is_active, allow_product_override: r.allow_product_override,
       tags: r.tags ?? [], effective_from: r.effective_from, effective_to: r.effective_to,
       rule_group_id: r.rule_group_id ?? null, rule_group_code: r.rule_group_code ?? null,
+      rule_group_name: r.rule_group_name ?? null,
       default_group_sort_order: r.default_group_sort_order ?? 0,
       default_rule_sort_order: r.default_rule_sort_order ?? 0,
     });
@@ -248,9 +249,9 @@ export default function RuleCatalogue() {
                   <Input className="pl-8" placeholder="Search code, name, fact" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
                 <Select value={groupFilter} onValueChange={setGroupFilter}>
-                  <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-44"><SelectValue placeholder="Category" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ALL">All Groups</SelectItem>
+                    <SelectItem value="ALL">All Categories</SelectItem>
                     {RULE_GROUP_TYPES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -285,8 +286,8 @@ export default function RuleCatalogue() {
                     <TableRow>
                       <TableHead>Code</TableHead>
                       <TableHead>Name</TableHead>
-                      <TableHead>Group</TableHead>
                       <TableHead>Category</TableHead>
+                      <TableHead>Rule Group</TableHead>
                       <TableHead>Fact Key</TableHead>
                       <TableHead>Operator</TableHead>
                       <TableHead>Default Value</TableHead>
@@ -305,8 +306,8 @@ export default function RuleCatalogue() {
                         <TableRow key={r.id}>
                           <TableCell className="font-mono text-xs">{r.rule_code}</TableCell>
                           <TableCell className="font-medium">{r.rule_name}</TableCell>
-                          <TableCell className="text-xs">{r.rule_group_code ? <Badge variant="secondary">{r.rule_group_code}</Badge> : <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell><Badge variant="outline">{r.category ?? r.group_type}</Badge></TableCell>
+                          <TableCell className="text-xs">{r.rule_group_code ? <Badge variant="secondary">{r.rule_group_code}</Badge> : <span className="text-muted-foreground">—</span>}</TableCell>
                           <TableCell className="font-mono text-xs">{r.fact_key ?? <span className="text-destructive">— missing —</span>}</TableCell>
                           <TableCell className="text-xs">{r.operator}</TableCell>
                           <TableCell className="text-xs">{fmtValue(r)}</TableCell>
@@ -457,25 +458,26 @@ export default function RuleCatalogue() {
             </div>
 
             <div className="space-y-2">
-              <Label>Group *</Label>
+              <Label>Rule Category *</Label>
               <Select value={editing.group_type} onValueChange={v => setEditing({ ...editing, group_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{RULE_GROUP_TYPES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">Broad classification (AGE, CONTRIBUTION, …). Distinct from the reusable Rule Group below.</p>
             </div>
             <div className="space-y-2">
-              <Label>Rule Group (existing library)</Label>
+              <Label>Linked Rule Group</Label>
               <Select
                 value={editing.rule_group_id ?? '__none__'}
                 onValueChange={v => {
                   if (v === '__none__') {
-                    setEditing({ ...editing, rule_group_id: null, rule_group_code: null });
+                    setEditing({ ...editing, rule_group_id: null, rule_group_code: null, rule_group_name: null });
                   } else {
                     const g = (ruleGroups as any[]).find(x => x.id === v);
-                    setEditing({ ...editing, rule_group_id: v, rule_group_code: g?.group_code ?? null });
+                    setEditing({ ...editing, rule_group_id: v, rule_group_code: g?.group_code ?? null, rule_group_name: g?.group_name ?? null });
                   }
                 }}>
-                <SelectTrigger><SelectValue placeholder="Optional — pick existing Rule Group" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Optional — pick an existing Rule Group" /></SelectTrigger>
                 <SelectContent className="max-h-72">
                   <SelectItem value="__none__">— None —</SelectItem>
                   {(ruleGroups as any[]).filter(g => g.is_active).map(g => (
@@ -483,7 +485,7 @@ export default function RuleCatalogue() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Manage groups in Configuration → Rule Group Library. Recommended for draft rules; required before Product Catalogue can add by group.</p>
+              <p className="text-xs text-muted-foreground">Master reusable group (managed in Rule Groups screen). Products can add eligibility rules by Rule Group.</p>
             </div>
             <div className="space-y-2">
               <Label>Legacy Parameter</Label>

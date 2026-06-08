@@ -8,7 +8,14 @@ export type FailAction = 'REJECT' | 'BLOCK' | 'REFER';
 export const RULE_GROUP_TYPES = [
   'AGE','CONTRIBUTION','EMPLOYMENT','MEDICAL','DEPENDENCY',
   'MEANS_TEST','INJURY','FUNERAL','MATERNITY','RESIDENCE','TIMING',
+  'DOCUMENT','COMMON',
 ] as const;
+
+/**
+ * Rule Category — broad classification on a catalogue rule.
+ * Distinct from Rule Group (which is a reusable master in bn_rule_group).
+ */
+export const RULE_CATEGORIES = RULE_GROUP_TYPES;
 
 export const RULE_PARAMETERS = [
   'AGE_AT_CLAIM','TOTAL_CONTRIBUTIONS','CONTRIBUTIONS_LAST_13_WEEKS','CONTRIBUTIONS_LAST_12_MONTHS',
@@ -49,6 +56,7 @@ export interface RuleCatalogueItem {
   effective_to: string | null;
   rule_group_id: string | null;
   rule_group_code: string | null;
+  rule_group_name: string | null;
   default_group_sort_order: number;
   default_rule_sort_order: number;
   created_by: string | null;
@@ -89,6 +97,21 @@ export async function getRuleCatalogueUsage(): Promise<Record<string, number>> {
 export async function upsertRuleCatalogue(input: RuleCatalogueInput, userCode: string): Promise<RuleCatalogueItem> {
   const payload: any = { ...input, updated_by: userCode };
   if (!input.id) payload.created_by = userCode;
+  // Auto-populate denormalized rule_group_code/name from rule_group_id
+  if (input.rule_group_id) {
+    const { data: g } = await (supabase as any)
+      .from('bn_rule_group')
+      .select('group_code, group_name')
+      .eq('id', input.rule_group_id)
+      .maybeSingle();
+    if (g) {
+      payload.rule_group_code = g.group_code;
+      payload.rule_group_name = g.group_name;
+    }
+  } else {
+    payload.rule_group_code = null;
+    payload.rule_group_name = null;
+  }
   const { data, error } = await (supabase as any)
     .from('bn_rule_catalogue')
     .upsert(payload)
