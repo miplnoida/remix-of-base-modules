@@ -145,6 +145,16 @@ const RESOLVERS: Record<string, ResolverFn> = {
     if (j && typeof j['recent_weeks'] === 'number') return j['recent_weeks'];
     return null;
   },
+  resolveContribCreditedWeeks: async (ctx) => {
+    if (!ctx.claimId) return null;
+    const s = await loadContributionSnapshot(ctx.claimId);
+    return s?.credited_weeks ?? null;
+  },
+  resolveContribWeeksLast13: async (ctx) => readWindow(ctx, 'window_13', 13 * 7),
+  resolveContribWeeksLast26: async (ctx) => readWindow(ctx, 'window_26', 26 * 7),
+  resolveContribWeeksLast39: async (ctx) => readWindow(ctx, 'window_39', 39 * 7),
+  resolveContribWeeksLast52: async (ctx) => readWindow(ctx, 'window_52', 52 * 7),
+  resolveContribWeeksLast12Months: async (ctx) => readWindow(ctx, 'window_12m', 365),
   resolveContribAvgWage: async (ctx) => {
     if (!ctx.claimId) return null;
     const s = await loadContributionSnapshot(ctx.claimId);
@@ -155,6 +165,14 @@ const RESOLVERS: Record<string, ResolverFn> = {
     const s = await loadContributionSnapshot(ctx.claimId);
     return s?.period_to ?? null;
   },
+
+  // Deceased contributor (Funeral / Survivors). Snapshot is keyed by deceased SSN
+  // when context.extras.deceased_ssn is set; otherwise we compute live from ip_wages.
+  resolveDeceasedContribTotalWeeks: async (ctx) => deceasedWindowOrSnapshot(ctx, 'total', null),
+  resolveDeceasedContribPaidWeeks: async (ctx) => deceasedWindowOrSnapshot(ctx, 'paid', null),
+  resolveDeceasedContribRecentWeeks: async (ctx) => deceasedWindowOrSnapshot(ctx, 'paid', 13 * 7),
+  resolveDeceasedContribWeeksLast12Months: async (ctx) => deceasedWindowOrSnapshot(ctx, 'paid', 365),
+
 
   // Employer
   resolveEmployerExists: async (ctx) => {
