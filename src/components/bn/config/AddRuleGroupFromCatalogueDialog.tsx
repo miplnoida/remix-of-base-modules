@@ -15,19 +15,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
 import { useEligibilityFacts } from '@/hooks/bn/useEligibilityFacts';
 import { getCurrentUserCode } from '@/services/bn/audit/getCurrentUserCode';
+import { recommendedGroupsForProduct } from '@/services/bn/eligibility/recommendedGroups';
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   versionId: string;
+  productCode?: string | null;
   onAdded?: () => void;
 }
 
-export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId, onAdded }: Props) {
+export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId, productCode, onAdded }: Props) {
   const { data: groups = [] } = useBnRuleGroups();
   const { data: facts = [] } = useEligibilityFacts();
   const [groupId, setGroupId] = useState<string>('');
   const [busy, setBusy] = useState(false);
+  const recommended = recommendedGroupsForProduct(productCode);
 
   const factByKey = useMemo(() => {
     const m = new Map<string, any>();
