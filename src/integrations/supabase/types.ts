@@ -8176,6 +8176,8 @@ export type Database = {
       }
       bn_eligibility_rule: {
         Row: {
+          catalogue_rule_code: string | null
+          catalogue_rule_version: number | null
           compare_fact_key: string | null
           conditional_when: Json | null
           data_source: string | null
@@ -8193,6 +8195,7 @@ export type Database = {
           is_active: boolean
           message_template: string | null
           override_policy_code: string | null
+          override_reason: string | null
           overrideable: boolean
           product_version_id: string
           reason_code_group: string | null
@@ -8210,6 +8213,8 @@ export type Database = {
           unit: Database["public"]["Enums"]["bn_eligibility_rule_unit"] | null
         }
         Insert: {
+          catalogue_rule_code?: string | null
+          catalogue_rule_version?: number | null
           compare_fact_key?: string | null
           conditional_when?: Json | null
           data_source?: string | null
@@ -8227,6 +8232,7 @@ export type Database = {
           is_active?: boolean
           message_template?: string | null
           override_policy_code?: string | null
+          override_reason?: string | null
           overrideable?: boolean
           product_version_id: string
           reason_code_group?: string | null
@@ -8244,6 +8250,8 @@ export type Database = {
           unit?: Database["public"]["Enums"]["bn_eligibility_rule_unit"] | null
         }
         Update: {
+          catalogue_rule_code?: string | null
+          catalogue_rule_version?: number | null
           compare_fact_key?: string | null
           conditional_when?: Json | null
           data_source?: string | null
@@ -8261,6 +8269,7 @@ export type Database = {
           is_active?: boolean
           message_template?: string | null
           override_policy_code?: string | null
+          override_reason?: string | null
           overrideable?: boolean
           product_version_id?: string
           reason_code_group?: string | null
@@ -12020,6 +12029,81 @@ export type Database = {
             referencedColumns: ["country_code"]
           },
         ]
+      }
+      bn_rule_catalogue: {
+        Row: {
+          allow_product_override: boolean
+          created_at: string
+          created_by: string | null
+          default_fail_action: string
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          failure_message_text: string | null
+          group_type: string
+          id: string
+          is_active: boolean
+          operator: string
+          parameter: string
+          rule_code: string
+          rule_name: string
+          tags: string[]
+          updated_at: string
+          updated_by: string | null
+          value_from: string | null
+          value_to: string | null
+          values: Json | null
+          version: number
+        }
+        Insert: {
+          allow_product_override?: boolean
+          created_at?: string
+          created_by?: string | null
+          default_fail_action?: string
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          failure_message_text?: string | null
+          group_type: string
+          id?: string
+          is_active?: boolean
+          operator: string
+          parameter: string
+          rule_code: string
+          rule_name: string
+          tags?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          value_from?: string | null
+          value_to?: string | null
+          values?: Json | null
+          version?: number
+        }
+        Update: {
+          allow_product_override?: boolean
+          created_at?: string
+          created_by?: string | null
+          default_fail_action?: string
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          failure_message_text?: string | null
+          group_type?: string
+          id?: string
+          is_active?: boolean
+          operator?: string
+          parameter?: string
+          rule_code?: string
+          rule_name?: string
+          tags?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          value_from?: string | null
+          value_to?: string | null
+          values?: Json | null
+          version?: number
+        }
+        Relationships: []
       }
       bn_rule_group: {
         Row: {
