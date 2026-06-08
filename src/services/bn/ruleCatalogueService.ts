@@ -56,6 +56,7 @@ export interface RuleCatalogueItem {
   effective_to: string | null;
   rule_group_id: string | null;
   rule_group_code: string | null;
+  rule_group_name: string | null;
   default_group_sort_order: number;
   default_rule_sort_order: number;
   created_by: string | null;
