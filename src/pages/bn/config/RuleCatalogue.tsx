@@ -28,7 +28,7 @@ import {
   validateRuleCatalogue,
   type RuleCatalogueItem, type RuleCatalogueInput, type FailAction,
 } from '@/services/bn/ruleCatalogueService';
-import { statusBadgeVariant, type EligibilityFact } from '@/services/bn/eligibilityFactService';
+import { statusBadgeVariant, sourceTypeBadgeVariant, describeFactSource, type EligibilityFact } from '@/services/bn/eligibilityFactService';
 import { getCurrentUserCode } from '@/services/bn/audit/getCurrentUserCode';
 import { OverviewTab } from '@/components/bn/ruleCatalogue/OverviewTab';
 import { CoverageTypesTab } from '@/components/bn/ruleCatalogue/CoverageTypesTab';
