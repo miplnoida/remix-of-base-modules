@@ -7737,6 +7737,89 @@ export type Database = {
           },
         ]
       }
+      bn_coverage_type: {
+        Row: {
+          active_flag: boolean
+          coverage_code: string
+          coverage_name: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active_flag?: boolean
+          coverage_code: string
+          coverage_name: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active_flag?: boolean
+          coverage_code?: string
+          coverage_name?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      bn_coverage_type_rule: {
+        Row: {
+          coverage_type_id: string
+          created_at: string
+          created_by: string | null
+          effective_date: string | null
+          end_date: string | null
+          id: string
+          priority: number
+          rule_code: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          coverage_type_id: string
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string | null
+          end_date?: string | null
+          id?: string
+          priority?: number
+          rule_code: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          coverage_type_id?: string
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string | null
+          end_date?: string | null
+          id?: string
+          priority?: number
+          rule_code?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_coverage_type_rule_coverage_type_id_fkey"
+            columns: ["coverage_type_id"]
+            isOneToOne: false
+            referencedRelation: "bn_coverage_type"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_doc_requirement: {
         Row: {
           allowed_extensions: string[] | null
@@ -8178,6 +8261,7 @@ export type Database = {
         Row: {
           allowed_operators: string[]
           applicable_products: string[]
+          business_domain: string | null
           category: string
           created_at: string
           created_by: string | null
@@ -8189,12 +8273,16 @@ export type Database = {
           implementation_status: string
           is_active: boolean
           label: string
+          owner: string | null
+          required_context: string
           requires_claim_context: boolean
           requires_deceased_ssn: boolean
           requires_snapshot: boolean
           requires_ssn: boolean
           resolver_function: string | null
+          sample_values: Json | null
           source_column: string | null
+          source_system: string | null
           source_table: string | null
           updated_at: string
           updated_by: string | null
@@ -8202,6 +8290,7 @@ export type Database = {
         Insert: {
           allowed_operators?: string[]
           applicable_products?: string[]
+          business_domain?: string | null
           category: string
           created_at?: string
           created_by?: string | null
@@ -8213,12 +8302,16 @@ export type Database = {
           implementation_status?: string
           is_active?: boolean
           label: string
+          owner?: string | null
+          required_context?: string
           requires_claim_context?: boolean
           requires_deceased_ssn?: boolean
           requires_snapshot?: boolean
           requires_ssn?: boolean
           resolver_function?: string | null
+          sample_values?: Json | null
           source_column?: string | null
+          source_system?: string | null
           source_table?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -8226,6 +8319,7 @@ export type Database = {
         Update: {
           allowed_operators?: string[]
           applicable_products?: string[]
+          business_domain?: string | null
           category?: string
           created_at?: string
           created_by?: string | null
@@ -8237,12 +8331,16 @@ export type Database = {
           implementation_status?: string
           is_active?: boolean
           label?: string
+          owner?: string | null
+          required_context?: string
           requires_claim_context?: boolean
           requires_deceased_ssn?: boolean
           requires_snapshot?: boolean
           requires_ssn?: boolean
           resolver_function?: string | null
+          sample_values?: Json | null
           source_column?: string | null
+          source_system?: string | null
           source_table?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -12122,8 +12220,11 @@ export type Database = {
           is_active: boolean
           operator: string
           parameter: string
+          priority: number
+          product_type: string | null
           rule_code: string
           rule_name: string
+          rule_status: string
           tags: string[]
           updated_at: string
           updated_by: string | null
@@ -12148,8 +12249,11 @@ export type Database = {
           is_active?: boolean
           operator: string
           parameter: string
+          priority?: number
+          product_type?: string | null
           rule_code: string
           rule_name: string
+          rule_status?: string
           tags?: string[]
           updated_at?: string
           updated_by?: string | null
@@ -12174,8 +12278,11 @@ export type Database = {
           is_active?: boolean
           operator?: string
           parameter?: string
+          priority?: number
+          product_type?: string | null
           rule_code?: string
           rule_name?: string
+          rule_status?: string
           tags?: string[]
           updated_at?: string
           updated_by?: string | null
@@ -12185,6 +12292,62 @@ export type Database = {
           version?: number
         }
         Relationships: []
+      }
+      bn_rule_condition: {
+        Row: {
+          created_at: string
+          fact_key: string
+          group_id: string
+          group_op: string
+          id: string
+          operator: string
+          parent_group_id: string | null
+          rule_id: string
+          sequence: number
+          updated_at: string
+          value_from: string | null
+          value_to: string | null
+          values: Json | null
+        }
+        Insert: {
+          created_at?: string
+          fact_key: string
+          group_id?: string
+          group_op?: string
+          id?: string
+          operator: string
+          parent_group_id?: string | null
+          rule_id: string
+          sequence?: number
+          updated_at?: string
+          value_from?: string | null
+          value_to?: string | null
+          values?: Json | null
+        }
+        Update: {
+          created_at?: string
+          fact_key?: string
+          group_id?: string
+          group_op?: string
+          id?: string
+          operator?: string
+          parent_group_id?: string | null
+          rule_id?: string
+          sequence?: number
+          updated_at?: string
+          value_from?: string | null
+          value_to?: string | null
+          values?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_rule_condition_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "bn_rule_catalogue"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_rule_group: {
         Row: {
