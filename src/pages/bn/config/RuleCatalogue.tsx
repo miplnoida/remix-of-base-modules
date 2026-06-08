@@ -458,25 +458,26 @@ export default function RuleCatalogue() {
             </div>
 
             <div className="space-y-2">
-              <Label>Group *</Label>
+              <Label>Rule Category *</Label>
               <Select value={editing.group_type} onValueChange={v => setEditing({ ...editing, group_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>{RULE_GROUP_TYPES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}</SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">Broad classification (AGE, CONTRIBUTION, …). Distinct from the reusable Rule Group below.</p>
             </div>
             <div className="space-y-2">
-              <Label>Rule Group (existing library)</Label>
+              <Label>Linked Rule Group</Label>
               <Select
                 value={editing.rule_group_id ?? '__none__'}
                 onValueChange={v => {
                   if (v === '__none__') {
-                    setEditing({ ...editing, rule_group_id: null, rule_group_code: null });
+                    setEditing({ ...editing, rule_group_id: null, rule_group_code: null, rule_group_name: null });
                   } else {
                     const g = (ruleGroups as any[]).find(x => x.id === v);
-                    setEditing({ ...editing, rule_group_id: v, rule_group_code: g?.group_code ?? null });
+                    setEditing({ ...editing, rule_group_id: v, rule_group_code: g?.group_code ?? null, rule_group_name: g?.group_name ?? null });
                   }
                 }}>
-                <SelectTrigger><SelectValue placeholder="Optional — pick existing Rule Group" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Optional — pick an existing Rule Group" /></SelectTrigger>
                 <SelectContent className="max-h-72">
                   <SelectItem value="__none__">— None —</SelectItem>
                   {(ruleGroups as any[]).filter(g => g.is_active).map(g => (
@@ -484,7 +485,7 @@ export default function RuleCatalogue() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">Manage groups in Configuration → Rule Group Library. Recommended for draft rules; required before Product Catalogue can add by group.</p>
+              <p className="text-xs text-muted-foreground">Master reusable group (managed in Rule Groups screen). Products can add eligibility rules by Rule Group.</p>
             </div>
             <div className="space-y-2">
               <Label>Legacy Parameter</Label>
