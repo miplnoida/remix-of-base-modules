@@ -131,8 +131,8 @@ export default function RuleCatalogue() {
     };
   }, [rules, usage, factByKey]);
 
-  const openNew = () => { setEditing({ ...emptyInput }); setValuesText(''); setDialogOpen(true); };
-  const openEdit = (r: RuleCatalogueItem) => {
+  const openNew = () => { setEditing({ ...emptyInput }); setValuesText(''); setEditingGroupIds([]); setDialogOpen(true); };
+  const openEdit = async (r: RuleCatalogueItem) => {
     setEditing({
       id: r.id, rule_code: r.rule_code, rule_name: r.rule_name, description: r.description,
       group_type: r.group_type, category: r.category, parameter: r.parameter, fact_key: r.fact_key,
@@ -147,7 +147,10 @@ export default function RuleCatalogue() {
       default_rule_sort_order: r.default_rule_sort_order ?? 0,
     });
     setValuesText(Array.isArray(r.values) ? r.values.join(', ') : '');
+    setEditingGroupIds((linksByCatalogue[r.id] ?? []).map(l => l.rule_group_id));
     setDialogOpen(true);
+    // Refresh from server in background in case stale
+    try { const links = await getCatalogueGroupLinks(r.id); setEditingGroupIds(links.map(l => l.rule_group_id)); } catch {}
   };
 
   const selectedFact = editing.fact_key ? factByKey.get(editing.fact_key) : null;
@@ -170,7 +173,15 @@ export default function RuleCatalogue() {
     if (err) { toast.error(err); return; }
     const userCode = await getCurrentUserCode();
     if (!userCode) { toast.error('Authenticated user_code required'); return; }
-    await upsert.mutateAsync({ input: payload, userCode });
+    // Set primary group_id to first selected so legacy column stays in sync via upsert
+    payload.rule_group_id = editingGroupIds[0] ?? null;
+    const saved = await upsert.mutateAsync({ input: payload, userCode });
+    try {
+      await setCatalogueGroupLinks(saved.id, editingGroupIds, userCode);
+      qc.invalidateQueries({ queryKey: ['bn', 'rule-catalogue', 'group-links'] });
+    } catch (e: any) {
+      toast.error('Saved rule but failed to update group links', { description: e?.message });
+    }
     setDialogOpen(false);
   };
 
