@@ -28,7 +28,8 @@ import { RULE_GROUPS, defaultGroupForFact } from '@/services/bn/eligibility/elig
 import { RULE_TEMPLATES, type RuleTemplate } from '@/services/bn/eligibility/ruleTemplates';
 import { RuleWizardDialog } from './RuleWizardDialog';
 import { CataloguePickerDialog } from './CataloguePickerDialog';
-import { Wand2, Library } from 'lucide-react';
+import { AddRuleGroupFromCatalogueDialog } from './AddRuleGroupFromCatalogueDialog';
+import { Wand2, Library, FolderPlus } from 'lucide-react';
 
 import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 
