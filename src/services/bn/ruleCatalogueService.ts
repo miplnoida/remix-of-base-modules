@@ -8,7 +8,14 @@ export type FailAction = 'REJECT' | 'BLOCK' | 'REFER';
 export const RULE_GROUP_TYPES = [
   'AGE','CONTRIBUTION','EMPLOYMENT','MEDICAL','DEPENDENCY',
   'MEANS_TEST','INJURY','FUNERAL','MATERNITY','RESIDENCE','TIMING',
+  'DOCUMENT','COMMON',
 ] as const;
+
+/**
+ * Rule Category — broad classification on a catalogue rule.
+ * Distinct from Rule Group (which is a reusable master in bn_rule_group).
+ */
+export const RULE_CATEGORIES = RULE_GROUP_TYPES;
 
 export const RULE_PARAMETERS = [
   'AGE_AT_CLAIM','TOTAL_CONTRIBUTIONS','CONTRIBUTIONS_LAST_13_WEEKS','CONTRIBUTIONS_LAST_12_MONTHS',
