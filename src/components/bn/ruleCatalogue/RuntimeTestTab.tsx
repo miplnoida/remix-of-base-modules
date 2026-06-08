@@ -73,25 +73,17 @@ export function RuntimeTestTab({ rules, factByKey, facts }: Props) {
 /* ---------------- Metadata Test (no claim) ---------------- */
 function MetadataTestPanel({ rules, facts }: { rules: RuleCatalogueItem[]; facts: EligibilityFact[] }) {
   const [search, setSearch] = useState('');
-  const issues = useMemo(() => validateAllRules(rules, facts), [rules, facts]);
-  const byRule = useMemo(() => {
-    const m = new Map<string, { rule: RuleCatalogueItem; items: ReturnType<typeof validateAllRules> }>();
-    for (const r of rules) m.set(r.id, { rule: r, items: [] });
-    for (const i of issues) {
-      const e = m.get(i.rule_id); if (e) e.items.push(i);
-    }
-    return Array.from(m.values());
-  }, [rules, issues]);
+  const reports = useMemo(() => validateAllRules(rules, facts), [rules, facts]);
 
-  const filtered = byRule.filter(b => {
+  const filtered = reports.filter(r => {
     if (!search) return true;
     const s = search.toLowerCase();
-    return b.rule.rule_code.toLowerCase().includes(s) || b.rule.rule_name.toLowerCase().includes(s);
+    return r.rule_code.toLowerCase().includes(s) || r.rule_name.toLowerCase().includes(s);
   });
 
-  const failCount = issues.filter(i => i.severity === 'FAIL').length;
-  const warnCount = issues.filter(i => i.severity === 'WARNING').length;
-  const passCount = byRule.filter(b => b.items.length === 0).length;
+  const passCount = reports.filter(r => r.overall === 'PASS').length;
+  const warnCount = reports.filter(r => r.overall === 'WARNING').length;
+  const failCount = reports.filter(r => r.overall === 'FAIL').length;
 
   return (
     <Card>
@@ -116,33 +108,30 @@ function MetadataTestPanel({ rules, facts }: { rules: RuleCatalogueItem[]; facts
           <TableHeader>
             <TableRow>
               <TableHead>Rule</TableHead>
-              <TableHead>Fact</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Issues</TableHead>
+              <TableHead>Checks</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map(({ rule, items }) => {
-              const hasFail = items.some(i => i.severity === 'FAIL');
-              const hasWarn = items.some(i => i.severity === 'WARNING');
+            {filtered.map(rep => {
+              const issues = rep.checks.filter(c => c.result !== 'PASS');
               return (
-                <TableRow key={rule.id}>
+                <TableRow key={rep.rule_id}>
                   <TableCell>
-                    <div className="font-mono text-xs">{rule.rule_code}</div>
-                    <div className="text-xs text-muted-foreground">{rule.rule_name}</div>
+                    <div className="font-mono text-xs">{rep.rule_code}</div>
+                    <div className="text-xs text-muted-foreground">{rep.rule_name}</div>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{rule.fact_key ?? '—'}</TableCell>
                   <TableCell>
-                    {hasFail ? <Badge variant="destructive">FAIL</Badge>
-                      : hasWarn ? <Badge variant="secondary">WARN</Badge>
+                    {rep.overall === 'FAIL' ? <Badge variant="destructive">FAIL</Badge>
+                      : rep.overall === 'WARNING' ? <Badge variant="secondary">WARN</Badge>
                       : <Badge>PASS</Badge>}
                   </TableCell>
                   <TableCell className="text-xs">
-                    {items.length === 0 ? <span className="text-emerald-600">Metadata OK</span> : (
+                    {issues.length === 0 ? <span className="text-emerald-600">All {rep.checks.length} checks passed</span> : (
                       <ul className="space-y-0.5">
-                        {items.map((i, idx) => (
-                          <li key={idx} className={i.severity === 'FAIL' ? 'text-destructive' : 'text-amber-700'}>
-                            • [{i.severity}] {i.code}: {i.message}
+                        {issues.map((c, idx) => (
+                          <li key={idx} className={c.result === 'FAIL' ? 'text-destructive' : 'text-amber-700'}>
+                            • [{c.result}] {c.check}: {c.message}
                           </li>
                         ))}
                       </ul>
