@@ -51,6 +51,7 @@ export default function RuleConfiguration() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<RuleGroupForm>(emptyForm);
   const { data: ruleGroups = [], isLoading } = useBnRuleGroups();
+  const { data: linkCounts = {} } = useRuleGroupLinkCounts();
   const upsert = useUpsertBnRuleGroup();
   const { userCode } = useUserCode();
   const audit = useBnConfigAudit();
