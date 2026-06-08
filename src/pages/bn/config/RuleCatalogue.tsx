@@ -120,6 +120,9 @@ export default function RuleCatalogue() {
       default_fail_action: r.default_fail_action, failure_message_text: r.failure_message_text,
       is_active: r.is_active, allow_product_override: r.allow_product_override,
       tags: r.tags ?? [], effective_from: r.effective_from, effective_to: r.effective_to,
+      rule_group_id: r.rule_group_id ?? null, rule_group_code: r.rule_group_code ?? null,
+      default_group_sort_order: r.default_group_sort_order ?? 0,
+      default_rule_sort_order: r.default_rule_sort_order ?? 0,
     });
     setValuesText(Array.isArray(r.values) ? r.values.join(', ') : '');
     setDialogOpen(true);
