@@ -46,6 +46,14 @@ export async function checkProductVersionPublishable(productVersionId: string): 
         issues.push({ rule_code: row.rule_code, rule_name: row.rule_name, reason: r });
       }
     }
+    // PARTIAL facts: usable in draft, blocked at publish.
+    if (row.implementation_status === 'PARTIAL') {
+      issues.push({
+        rule_code: row.rule_code,
+        rule_name: row.rule_name,
+        reason: 'Fact implementation_status is PARTIAL — promote to IMPLEMENTED before publish',
+      });
+    }
   }
   return { ok: issues.length === 0, issues, checked: used.length };
 }
