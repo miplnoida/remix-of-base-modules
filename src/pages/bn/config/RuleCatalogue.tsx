@@ -27,8 +27,11 @@ import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
 import {
   RULE_GROUP_TYPES, RULE_PARAMETERS, RULE_OPERATORS, FAIL_ACTIONS,
   validateRuleCatalogue,
+  listAllCatalogueGroupLinks, setCatalogueGroupLinks, getCatalogueGroupLinks,
   type RuleCatalogueItem, type RuleCatalogueInput, type FailAction,
 } from '@/services/bn/ruleCatalogueService';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Checkbox } from '@/components/ui/checkbox';
 import { statusBadgeVariant, sourceTypeBadgeVariant, describeFactSource, type EligibilityFact } from '@/services/bn/eligibilityFactService';
 import { getCurrentUserCode } from '@/services/bn/audit/getCurrentUserCode';
 import { OverviewTab } from '@/components/bn/ruleCatalogue/OverviewTab';
