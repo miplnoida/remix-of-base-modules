@@ -20,6 +20,7 @@
  */
 import { hasBlockingConflicts, detectProductVersionConflicts } from './conflictDetectionService';
 import { checkPublicReadiness, checkStaffReadiness } from '../productAcceptanceService';
+import { checkLegalReadiness, type LegalIssue } from './legalReadinessService';
 import { supabase } from '@/integrations/supabase/client';
 
 const db = supabase as any;
@@ -33,8 +34,10 @@ export interface PublishGateReport {
     publicChannel?: { ok: boolean; issues: string[] };
     staffChannel?: { ok: boolean; issues: string[] };
     baseline?: { status: string; failures: string[] };
+    legal?: { ok: boolean; blocking: LegalIssue[]; warnings: LegalIssue[]; total_rules: number };
   };
 }
+
 
 export async function assertSafeToPublish(versionId: string): Promise<PublishGateReport> {
   const errors: string[] = [];
@@ -107,8 +110,33 @@ export async function assertSafeToPublish(versionId: string): Promise<PublishGat
     warnings.push(`Baseline validation skipped: ${(e as Error).message}`);
   }
 
+  // 4. Legal / legislative readiness — every active eligibility rule must be
+  // backed by a legislative reference, CONFIRMED confidence, implemented fact,
+  // threshold, complete derived snapshot metadata, and deceased-aware resolver
+  // where applicable.
+  try {
+    const legal = await checkLegalReadiness(versionId);
+    details.legal = legal;
+    if (legal.blocking.length > 0) {
+      const grouped = legal.blocking
+        .slice(0, 5)
+        .map((i) => `${i.rule_code}: ${i.message}`)
+        .join('; ');
+      const extra = legal.blocking.length > 5 ? ` (+${legal.blocking.length - 5} more)` : '';
+      errors.push(
+        `Legal/coverage gate found ${legal.blocking.length} blocking issue(s): ${grouped}${extra}. Open Rule Catalogue → Coverage to resolve.`,
+      );
+    }
+    if (legal.warnings.length > 0) {
+      warnings.push(`${legal.warnings.length} legal/coverage warning(s) present.`);
+    }
+  } catch (e) {
+    warnings.push(`Legal readiness check skipped: ${(e as Error).message}`);
+  }
+
   return { ok: errors.length === 0, errors, warnings, details };
 }
+
 
 /** Convenience: same gate but only the boolean answer. */
 export async function isSafeToPublish(versionId: string): Promise<boolean> {
