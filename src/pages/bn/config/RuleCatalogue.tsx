@@ -286,8 +286,8 @@ export default function RuleCatalogue() {
                     <TableRow>
                       <TableHead>Code</TableHead>
                       <TableHead>Name</TableHead>
-                      <TableHead>Group</TableHead>
                       <TableHead>Category</TableHead>
+                      <TableHead>Rule Group</TableHead>
                       <TableHead>Fact Key</TableHead>
                       <TableHead>Operator</TableHead>
                       <TableHead>Default Value</TableHead>
