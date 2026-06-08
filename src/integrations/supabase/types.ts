@@ -7820,6 +7820,107 @@ export type Database = {
           },
         ]
       }
+      bn_data_field_registry: {
+        Row: {
+          active: boolean
+          column_name: string
+          created_at: string
+          created_by: string | null
+          data_type: string
+          display_name: string
+          id: string
+          is_amount: boolean
+          is_code: boolean
+          is_date: boolean
+          seed_tag: string | null
+          table_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          column_name: string
+          created_at?: string
+          created_by?: string | null
+          data_type: string
+          display_name: string
+          id?: string
+          is_amount?: boolean
+          is_code?: boolean
+          is_date?: boolean
+          seed_tag?: string | null
+          table_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          column_name?: string
+          created_at?: string
+          created_by?: string | null
+          data_type?: string
+          display_name?: string
+          id?: string
+          is_amount?: boolean
+          is_code?: boolean
+          is_date?: boolean
+          seed_tag?: string | null
+          table_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_data_field_registry_table_name_fkey"
+            columns: ["table_name"]
+            isOneToOne: false
+            referencedRelation: "bn_data_source_registry"
+            referencedColumns: ["table_name"]
+          },
+        ]
+      }
+      bn_data_source_registry: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_name: string
+          id: string
+          seed_tag: string | null
+          source_system: string
+          table_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          seed_tag?: string | null
+          source_system: string
+          table_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          seed_tag?: string | null
+          source_system?: string
+          table_name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       bn_doc_requirement: {
         Row: {
           allowed_extensions: string[] | null
