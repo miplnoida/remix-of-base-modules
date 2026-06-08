@@ -100,9 +100,10 @@ export default function RuleCatalogue() {
   const filtered = useMemo(() => rules.filter(r => {
     if (groupFilter !== 'ALL' && r.group_type !== groupFilter) return false;
     if (ruleGroupFilter !== 'ALL') {
+      const linkIds = (linksByCatalogue[r.id] ?? []).map(l => l.rule_group_id);
       if (ruleGroupFilter === '__none__') {
-        if (r.rule_group_id) return false;
-      } else if (r.rule_group_id !== ruleGroupFilter) return false;
+        if (linkIds.length > 0) return false;
+      } else if (!linkIds.includes(ruleGroupFilter)) return false;
     }
     if (statusFilter === 'ACTIVE' && !r.is_active) return false;
     if (statusFilter === 'INACTIVE' && r.is_active) return false;
@@ -114,7 +115,7 @@ export default function RuleCatalogue() {
           !(r.fact_key ?? '').toLowerCase().includes(s)) return false;
     }
     return true;
-  }), [rules, search, groupFilter, ruleGroupFilter, statusFilter]);
+  }), [rules, search, groupFilter, ruleGroupFilter, statusFilter, linksByCatalogue]);
 
   const summary = useMemo(() => {
     const used = new Set(Object.keys(usage));
