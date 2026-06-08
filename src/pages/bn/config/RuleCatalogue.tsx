@@ -88,6 +88,14 @@ export default function RuleCatalogue() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<RuleCatalogueInput>(emptyInput);
   const [valuesText, setValuesText] = useState('');
+  const [editingGroupIds, setEditingGroupIds] = useState<string[]>([]);
+
+  const qc = useQueryClient();
+  const { data: linksByCatalogue = {} } = useQuery({
+    queryKey: ['bn', 'rule-catalogue', 'group-links'],
+    queryFn: listAllCatalogueGroupLinks,
+    staleTime: 30_000,
+  });
 
   const filtered = useMemo(() => rules.filter(r => {
     if (groupFilter !== 'ALL' && r.group_type !== groupFilter) return false;
