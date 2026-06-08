@@ -27,8 +27,11 @@ import { useBnRuleGroups } from '@/hooks/bn/useBnConfig';
 import {
   RULE_GROUP_TYPES, RULE_PARAMETERS, RULE_OPERATORS, FAIL_ACTIONS,
   validateRuleCatalogue,
+  listAllCatalogueGroupLinks, setCatalogueGroupLinks, getCatalogueGroupLinks,
   type RuleCatalogueItem, type RuleCatalogueInput, type FailAction,
 } from '@/services/bn/ruleCatalogueService';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Checkbox } from '@/components/ui/checkbox';
 import { statusBadgeVariant, sourceTypeBadgeVariant, describeFactSource, type EligibilityFact } from '@/services/bn/eligibilityFactService';
 import { getCurrentUserCode } from '@/services/bn/audit/getCurrentUserCode';
 import { OverviewTab } from '@/components/bn/ruleCatalogue/OverviewTab';
@@ -85,13 +88,22 @@ export default function RuleCatalogue() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<RuleCatalogueInput>(emptyInput);
   const [valuesText, setValuesText] = useState('');
+  const [editingGroupIds, setEditingGroupIds] = useState<string[]>([]);
+
+  const qc = useQueryClient();
+  const { data: linksByCatalogue = {} } = useQuery({
+    queryKey: ['bn', 'rule-catalogue', 'group-links'],
+    queryFn: listAllCatalogueGroupLinks,
+    staleTime: 30_000,
+  });
 
   const filtered = useMemo(() => rules.filter(r => {
     if (groupFilter !== 'ALL' && r.group_type !== groupFilter) return false;
     if (ruleGroupFilter !== 'ALL') {
+      const linkIds = (linksByCatalogue[r.id] ?? []).map(l => l.rule_group_id);
       if (ruleGroupFilter === '__none__') {
-        if (r.rule_group_id) return false;
-      } else if (r.rule_group_id !== ruleGroupFilter) return false;
+        if (linkIds.length > 0) return false;
+      } else if (!linkIds.includes(ruleGroupFilter)) return false;
     }
     if (statusFilter === 'ACTIVE' && !r.is_active) return false;
     if (statusFilter === 'INACTIVE' && r.is_active) return false;
@@ -103,7 +115,7 @@ export default function RuleCatalogue() {
           !(r.fact_key ?? '').toLowerCase().includes(s)) return false;
     }
     return true;
-  }), [rules, search, groupFilter, ruleGroupFilter, statusFilter]);
+  }), [rules, search, groupFilter, ruleGroupFilter, statusFilter, linksByCatalogue]);
 
   const summary = useMemo(() => {
     const used = new Set(Object.keys(usage));
@@ -119,8 +131,8 @@ export default function RuleCatalogue() {
     };
   }, [rules, usage, factByKey]);
 
-  const openNew = () => { setEditing({ ...emptyInput }); setValuesText(''); setDialogOpen(true); };
-  const openEdit = (r: RuleCatalogueItem) => {
+  const openNew = () => { setEditing({ ...emptyInput }); setValuesText(''); setEditingGroupIds([]); setDialogOpen(true); };
+  const openEdit = async (r: RuleCatalogueItem) => {
     setEditing({
       id: r.id, rule_code: r.rule_code, rule_name: r.rule_name, description: r.description,
       group_type: r.group_type, category: r.category, parameter: r.parameter, fact_key: r.fact_key,
@@ -135,7 +147,10 @@ export default function RuleCatalogue() {
       default_rule_sort_order: r.default_rule_sort_order ?? 0,
     });
     setValuesText(Array.isArray(r.values) ? r.values.join(', ') : '');
+    setEditingGroupIds((linksByCatalogue[r.id] ?? []).map(l => l.rule_group_id));
     setDialogOpen(true);
+    // Refresh from server in background in case stale
+    try { const links = await getCatalogueGroupLinks(r.id); setEditingGroupIds(links.map(l => l.rule_group_id)); } catch {}
   };
 
   const selectedFact = editing.fact_key ? factByKey.get(editing.fact_key) : null;
@@ -158,7 +173,15 @@ export default function RuleCatalogue() {
     if (err) { toast.error(err); return; }
     const userCode = await getCurrentUserCode();
     if (!userCode) { toast.error('Authenticated user_code required'); return; }
-    await upsert.mutateAsync({ input: payload, userCode });
+    // Set primary group_id to first selected so legacy column stays in sync via upsert
+    payload.rule_group_id = editingGroupIds[0] ?? null;
+    const saved = await upsert.mutateAsync({ input: payload, userCode });
+    try {
+      await setCatalogueGroupLinks(saved.id, editingGroupIds, userCode);
+      qc.invalidateQueries({ queryKey: ['bn', 'rule-catalogue', 'group-links'] });
+    } catch (e: any) {
+      toast.error('Saved rule but failed to update group links', { description: e?.message });
+    }
     setDialogOpen(false);
   };
 
@@ -307,7 +330,11 @@ export default function RuleCatalogue() {
                           <TableCell className="font-mono text-xs">{r.rule_code}</TableCell>
                           <TableCell className="font-medium">{r.rule_name}</TableCell>
                           <TableCell><Badge variant="outline">{r.category ?? r.group_type}</Badge></TableCell>
-                          <TableCell className="text-xs">{r.rule_group_code ? <Badge variant="secondary">{r.rule_group_code}</Badge> : <span className="text-muted-foreground">—</span>}</TableCell>
+                          <TableCell className="text-xs">
+                            {(linksByCatalogue[r.id] ?? []).length === 0
+                              ? <span className="text-muted-foreground">—</span>
+                              : <div className="flex flex-wrap gap-1">{(linksByCatalogue[r.id] ?? []).map(l => <Badge key={l.rule_group_id} variant="secondary">{l.group_code}</Badge>)}</div>}
+                          </TableCell>
                           <TableCell className="font-mono text-xs">{r.fact_key ?? <span className="text-destructive">— missing —</span>}</TableCell>
                           <TableCell className="text-xs">{r.operator}</TableCell>
                           <TableCell className="text-xs">{fmtValue(r)}</TableCell>
@@ -465,27 +492,26 @@ export default function RuleCatalogue() {
               </Select>
               <p className="text-xs text-muted-foreground">Broad classification (AGE, CONTRIBUTION, …). Distinct from the reusable Rule Group below.</p>
             </div>
-            <div className="space-y-2">
-              <Label>Linked Rule Group</Label>
-              <Select
-                value={editing.rule_group_id ?? '__none__'}
-                onValueChange={v => {
-                  if (v === '__none__') {
-                    setEditing({ ...editing, rule_group_id: null, rule_group_code: null, rule_group_name: null });
-                  } else {
-                    const g = (ruleGroups as any[]).find(x => x.id === v);
-                    setEditing({ ...editing, rule_group_id: v, rule_group_code: g?.group_code ?? null, rule_group_name: g?.group_name ?? null });
-                  }
-                }}>
-                <SelectTrigger><SelectValue placeholder="Optional — pick an existing Rule Group" /></SelectTrigger>
-                <SelectContent className="max-h-72">
-                  <SelectItem value="__none__">— None —</SelectItem>
-                  {(ruleGroups as any[]).filter(g => g.is_active).map(g => (
-                    <SelectItem key={g.id} value={g.id}>{g.group_code} — {g.group_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">Master reusable group (managed in Rule Groups screen). Products can add eligibility rules by Rule Group.</p>
+            <div className="space-y-2 col-span-2">
+              <Label>Linked Rule Groups</Label>
+              <div className="border rounded-md p-2 max-h-48 overflow-y-auto space-y-1">
+                {(ruleGroups as any[]).filter(g => g.is_active).map(g => {
+                  const checked = editingGroupIds.includes(g.id);
+                  return (
+                    <label key={g.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5">
+                      <Checkbox checked={checked} onCheckedChange={(v) => {
+                        setEditingGroupIds(prev => v ? [...prev, g.id] : prev.filter(x => x !== g.id));
+                      }} />
+                      <span className="font-mono">{g.group_code}</span>
+                      <span className="text-muted-foreground">— {g.group_name}</span>
+                    </label>
+                  );
+                })}
+                {(ruleGroups as any[]).filter(g => g.is_active).length === 0 && (
+                  <p className="text-xs text-muted-foreground">No active rule groups. Create them in the Rule Groups screen.</p>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">A rule can belong to multiple master groups (e.g. EMPLOYER_EXISTS in both EMPLOYMENT_CHECKS and EMPLOYMENT_INJURY_CHECKS). Order = first selected becomes the primary group shown on the rule.</p>
             </div>
             <div className="space-y-2">
               <Label>Legacy Parameter</Label>
