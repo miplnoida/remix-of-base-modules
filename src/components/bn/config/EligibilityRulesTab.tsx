@@ -188,6 +188,7 @@ export function EligibilityRulesTab({ versionId, isReadOnly, versionStatus, prod
         <CardHeader className="flex flex-row items-center justify-between">
           <div><CardTitle>Eligibility Rules</CardTitle><CardDescription>Define checks that must pass before a claim is eligible</CardDescription></div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setGroupPickerOpen(true)} className="gap-2" disabled={isReadOnly || !versionId}><FolderPlus className="h-4 w-4" /> Add Rule Group from Catalogue</Button>
             <Button variant="outline" onClick={() => setPickerOpen(true)} className="gap-2" disabled={isReadOnly || !versionId}><Library className="h-4 w-4" /> Add from Catalogue</Button>
             <Button variant="outline" onClick={() => { setWizardInitial(null); setWizardOpen(true); }} className="gap-2" disabled={isReadOnly}><Wand2 className="h-4 w-4" /> New (Wizard)</Button>
             <Button onClick={openNew} className="gap-2" disabled={isReadOnly}><Plus className="h-4 w-4" /> Add Rule</Button>
