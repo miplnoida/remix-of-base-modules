@@ -11730,11 +11730,14 @@ export type Database = {
           builder_canvas_updated_at: string | null
           builder_canvas_updated_by: string | null
           calculation_config: Json
+          calculation_config_legacy: Json | null
           calculation_workbasket_id: string | null
+          cap_rules: Json
           decision_workbasket_id: string | null
           default_workbasket_id: string | null
           description: string | null
           document_profile_id: string | null
+          effective_date_rule: Json
           effective_from: string
           effective_to: string | null
           eligibility_config: Json
@@ -11743,6 +11746,8 @@ export type Database = {
           entered_by: string | null
           escalation_policy_id: string | null
           external_task_policy: Json
+          formula_parameter_values: Json
+          formula_template_id: string | null
           id: string
           intake_workbasket_id: string | null
           life_certificate_policy: Json
@@ -11761,6 +11766,7 @@ export type Database = {
           requires_means_test: boolean
           requires_medical_board_review: boolean
           review_policy: Json
+          rounding_rule: Json
           screen_template_id: string | null
           status: string
           survivor_beneficiary_policy: Json
@@ -11777,11 +11783,14 @@ export type Database = {
           builder_canvas_updated_at?: string | null
           builder_canvas_updated_by?: string | null
           calculation_config?: Json
+          calculation_config_legacy?: Json | null
           calculation_workbasket_id?: string | null
+          cap_rules?: Json
           decision_workbasket_id?: string | null
           default_workbasket_id?: string | null
           description?: string | null
           document_profile_id?: string | null
+          effective_date_rule?: Json
           effective_from: string
           effective_to?: string | null
           eligibility_config?: Json
@@ -11790,6 +11799,8 @@ export type Database = {
           entered_by?: string | null
           escalation_policy_id?: string | null
           external_task_policy?: Json
+          formula_parameter_values?: Json
+          formula_template_id?: string | null
           id?: string
           intake_workbasket_id?: string | null
           life_certificate_policy?: Json
@@ -11808,6 +11819,7 @@ export type Database = {
           requires_means_test?: boolean
           requires_medical_board_review?: boolean
           review_policy?: Json
+          rounding_rule?: Json
           screen_template_id?: string | null
           status?: string
           survivor_beneficiary_policy?: Json
@@ -11824,11 +11836,14 @@ export type Database = {
           builder_canvas_updated_at?: string | null
           builder_canvas_updated_by?: string | null
           calculation_config?: Json
+          calculation_config_legacy?: Json | null
           calculation_workbasket_id?: string | null
+          cap_rules?: Json
           decision_workbasket_id?: string | null
           default_workbasket_id?: string | null
           description?: string | null
           document_profile_id?: string | null
+          effective_date_rule?: Json
           effective_from?: string
           effective_to?: string | null
           eligibility_config?: Json
@@ -11837,6 +11852,8 @@ export type Database = {
           entered_by?: string | null
           escalation_policy_id?: string | null
           external_task_policy?: Json
+          formula_parameter_values?: Json
+          formula_template_id?: string | null
           id?: string
           intake_workbasket_id?: string | null
           life_certificate_policy?: Json
@@ -11855,6 +11872,7 @@ export type Database = {
           requires_means_test?: boolean
           requires_medical_board_review?: boolean
           review_policy?: Json
+          rounding_rule?: Json
           screen_template_id?: string | null
           status?: string
           survivor_beneficiary_policy?: Json
@@ -11904,6 +11922,13 @@ export type Database = {
             columns: ["escalation_policy_id"]
             isOneToOne: false
             referencedRelation: "bn_escalation_policy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_version_formula_template_id_fkey"
+            columns: ["formula_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_formula_template"
             referencedColumns: ["id"]
           },
           {
