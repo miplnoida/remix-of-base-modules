@@ -235,67 +235,113 @@ export default function RuleConfiguration() {
         </Tabs>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className={form.id ? "sm:max-w-6xl h-[88vh] flex flex-col p-0 gap-0" : "sm:max-w-lg"}>
+            <DialogHeader className={form.id ? "px-6 pt-6 pb-3 border-b shrink-0" : ""}>
               <DialogTitle>{form.id ? 'Edit Rule Group' : 'Add Rule Group'}</DialogTitle>
               <DialogDescription>
                 Define a reusable classification label. Used inside Product Catalog to organize rules.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="grid grid-cols-2 gap-3">
-                <CodeFieldWithAutoGenerate
-                  label="Code"
-                  required
-                  prefix="RG"
-                  value={form.group_code}
-                  onChange={(v) => setForm({ ...form, group_code: v })}
-                  existingCodes={otherCodes}
-                  disabled={!!form.id}
-                  helpText="Unique rule group code. Cannot be changed after creation."
-                />
-                <div className="space-y-1.5">
-                  <Label htmlFor="rg_country">Country code</Label>
-                  <Input id="rg_country" value={form.country_code} maxLength={3} placeholder="Leave blank for global"
-                    onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
+
+            {form.id ? (
+              <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[minmax(0,360px)_minmax(0,1fr)] gap-0 overflow-hidden">
+                {/* Left: form */}
+                <div className="space-y-4 p-6 overflow-y-auto border-r">
+                  <CodeFieldWithAutoGenerate
+                    label="Code"
+                    required
+                    prefix="RG"
+                    value={form.group_code}
+                    onChange={(v) => setForm({ ...form, group_code: v })}
+                    existingCodes={otherCodes}
+                    disabled={!!form.id}
+                    helpText="Unique rule group code. Cannot be changed after creation."
+                  />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rg_country">Country code</Label>
+                    <Input id="rg_country" value={form.country_code} maxLength={3} placeholder="Leave blank for global"
+                      onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rg_name">Name *</Label>
+                    <Input id="rg_name" value={form.group_name} maxLength={120}
+                      onChange={(e) => setForm({ ...form, group_name: e.target.value })} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rg_desc">Description</Label>
+                    <Textarea id="rg_desc" value={form.description} maxLength={500} rows={3}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                  </div>
+                  <div className="flex items-end justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rg_sort">Sort order</Label>
+                      <Input id="rg_sort" type="number" className="w-28" value={form.sort_order}
+                        onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) || 0 })} />
+                    </div>
+                    <div className="flex items-center gap-2 pb-2">
+                      <Switch id="rg_active" checked={form.is_active}
+                        onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
+                      <Label htmlFor="rg_active">Active</Label>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="rg_name">Name *</Label>
-                <Input id="rg_name" value={form.group_name} maxLength={120}
-                  onChange={(e) => setForm({ ...form, group_name: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="rg_desc">Description</Label>
-                <Textarea id="rg_desc" value={form.description} maxLength={500} rows={3}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })} />
-              </div>
-              <div className="flex items-end justify-between gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="rg_sort">Sort order</Label>
-                  <Input id="rg_sort" type="number" className="w-28" value={form.sort_order}
-                    onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) || 0 })} />
-                </div>
-                <div className="flex items-center gap-2 pb-2">
-                  <Switch id="rg_active" checked={form.is_active}
-                    onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
-                  <Label htmlFor="rg_active">Active</Label>
-                </div>
-              </div>
-              {form.id && (
-                <div className="pt-2 border-t">
+                {/* Right: linked rules */}
+                <div className="p-6 overflow-y-auto min-w-0">
                   <RuleGroupLinkedRules groupId={form.id} groupCode={form.group_code} />
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-4 py-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <CodeFieldWithAutoGenerate
+                    label="Code"
+                    required
+                    prefix="RG"
+                    value={form.group_code}
+                    onChange={(v) => setForm({ ...form, group_code: v })}
+                    existingCodes={otherCodes}
+                    disabled={!!form.id}
+                    helpText="Unique rule group code. Cannot be changed after creation."
+                  />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rg_country2">Country code</Label>
+                    <Input id="rg_country2" value={form.country_code} maxLength={3} placeholder="Leave blank for global"
+                      onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="rg_name2">Name *</Label>
+                  <Input id="rg_name2" value={form.group_name} maxLength={120}
+                    onChange={(e) => setForm({ ...form, group_name: e.target.value })} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="rg_desc2">Description</Label>
+                  <Textarea id="rg_desc2" value={form.description} maxLength={500} rows={3}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                </div>
+                <div className="flex items-end justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="rg_sort2">Sort order</Label>
+                    <Input id="rg_sort2" type="number" className="w-28" value={form.sort_order}
+                      onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) || 0 })} />
+                  </div>
+                  <div className="flex items-center gap-2 pb-2">
+                    <Switch id="rg_active2" checked={form.is_active}
+                      onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
+                    <Label htmlFor="rg_active2">Active</Label>
+                  </div>
+                </div>
+              </div>
+            )}
 
-            <DialogFooter>
+            <DialogFooter className={form.id ? "px-6 py-4 border-t shrink-0" : ""}>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleSave} disabled={upsert.isPending}>
                 {upsert.isPending ? 'Saving…' : (form.id ? 'Save changes' : 'Create group')}
               </Button>
             </DialogFooter>
           </DialogContent>
+
         </Dialog>
       </div>
     </PermissionWrapper>
