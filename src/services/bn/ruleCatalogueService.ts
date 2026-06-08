@@ -151,8 +151,7 @@ export function validateRuleCatalogue(input: Partial<RuleCatalogueInput>): strin
   if (!input.rule_code?.trim()) return 'Rule code is required';
   if (!/^[A-Z0-9_]+$/.test(input.rule_code)) return 'Rule code must be uppercase letters, digits, underscores';
   if (!input.rule_name?.trim()) return 'Rule name is required';
-  if (!input.group_type) return 'Group is required';
-  if (!input.parameter) return 'Parameter is required';
+  if (!input.group_type) return 'Category is required';
   if (!input.operator) return 'Operator is required';
   const op = input.operator;
   if (op === 'BOOLEAN' && !['true','false'].includes(String(input.value_from))) return 'BOOLEAN requires value true/false';
