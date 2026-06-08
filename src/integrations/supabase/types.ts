@@ -12417,6 +12417,7 @@ export type Database = {
           rule_code: string
           rule_group_code: string | null
           rule_group_id: string | null
+          rule_group_name: string | null
           rule_name: string
           rule_status: string
           source_document: string | null
@@ -12459,6 +12460,7 @@ export type Database = {
           rule_code: string
           rule_group_code?: string | null
           rule_group_id?: string | null
+          rule_group_name?: string | null
           rule_name: string
           rule_status?: string
           source_document?: string | null
@@ -12501,6 +12503,7 @@ export type Database = {
           rule_code?: string
           rule_group_code?: string | null
           rule_group_id?: string | null
+          rule_group_name?: string | null
           rule_name?: string
           rule_status?: string
           source_document?: string | null
