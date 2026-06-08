@@ -315,7 +315,7 @@ export default function RuleCatalogue() {
           <Card>
             <CardHeader>
               <CardTitle>Eligibility Facts Registry</CardTitle>
-              <p className="text-sm text-muted-foreground">Computable values rules can reference. Each fact maps to a source table/column and resolver function. Admin-only — managed in code.</p>
+              <p className="text-sm text-muted-foreground">Computable values rules reference. Each fact declares a <strong>source type</strong> — direct DB field, derived aggregate, document/existence check, or resolver-only — plus where its value ultimately comes from.</p>
             </CardHeader>
             <CardContent>
               {factsLoading ? <p className="py-8 text-center text-muted-foreground">Loading…</p> : (
@@ -324,34 +324,45 @@ export default function RuleCatalogue() {
                     <TableRow>
                       <TableHead>Fact Key</TableHead>
                       <TableHead>Label</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Source</TableHead>
+                      <TableHead>Source Type</TableHead>
+                      <TableHead>Source / Derivation</TableHead>
                       <TableHead>Resolver</TableHead>
-                      <TableHead>Allowed Operators</TableHead>
+                      <TableHead>Type</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Requires</TableHead>
-                      <TableHead>Example</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {facts.map(f => (
                       <TableRow key={f.id}>
-                        <TableCell className="font-mono text-xs">{f.fact_key}</TableCell>
-                        <TableCell className="font-medium">{f.label}</TableCell>
-                        <TableCell><Badge variant="outline">{f.category}</Badge></TableCell>
-                        <TableCell className="text-xs">{f.data_type}</TableCell>
-                        <TableCell className="text-xs">{f.source_table}{f.source_column ? <span className="text-muted-foreground">.{f.source_column}</span> : null}</TableCell>
-                        <TableCell className="font-mono text-xs">{f.resolver_function ?? '—'}</TableCell>
-                        <TableCell className="text-xs">{f.allowed_operators?.join(', ')}</TableCell>
-                        <TableCell><Badge variant={statusBadgeVariant(f.implementation_status)}>{f.implementation_status}</Badge></TableCell>
-                        <TableCell className="text-xs space-x-1">
-                          {f.requires_snapshot && <Badge variant="outline">snapshot</Badge>}
-                          {f.requires_claim_context && <Badge variant="outline">claim</Badge>}
-                          {f.requires_ssn && <Badge variant="outline">ssn</Badge>}
-                          {f.requires_deceased_ssn && <Badge variant="outline">deceased</Badge>}
+                        <TableCell className="font-mono text-xs align-top">{f.fact_key}</TableCell>
+                        <TableCell className="font-medium align-top">
+                          {f.label}
+                          <div className="text-xs text-muted-foreground"><Badge variant="outline" className="mr-1">{f.category}</Badge></div>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{f.example_value}</TableCell>
+                        <TableCell className="align-top">
+                          <Badge variant={sourceTypeBadgeVariant(f.source_type)}>{f.source_type}</Badge>
+                        </TableCell>
+                        <TableCell className="text-xs align-top max-w-md">
+                          {f.source_type === 'DERIVED_AGGREGATE' ? (
+                            <div className="space-y-0.5">
+                              <div><span className="text-muted-foreground">Base:</span> <span className="font-mono">{f.base_table ?? '—'}{f.base_date_column ? `.${f.base_date_column}` : ''}</span></div>
+                              {f.base_value_columns?.length > 0 && (
+                                <div><span className="text-muted-foreground">Values:</span> <span className="font-mono">{f.base_value_columns.join(', ')}</span></div>
+                              )}
+                              {(f.window_type || f.window_size) && (
+                                <div><span className="text-muted-foreground">Window:</span> {f.window_size ?? '∞'} {f.window_type ?? ''} @ <span className="font-mono">{f.window_anchor ?? '—'}</span></div>
+                              )}
+                              {f.count_logic && <div className="italic text-muted-foreground">{f.count_logic}</div>}
+                              <div><span className="text-muted-foreground">Output:</span> <span className="font-mono">{f.output_table ?? '—'}{f.output_column ? `.${f.output_column}` : ''}{f.output_json_key ? `.${f.output_json_key}` : ''}</span></div>
+                              {f.snapshot_builder && <div><span className="text-muted-foreground">Builder:</span> <span className="font-mono">{f.snapshot_builder}</span></div>}
+                            </div>
+                          ) : (
+                            <span className="font-mono">{describeFactSource(f)}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs align-top">{f.resolver_function ?? '—'}</TableCell>
+                        <TableCell className="text-xs align-top">{f.data_type}</TableCell>
+                        <TableCell className="align-top"><Badge variant={statusBadgeVariant(f.implementation_status)}>{f.implementation_status}</Badge></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -359,6 +370,7 @@ export default function RuleCatalogue() {
               )}
             </CardContent>
           </Card>
+
         </TabsContent>
 
         {/* USAGE TAB */}
