@@ -35,6 +35,7 @@ import { CoverageTypesTab } from '@/components/bn/ruleCatalogue/CoverageTypesTab
 import { ValidationTab } from '@/components/bn/ruleCatalogue/ValidationTab';
 import { ImpactTab } from '@/components/bn/ruleCatalogue/ImpactTab';
 import { FactsTab } from '@/components/bn/ruleCatalogue/FactsTab';
+import { RuntimeTestTab } from '@/components/bn/ruleCatalogue/RuntimeTestTab';
 import { validateAllRules } from '@/services/bn/ruleValidationService';
 import { computeAllRuleReadiness } from '@/services/bn/readinessService';
 import { Progress } from '@/components/ui/progress';
@@ -356,11 +357,7 @@ export default function RuleCatalogue() {
         </TabsContent>
 
         <TabsContent value="test">
-          <TestRuleTab rules={rules} factByKey={factByKey} />
-        </TabsContent>
-
-        <TabsContent value="product-test">
-          <ProductTestTab />
+          <RuntimeTestTab rules={rules} factByKey={factByKey} facts={facts} />
         </TabsContent>
       </Tabs>
 
@@ -532,132 +529,6 @@ export default function RuleCatalogue() {
   );
 }
 
-/* -------- Test Rule Tab (real resolveFact) -------- */
-function TestRuleTab({ rules, factByKey }: { rules: RuleCatalogueItem[]; factByKey: Map<string, EligibilityFact> }) {
-  const [ruleId, setRuleId] = useState<string>('');
-  const [ssn, setSsn] = useState('');
-  const [claimId, setClaimId] = useState('');
-  const [claimDate, setClaimDate] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<{
-    outcome: 'PASS' | 'FAIL' | 'WARN';
-    title: string;
-    resolved: unknown;
-    expected: unknown;
-    details: string[];
-  } | null>(null);
-
-  const rule = rules.find(r => r.id === ruleId);
-  const fact = rule?.fact_key ? factByKey.get(rule.fact_key) : null;
-
-  const run = async () => {
-    if (!rule) { toast.error('Pick a rule'); return; }
-    if (!fact) { setResult({ outcome: 'WARN', title: 'Rule has no linked fact', resolved: null, expected: null, details: [] }); return; }
-    if (fact.implementation_status === 'NOT_IMPLEMENTED') {
-      setResult({ outcome: 'WARN', title: 'Fact is NOT_IMPLEMENTED', resolved: null, expected: rule.value_from, details: [
-        `Source: ${fact.source_table}.${fact.source_column}`,
-        `Resolver: ${fact.resolver_function}`,
-      ]}); return;
-    }
-    setBusy(true);
-    try {
-      // Refresh snapshot when needed so contribution facts can resolve.
-      if (fact.requires_snapshot && claimId) {
-        await ensureContributionSnapshot(claimId);
-      }
-      const r = await resolveFact(fact.fact_key, { ssn: ssn || null, claimId: claimId || null, claimDate, extras: {} });
-      const op = rule.operator;
-      const expected = rule.value_from;
-      const a = r.value;
-      const num = Number(a);
-      const expNum = Number(expected);
-      let pass = false;
-      switch (op) {
-        case 'GREATER_OR_EQUAL': pass = num >= expNum; break;
-        case 'GREATER_THAN': pass = num > expNum; break;
-        case 'LESS_OR_EQUAL': pass = num <= expNum; break;
-        case 'LESS_THAN': pass = num < expNum; break;
-        case 'EQUALS': pass = String(a) === String(expected); break;
-        case 'NOT_EQUALS': pass = String(a) !== String(expected); break;
-        case 'BOOLEAN': pass = String(a).toLowerCase() === String(expected).toLowerCase(); break;
-        case 'EXISTS': pass = a !== null && a !== undefined && a !== ''; break;
-        case 'IN': pass = Array.isArray(rule.values) && rule.values.map(String).includes(String(a)); break;
-        case 'BETWEEN': pass = num >= Number(rule.value_from) && num <= Number(rule.value_to); break;
-        default: pass = false;
-      }
-      const outcome = r.reason ? 'WARN' : pass ? 'PASS' : 'FAIL';
-      setResult({
-        outcome,
-        title: r.reason ?? (pass ? 'Rule passed' : (rule.failure_message_text ?? 'Rule failed')),
-        resolved: r.value, expected,
-        details: [
-          `Fact: ${fact.fact_key}`,
-          `Resolver: ${fact.resolver_function}`,
-          `Source: ${r.source_table}.${r.source_column}`,
-          `Operator: ${op}`,
-          `Fail action: ${rule.default_fail_action}`,
-        ],
-      });
-    } catch (e: any) {
-      setResult({ outcome: 'WARN', title: e?.message ?? 'Resolution failed', resolved: null, expected: rule.value_from, details: [] });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Test Rule (Live Resolver)</CardTitle>
-        <p className="text-sm text-muted-foreground">Resolves the fact against real BN/BEMA tables for an SSN / claim, then evaluates the rule.</p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Rule</Label>
-            <Select value={ruleId} onValueChange={setRuleId}>
-              <SelectTrigger><SelectValue placeholder="Pick a catalogue rule" /></SelectTrigger>
-              <SelectContent className="max-h-72">
-                {rules.map(r => <SelectItem key={r.id} value={r.id}>{r.rule_code} — {r.rule_name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {fact && (
-              <div className="text-xs text-muted-foreground">
-                Fact <span className="font-mono">{fact.fact_key}</span> • resolver <span className="font-mono">{fact.resolver_function}</span> • source <span className="font-mono">{fact.source_table}.{fact.source_column}</span>
-              </div>
-            )}
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="space-y-2"><Label>SSN</Label><Input value={ssn} onChange={e => setSsn(e.target.value)} placeholder="6-digit SSN" /></div>
-            <div className="space-y-2"><Label>Claim ID</Label><Input value={claimId} onChange={e => setClaimId(e.target.value)} placeholder="uuid (optional)" /></div>
-            <div className="space-y-2"><Label>Claim Date</Label><Input type="date" value={claimDate} onChange={e => setClaimDate(e.target.value)} /></div>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={run} disabled={busy} className="gap-2"><FlaskConical className="h-4 w-4" /> {busy ? 'Resolving…' : 'Run Test'}</Button>
-        </div>
-        {rule && (
-          <div className="text-xs text-muted-foreground">
-            Operator <span className="font-mono">{rule.operator}</span>, expected <span className="font-mono">{rule.value_from ?? '(per product)'}</span>
-          </div>
-        )}
-        {result && (
-          <Alert variant={result.outcome === 'FAIL' ? 'destructive' : 'default'}>
-            {result.outcome === 'PASS' ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-            <AlertDescription>
-              <div className="font-semibold mb-1">{result.outcome}: {result.title}</div>
-              <div className="text-xs grid grid-cols-2 gap-1 mb-2">
-                <div>Resolved value: <span className="font-mono">{String(result.resolved ?? '—')}</span></div>
-                <div>Expected: <span className="font-mono">{String(result.expected ?? '—')}</span></div>
-              </div>
-              <ul className="text-xs space-y-0.5">{result.details.map((d, i) => <li key={i} className="font-mono">• {d}</li>)}</ul>
-            </AlertDescription>
-          </Alert>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 /* -------- Coverage Tab -------- */
 function CoverageTab({ rules }: { rules: RuleCatalogueItem[] }) {
@@ -727,79 +598,6 @@ function CoverageTab({ rules }: { rules: RuleCatalogueItem[] }) {
             ))}
           </TableBody>
         </Table>
-      </CardContent>
-    </Card>
-  );
-}
-
-/* -------- Product Eligibility Test Tab -------- */
-function ProductTestTab() {
-  const [productVersionId, setProductVersionId] = useState('');
-  const [claimId, setClaimId] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [res, setRes] = useState<ProductTestResult | null>(null);
-
-  const run = async () => {
-    if (!productVersionId || !claimId) { toast.error('Product Version ID and Claim ID are required'); return; }
-    setBusy(true);
-    try {
-      const r = await runProductEligibilityTest(productVersionId, claimId);
-      setRes(r);
-    } catch (e: any) {
-      toast.error(e?.message ?? 'Test failed');
-    } finally { setBusy(false); }
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Product Eligibility Test</CardTitle>
-        <p className="text-sm text-muted-foreground">Runs all active rules of a product version against a real claim. Refreshes the contribution snapshot first, then evaluates each rule using the live resolver.</p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-2 md:col-span-1"><Label>Product Version ID</Label><Input value={productVersionId} onChange={e => setProductVersionId(e.target.value)} placeholder="uuid" /></div>
-          <div className="space-y-2 md:col-span-1"><Label>Claim ID</Label><Input value={claimId} onChange={e => setClaimId(e.target.value)} placeholder="uuid" /></div>
-          <div className="flex items-end"><Button onClick={run} disabled={busy} className="gap-2"><PlayCircle className="h-4 w-4" /> {busy ? 'Running…' : 'Run Eligibility'}</Button></div>
-        </div>
-        {res && (
-          <>
-            <div className="flex items-center gap-2">
-              <Badge variant={res.overall === 'PASS' ? 'default' : 'destructive'}>{res.overall}</Badge>
-              <span className="text-xs text-muted-foreground">Snapshot {res.snapshot_refreshed ? 'refreshed' : 'reused'} • Product: {res.product_code ?? '—'} • {res.rows.length} rule(s)</span>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Rule</TableHead>
-                  <TableHead>Fact</TableHead>
-                  <TableHead>Operator</TableHead>
-                  <TableHead>Expected</TableHead>
-                  <TableHead>Actual</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Result</TableHead>
-                  <TableHead>Fail Action</TableHead>
-                  <TableHead>Message</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {res.rows.map((r, i) => (
-                  <TableRow key={i}>
-                    <TableCell><div className="font-mono text-xs">{r.rule_code}</div><div className="text-xs text-muted-foreground">{r.rule_name}</div></TableCell>
-                    <TableCell className="font-mono text-xs">{r.fact_key ?? '—'}</TableCell>
-                    <TableCell className="text-xs">{r.operator}</TableCell>
-                    <TableCell className="font-mono text-xs">{Array.isArray(r.expected) ? r.expected.join(', ') : String(r.expected ?? '—')}</TableCell>
-                    <TableCell className="font-mono text-xs">{String(r.actual ?? '—')}</TableCell>
-                    <TableCell className="font-mono text-xs">{r.source ?? '—'}</TableCell>
-                    <TableCell><Badge variant={r.result === 'PASS' ? 'default' : r.result === 'FAIL' ? 'destructive' : 'secondary'}>{r.result}</Badge></TableCell>
-                    <TableCell className="text-xs">{r.fail_action}</TableCell>
-                    <TableCell className="text-xs">{r.message ?? '—'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </>
-        )}
       </CardContent>
     </Card>
   );
