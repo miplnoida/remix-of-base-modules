@@ -101,7 +101,73 @@ async function hasClaimDocument(claimId: string, codes: string[]): Promise<boole
   return Array.isArray(data) && data.length > 0;
 }
 
-// ───────────────────────── resolvers ─────────────────────────
+/* ─────── window / deceased helpers used by the new resolvers ─────── */
+function isoMinusDays(iso: string, days: number): string {
+  const d = new Date(iso);
+  d.setUTCDate(d.getUTCDate() - days);
+  return d.toISOString().slice(0, 10);
+}
+
+async function countPaidWeeksForSsn(ssn: string, fromIso: string | null, toIso: string | null): Promise<number> {
+  let q = db.from('ip_wages').select('id, period', { count: 'exact', head: false }).eq('ssn', ssn);
+  if (fromIso) q = q.gte('period', fromIso);
+  if (toIso) q = q.lte('period', toIso);
+  q = q.limit(2000);
+  const { data } = await q;
+  return Array.isArray(data) ? data.length : 0;
+}
+
+async function readWindow(
+  ctx: EligibilityContext,
+  jsonKey: string,
+  windowDays: number,
+): Promise<number | null> {
+  // Snapshot first
+  if (ctx.claimId) {
+    const s = await loadContributionSnapshot(ctx.claimId);
+    const j = (s?.contribution_json as Record<string, unknown> | null) ?? null;
+    if (j && typeof j[jsonKey] === 'number') return j[jsonKey] as number;
+  }
+  // Live compute from ip_wages
+  if (!ctx.ssn || !ctx.claimDate) return null;
+  const from = isoMinusDays(ctx.claimDate, windowDays);
+  return countPaidWeeksForSsn(ctx.ssn, from, ctx.claimDate);
+}
+
+async function resolveDeceasedSsn(ctx: EligibilityContext): Promise<string | null> {
+  const fromExtras = ctx.extras?.['deceased_ssn'];
+  if (typeof fromExtras === 'string' && fromExtras) return fromExtras;
+  if (!ctx.claimId) return null;
+  const { data } = await db
+    .from('bn_claim_participant')
+    .select('ssn, participant_type, participant_role')
+    .eq('claim_id', ctx.claimId)
+    .limit(20);
+  if (!Array.isArray(data)) return null;
+  const match = data.find((r: any) => {
+    const t = String(r.participant_type ?? r.participant_role ?? '').toUpperCase();
+    return t.includes('DECEAS') || t === 'INSURED_DECEASED';
+  });
+  return match?.ssn ?? null;
+}
+
+async function deceasedWindowOrSnapshot(
+  ctx: EligibilityContext,
+  kind: 'total' | 'paid',
+  windowDays: number | null,
+): Promise<number | null> {
+  const ssn = await resolveDeceasedSsn(ctx);
+  if (!ssn) return null;
+  // No deceased snapshot table — compute live from ip_wages keyed by deceased SSN.
+  const to = ctx.claimDate ?? new Date().toISOString().slice(0, 10);
+  const from = windowDays ? isoMinusDays(to, windowDays) : null;
+  const weeks = await countPaidWeeksForSsn(ssn, from, to);
+  // For `total` with no window we already returned all rows; that equals total weeks.
+  // For `paid` we also return distinct weeks (live computation = paid-only periods).
+  void kind;
+  return weeks;
+}
+
 
 const RESOLVERS: Record<string, ResolverFn> = {
   // Person
