@@ -70,14 +70,18 @@ export function ValidationTab({ rules, facts }: { rules: RuleCatalogueItem[]; fa
           <TableHeader>
             <TableRow>
               <TableHead>Rule</TableHead>
+              <TableHead>Legal</TableHead>
               <TableHead>Overall</TableHead>
               <TableHead>Checks</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map(rep => (
+            {filtered.map(rep => {
+              const rule = rules.find(r => r.id === rep.rule_id);
+              return (
               <TableRow key={rep.rule_id}>
                 <TableCell><div className="font-mono text-xs">{rep.rule_code}</div><div className="text-xs text-muted-foreground">{rep.rule_name}</div></TableCell>
+                <TableCell><LegalConfidenceBadge status={(rule as any)?.confidence_status} /></TableCell>
                 <TableCell>
                   <Badge variant={rep.overall === 'PASS' ? 'default' : rep.overall === 'WARNING' ? 'secondary' : 'destructive'}>{rep.overall}</Badge>
                 </TableCell>
@@ -93,8 +97,10 @@ export function ValidationTab({ rules, facts }: { rules: RuleCatalogueItem[]; fa
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
+
         </Table>
       </CardContent>
     </Card>
