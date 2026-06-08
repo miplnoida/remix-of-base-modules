@@ -369,8 +369,16 @@ export default function RuleCatalogue() {
         </TabsContent>
 
         {/* TEST TAB */}
+        <TabsContent value="coverage">
+          <CoverageTab rules={rules} />
+        </TabsContent>
+
         <TabsContent value="test">
           <TestRuleTab rules={rules} factByKey={factByKey} />
+        </TabsContent>
+
+        <TabsContent value="product-test">
+          <ProductTestTab />
         </TabsContent>
       </Tabs>
 
