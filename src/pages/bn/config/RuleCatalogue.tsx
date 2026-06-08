@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Edit, Copy, Trash2, Power, Search, AlertTriangle, CheckCircle2, FlaskConical, Database, ListChecks, Activity, ShieldCheck, XCircle, PlayCircle } from 'lucide-react';
+import { Plus, Edit, Copy, Trash2, Power, Search, AlertTriangle, CheckCircle2, FlaskConical, Database, ListChecks, Activity, ShieldCheck, XCircle, PlayCircle, LayoutDashboard, BadgeCheck, GitBranch } from 'lucide-react';
 import { resolveFact } from '@/services/bn/eligibility/eligibilityFactResolver';
 import { computeRuleCoverage, type CoverageRow } from '@/services/bn/eligibility/factCoverageService';
 import { runProductEligibilityTest, type ProductTestResult } from '@/services/bn/eligibility/productEligibilityTest';
@@ -30,6 +30,13 @@ import {
 } from '@/services/bn/ruleCatalogueService';
 import { statusBadgeVariant, type EligibilityFact } from '@/services/bn/eligibilityFactService';
 import { getCurrentUserCode } from '@/services/bn/audit/getCurrentUserCode';
+import { OverviewTab } from '@/components/bn/ruleCatalogue/OverviewTab';
+import { CoverageTypesTab } from '@/components/bn/ruleCatalogue/CoverageTypesTab';
+import { ValidationTab } from '@/components/bn/ruleCatalogue/ValidationTab';
+import { ImpactTab } from '@/components/bn/ruleCatalogue/ImpactTab';
+import { validateAllRules } from '@/services/bn/ruleValidationService';
+import { computeAllRuleReadiness } from '@/services/bn/readinessService';
+import { Progress } from '@/components/ui/progress';
 
 const emptyInput: RuleCatalogueInput = {
   rule_code: '', rule_name: '', description: '', group_type: 'CONTRIBUTION',
@@ -180,14 +187,34 @@ export default function RuleCatalogue() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="overview" className="gap-2"><LayoutDashboard className="h-4 w-4" /> Overview</TabsTrigger>
+          <TabsTrigger value="facts" className="gap-2"><Database className="h-4 w-4" /> Facts</TabsTrigger>
           <TabsTrigger value="rules" className="gap-2"><ListChecks className="h-4 w-4" /> Rules</TabsTrigger>
-          <TabsTrigger value="facts" className="gap-2"><Database className="h-4 w-4" /> Facts / Data Sources</TabsTrigger>
-          <TabsTrigger value="coverage" className="gap-2"><ShieldCheck className="h-4 w-4" /> Coverage</TabsTrigger>
+          <TabsTrigger value="coverage-types" className="gap-2"><GitBranch className="h-4 w-4" /> Coverage Types</TabsTrigger>
+          <TabsTrigger value="coverage" className="gap-2"><ShieldCheck className="h-4 w-4" /> Implementation Coverage</TabsTrigger>
+          <TabsTrigger value="validation" className="gap-2"><BadgeCheck className="h-4 w-4" /> Validation</TabsTrigger>
+          <TabsTrigger value="test" className="gap-2"><FlaskConical className="h-4 w-4" /> Test</TabsTrigger>
+          <TabsTrigger value="impact" className="gap-2"><Activity className="h-4 w-4" /> Impact</TabsTrigger>
           <TabsTrigger value="usage" className="gap-2"><Activity className="h-4 w-4" /> Usage</TabsTrigger>
-          <TabsTrigger value="test" className="gap-2"><FlaskConical className="h-4 w-4" /> Test Rule</TabsTrigger>
-          <TabsTrigger value="product-test" className="gap-2"><PlayCircle className="h-4 w-4" /> Product Test</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="overview">
+          <OverviewTab rules={rules} facts={facts} />
+        </TabsContent>
+
+        <TabsContent value="coverage-types">
+          <CoverageTypesTab rules={rules} facts={facts} />
+        </TabsContent>
+
+        <TabsContent value="validation">
+          <ValidationTab rules={rules} facts={facts} />
+        </TabsContent>
+
+        <TabsContent value="impact">
+          <ImpactTab rules={rules} facts={facts} />
+        </TabsContent>
+
 
         {/* RULES TAB */}
         <TabsContent value="rules">
