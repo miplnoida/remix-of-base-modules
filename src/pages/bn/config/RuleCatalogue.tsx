@@ -34,6 +34,7 @@ import { OverviewTab } from '@/components/bn/ruleCatalogue/OverviewTab';
 import { CoverageTypesTab } from '@/components/bn/ruleCatalogue/CoverageTypesTab';
 import { ValidationTab } from '@/components/bn/ruleCatalogue/ValidationTab';
 import { ImpactTab } from '@/components/bn/ruleCatalogue/ImpactTab';
+import { FactsTab } from '@/components/bn/ruleCatalogue/FactsTab';
 import { validateAllRules } from '@/services/bn/ruleValidationService';
 import { computeAllRuleReadiness } from '@/services/bn/readinessService';
 import { Progress } from '@/components/ui/progress';
