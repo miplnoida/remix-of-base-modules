@@ -235,7 +235,7 @@ export default function RuleConfiguration() {
         </Tabs>
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="sm:max-w-lg">
+          <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{form.id ? 'Edit Rule Group' : 'Add Rule Group'}</DialogTitle>
               <DialogDescription>
@@ -270,22 +270,25 @@ export default function RuleConfiguration() {
                 <Textarea id="rg_desc" value={form.description} maxLength={500} rows={3}
                   onChange={(e) => setForm({ ...form, description: e.target.value })} />
               </div>
-              <div className="flex items-center justify-between">
+              <div className="flex items-end justify-between gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="rg_sort">Sort order</Label>
                   <Input id="rg_sort" type="number" className="w-28" value={form.sort_order}
                     onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) || 0 })} />
                 </div>
-                <div className="flex items-center gap-2 pt-6">
+                <div className="flex items-center gap-2 pb-2">
                   <Switch id="rg_active" checked={form.is_active}
                     onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
                   <Label htmlFor="rg_active">Active</Label>
+                </div>
               </div>
               {form.id && (
-                <RuleGroupLinkedRules groupId={form.id} groupCode={form.group_code} />
+                <div className="pt-2 border-t">
+                  <RuleGroupLinkedRules groupId={form.id} groupCode={form.group_code} />
+                </div>
               )}
-              </div>
             </div>
+
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleSave} disabled={upsert.isPending}>
