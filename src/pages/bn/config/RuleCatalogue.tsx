@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Edit, Copy, Trash2, Power, Search, AlertTriangle, CheckCircle2, FlaskConical, Database, ListChecks, Activity, ShieldCheck, XCircle, PlayCircle } from 'lucide-react';
+import { Plus, Edit, Copy, Trash2, Power, Search, AlertTriangle, CheckCircle2, FlaskConical, Database, ListChecks, Activity, ShieldCheck, XCircle, PlayCircle, LayoutDashboard, BadgeCheck, GitBranch } from 'lucide-react';
 import { resolveFact } from '@/services/bn/eligibility/eligibilityFactResolver';
 import { computeRuleCoverage, type CoverageRow } from '@/services/bn/eligibility/factCoverageService';
 import { runProductEligibilityTest, type ProductTestResult } from '@/services/bn/eligibility/productEligibilityTest';
@@ -30,6 +30,13 @@ import {
 } from '@/services/bn/ruleCatalogueService';
 import { statusBadgeVariant, type EligibilityFact } from '@/services/bn/eligibilityFactService';
 import { getCurrentUserCode } from '@/services/bn/audit/getCurrentUserCode';
+import { OverviewTab } from '@/components/bn/ruleCatalogue/OverviewTab';
+import { CoverageTypesTab } from '@/components/bn/ruleCatalogue/CoverageTypesTab';
+import { ValidationTab } from '@/components/bn/ruleCatalogue/ValidationTab';
+import { ImpactTab } from '@/components/bn/ruleCatalogue/ImpactTab';
+import { validateAllRules } from '@/services/bn/ruleValidationService';
+import { computeAllRuleReadiness } from '@/services/bn/readinessService';
+import { Progress } from '@/components/ui/progress';
 
 const emptyInput: RuleCatalogueInput = {
   rule_code: '', rule_name: '', description: '', group_type: 'CONTRIBUTION',
