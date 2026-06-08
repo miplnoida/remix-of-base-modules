@@ -200,7 +200,7 @@ export default function RuleCatalogue() {
         </TabsList>
 
         <TabsContent value="overview">
-          <OverviewTab rules={rules} facts={facts} coverageTypes={[]} coverageRules={[]} />
+          <OverviewTab rules={rules} facts={facts} />
         </TabsContent>
 
         <TabsContent value="coverage-types">
