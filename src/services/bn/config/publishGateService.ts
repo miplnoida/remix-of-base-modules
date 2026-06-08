@@ -20,6 +20,7 @@
  */
 import { hasBlockingConflicts, detectProductVersionConflicts } from './conflictDetectionService';
 import { checkPublicReadiness, checkStaffReadiness } from '../productAcceptanceService';
+import { checkLegalReadiness, type LegalIssue } from './legalReadinessService';
 import { supabase } from '@/integrations/supabase/client';
 
 const db = supabase as any;
@@ -33,8 +34,10 @@ export interface PublishGateReport {
     publicChannel?: { ok: boolean; issues: string[] };
     staffChannel?: { ok: boolean; issues: string[] };
     baseline?: { status: string; failures: string[] };
+    legal?: { ok: boolean; blocking: LegalIssue[]; warnings: LegalIssue[]; total_rules: number };
   };
 }
+
 
 export async function assertSafeToPublish(versionId: string): Promise<PublishGateReport> {
   const errors: string[] = [];
