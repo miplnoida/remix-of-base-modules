@@ -691,7 +691,7 @@ function CoverageTab({ rules }: { rules: RuleCatalogueItem[] }) {
   };
 
   // auto-run when rules load/change
-  useMemo(() => { if (rules.length) run(); /* eslint-disable-line */ }, [rules.length]);
+  useEffect(() => { if (rules.length) run(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [rules.length]);
 
   const ok = rows.filter(r => r.blocking_reasons.length === 0).length;
   const blocked = rows.filter(r => r.blocking_reasons.length > 0).length;
