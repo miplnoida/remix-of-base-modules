@@ -8521,6 +8521,7 @@ export type Database = {
           configured_by: string | null
           data_source: string | null
           document_type_code: string | null
+          effective_date: string | null
           effective_from: string | null
           effective_to: string | null
           end_fact_key: string | null
@@ -8531,9 +8532,18 @@ export type Database = {
           fail_action: string
           fail_message: string | null
           fallback_end_fact_key: string | null
+          governance_status: string
+          governance_updated_at: string | null
+          governance_updated_by: string | null
           group_code: string | null
           id: string
           is_active: boolean
+          jurisdiction_country: string | null
+          legal_approved_at: string | null
+          legal_approved_by: string | null
+          legal_approver_comment: string | null
+          legal_notes: string | null
+          legal_reference: string | null
           legislative_reference: string | null
           message_template: string | null
           override_policy_code: string | null
@@ -8560,6 +8570,8 @@ export type Database = {
           source_url: string | null
           start_fact_key: string | null
           statutory_basis: string | null
+          technical_validated_at: string | null
+          technical_validated_by: string | null
           unit: Database["public"]["Enums"]["bn_eligibility_rule_unit"] | null
         }
         Insert: {
@@ -8574,6 +8586,7 @@ export type Database = {
           configured_by?: string | null
           data_source?: string | null
           document_type_code?: string | null
+          effective_date?: string | null
           effective_from?: string | null
           effective_to?: string | null
           end_fact_key?: string | null
@@ -8584,9 +8597,18 @@ export type Database = {
           fail_action?: string
           fail_message?: string | null
           fallback_end_fact_key?: string | null
+          governance_status?: string
+          governance_updated_at?: string | null
+          governance_updated_by?: string | null
           group_code?: string | null
           id?: string
           is_active?: boolean
+          jurisdiction_country?: string | null
+          legal_approved_at?: string | null
+          legal_approved_by?: string | null
+          legal_approver_comment?: string | null
+          legal_notes?: string | null
+          legal_reference?: string | null
           legislative_reference?: string | null
           message_template?: string | null
           override_policy_code?: string | null
@@ -8613,6 +8635,8 @@ export type Database = {
           source_url?: string | null
           start_fact_key?: string | null
           statutory_basis?: string | null
+          technical_validated_at?: string | null
+          technical_validated_by?: string | null
           unit?: Database["public"]["Enums"]["bn_eligibility_rule_unit"] | null
         }
         Update: {
@@ -8627,6 +8651,7 @@ export type Database = {
           configured_by?: string | null
           data_source?: string | null
           document_type_code?: string | null
+          effective_date?: string | null
           effective_from?: string | null
           effective_to?: string | null
           end_fact_key?: string | null
@@ -8637,9 +8662,18 @@ export type Database = {
           fail_action?: string
           fail_message?: string | null
           fallback_end_fact_key?: string | null
+          governance_status?: string
+          governance_updated_at?: string | null
+          governance_updated_by?: string | null
           group_code?: string | null
           id?: string
           is_active?: boolean
+          jurisdiction_country?: string | null
+          legal_approved_at?: string | null
+          legal_approved_by?: string | null
+          legal_approver_comment?: string | null
+          legal_notes?: string | null
+          legal_reference?: string | null
           legislative_reference?: string | null
           message_template?: string | null
           override_policy_code?: string | null
@@ -8666,6 +8700,8 @@ export type Database = {
           source_url?: string | null
           start_fact_key?: string | null
           statutory_basis?: string | null
+          technical_validated_at?: string | null
+          technical_validated_by?: string | null
           unit?: Database["public"]["Enums"]["bn_eligibility_rule_unit"] | null
         }
         Relationships: [
