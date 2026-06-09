@@ -1,4 +1,5 @@
 import { useUserCode } from '@/hooks/useUserCode';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 /**
  * Benefit Determination Screen
  * 
@@ -41,8 +42,8 @@ export default function BenefitDetermination() {
   const executeAction = useExecuteDeterminationAction();
   const runCalc = useRunDeterminationCalc();
 
-  // TODO: get from auth context
-  const userRoles = ['admin', 'claims_officer'];
+  const { roles: authRoles } = useSupabaseAuth();
+  const userRoles = (authRoles ?? []).map((r) => String(r));
   const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
 
   const handleAction = (action: string, narrative?: string, reasonCodeId?: string) => {

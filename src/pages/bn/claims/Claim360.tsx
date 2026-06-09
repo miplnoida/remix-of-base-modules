@@ -13,6 +13,7 @@ import { useBnClaim, useBnClaimEvents, useBnClaimNotes, useBnClaimEligibility, u
 import { BN_CLAIM_STATUS_LABELS } from '@/types/bn';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { ClaimDecisionPanel } from '@/components/bn/claim/ClaimDecisionPanel';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { ClaimDecisionTimeline } from '@/components/bn/claim/ClaimDecisionTimeline';
 import { EvidenceChecklist } from '@/components/bn/evidence/EvidenceChecklist';
 import { EvidenceAuditTimeline } from '@/components/bn/evidence/EvidenceAuditTimeline';
@@ -30,7 +31,8 @@ export default function Claim360() {
   const { data: eligibility = [] } = useBnClaimEligibility(id);
   const { data: calculations = [] } = useBnClaimCalculations(id);
 
-  const userRoles = ['Admin'];
+  const { roles: authRoles } = useSupabaseAuth();
+  const userRoles = (authRoles ?? []).map((r) => String(r));
 
   if (isLoading) return <BnEmptyState type="loading" title="Loading claim..." />;
   if (!claim) return <BnEmptyState type="error" title="Claim not found" description="The requested claim does not exist." />;
