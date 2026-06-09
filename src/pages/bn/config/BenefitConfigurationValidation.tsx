@@ -34,6 +34,7 @@ import {
 import { findBaselineByCode } from '@/services/bn/skn/sknBenefitCatalogueBaseline';
 import { RegistryConformanceCard } from '@/components/bn/validation/RegistryConformanceCard';
 import { RuleGovernanceStatusCard } from '@/components/bn/governance/RuleGovernanceStatusCard';
+import { ClaimGovernanceReadinessCard } from '@/components/bn/governance/ClaimGovernanceReadinessCard';
 
 const STATUS_VARIANT: Record<ValidationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   PASS: 'default',
@@ -272,6 +273,8 @@ export default function BenefitConfigurationValidation() {
       </Alert>
 
       <RuleGovernanceStatusCard />
+
+      <ClaimGovernanceReadinessCard />
 
       <RegistryConformanceCard />
 

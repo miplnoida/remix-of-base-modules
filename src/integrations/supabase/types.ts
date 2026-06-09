@@ -4487,6 +4487,8 @@ export type Database = {
           requires_reason_code: boolean
           requires_supervisor_approval: boolean
           self_approval_allowed: boolean
+          stage_code: string | null
+          stage_sequence: number | null
           updated_at: string
           updated_by: string | null
         }
@@ -4520,6 +4522,8 @@ export type Database = {
           requires_reason_code?: boolean
           requires_supervisor_approval?: boolean
           self_approval_allowed?: boolean
+          stage_code?: string | null
+          stage_sequence?: number | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -4553,6 +4557,8 @@ export type Database = {
           requires_reason_code?: boolean
           requires_supervisor_approval?: boolean
           self_approval_allowed?: boolean
+          stage_code?: string | null
+          stage_sequence?: number | null
           updated_at?: string
           updated_by?: string | null
         }
