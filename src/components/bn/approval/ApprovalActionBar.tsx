@@ -114,13 +114,17 @@ export const ApprovalActionBar: React.FC<Props> = ({
           {filteredActions.map((action) => {
             const Icon = iconMap[action.action] || CheckCircle;
             const blocked = isMakerCheckerBlocked(action);
+            const tooltip = blocked
+              ? 'Self-approval blocked: you submitted this case. A different approver must act on it.'
+              : action.entitlementImpact;
             return (
               <Button
                 key={action.action}
                 variant={action.variant}
                 size="sm"
                 disabled={isExecuting || blocked || (selectedCount === 0 && action.action !== 'APPROVE')}
-                title={blocked ? 'Maker-checker: cannot act on own submission' : action.entitlementImpact}
+                title={tooltip}
+                aria-disabled={blocked || undefined}
                 onClick={() => handleActionClick(action)}
               >
                 <Icon className="h-3.5 w-3.5 mr-1" />
@@ -128,6 +132,7 @@ export const ApprovalActionBar: React.FC<Props> = ({
               </Button>
             );
           })}
+
 
           {isMaker && !isAdmin && (
             <Badge variant="outline" className="text-xs border-amber-500 text-amber-600 ml-2">
