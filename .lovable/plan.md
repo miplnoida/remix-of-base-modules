@@ -1,105 +1,50 @@
-## Goal
-Move from a 1-rule-to-1-group model to a many-to-many model where **Rule Category** is the primary classification and **Rule Groups** become optional reusable bundles. Rebuild Product Catalogue → Eligibility around Category-first selection with Group templates as accelerators, plus pre-save conflict detection.
+# BN Rule Governance Implementation Plan
 
-## 1. Database migration
-New migration adds the join table and enriches product eligibility rows.
+Scope is large and crosses DB seeding, the workflow engine, Rule Library UI, validation gates, Product Catalog gating, and audit. I want your sign-off on the phasing and a few key decisions before I start changing code, so we don't end up half-wiring two parallel systems.
 
-```sql
--- 1a. Many-to-many: rule <-> group
-CREATE TABLE public.bn_rule_group_item (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  rule_group_id uuid NOT NULL REFERENCES public.bn_rule_group(id) ON DELETE CASCADE,
-  catalogue_rule_id uuid NOT NULL REFERENCES public.bn_rule_catalogue(id) ON DELETE CASCADE,
-  rule_code text NOT NULL,
-  sort_order int NOT NULL DEFAULT 0,
-  default_active boolean NOT NULL DEFAULT true,
-  notes text,
-  created_by text, updated_by text,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (rule_group_id, catalogue_rule_id)
-);
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.bn_rule_group_item TO authenticated;
-GRANT ALL ON public.bn_rule_group_item TO service_role;
--- RLS disabled per project standard (role-based only).
+## Phasing
 
--- 1b. Backfill from existing bn_rule_catalogue.rule_group_id
-INSERT INTO public.bn_rule_group_item (rule_group_id, catalogue_rule_id, rule_code, sort_order, default_active)
-SELECT rule_group_id, id, rule_code, COALESCE(default_rule_sort_order,0), is_active
-FROM public.bn_rule_catalogue
-WHERE rule_group_id IS NOT NULL
-ON CONFLICT DO NOTHING;
+### Phase 1 — Foundation (DB seed + governance state on rules)
+Single migration + seed:
+- Seed 7 roles in `roles` (idempotent on `role_name`).
+- Seed `app_modules` row `bn_rule_governance` + 14 `module_actions` (one per `bn.rules.*` permission).
+- Seed `role_permissions` matrix per spec.
+- Seed 6 `bn_workbasket` rows mapped to roles.
+- Add `governance_status` column to `bn_eligibility_rule` (enum-as-text: DRAFT, TECHNICAL_REVIEW, LEGAL_REVIEW, LEGAL_CONFIRMED, READY_FOR_PRODUCT_USE, ACTIVE, RETIRED) defaulting from existing `status` field, plus `legal_reference`, `legal_notes`, `jurisdiction_country`, `effective_date`, `legal_approver_comment`, `legal_approved_by`, `legal_approved_at`, `technical_validated_by`, `technical_validated_at`.
+- Backfill `governance_status` from existing `status` where possible.
 
--- 1c. Make rule_group_id on catalogue optional / deprecated (keep column for back-compat, drop NOT NULL/usage in UI).
+### Phase 2 — Workflow template
+- Create `workflow_definitions` row `RULE_GOVERNANCE_WORKFLOW` (process_type `BN_ELIGIBILITY_RULE`, secured_table `bn_eligibility_rule`).
+- Create 7 `workflow_steps` (one per stage) with `assigned_role`.
+- Create `workflow_action_configurations` + `workflow_action_outcomes` for the 9 transitions in the spec, each tied to the correct role.
+- Audit: writes to `workflow_logs`, `workflow_execution_logs`, `system_audit_trail` happen automatically via existing engine — verify, don't re-implement.
 
--- 1d. Enrich bn_eligibility_rule with category + group provenance
-ALTER TABLE public.bn_eligibility_rule
-  ADD COLUMN IF NOT EXISTS rule_category text,
-  ADD COLUMN IF NOT EXISTS source_rule_group_id uuid REFERENCES public.bn_rule_group(id),
-  ADD COLUMN IF NOT EXISTS source_rule_group_code text,
-  ADD COLUMN IF NOT EXISTS catalogue_rule_version int;
+### Phase 3 — Rule Library UI rewiring
+- Remove manual status select on rule detail.
+- Replace with `WorkflowActionsBar` driven by `useWorkflowActions(workflowName='RULE_GOVERNANCE_WORKFLOW', recordId=rule.id)` — same hook other modules use.
+- Each action button calls existing `useExecuteWorkflowAction` mutation. No new approval system.
+- Show current `governance_status` badge + read-only legacy `status`.
 
--- 1e. Helper view for "used in groups" count
-CREATE OR REPLACE VIEW public.bn_rule_catalogue_group_usage AS
-SELECT catalogue_rule_id, COUNT(*) AS group_count,
-       array_agg(DISTINCT rule_group_id) AS group_ids
-FROM public.bn_rule_group_item GROUP BY catalogue_rule_id;
-GRANT SELECT ON public.bn_rule_catalogue_group_usage TO authenticated;
-```
+### Phase 4 — Validation gates (server-side, in transition)
+Implement as Postgres functions invoked by the transition action handler (or as a guard in `useExecuteWorkflowAction` precheck — confirm pattern used elsewhere first):
+- `bn_validate_rule_technical(rule_id)` → checks fact exists/implemented, operator allowed, value present, dates valid, no cycles. Returns `{ok, errors[]}`.
+- `bn_validate_rule_legal(rule_id)` → checks legal_reference, legal_notes, jurisdiction, effective_date, approver_comment all populated.
+- Transitions PASS_TECHNICAL_REVIEW / APPROVE_LEGAL block on failures; errors surface in toast.
 
-## 2. Service layer
-- `src/services/bn/ruleGroupItemService.ts` (new): `listGroupItems(groupId)`, `listGroupsForRule(ruleId)`, `addRulesToGroup(groupId, ruleIds[])`, `removeFromGroup(itemId)`, `reorder(groupId, ordered[])`.
-- `src/services/bn/ruleCatalogueService.ts`: drop `rule_group_id` lookup writes; add `getGroupUsageMap()` returning `Record<ruleId, {count, groupCodes[]}>`.
-- `src/services/bn/eligibility/productEligibilityService.ts` (extend existing): `bulkAddRulesFromCatalogue(versionId, [{ruleId, sourceGroupId?}])` populating new category + provenance columns.
-- `src/services/bn/eligibility/conflictDetectionService.ts` (new — separate from cross-tab `conflictDetectionService`): pre-save analyzer returning `[{ruleA, ruleB, reason, suggestion}]`. Checks:
-  - Same `fact_key` with incompatible operators (`>` vs `<`, `EQUALS` vs `NOT_EQUALS` with same value, etc.).
-  - Opposite age rules (e.g., `AGE_AT_CLAIM >= 60` AND `< 60`).
-  - Duplicate contribution thresholds (same fact_key + operator family).
-  - Duplicate timing thresholds.
-  - Document status rules expecting different values for same doc.
-  - `NOT_IMPLEMENTED` or unlinked facts.
-  - Active rule missing threshold for value-bearing operator.
+### Phase 5 — Product Catalog integration
+- `EligibilityTabRedesigned` "Add rules" dialog filters to `governance_status IN ('READY_FOR_PRODUCT_USE','ACTIVE')`.
+- If product version is DRAFT, allow attaching `LEGAL_REVIEW`+ rules with an inline warning chip.
+- On product version activation (existing activate flow), add precheck: every attached rule's `governance_status` must be `LEGAL_CONFIRMED | READY_FOR_PRODUCT_USE | ACTIVE`. Otherwise block with list of offending rules. On successful activation, system transitions each attached READY rule → ACTIVE via `ACTIVATE_WHEN_USED`.
 
-## 3. Rule Catalogue screen (`src/pages/bn/config/RuleCatalogue.tsx` + `RuleEditorDialog`)
-- Rename column/field label **Group → Category**. Category is required.
-- Remove the single "Linked Rule Group" dropdown from the editor.
-- Add **Used in Groups** column showing count + tooltip listing group codes.
-- Add a side panel "Manage Group Memberships" launched per row → multi-select Rule Groups to add/remove via `bn_rule_group_item`.
+### Phase 6 — Configuration Validation card + Audit verification
+- New card on the existing `bn/config/validation` page: "Rule Governance Workflow" running 8 checks listed in spec.
+- Quick audit sanity script confirms `workflow_logs` + `system_audit_trail` entries land per action.
 
-## 4. Rule Groups screen (`src/pages/bn/config/RuleConfiguration.tsx`, `RuleGroupLinkedRules.tsx`)
-- Replace current "linked = catalogue.rule_group_id == this group" logic with `bn_rule_group_item` queries.
-- "Add Rules to Group" dialog: filter catalogue by category + search + active, multi-select, insert into join table.
-- Remove button now deletes the join row instead of nulling catalogue FK.
-- Reorder updates `sort_order` on join row.
+## Key decisions I need from you
 
-## 5. Product Catalogue → Eligibility (`EligibilityRulesTab.tsx`)
-Replace existing add flow with two entry points:
+1. **`bn_eligibility_rule.status` vs new `governance_status`** — keep both (status = legacy/display, governance_status = workflow truth) or migrate status fully? I recommend keeping both for one release and deprecating `status` once UI is migrated.
+2. **Validation gates** — implement as Postgres SECURITY DEFINER functions called from a thin edge function the workflow action invokes, or as TS-side precheck in `useExecuteWorkflowAction`? Most other modules use TS precheck. I recommend TS precheck for parity.
+3. **Backfill** — for existing rules with status='active', set `governance_status='ACTIVE'` and stamp legal_approved_at=now with a system marker, or leave them in DRAFT and require re-governance? I recommend auto-stamp ACTIVE with `legal_notes='Backfilled from legacy status'` so live products don't break.
+4. **Scope of this turn** — do you want all 6 phases in one go, or ship Phase 1+2+3 first (governance live but Product Catalog still permissive) and follow up with 4+5+6? Given the size I strongly recommend splitting.
 
-**A. Add by Category** (`AddRulesByCategoryDialog.tsx` new):
-- Accordion per category (12 categories from spec).
-- Inside: searchable list of active rules with READY/PARTIAL/BLOCKED badge from `computeRuleCoverage`.
-- Multi-select across categories. Save → bulk insert via service.
-
-**B. Add from Rule Group Template** (`AddRulesFromGroupDialog.tsx` new):
-- Select group → list all member rules preselected with checkboxes.
-- Can deselect / add more from same category. Save bulk-inserts with `source_rule_group_id` set.
-
-Inline conflict panel runs after each add and again pre-save:
-- `ConflictPreviewPanel.tsx` (new) — for each conflict shows `Rule A | Rule B | Reason | Suggested Action` with Resolve buttons (Remove A / Remove B / Mark allowed).
-
-Lock UI for `fact_key`, resolver, source table/column, `catalogue_rule_code`. Editable: `value_from/to/values`, `fail_action`, `failure_message`, `is_active`, `sort_order`.
-
-## 6. Publish guard (`publishGuard.ts`)
-Add: any unresolved conflict from new detector → BLOCK.
-
-## 7. Verification
-- Migration applies; backfill row count > 0.
-- `/bn/config/rules` shows Category + Used in Groups; no mandatory group.
-- `/bn/config/rule-groups` add/remove rules persists via join table.
-- Product → Eligibility: "Add by Category" + "Add from Template" work; conflict panel surfaces opposite-age and duplicate-threshold scenarios.
-
-## Technical notes
-- Keep `bn_rule_catalogue.rule_group_id` column for back-compat but stop writing to it (deprecated comment).
-- Conflict detector is pure TS over the in-memory rule set — no RPC.
-- No RLS (project policy: role-based only).
-- All `created_by/updated_by` use logged-in `user_code`.
+Reply with your picks (or "all defaults, ship phases 1–3 now") and I'll execute.
