@@ -1,4 +1,5 @@
 import { useUserCode } from '@/hooks/useUserCode';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 /**
  * Approval Console — Main Page
  * 
