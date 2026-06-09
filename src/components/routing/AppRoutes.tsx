@@ -1842,6 +1842,7 @@ export const AppRoutes = () => {
       <Route path="/bn/intake/register" element={<BnFeatureGate flag="bn.claims.intake"><BnClaimRegistration /></BnFeatureGate>} />
       <Route path="/bn/queue" element={<BnFeatureGate flag="bn.claims.workbench"><BnClaimQueue /></BnFeatureGate>} />
       <Route path="/bn/approval" element={<BnFeatureGate flag="bn.claims.workbench"><BnApprovalConsole /></BnFeatureGate>} />
+      <Route path="/bn/approval/workbaskets" element={<BnFeatureGate flag="bn.claims.workbench"><BnApprovalWorkbasketsConsole /></BnFeatureGate>} />
       <Route path="/bn/approval/queue" element={<BnFeatureGate flag="bn.claims.workbench"><BnApprovalQueue /></BnFeatureGate>} />
       <Route path="/bn/approval/workspace/:claimId" element={<BnFeatureGate flag="bn.claims.workbench"><BnAdjudicationWorkspace /></BnFeatureGate>} />
       <Route path="/bn/entitlements" element={<BnFeatureGate flag="bn.awards"><BnEntitlementManagement /></BnFeatureGate>} />
