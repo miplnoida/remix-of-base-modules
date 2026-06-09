@@ -301,6 +301,7 @@ export default function RuleCatalogue() {
                       <TableHead>Fact</TableHead>
                       <TableHead>Used</TableHead>
                       <TableHead>Ver</TableHead>
+                      <TableHead>Governance</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
