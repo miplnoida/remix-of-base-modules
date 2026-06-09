@@ -12475,13 +12475,23 @@ export type Database = {
           default_group_sort_order: number
           default_rule_sort_order: number
           description: string | null
+          effective_date: string | null
           effective_from: string | null
           effective_to: string | null
           fact_key: string | null
           failure_message_text: string | null
+          governance_status: string
+          governance_updated_at: string | null
+          governance_updated_by: string | null
           group_type: string
           id: string
           is_active: boolean
+          jurisdiction_country: string | null
+          legal_approved_at: string | null
+          legal_approved_by: string | null
+          legal_approver_comment: string | null
+          legal_notes: string | null
+          legal_reference: string | null
           legislative_reference: string | null
           operator: string
           parameter: string | null
@@ -12499,6 +12509,8 @@ export type Database = {
           source_url: string | null
           statutory_basis: string | null
           tags: string[]
+          technical_validated_at: string | null
+          technical_validated_by: string | null
           updated_at: string
           updated_by: string | null
           value_from: string | null
@@ -12518,13 +12530,23 @@ export type Database = {
           default_group_sort_order?: number
           default_rule_sort_order?: number
           description?: string | null
+          effective_date?: string | null
           effective_from?: string | null
           effective_to?: string | null
           fact_key?: string | null
           failure_message_text?: string | null
+          governance_status?: string
+          governance_updated_at?: string | null
+          governance_updated_by?: string | null
           group_type: string
           id?: string
           is_active?: boolean
+          jurisdiction_country?: string | null
+          legal_approved_at?: string | null
+          legal_approved_by?: string | null
+          legal_approver_comment?: string | null
+          legal_notes?: string | null
+          legal_reference?: string | null
           legislative_reference?: string | null
           operator: string
           parameter?: string | null
@@ -12542,6 +12564,8 @@ export type Database = {
           source_url?: string | null
           statutory_basis?: string | null
           tags?: string[]
+          technical_validated_at?: string | null
+          technical_validated_by?: string | null
           updated_at?: string
           updated_by?: string | null
           value_from?: string | null
@@ -12561,13 +12585,23 @@ export type Database = {
           default_group_sort_order?: number
           default_rule_sort_order?: number
           description?: string | null
+          effective_date?: string | null
           effective_from?: string | null
           effective_to?: string | null
           fact_key?: string | null
           failure_message_text?: string | null
+          governance_status?: string
+          governance_updated_at?: string | null
+          governance_updated_by?: string | null
           group_type?: string
           id?: string
           is_active?: boolean
+          jurisdiction_country?: string | null
+          legal_approved_at?: string | null
+          legal_approved_by?: string | null
+          legal_approver_comment?: string | null
+          legal_notes?: string | null
+          legal_reference?: string | null
           legislative_reference?: string | null
           operator?: string
           parameter?: string | null
@@ -12585,6 +12619,8 @@ export type Database = {
           source_url?: string | null
           statutory_basis?: string | null
           tags?: string[]
+          technical_validated_at?: string | null
+          technical_validated_by?: string | null
           updated_at?: string
           updated_by?: string | null
           value_from?: string | null

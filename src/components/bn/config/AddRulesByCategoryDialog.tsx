@@ -55,6 +55,9 @@ export function AddRulesByCategoryDialog({ open, onOpenChange, versionId, onAdde
     const m = new Map<string, RuleCatalogueItem[]>();
     for (const r of rules) {
       if (!r.is_active) continue;
+      // Governance gate — only legally approved rules attach to products
+      const gs = (r as any).governance_status;
+      if (gs && !['LEGAL_CONFIRMED','READY_FOR_PRODUCT_USE','ACTIVE'].includes(gs)) continue;
       if (s && !r.rule_code.toLowerCase().includes(s) && !r.rule_name.toLowerCase().includes(s)
           && !(r.fact_key ?? '').toLowerCase().includes(s)) continue;
       const cat = (r.category ?? r.group_type ?? 'COMMON') as string;

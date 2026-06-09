@@ -63,6 +63,12 @@ export interface RuleCatalogueItem {
   updated_by: string | null;
   created_at: string;
   updated_at: string;
+  // Governance (Phase 1 — RULE_GOVERNANCE_WORKFLOW)
+  governance_status?: 'DRAFT' | 'TECHNICAL_REVIEW' | 'LEGAL_REVIEW' | 'LEGAL_CONFIRMED' | 'READY_FOR_PRODUCT_USE' | 'ACTIVE' | 'RETIRED';
+  legal_reference?: string | null;
+  legal_notes?: string | null;
+  jurisdiction_country?: string | null;
+  effective_date?: string | null;
 }
 
 export type RuleCatalogueInput = Omit<

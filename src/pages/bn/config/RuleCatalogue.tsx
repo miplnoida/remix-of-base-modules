@@ -42,6 +42,9 @@ import { AuditTab } from '@/components/bn/ruleCatalogue/AuditTab';
 import { validateAllRules } from '@/services/bn/ruleValidationService';
 import { computeAllRuleReadiness } from '@/services/bn/readinessService';
 import { Progress } from '@/components/ui/progress';
+import { GovernanceStatusBadge } from '@/components/bn/governance/GovernanceStatusBadge';
+import { GovernanceActionsMenu } from '@/components/bn/governance/GovernanceActionsMenu';
+import { useQueryClient } from '@tanstack/react-query';
 
 const emptyInput: RuleCatalogueInput = {
   rule_code: '', rule_name: '', description: '', group_type: 'CONTRIBUTION',
@@ -72,6 +75,7 @@ export default function RuleCatalogue() {
   const clone = useCloneRuleCatalogue();
   const remove = useDeleteRuleCatalogue();
   const toggle = useToggleRuleCatalogueActive();
+  const qc = useQueryClient();
 
   const factByKey = useMemo(() => {
     const m = new Map<string, EligibilityFact>();
@@ -298,6 +302,7 @@ export default function RuleCatalogue() {
                       <TableHead>Fact</TableHead>
                       <TableHead>Used</TableHead>
                       <TableHead>Ver</TableHead>
+                      <TableHead>Governance</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -326,6 +331,23 @@ export default function RuleCatalogue() {
                           </TableCell>
                           <TableCell className="text-xs">{usage[r.rule_code] ?? 0}</TableCell>
                           <TableCell className="text-xs">v{r.version}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col items-start gap-1">
+                              <GovernanceStatusBadge status={(r as any).governance_status} />
+                              <GovernanceActionsMenu
+                                ruleId={r.id}
+                                ruleCode={r.rule_code}
+                                status={((r as any).governance_status ?? 'DRAFT') as any}
+                                defaults={{
+                                  legal_reference: (r as any).legal_reference,
+                                  legal_notes: (r as any).legal_notes,
+                                  jurisdiction_country: (r as any).jurisdiction_country,
+                                  effective_date: (r as any).effective_date,
+                                }}
+                                onChanged={() => qc.invalidateQueries({ queryKey: ['bn', 'rule-catalogue'] })}
+                              />
+                            </div>
+                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
                               <Button size="icon" variant="ghost" onClick={() => openEdit(r)} title="Edit"><Edit className="h-4 w-4" /></Button>
