@@ -28,8 +28,8 @@ export default function ApprovalConsole() {
   const executeAction = useExecuteApprovalAction();
   const bulkApprove = useBulkApproval();
 
-  // TODO: get from auth context
-  const userRoles = ['admin', 'supervisor'];
+  const { roles: authRoles } = useSupabaseAuth();
+  const userRoles = (authRoles ?? []).map((r) => String(r));
   const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
 
   // Stats
