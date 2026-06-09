@@ -770,6 +770,7 @@ const BnCalculationEngine = lazy(() => import('@/pages/bn/engine/CalculationEngi
 const BnBenefitDetermination = lazy(() => import('@/pages/bn/claims/BenefitDetermination'));
 const BnClaimRegistration = lazy(() => import('@/pages/bn/intake/ClaimRegistration'));
 const BnApprovalConsole = lazy(() => import('@/pages/bn/approval/ApprovalConsole'));
+const BnApprovalWorkbasketsConsole = lazy(() => import('@/pages/bn/approval/ApprovalWorkbasketsConsole'));
 const BnApprovalQueue = lazy(() => import('@/pages/bn/approval/ApprovalQueue'));
 const BnAdjudicationWorkspace = lazy(() => import('@/pages/bn/approval/AdjudicationWorkspace'));
 const BnEligibilityReview = lazy(() => import('@/pages/bn/claims/EligibilityReview'));
