@@ -17,7 +17,6 @@ import { ALLOWED_TRANSITIONS, CLAIM_STATUSES, CLAIM_ACTIONS } from './registries
 import { FORMULA_VARIABLES } from './registries/formulaVariableRegistry';
 import { ELIGIBILITY_FIELDS } from './registries/eligibilityFieldRegistry';
 import { SMART_FIELD_TYPES } from './registries/smartFieldRegistry';
-import { BN_WORKFLOW_ROLES } from './registries/workflowRolesRegistry';
 import { fetchWorkflowRoles } from './workflowRoleCatalogService';
 import { parseFormula } from '@/lib/bn/formulaParser';
 
