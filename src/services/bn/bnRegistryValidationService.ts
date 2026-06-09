@@ -211,9 +211,25 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
   const allowedRoles = new Set<string>(await fetchWorkflowRoles());
   const workbaskets = await safeFetch('bn_workbasket');
   const workbasketByCode = new Map<string, any>();
+
+  // Pre-fetch role coverage tables
+  const workbasketRoles = await safeFetch('bn_workbasket_role'); // {workbasket_id, role_name}
+  const rolesByBasket = new Map<string, string[]>();
+  for (const wbr of workbasketRoles) {
+    const list = rolesByBasket.get(wbr.workbasket_id) || [];
+    list.push(wbr.role_name);
+    rolesByBasket.set(wbr.workbasket_id, list);
+  }
+
+  // Effective-role coverage: which roles have at least one user (direct/bundle/delegation)
+  const effRoles = await safeFetch('v_bn_user_effective_roles');
+  const rolesWithUsers = new Set<string>(effRoles.map((r: any) => r.role_name));
+
   for (const w of workbaskets) {
     if (w.basket_code) workbasketByCode.set(w.basket_code, w);
     if (w.is_active === false) continue;
+
+    // Legacy single-role check (kept for any rows not yet migrated)
     if (w.assigned_role && !allowedRoles.has(w.assigned_role)) {
       findings.push({
         category: 'WORKFLOW_ROLE',
@@ -223,7 +239,58 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
         message: `${w.basket_code}: role "${w.assigned_role}" not in workflow role registry`,
       });
     }
+
+    // New: workbasket must have at least one mapped role
+    const wbRoles = rolesByBasket.get(w.id) || (w.assigned_role ? [w.assigned_role] : []);
+    if (wbRoles.length === 0) {
+      findings.push({
+        category: 'WORKFLOW_ROLE',
+        severity: 'ERROR',
+        entity: 'bn_workbasket',
+        entityId: w.id,
+        message: `${w.basket_code}: workbasket has no role assignments`,
+      });
+      continue;
+    }
+
+    // New: every mapped role must have at least one user (direct, bundle, or delegation)
+    const uncovered = wbRoles.filter((r) => !rolesWithUsers.has(r));
+    if (uncovered.length === wbRoles.length) {
+      findings.push({
+        category: 'WORKFLOW_ROLE',
+        severity: 'ERROR',
+        entity: 'bn_workbasket',
+        entityId: w.id,
+        message: `${w.basket_code}: no users hold any of its roles (${wbRoles.join(', ')})`,
+      });
+    } else if (uncovered.length > 0) {
+      findings.push({
+        category: 'WORKFLOW_ROLE',
+        severity: 'WARNING',
+        entity: 'bn_workbasket',
+        entityId: w.id,
+        message: `${w.basket_code}: role(s) without assigned users: ${uncovered.join(', ')}`,
+      });
+    }
   }
+
+  // Approval policy alternate-approver check
+  const approvalPolicies = await safeFetch('bn_approval_policy');
+  for (const ap of approvalPolicies) {
+    if (ap.is_enabled === false) continue;
+    if (!ap.approval_role) continue;
+    if (ap.self_approval_allowed === true) continue;
+    if (!rolesWithUsers.has(ap.approval_role)) {
+      findings.push({
+        category: 'WORKFLOW_ROLE',
+        severity: 'ERROR',
+        entity: 'bn_approval_policy',
+        entityId: ap.id,
+        message: `${ap.policy_area}/${ap.action_code}: self-approval blocked but no eligible approver holds role "${ap.approval_role}"`,
+      });
+    }
+  }
+
   const escPolicies = await safeFetch('bn_escalation_policy');
   for (const p of escPolicies) {
     if (p.is_active === false) continue;
