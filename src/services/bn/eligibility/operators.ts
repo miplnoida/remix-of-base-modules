@@ -20,6 +20,8 @@ export type EligibilityDataType =
 export type EligibilityOperator =
   | '>='
   | '<='
+  | '>'
+  | '<'
   | '='
   | '!='
   | 'exists'
