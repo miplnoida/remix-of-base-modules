@@ -45,9 +45,13 @@ export default function EligibilityReview() {
   const [compareMode, setCompareMode] = useState(false);
   const [compareSnapshot, setCompareSnapshot] = useState(1);
 
-  const userRoles = ['admin', 'claims_officer'];
+  const { roles: authRoles } = useSupabaseAuth();
+  const userRoles = (authRoles ?? []).map((r) => String(r));
   const { userCode: _uc } = useUserCode(); const userCode = _uc ?? '';
-  const isSupervisor = userRoles.some(r => ['supervisor', 'admin', 'manager'].includes(r.toLowerCase()));
+  const isSupervisor = userRoles.some((r) =>
+    ['BN_SUPERVISOR','BN_MANAGER','BN_DIRECTOR','BN_SENIOR_ELIGIBILITY_OFFICER','admin','Admin']
+      .some((s) => s.toLowerCase() === r.toLowerCase())
+  );
 
   const handleRunEligibility = () => {
     if (!claimId) return;
