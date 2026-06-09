@@ -27,8 +27,12 @@ export function CataloguePickerDialog({ open, onOpenChange, versionId, onAdded }
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
 
+  const ALLOWED_GOV = new Set(['LEGAL_CONFIRMED','READY_FOR_PRODUCT_USE','ACTIVE']);
   const filtered = useMemo(() => rules.filter(r => {
     if (!r.is_active) return false;
+    const gs = (r as any).governance_status;
+    // Governance gate: only legally-confirmed (or beyond) rules can be attached to a product version
+    if (gs && !ALLOWED_GOV.has(gs)) return false;
     if (!search) return true;
     const s = search.toLowerCase();
     return r.rule_code.toLowerCase().includes(s) || r.rule_name.toLowerCase().includes(s) || r.group_type.toLowerCase().includes(s);
