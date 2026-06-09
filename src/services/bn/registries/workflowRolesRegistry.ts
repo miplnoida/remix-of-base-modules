@@ -1,7 +1,14 @@
 /**
- * Workflow Roles Registry — canonical operational roles used by
- * Workbaskets, Escalation Policies, and Transition Matrix.
- * Keep in sync with backend role catalogue.
+ * Workflow Roles Registry — FALLBACK ONLY.
+ *
+ * Source of truth: `public.roles` (DB). Use
+ *   - `fetchWorkflowRoles()` from `@/services/bn/workflowRoleCatalogService`
+ *   - `useWorkflowRoles()` from `@/hooks/bn/useWorkflowRoles`
+ * for runtime role lookups.
+ *
+ * This static list exists only so offline tooling / first-paint code paths
+ * still type-check and have something to fall back to if the DB fetch fails.
+ * Keep loosely in sync with public.roles.
  */
 export const BN_WORKFLOW_ROLES = [
   // Generic operational roles
