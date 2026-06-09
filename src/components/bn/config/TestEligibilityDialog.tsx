@@ -42,7 +42,7 @@ export function TestEligibilityDialog({ open, onOpenChange, versionId, productCo
     const { data } = await db
       .from('bn_claim')
       .select('id')
-      .or(`claim_reference.eq.${trimmed},claim_number.eq.${trimmed}`)
+      .eq('claim_number', trimmed)
       .maybeSingle();
     return (data as any)?.id ?? null;
   };
