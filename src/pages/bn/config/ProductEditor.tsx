@@ -16,7 +16,7 @@ import { LiveVersionGuardDialog } from '@/components/bn/config/LiveVersionGuardD
 import { useBnSchemes, useBnBranches } from '@/hooks/bn/useBnConfig';
 import { BN_CATEGORY_LABELS, BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProduct, BnProductVersion, BnProductStatus } from '@/types/bn';
-import { EligibilityRulesTab } from '@/components/bn/config/EligibilityRulesTab';
+import { EligibilityTabRedesigned as EligibilityRulesTab } from '@/components/bn/config/EligibilityTabRedesigned';
 import { CalculationRulesTab } from '@/components/bn/config/CalculationRulesTab';
 import { CalculationBuilder } from '@/components/bn/config/CalculationBuilder';
 import { TimelineRulesTab } from '@/components/bn/config/TimelineRulesTab';
