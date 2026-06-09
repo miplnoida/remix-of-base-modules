@@ -45,7 +45,7 @@ interface EnrichedCert extends BnLifeCertificateRow {
 
 const LifeCertificateManagement: React.FC = () => {
   const { isAuthReady, isAuthenticated, profile, hasAnyRole } = useSupabaseAuth();
-  const canAct = hasAnyRole(['admin', 'supervisor', 'claims_officer', 'pension_admin']);
+  const canAct = hasAnyRole(['admin', 'supervisor', 'claims_officer', 'pension_admin', 'BN_PAYMENT_OFFICER', 'BN_MANAGER']);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
