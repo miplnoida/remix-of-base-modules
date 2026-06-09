@@ -17,7 +17,7 @@ import { ALLOWED_TRANSITIONS, CLAIM_STATUSES, CLAIM_ACTIONS } from './registries
 import { FORMULA_VARIABLES } from './registries/formulaVariableRegistry';
 import { ELIGIBILITY_FIELDS } from './registries/eligibilityFieldRegistry';
 import { SMART_FIELD_TYPES } from './registries/smartFieldRegistry';
-import { BN_WORKFLOW_ROLES } from './registries/workflowRolesRegistry';
+import { fetchWorkflowRoles } from './workflowRoleCatalogService';
 import { parseFormula } from '@/lib/bn/formulaParser';
 
 const db = supabase as any;
@@ -207,7 +207,8 @@ export async function runRegistryValidation(): Promise<RegistryValidationReport>
   }
 
   // ---------- 5. Workflow role checks (ERROR — these break routing) ----------
-  const allowedRoles = new Set<string>(BN_WORKFLOW_ROLES as readonly string[]);
+  // Source of truth: public.roles (DB). Static BN_WORKFLOW_ROLES is fallback only.
+  const allowedRoles = new Set<string>(await fetchWorkflowRoles());
   const workbaskets = await safeFetch('bn_workbasket');
   const workbasketByCode = new Map<string, any>();
   for (const w of workbaskets) {

@@ -15,7 +15,8 @@ import { toast } from 'sonner';
 import type { BnEscalationPolicy } from '@/types/bn';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { SmartSelect, CodeFieldWithAutoGenerate } from '@/components/bn/smart';
-import { BN_WORKFLOW_ROLES, BN_ESCALATION_TRIGGERS, BN_ESCALATION_SEVERITIES } from '@/services/bn/registries';
+import { BN_ESCALATION_TRIGGERS, BN_ESCALATION_SEVERITIES } from '@/services/bn/registries';
+import { useWorkflowRoles } from '@/hooks/bn/useWorkflowRoles';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 
 const db = supabase as any;
@@ -23,6 +24,7 @@ const db = supabase as any;
 export default function EscalationConfig() {
   const { userCode } = useUserCode();
   const { log } = useBnConfigAudit();
+  const { roles: workflowRoles } = useWorkflowRoles();
   const qc = useQueryClient();
   const [editItem, setEditItem] = useState<BnEscalationPolicy | null>(null);
   const [isNew, setIsNew] = useState(false);
@@ -196,7 +198,7 @@ export default function EscalationConfig() {
                   label="Target Role"
                   value={form.escalation_target_role}
                   onValueChange={(v) => setForm(p => ({ ...p, escalation_target_role: v }))}
-                  options={BN_WORKFLOW_ROLES.map(r => ({ value: r, label: r.replace(/_/g, ' ') }))}
+                  options={workflowRoles.map(r => ({ value: r, label: r.replace(/_/g, ' ') }))}
                   required
                 />
                 <SmartSelect

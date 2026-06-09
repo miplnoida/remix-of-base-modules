@@ -15,12 +15,14 @@ import { toast } from 'sonner';
 import type { BnWorkbasket } from '@/types/bn';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { SmartSelect, CodeFieldWithAutoGenerate } from '@/components/bn/smart';
-import { BN_WORKFLOW_ROLES, BN_PRODUCT_CATEGORIES } from '@/services/bn/registries';
+import { BN_PRODUCT_CATEGORIES } from '@/services/bn/registries';
+import { useWorkflowRoles } from '@/hooks/bn/useWorkflowRoles';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 
 export default function WorkbasketConfig() {
   const { userCode } = useUserCode();
   const { data: workbaskets = [] } = useBnWorkbaskets();
+  const { roles: workflowRoles } = useWorkflowRoles();
   const createMut = useCreateBnWorkbasket();
   const updateMut = useUpdateBnWorkbasket();
   const { log } = useBnConfigAudit();
@@ -172,7 +174,7 @@ export default function WorkbasketConfig() {
                 <SmartSelect
                   value={form.assigned_role}
                   onValueChange={(v) => setForm(p => ({ ...p, assigned_role: v }))}
-                  options={BN_WORKFLOW_ROLES.map(r => ({ value: r, label: r.replace(/_/g, ' ') }))}
+                  options={workflowRoles.map(r => ({ value: r, label: r.replace(/_/g, ' ') }))}
                   placeholder="Select role"
                 />
               </div>
