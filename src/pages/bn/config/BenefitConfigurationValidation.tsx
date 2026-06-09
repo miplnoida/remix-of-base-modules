@@ -35,6 +35,7 @@ import { findBaselineByCode } from '@/services/bn/skn/sknBenefitCatalogueBaselin
 import { RegistryConformanceCard } from '@/components/bn/validation/RegistryConformanceCard';
 import { RuleGovernanceStatusCard } from '@/components/bn/governance/RuleGovernanceStatusCard';
 import { ClaimGovernanceReadinessCard } from '@/components/bn/governance/ClaimGovernanceReadinessCard';
+import { HandoffReadinessCard } from '@/components/bn/governance/HandoffReadinessCard';
 
 const STATUS_VARIANT: Record<ValidationStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   PASS: 'default',
