@@ -4486,6 +4486,7 @@ export type Database = {
           requires_justification: boolean
           requires_reason_code: boolean
           requires_supervisor_approval: boolean
+          restricted_action: boolean
           self_approval_allowed: boolean
           stage_code: string | null
           stage_sequence: number | null
@@ -4521,6 +4522,7 @@ export type Database = {
           requires_justification?: boolean
           requires_reason_code?: boolean
           requires_supervisor_approval?: boolean
+          restricted_action?: boolean
           self_approval_allowed?: boolean
           stage_code?: string | null
           stage_sequence?: number | null
@@ -4556,6 +4558,7 @@ export type Database = {
           requires_justification?: boolean
           requires_reason_code?: boolean
           requires_supervisor_approval?: boolean
+          restricted_action?: boolean
           self_approval_allowed?: boolean
           stage_code?: string | null
           stage_sequence?: number | null
@@ -12468,6 +12471,135 @@ export type Database = {
           },
         ]
       }
+      bn_role_bundle: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bn_role_bundle_member: {
+        Row: {
+          bundle_code: string
+          created_at: string
+          id: string
+          role_name: string
+        }
+        Insert: {
+          bundle_code: string
+          created_at?: string
+          id?: string
+          role_name: string
+        }
+        Update: {
+          bundle_code?: string
+          created_at?: string
+          id?: string
+          role_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_role_bundle_member_bundle_code_fkey"
+            columns: ["bundle_code"]
+            isOneToOne: false
+            referencedRelation: "bn_role_bundle"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "bn_role_bundle_member_role_name_fkey"
+            columns: ["role_name"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["role_name"]
+          },
+        ]
+      }
+      bn_role_delegation: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          from_user_id: string
+          id: string
+          reason: string
+          role_name: string
+          status: string
+          to_user_id: string
+          updated_at: string
+          valid_from: string
+          valid_to: string
+          workbasket_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_user_id: string
+          id?: string
+          reason: string
+          role_name: string
+          status?: string
+          to_user_id: string
+          updated_at?: string
+          valid_from: string
+          valid_to: string
+          workbasket_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          from_user_id?: string
+          id?: string
+          reason?: string
+          role_name?: string
+          status?: string
+          to_user_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string
+          workbasket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_role_delegation_role_name_fkey"
+            columns: ["role_name"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["role_name"]
+          },
+          {
+            foreignKeyName: "bn_role_delegation_workbasket_id_fkey"
+            columns: ["workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workbasket"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_rule_catalogue: {
         Row: {
           allow_product_override: boolean
@@ -13518,6 +13650,48 @@ export type Database = {
           product_category?: string | null
         }
         Relationships: []
+      }
+      bn_workbasket_role: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_primary: boolean
+          role_name: string
+          workbasket_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_primary?: boolean
+          role_name: string
+          workbasket_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_primary?: boolean
+          role_name?: string
+          workbasket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_workbasket_role_role_name_fkey"
+            columns: ["role_name"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["role_name"]
+          },
+          {
+            foreignKeyName: "bn_workbasket_role_workbasket_id_fkey"
+            columns: ["workbasket_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workbasket"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_workflow_template: {
         Row: {
@@ -58886,6 +59060,14 @@ export type Database = {
         }
         Relationships: []
       }
+      v_bn_user_effective_roles: {
+        Row: {
+          role_name: string | null
+          source: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       v_ia_departments: {
         Row: {
           created_at: string | null
@@ -59004,6 +59186,14 @@ export type Database = {
         }
         Returns: Json
       }
+      bn_can_approve: {
+        Args: {
+          p_policy_id: string
+          p_requester_user_id: string
+          p_user_id: string
+        }
+        Returns: boolean
+      }
       bn_clone_product_version_to_draft: {
         Args: { p_source_id: string; p_user_code: string }
         Returns: string
@@ -59065,6 +59255,16 @@ export type Database = {
           claim_id: string
           claim_number: string
           workflow_instance_id: string
+        }[]
+      }
+      bn_workbaskets_for_user: {
+        Args: { p_user_id: string }
+        Returns: {
+          basket_code: string
+          basket_name: string
+          is_primary: boolean
+          role_name: string
+          workbasket_id: string
         }[]
       }
       c3_config_period_deletability: {

@@ -1,55 +1,88 @@
-## Finding
+# BN Workbasket Multi-Role & Small Office Support
 
-The DB is already consistent: all 19 distinct `bn_workbasket.assigned_role` values exist in `public.roles`, and the static TS list `BN_WORKFLOW_ROLES` was updated in the prior pass to contain them all — so the validator should currently report 0 ERROR. The only outlier in DB is workbasket `123` (legacy/test) mapped to generic `INTAKE_OFFICER`.
+Reshape BN workbaskets so one person can cover many roles (small office) while large offices keep segregation of duties. Maker-checker stays enforced for high-risk actions.
 
-The remaining problem is structural: roles live in **three places** (DB `public.roles`, `bn_workbasket.assigned_role`, and the static TS `BN_WORKFLOW_ROLES`). Any future role added in DB will silently drift again. The user wants DB to be the single source of truth.
+## 1. Database (single migration)
 
-## Plan
+### a. Workbasket → multiple roles
+`bn_workbasket.assigned_role` (single text) stays as the **primary** role for backward compatibility. Add a join table for additional roles:
 
-### 1. DB-backed workflow role catalogue (source of truth)
-- Add a tiny service `src/services/bn/workflowRoleCatalogService.ts`:
-  - `fetchWorkflowRoles()` → `select role_name from public.roles where is_active = true` (cached 5 min).
-  - `fetchBnWorkflowRoles()` → same, filtered to `role_name LIKE 'BN\_%'` + a small allow-list of generic operational roles still in use (`INTAKE_OFFICER`, `DIRECTOR`, `COMPLIANCE_OFFICER`, etc.).
-- Add hook `useWorkflowRoles()` (React Query, `['workflow-roles']`) returning `{ roles: string[], isLoading, error }`.
+```
+bn_workbasket_role (workbasket_id, role_name, is_primary, created_at)
+```
+Backfill: insert one row per existing workbasket with `is_primary=true`.
 
-### 2. Validator uses DB, not the static const
-Rewrite the role check in `src/services/bn/bnRegistryValidationService.ts` (lines 209–238):
-- Replace `new Set(BN_WORKFLOW_ROLES)` with `new Set(await fetchWorkflowRoles())`.
-- Keep the same finding shape; severity stays ERROR.
-- Legacy basket `123 → INTAKE_OFFICER` will then validate cleanly (role exists in DB allow-list).
+### b. Role bundle
+Add seed role `BN_BENEFIT_OFFICER_GENERALIST` in `public.roles`, plus a `bn_role_bundle` + `bn_role_bundle_member` pair:
 
-### 3. UI selectors use the same DB source
-Replace static imports of `BN_WORKFLOW_ROLES` in:
-- `src/pages/bn/config/WorkbasketConfig.tsx` (line 175)
-- `src/pages/bn/config/EscalationConfig.tsx` (line 199)
-- `src/components/bn/config-builder/BlockInspector.tsx` (lines 156, 167)
-- `src/components/bn/config-builder/canvasValidation.ts` (line 11) — make it async-aware or accept roles via props/context.
+```
+bn_role_bundle(code, name, description, is_active)
+bn_role_bundle_member(bundle_code, role_name)
+```
+Seed `BN_BENEFIT_OFFICER_GENERALIST` → INTAKE, DOCUMENT, ELIGIBILITY, CALCULATION, CLAIMS officer roles (no approver / payment-approval / config roles).
+Trigger on `user_roles` insert: when the role is a bundle code, expand into member roles automatically.
 
-Each switches to `useWorkflowRoles()` (or `fetchBnWorkflowRoles()` for validators).
+### c. Delegation
+```
+bn_role_delegation(
+  id, from_user_id, to_user_id, role_name, workbasket_id NULL,
+  valid_from date, valid_to date, reason text,
+  status text CHECK in ('PENDING','APPROVED','REVOKED','EXPIRED'),
+  approved_by uuid, approved_at, created_at, created_by
+)
+```
 
-### 4. Keep the TS const as a typed fallback only
-Demote `BN_WORKFLOW_ROLES` in `src/services/bn/registries/workflowRolesRegistry.ts` to a documented fallback list used only when the DB fetch fails (offline / first paint). Add a code comment stating DB is source of truth.
+### d. Self-approval guard
+Add columns to `bn_approval_policy` (already has `self_approval_allowed`):
+- `restricted_action boolean default false` — marks high-risk policy areas
+Seed/flag these areas as restricted: `ELIGIBILITY_OVERRIDE`, `CALCULATION_OVERRIDE`, `DOCUMENT_WAIVER`, `FINAL_CLAIM_APPROVAL`, `PAYMENT_RELEASE`.
 
-### 5. Optional cleanup
-- Deactivate legacy basket `code = '123'` or rename it to a real BN workbasket — confirm with user before touching data.
-- Add `BN_CONFIG_ADMIN` to the BN allow-list (exists in DB, not currently assigned to any basket but used by `useRuleGovernance`).
+DB function `bn_can_approve(p_user_id, p_policy_id, p_requester_user_id) returns boolean`:
+- if `requester = user` and `self_approval_allowed=false` and `restricted_action=true` → false
+- else if user holds `approval_role` (directly, via bundle, or via active delegation) → true.
 
-### 6. Acceptance verification
-- Re-run Benefit Configuration Validation → Workflow Roles section shows 0 ERROR.
-- `WorkbasketConfig` and `EscalationConfig` dropdowns list every active BN role from DB (incl. any future ones added via SQL — no code change needed).
-- TypeScript build passes; existing imports of `BN_WORKFLOW_ROLES` still resolve to the fallback array.
+### e. Helper view
+`v_bn_user_effective_roles(user_id, role_name, source)` — unions direct user_roles, bundle expansion, and active delegations. Used by both UI and validator.
 
-## Files touched
-- **new** `src/services/bn/workflowRoleCatalogService.ts`
-- **new** `src/hooks/bn/useWorkflowRoles.ts`
-- `src/services/bn/bnRegistryValidationService.ts` (role check → DB)
-- `src/services/bn/registries/workflowRolesRegistry.ts` (mark as fallback)
-- `src/pages/bn/config/WorkbasketConfig.tsx`
-- `src/pages/bn/config/EscalationConfig.tsx`
-- `src/components/bn/config-builder/BlockInspector.tsx`
-- `src/components/bn/config-builder/canvasValidation.ts`
+## 2. Services (TS)
 
-No DB migration required — `public.roles` already contains the 19 BN roles plus `BN_CONFIG_ADMIN`, and all 20 active workbaskets already map to valid roles.
+- `workbasketRoleService.ts` — fetch baskets visible to a user via `v_bn_user_effective_roles` ⨝ `bn_workbasket_role`.
+- `roleBundleService.ts` — list bundles, expand to member roles.
+- `delegationService.ts` — CRUD + approve/revoke for `bn_role_delegation`.
+- `approvalGuardService.ts` — wraps `bn_can_approve` RPC; called before any approval action.
+- Update `bnRegistryValidationService.ts`:
+  - PASS if a workbasket has ≥1 role AND ≥1 user (direct or via bundle/delegation) holds it.
+  - PASS if approval policy has ≥1 eligible alternate approver when `self_approval_allowed=false`.
+  - One user holding many roles is never an error.
 
-## Open question
-Workbasket `code = '123'` (assigned to `INTAKE_OFFICER`) looks like leftover test data. Want me to deactivate it as part of this pass, or leave it alone?
+## 3. UI
+
+- **Workbasket Config** — multi-select role picker (primary + additional), powered by `useWorkflowRoles()`.
+- **Role Bundles page** (`/bn/config/role-bundles`) — list bundles, show member roles, toggle active.
+- **Delegations page** (`/bn/config/delegations`) — create/approve/revoke; shows active and upcoming.
+- **My Workbench dashboard** (`/bn/workbench`) grouped sections:
+  - My Assigned Tasks
+  - My Role Workbaskets (one card per role the user holds)
+  - Team Workbaskets (baskets in user's office not assigned to them)
+  - Escalated Tasks
+- **Approval action buttons** — disabled with tooltip "Self-approval not allowed for this action" when `approvalGuardService` returns false.
+- **Approval Policy editor** — expose `restricted_action`, `self_approval_allowed`, `approval_role`, `escalation_role`, `min_level`.
+
+## 4. Audit
+Every approval, delegation create/approve/revoke, and self-approval block writes to `system_audit_trail` via the existing `fn_audit_row_change` trigger plus explicit service-level audit for guard denials.
+
+## Technical notes
+- No RLS (per project rule). Access enforced in service + RPC layer.
+- Migration includes GRANTs for all new tables to `authenticated` and `service_role`.
+- `assigned_role` column retained on `bn_workbasket` for back-compat; new code reads `bn_workbasket_role`.
+- Static `BN_WORKFLOW_ROLES` fallback updated to include `BN_BENEFIT_OFFICER_GENERALIST`.
+
+## Out of scope (ask before doing)
+- Migrating `bn_product_version.*_workbasket_id` columns to multi-basket arrays.
+- Mobile/offline delegation approval.
+
+## Acceptance
+- One user can hold INTAKE+DOC+ELIG+CALC+CLAIMS roles and sees all matching baskets.
+- Same user blocked from approving own override unless policy `self_approval_allowed=true`.
+- Validator passes with shared roles, fails only on the 4 listed conditions.
+- TypeScript build passes.

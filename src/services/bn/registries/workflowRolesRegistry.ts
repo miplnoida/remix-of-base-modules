@@ -41,6 +41,8 @@ export const BN_WORKFLOW_ROLES = [
   'BN_RULE_LEGAL_APPROVER',
   'BN_PRODUCT_MANAGER',
   'BN_PRODUCT_APPROVER',
+  'BN_CONFIG_ADMIN',
+  'BN_BENEFIT_OFFICER_GENERALIST',
 ] as const;
 export type BnWorkflowRole = (typeof BN_WORKFLOW_ROLES)[number];
 

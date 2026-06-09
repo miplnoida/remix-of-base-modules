@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Edit } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Edit, X } from 'lucide-react';
 import { useBnWorkbaskets, useCreateBnWorkbasket, useUpdateBnWorkbasket } from '@/hooks/bn/useBnWorkbasket';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
@@ -18,6 +19,12 @@ import { SmartSelect, CodeFieldWithAutoGenerate } from '@/components/bn/smart';
 import { BN_PRODUCT_CATEGORIES } from '@/services/bn/registries';
 import { useWorkflowRoles } from '@/hooks/bn/useWorkflowRoles';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
+import {
+  fetchRolesForWorkbasket,
+  setWorkbasketRoles,
+  fetchRolesForWorkbaskets,
+} from '@/services/bn/workbasketRoleService';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function WorkbasketConfig() {
   const { userCode } = useUserCode();
@@ -26,6 +33,7 @@ export default function WorkbasketConfig() {
   const createMut = useCreateBnWorkbasket();
   const updateMut = useUpdateBnWorkbasket();
   const { log } = useBnConfigAudit();
+  const qc = useQueryClient();
 
   const [editItem, setEditItem] = useState<BnWorkbasket | null>(null);
   const [isNew, setIsNew] = useState(false);
@@ -33,16 +41,52 @@ export default function WorkbasketConfig() {
     basket_code: '',
     basket_name: '',
     description: '',
-    assigned_role: '',
+    primary_role: '',
+    additional_roles: [] as string[],
     product_category: '',
     country_code: '',
     max_capacity: '',
     is_active: true,
   });
 
+  // All role mappings for the table view
+  const wbIds = workbaskets.map((w) => w.id);
+  const { data: rolesByBasket = {} } = useQuery({
+    queryKey: ['bn-workbasket-roles', wbIds.join(',')],
+    enabled: wbIds.length > 0,
+    queryFn: () => fetchRolesForWorkbaskets(wbIds),
+  });
+
+  // When editing an existing basket, pull its full role set
+  useEffect(() => {
+    if (!editItem || isNew || !editItem.id) return;
+    let cancelled = false;
+    fetchRolesForWorkbasket(editItem.id).then((rows) => {
+      if (cancelled) return;
+      const primary = rows.find((r) => r.is_primary)?.role_name || editItem.assigned_role;
+      const additional = rows
+        .filter((r) => !r.is_primary)
+        .map((r) => r.role_name);
+      setForm((p) => ({ ...p, primary_role: primary, additional_roles: additional }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [editItem, isNew]);
+
   const openNew = () => {
     setIsNew(true);
-    setForm({ basket_code: '', basket_name: '', description: '', assigned_role: '', product_category: '', country_code: '', max_capacity: '', is_active: true });
+    setForm({
+      basket_code: '',
+      basket_name: '',
+      description: '',
+      primary_role: '',
+      additional_roles: [],
+      product_category: '',
+      country_code: '',
+      max_capacity: '',
+      is_active: true,
+    });
     setEditItem({} as any);
   };
 
@@ -52,7 +96,8 @@ export default function WorkbasketConfig() {
       basket_code: item.basket_code,
       basket_name: item.basket_name,
       description: item.description || '',
-      assigned_role: item.assigned_role,
+      primary_role: item.assigned_role,
+      additional_roles: [],
       product_category: item.product_category || '',
       country_code: item.country_code || '',
       max_capacity: item.max_capacity?.toString() || '',
@@ -66,15 +111,16 @@ export default function WorkbasketConfig() {
       toast.error('Code and Name are required');
       return;
     }
-    if (!form.assigned_role) {
-      toast.error('Assigned Role is required');
+    if (!form.primary_role) {
+      toast.error('Primary Role is required');
       return;
     }
+    const allRoles = [form.primary_role, ...form.additional_roles.filter((r) => r !== form.primary_role)];
     const payload: any = {
       basket_code: form.basket_code,
       basket_name: form.basket_name,
       description: form.description || null,
-      assigned_role: form.assigned_role,
+      assigned_role: form.primary_role,
       product_category: form.product_category || null,
       country_code: form.country_code || null,
       max_capacity: form.max_capacity ? parseInt(form.max_capacity) : null,
@@ -82,21 +128,40 @@ export default function WorkbasketConfig() {
     };
 
     try {
+      let id: string;
       if (isNew) {
         payload.entered_by = userCode;
         const res: any = await createMut.mutateAsync(payload);
-        log({ entityType: 'bn_workbasket', entityId: res?.id ?? form.basket_code, action: 'CREATE', after: payload });
+        id = res?.id;
+        log({ entityType: 'bn_workbasket', entityId: id ?? form.basket_code, action: 'CREATE', after: payload });
         toast.success('Workbasket created');
       } else {
         payload.modified_by = userCode;
         await updateMut.mutateAsync({ id: editItem!.id, updates: payload });
-        log({ entityType: 'bn_workbasket', entityId: editItem!.id, action: 'UPDATE', before: editItem as any, after: payload });
+        id = editItem!.id;
+        log({ entityType: 'bn_workbasket', entityId: id, action: 'UPDATE', before: editItem as any, after: payload });
         toast.success('Workbasket updated');
+      }
+      if (id) {
+        await setWorkbasketRoles(id, allRoles, userCode || undefined);
+        qc.invalidateQueries({ queryKey: ['bn-workbasket-roles'] });
       }
       setEditItem(null);
     } catch (err: any) {
       toast.error(err.message);
     }
+  };
+
+  const toggleAdditional = (role: string) => {
+    setForm((p) => {
+      const has = p.additional_roles.includes(role);
+      return {
+        ...p,
+        additional_roles: has
+          ? p.additional_roles.filter((r) => r !== role)
+          : [...p.additional_roles, role],
+      };
+    });
   };
 
   return (
@@ -110,10 +175,8 @@ export default function WorkbasketConfig() {
         <BnScreenRoleBanner
           role="library"
           productAssemblyHint
-          description="Reusable operational queues (intake, evidence review, medical board, supervisor approval, finance). Workflow routing references these baskets."
+          description="Reusable operational queues. A workbasket can be served by one primary role plus any number of additional roles, so small offices can let one user cover several stages."
         />
-
-
 
         <Card>
           <CardContent className="pt-6">
@@ -122,7 +185,7 @@ export default function WorkbasketConfig() {
                 <TableRow>
                   <TableHead>Code</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Role</TableHead>
+                  <TableHead>Roles</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Capacity</TableHead>
                   <TableHead>Active</TableHead>
@@ -130,19 +193,31 @@ export default function WorkbasketConfig() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {workbaskets.map(b => (
-                  <TableRow key={b.id}>
-                    <TableCell className="font-mono text-sm">{b.basket_code}</TableCell>
-                    <TableCell>{b.basket_name}</TableCell>
-                    <TableCell><Badge variant="secondary">{b.assigned_role}</Badge></TableCell>
-                    <TableCell>{b.product_category || '—'}</TableCell>
-                    <TableCell>{b.max_capacity || '—'}</TableCell>
-                    <TableCell><Badge variant={b.is_active ? 'default' : 'outline'}>{b.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(b)}><Edit className="h-4 w-4" /></Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {workbaskets.map((b) => {
+                  const roles = rolesByBasket[b.id] || [b.assigned_role];
+                  return (
+                    <TableRow key={b.id}>
+                      <TableCell className="font-mono text-sm">{b.basket_code}</TableCell>
+                      <TableCell>{b.basket_name}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {roles.map((r, i) => (
+                            <Badge key={r} variant={r === b.assigned_role ? 'default' : 'secondary'}>
+                              {r}
+                              {r === b.assigned_role && roles.length > 1 ? ' ★' : ''}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>{b.product_category || '—'}</TableCell>
+                      <TableCell>{b.max_capacity || '—'}</TableCell>
+                      <TableCell><Badge variant={b.is_active ? 'default' : 'outline'}>{b.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" onClick={() => openEdit(b)}><Edit className="h-4 w-4" /></Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                 {workbaskets.length === 0 && (
                   <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No workbaskets configured</TableCell></TableRow>
                 )}
@@ -151,46 +226,84 @@ export default function WorkbasketConfig() {
           </CardContent>
         </Card>
 
-        <Dialog open={!!editItem} onOpenChange={open => !open && setEditItem(null)}>
-          <DialogContent>
+        <Dialog open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{isNew ? 'Add Workbasket' : 'Edit Workbasket'}</DialogTitle></DialogHeader>
             <div className="space-y-3">
               {isNew ? (
                 <CodeFieldWithAutoGenerate
                   label="Code"
                   value={form.basket_code}
-                  onChange={(v) => setForm(p => ({ ...p, basket_code: v }))}
-                  existingCodes={workbaskets.map(w => w.basket_code)}
+                  onChange={(v) => setForm((p) => ({ ...p, basket_code: v }))}
+                  existingCodes={workbaskets.map((w) => w.basket_code)}
                   prefix="WB"
                   required
                 />
               ) : (
                 <div className="space-y-1"><label className="text-sm font-medium">Code</label><Input value={form.basket_code} disabled /></div>
               )}
-              <div className="space-y-1"><label className="text-sm font-medium">Name</label><Input value={form.basket_name} onChange={e => setForm(p => ({ ...p, basket_name: e.target.value }))} /></div>
-              <div className="space-y-1"><label className="text-sm font-medium">Description</label><Textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2} /></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Name</label><Input value={form.basket_name} onChange={(e) => setForm((p) => ({ ...p, basket_name: e.target.value }))} /></div>
+              <div className="space-y-1"><label className="text-sm font-medium">Description</label><Textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={2} /></div>
+
               <div className="space-y-1">
-                <label className="text-sm font-medium">Assigned Role</label>
+                <label className="text-sm font-medium">Primary Role <span className="text-destructive">*</span></label>
                 <SmartSelect
-                  value={form.assigned_role}
-                  onValueChange={(v) => setForm(p => ({ ...p, assigned_role: v }))}
-                  options={workflowRoles.map(r => ({ value: r, label: r.replace(/_/g, ' ') }))}
-                  placeholder="Select role"
+                  value={form.primary_role}
+                  onValueChange={(v) => setForm((p) => ({
+                    ...p,
+                    primary_role: v,
+                    additional_roles: p.additional_roles.filter((r) => r !== v),
+                  }))}
+                  options={workflowRoles.map((r) => ({ value: r, label: r.replace(/_/g, ' ') }))}
+                  placeholder="Select primary role"
                 />
               </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Additional Roles</label>
+                <p className="text-xs text-muted-foreground">
+                  Users holding any of these roles will see this workbasket. Useful for small offices.
+                </p>
+                <div className="grid grid-cols-2 gap-1 max-h-48 overflow-y-auto border rounded p-2">
+                  {workflowRoles
+                    .filter((r) => r !== form.primary_role)
+                    .map((r) => (
+                      <label key={r} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-accent/40 px-1 py-0.5 rounded">
+                        <Checkbox
+                          checked={form.additional_roles.includes(r)}
+                          onCheckedChange={() => toggleAdditional(r)}
+                        />
+                        <span>{r}</span>
+                      </label>
+                    ))}
+                </div>
+                {form.additional_roles.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {form.additional_roles.map((r) => (
+                      <Badge key={r} variant="secondary" className="gap-1">
+                        {r}
+                        <button onClick={() => toggleAdditional(r)} className="hover:text-destructive">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-sm font-medium">Product Category</label>
                   <SmartSelect
                     value={form.product_category}
-                    onValueChange={(v) => setForm(p => ({ ...p, product_category: v }))}
+                    onValueChange={(v) => setForm((p) => ({ ...p, product_category: v }))}
                     options={[{ value: '', label: '— Any —' }, ...BN_PRODUCT_CATEGORIES]}
                     placeholder="Optional"
                   />
                 </div>
-                <div className="space-y-1"><label className="text-sm font-medium">Max Capacity</label><Input type="number" value={form.max_capacity} onChange={e => setForm(p => ({ ...p, max_capacity: e.target.value }))} placeholder="Optional" /></div>
+                <div className="space-y-1"><label className="text-sm font-medium">Max Capacity</label><Input type="number" value={form.max_capacity} onChange={(e) => setForm((p) => ({ ...p, max_capacity: e.target.value }))} placeholder="Optional" /></div>
               </div>
-              <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={v => setForm(p => ({ ...p, is_active: v }))} /><label className="text-sm">Active</label></div>
+              <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={(v) => setForm((p) => ({ ...p, is_active: v }))} /><label className="text-sm">Active</label></div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditItem(null)}>Cancel</Button>
@@ -202,3 +315,4 @@ export default function WorkbasketConfig() {
     </PermissionWrapper>
   );
 }
+

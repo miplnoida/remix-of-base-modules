@@ -795,6 +795,9 @@ const BnClaimQueue = lazy(() => import('@/pages/bn/claims/ClaimQueue'));
 const BnReasonCodes = lazy(() => import('@/pages/bn/config/ReasonCodes'));
 const BnTransitionMatrix = lazy(() => import('@/pages/bn/config/TransitionMatrix'));
 const BnWorkbasketConfig = lazy(() => import('@/pages/bn/config/WorkbasketConfig'));
+const BnRoleBundles = lazy(() => import('@/pages/bn/config/RoleBundles'));
+const BnDelegations = lazy(() => import('@/pages/bn/config/Delegations'));
+const BnMyWorkbench = lazy(() => import('@/pages/bn/workbench/MyBenefitsWorkbench'));
 const BnEscalationConfig = lazy(() => import('@/pages/bn/config/EscalationConfig'));
 const BnServiceDocTypes = lazy(() => import('@/pages/bn/config/ServiceDocTypes'));
 const BnCountryPackPage = lazy(() => import('@/pages/bn/config/country/CountryPackPage'));
@@ -1875,6 +1878,9 @@ export const AppRoutes = () => {
       <Route path="/bn/config/communication-templates" element={<BnFeatureGate flag="bn.config.rules"><BnBenefitCommunicationTemplates /></BnFeatureGate>} />
       <Route path="/bn/config/transitions" element={<BnFeatureGate flag="bn.config.rules"><BnTransitionMatrix /></BnFeatureGate>} />
       <Route path="/bn/config/workbaskets" element={<BnFeatureGate flag="bn.config.rules"><BnWorkbasketConfig /></BnFeatureGate>} />
+      <Route path="/bn/config/role-bundles" element={<BnFeatureGate flag="bn.config.rules"><BnRoleBundles /></BnFeatureGate>} />
+      <Route path="/bn/config/delegations" element={<BnFeatureGate flag="bn.config.rules"><BnDelegations /></BnFeatureGate>} />
+      <Route path="/bn/workbench" element={<BnFeatureGate flag="bn.config.rules"><BnMyWorkbench /></BnFeatureGate>} />
       <Route path="/bn/config/escalation" element={<BnFeatureGate flag="bn.config.rules"><BnEscalationConfig /></BnFeatureGate>} />
       <Route path="/bn/config/service-doc-types" element={<BnFeatureGate flag="bn.config.rules"><BnServiceDocTypes /></BnFeatureGate>} />
       <Route path="/bn/config/country" element={<BnFeatureGate flag="bn.config.rules"><BnCountryPackPage /></BnFeatureGate>} />
