@@ -4,6 +4,7 @@ import { assertVersionMutable } from './config/configImpactService';
 import { auditConfigChange } from './audit/bnAuditService';
 import { getCurrentUserCode } from './audit/getCurrentUserCode';
 import { assertSafeToPublish } from './config/publishGateService';
+import { findUngovernedAttachedRules, activateAttachedRules } from './governance/ruleGovernanceService';
 
 const db = supabase as any;
 
