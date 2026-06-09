@@ -75,6 +75,13 @@ const _bnMenuItemsRaw = [
         requiresPermission: "benefits_management",
       },
       {
+        title: "My Workbench",
+        url: "/bn/workbench",
+        icon: LayoutDashboard,
+        requiresPermission: "benefits_management",
+        description: "All workbaskets visible to you via your direct, bundle, and delegated BN roles.",
+      },
+      {
         title: "Approval Console",
         url: "/bn/approval",
         icon: ClipboardCheck,
