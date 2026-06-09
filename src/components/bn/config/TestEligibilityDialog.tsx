@@ -1,23 +1,33 @@
 /**
- * Test Eligibility Dialog (Phase 2)
+ * Test Eligibility Dialog
  *
- * Two modes:
- *  1. Sample Scenario (default) — no claim needed. Lists every fact used by
- *     the product's active rules; the user enters values; the operator engine
- *     evaluates each rule. Ideal during product-catalogue building.
- *  2. Real Claim — runs the production fact resolver against an existing
- *     claim (UUID or claim_number).
+ * Responsive layout:
+ *   - Sticky header (title + mode tabs + close X)
+ *   - Scrollable body (input form + result panel side-by-side on desktop,
+ *     stacked on smaller screens)
+ *   - Sticky footer (Fill Passing / Fill Failing / Reset / Evaluate / Close)
+ *   - Below 1024px the dialog becomes near-full-screen and the result area
+ *     collapses to a tabbed panel below the inputs.
+ *
+ * Modes:
+ *   1. Sample Scenario (default) — no claim needed. Lists every fact used by
+ *      the product's active rules; the user enters values; the operator
+ *      engine evaluates each rule.
+ *   2. Real Claim — runs the production fact resolver against an existing
+ *      claim (UUID or claim_number).
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical, PlayCircle, Sparkles } from 'lucide-react';
+import {
+  Loader2, CheckCircle2, XCircle, AlertTriangle, FlaskConical,
+  PlayCircle, Sparkles, X, RotateCcw, ThumbsUp, ThumbsDown,
+} from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { runProductEligibilityTest, type ProductTestResult } from '@/services/bn/eligibility/productEligibilityTest';
@@ -52,9 +62,12 @@ interface SimRow {
   message?: string;
 }
 
-export function TestEligibilityDialog({ open, onOpenChange, versionId, productCode }: Props) {
+type Mode = 'sample' | 'real';
+
+export function TestEligibilityDialog({ open, onOpenChange, versionId }: Props) {
   const { toast } = useToast();
   const { data: rules = [] } = useBnEligibilityRules(versionId);
+  const [mode, setMode] = useState<Mode>('sample');
 
   // ── Sample mode state ──────────────────────────────────────────────────
   const factsUsed = useMemo(() => {
@@ -73,9 +86,17 @@ export function TestEligibilityDialog({ open, onOpenChange, versionId, productCo
   const [sampleValues, setSampleValues] = useState<Record<string, string>>({});
   const [simRows, setSimRows] = useState<SimRow[] | null>(null);
 
+  // Real-claim mode state
+  const [claimRef, setClaimRef] = useState('');
+  const [runningReal, setRunningReal] = useState(false);
+  const [realResult, setRealResult] = useState<ProductTestResult | null>(null);
+
   // Reset state on open/version change
   useEffect(() => {
-    if (open) { setSampleValues({}); setSimRows(null); setRealResult(null); }
+    if (open) {
+      setSampleValues({}); setSimRows(null); setRealResult(null);
+      setMode('sample'); setClaimRef('');
+    }
   }, [open, versionId]);
 
   const evaluateSample = () => {
@@ -97,32 +118,42 @@ export function TestEligibilityDialog({ open, onOpenChange, versionId, productCo
 
       let result: SimRow['result'] = 'SKIPPED';
       let message: string | undefined;
-      if (!factKey) { message = 'No fact linked'; }
-      else if (!opDef) { message = `Unknown operator "${rd.operator}"`; }
-      else if (raw === undefined || raw === '') { message = 'No sample value provided'; }
+      if (!factKey) message = 'No fact linked';
+      else if (!opDef) message = `Unknown operator "${rd.operator}"`;
+      else if (raw === undefined || raw === '') message = 'No sample value provided';
       else {
         const pass = opDef.evaluate(actual, expected);
         result = pass ? 'PASS' : 'FAIL';
       }
 
       rows.push({
-        rule: r,
-        factKey,
+        rule: r, factKey,
         factLabel: factDef?.label ?? factKey ?? '—',
         operator: String(rd.operator ?? ''),
-        expected,
-        actual: actual ?? raw ?? null,
-        result,
-        message,
+        expected, actual: actual ?? raw ?? null, result, message,
       });
     }
     setSimRows(rows);
   };
 
-  // ── Real-claim mode state ──────────────────────────────────────────────
-  const [claimRef, setClaimRef] = useState('');
-  const [runningReal, setRunningReal] = useState(false);
-  const [realResult, setRealResult] = useState<ProductTestResult | null>(null);
+  const fillScenario = (kind: 'pass' | 'fail') => {
+    const next: Record<string, string> = {};
+    for (const f of factsUsed) {
+      const ruleForFact = rules.find((r) => {
+        const rd = (r.rule_definition || {}) as any;
+        return (rd.field_key ?? (r as any).fact_key) === f.factKey;
+      });
+      const rd: any = (ruleForFact?.rule_definition || {});
+      next[f.factKey] = suggestValue(rd, f.dataType, kind);
+    }
+    setSampleValues(next);
+    setSimRows(null);
+  };
+
+  const resetAll = () => {
+    setSampleValues({}); setSimRows(null);
+    setClaimRef(''); setRealResult(null);
+  };
 
   const resolveClaimId = async (input: string): Promise<string | null> => {
     const trimmed = input.trim();
@@ -145,7 +176,6 @@ export function TestEligibilityDialog({ open, onOpenChange, versionId, productCo
     } finally { setRunningReal(false); }
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────
   const sampleOverall = useMemo(() => {
     if (!simRows) return null;
     if (simRows.some((r) => r.result === 'FAIL')) return 'FAIL';
@@ -153,133 +183,165 @@ export function TestEligibilityDialog({ open, onOpenChange, versionId, productCo
     return 'PASS';
   }, [simRows]);
 
+  // Normalised result rows (drives the tabbed result panel)
+  const resultRows: ResultRow[] | null = useMemo(() => {
+    if (mode === 'sample') {
+      if (!simRows) return null;
+      return simRows.map((r) => ({
+        key: r.rule.id, name: r.rule.rule_name, code: r.rule.rule_code,
+        expected: `${r.operator} ${fmt(r.expected)}`,
+        actual: fmt(r.actual), source: r.factKey ?? '—',
+        result: r.result, message: r.message,
+      }));
+    }
+    if (!realResult) return null;
+    return realResult.rows.map((r, i) => ({
+      key: `${r.rule_code}-${i}`, name: r.rule_name, code: r.rule_code,
+      expected: `${r.operator} ${fmt(r.expected)}`,
+      actual: fmt(r.actual), source: r.source ?? '—',
+      result: r.result, message: r.message,
+    }));
+  }, [mode, simRows, realResult]);
+
+  const hasResults = !!resultRows;
+  const overallNode =
+    mode === 'sample'
+      ? sampleOverall === 'PASS' ? <Badge className="bg-emerald-600 text-white">All rules pass</Badge>
+        : sampleOverall === 'FAIL' ? <Badge variant="destructive">Failed</Badge>
+        : sampleOverall === 'INCOMPLETE' ? <Badge variant="outline" className="border-amber-400 text-amber-700">Incomplete</Badge>
+        : null
+      : realResult?.overall === 'PASS' ? <Badge className="bg-emerald-600 text-white">All rules passed</Badge>
+        : realResult?.overall === 'FAIL' ? <Badge variant="destructive">Failed</Badge>
+        : realResult ? <Badge variant="outline" className="border-amber-400 text-amber-700">Blocked</Badge>
+        : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FlaskConical className="h-5 w-5" /> Test Eligibility
-          </DialogTitle>
-          <DialogDescription>
-            Validate this product's eligibility rules. Use <strong>Sample Scenario</strong> while
-            building the catalogue (no claim needed), or <strong>Real Claim</strong> once test
-            data exists.
-          </DialogDescription>
-        </DialogHeader>
-
-        <Tabs defaultValue="sample" className="w-full">
-          <TabsList>
-            <TabsTrigger value="sample" className="gap-2"><Sparkles className="h-4 w-4" /> Sample Scenario</TabsTrigger>
-            <TabsTrigger value="real" className="gap-2"><PlayCircle className="h-4 w-4" /> Real Claim</TabsTrigger>
-          </TabsList>
-
-          {/* SAMPLE MODE */}
-          <TabsContent value="sample" className="space-y-4 pt-2">
-            {factsUsed.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-6 text-center">
-                No active rules to test. Add rules first.
+      <DialogContent
+        className="flex h-[100dvh] w-screen max-w-none flex-col gap-0 p-0 lg:h-[85vh] lg:max-h-[85vh] lg:w-[min(1100px,95vw)] lg:max-w-[1100px] lg:rounded-lg"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        {/* ─── STICKY HEADER ─────────────────────────────────────── */}
+        <div className="sticky top-0 z-10 flex flex-col gap-3 border-b bg-background px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex-1">
+              <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+                <FlaskConical className="h-5 w-5" /> Test Eligibility
+              </DialogTitle>
+              <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+                Validate this product's eligibility rules without leaving the catalogue.
               </p>
-            ) : (
-              <>
-                <div className="rounded border p-3 bg-muted/30">
-                  <div className="text-sm font-medium mb-2">Provide a sample value for each fact</div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {factsUsed.map((f) => (
-                      <div key={f.factKey} className="space-y-1">
-                        <Label className="text-xs">
-                          {f.label}
-                          <span className="ml-1 text-muted-foreground">({f.dataType})</span>
-                        </Label>
-                        <Input
-                          placeholder={placeholderFor(f.dataType)}
-                          value={sampleValues[f.factKey] ?? ''}
-                          onChange={(e) => setSampleValues((p) => ({ ...p, [f.factKey]: e.target.value }))}
-                        />
-                        <div className="text-[10px] font-mono text-muted-foreground">{f.factKey}</div>
-                      </div>
-                    ))}
+            </div>
+            <Button
+              variant="ghost" size="icon"
+              className="-mr-2 h-8 w-8 shrink-0"
+              onClick={() => onOpenChange(false)}
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <Tabs value={mode} onValueChange={(v) => setMode(v as Mode)}>
+            <TabsList>
+              <TabsTrigger value="sample" className="gap-2">
+                <Sparkles className="h-4 w-4" /> Sample Scenario
+              </TabsTrigger>
+              <TabsTrigger value="real" className="gap-2">
+                <PlayCircle className="h-4 w-4" /> Real Claim
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+
+        {/* ─── SCROLLABLE BODY ───────────────────────────────────── */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+          <div className={hasResults ? 'grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]' : 'grid gap-4'}>
+            {/* INPUT COLUMN */}
+            <div className="min-w-0 space-y-4">
+              {mode === 'sample' ? (
+                factsUsed.length === 0 ? (
+                  <p className="rounded border bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+                    No active rules to test. Add rules first.
+                  </p>
+                ) : (
+                  <div className="space-y-2 rounded border bg-muted/30 p-3">
+                    <div className="text-sm font-medium">Provide a sample value for each fact</div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+                      {factsUsed.map((f) => (
+                        <div key={f.factKey} className="space-y-1">
+                          <Label className="text-xs">
+                            {f.label}
+                            <span className="ml-1 text-muted-foreground">({f.dataType})</span>
+                          </Label>
+                          <Input
+                            placeholder={placeholderFor(f.dataType)}
+                            value={sampleValues[f.factKey] ?? ''}
+                            onChange={(e) => setSampleValues((p) => ({ ...p, [f.factKey]: e.target.value }))}
+                          />
+                          <div className="text-[10px] font-mono text-muted-foreground">{f.factKey}</div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="mt-3 flex justify-end">
-                    <Button size="sm" onClick={evaluateSample} className="gap-2">
-                      <PlayCircle className="h-4 w-4" /> Evaluate
-                    </Button>
+                )
+              ) : (
+                <div className="space-y-3 rounded border bg-muted/30 p-3">
+                  <div>
+                    <Label htmlFor="claim-ref" className="text-xs">Claim ID (UUID) or claim number</Label>
+                    <Input
+                      id="claim-ref"
+                      placeholder="e.g. 1a2b3c4d-… or CLAIM-2026-000123"
+                      value={claimRef}
+                      onChange={(e) => setClaimRef(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') runReal(); }}
+                    />
                   </div>
+                  {realResult && (
+                    <p className="text-xs text-muted-foreground">
+                      Claim <span className="font-mono">{realResult.claim_id.slice(0, 8)}…</span>
+                      {realResult.product_code && <> · Product {realResult.product_code}</>}
+                      {realResult.snapshot_refreshed && <> · contribution snapshot refreshed</>}
+                    </p>
+                  )}
                 </div>
-
-                {simRows && (
-                  <ResultPanel
-                    overall={
-                      sampleOverall === 'PASS' ? <Badge className="bg-emerald-600 text-white">All rules pass</Badge>
-                      : sampleOverall === 'FAIL' ? <Badge variant="destructive">Failed</Badge>
-                      : <Badge variant="outline" className="border-amber-400 text-amber-700">Incomplete — some facts had no value</Badge>
-                    }
-                    rows={simRows.map((r) => ({
-                      key: r.rule.id,
-                      name: r.rule.rule_name,
-                      code: r.rule.rule_code,
-                      expected: `${r.operator} ${fmt(r.expected)}`,
-                      actual: fmt(r.actual),
-                      source: r.factKey ?? '—',
-                      result: r.result,
-                      message: r.message,
-                    }))}
-                  />
-                )}
-              </>
-            )}
-          </TabsContent>
-
-          {/* REAL MODE */}
-          <TabsContent value="real" className="space-y-4 pt-2">
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <Label htmlFor="claim-ref">Claim ID (UUID) or claim number</Label>
-                <Input
-                  id="claim-ref"
-                  placeholder="e.g. 1a2b3c4d-… or CLAIM-2026-000123"
-                  value={claimRef}
-                  onChange={(e) => setClaimRef(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') runReal(); }}
-                />
-              </div>
-              <Button onClick={runReal} disabled={runningReal} className="gap-2">
-                {runningReal ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
-                Run Test
-              </Button>
+              )}
             </div>
 
-            {realResult && (
-              <ResultPanel
-                overall={
-                  realResult.overall === 'PASS' ? <Badge className="bg-emerald-600 text-white">All rules passed</Badge>
-                  : realResult.overall === 'FAIL' ? <Badge variant="destructive">Failed</Badge>
-                  : <Badge variant="outline" className="border-amber-400 text-amber-700">Blocked — facts unresolvable</Badge>
-                }
-                subtitle={
-                  <>
-                    Claim <span className="font-mono">{realResult.claim_id.slice(0, 8)}…</span>
-                    {realResult.product_code && <> · Product {realResult.product_code}</>}
-                    {realResult.snapshot_refreshed && <> · contribution snapshot refreshed</>}
-                  </>
-                }
-                rows={realResult.rows.map((r, i) => ({
-                  key: `${r.rule_code}-${i}`,
-                  name: r.rule_name,
-                  code: r.rule_code,
-                  expected: `${r.operator} ${fmt(r.expected)}`,
-                  actual: fmt(r.actual),
-                  source: r.source ?? '—',
-                  result: r.result,
-                  message: r.message,
-                }))}
-              />
+            {/* RESULT COLUMN */}
+            {hasResults && resultRows && (
+              <ResultTabs overall={overallNode} rows={resultRows} factsUsed={factsUsed} sampleValues={sampleValues} mode={mode} />
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
 
-        <DialogFooter>
+        {/* ─── STICKY FOOTER ─────────────────────────────────────── */}
+        <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-end gap-2 border-t bg-background px-4 py-3 sm:px-6">
+          {mode === 'sample' && factsUsed.length > 0 && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => fillScenario('pass')} className="gap-2">
+                <ThumbsUp className="h-4 w-4" /> Fill Passing
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => fillScenario('fail')} className="gap-2">
+                <ThumbsDown className="h-4 w-4" /> Fill Failing
+              </Button>
+            </>
+          )}
+          <Button variant="ghost" size="sm" onClick={resetAll} className="gap-2">
+            <RotateCcw className="h-4 w-4" /> Reset
+          </Button>
+          <div className="flex-1" />
+          {mode === 'sample' ? (
+            <Button onClick={evaluateSample} disabled={factsUsed.length === 0} className="gap-2">
+              <PlayCircle className="h-4 w-4" /> Evaluate
+            </Button>
+          ) : (
+            <Button onClick={runReal} disabled={runningReal} className="gap-2">
+              {runningReal ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
+              Run Test
+            </Button>
+          )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -287,64 +349,147 @@ export function TestEligibilityDialog({ open, onOpenChange, versionId, productCo
 
 // ─────────────────────────────────────────────────────────────────────────
 
-function ResultPanel({
-  overall, subtitle, rows,
+interface ResultRow {
+  key: string; name: string; code: string; expected: string; actual: string;
+  source: string; result: 'PASS' | 'FAIL' | 'SKIPPED'; message?: string;
+}
+
+function ResultTabs({
+  overall, rows, factsUsed, sampleValues, mode,
 }: {
   overall: React.ReactNode;
-  subtitle?: React.ReactNode;
-  rows: Array<{
-    key: string; name: string; code: string; expected: string; actual: string;
-    source: string; result: 'PASS' | 'FAIL' | 'SKIPPED'; message?: string;
-  }>;
+  rows: ResultRow[];
+  factsUsed: { factKey: string; label: string; dataType: string }[];
+  sampleValues: Record<string, string>;
+  mode: Mode;
 }) {
+  const failed = rows.filter((r) => r.result === 'FAIL');
+  const skipped = rows.filter((r) => r.result === 'SKIPPED');
+  const passed = rows.filter((r) => r.result === 'PASS');
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-3 text-sm">
+    <div className="min-w-0 rounded border bg-card">
+      <div className="flex items-center gap-3 border-b px-3 py-2 text-sm">
         {overall}
-        {subtitle && <span className="text-muted-foreground">{subtitle}</span>}
+        <span className="text-xs text-muted-foreground">
+          {passed.length} pass · {failed.length} fail · {skipped.length} skipped
+        </span>
       </div>
-      {rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">No rules evaluated.</p>
-      ) : (
-        <ScrollArea className="max-h-[420px] rounded border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8"></TableHead>
-                <TableHead>Rule</TableHead>
-                <TableHead>Expected</TableHead>
-                <TableHead>Actual</TableHead>
-                <TableHead>Source / Fact</TableHead>
-                <TableHead>Result</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((r) => (
-                <TableRow key={r.key} className={r.result === 'FAIL' ? 'bg-destructive/5' : r.result === 'SKIPPED' ? 'bg-amber-50/40' : ''}>
-                  <TableCell>
-                    {r.result === 'PASS' ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                      : r.result === 'FAIL' ? <XCircle className="h-4 w-4 text-destructive" />
-                      : <AlertTriangle className="h-4 w-4 text-amber-500" />}
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm font-medium">{r.name}</div>
-                    <div className="text-xs text-muted-foreground font-mono">{r.code}</div>
-                    {r.message && <div className="text-xs text-muted-foreground mt-0.5 italic">{r.message}</div>}
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">{r.expected}</TableCell>
-                  <TableCell className="font-mono text-xs">{r.actual}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground font-mono">{r.source}</TableCell>
-                  <TableCell>
-                    <Badge variant={r.result === 'PASS' ? 'default' : r.result === 'FAIL' ? 'destructive' : 'outline'} className="text-[10px]">
-                      {r.result}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
+      <Tabs defaultValue={failed.length > 0 ? 'failed' : 'all'} className="w-full">
+        <TabsList className="m-2">
+          <TabsTrigger value="summary">Summary</TabsTrigger>
+          <TabsTrigger value="failed">Failed ({failed.length})</TabsTrigger>
+          <TabsTrigger value="all">All ({rows.length})</TabsTrigger>
+          {mode === 'sample' && <TabsTrigger value="facts">Fact Values</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="summary" className="px-3 pb-3">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <SummaryTile label="Passed" count={passed.length} tone="emerald" />
+            <SummaryTile label="Failed" count={failed.length} tone="red" />
+            <SummaryTile label="Skipped" count={skipped.length} tone="amber" />
+          </div>
+          {failed.length > 0 && (
+            <div className="mt-3 space-y-1 text-xs">
+              <div className="font-medium">Top failing rules</div>
+              {failed.slice(0, 5).map((r) => (
+                <div key={r.key} className="truncate text-muted-foreground">
+                  • {r.name} — expected <span className="font-mono">{r.expected}</span>, got <span className="font-mono">{r.actual}</span>
+                </div>
               ))}
-            </TableBody>
-          </Table>
-        </ScrollArea>
-      )}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="failed" className="m-0">
+          <RuleResultTable rows={failed} emptyMessage="No failing rules." />
+        </TabsContent>
+        <TabsContent value="all" className="m-0">
+          <RuleResultTable rows={rows} emptyMessage="No rules evaluated." />
+        </TabsContent>
+        {mode === 'sample' && (
+          <TabsContent value="facts" className="m-0">
+            <div className="max-h-[55vh] overflow-y-auto p-3">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fact</TableHead>
+                    <TableHead>Key</TableHead>
+                    <TableHead>Value provided</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {factsUsed.map((f) => (
+                    <TableRow key={f.factKey}>
+                      <TableCell className="text-xs">{f.label}</TableCell>
+                      <TableCell className="font-mono text-[10px] text-muted-foreground">{f.factKey}</TableCell>
+                      <TableCell className="font-mono text-xs">{sampleValues[f.factKey] || '—'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+        )}
+      </Tabs>
+    </div>
+  );
+}
+
+function RuleResultTable({ rows, emptyMessage }: { rows: ResultRow[]; emptyMessage: string }) {
+  if (rows.length === 0) return <p className="px-3 py-6 text-center text-sm text-muted-foreground">{emptyMessage}</p>;
+  return (
+    <div className="max-h-[55vh] overflow-y-auto">
+      <Table>
+        <TableHeader className="sticky top-0 bg-background">
+          <TableRow>
+            <TableHead className="w-8"></TableHead>
+            <TableHead>Rule</TableHead>
+            <TableHead>Expected</TableHead>
+            <TableHead>Actual</TableHead>
+            <TableHead>Source</TableHead>
+            <TableHead>Result</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((r) => (
+            <TableRow key={r.key} className={r.result === 'FAIL' ? 'bg-destructive/5' : r.result === 'SKIPPED' ? 'bg-amber-50/40' : ''}>
+              <TableCell>
+                {r.result === 'PASS' ? <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  : r.result === 'FAIL' ? <XCircle className="h-4 w-4 text-destructive" />
+                  : <AlertTriangle className="h-4 w-4 text-amber-500" />}
+              </TableCell>
+              <TableCell>
+                <div className="text-sm font-medium">{r.name}</div>
+                <div className="font-mono text-xs text-muted-foreground">{r.code}</div>
+                {r.message && <div className="mt-0.5 text-xs italic text-muted-foreground">{r.message}</div>}
+              </TableCell>
+              <TableCell className="font-mono text-xs">{r.expected}</TableCell>
+              <TableCell className="font-mono text-xs">{r.actual}</TableCell>
+              <TableCell className="font-mono text-xs text-muted-foreground">{r.source}</TableCell>
+              <TableCell>
+                <Badge variant={r.result === 'PASS' ? 'default' : r.result === 'FAIL' ? 'destructive' : 'outline'} className="text-[10px]">
+                  {r.result}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
+function SummaryTile({ label, count, tone }: { label: string; count: number; tone: 'emerald' | 'red' | 'amber' }) {
+  const cls = tone === 'emerald'
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : tone === 'red'
+      ? 'border-destructive/30 bg-destructive/5 text-destructive'
+      : 'border-amber-200 bg-amber-50 text-amber-700';
+  return (
+    <div className={`rounded border p-3 ${cls}`}>
+      <div className="text-2xl font-semibold">{count}</div>
+      <div className="text-xs">{label}</div>
     </div>
   );
 }
@@ -371,8 +516,51 @@ function coerceSample(raw: string | undefined, dataType?: string): unknown {
       if (['false', 'no', 'n', '0'].includes(v)) return false;
       return raw;
     }
-    case 'date': return raw; // operators handle ISO strings
+    case 'date': return raw;
     default: return raw;
+  }
+}
+
+/**
+ * Heuristic — derive a sample value that will satisfy (or violate) the given
+ * rule definition. Used by Fill Passing / Fill Failing buttons.
+ */
+function suggestValue(rd: any, dataType: string, kind: 'pass' | 'fail'): string {
+  const op = String(rd?.operator ?? '').toUpperCase();
+  const v = rd?.value;
+  const from = rd?.range_from ?? rd?.value_from;
+  const to = rd?.range_to ?? rd?.value_to;
+  const list: any[] = Array.isArray(rd?.values) ? rd.values : [];
+
+  const num = (x: any) => {
+    const n = Number(x); return Number.isFinite(n) ? n : 0;
+  };
+
+  switch (op) {
+    case 'EQUALS': case '=':
+      return kind === 'pass' ? String(v ?? '') : String(dataType === 'number' ? num(v) + 1 : `${v ?? ''}-x`);
+    case 'NOT_EQUALS': case '!=':
+      return kind === 'pass' ? String(dataType === 'number' ? num(v) + 1 : `${v ?? ''}-x`) : String(v ?? '');
+    case 'GREATER_THAN': case '>':
+      return String(kind === 'pass' ? num(v) + 1 : num(v) - 1);
+    case 'GREATER_OR_EQUAL': case '>=':
+      return String(kind === 'pass' ? num(v) : num(v) - 1);
+    case 'LESS_THAN': case '<':
+      return String(kind === 'pass' ? num(v) - 1 : num(v) + 1);
+    case 'LESS_OR_EQUAL': case '<=':
+      return String(kind === 'pass' ? num(v) : num(v) + 1);
+    case 'BETWEEN':
+      return String(kind === 'pass' ? num(from) : num(to) + 1);
+    case 'IN':
+      return kind === 'pass' ? String(list[0] ?? '') : '__none__';
+    case 'NOT_IN':
+      return kind === 'pass' ? '__none__' : String(list[0] ?? '');
+    case 'BOOLEAN':
+      return kind === 'pass' ? String(!!v) : String(!v);
+    case 'EXISTS':
+      return kind === 'pass' ? 'yes' : '';
+    default:
+      return kind === 'pass' ? String(v ?? '') : '';
   }
 }
 
