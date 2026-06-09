@@ -50,6 +50,8 @@ export const SMART_FIELD_TYPES: readonly SmartFieldTypeDef[] = [
   { key: 'BANK_ACCOUNT_CAPTURE', label: 'Bank Account Capture', defaultSourceAdapter: 'cl_bank_acct' },
   { key: 'MEDICAL_CERTIFICATE_BLOCK', label: 'Medical Certificate Block', defaultSourceAdapter: 'bn_medical_recommendation' },
   { key: 'DECLARATION_CHECKBOX', label: 'Declaration Checkbox' },
+  { key: 'ACTIVE_AWARD_LOOKUP', label: 'Active Award Lookup', defaultSourceAdapter: 'bn_entitlement', description: 'Selects an active entitlement/award (status active / in_payment / suspended) for the claimant. Returns entitlement_id, award_number, product, effective_date, status. Used by Life Certificate, School Certificate, EFT/Bank Update, and servicing requests.' },
+
   { key: 'APPLICANT_SSN_LOOKUP', label: 'Applicant SSN Lookup', defaultSourceAdapter: 'ip_master', description: 'Looks up the person filling the form.' },
   { key: 'INSURED_PERSON_SSN_LOOKUP', label: 'Insured Person SSN Lookup', defaultSourceAdapter: 'ip_master', description: 'Looks up the person the claim is about.' },
   { key: 'DECEASED_PERSON_SSN_LOOKUP', label: 'Deceased Person SSN Lookup', defaultSourceAdapter: 'ip_master', description: 'For survivor / funeral claims.' },
