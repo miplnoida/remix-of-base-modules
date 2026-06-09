@@ -271,6 +271,20 @@ const _bnMenuItemsRaw = [
         description: "Library · Reusable operational queues (intake, evidence, medical board, supervisor, finance) used by workflow routing.",
       },
       {
+        title: "Role Bundles",
+        url: "/bn/config/role-bundles",
+        icon: Layers,
+        requiresPermission: "benefits_management",
+        description: "Library · Bundle several BN roles for one user (small-office Benefit Officer Generalist).",
+      },
+      {
+        title: "Role Delegations",
+        url: "/bn/config/delegations",
+        icon: Layers,
+        requiresPermission: "benefits_management",
+        description: "Library · Temporary role/workbasket delegation with date range and supervisor approval.",
+      },
+      {
         title: "Escalation Policies",
         url: "/bn/config/escalation",
         icon: AlertTriangle,
