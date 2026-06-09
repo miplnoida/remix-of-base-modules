@@ -149,7 +149,7 @@ export async function recordDecision(input: DecisionInput): Promise<void> {
     if (isLast && next?.level === input.level) toStatus = 'APPROVED';
   }
 
-  const { error: insertErr } = await supabase.from('bn_version_approval').insert({
+  const { error: insertErr } = await (supabase.from('bn_version_approval') as any).insert({
     product_version_id: input.productVersionId,
     action: input.action,
     from_status: fromStatus,
