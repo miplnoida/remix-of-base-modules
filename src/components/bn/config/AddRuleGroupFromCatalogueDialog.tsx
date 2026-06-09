@@ -47,15 +47,17 @@ export function AddRuleGroupFromCatalogueDialog({ open, onOpenChange, versionId,
           sort_order, default_active,
           bn_rule_catalogue:catalogue_rule_id (
             id, rule_code, rule_name, fact_key, operator, value_from, value_to, values,
-            default_fail_action, failure_message_text, version, is_active, category, group_type
+            default_fail_action, failure_message_text, version, is_active, category, group_type,
+            governance_status
           )
         `)
         .eq('rule_group_id', groupId)
         .order('sort_order', { ascending: true });
       if (error) throw error;
+      const ALLOWED_GOV = new Set(['LEGAL_CONFIRMED','READY_FOR_PRODUCT_USE','ACTIVE']);
       return (data || [])
         .map((row: any) => ({ ...row.bn_rule_catalogue, sort_order: row.sort_order, default_active: row.default_active }))
-        .filter((r: any) => r && r.is_active);
+        .filter((r: any) => r && r.is_active && (!r.governance_status || ALLOWED_GOV.has(r.governance_status)));
     },
     enabled: !!groupId,
   });
