@@ -9379,43 +9379,148 @@ export type Database = {
       }
       bn_formula_template: {
         Row: {
+          category: string | null
           country_code: string | null
+          default_sample_values: Json
           description: string | null
+          effective_from: string | null
+          effective_to: string | null
           entered_at: string
           entered_by: string | null
           formula_expression: string
+          frequency: string | null
+          governance_status: string
           id: string
           input_variables: Json
           is_active: boolean
+          legal_reference: string | null
+          modified_at: string | null
+          modified_by: string | null
           output_type: string
+          output_variable: string | null
+          product_usage_examples: Json
+          required_variables: Json
+          rounding_rule: string | null
           template_code: string
           template_name: string
+          variable_source_map: Json
         }
         Insert: {
+          category?: string | null
           country_code?: string | null
+          default_sample_values?: Json
           description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           entered_at?: string
           entered_by?: string | null
           formula_expression?: string
+          frequency?: string | null
+          governance_status?: string
           id?: string
           input_variables?: Json
           is_active?: boolean
+          legal_reference?: string | null
+          modified_at?: string | null
+          modified_by?: string | null
           output_type?: string
+          output_variable?: string | null
+          product_usage_examples?: Json
+          required_variables?: Json
+          rounding_rule?: string | null
           template_code: string
           template_name: string
+          variable_source_map?: Json
         }
         Update: {
+          category?: string | null
           country_code?: string | null
+          default_sample_values?: Json
           description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           entered_at?: string
           entered_by?: string | null
           formula_expression?: string
+          frequency?: string | null
+          governance_status?: string
           id?: string
           input_variables?: Json
           is_active?: boolean
+          legal_reference?: string | null
+          modified_at?: string | null
+          modified_by?: string | null
           output_type?: string
+          output_variable?: string | null
+          product_usage_examples?: Json
+          required_variables?: Json
+          rounding_rule?: string | null
           template_code?: string
           template_name?: string
+          variable_source_map?: Json
+        }
+        Relationships: []
+      }
+      bn_formula_variable_registry: {
+        Row: {
+          allowed_operators: Json
+          category: string | null
+          created_at: string
+          created_by: string | null
+          data_type: string
+          description: string | null
+          display_name: string
+          id: string
+          is_active: boolean
+          notes: string | null
+          resolver_function: string | null
+          sample_value: number | null
+          source_path: string | null
+          source_type: string
+          unit: string | null
+          updated_at: string
+          updated_by: string | null
+          variable_code: string
+        }
+        Insert: {
+          allowed_operators?: Json
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_type?: string
+          description?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          resolver_function?: string | null
+          sample_value?: number | null
+          source_path?: string | null
+          source_type: string
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          variable_code: string
+        }
+        Update: {
+          allowed_operators?: Json
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_type?: string
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          resolver_function?: string | null
+          sample_value?: number | null
+          source_path?: string | null
+          source_type?: string
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          variable_code?: string
         }
         Relationships: []
       }
