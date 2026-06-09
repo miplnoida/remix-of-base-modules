@@ -72,13 +72,24 @@ export function TestEligibilityDialog({ open, onOpenChange, versionId }: Props) 
   // ── Sample mode state ──────────────────────────────────────────────────
   const factsUsed = useMemo(() => {
     const set = new Map<string, { fact: ReturnType<typeof getFact>; label: string; dataType: string }>();
-    for (const r of rules) {
-      if (!r.is_active) continue;
-      const rd = (r.rule_definition || {}) as Record<string, unknown>;
-      const key = (rd.field_key ?? (r as any).fact_key) as string | undefined;
-      if (!key || set.has(key)) continue;
+    const addKey = (key: unknown) => {
+      if (!key || typeof key !== 'string' || set.has(key)) return;
       const f = getFact(key);
       set.set(key, { fact: f, label: f?.label ?? key, dataType: f?.data_type ?? 'string' });
+    };
+    for (const r of rules) {
+      if (!r.is_active) continue;
+      const rd = (r.rule_definition || {}) as Record<string, any>;
+      // Primary fact key (literal / comparison rules)
+      addKey(rd.field_key ?? (r as any).fact_key);
+      // Range / date-difference / comparison rules also need these facts
+      addKey((r as any).start_fact_key);
+      addKey((r as any).end_fact_key);
+      addKey((r as any).fallback_end_fact_key);
+      addKey((r as any).compare_fact_key);
+      addKey(rd.compare_field_key);
+      addKey(rd.start_field_key);
+      addKey(rd.end_field_key);
     }
     return Array.from(set.entries()).map(([k, v]) => ({ factKey: k, ...v }));
   }, [rules]);
