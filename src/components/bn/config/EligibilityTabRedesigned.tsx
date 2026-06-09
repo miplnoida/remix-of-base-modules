@@ -37,6 +37,7 @@ import { AddRuleGroupFromCatalogueDialog } from './AddRuleGroupFromCatalogueDial
 import { AddRulesByCategoryDialog } from './AddRulesByCategoryDialog';
 import { EligibilityConflictPanel } from './EligibilityConflictPanel';
 import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
+import { TestEligibilityDialog } from './TestEligibilityDialog';
 
 interface Props {
   versionId: string | undefined;
@@ -62,6 +63,7 @@ export function EligibilityTabRedesigned({ versionId, isReadOnly, versionStatus,
     Object.fromEntries(RULE_GROUPS.map((g) => [g.code, true])),
   );
   const [advancedOpen, setAdvancedOpen] = useState<Record<string, boolean>>({});
+  const [testOpen, setTestOpen] = useState(false);
 
   if (!versionId) {
     return (
@@ -180,7 +182,7 @@ export function EligibilityTabRedesigned({ versionId, isReadOnly, versionStatus,
             <Button size="sm" disabled={isReadOnly} onClick={() => { setWizardInitial(null); setWizardOpen(true); }} className="gap-2">
               <Plus className="h-4 w-4" /> Add Rule
             </Button>
-            <Button variant="ghost" size="sm" disabled className="gap-2" title="Coming in Phase 2">
+            <Button variant="outline" size="sm" onClick={() => setTestOpen(true)} className="gap-2">
               <FlaskConical className="h-4 w-4" /> Test Eligibility
             </Button>
           </div>
@@ -311,6 +313,12 @@ export function EligibilityTabRedesigned({ versionId, isReadOnly, versionStatus,
             open={categoryPickerOpen}
             onOpenChange={setCategoryPickerOpen}
             versionId={versionId}
+          />
+          <TestEligibilityDialog
+            open={testOpen}
+            onOpenChange={setTestOpen}
+            versionId={versionId}
+            productCode={productCode ?? null}
           />
         </>
       )}
