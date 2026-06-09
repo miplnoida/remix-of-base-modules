@@ -771,6 +771,7 @@ const BnBenefitDetermination = lazy(() => import('@/pages/bn/claims/BenefitDeter
 const BnClaimRegistration = lazy(() => import('@/pages/bn/intake/ClaimRegistration'));
 const BnApprovalConsole = lazy(() => import('@/pages/bn/approval/ApprovalConsole'));
 const BnApprovalWorkbasketsConsole = lazy(() => import('@/pages/bn/approval/ApprovalWorkbasketsConsole'));
+const BnProductApprovalConsole = lazy(() => import('@/pages/bn/config/ProductApprovalConsole'));
 const BnApprovalQueue = lazy(() => import('@/pages/bn/approval/ApprovalQueue'));
 const BnAdjudicationWorkspace = lazy(() => import('@/pages/bn/approval/AdjudicationWorkspace'));
 const BnEligibilityReview = lazy(() => import('@/pages/bn/claims/EligibilityReview'));
