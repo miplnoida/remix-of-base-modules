@@ -1878,6 +1878,9 @@ export const AppRoutes = () => {
       <Route path="/bn/config/communication-templates" element={<BnFeatureGate flag="bn.config.rules"><BnBenefitCommunicationTemplates /></BnFeatureGate>} />
       <Route path="/bn/config/transitions" element={<BnFeatureGate flag="bn.config.rules"><BnTransitionMatrix /></BnFeatureGate>} />
       <Route path="/bn/config/workbaskets" element={<BnFeatureGate flag="bn.config.rules"><BnWorkbasketConfig /></BnFeatureGate>} />
+      <Route path="/bn/config/role-bundles" element={<BnFeatureGate flag="bn.config.rules"><BnRoleBundles /></BnFeatureGate>} />
+      <Route path="/bn/config/delegations" element={<BnFeatureGate flag="bn.config.rules"><BnDelegations /></BnFeatureGate>} />
+      <Route path="/bn/workbench" element={<BnFeatureGate flag="bn.config.rules"><BnMyWorkbench /></BnFeatureGate>} />
       <Route path="/bn/config/escalation" element={<BnFeatureGate flag="bn.config.rules"><BnEscalationConfig /></BnFeatureGate>} />
       <Route path="/bn/config/service-doc-types" element={<BnFeatureGate flag="bn.config.rules"><BnServiceDocTypes /></BnFeatureGate>} />
       <Route path="/bn/config/country" element={<BnFeatureGate flag="bn.config.rules"><BnCountryPackPage /></BnFeatureGate>} />
