@@ -298,6 +298,20 @@ export async function publishProductVersion(
     );
   }
 
+  // ─── GOVERNANCE GATE: every attached catalogue rule must be at
+  // LEGAL_CONFIRMED, READY_FOR_PRODUCT_USE, or ACTIVE.
+  const ungoverned = await findUngovernedAttachedRules(versionId);
+  if (ungoverned.length > 0) {
+    const list = ungoverned
+      .slice(0, 5)
+      .map(r => `${r.rule_code} (${r.governance_status})`)
+      .join(', ');
+    const more = ungoverned.length > 5 ? ` (+${ungoverned.length - 5} more)` : '';
+    throw new Error(
+      `Publish blocked: ${ungoverned.length} attached rule(s) have not completed Rule Governance — ${list}${more}. Open Rule Library to advance them to Legal Confirmed or Ready.`,
+    );
+  }
+
   const existingActive = (await fetchVersionsByProduct(version.product_id))
     .filter(v => v.status === 'ACTIVE' && v.id !== versionId);
 
