@@ -277,6 +277,8 @@ export default function BenefitConfigurationValidation() {
 
       <ClaimGovernanceReadinessCard />
 
+      <HandoffReadinessCard />
+
       <RegistryConformanceCard />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
