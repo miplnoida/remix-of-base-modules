@@ -1,0 +1,267 @@
+/**
+ * Product Approval Console
+ *
+ * Lists product versions currently in IN_REVIEW or APPROVED status,
+ * shows the configurable per-product approval chain (CONFIG_PUBLISH
+ * rows in bn_approval_policy), and lets a user holding the role for
+ * the next pending level approve / reject / publish.
+ *
+ * Route: /bn/config/product-approvals
+ */
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { Loader2, ShieldCheck, XCircle, Rocket, Inbox } from 'lucide-react';
+import { toast } from 'sonner';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
+import {
+  listPendingForRoles, getApprovalChain, getApprovalHistory, recordDecision,
+  type ApprovalLevelPolicy, type ApprovalEvent,
+} from '@/services/bn/productApprovalService';
+
+export default function ProductApprovalConsole() {
+  const { isAuthReady, isAuthenticated, profile, roles } = useSupabaseAuth();
+  const qc = useQueryClient();
+  const userRoles = roles ?? [];
+  const userCode = (profile as any)?.user_code ?? (profile as any)?.id ?? 'system';
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['bn-product-approvals', userRoles.join(',')],
+    queryFn: () => listPendingForRoles(userRoles),
+    enabled: isAuthReady && isAuthenticated,
+    refetchInterval: 30_000,
+  });
+
+  const [selected, setSelected] = useState<any | null>(null);
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Product Approval Console</h1>
+          <p className="text-sm text-muted-foreground">
+            Approve, reject or publish benefit product versions (including bundled rule changes).
+            Approval levels are configured per product.
+          </p>
+        </div>
+        <Badge variant="outline">{userRoles.length} role(s)</Badge>
+      </header>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Pending Product Versions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+            </div>
+          ) : !data?.length ? (
+            <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+              <Inbox className="h-8 w-8 mb-2" />
+              <p>No product versions awaiting approval.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {data.map(row => (
+                <div
+                  key={row.productVersion.id}
+                  className="flex items-center justify-between border rounded-lg p-3 hover:bg-muted/40 cursor-pointer"
+                  onClick={() => setSelected(row)}
+                >
+                  <div>
+                    <div className="font-medium">
+                      {row.productVersion.bn_product?.benefit_name || '(Unnamed product)'}{' '}
+                      <span className="text-muted-foreground text-sm font-mono">
+                        v{row.productVersion.version_number}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {row.productVersion.bn_product?.benefit_code} · {row.productVersion.bn_product?.category}
+                      {row.productVersion.effective_from && ` · eff. ${row.productVersion.effective_from}`}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={row.productVersion.status === 'APPROVED' ? 'default' : 'secondary'}>
+                      {row.productVersion.status}
+                    </Badge>
+                    {row.nextLevel ? (
+                      <Badge variant="outline">
+                        L{row.nextLevel.level}: {row.nextLevel.approval_role}
+                      </Badge>
+                    ) : (
+                      <Badge>Ready to Publish</Badge>
+                    )}
+                    {row.canAct && <Badge className="bg-emerald-600">Your turn</Badge>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {selected && (
+        <DecisionDialog
+          row={selected}
+          userRoles={userRoles}
+          userCode={userCode}
+          onClose={() => setSelected(null)}
+          onActed={() => {
+            qc.invalidateQueries({ queryKey: ['bn-product-approvals'] });
+            setSelected(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function DecisionDialog({
+  row, userRoles, userCode, onClose, onActed,
+}: {
+  row: { productVersion: any; nextLevel: ApprovalLevelPolicy | null; canAct: boolean };
+  userRoles: string[];
+  userCode: string;
+  onClose: () => void;
+  onActed: () => void;
+}) {
+  const [chain, setChain] = useState<ApprovalLevelPolicy[]>([]);
+  const [history, setHistory] = useState<ApprovalEvent[]>([]);
+  const [comments, setComments] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const [c, h] = await Promise.all([
+        getApprovalChain(row.productVersion.id),
+        getApprovalHistory(row.productVersion.id),
+      ]);
+      setChain(c);
+      setHistory(h);
+    })();
+  }, [row.productVersion.id]);
+
+  const isPublishable = row.productVersion.status === 'APPROVED';
+  const canPublish = isPublishable && userRoles.some(r =>
+    ['BN_DIRECTOR', 'BN_CONFIG_ADMIN', 'admin'].includes(r),
+  );
+
+  async function act(action: 'APPROVE' | 'REJECT' | 'PUBLISH') {
+    if (action !== 'PUBLISH' && row.nextLevel?.requires_justification && !comments.trim()) {
+      toast.error('Please provide a justification.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await recordDecision({
+        productVersionId: row.productVersion.id,
+        action,
+        level: action === 'PUBLISH' ? null : row.nextLevel?.level ?? undefined,
+        stageCode: row.nextLevel?.stage_code ?? null,
+        approverRole: row.nextLevel?.approval_role ?? null,
+        comments,
+        performedBy: userCode,
+      });
+      toast.success(`Recorded: ${action}`);
+      onActed();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to record decision');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={v => !v && onClose()}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>
+            {row.productVersion.bn_product?.benefit_name} — v{row.productVersion.version_number}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <section>
+            <h3 className="text-sm font-medium mb-2">Approval Chain</h3>
+            <div className="space-y-1">
+              {chain.map(l => {
+                const approved = history.some(h => h.level === l.level && h.decision === 'APPROVED');
+                const isNext = row.nextLevel?.level === l.level;
+                return (
+                  <div key={l.id} className="flex items-center justify-between text-sm border rounded p-2">
+                    <span>
+                      <strong>L{l.level}</strong> · {l.stage_code} · {l.approval_role}
+                    </span>
+                    {approved ? <Badge>Approved</Badge>
+                      : isNext ? <Badge variant="secondary">Pending</Badge>
+                      : <Badge variant="outline">Waiting</Badge>}
+                  </div>
+                );
+              })}
+              {chain.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No approval chain configured. Set CONFIG_PUBLISH rows in Approval Policies for this product.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="text-sm font-medium mb-2">History ({history.length})</h3>
+            <div className="max-h-40 overflow-auto space-y-1 text-xs">
+              {history.map(h => (
+                <div key={h.id} className="border-b py-1">
+                  <span className="font-mono">{new Date(h.performed_at).toLocaleString()}</span>
+                  {' · '}<strong>{h.action}</strong>
+                  {h.level != null && <> · L{h.level}</>}
+                  {h.decision && <> · {h.decision}</>}
+                  {' · '}{h.performed_by}
+                  {h.comments && <div className="text-muted-foreground">“{h.comments}”</div>}
+                </div>
+              ))}
+              {history.length === 0 && <p className="text-muted-foreground">No prior decisions.</p>}
+            </div>
+          </section>
+
+          {(row.canAct || canPublish) && (
+            <section>
+              <label className="text-sm font-medium">Justification / Comments</label>
+              <Textarea
+                value={comments}
+                onChange={e => setComments(e.target.value)}
+                placeholder="Required for approval / rejection"
+                rows={3}
+              />
+            </section>
+          )}
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose} disabled={busy}>Close</Button>
+          {row.canAct && (
+            <>
+              <Button variant="destructive" disabled={busy} onClick={() => act('REJECT')}>
+                <XCircle className="h-4 w-4 mr-1" /> Reject
+              </Button>
+              <Button disabled={busy} onClick={() => act('APPROVE')}>
+                <ShieldCheck className="h-4 w-4 mr-1" /> Approve L{row.nextLevel?.level}
+              </Button>
+            </>
+          )}
+          {canPublish && (
+            <Button disabled={busy} onClick={() => act('PUBLISH')} className="bg-emerald-600 hover:bg-emerald-700">
+              <Rocket className="h-4 w-4 mr-1" /> Publish (Activate)
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

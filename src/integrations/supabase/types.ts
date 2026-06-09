@@ -13406,32 +13406,56 @@ export type Database = {
       bn_version_approval: {
         Row: {
           action: string
+          approver_role: string | null
+          approver_workbasket_id: string | null
           comments: string | null
+          created_at: string
+          decision: string | null
           from_status: string | null
           id: string
+          level: number | null
           performed_at: string
           performed_by: string
           product_version_id: string
+          reason_code: string | null
+          rule_diff_snapshot: Json | null
+          stage_code: string | null
           to_status: string
         }
         Insert: {
           action: string
+          approver_role?: string | null
+          approver_workbasket_id?: string | null
           comments?: string | null
+          created_at?: string
+          decision?: string | null
           from_status?: string | null
           id?: string
+          level?: number | null
           performed_at?: string
           performed_by: string
           product_version_id: string
+          reason_code?: string | null
+          rule_diff_snapshot?: Json | null
+          stage_code?: string | null
           to_status: string
         }
         Update: {
           action?: string
+          approver_role?: string | null
+          approver_workbasket_id?: string | null
           comments?: string | null
+          created_at?: string
+          decision?: string | null
           from_status?: string | null
           id?: string
+          level?: number | null
           performed_at?: string
           performed_by?: string
           product_version_id?: string
+          reason_code?: string | null
+          rule_diff_snapshot?: Json | null
+          stage_code?: string | null
           to_status?: string
         }
         Relationships: [

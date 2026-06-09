@@ -771,6 +771,7 @@ const BnBenefitDetermination = lazy(() => import('@/pages/bn/claims/BenefitDeter
 const BnClaimRegistration = lazy(() => import('@/pages/bn/intake/ClaimRegistration'));
 const BnApprovalConsole = lazy(() => import('@/pages/bn/approval/ApprovalConsole'));
 const BnApprovalWorkbasketsConsole = lazy(() => import('@/pages/bn/approval/ApprovalWorkbasketsConsole'));
+const BnProductApprovalConsole = lazy(() => import('@/pages/bn/config/ProductApprovalConsole'));
 const BnApprovalQueue = lazy(() => import('@/pages/bn/approval/ApprovalQueue'));
 const BnAdjudicationWorkspace = lazy(() => import('@/pages/bn/approval/AdjudicationWorkspace'));
 const BnEligibilityReview = lazy(() => import('@/pages/bn/claims/EligibilityReview'));
@@ -1843,6 +1844,7 @@ export const AppRoutes = () => {
       <Route path="/bn/queue" element={<BnFeatureGate flag="bn.claims.workbench"><BnClaimQueue /></BnFeatureGate>} />
       <Route path="/bn/approval" element={<BnFeatureGate flag="bn.claims.workbench"><BnApprovalConsole /></BnFeatureGate>} />
       <Route path="/bn/approval/workbaskets" element={<BnFeatureGate flag="bn.claims.workbench"><BnApprovalWorkbasketsConsole /></BnFeatureGate>} />
+      <Route path="/bn/config/product-approvals" element={<BnFeatureGate flag="bn.claims.workbench"><BnProductApprovalConsole /></BnFeatureGate>} />
       <Route path="/bn/approval/queue" element={<BnFeatureGate flag="bn.claims.workbench"><BnApprovalQueue /></BnFeatureGate>} />
       <Route path="/bn/approval/workspace/:claimId" element={<BnFeatureGate flag="bn.claims.workbench"><BnAdjudicationWorkspace /></BnFeatureGate>} />
       <Route path="/bn/entitlements" element={<BnFeatureGate flag="bn.awards"><BnEntitlementManagement /></BnFeatureGate>} />
