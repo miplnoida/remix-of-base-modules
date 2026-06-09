@@ -549,6 +549,98 @@ const RESOLVERS: Record<string, ResolverFn> = {
     // NOT_IMPLEMENTED — backing table to be introduced
     return null;
   },
+
+  // Injury — work-related flag sourced from claim detail / application JSON
+  resolveInjuryWorkRelated: async (ctx) => {
+    if (typeof ctx.extras?.['work_related'] === 'boolean') return ctx.extras['work_related'];
+    if (!ctx.claimId) return null;
+    const aliases = ['work_related', 'is_work_related', 'employment_injury_work_related'];
+    const pick = (obj: any): boolean | null => {
+      if (!obj || typeof obj !== 'object') return null;
+      for (const k of aliases) {
+        if (typeof obj[k] === 'boolean') return obj[k];
+        if (typeof obj[k] === 'string') {
+          const s = obj[k].toLowerCase();
+          if (['true', 'yes', 'y', '1'].includes(s)) return true;
+          if (['false', 'no', 'n', '0'].includes(s)) return false;
+        }
+      }
+      return null;
+    };
+    const { data: detail } = await db
+      .from('bn_claim_detail')
+      .select('detail_json')
+      .eq('claim_id', ctx.claimId)
+      .maybeSingle();
+    const dj = (detail as any)?.detail_json;
+    const fromDetail = pick(dj) ?? pick(dj?.injury) ?? pick(dj?.benefit_facts);
+    if (fromDetail !== null) return fromDetail;
+    const { data: app } = await db
+      .from('bn_claim_application')
+      .select('raw_application_json')
+      .eq('claim_id', ctx.claimId)
+      .maybeSingle();
+    const raw = (app as any)?.raw_application_json;
+    return pick(raw?.benefit_facts) ?? pick(raw?.benefit_facts?.injury) ?? pick(raw) ?? null;
+  },
+
+  // Means test — income from claim detail / application
+  resolveMeansTestIncome: async (ctx) => {
+    if (typeof ctx.extras?.['means_test_income'] === 'number') return ctx.extras['means_test_income'];
+    if (!ctx.claimId) return null;
+    const aliases = ['income', 'monthly_income', 'household_income', 'total_income'];
+    const pick = (obj: any): number | null => {
+      if (!obj || typeof obj !== 'object') return null;
+      for (const k of aliases) {
+        const v = obj[k];
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) return Number(v);
+      }
+      return null;
+    };
+    const { data: detail } = await db
+      .from('bn_claim_detail')
+      .select('detail_json')
+      .eq('claim_id', ctx.claimId)
+      .maybeSingle();
+    const dj = (detail as any)?.detail_json;
+    const fromDetail = pick(dj?.means_test) ?? pick(dj);
+    if (fromDetail !== null) return fromDetail;
+    const { data: app } = await db
+      .from('bn_claim_application')
+      .select('raw_application_json')
+      .eq('claim_id', ctx.claimId)
+      .maybeSingle();
+    const raw = (app as any)?.raw_application_json;
+    return pick(raw?.benefit_facts?.means_test) ?? pick(raw?.benefit_facts) ?? null;
+  },
+
+  // Funeral invoice received (document existence) and amount (from metadata)
+  resolveDocFuneralInvoice: async (ctx) => {
+    if (!ctx.claimId) return false;
+    return hasClaimDocument(ctx.claimId, ['FUNERAL_INVOICE', 'FUN_INVOICE']);
+  },
+  resolveDocFuneralInvoiceAmount: async (ctx) => {
+    if (typeof ctx.extras?.['funeral_invoice_amount'] === 'number') {
+      return ctx.extras['funeral_invoice_amount'];
+    }
+    if (!ctx.claimId) return null;
+    const { data } = await db
+      .from('bn_claim_document')
+      .select('id, document_type_code, metadata, uploaded_at')
+      .eq('claim_id', ctx.claimId)
+      .in('document_type_code', ['FUNERAL_INVOICE', 'FUN_INVOICE'])
+      .order('uploaded_at', { ascending: false })
+      .limit(1);
+    if (!Array.isArray(data) || data.length === 0) return null;
+    const meta = (data[0] as any).metadata ?? {};
+    const candidates = [meta.amount, meta.invoice_amount, meta.total];
+    for (const v of candidates) {
+      if (typeof v === 'number' && Number.isFinite(v)) return v;
+      if (typeof v === 'string' && v.trim() && Number.isFinite(Number(v))) return Number(v);
+    }
+    return null;
+  },
 };
 
 /** Resolve a single fact. Throws on unknown fact keys. */
