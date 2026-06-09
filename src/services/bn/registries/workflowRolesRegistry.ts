@@ -4,6 +4,7 @@
  * Keep in sync with backend role catalogue.
  */
 export const BN_WORKFLOW_ROLES = [
+  // Generic operational roles
   'INTAKE_OFFICER',
   'EVIDENCE_OFFICER',
   'MEDICAL_OFFICER',
@@ -13,8 +14,29 @@ export const BN_WORKFLOW_ROLES = [
   'FINANCE_SUPERVISOR',
   'DIRECTOR',
   'COMPLIANCE_OFFICER',
+  // BN-prefixed roles seeded in public.roles and used by bn_workbasket /
+  // bn_escalation_policy / governance workflows. Keep in sync with DB seed.
+  'BN_INTAKE_OFFICER',
+  'BN_CLAIMS_OFFICER',
+  'BN_ELIGIBILITY_OFFICER',
+  'BN_SENIOR_ELIGIBILITY_OFFICER',
+  'BN_CALCULATION_OFFICER',
+  'BN_DOCUMENT_OFFICER',
+  'BN_PAYMENT_OFFICER',
+  'BN_AWARD_OFFICER',
+  'BN_SUPERVISOR',
+  'BN_MANAGER',
+  'BN_FINANCE_SUPERVISOR',
+  'BN_DIRECTOR',
+  'BN_AUDITOR',
+  'BN_RULE_AUTHOR',
+  'BN_RULE_TECHNICAL_REVIEWER',
+  'BN_RULE_LEGAL_APPROVER',
+  'BN_PRODUCT_MANAGER',
+  'BN_PRODUCT_APPROVER',
 ] as const;
 export type BnWorkflowRole = (typeof BN_WORKFLOW_ROLES)[number];
+
 
 export const BN_ESCALATION_TRIGGERS = [
   { value: 'SLA_BREACH', label: 'SLA Breach' },

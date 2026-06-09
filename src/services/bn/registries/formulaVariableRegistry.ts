@@ -26,7 +26,16 @@ export const FORMULA_VARIABLES: readonly FormulaVariableDef[] = [
   { key: 'monthly_rate', label: 'Monthly rate', type: 'money', sample: 1200 },
   { key: 'family_cap_pct', label: 'Family cap %', type: 'percent', sample: 100 },
   { key: 'beneficiary_share_pct', label: 'Beneficiary share %', type: 'percent', sample: 50 },
+  // Variables referenced by seeded formula templates (PCT-AVG-WAGE,
+  // TIERED-PENSION, SURVIVOR-SPLIT, NCP-FLAT-RATE, EI-DISABLEMENT,
+  // FUNERAL-GRANT). Sourced from product_parameter / calculation_result.
+  { key: 'rate', label: 'Replacement rate', type: 'percent', sample: 65, description: 'Product-parameter replacement rate (e.g. 0.65, 0.75).' },
+  { key: 'base_rate', label: 'Base pension rate', type: 'percent', sample: 30, description: 'Base pension rate from product parameter or prior formula result.' },
+  { key: 'base_pension', label: 'Base pension amount', type: 'money', sample: 1200, description: 'Computed base pension amount used by survivor split.' },
+  { key: 'flat_weekly_rate', label: 'Flat weekly rate', type: 'money', sample: 250, description: 'Product-parameter flat weekly rate (NCP).' },
+  { key: 'grant_amount', label: 'Grant amount', type: 'money', sample: 2500, description: 'Product-parameter grant amount (e.g. funeral grant).' },
 ] as const;
+
 
 export type FormulaVariableKey = (typeof FORMULA_VARIABLES)[number]['key'];
 
