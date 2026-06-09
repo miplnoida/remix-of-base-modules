@@ -1,55 +1,55 @@
+## Finding
 
-## Context
+The DB is already consistent: all 19 distinct `bn_workbasket.assigned_role` values exist in `public.roles`, and the static TS list `BN_WORKFLOW_ROLES` was updated in the prior pass to contain them all — so the validator should currently report 0 ERROR. The only outlier in DB is workbasket `123` (legacy/test) mapped to generic `INTAKE_OFFICER`.
 
-A previous pass already updated the three TS registries:
-- `workflowRolesRegistry.ts` — all 19 `BN_*` (and generic) roles used by `bn_workbasket` are registered.
-- `smartFieldRegistry.ts` — `ACTIVE_AWARD_LOOKUP` is registered.
-- `formulaVariableRegistry.ts` — added `rate`, `base_rate`, `base_pension`, `flat_weekly_rate`, `grant_amount`.
-
-Validating against live DB:
-- `bn_workbasket.assigned_role` distinct values are all in registry → **Workflow Roles: 0 ERROR** already.
-- `bn_field_metadata.field_type` includes `ACTIVE_AWARD_LOOKUP` → already covered.
-- `bn_formula_template.formula_expression` still references **4 unregistered variables**:
-  - `TIERED-PENSION` → `increment_rate`, `extra_years`
-  - `SURVIVOR-SPLIT` → `share_pct`
-  - `EI-DISABLEMENT` → `degree`
-- Transition Matrix is already drift-WARNING only with `generateRegistrySuggestions()` available.
-
-So the only real remaining noise is 4 formula-variable warnings and the lack of a one-click "fix drift" UI.
+The remaining problem is structural: roles live in **three places** (DB `public.roles`, `bn_workbasket.assigned_role`, and the static TS `BN_WORKFLOW_ROLES`). Any future role added in DB will silently drift again. The user wants DB to be the single source of truth.
 
 ## Plan
 
-### 1. Extend formula variable registry (eliminates remaining 4 WARNINGs)
-Edit `src/services/bn/registries/formulaVariableRegistry.ts`. Append:
-- `increment_rate` — percent, sample 1 — Tiered pension increment rate per extra year.
-- `extra_years` — number, sample 10 — Years above qualifying threshold for tiered pension.
-- `share_pct` — percent, sample 50 — Survivor beneficiary share %.
-- `degree` — percent, sample 35 — Disablement degree % (EI).
+### 1. DB-backed workflow role catalogue (source of truth)
+- Add a tiny service `src/services/bn/workflowRoleCatalogService.ts`:
+  - `fetchWorkflowRoles()` → `select role_name from public.roles where is_active = true` (cached 5 min).
+  - `fetchBnWorkflowRoles()` → same, filtered to `role_name LIKE 'BN\_%'` + a small allow-list of generic operational roles still in use (`INTAKE_OFFICER`, `DIRECTOR`, `COMPLIANCE_OFFICER`, etc.).
+- Add hook `useWorkflowRoles()` (React Query, `['workflow-roles']`) returning `{ roles: string[], isLoading, error }`.
 
-### 2. Verify workflow role + smart field registries (no edits expected)
-Re-read `workflowRolesRegistry.ts` and `smartFieldRegistry.ts` to confirm the prior pass persisted. If anything is missing (e.g., the listed BN_* roles or `ACTIVE_AWARD_LOOKUP`), re-add it.
+### 2. Validator uses DB, not the static const
+Rewrite the role check in `src/services/bn/bnRegistryValidationService.ts` (lines 209–238):
+- Replace `new Set(BN_WORKFLOW_ROLES)` with `new Set(await fetchWorkflowRoles())`.
+- Keep the same finding shape; severity stays ERROR.
+- Legacy basket `123 → INTAKE_OFFICER` will then validate cleanly (role exists in DB allow-list).
 
-### 3. Add "Fix Registry Drift" action on the Configuration Validation page
-In `src/pages/bn/config/BenefitConfigurationValidation.tsx` add a card/button group beside the existing run-validation button with three actions:
-- **Copy missing workflow roles** — diff `bn_workbasket.assigned_role` ∪ `bn_escalation_policy.escalation_target_role` against `BN_WORKFLOW_ROLES`; show the missing list and a copy-to-clipboard snippet to paste into `workflowRolesRegistry.ts`.
-- **Copy missing formula variables** — diff parsed variables in `bn_formula_template` against `FORMULA_VARIABLES`; show snippet for `formulaVariableRegistry.ts`.
-- **Copy missing smart-field types** — diff `bn_field_metadata.field_type` against `SMART_FIELD_TYPES`; show snippet for `smartFieldRegistry.ts`.
-- **Generate transition registry suggestions** — already exists via `generateRegistrySuggestions()`, wire it into the same card and show a download/copy JSON.
+### 3. UI selectors use the same DB source
+Replace static imports of `BN_WORKFLOW_ROLES` in:
+- `src/pages/bn/config/WorkbasketConfig.tsx` (line 175)
+- `src/pages/bn/config/EscalationConfig.tsx` (line 199)
+- `src/components/bn/config-builder/BlockInspector.tsx` (lines 156, 167)
+- `src/components/bn/config-builder/canvasValidation.ts` (line 11) — make it async-aware or accept roles via props/context.
 
-Each click logs an entry to `system_audit_trail` via the existing `useBnConfigAudit` hook so the change request is auditable. After copying the snippet, the user (or follow-up Lovable turn) pastes it into the TS file — keeping the source-of-truth model intact (DB seed + TS registry both updated explicitly, no silent code mutation).
+Each switches to `useWorkflowRoles()` (or `fetchBnWorkflowRoles()` for validators).
 
-### 4. Re-run validation
-After step 1, the report should show:
-- Workflow Roles: 0 ERROR
-- Formula Variables: 0 WARNING for the listed templates
-- Smart Field Types: 0 WARNING for `ACTIVE_AWARD_LOOKUP`
-- Transition Matrix: drift WARNING only (or clean), with regenerate JSON available.
+### 4. Keep the TS const as a typed fallback only
+Demote `BN_WORKFLOW_ROLES` in `src/services/bn/registries/workflowRolesRegistry.ts` to a documented fallback list used only when the DB fetch fails (offline / first paint). Add a code comment stating DB is source of truth.
 
-## Files Touched
-- `src/services/bn/registries/formulaVariableRegistry.ts` (extend)
-- `src/services/bn/registries/workflowRolesRegistry.ts` (verify)
-- `src/services/bn/registries/smartFieldRegistry.ts` (verify)
-- `src/pages/bn/config/BenefitConfigurationValidation.tsx` (add Fix Drift card)
-- possibly a small helper `src/services/bn/registryDriftService.ts` for snippet generation
+### 5. Optional cleanup
+- Deactivate legacy basket `code = '123'` or rename it to a real BN workbasket — confirm with user before touching data.
+- Add `BN_CONFIG_ADMIN` to the BN allow-list (exists in DB, not currently assigned to any basket but used by `useRuleGovernance`).
 
-No DB migration is needed — the role/field-type DB seeds are already in place; this pass only realigns the TS registries and adds the operator UX.
+### 6. Acceptance verification
+- Re-run Benefit Configuration Validation → Workflow Roles section shows 0 ERROR.
+- `WorkbasketConfig` and `EscalationConfig` dropdowns list every active BN role from DB (incl. any future ones added via SQL — no code change needed).
+- TypeScript build passes; existing imports of `BN_WORKFLOW_ROLES` still resolve to the fallback array.
+
+## Files touched
+- **new** `src/services/bn/workflowRoleCatalogService.ts`
+- **new** `src/hooks/bn/useWorkflowRoles.ts`
+- `src/services/bn/bnRegistryValidationService.ts` (role check → DB)
+- `src/services/bn/registries/workflowRolesRegistry.ts` (mark as fallback)
+- `src/pages/bn/config/WorkbasketConfig.tsx`
+- `src/pages/bn/config/EscalationConfig.tsx`
+- `src/components/bn/config-builder/BlockInspector.tsx`
+- `src/components/bn/config-builder/canvasValidation.ts`
+
+No DB migration required — `public.roles` already contains the 19 BN roles plus `BN_CONFIG_ADMIN`, and all 20 active workbaskets already map to valid roles.
+
+## Open question
+Workbasket `code = '123'` (assigned to `INTAKE_OFFICER`) looks like leftover test data. Want me to deactivate it as part of this pass, or leave it alone?
