@@ -47,8 +47,10 @@ const EDITABLE_STATUSES = ['DRAFT', 'SUBMITTED', 'INTAKE_REVIEW'];
 export const ClaimHeaderSection: React.FC<ClaimHeaderSectionProps> = ({
   claim, isEditable, onUpdate, userRoles,
 }) => {
-  const canEditPriority = isEditable && userRoles.some(r => ['CLAIMS_OFFICER', 'SUPERVISOR', 'ADMIN'].includes(r));
-  const canEditAssignment = userRoles.some(r => ['SUPERVISOR', 'ADMIN'].includes(r));
+  const PRIORITY_ROLES = ['admin', 'claims_officer', 'BN_INTAKE_OFFICER', 'BN_ELIGIBILITY_OFFICER', 'BN_SENIOR_ELIGIBILITY_OFFICER', 'BN_SUPERVISOR', 'BN_MANAGER', 'BN_DIRECTOR'];
+  const ASSIGN_ROLES = ['admin', 'BN_SUPERVISOR', 'BN_MANAGER', 'BN_DIRECTOR'];
+  const canEditPriority = isEditable && userRoles.some(r => PRIORITY_ROLES.includes(r));
+  const canEditAssignment = userRoles.some(r => ASSIGN_ROLES.includes(r));
   const canEditSource = isEditable && EDITABLE_STATUSES.includes(claim.status);
 
   return (

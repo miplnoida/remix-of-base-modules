@@ -54,7 +54,7 @@ const statusColors: Record<string, string> = {
 
 const AwardSuspensionConsole: React.FC = () => {
   const { isAuthReady, isAuthenticated, profile, hasAnyRole } = useSupabaseAuth();
-  const canAct = hasAnyRole(['admin', 'supervisor', 'claims_officer']);
+  const canAct = hasAnyRole(['admin', 'supervisor', 'claims_officer', 'BN_SUPERVISOR', 'BN_MANAGER', 'BN_DIRECTOR']);
 
   const [tab, setTab] = useState('all');
   const [search, setSearch] = useState('');

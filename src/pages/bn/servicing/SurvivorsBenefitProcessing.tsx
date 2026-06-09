@@ -44,7 +44,7 @@ const fmt = (n: number | null) => (n == null ? '—' : `$${n.toFixed(2)}`);
 
 const SurvivorsBenefitProcessing: React.FC = () => {
   const { isAuthReady, isAuthenticated, profile, hasAnyRole } = useSupabaseAuth();
-  const canAdvance = hasAnyRole(['admin', 'supervisor', 'claims_officer', 'pension_admin']);
+  const canAdvance = hasAnyRole(['admin', 'supervisor', 'claims_officer', 'pension_admin', 'BN_PAYMENT_OFFICER', 'BN_MANAGER', 'BN_DIRECTOR']);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');

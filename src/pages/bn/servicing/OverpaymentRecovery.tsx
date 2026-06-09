@@ -50,7 +50,7 @@ const fmt = (n: number) => `$${formatNumber((n ?? 0), 2)}`;
 
 const OverpaymentRecovery: React.FC = () => {
   const { isAuthReady, isAuthenticated, profile, hasAnyRole } = useSupabaseAuth();
-  const canAct = hasAnyRole(['admin', 'supervisor', 'claims_officer', 'finance_officer']);
+  const canAct = hasAnyRole(['admin', 'supervisor', 'claims_officer', 'finance_officer', 'BN_FINANCE_OFFICER', 'BN_MANAGER', 'BN_DIRECTOR']);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');

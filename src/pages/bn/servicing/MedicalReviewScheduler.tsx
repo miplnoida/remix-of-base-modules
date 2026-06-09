@@ -45,7 +45,7 @@ interface EnrichedReview extends BnMedicalReviewRow {
 
 const MedicalReviewScheduler: React.FC = () => {
   const { isAuthReady, isAuthenticated, profile, hasAnyRole } = useSupabaseAuth();
-  const canAct = hasAnyRole(['admin', 'supervisor', 'claims_officer', 'medical_admin']);
+  const canAct = hasAnyRole(['admin', 'supervisor', 'claims_officer', 'medical_admin', 'BN_MEDICAL_OFFICER', 'BN_MANAGER']);
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
