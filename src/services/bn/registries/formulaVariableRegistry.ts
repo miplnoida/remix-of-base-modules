@@ -34,6 +34,12 @@ export const FORMULA_VARIABLES: readonly FormulaVariableDef[] = [
   { key: 'base_pension', label: 'Base pension amount', type: 'money', sample: 1200, description: 'Computed base pension amount used by survivor split.' },
   { key: 'flat_weekly_rate', label: 'Flat weekly rate', type: 'money', sample: 250, description: 'Product-parameter flat weekly rate (NCP).' },
   { key: 'grant_amount', label: 'Grant amount', type: 'money', sample: 2500, description: 'Product-parameter grant amount (e.g. funeral grant).' },
+  // Additional variables referenced by seeded formula templates
+  // (TIERED-PENSION, SURVIVOR-SPLIT, EI-DISABLEMENT).
+  { key: 'increment_rate', label: 'Increment rate %', type: 'percent', sample: 1, description: 'Tiered pension increment rate per extra year above qualifying threshold.' },
+  { key: 'extra_years', label: 'Extra qualifying years', type: 'number', sample: 10, description: 'Years above the qualifying threshold used by tiered pension formulas.' },
+  { key: 'share_pct', label: 'Beneficiary share %', type: 'percent', sample: 50, description: 'Survivor beneficiary share percentage of the base pension.' },
+  { key: 'degree', label: 'Disablement degree %', type: 'percent', sample: 35, description: 'Assessed disablement degree % used by EI / disablement formulas.' },
 ] as const;
 
 
