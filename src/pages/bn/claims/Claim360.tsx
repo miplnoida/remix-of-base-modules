@@ -13,6 +13,7 @@ import { useBnClaim, useBnClaimEvents, useBnClaimNotes, useBnClaimEligibility, u
 import { BN_CLAIM_STATUS_LABELS } from '@/types/bn';
 import { formatDateForDisplay } from '@/lib/format-config';
 import { ClaimDecisionPanel } from '@/components/bn/claim/ClaimDecisionPanel';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { ClaimDecisionTimeline } from '@/components/bn/claim/ClaimDecisionTimeline';
 import { EvidenceChecklist } from '@/components/bn/evidence/EvidenceChecklist';
 import { EvidenceAuditTimeline } from '@/components/bn/evidence/EvidenceAuditTimeline';
