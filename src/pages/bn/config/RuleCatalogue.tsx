@@ -75,6 +75,7 @@ export default function RuleCatalogue() {
   const clone = useCloneRuleCatalogue();
   const remove = useDeleteRuleCatalogue();
   const toggle = useToggleRuleCatalogueActive();
+  const qc = useQueryClient();
 
   const factByKey = useMemo(() => {
     const m = new Map<string, EligibilityFact>();
