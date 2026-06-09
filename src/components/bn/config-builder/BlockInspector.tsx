@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { ELIGIBILITY_FIELDS } from '@/services/bn/registries/eligibilityFieldRegistry';
 import { FORMULA_VARIABLES } from '@/services/bn/registries/formulaVariableRegistry';
 import { SMART_FIELD_TYPES } from '@/services/bn/registries/smartFieldRegistry';
-import { BN_WORKFLOW_ROLES, BN_ESCALATION_TRIGGERS, BN_ESCALATION_SEVERITIES } from '@/services/bn/registries/workflowRolesRegistry';
+import { BN_ESCALATION_TRIGGERS, BN_ESCALATION_SEVERITIES } from '@/services/bn/registries/workflowRolesRegistry';
+import { useWorkflowRoles } from '@/hooks/bn/useWorkflowRoles';
 import { BLOCK_REGISTRY } from './blockRegistry';
 import type { BuilderBlock } from './types';
 
