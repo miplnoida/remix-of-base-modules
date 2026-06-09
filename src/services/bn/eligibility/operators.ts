@@ -20,6 +20,8 @@ export type EligibilityDataType =
 export type EligibilityOperator =
   | '>='
   | '<='
+  | '>'
+  | '<'
   | '='
   | '!='
   | 'exists'
@@ -94,6 +96,36 @@ export const OPERATORS: Record<EligibilityOperator, OperatorDef> = {
       const ad = toDateMs(a);
       const ed = toDateMs(e);
       if (ad !== null && ed !== null) return ad <= ed;
+      return false;
+    },
+  },
+  '>': {
+    key: '>',
+    label: 'Greater than',
+    appliesTo: ['number', 'date'],
+    valueArity: 'single',
+    evaluate: (a, e) => {
+      const an = toNumber(a);
+      const en = toNumber(e);
+      if (an !== null && en !== null) return an > en;
+      const ad = toDateMs(a);
+      const ed = toDateMs(e);
+      if (ad !== null && ed !== null) return ad > ed;
+      return false;
+    },
+  },
+  '<': {
+    key: '<',
+    label: 'Less than',
+    appliesTo: ['number', 'date'],
+    valueArity: 'single',
+    evaluate: (a, e) => {
+      const an = toNumber(a);
+      const en = toNumber(e);
+      if (an !== null && en !== null) return an < en;
+      const ad = toDateMs(a);
+      const ed = toDateMs(e);
+      if (ad !== null && ed !== null) return ad < ed;
       return false;
     },
   },
