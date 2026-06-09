@@ -356,6 +356,14 @@ export async function publishProductVersion(
     afterValue: { status: 'ACTIVE', effective_from: newEffectiveFrom, gate: gate.details },
     performedBy: await actor(), critical: true,
   });
+
+  // ─── POST-PUBLISH: promote READY_FOR_PRODUCT_USE attached rules to ACTIVE.
+  try {
+    await activateAttachedRules(versionId, await actor());
+  } catch (e) {
+    // Non-fatal: publish succeeded; governance promotion failure is logged.
+    console.warn('[publishProductVersion] activateAttachedRules failed', e);
+  }
 }
 
 /**
