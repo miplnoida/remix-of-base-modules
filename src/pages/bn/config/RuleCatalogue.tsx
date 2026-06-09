@@ -42,6 +42,9 @@ import { AuditTab } from '@/components/bn/ruleCatalogue/AuditTab';
 import { validateAllRules } from '@/services/bn/ruleValidationService';
 import { computeAllRuleReadiness } from '@/services/bn/readinessService';
 import { Progress } from '@/components/ui/progress';
+import { GovernanceStatusBadge } from '@/components/bn/governance/GovernanceStatusBadge';
+import { GovernanceActionsMenu } from '@/components/bn/governance/GovernanceActionsMenu';
+import { useQueryClient } from '@tanstack/react-query';
 
 const emptyInput: RuleCatalogueInput = {
   rule_code: '', rule_name: '', description: '', group_type: 'CONTRIBUTION',
