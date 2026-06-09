@@ -33,6 +33,7 @@ export function BlockInspector({ block, onChange, disabled }: Props) {
   }
   const def = BLOCK_REGISTRY[block.kind];
   const setProp = (k: string, v: any) => onChange({ ...block, props: { ...block.props, [k]: v } });
+  const { roles: workflowRoles } = useWorkflowRoles();
 
   return (
     <Card className="h-full">
@@ -44,13 +45,13 @@ export function BlockInspector({ block, onChange, disabled }: Props) {
         {def?.description && <CardDescription className="text-xs">{def.description}</CardDescription>}
       </CardHeader>
       <CardContent className="space-y-3">
-        {renderEditor(block, setProp, disabled)}
+        {renderEditor(block, setProp, workflowRoles, disabled)}
       </CardContent>
     </Card>
   );
 }
 
-function renderEditor(block: BuilderBlock, setProp: (k: string, v: any) => void, disabled?: boolean) {
+function renderEditor(block: BuilderBlock, setProp: (k: string, v: any) => void, workflowRoles: string[], disabled?: boolean) {
   const p = block.props;
   switch (block.kind) {
     // ---------------- Eligibility ----------------
@@ -154,7 +155,7 @@ function renderEditor(block: BuilderBlock, setProp: (k: string, v: any) => void,
       return (
         <>
           <TextField label="Step code" value={p.step_code} onChange={(v) => setProp('step_code', v)} disabled={disabled} />
-          <SelectField label="Role" value={p.role} onChange={(v) => setProp('role', v)} options={[...BN_WORKFLOW_ROLES]} disabled={disabled} />
+          <SelectField label="Role" value={p.role} onChange={(v) => setProp('role', v)} options={workflowRoles} disabled={disabled} />
           <TextField label="Workbasket ID" value={p.workbasket_id} onChange={(v) => setProp('workbasket_id', v)} disabled={disabled} />
           <NumberField label="SLA (hours)" value={p.sla_hours} onChange={(v) => setProp('sla_hours', v)} disabled={disabled} />
           <TextField label="Escalation policy ID" value={p.escalation_policy_id} onChange={(v) => setProp('escalation_policy_id', v)} disabled={disabled} />
@@ -165,7 +166,7 @@ function renderEditor(block: BuilderBlock, setProp: (k: string, v: any) => void,
       return (
         <>
           <TextField label="Policy code" value={p.policy_code} onChange={(v) => setProp('policy_code', v)} disabled={disabled} />
-          <SelectField label="Target role" value={p.target_role} onChange={(v) => setProp('target_role', v)} options={[...BN_WORKFLOW_ROLES]} disabled={disabled} />
+          <SelectField label="Target role" value={p.target_role} onChange={(v) => setProp('target_role', v)} options={workflowRoles} disabled={disabled} />
           <SelectField label="Trigger" value={p.trigger} onChange={(v) => setProp('trigger', v)} options={BN_ESCALATION_TRIGGERS.map((t) => ({ value: t.value, label: t.label }))} disabled={disabled} />
           <SelectField label="Severity" value={p.severity} onChange={(v) => setProp('severity', v)} options={BN_ESCALATION_SEVERITIES.map((t) => ({ value: t.value, label: t.label }))} disabled={disabled} />
         </>
