@@ -1,4 +1,5 @@
 import { useUserCode } from '@/hooks/useUserCode';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 /**
  * Screen 6: Eligibility Review
  * 
