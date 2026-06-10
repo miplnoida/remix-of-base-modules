@@ -21,6 +21,8 @@ import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { CodeFieldWithAutoGenerate, FormulaBuilder, SmartSelect } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import { parseFormula } from '@/lib/bn/formulaParser';
+import { useVariableResolver } from '@/hooks/bn/useVariableResolver';
+import { classifyVariables } from '@/services/bn/variableResolverService';
 import { FormulaTestPanel } from '@/components/bn/config/FormulaTestPanel';
 import type { BnFormulaTemplate } from '@/types/bn';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
