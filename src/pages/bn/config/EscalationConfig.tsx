@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Edit } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserCode } from '@/hooks/useUserCode';
@@ -18,6 +16,7 @@ import { SmartSelect, CodeFieldWithAutoGenerate } from '@/components/bn/smart';
 import { BN_ESCALATION_TRIGGERS, BN_ESCALATION_SEVERITIES } from '@/services/bn/registries';
 import { useWorkflowRoles } from '@/hooks/bn/useWorkflowRoles';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
+import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 
 const db = supabase as any;
 
@@ -39,7 +38,7 @@ export default function EscalationConfig() {
     is_active: true,
   });
 
-  const { data: policies = [] } = useQuery({
+  const { data: policies = [], isLoading, refetch } = useQuery({
     queryKey: ['bn', 'escalation-policies'],
     queryFn: async () => {
       const { data, error } = await db.from('bn_escalation_policy').select('*').order('policy_name');
@@ -112,10 +111,7 @@ export default function EscalationConfig() {
   return (
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-foreground">Escalation Policies</h1>
-          <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Add Policy</Button>
-        </div>
+        <h1 className="text-2xl font-semibold text-foreground">Escalation Policies</h1>
 
         <BnScreenRoleBanner
           role="library"
@@ -123,47 +119,32 @@ export default function EscalationConfig() {
           description="Reusable SLA / escalation rules. Workflow steps and workbaskets reference these policies; they are not product-specific."
         />
 
-
-
-        <Card>
-          <CardContent className="pt-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Trigger</TableHead>
-                  <TableHead>Target Role</TableHead>
-                  <TableHead>Severity</TableHead>
-                  <TableHead>Auto-Reassign</TableHead>
-                  <TableHead>Active</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {policies.map(p => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-mono text-sm">{p.policy_code}</TableCell>
-                    <TableCell>{p.policy_name}</TableCell>
-                    <TableCell><Badge variant="outline">{p.trigger_type}</Badge></TableCell>
-                    <TableCell><Badge variant="secondary">{p.escalation_target_role}</Badge></TableCell>
-                    <TableCell>
-                      <Badge variant={p.severity === 'CRITICAL' ? 'destructive' : p.severity === 'HIGH' ? 'destructive' : 'outline'}>
-                        {p.severity}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{p.auto_reassign ? 'Yes' : 'No'}</TableCell>
-                    <TableCell><Badge variant={p.is_active ? 'default' : 'outline'}>{p.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => openEdit(p)}><Edit className="h-4 w-4" /></Button></TableCell>
-                  </TableRow>
-                ))}
-                {policies.length === 0 && (
-                  <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No escalation policies configured</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <BNDataGrid
+          id="bn.escalation-policies"
+          data={policies}
+          isLoading={isLoading}
+          searchPlaceholder="Search escalation policies..."
+          onCreate={openNew}
+          onRefresh={() => refetch()}
+          defaultSort={[{ id: 'policy_name', desc: false }]}
+          exportFilename="bn_escalation_policies"
+          emptyMessage="No escalation policies configured"
+          columns={[
+            { accessorKey: 'policy_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 140 }, cell: ({ getValue }) => <span className="font-mono text-sm">{String(getValue() ?? '')}</span> },
+            { accessorKey: 'policy_name', header: 'Name', meta: { label: 'Name', width: 240 } },
+            { accessorKey: 'trigger_type', header: 'Trigger', meta: { label: 'Trigger', width: 160 }, cell: ({ getValue }) => <Badge variant="outline">{String(getValue() ?? '')}</Badge> },
+            { accessorKey: 'escalation_target_role', header: 'Target Role', meta: { label: 'Target Role', width: 180 }, cell: ({ getValue }) => <Badge variant="secondary">{String(getValue() ?? '')}</Badge> },
+            { accessorKey: 'severity', header: 'Severity', meta: { label: 'Severity', width: 120 }, cell: ({ getValue }) => {
+              const s = String(getValue() ?? '');
+              return <Badge variant={s === 'CRITICAL' || s === 'HIGH' ? 'destructive' : 'outline'}>{s}</Badge>;
+            } },
+            { accessorKey: 'auto_reassign', header: 'Auto-Reassign', meta: { label: 'Auto-Reassign', width: 130 }, cell: ({ getValue }) => getValue() ? 'Yes' : 'No' },
+            { accessorKey: 'is_active', header: 'Active', meta: { label: 'Active', width: 100 }, cell: ({ getValue }) => <Badge variant={getValue() ? 'default' : 'outline'}>{getValue() ? 'Active' : 'Inactive'}</Badge> },
+          ] as BNColumnDef<BnEscalationPolicy>[]}
+          rowActions={[
+            { key: 'edit', label: 'Edit', icon: <Edit className="h-3.5 w-3.5" />, onClick: openEdit },
+          ]}
+        />
 
         <Dialog open={!!editItem} onOpenChange={open => !open && setEditItem(null)}>
           <DialogContent>

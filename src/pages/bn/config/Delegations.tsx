@@ -1,18 +1,16 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { SmartSelect } from '@/components/bn/smart';
 import { useWorkflowRoles } from '@/hooks/bn/useWorkflowRoles';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useUserCode } from '@/hooks/useUserCode';
-import { Plus, Check, XCircle } from 'lucide-react';
+import { Check, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   listDelegations,
@@ -21,6 +19,7 @@ import {
   revokeDelegation,
   type BnRoleDelegation,
 } from '@/services/bn/delegationService';
+import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 
 export default function Delegations() {
   const { user } = useSupabaseAuth();
@@ -39,13 +38,9 @@ export default function Delegations() {
 
   const load = async () => {
     setLoading(true);
-    try {
-      setRows(await listDelegations());
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setLoading(false);
-    }
+    try { setRows(await listDelegations()); }
+    catch (e: any) { toast.error(e.message); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, []);
@@ -70,83 +65,53 @@ export default function Delegations() {
       setDialogOpen(false);
       setForm({ to_user_id: '', role_name: '', valid_from: new Date().toISOString().slice(0, 10), valid_to: '', reason: '' });
       load();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    } catch (e: any) { toast.error(e.message); }
   };
 
   const approve = async (id: string) => {
     if (!user?.id) return;
-    try {
-      await approveDelegation(id, user.id);
-      toast.success('Approved');
-      load();
-    } catch (e: any) { toast.error(e.message); }
+    try { await approveDelegation(id, user.id); toast.success('Approved'); load(); }
+    catch (e: any) { toast.error(e.message); }
   };
   const revoke = async (id: string) => {
-    try {
-      await revokeDelegation(id);
-      toast.success('Revoked');
-      load();
-    } catch (e: any) { toast.error(e.message); }
-  };
-
-  const statusBadge = (s: string) => {
-    const variant = s === 'APPROVED' ? 'default' : s === 'PENDING' ? 'secondary' : 'outline';
-    return <Badge variant={variant}>{s}</Badge>;
+    try { await revokeDelegation(id); toast.success('Revoked'); load(); }
+    catch (e: any) { toast.error(e.message); }
   };
 
   return (
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-foreground">Role Delegations</h1>
-          <Button onClick={() => setDialogOpen(true)}><Plus className="mr-2 h-4 w-4" /> Request Delegation</Button>
-        </div>
+        <h1 className="text-2xl font-semibold text-foreground">Role Delegations</h1>
         <BnScreenRoleBanner
           role="library"
           description="Temporarily delegate a workbasket role to another user. Each delegation needs supervisor approval and is bounded by date range."
         />
 
-        <Card>
-          <CardContent className="pt-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>From</TableHead>
-                  <TableHead>To</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Valid</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading && <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Loading…</TableCell></TableRow>}
-                {!loading && rows.length === 0 && <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">No delegations recorded</TableCell></TableRow>}
-                {rows.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-mono text-xs">{r.from_user_id.slice(0, 8)}…</TableCell>
-                    <TableCell className="font-mono text-xs">{r.to_user_id.slice(0, 8)}…</TableCell>
-                    <TableCell><Badge variant="secondary">{r.role_name}</Badge></TableCell>
-                    <TableCell className="text-xs">{r.valid_from} → {r.valid_to}</TableCell>
-                    <TableCell>{statusBadge(r.status)}</TableCell>
-                    <TableCell className="text-xs max-w-[200px] truncate" title={r.reason}>{r.reason}</TableCell>
-                    <TableCell>
-                      {r.status === 'PENDING' && (
-                        <Button size="sm" variant="outline" onClick={() => approve(r.id)}><Check className="h-3 w-3 mr-1" /> Approve</Button>
-                      )}
-                      {r.status === 'APPROVED' && (
-                        <Button size="sm" variant="ghost" onClick={() => revoke(r.id)}><XCircle className="h-3 w-3 mr-1" /> Revoke</Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <BNDataGrid
+          id="bn.delegations"
+          data={rows}
+          isLoading={loading}
+          searchPlaceholder="Search delegations..."
+          onCreate={() => setDialogOpen(true)}
+          onRefresh={load}
+          exportFilename="bn_delegations"
+          emptyMessage="No delegations recorded"
+          columns={[
+            { accessorKey: 'from_user_id', header: 'From', meta: { label: 'From', width: 130 }, cell: ({ getValue }) => <span className="font-mono text-xs">{String(getValue() ?? '').slice(0, 8)}…</span> },
+            { accessorKey: 'to_user_id', header: 'To', meta: { label: 'To', width: 130 }, cell: ({ getValue }) => <span className="font-mono text-xs">{String(getValue() ?? '').slice(0, 8)}…</span> },
+            { accessorKey: 'role_name', header: 'Role', meta: { label: 'Role', width: 160 }, cell: ({ getValue }) => <Badge variant="secondary">{String(getValue() ?? '')}</Badge> },
+            { id: 'valid', header: 'Valid', meta: { label: 'Valid', width: 200 }, accessorFn: (r: any) => `${r.valid_from} → ${r.valid_to}`, cell: ({ getValue }) => <span className="text-xs">{String(getValue() ?? '')}</span> },
+            { accessorKey: 'status', header: 'Status', meta: { label: 'Status', width: 120 }, cell: ({ getValue }) => {
+              const s = String(getValue() ?? '');
+              return <Badge variant={s === 'APPROVED' ? 'default' : s === 'PENDING' ? 'secondary' : 'outline'}>{s}</Badge>;
+            } },
+            { accessorKey: 'reason', header: 'Reason', meta: { label: 'Reason', width: 220 }, cell: ({ getValue }) => <span className="text-xs truncate block max-w-[200px]" title={String(getValue() ?? '')}>{String(getValue() ?? '')}</span> },
+          ] as BNColumnDef<BnRoleDelegation>[]}
+          rowActions={[
+            { key: 'approve', label: 'Approve', icon: <Check className="h-3.5 w-3.5" />, hidden: (r) => r.status !== 'PENDING', onClick: (r) => approve(r.id) },
+            { key: 'revoke', label: 'Revoke', icon: <XCircle className="h-3.5 w-3.5" />, variant: 'destructive', hidden: (r) => r.status !== 'APPROVED', onClick: (r) => revoke(r.id) },
+          ]}
+        />
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
@@ -154,20 +119,11 @@ export default function Delegations() {
             <div className="space-y-3">
               <div className="space-y-1">
                 <label className="text-sm font-medium">Delegate To (User ID)</label>
-                <Input
-                  placeholder="auth user UUID"
-                  value={form.to_user_id}
-                  onChange={(e) => setForm((p) => ({ ...p, to_user_id: e.target.value }))}
-                />
+                <Input placeholder="auth user UUID" value={form.to_user_id} onChange={(e) => setForm((p) => ({ ...p, to_user_id: e.target.value }))} />
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium">Role</label>
-                <SmartSelect
-                  value={form.role_name}
-                  onValueChange={(v) => setForm((p) => ({ ...p, role_name: v }))}
-                  options={roles.map((r) => ({ value: r, label: r }))}
-                  placeholder="Select role"
-                />
+                <SmartSelect value={form.role_name} onValueChange={(v) => setForm((p) => ({ ...p, role_name: v }))} options={roles.map((r) => ({ value: r, label: r }))} placeholder="Select role" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
@@ -181,12 +137,7 @@ export default function Delegations() {
               </div>
               <div className="space-y-1">
                 <label className="text-sm font-medium">Reason</label>
-                <Textarea
-                  rows={3}
-                  value={form.reason}
-                  onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))}
-                  placeholder="Leave coverage, vacation, etc."
-                />
+                <Textarea rows={3} value={form.reason} onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))} placeholder="Leave coverage, vacation, etc." />
               </div>
             </div>
             <DialogFooter>

@@ -2,8 +2,6 @@
  * Document Setup — Reusable document profile library
  */
 import { useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,16 +10,17 @@ import { Switch } from '@/components/ui/switch';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Plus, Edit, FileCheck } from 'lucide-react';
+import { Edit, FileCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBnDocumentProfiles, useUpsertBnDocumentProfile } from '@/hooks/bn/useBnConfig';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
-import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
+import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import type { BnDocumentProfile } from '@/types/bn';
+import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 
 type ProfileForm = {
   id?: string;
@@ -41,22 +40,14 @@ const emptyForm: ProfileForm = {
 };
 
 export default function DocumentSetup() {
-  const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<ProfileForm>(emptyForm);
-  const { data: profiles = [], isLoading } = useBnDocumentProfiles();
+  const { data: profiles = [], isLoading, refetch } = useBnDocumentProfiles();
   const upsert = useUpsertBnDocumentProfile();
   const { userCode } = useUserCode();
   const audit = useBnConfigAudit();
 
-  const filtered = profiles.filter((p: BnDocumentProfile) =>
-    !search || p.profile_name?.toLowerCase().includes(search.toLowerCase()) ||
-    p.profile_code?.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const otherCodes = profiles
-    .filter((p: BnDocumentProfile) => p.id !== form.id)
-    .map((p: BnDocumentProfile) => p.profile_code);
+  const otherCodes = profiles.filter((p: BnDocumentProfile) => p.id !== form.id).map((p: BnDocumentProfile) => p.profile_code);
 
   const openAdd = () => { setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (p: BnDocumentProfile) => {
@@ -73,9 +64,7 @@ export default function DocumentSetup() {
 
   const handleSave = async () => {
     if (!form.profile_code.trim() || !form.profile_name.trim()) {
-      toast.error('Please check the form for valid information!', {
-        description: 'Code and Name are required.',
-      });
+      toast.error('Please check the form for valid information!', { description: 'Code and Name are required.' });
       return;
     }
     if (otherCodes.map(c => c.toUpperCase()).includes(form.profile_code.trim().toUpperCase())) {
@@ -125,58 +114,32 @@ export default function DocumentSetup() {
           description="Reusable document types and profiles. Product-specific required documents are assigned in Product Catalog → select the product version → Documents tab."
         />
 
-        <Card>
-          <CardHeader className="pb-3">
-            <BnFilterBar
-              search={search}
-              onSearchChange={setSearch}
-              searchPlaceholder="Search document profiles..."
-              filters={[]}
-              actions={
-                <Button size="sm" className="gap-1.5" onClick={openAdd}>
-                  <Plus className="h-3.5 w-3.5" /> Add Profile
-                </Button>
-              }
-            />
-          </CardHeader>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <BnEmptyState type="loading" />
-            ) : filtered.length === 0 ? (
-              <BnEmptyState type={search ? 'no-results' : 'empty'} title="No document profiles" description="Create a profile to define required documents for benefit claims." />
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Profile Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="w-[60px]">Edit</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((p: BnDocumentProfile) => (
-                    <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEdit(p)}>
-                      <TableCell className="font-mono text-sm">{p.profile_code}</TableCell>
-                      <TableCell className="font-medium text-sm">
-                        <div className="flex items-center gap-2">
-                          <FileCheck className="h-4 w-4 text-muted-foreground" />
-                          {p.profile_name}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[400px] truncate">{p.description || '—'}</TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        <BNDataGrid
+          id="bn.document-profiles"
+          data={profiles as BnDocumentProfile[]}
+          isLoading={isLoading}
+          searchPlaceholder="Search document profiles..."
+          onCreate={openAdd}
+          onRefresh={() => refetch()}
+          onRowClick={openEdit}
+          defaultSort={[{ id: 'profile_code', desc: false }]}
+          exportFilename="bn_document_profiles"
+          emptyMessage="No document profiles. Create one to define required documents for benefit claims."
+          columns={[
+            { accessorKey: 'profile_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 140 }, cell: ({ getValue }) => <span className="font-mono text-sm">{String(getValue() ?? '')}</span> },
+            { accessorKey: 'profile_name', header: 'Profile Name', meta: { label: 'Profile Name', width: 280 }, cell: ({ getValue }) => (
+              <div className="flex items-center gap-2 font-medium text-sm">
+                <FileCheck className="h-4 w-4 text-muted-foreground" />
+                {String(getValue() ?? '')}
+              </div>
+            ) },
+            { accessorKey: 'country_code', header: 'Country', meta: { label: 'Country', width: 90 }, cell: ({ getValue }) => <span className="text-xs">{(getValue() as string) || '—'}</span> },
+            { accessorKey: 'description', header: 'Description', meta: { label: 'Description', width: 360 }, cell: ({ getValue }) => <span className="text-sm text-muted-foreground">{(getValue() as string) || '—'}</span> },
+          ] as BNColumnDef<BnDocumentProfile>[]}
+          rowActions={[
+            { key: 'edit', label: 'Edit', icon: <Edit className="h-3.5 w-3.5" />, onClick: openEdit },
+          ]}
+        />
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-lg">
