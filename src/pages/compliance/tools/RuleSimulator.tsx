@@ -257,6 +257,16 @@ export default function RuleSimulator() {
               Scan last 12 months
             </Label>
           </div>
+          <div className="flex items-center gap-1.5">
+            <Switch
+              id="matches-only"
+              checked={matchesOnly}
+              onCheckedChange={setMatchesOnly}
+            />
+            <Label htmlFor="matches-only" className="text-xs text-muted-foreground cursor-pointer" title="Only return rules that matched — non-matched rules are dropped at the engine layer before results render.">
+              Matches only
+            </Label>
+          </div>
           <Button
             variant="outline"
             size="sm"
