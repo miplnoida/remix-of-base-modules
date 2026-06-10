@@ -17,8 +17,9 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { caseViolationService } from '@/services/caseViolationService';
 import { toast } from 'sonner';
 import { resolveMany, buildSnapshot, type ResolvedVariable } from '@/services/compliance/policyResolver';
-import { RefreshCw, Settings2 } from 'lucide-react';
+import { RefreshCw, Settings2, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { CompliantEmployerPicker } from '@/components/compliance/CompliantEmployerPicker';
 
 const MODULE = 'manage_compliance';
 const FUND_LABELS: Record<string, string> = {
@@ -43,6 +44,7 @@ function ManualViolationEntryInner() {
   const [assignToMe, setAssignToMe] = useState(true);
   const [dueDate, setDueDate] = useState('');
   const [employerId, setEmployerId] = useState('');
+  const [employerName, setEmployerName] = useState('');
   const [candidateBusinessName, setCandidateBusinessName] = useState('');
   const [candidateLocation, setCandidateLocation] = useState('');
   const [candidateActivityType, setCandidateActivityType] = useState('');
@@ -50,6 +52,11 @@ function ManualViolationEntryInner() {
   const [triggerWorkflow, setTriggerWorkflow] = useState(false);
   const [createCase, setCreateCase] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Issue #4 — financial fields when the violation type is payment/contribution
+  const [expectedAmount, setExpectedAmount] = useState('');
+  const [paidAmount, setPaidAmount] = useState('');
+  const [penaltyAmount, setPenaltyAmount] = useState('');
+  const [interestAmount, setInterestAmount] = useState('');
 
   // Policy defaults resolved live from c3_calculation_config via ce_rule_variable_mappings.
   // SNAPSHOT CONTRACT: resolved values are loaded once on mount for display + saved as
