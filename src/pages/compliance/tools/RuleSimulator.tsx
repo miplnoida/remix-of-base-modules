@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { FlaskConical, Play, RotateCcw, ToggleLeft, ToggleRight, Save, Download, AlertTriangle } from 'lucide-react';
+import { FlaskConical, Play, RotateCcw, ToggleLeft, ToggleRight, Download, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import EmployerSelector from '@/components/compliance/simulator/EmployerSelector';
 import ComplianceSnapshot from '@/components/compliance/simulator/ComplianceSnapshot';
@@ -15,8 +15,8 @@ import SimulationResults from '@/components/compliance/simulator/SimulationResul
 import RecommendedAction from '@/components/compliance/simulator/RecommendedAction';
 import ExplanationPanel from '@/components/compliance/simulator/ExplanationPanel';
 import { useSimulatorRules, useEmployerComplianceContext } from '@/hooks/compliance/useSimulatorData';
-import { useSaveSimulationRun } from '@/hooks/compliance/useSimulationRuns';
-import { useHasPermission } from '@/hooks/useNavigationMenu';
+// Save Run removed by request — functionality not used
+
 import {
   createDefaultFactContext,
   runSimulation,
@@ -38,8 +38,8 @@ export default function RuleSimulator() {
   const [periodOverride, setPeriodOverride] = useState<string>('');
   const [scanAllPeriods, setScanAllPeriods] = useState<boolean>(true);
 
-  const canSave = useHasPermission('ce_rule_simulator', 'edit') || useHasPermission('ce_rule_simulator', 'manage');
-  const saveRun = useSaveSimulationRun();
+
+
 
   const { data: rules, isLoading: rulesLoading } = useSimulatorRules();
   const { data: context, isLoading: contextLoading } = useEmployerComplianceContext(selectedRegNo, periodOverride || null);
@@ -142,26 +142,8 @@ export default function RuleSimulator() {
     }
   }, [context]);
 
-  const handleSaveRun = useCallback(() => {
-    if (!output) {
-      toast.error('Run a simulation first');
-      return;
-    }
-    saveRun.mutate(
-      {
-        ruleCode: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
-        ruleType: 'all',
-        employerRegno: selectedRegNo,
-        period: periodOverride || facts.filingPeriod || null,
-        facts,
-        output,
-      },
-      {
-        onSuccess: () => toast.success('Simulation run saved'),
-        onError: (e: any) => toast.error(`Failed to save: ${e?.message ?? 'unknown error'}`),
-      }
-    );
-  }, [output, saveRun, ruleCodeFilter, selectedRegNo, periodOverride, facts]);
+
+
 
   const handleExport = useCallback(() => {
     if (!output) {
@@ -240,15 +222,26 @@ export default function RuleSimulator() {
             <Label htmlFor="period-override" className="text-xs text-muted-foreground">
               Period
             </Label>
-            <Input
-              id="period-override"
-              type="month"
-              value={periodOverride}
-              onChange={e => setPeriodOverride(e.target.value)}
-              className="h-8 w-[150px] text-xs"
+            <Select
+              value={periodOverride || '__current__'}
+              onValueChange={v => setPeriodOverride(v === '__current__' ? '' : v)}
               disabled={scanAllPeriods && !isManualMode}
-              title={scanAllPeriods && !isManualMode ? 'Disable "Scan last 12 months" to pick a single period' : ''}
-            />
+            >
+              <SelectTrigger className="h-8 w-[170px] text-xs" title={scanAllPeriods && !isManualMode ? 'Disable "Scan last 12 months" to pick a single period' : ''}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__current__">Current month (default)</SelectItem>
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const d = new Date();
+                  d.setDate(1);
+                  d.setMonth(d.getMonth() - i);
+                  const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                  const label = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
+                  return <SelectItem key={val} value={val}>{label}</SelectItem>;
+                })}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center gap-1.5">
             <Switch
@@ -276,17 +269,6 @@ export default function RuleSimulator() {
           <Button size="sm" onClick={handleRun} disabled={rulesLoading} className="gap-1.5 text-xs">
             <Play className="h-3.5 w-3.5" /> Run Simulation
           </Button>
-          {canSave && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSaveRun}
-              disabled={!output || saveRun.isPending}
-              className="gap-1.5 text-xs"
-            >
-              <Save className="h-3.5 w-3.5" /> Save Run
-            </Button>
-          )}
           <Button
             variant="outline"
             size="sm"
