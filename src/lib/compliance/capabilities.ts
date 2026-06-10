@@ -17,6 +17,7 @@ export const COMPLIANCE_CAPABILITIES = {
   FIELD_APPROVE_REPORTS: 'compliance.field.approve_reports',
   FIELD_SAMPLING: 'compliance.field.sampling',
   VIOLATIONS_MANAGE: 'compliance.violations.manage',
+  VIOLATIONS_LINK_TO_CASE: 'compliance.violations.link_to_case',
   CASES_MANAGE: 'compliance.cases.manage',
   ENFORCEMENT_NOTICES: 'compliance.enforcement.notices',
   ENFORCEMENT_ARRANGEMENTS: 'compliance.enforcement.arrangements',
