@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ArrowDown, ArrowUp, ChevronsUpDown, FileSearch, MoreHorizontal, Plus, RefreshCw, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BNGridProps, BNGridServerState } from './types';
