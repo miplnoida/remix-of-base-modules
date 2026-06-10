@@ -71,6 +71,7 @@ export default function CaseDetailView() {
   const [cascading, setCascading] = useState(false);
   const [arrangementDialogOpen, setArrangementDialogOpen] = useState(false);
   const [waiverDialogOpen, setWaiverDialogOpen] = useState(false);
+  const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
