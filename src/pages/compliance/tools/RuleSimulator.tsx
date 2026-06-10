@@ -240,15 +240,26 @@ export default function RuleSimulator() {
             <Label htmlFor="period-override" className="text-xs text-muted-foreground">
               Period
             </Label>
-            <Input
-              id="period-override"
-              type="month"
-              value={periodOverride}
-              onChange={e => setPeriodOverride(e.target.value)}
-              className="h-8 w-[150px] text-xs"
+            <Select
+              value={periodOverride || '__current__'}
+              onValueChange={v => setPeriodOverride(v === '__current__' ? '' : v)}
               disabled={scanAllPeriods && !isManualMode}
-              title={scanAllPeriods && !isManualMode ? 'Disable "Scan last 12 months" to pick a single period' : ''}
-            />
+            >
+              <SelectTrigger className="h-8 w-[170px] text-xs" title={scanAllPeriods && !isManualMode ? 'Disable "Scan last 12 months" to pick a single period' : ''}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__current__">Current month (default)</SelectItem>
+                {Array.from({ length: 12 }).map((_, i) => {
+                  const d = new Date();
+                  d.setDate(1);
+                  d.setMonth(d.getMonth() - i);
+                  const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+                  const label = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
+                  return <SelectItem key={val} value={val}>{label}</SelectItem>;
+                })}
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center gap-1.5">
             <Switch
@@ -276,17 +287,6 @@ export default function RuleSimulator() {
           <Button size="sm" onClick={handleRun} disabled={rulesLoading} className="gap-1.5 text-xs">
             <Play className="h-3.5 w-3.5" /> Run Simulation
           </Button>
-          {canSave && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSaveRun}
-              disabled={!output || saveRun.isPending}
-              className="gap-1.5 text-xs"
-            >
-              <Save className="h-3.5 w-3.5" /> Save Run
-            </Button>
-          )}
           <Button
             variant="outline"
             size="sm"
