@@ -1,40 +1,114 @@
-## Issue confirmed for employer 657115
+# Formula Library — Registry-Enforced Variables
 
-The screenshots show C3 reports filed for **April** and **May 2026**, but **February 2026** is missing. Neither a violation nor a simulator match appears. Root cause is in three places:
+## Goal
+Every variable referenced in any Formula Library template must resolve to exactly one of four registered sources:
+1. **Fact Registry** (`bn_eligibility_fact`)
+2. **Derived Fact Registry** (new — `bn_derived_fact`)
+3. **Product Parameter Registry** (new — `bn_product_parameter`)
+4. **Prior Formula Result** (an upstream `bn_formula_template` output in the same calculation chain)
 
-### Root causes
+Today `bn_formula_variable_registry` is a flat, hand-edited list and the parser only checks against it (`Unknown variable "x"`). We replace that with a unified, source-attributed Variable Resolver.
 
-1. **Auto-scan threshold too strict** — `supabase/functions/ce-violation-scan/index.ts` (line 286) requires `missed_filings_12m >= 2 && !filing.is_current` before raising a NON_FILING violation. Employer 657115 has only **1 missed month (Feb)** plus current filings, so nothing is ever created.
+---
 
-2. **Scan collapses all missed months into one `asOfPeriod`** — `periodFrom = asOfPeriod` (today's month). The actual missing month is never recorded, and the dedupe key `employer|type|period` always matches "current month", so per-month tracking is impossible.
+## 1. Database — new registries (migration)
 
-3. **Rule Simulator only evaluates ONE period at a time** — `useSimulatorData.ts` defaults to "previous month" (May 2026, which is filed). DR-002 therefore reports "Only 0 days past deadline". There is no way to iterate the last 12 months, and the duplicate-suppression keys by `violation_type_id` only (ignores period), so DR-002 can be falsely suppressed.
+### `bn_derived_fact`
+- `code` (unique), `display_name`, `description`, `unit`, `data_type`
+- `expression` (text — uses Fact / Product Parameter codes)
+- `source_fact_codes text[]`, `source_parameter_codes text[]`
+- `effective_from`, `effective_to`
+- `status` (DRAFT / IN_REVIEW / APPROVED / RETIRED), `version`, `previous_version_id`
+- `created_by`, `approved_by`, `approved_at`
+- governance audit table `bn_derived_fact_event`
 
-4. **Duplicate-suppression in simulator** keys by `violation_type_id` only — masks a legitimate per-period hit when any other open violation of the same type exists.
+### `bn_product_parameter`
+- `code` (unique), `display_name`, `data_type`, `unit`, `default_value`
+- `product_id` (nullable for global), `scheme_id` (nullable)
+- `effective_from`, `effective_to`, `status`, `version`
+- audit table `bn_product_parameter_event`
 
-## Fix plan
+### `bn_formula_template` additions
+- `variable_bindings jsonb` — `{ varCode: { source: 'FACT'|'DERIVED_FACT'|'PRODUCT_PARAMETER'|'PRIOR_RESULT', ref: '<code>' } }`
+- `validation_status` (VALID / INVALID), `last_validation_at`, `validation_errors jsonb`
 
-### A. Auto-scan (`supabase/functions/ce-violation-scan/index.ts`)
-- Replace the single `c3_missing_30_days` branch with a **per-period loop** over the last N months (N = `parameters.lookback_months ?? 12`). For each month where C3 is missing AND deadline + grace has passed, emit one detected violation with `period_from = YYYY-MM`.
-- Lower the implicit threshold: trigger when **≥1** month is missing (configurable via `parameters.min_missed_months`, default 1).
-- Keep dedupe key `employer|violation_type|period_from` so per-month violations stay independent.
-- Apply the same per-period treatment to `c3_deadline_passed` (DR-001) and `payment_not_received` (DR-003) so a late/non-payment in a specific month is captured even when others are clean.
+All four tables: GRANT to authenticated + service_role, RLS off (project rule).
 
-### B. Rule Simulator (`useSimulatorData.ts` + `RuleSimulator.tsx` + `complianceSimulatorEngine.ts`)
-- Add a **"Scan range"** mode: when no explicit period override is set, build an array of the last 12 periods and evaluate every detection rule against each. Return results grouped by period.
-- For each period, compute `filingSubmitted`, `daysPastDeadline`, `amountDue`, `paymentMade` from that month's `cn_c3_reported` / `cn_payment` rows (already fetched, just iterate instead of `find`).
-- Update `SimulationResults.tsx` to show a Period column and group rows by period when scan-range mode is active.
-- Change duplicate-suppression key to `violation_type_id|period_from` so a per-month hit is not hidden by an unrelated open violation of the same type.
+---
 
-### C. UI affordance
-- In `RuleSimulator.tsx` scenario panel, add a "Scan last 12 months" toggle (default ON for employer mode). Manual scenario keeps single-period behaviour.
-- Outcome Summary banner: list each missing period detected, not a generic "duplicate suppressed" line.
+## 2. Variable Resolver (new service)
+`src/services/bn/variableResolverService.ts`
 
-### D. Verification
-- After deploy, run scan for regno 657115 → expect 1 new DR-002 violation with `period_from = 2026-02`.
-- Open Rule Simulator → DR-002 row shows `Match` for the February period with evidence `Missing Month = 2026-02, Days Past Deadline = ~100`.
-- Knowledge Repo: update `compliance/detection/DR-002` entry and add a test case "single missing month must raise NON_FILING".
+Loads, caches and merges entries from the four sources into a single map:
+```
+{ code -> { source, refId, displayName, unit, dataType, sampleValue?, status } }
+```
+- Only ACTIVE / APPROVED entries with current effective dates are returned.
+- Used by:
+  - Formula parser (replaces `isValidFormulaVariableKey`)
+  - Calculation Builder variable picker
+  - Simulation engine sample-value lookup
+
+`formulaParser.parseFormula` accepts a resolver map and rejects any token not present, returning **structured** errors:
+```ts
+{ variable: 'rate_pct', reason: 'UNREGISTERED', suggestedSources: ['DERIVED_FACT','PRODUCT_PARAMETER'] }
+```
+
+---
+
+## 3. UI — Formula Library
+
+### Validation panel (FormulaConfiguration.tsx / CalculationBuilder.tsx)
+For each variable used:
+- ✅ source badge (Fact / Derived Fact / Param / Prior Result) + ref code
+- ❌ red row with: variable name, "No registered source", **"Create as Derived Fact"** / **"Create as Product Parameter"** / **"Map to existing Fact"** quick actions that deep-link to the relevant editor pre-filled with the variable code.
+- Save is blocked while any variable is unresolved.
+
+### Variable picker
+Combobox grouped by source with search. No free typing of unknown identifiers.
+
+### New pages
+- `/bn/config/derived-facts` — list + editor + governance (Draft → Submit → Approve, with diff vs previous version, simulation tab using existing `bn_sim_*` infra).
+- `/bn/config/product-parameters` — list + editor + effective-date timeline.
+
+Both reuse the existing approval policy (`bn_approval_policy`) and audit pattern.
+
+---
+
+## 4. Simulation
+- Extend `bn_sim_run` to capture which source each variable resolved to at run-time.
+- Derived Fact editor has a "Simulate" tab: pick sample fact/parameter values → evaluate expression → show result + dependency trace.
+- Formula Library "Test Formula" pulls sample values via the resolver instead of the hard-coded `sample` field on the legacy registry.
+
+---
+
+## 5. Seed data (executed in the migration)
+Seed APPROVED Derived Facts and Product Parameters for every SKN/SS benefit family currently referenced by formula templates, tagged `SEED-`:
+
+**Product Parameters** — contribution_rate_employer, contribution_rate_employee, contribution_rate_self_employed, pension_base_rate_pct, pension_increment_rate_pct, pension_qualifying_years, survivor_widow_share_pct, survivor_child_share_pct, funeral_grant_amount, ncp_flat_weekly_rate, ei_disablement_min_pct, maternity_replacement_rate, sickness_replacement_rate, sickness_waiting_days, maternity_max_weeks, …
+
+**Derived Facts** — avg_weekly_wage, avg_annual_wage, paid_weeks, credited_weeks, total_weeks, extra_qualifying_years, disablement_degree_pct, base_pension, beneficiary_share_pct, family_cap_pct, deceased_paid_weeks_156, deceased_avg_weekly_wage, ncp_flat_amount, funeral_grant_amount, …
+
+Each seeded entry binds back to existing `bn_eligibility_fact` rows where applicable (e.g. `avg_weekly_wage` is a derived fact whose `source_fact_codes` include the paid-weeks / wage facts). Every variable currently in `bn_formula_variable_registry` is migrated to its appropriate new home, then that table is marked deprecated (kept read-only for one release).
+
+---
+
+## 6. Cutover
+1. Run migration (tables + seed + backfill `variable_bindings` on existing templates by matching codes → seeded entries).
+2. Run resolver-based validator across all existing `bn_formula_template` rows; templates that still have unresolved variables are flagged `INVALID` and surfaced in an "Unknown Variables" admin report (replaces ad-hoc warnings).
+3. Existing parser path that throws `Unknown variable "x"` is replaced by the new structured error UI — warnings disappear naturally once every variable is bound.
+
+---
+
+## Technical notes
+- No RLS (per project rule); access control via existing role permissions on `/bn/config/*` routes.
+- Governance reuses `bn_approval_policy`, `bn_version_approval`, `bn_module_events`.
+- All new tables include `created_by` / `updated_by` populated with logged-in `user_code` (per project standard).
+- No mock data — seeds use `SEED-` prefix and are idempotent (`ON CONFLICT (code) DO NOTHING`).
+- Edit-time validator runs client-side via the resolver cache; authoritative validation runs in a Postgres function `bn_validate_formula(template_id)` invoked on save and on publish.
+
+---
 
 ## Out of scope
-- Repricing or recalculating already-resolved violations.
-- Changing `ce_v_employer_filing_status` view shape (we read existing C3 rows directly for the per-period iteration).
+- Rewriting actual benefit calculations (the migration only re-homes variable *definitions* — calculations continue to run against the same numbers).
+- Changing Rule Engine / Eligibility Fact editor UX beyond adding the "used by formulas" back-reference.
