@@ -6,18 +6,17 @@
  */
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Monitor, Trash2 } from 'lucide-react';
+import { Edit, Monitor, Trash2 } from 'lucide-react';
 import { useBnScreenTemplates, useDeleteBnScreenTemplate } from '@/hooks/bn/useBnConfig';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
-import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
+import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { SMART_FIELD_TYPES } from '@/services/bn/registries';
 import { ScreenBuilder } from '@/components/bn/config/ScreenBuilder';
 import { ScreenTemplateUsageCell } from '@/components/bn/config/ScreenTemplateUsageCell';
 import { useToast } from '@/hooks/use-toast';
+import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 
 export default function ScreenMetadataSetup() {
   const { toast } = useToast();
