@@ -7,3 +7,10 @@ export { BnDetailRow, BnDetailSection } from './BnDetailRow';
 export { BnActionToolbar, BnToolbarGroup } from './BnActionToolbar';
 export { BnScreenRoleBanner } from './BnScreenRoleBanner';
 export type { BnScreenRole } from './BnScreenRoleBanner';
+
+/* Standardised layout/style wrappers — use these on every BN screen. */
+export { BNPageLayout } from './BNPageLayout';
+export { BNSectionHeader } from './BNSectionHeader';
+export { BNCard } from './BNCard';
+export { BNFormSection, BNField } from './BNFormSection';
+export { BNModalShell } from './BNModalShell';
