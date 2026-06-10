@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, PlusCircle, X, Database, Settings2, Filter, Zap, BarChart3, Info, ChevronDown, ChevronRight, Lightbulb } from 'lucide-react';
+import { Loader2, PlusCircle, X, Database, Settings2, Filter, Zap, BarChart3, Info, ChevronDown, ChevronRight, Lightbulb, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { resolveMany, buildSnapshot, type ResolvedVariable } from '@/services/compliance/policyResolver';
 
 // ── Types ──
 
