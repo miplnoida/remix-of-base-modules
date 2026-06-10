@@ -286,8 +286,11 @@ export default function CaseDetailView() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium text-muted-foreground">Officer</CardTitle>
+            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setAssignmentDialogOpen(true)}>
+              <UserCheck className="h-3.5 w-3.5 mr-1" />{c.assigned_officer_name ? 'Reassign' : 'Assign'}
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="text-base font-medium">{c.assigned_officer_name || 'Unassigned'}</div>
