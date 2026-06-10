@@ -21,6 +21,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Calculator, Save, Sparkles, FileJson, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBnFormulaTemplates } from '@/hooks/bn/useBnConfig';
+import { useBnFormulaVariableRegistry, buildSampleMap, buildLabelMap } from '@/hooks/bn/useBnFormulaVariableRegistry';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -50,8 +51,8 @@ type VersionCalcRow = {
   calculation_config: Record<string, unknown> | null;
 };
 
-// --- Sample inputs for the in-panel calculator preview ---
-const SAMPLE_INPUTS: Record<string, number> = {
+// --- Fallback samples / labels used when the DB registry hasn't loaded yet ---
+const FALLBACK_SAMPLE_INPUTS: Record<string, number> = {
   avg_weekly_wage: 850,
   base_pension: 450,
   flat_amount: 0,
@@ -60,7 +61,7 @@ const SAMPLE_INPUTS: Record<string, number> = {
   degree: 100,
 };
 
-const PARAM_LABELS: Record<string, string> = {
+const FALLBACK_PARAM_LABELS: Record<string, string> = {
   rate: 'Replacement rate (%)',
   base_rate: 'Base rate (%)',
   increment_rate: 'Increment rate per 50 weeks (%)',
@@ -129,6 +130,15 @@ export function CalculationBuilder({ versionId, isReadOnly }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: templates = [] } = useBnFormulaTemplates();
+  const { data: registryRows = [] } = useBnFormulaVariableRegistry();
+  const SAMPLE_INPUTS = useMemo(
+    () => ({ ...FALLBACK_SAMPLE_INPUTS, ...buildSampleMap(registryRows) }),
+    [registryRows]
+  );
+  const PARAM_LABELS = useMemo(
+    () => ({ ...FALLBACK_PARAM_LABELS, ...buildLabelMap(registryRows) }),
+    [registryRows]
+  );
 
   const { data: version, isLoading } = useQuery({
     queryKey: ['bn', 'product-version-calc', versionId],
