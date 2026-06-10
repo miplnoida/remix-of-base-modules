@@ -9,6 +9,7 @@ import { Briefcase, Plus, Search, Eye, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { NewCaseDialog } from '@/components/compliance/NewCaseDialog';
 
 interface ComplianceCase {
   id: string;
@@ -43,6 +44,7 @@ const CaseManagement = () => {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [newCaseOpen, setNewCaseOpen] = useState(false);
 
   const { data: cases = [], isLoading } = useQuery({
     queryKey: ['ce_cases'],
@@ -90,7 +92,8 @@ const CaseManagement = () => {
         </div>
         <div className="flex items-center gap-2">
           <ComplianceHelpButton screenKey="cases" />
-          <Button className="gap-2" onClick={() => navigate('/compliance/cases/intake')}><Plus className="h-4 w-4" />New Case</Button>
+          <Button className="gap-2" onClick={() => setNewCaseOpen(true)}><Plus className="h-4 w-4" />New Case</Button>
+          <NewCaseDialog open={newCaseOpen} onOpenChange={setNewCaseOpen} />
         </div>
       </div>
 
