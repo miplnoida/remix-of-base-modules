@@ -23,6 +23,7 @@ import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/s
 import { CodeFieldWithAutoGenerate, FormulaBuilder, SmartSelect } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import { parseFormula } from '@/lib/bn/formulaParser';
+import { FormulaTestPanel } from '@/components/bn/config/FormulaTestPanel';
 import type { BnFormulaTemplate } from '@/types/bn';
 
 type FormulaForm = {
@@ -239,6 +240,7 @@ export default function FormulaConfiguration() {
                 value={form.formula_expression}
                 onChange={(v) => setForm({ ...form, formula_expression: v })}
               />
+              <FormulaTestPanel expression={form.formula_expression} outputType={form.output_type} />
               <div className="flex items-end justify-between gap-4">
                 <div className="w-48">
                   <SmartSelect

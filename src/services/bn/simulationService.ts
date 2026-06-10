@@ -34,11 +34,42 @@ import type {
 const db = supabase as any;
 
 // ============================================================
+// DEFAULT INPUT SEEDING — read bn_formula_variable_registry
+// ============================================================
+// When the UI doesn't pre-fill inputs, seed numeric sample values from the
+// registry so the engine always has something to evaluate against. Keeps the
+// "one-click Run" path working and surfaces the variable contract.
+
+async function loadDefaultSimInputs(): Promise<BnSimulationRequest['inputs']> {
+  const { data, error } = await db
+    .from('bn_formula_variable_registry')
+    .select('variable_code, sample_value, data_type, source_type')
+    .eq('is_active', true);
+  if (error || !data) return [];
+  return (data as Array<{ variable_code: string; sample_value: number | null; data_type: string | null; source_type: string | null }>)
+    .filter(r => r.sample_value !== null && r.sample_value !== undefined)
+    .map(r => ({
+      key: r.variable_code,
+      value: String(r.sample_value),
+      type: 'NUMBER' as const,
+      json: { source_type: r.source_type, data_type: r.data_type, seeded_from: 'bn_formula_variable_registry' },
+    }));
+}
+
+// ============================================================
 // MAIN ENTRY: Execute a simulation run
 // ============================================================
 
+
 export async function executeSimulationRun(req: BnSimulationRequest): Promise<BnSimulationResult> {
   const startTime = Date.now();
+
+  // 0. Auto-seed inputs from bn_formula_variable_registry when caller
+  //    didn't supply any. Keeps the simulator runnable with one click and
+  //    avoids "unknown variable" surprises in the formula trace.
+  if (!req.inputs || req.inputs.length === 0) {
+    req = { ...req, inputs: await loadDefaultSimInputs() };
+  }
 
   // 1. Snapshot config (freeze the rules at this moment)
   const snapshot = await captureConfigSnapshot(
