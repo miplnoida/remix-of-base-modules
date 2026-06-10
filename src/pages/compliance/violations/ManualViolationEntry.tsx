@@ -160,6 +160,10 @@ function ManualViolationEntryInner() {
           discovered_by: performer,
           source_type: 'MANUAL',
           created_by: performer,
+          // Freeze a snapshot of policy parameters at creation time.
+          // Re-resolves are NOT performed on edit/reopen — historical violations
+          // never change when Finance later updates c3_calculation_config.
+          parameters_snapshot: policyDefaults.length > 0 ? buildSnapshot(policyDefaults) : null,
         } as any)
         .select('*')
         .single();
