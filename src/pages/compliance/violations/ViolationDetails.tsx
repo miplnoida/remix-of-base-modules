@@ -775,7 +775,7 @@ export default function ViolationDetails() {
         entityId={v.id}
         currentOfficerId={(v as any).assigned_to_user_id || null}
         currentOfficerName={v.assigned_to_name || null}
-        onAssigned={() => qc.invalidateQueries({ queryKey: ['violation', id] })}
+        onAssigned={() => queryClient.invalidateQueries({ queryKey: ['ce_violation', id] })}
       />
     </div>
   );
