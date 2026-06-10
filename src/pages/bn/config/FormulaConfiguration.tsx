@@ -23,6 +23,7 @@ import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/s
 import { CodeFieldWithAutoGenerate, FormulaBuilder, SmartSelect } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import { parseFormula } from '@/lib/bn/formulaParser';
+import { FormulaTestPanel } from '@/components/bn/config/FormulaTestPanel';
 import type { BnFormulaTemplate } from '@/types/bn';
 
 type FormulaForm = {
