@@ -16,6 +16,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserCode } from '@/hooks/useUserCode';
 import { caseViolationService } from '@/services/caseViolationService';
 import { toast } from 'sonner';
+import { resolveMany, buildSnapshot, type ResolvedVariable } from '@/services/compliance/policyResolver';
+import { RefreshCw, Settings2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const MODULE = 'manage_compliance';
 const FUND_LABELS: Record<string, string> = {
@@ -47,6 +50,35 @@ function ManualViolationEntryInner() {
   const [triggerWorkflow, setTriggerWorkflow] = useState(false);
   const [createCase, setCreateCase] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Policy defaults resolved live from c3_calculation_config via ce_rule_variable_mappings.
+  // SNAPSHOT CONTRACT: resolved values are loaded once on mount for display + saved as
+  // a frozen snapshot on insert. They are NOT re-resolved when the user later opens the
+  // violation, so historical violations stay immutable when Finance changes a rate.
+  const POLICY_KEYS = useMemo(
+    () => ['grace_period', 'levy_penalty_initial_rate', 'additional_rate_per_month',
+           'severance_penalty_rate', 'ss_fine_initial_rate', 'interest_rate'],
+    [],
+  );
+  const [policyDefaults, setPolicyDefaults] = useState<ResolvedVariable[]>([]);
+  const [policyLoading, setPolicyLoading] = useState(false);
+
+  const loadPolicyDefaults = async () => {
+    setPolicyLoading(true);
+    try {
+      const list = await resolveMany(POLICY_KEYS);
+      setPolicyDefaults(list);
+    } catch {
+      // Non-blocking — defaults are informational
+    } finally {
+      setPolicyLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPolicyDefaults();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const prefill = (location.state as any)?.prefill;
@@ -128,6 +160,10 @@ function ManualViolationEntryInner() {
           discovered_by: performer,
           source_type: 'MANUAL',
           created_by: performer,
+          // Freeze a snapshot of policy parameters at creation time.
+          // Re-resolves are NOT performed on edit/reopen — historical violations
+          // never change when Finance later updates c3_calculation_config.
+          parameters_snapshot: policyDefaults.length > 0 ? buildSnapshot(policyDefaults) : null,
         } as any)
         .select('*')
         .single();
@@ -319,6 +355,34 @@ function ManualViolationEntryInner() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Policy Defaults — live from C3 Configuration, frozen on Save */}
+                <div className="rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-900/10 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Settings2 className="h-4 w-4 text-amber-600" />
+                      <span className="text-sm font-medium text-amber-800 dark:text-amber-300">Policy Defaults (C3 Configuration)</span>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={loadPolicyDefaults} disabled={policyLoading} className="h-7">
+                      <RefreshCw className={`h-3 w-3 mr-1 ${policyLoading ? 'animate-spin' : ''}`} />
+                      Reload defaults
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    These values are pulled live from C3 Configuration. They are frozen into this violation on Save — later changes to C3 Configuration will NOT alter this record.
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {policyDefaults.map(r => (
+                      <Badge key={r.variable_key} variant="outline" className="text-[10px] bg-background font-normal">
+                        {r.display_name}: <span className="font-mono ml-1">{r.unresolved ? '—' : r.value}</span>
+                      </Badge>
+                    ))}
+                    {!policyLoading && policyDefaults.length === 0 && (
+                      <span className="text-[11px] text-muted-foreground italic">No policy defaults available</span>
+                    )}
+                  </div>
+                </div>
+
 
                 <div className="space-y-2 pt-2 border-t">
                   <div className="flex items-center space-x-2">

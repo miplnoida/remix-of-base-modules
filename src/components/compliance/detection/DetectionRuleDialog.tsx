@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, PlusCircle, X, Database, Settings2, Filter, Zap, BarChart3, Info, ChevronDown, ChevronRight, Lightbulb } from 'lucide-react';
+import { Loader2, PlusCircle, X, Database, Settings2, Filter, Zap, BarChart3, Info, ChevronDown, ChevronRight, Lightbulb, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { resolveMany, buildSnapshot, type ResolvedVariable } from '@/services/compliance/policyResolver';
 
 // ── Types ──
 
@@ -574,18 +575,49 @@ const DataSourcesSection = ({
   triggerEvent: string;
   conditionVars: ConditionVar[];
 }) => {
+  const sources = useMemo(
+    () =>
+      conditionVars
+        .filter(v => v.sourceTable)
+        .map(v => ({
+          variable: v.label,
+          variableKey: v.value,
+          table: v.sourceTable!,
+          column: v.sourceColumn || '*',
+          c3Key: v.c3ConfigKey,
+        })),
+    [conditionVars],
+  );
+
+  const c3VarKeys = useMemo(
+    () => Array.from(new Set(sources.filter(s => s.c3Key).map(s => s.variableKey))),
+    [sources],
+  );
+
+  const [resolved, setResolved] = useState<Record<string, ResolvedVariable>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!triggerEvent || c3VarKeys.length === 0) {
+      setResolved({});
+      return;
+    }
+    (async () => {
+      try {
+        const list = await resolveMany(c3VarKeys);
+        if (cancelled) return;
+        const map: Record<string, ResolvedVariable> = {};
+        for (const r of list) map[r.variable_key] = r;
+        setResolved(map);
+      } catch {
+        // resolver is informational only — silent fail
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [triggerEvent, c3VarKeys.join('|')]);
+
   if (!triggerEvent) return null;
-
-  // Collect unique source tables/columns from relevant condition vars
-  const sources = conditionVars.filter(v => v.sourceTable).map(v => ({
-    variable: v.label,
-    table: v.sourceTable!,
-    column: v.sourceColumn || '*',
-    c3Key: v.c3ConfigKey,
-  }));
-
   const uniqueTables = Array.from(new Set(sources.map(s => s.table)));
-
   if (uniqueTables.length === 0) return null;
 
   return (
@@ -601,21 +633,33 @@ const DataSourcesSection = ({
             <div key={table} className="flex items-start gap-2">
               <Badge variant="outline" className="text-[10px] shrink-0 font-mono bg-background">{table}</Badge>
               <div className="flex flex-wrap gap-1">
-                {cols.map((col, i) => (
-                  <span key={i} className="text-[10px] text-muted-foreground">
-                    <span className="font-mono">.{col.column}</span>
-                    <span className="text-foreground/60"> ({col.variable})</span>
-                    {col.c3Key && (
-                      <span className="text-amber-600 dark:text-amber-400 ml-0.5">← C3: {col.c3Key}</span>
-                    )}
-                    {i < cols.length - 1 && <span className="mx-0.5">·</span>}
-                  </span>
-                ))}
+                {cols.map((col, i) => {
+                  const r = resolved[col.variableKey];
+                  return (
+                    <span key={i} className="text-[10px] text-muted-foreground">
+                      <span className="font-mono">.{col.column}</span>
+                      <span className="text-foreground/60"> ({col.variable})</span>
+                      {col.c3Key && (
+                        <span className="text-amber-600 dark:text-amber-400 ml-0.5">
+                          ← C3: {col.c3Key}
+                          {r && (r.unresolved
+                            ? <span className="text-destructive ml-1">[unresolved]</span>
+                            : <span className="text-foreground/80"> = <span className="font-mono">{r.value}</span></span>
+                          )}
+                        </span>
+                      )}
+                      {i < cols.length - 1 && <span className="mx-0.5">·</span>}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           );
         })}
       </div>
+      <p className="text-[10px] text-muted-foreground italic">
+        Live values shown for reference. On save, the rule freezes a snapshot — historical detections never change when C3 Configuration is updated.
+      </p>
     </div>
   );
 };
@@ -727,7 +771,7 @@ export const EnhancedDetectionRuleDialog = ({
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.trigger_event) {
       toast.error('Please check the form for valid information!', {
         description: 'Name and Trigger Event are required.',
@@ -736,13 +780,33 @@ export const EnhancedDetectionRuleDialog = ({
       });
       return;
     }
-    // Clean parameters: remove empty values and internal override flags that are false
+    // Clean parameters: remove empty values
     const cleanParams: Record<string, any> = {};
     Object.entries(form.parameters).forEach(([k, v]) => {
+      if (k === '_snapshot') return; // recomputed below
       if (v !== '' && v !== undefined && v !== null) {
         cleanParams[k] = v;
       }
     });
+
+    // Build / preserve the policy snapshot.
+    // On EDIT: keep the existing snapshot frozen — never re-resolve from live config.
+    // On CREATE: resolve current values for any c3-linked condition variables used
+    // by this trigger and freeze them into parameters._snapshot.
+    let snapshot = (rule?.parameters as any)?._snapshot ?? null;
+    if (!isEdit) {
+      const c3Keys = enrichedVars.filter(v => v.c3ConfigKey).map(v => v.value);
+      if (c3Keys.length > 0) {
+        try {
+          const resolved = await resolveMany(c3Keys);
+          snapshot = buildSnapshot(resolved);
+        } catch {
+          // resolver failure must not block rule creation
+        }
+      }
+    }
+    if (snapshot) cleanParams._snapshot = snapshot;
+
     onSave({
       ...form,
       violation_type_id: form.violation_type_id || null,
