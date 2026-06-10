@@ -247,127 +247,101 @@ export default function RuleCatalogue() {
 
         {/* RULES TAB */}
         <TabsContent value="rules">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col md:flex-row md:items-center gap-3">
-                <CardTitle className="flex-1">Catalogue</CardTitle>
-                <div className="relative w-full md:w-72">
-                  <Search className="h-4 w-4 absolute left-2 top-2.5 text-muted-foreground" />
-                  <Input className="pl-8" placeholder="Search code, name, fact" value={search} onChange={e => setSearch(e.target.value)} />
-                </div>
-                <Select value={groupFilter} onValueChange={setGroupFilter}>
-                  <SelectTrigger className="w-44"><SelectValue placeholder="Category" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Categories</SelectItem>
-                    {RULE_GROUP_TYPES.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Select value={ruleGroupFilter} onValueChange={setRuleGroupFilter}>
-                  <SelectTrigger className="w-56"><SelectValue placeholder="Rule Group" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Rule Groups</SelectItem>
-                    <SelectItem value="__none__">— Unassigned —</SelectItem>
-                    {ruleGroups.filter((g: any) => g.is_active).map((g: any) => (
-                      <SelectItem key={g.id} value={g.id}>{g.group_code} — {g.group_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Status</SelectItem>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="INACTIVE">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <p className="py-8 text-center text-muted-foreground">Loading…</p>
-              ) : filtered.length === 0 ? (
-                <p className="py-8 text-center text-muted-foreground">No rules match.</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Code</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Used in Groups</TableHead>
-                      <TableHead>Fact Key</TableHead>
-                      <TableHead>Operator</TableHead>
-                      <TableHead>Default Value</TableHead>
-                      <TableHead>Fail</TableHead>
-                      <TableHead>Active</TableHead>
-                      <TableHead>Fact</TableHead>
-                      <TableHead>Used</TableHead>
-                      <TableHead>Ver</TableHead>
-                      <TableHead>Governance</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map(r => {
-                      const f = r.fact_key ? factByKey.get(r.fact_key) : null;
-                      return (
-                        <TableRow key={r.id}>
-                          <TableCell className="font-mono text-xs">{r.rule_code}</TableCell>
-                          <TableCell className="font-medium">{r.rule_name}</TableCell>
-                          <TableCell><Badge variant="outline">{r.category ?? r.group_type}</Badge></TableCell>
-                          <TableCell className="text-xs">{(() => { const u = groupUsage[r.id]; if (!u || u.group_count === 0) return <span className="text-muted-foreground">—</span>; return <Badge variant="secondary" title={(u.group_codes ?? []).join(', ')}>{u.group_count}</Badge>; })()}</TableCell>
-                          <TableCell className="font-mono text-xs">{r.fact_key ?? <span className="text-destructive">— missing —</span>}</TableCell>
-                          <TableCell className="text-xs">{r.operator}</TableCell>
-                          <TableCell className="text-xs">{fmtValue(r)}</TableCell>
-                          <TableCell>
-                            <Badge variant={r.default_fail_action === 'REJECT' ? 'destructive' : r.default_fail_action === 'BLOCK' ? 'secondary' : 'default'}>
-                              {r.default_fail_action}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{r.is_active ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
-                          <TableCell>
-                            {f
-                              ? <Badge variant={statusBadgeVariant(f.implementation_status)}>{f.implementation_status}</Badge>
-                              : <Badge variant="destructive">UNLINKED</Badge>}
-                          </TableCell>
-                          <TableCell className="text-xs">{usage[r.rule_code] ?? 0}</TableCell>
-                          <TableCell className="text-xs">v{r.version}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col items-start gap-1">
-                              <GovernanceStatusBadge status={(r as any).governance_status} />
-                              <GovernanceActionsMenu
-                                ruleId={r.id}
-                                ruleCode={r.rule_code}
-                                status={((r as any).governance_status ?? 'DRAFT') as any}
-                                defaults={{
-                                  legal_reference: (r as any).legal_reference,
-                                  legal_notes: (r as any).legal_notes,
-                                  jurisdiction_country: (r as any).jurisdiction_country,
-                                  effective_date: (r as any).effective_date,
-                                }}
-                                onChanged={() => qc.invalidateQueries({ queryKey: ['bn', 'rule-catalogue'] })}
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button size="icon" variant="ghost" onClick={() => openEdit(r)} title="Edit"><Edit className="h-4 w-4" /></Button>
-                              <Button size="icon" variant="ghost" onClick={() => onClone(r)} title="Clone"><Copy className="h-4 w-4" /></Button>
-                              <Button size="icon" variant="ghost" onClick={() => onToggle(r)} title={r.is_active ? 'Deactivate' : 'Activate'}><Power className={`h-4 w-4 ${r.is_active ? 'text-amber-600' : 'text-emerald-600'}`} /></Button>
-                              <Button size="icon" variant="ghost" onClick={() => onDelete(r)} title="Delete" disabled={(usage[r.rule_code] ?? 0) > 0}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <BNDataGrid
+            id="bn.rule-catalogue"
+            data={filtered}
+            isLoading={isLoading}
+            searchPlaceholder="Search code, name, fact"
+            onCreate={openNew}
+            defaultSort={[{ id: 'rule_code', desc: false }]}
+            exportFilename="bn_rule_catalogue"
+            emptyMessage="No rules match."
+            toolbarFilters={[
+              {
+                key: 'category',
+                label: 'Category',
+                value: groupFilter,
+                onChange: setGroupFilter,
+                options: [{ value: 'ALL', label: 'All Categories' }, ...RULE_GROUP_TYPES.map(g => ({ value: g, label: g }))],
+              },
+              {
+                key: 'rule_group',
+                label: 'Rule Group',
+                value: ruleGroupFilter,
+                onChange: setRuleGroupFilter,
+                options: [
+                  { value: 'ALL', label: 'All Rule Groups' },
+                  { value: '__none__', label: '— Unassigned —' },
+                  ...ruleGroups.filter((g: any) => g.is_active).map((g: any) => ({ value: g.id, label: `${g.group_code} — ${g.group_name}` })),
+                ],
+              },
+              {
+                key: 'status',
+                label: 'Status',
+                value: statusFilter,
+                onChange: setStatusFilter,
+                options: [
+                  { value: 'ALL', label: 'All Status' },
+                  { value: 'ACTIVE', label: 'Active' },
+                  { value: 'INACTIVE', label: 'Inactive' },
+                ],
+              },
+            ]}
+            columns={[
+              { accessorKey: 'rule_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 200 }, cell: ({ getValue }) => <span className="font-mono text-xs">{String(getValue() ?? '')}</span> },
+              { accessorKey: 'rule_name', header: 'Name', meta: { label: 'Name', width: 240 }, cell: ({ getValue }) => <span className="font-medium">{String(getValue() ?? '')}</span> },
+              { accessorKey: 'category', header: 'Category', meta: { label: 'Category', width: 140 }, cell: ({ row }) => <Badge variant="outline">{row.original.category ?? row.original.group_type}</Badge> },
+              { id: 'used_in_groups', header: 'Used in Groups', meta: { label: 'Used in Groups', width: 130 }, cell: ({ row }) => {
+                const u = groupUsage[row.original.id];
+                if (!u || u.group_count === 0) return <span className="text-muted-foreground">—</span>;
+                return <Badge variant="secondary" title={(u.group_codes ?? []).join(', ')}>{u.group_count}</Badge>;
+              } },
+              { accessorKey: 'fact_key', header: 'Fact Key', meta: { label: 'Fact Key', width: 200 }, cell: ({ getValue }) => getValue() ? <span className="font-mono text-xs">{String(getValue())}</span> : <span className="text-destructive text-xs">— missing —</span> },
+              { accessorKey: 'operator', header: 'Operator', meta: { label: 'Operator', width: 130 }, cell: ({ getValue }) => <span className="text-xs">{String(getValue() ?? '')}</span> },
+              { id: 'default_value', header: 'Default Value', meta: { label: 'Default Value', width: 160 }, cell: ({ row }) => <span className="text-xs">{fmtValue(row.original)}</span> },
+              { accessorKey: 'default_fail_action', header: 'Fail', meta: { label: 'Fail', width: 100 }, cell: ({ getValue }) => {
+                const v = String(getValue() ?? '');
+                return <Badge variant={v === 'REJECT' ? 'destructive' : v === 'BLOCK' ? 'secondary' : 'default'}>{v}</Badge>;
+              } },
+              { accessorKey: 'is_active', header: 'Active', meta: { label: 'Active', width: 90 }, cell: ({ getValue }) => getValue() ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge> },
+              { id: 'fact_status', header: 'Fact', meta: { label: 'Fact', width: 140 }, cell: ({ row }) => {
+                const f = row.original.fact_key ? factByKey.get(row.original.fact_key) : null;
+                return f
+                  ? <Badge variant={statusBadgeVariant(f.implementation_status)}>{f.implementation_status}</Badge>
+                  : <Badge variant="destructive">UNLINKED</Badge>;
+              } },
+              { id: 'used', header: 'Used', meta: { label: 'Used', width: 70 }, cell: ({ row }) => <span className="text-xs">{usage[row.original.rule_code] ?? 0}</span> },
+              { accessorKey: 'version', header: 'Ver', meta: { label: 'Ver', width: 70 }, cell: ({ getValue }) => <span className="text-xs">v{String(getValue() ?? '')}</span> },
+              { id: 'governance', header: 'Governance', meta: { label: 'Governance', width: 200 }, cell: ({ row }) => {
+                const r = row.original;
+                return (
+                  <div className="flex flex-col items-start gap-1">
+                    <GovernanceStatusBadge status={(r as any).governance_status} />
+                    <GovernanceActionsMenu
+                      ruleId={r.id}
+                      ruleCode={r.rule_code}
+                      status={((r as any).governance_status ?? 'DRAFT') as any}
+                      defaults={{
+                        legal_reference: (r as any).legal_reference,
+                        legal_notes: (r as any).legal_notes,
+                        jurisdiction_country: (r as any).jurisdiction_country,
+                        effective_date: (r as any).effective_date,
+                      }}
+                      onChanged={() => qc.invalidateQueries({ queryKey: ['bn', 'rule-catalogue'] })}
+                    />
+                  </div>
+                );
+              } },
+            ] as BNColumnDef<RuleCatalogueItem>[]}
+            rowActions={[
+              { key: 'edit', label: 'Edit', icon: <Edit className="h-3.5 w-3.5" />, onClick: openEdit },
+              { key: 'clone', label: 'Clone', icon: <Copy className="h-3.5 w-3.5" />, onClick: onClone },
+              { key: 'toggle', label: 'Toggle Active', icon: <Power className="h-3.5 w-3.5" />, onClick: onToggle },
+              { key: 'delete', label: 'Delete', icon: <Trash2 className="h-3.5 w-3.5" />, variant: 'destructive', onClick: onDelete, disabled: (r) => (usage[r.rule_code] ?? 0) > 0 },
+            ]}
+          />
         </TabsContent>
+
 
         {/* FACTS TAB */}
         <TabsContent value="facts">
