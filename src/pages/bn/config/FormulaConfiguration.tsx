@@ -149,55 +149,29 @@ export default function FormulaConfiguration() {
           description="Reusable calculation building blocks. To assign a formula to a benefit product, open Product Catalog → select the product version → Calculation tab."
         />
 
-        <Card>
-          <CardHeader className="pb-3">
-            <BnFilterBar
-              search={search}
-              onSearchChange={setSearch}
-              searchPlaceholder="Search formulas..."
-              filters={[]}
-              actions={
-                <Button size="sm" className="gap-1.5" onClick={openAdd}>
-                  <Plus className="h-3.5 w-3.5" /> Add Formula
-                </Button>
-              }
-            />
-          </CardHeader>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <BnEmptyState type="loading" />
-            ) : filtered.length === 0 ? (
-              <BnEmptyState type={search ? 'no-results' : 'empty'} title="No formula templates" />
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Output</TableHead>
-                    <TableHead>Expression</TableHead>
-                    <TableHead className="w-[60px]">Edit</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((f: BnFormulaTemplate) => (
-                    <TableRow key={f.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEdit(f)}>
-                      <TableCell className="font-mono text-sm">{f.template_code}</TableCell>
-                      <TableCell className="font-medium text-sm">{f.template_name}</TableCell>
-                      <TableCell><Badge variant="outline">{f.output_type || '—'}</Badge></TableCell>
-                      <TableCell className="max-w-[300px] truncate font-mono text-xs text-muted-foreground">{f.formula_expression || '—'}</TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(f)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
-        </Card>
+        <BNDataGrid<BnFormulaTemplate>
+          id="bn.formula-library"
+          columns={[
+            { accessorKey: 'template_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 160 }, cell: ({ getValue }) => <span className="font-mono text-sm">{String(getValue() ?? '')}</span> },
+            { accessorKey: 'template_name', header: 'Name', meta: { label: 'Name', width: 260 }, cell: ({ getValue }) => <span className="font-medium text-sm">{String(getValue() ?? '')}</span> },
+            { accessorKey: 'output_type', header: 'Output', meta: { label: 'Output', width: 120 }, cell: ({ getValue }) => <Badge variant="outline">{String(getValue() ?? '—')}</Badge> },
+            { accessorKey: 'formula_expression', header: 'Expression', meta: { label: 'Expression', width: 380 }, cell: ({ getValue }) => <span className="font-mono text-xs text-muted-foreground">{String(getValue() ?? '—')}</span> },
+            { accessorKey: 'country_code', header: 'Country', meta: { label: 'Country', width: 100 }, cell: ({ getValue }) => <Badge variant="outline">{String(getValue() || 'Global')}</Badge> },
+            { accessorKey: 'is_active', header: 'Active', meta: { label: 'Active', width: 90 }, cell: ({ getValue }) => getValue() ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge> },
+          ] as BNColumnDef<BnFormulaTemplate>[]}
+          data={formulas as BnFormulaTemplate[]}
+          isLoading={isLoading}
+          searchPlaceholder="Search formulas..."
+          defaultSort={[{ id: 'template_code', desc: false }]}
+          onCreate={openAdd}
+          onRowClick={(f) => openEdit(f)}
+          rowActions={[
+            { key: 'edit', label: 'Edit', icon: <Edit className="h-3.5 w-3.5" />, onClick: (f) => openEdit(f) },
+          ]}
+          exportFilename="bn_formula_library"
+          emptyMessage="No formula templates yet. Click Create to add one."
+        />
+
 
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
