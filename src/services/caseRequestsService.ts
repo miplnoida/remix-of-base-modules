@@ -50,6 +50,7 @@ export async function createCaseRequest(input: {
   reason: string;
   targetCaseId?: string;
   requestedBy: string;
+  metadata?: Record<string, unknown>;
 }): Promise<void> {
   const { error } = await (supabase.from(TABLE) as any).insert({
     case_id: input.caseId,
@@ -57,6 +58,7 @@ export async function createCaseRequest(input: {
     target_case_id: input.targetCaseId ?? null,
     reason: input.reason,
     requested_by: input.requestedBy,
+    metadata: input.metadata ?? null,
   });
   if (error) throw error;
 }
