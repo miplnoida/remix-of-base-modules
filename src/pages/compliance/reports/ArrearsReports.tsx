@@ -39,6 +39,28 @@ export default function ArrearsReports() {
   const totalArrears = filtered.reduce((sum, r) => sum + Number(r.total_arrears || 0), 0);
   const over90 = filtered.filter(r => r.aging_category === '90+ days').reduce((sum, r) => sum + Number(r.total_arrears || 0), 0);
 
+  const byZone = useMemo(() => {
+    const map = new Map<string, { zone: string; total: number; employers: number }>();
+    filtered.forEach((r: any) => {
+      const z = r.zone || 'Unassigned';
+      const cur = map.get(z) || { zone: z, total: 0, employers: 0 };
+      cur.total += Number(r.total_arrears || 0);
+      cur.employers += 1;
+      map.set(z, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [filtered]);
+
+  const asOf = useMemo(() => {
+    if (!arrearsData.length) return null;
+    const latest = arrearsData
+      .map((r: any) => r.created_at)
+      .filter(Boolean)
+      .sort()
+      .pop();
+    return latest ? new Date(latest) : null;
+  }, [arrearsData]);
+
   const handleApply = () => { setAppliedZone(zone); setAppliedThreshold(threshold); };
 
   const handleExport = async () => {
