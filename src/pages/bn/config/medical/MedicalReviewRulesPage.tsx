@@ -29,7 +29,7 @@ export default function MedicalReviewRulesPage() {
         <ShieldCheck className="h-8 w-8 text-primary" />
         <div>
           <h1 className="t-page-title">Medical Review Rules</h1>
-          <p className="text-sm text-muted-foreground">Roll-up of pre-authorization and medical board requirements per procedure.</p>
+          <p className="t-page-subtitle mt-1">Roll-up of pre-authorization and medical board requirements per procedure.</p>
         </div>
       </div>
 

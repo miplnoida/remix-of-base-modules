@@ -102,7 +102,7 @@ export default function BenefitsDashboard() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="t-page-title">Benefits Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="t-page-subtitle mt-1">
               Operational overview — Claims, Payments & Processing Metrics
             </p>
           </div>

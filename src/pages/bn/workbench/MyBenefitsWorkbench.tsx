@@ -40,7 +40,7 @@ export default function MyBenefitsWorkbench() {
       <div className="space-y-6 p-6">
         <div>
           <h1 className="t-page-title">My Workbench</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="t-page-subtitle mt-1 mt-1">
             Tasks and queues for every role you currently hold.
           </p>
         </div>

@@ -255,7 +255,7 @@ export default function BenefitCommunicationTemplates() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="t-page-title">Benefit Communication Templates</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="t-page-subtitle mt-1 mt-1">
             Benefits-scoped view over the central notification template store.
             Channels and recipients per product version are governed by Product Catalog → Communication Mapping.
           </p>

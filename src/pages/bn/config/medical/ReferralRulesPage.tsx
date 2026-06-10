@@ -58,7 +58,7 @@ export default function ReferralRulesPage() {
         <GitBranch className="h-8 w-8 text-primary" />
         <div>
           <h1 className="t-page-title">Referral & Recommendation Rules</h1>
-          <p className="text-sm text-muted-foreground">Configure what happens when a procedure is locally / regionally / internationally available.</p>
+          <p className="t-page-subtitle mt-1">Configure what happens when a procedure is locally / regionally / internationally available.</p>
         </div>
       </div>
 

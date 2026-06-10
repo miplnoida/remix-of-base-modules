@@ -32,7 +32,7 @@ export default function SurvivorAwards() {
     <div className="space-y-4 p-6">
       <div>
         <h1 className="t-page-title">Survivor Awards</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="t-page-subtitle mt-1">
           Survivor benefit awards. One deceased insured person may have multiple beneficiaries — open the award to manage shares.
         </p>
       </div>

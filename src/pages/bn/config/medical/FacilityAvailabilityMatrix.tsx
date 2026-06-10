@@ -71,7 +71,7 @@ export default function FacilityAvailabilityMatrix() {
         <Building2 className="h-8 w-8 text-primary" />
         <div>
           <h1 className="t-page-title">Facility Availability Matrix</h1>
-          <p className="text-sm text-muted-foreground">Approved providers and which procedures they offer per jurisdiction.</p>
+          <p className="t-page-subtitle mt-1">Approved providers and which procedures they offer per jurisdiction.</p>
         </div>
       </div>
 

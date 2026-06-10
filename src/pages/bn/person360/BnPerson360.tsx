@@ -92,7 +92,7 @@ const BnPerson360: React.FC = () => {
         </Button>
         <div>
           <h1 className="t-page-title">Person 360</h1>
-          <p className="text-sm text-muted-foreground">Unified contributor/pensioner view</p>
+          <p className="t-page-subtitle mt-1">Unified contributor/pensioner view</p>
         </div>
       </div>
 

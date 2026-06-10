@@ -36,7 +36,7 @@ export default function AwardAdjustments() {
     <div className="space-y-4 p-6">
       <div>
         <h1 className="t-page-title">Award Adjustments</h1>
-        <p className="text-sm text-muted-foreground">Rate adjustments applied to long-term awards.</p>
+        <p className="t-page-subtitle mt-1">Rate adjustments applied to long-term awards.</p>
       </div>
       <BNDataGrid<any>
         id="bn.award-adjustments"

@@ -193,7 +193,7 @@ export default function PaymentHistoryInquiry() {
           </div>
           <div>
             <h1 className="t-page-title">Payment History</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="t-page-subtitle mt-1">
               Search across modern and legacy payment records
             </p>
           </div>

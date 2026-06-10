@@ -108,7 +108,7 @@ export default function BenefitDetermination() {
         </Button>
         <div>
           <h1 className="t-page-title">Benefit Determination</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="t-page-subtitle mt-1">
             Review eligibility, run calculations, and prepare decisions.
           </p>
         </div>
