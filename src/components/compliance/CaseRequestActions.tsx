@@ -1,8 +1,14 @@
 /**
  * Inline action menu for case detail: Request Closure / Reopen / Merge.
  * Gated by manage_compliance permission and feature toggles.
+ *
+ * Closure submissions consult `ce_workflow_mappings` for the
+ * `case.closure_approval` event and honor the resolved fallback behavior
+ * (BLOCK / REQUIRE_NOTE / DIRECT_APPLY). When a workflow mapping is enabled
+ * the resolved workflow is recorded on the request's metadata so the approval
+ * queue can route accordingly.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { PermissionButton } from '@/components/ui/permission-button';
@@ -14,8 +20,10 @@ import { toast } from 'sonner';
 import { useUserCode } from '@/hooks/useUserCode';
 import { createCaseRequest, type CaseRequestType } from '@/services/caseRequestsService';
 import { isComplianceFeatureEnabled } from '@/lib/compliance/featureToggles';
+import { resolveWorkflow, type ResolvedMapping } from '@/services/complianceWorkflowMappingService';
 
 const MODULE = 'manage_compliance';
+const REQUIRE_NOTE_MIN_LEN = 20;
 
 interface Props {
   caseId: string;
@@ -28,21 +36,77 @@ export const CaseRequestActions = ({ caseId, caseStatus, caseNumber }: Props) =>
   const [open, setOpen] = useState<CaseRequestType | null>(null);
   const [reason, setReason] = useState('');
   const [targetCaseId, setTargetCaseId] = useState('');
+  const [closureMapping, setClosureMapping] = useState<ResolvedMapping | null>(null);
 
   const closed = ['RESOLVED', 'CLOSED', 'COMPLETED'].includes(caseStatus);
 
+  // Resolve the workflow mapping when the closure dialog opens so we can
+  // surface the resolved workflow name + fallback behavior to the user.
+  useEffect(() => {
+    let cancelled = false;
+    if (open === 'CLOSURE') {
+      setClosureMapping(null);
+      resolveWorkflow('case.closure_approval', {})
+        .then((m) => { if (!cancelled) setClosureMapping(m); })
+        .catch(() => { if (!cancelled) setClosureMapping(null); });
+    } else {
+      setClosureMapping(null);
+    }
+    return () => { cancelled = true; };
+  }, [open, caseId]);
+
   const mut = useMutation({
-    mutationFn: () => createCaseRequest({
-      caseId, type: open!, reason,
-      targetCaseId: open === 'MERGE' ? targetCaseId : undefined,
-      requestedBy: userCode || 'UNKNOWN',
-    }),
+    mutationFn: async () => {
+      // For CLOSURE: enforce mapping/fallback before creating the request.
+      let metadata: Record<string, unknown> | undefined;
+      if (open === 'CLOSURE') {
+        const mapping = closureMapping ?? (await resolveWorkflow('case.closure_approval', {}));
+        if (!mapping.enabled) {
+          if (mapping.fallbackBehavior === 'BLOCK') {
+            throw new Error(
+              'Case closure is currently blocked by the configured workflow mapping. Please contact your compliance administrator.',
+            );
+          }
+          if (mapping.fallbackBehavior === 'REQUIRE_NOTE' && reason.trim().length < REQUIRE_NOTE_MIN_LEN) {
+            throw new Error(
+              `A justification of at least ${REQUIRE_NOTE_MIN_LEN} characters is required for closure (workflow mapping fallback).`,
+            );
+          }
+        }
+        metadata = {
+          workflow: {
+            event_key: 'case.closure_approval',
+            mapping_id: mapping.mappingId,
+            workflow_definition_id: mapping.workflowDefinitionId,
+            workflow_name: mapping.workflowName,
+            enabled: mapping.enabled,
+            fallback_behavior: mapping.fallbackBehavior,
+            resolved_at: new Date().toISOString(),
+          },
+        };
+      }
+      return createCaseRequest({
+        caseId,
+        type: open!,
+        reason,
+        targetCaseId: open === 'MERGE' ? targetCaseId : undefined,
+        requestedBy: userCode || 'UNKNOWN',
+        metadata,
+      });
+    },
     onSuccess: () => {
       toast.success(`${open} request submitted for review`);
       setOpen(null); setReason(''); setTargetCaseId('');
     },
-    onError: (e: any) => toast.error(e.message || 'Failed to submit request'),
+    onError: (e: any) =>
+      toast.error(e?.message || 'Failed to submit request', {
+        style: { backgroundColor: 'hsl(var(--destructive))', color: 'white' } as React.CSSProperties,
+        classNames: { toast: '!bg-destructive', title: '!text-white', description: '!text-white !opacity-100' },
+      }),
   });
+
+  const closureBlocked = open === 'CLOSURE' && closureMapping && !closureMapping.enabled && closureMapping.fallbackBehavior === 'BLOCK';
+  const closureRequireNote = open === 'CLOSURE' && closureMapping && !closureMapping.enabled && closureMapping.fallbackBehavior === 'REQUIRE_NOTE';
 
   return (
     <>
@@ -72,6 +136,35 @@ export const CaseRequestActions = ({ caseId, caseStatus, caseNumber }: Props) =>
             <DialogDescription>Case {caseNumber}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {open === 'CLOSURE' && closureMapping && (
+              <div
+                className={
+                  'rounded-md border p-3 text-xs ' +
+                  (closureBlocked
+                    ? 'border-destructive bg-destructive/10 text-destructive'
+                    : closureRequireNote
+                      ? 'border-amber-400 bg-amber-50 text-amber-900'
+                      : 'border-primary/30 bg-primary/5 text-foreground')
+                }
+              >
+                <div className="font-medium">Workflow mapping</div>
+                {closureMapping.enabled ? (
+                  <div>
+                    Routed to workflow:{' '}
+                    <span className="font-mono">{closureMapping.workflowName || 'Configured workflow'}</span>
+                  </div>
+                ) : closureBlocked ? (
+                  <div>Closure is currently blocked by the configured fallback (BLOCK).</div>
+                ) : closureRequireNote ? (
+                  <div>
+                    No active workflow — fallback requires a justification of at least{' '}
+                    {REQUIRE_NOTE_MIN_LEN} characters.
+                  </div>
+                ) : (
+                  <div>No active workflow — closure request will follow the standard review queue.</div>
+                )}
+              </div>
+            )}
             {open === 'MERGE' && (
               <div>
                 <label className="text-xs text-muted-foreground">Target case ID (UUID)</label>
@@ -80,7 +173,9 @@ export const CaseRequestActions = ({ caseId, caseStatus, caseNumber }: Props) =>
               </div>
             )}
             <div>
-              <label className="text-xs text-muted-foreground">Reason (required)</label>
+              <label className="text-xs text-muted-foreground">
+                Reason (required{closureRequireNote ? `, min ${REQUIRE_NOTE_MIN_LEN} chars` : ''})
+              </label>
               <Textarea rows={4} value={reason} onChange={(e) => setReason(e.target.value)}
                 placeholder="Explain why this request is being made…" />
             </div>
@@ -90,7 +185,13 @@ export const CaseRequestActions = ({ caseId, caseStatus, caseNumber }: Props) =>
             <PermissionButton
               moduleName={MODULE}
               actionName="edit"
-              disabled={!reason.trim() || (open === 'MERGE' && !targetCaseId.trim()) || mut.isPending}
+              disabled={
+                !reason.trim() ||
+                (open === 'MERGE' && !targetCaseId.trim()) ||
+                !!closureBlocked ||
+                (closureRequireNote && reason.trim().length < REQUIRE_NOTE_MIN_LEN) ||
+                mut.isPending
+              }
               onClick={() => mut.mutate()}
             >
               Submit Request
