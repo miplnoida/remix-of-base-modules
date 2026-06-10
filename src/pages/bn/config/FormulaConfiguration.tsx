@@ -61,6 +61,7 @@ export default function FormulaConfiguration() {
   const upsert = useUpsertBnFormulaTemplate();
   const { userCode } = useUserCode();
   const audit = useBnConfigAudit();
+  const { data: resolver } = useVariableResolver();
 
 
   const otherCodes = formulas
