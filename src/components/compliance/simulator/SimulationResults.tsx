@@ -42,7 +42,7 @@ function DetectionDetailRow({ d, showPeriod }: { d: DetectionResult; showPeriod:
       </TableRow>
       {open && (
         <TableRow className="bg-muted/20">
-          <TableCell colSpan={6} className="p-0">
+          <TableCell colSpan={showPeriod ? 7 : 6} className="p-0">
             <div className="px-6 py-3 space-y-2 border-l-2 border-primary/30 ml-4">
               <p className="text-xs font-semibold text-primary">How this was evaluated:</p>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1">
