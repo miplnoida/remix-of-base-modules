@@ -213,7 +213,10 @@ async function captureConfigSnapshot(
       workflow_template_id: versionMeta.workflow_template_id,
       document_profile_id: versionMeta.document_profile_id,
       eligibility_config: versionMeta.eligibility_config,
-      calculation_config: versionMeta.calculation_config,
+      formula_template_id: versionMeta.formula_template_id,
+      formula_parameter_values: versionMeta.formula_parameter_values,
+      cap_rules: versionMeta.cap_rules,
+      rounding_rule: versionMeta.rounding_rule,
       timeline_config: versionMeta.timeline_config,
     } : null,
 
