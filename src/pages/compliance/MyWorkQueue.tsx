@@ -19,6 +19,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { isComplianceFeatureEnabled } from '@/lib/compliance/featureToggles';
+import { useHasCapability } from '@/hooks/useHasCapability';
+import { COMPLIANCE_CAPABILITIES, type ComplianceCapability } from '@/lib/compliance/capabilities';
 
 const MODULE_NAME = 'ce_my_work_queue';
 
@@ -36,6 +38,8 @@ interface SectionDef {
   key: string;
   label: string;
   enabled: boolean;
+  /** Capability required to see this tab. `null` = always visible. */
+  capability: ComplianceCapability | null;
   query: () => Promise<WorkItem[]>;
   /** Assumption note shown when section is empty, only if column mapping was uncertain. */
   assumption?: string;
@@ -403,30 +407,42 @@ function MyWorkQueueContent() {
   const userId: string | null = user?.id ?? null;
   const ready = isAuthReady && isAuthenticated && !!userId;
 
+  // Capability gates — called unconditionally to keep hook order stable.
+  const canViolations = useHasCapability(COMPLIANCE_CAPABILITIES.VIOLATIONS_MANAGE);
+  const canCases = useHasCapability(COMPLIANCE_CAPABILITIES.CASES_MANAGE);
+  const canNotices = useHasCapability(COMPLIANCE_CAPABILITIES.ENFORCEMENT_NOTICES);
+  const canArrangements = useHasCapability(COMPLIANCE_CAPABILITIES.ENFORCEMENT_ARRANGEMENTS);
+  const canLegal = useHasCapability(COMPLIANCE_CAPABILITIES.ENFORCEMENT_LEGAL);
+  const canFieldReport = useHasCapability(COMPLIANCE_CAPABILITIES.FIELD_REPORT);
+
   const sections: SectionDef[] = useMemo(
     () => [
       {
         key: 'violations',
         label: 'Assigned Violations',
-        enabled: true,
+        enabled: canViolations,
+        capability: COMPLIANCE_CAPABILITIES.VIOLATIONS_MANAGE,
         query: () => fetchAssignedViolations(userId!),
       },
       {
         key: 'verification',
         label: 'Violations Awaiting Verification',
-        enabled: isComplianceFeatureEnabled('violations.verificationQueue'),
+        enabled: canViolations && isComplianceFeatureEnabled('violations.verificationQueue'),
+        capability: COMPLIANCE_CAPABILITIES.VIOLATIONS_MANAGE,
         query: () => fetchVerificationViolations(userId!),
       },
       {
         key: 'cases',
         label: 'Assigned Cases',
-        enabled: true,
+        enabled: canCases,
+        capability: COMPLIANCE_CAPABILITIES.CASES_MANAGE,
         query: () => fetchAssignedCases(userId!),
       },
       {
         key: 'notices',
         label: 'Notices Awaiting Approval',
-        enabled: true,
+        enabled: canNotices,
+        capability: COMPLIANCE_CAPABILITIES.ENFORCEMENT_NOTICES,
         query: () => fetchNoticesAwaitingApproval(userId!),
         assumption:
           'Assumes ce_notices.approver_user_id (falls back to assigned_to_user_id) identifies the approver.',
@@ -434,14 +450,16 @@ function MyWorkQueueContent() {
       {
         key: 'responses',
         label: 'Employer Responses Awaiting Review',
-        enabled: true,
+        enabled: canNotices,
+        capability: COMPLIANCE_CAPABILITIES.ENFORCEMENT_NOTICES,
         query: () => fetchEmployerResponses(userId!),
         assumption: 'Assumes ce_employer_responses.reviewer_user_id identifies the reviewer.',
       },
       {
         key: 'arrangements',
         label: 'Payment Arrangements Awaiting Approval',
-        enabled: true,
+        enabled: canArrangements,
+        capability: COMPLIANCE_CAPABILITIES.ENFORCEMENT_ARRANGEMENTS,
         query: () => fetchArrangementsAwaitingApproval(userId!),
         assumption:
           'Assumes ce_payment_arrangements.approver_user_id (falls back to assigned_to_user_id) identifies the approver.',
@@ -449,35 +467,40 @@ function MyWorkQueueContent() {
       {
         key: 'waivers',
         label: 'Waiver Requests',
-        enabled: true,
+        enabled: canArrangements,
+        capability: COMPLIANCE_CAPABILITIES.ENFORCEMENT_ARRANGEMENTS,
         query: () => fetchWaiverRequests(userId!),
       },
       {
         key: 'findings',
         label: 'Inspection Findings Awaiting Review',
-        enabled: isComplianceFeatureEnabled('inspections'),
+        enabled: canFieldReport && isComplianceFeatureEnabled('inspections'),
+        capability: COMPLIANCE_CAPABILITIES.FIELD_REPORT,
         query: () => fetchInspectionFindings(userId!),
       },
       {
         key: 'legal',
         label: 'Legal Escalation Recommendations',
-        enabled: isComplianceFeatureEnabled('legal.approvedEscalations'),
+        enabled: canLegal && isComplianceFeatureEnabled('legal.approvedEscalations'),
+        capability: COMPLIANCE_CAPABILITIES.ENFORCEMENT_LEGAL,
         query: () => fetchLegalRecommendations(userId!),
       },
       {
         key: 'tasks',
         label: 'Workflow Tasks',
         enabled: true,
+        capability: null,
         query: () => fetchWorkflowTasks(userCode),
       },
     ],
-    [userId, userCode],
+    [userId, userCode, canViolations, canCases, canNotices, canArrangements, canLegal, canFieldReport],
   );
 
   const enabled = sections.filter((s) => s.enabled);
 
   // Hook order must be stable — call hooks for the fixed list.
   const queries = enabled.map((s) => useSection(s.key, ready ? userId : null, s.query));
+
 
   if (isAuthReady && !isAuthenticated) {
     return (
@@ -510,7 +533,16 @@ function MyWorkQueueContent() {
         </Badge>
       </div>
 
+      {enabled.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            Your role does not grant access to any work queue tabs. Contact your Compliance
+            administrator if you believe this is incorrect.
+          </CardContent>
+        </Card>
+      ) : (
       <Tabs defaultValue={enabled[0]?.key ?? 'violations'} className="space-y-4">
+
         <TabsList className="flex-wrap">
           {enabled.map((s, idx) => {
             const count = queries[idx].data?.length ?? 0;
@@ -549,6 +581,7 @@ function MyWorkQueueContent() {
           );
         })}
       </Tabs>
+      )}
     </div>
   );
 }
