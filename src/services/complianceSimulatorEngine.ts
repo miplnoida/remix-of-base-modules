@@ -189,6 +189,8 @@ export interface SimulationOptions {
   existingViolationsByVtId?: Record<string, number>;
   /** Map keyed by `${violation_type_id}|${period YYYY-MM}` for per-period dedupe. Preferred over existingViolationsByVtId. */
   existingViolationsByVtIdPeriod?: Record<string, number>;
+  /** When true, drop non-matched detections and non-applicable calc/escalation results from the returned payload. */
+  matchesOnly?: boolean;
 }
 
 // ── Helpers ──
@@ -744,10 +746,11 @@ export function runSimulation(
   const financialImpact = applicableCalcs.reduce((sum, c) => sum + c.simulatedAmount, 0);
   const duplicatesSuppressed = matchedDetections.filter(d => d.duplicateSuppressed).length;
 
+  const matchesOnly = options.matchesOnly === true;
   return {
-    detectionResults,
-    calculationResults,
-    escalationResults,
+    detectionResults: matchesOnly ? detectionResults.filter(d => d.matched) : detectionResults,
+    calculationResults: matchesOnly ? calculationResults.filter(c => c.applies) : calculationResults,
+    escalationResults: matchesOnly ? escalationResults.filter(e => e.applies) : escalationResults,
     recommendations,
     missingData,
     warnings,

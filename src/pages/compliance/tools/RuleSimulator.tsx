@@ -37,6 +37,7 @@ export default function RuleSimulator() {
   const [ruleCodeFilter, setRuleCodeFilter] = useState<string>('__all__');
   const [periodOverride, setPeriodOverride] = useState<string>('');
   const [scanAllPeriods, setScanAllPeriods] = useState<boolean>(true);
+  const [matchesOnly, setMatchesOnly] = useState<boolean>(true);
 
 
 
@@ -107,6 +108,7 @@ export default function RuleSimulator() {
             ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
             existingViolationsByVtId: context?.existingViolationsByVtId ?? {},
             existingViolationsByVtIdPeriod: context?.existingViolationsByVtIdPeriod ?? {},
+            matchesOnly,
           }
         )
       : runSimulation(
@@ -119,6 +121,7 @@ export default function RuleSimulator() {
             ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
             existingViolationsByVtId: context?.existingViolationsByVtId ?? {},
             existingViolationsByVtIdPeriod: context?.existingViolationsByVtIdPeriod ?? {},
+            matchesOnly,
           }
         );
 
@@ -129,7 +132,7 @@ export default function RuleSimulator() {
         (dup > 0 ? ` — ${dup} suppressed as duplicate` : '') +
         (useMultiPeriod ? ` (scanned ${context!.periodFacts.length} period(s))` : '')
     );
-  }, [facts, rules, overriddenFields, ruleCodeFilter, context, isManualMode, periodOverride, scanAllPeriods]);
+  }, [facts, rules, overriddenFields, ruleCodeFilter, context, isManualMode, periodOverride, scanAllPeriods, matchesOnly]);
 
   const handleReset = useCallback(() => {
     setFacts(createDefaultFactContext());
@@ -252,6 +255,16 @@ export default function RuleSimulator() {
             />
             <Label htmlFor="scan-all-periods" className="text-xs text-muted-foreground cursor-pointer">
               Scan last 12 months
+            </Label>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Switch
+              id="matches-only"
+              checked={matchesOnly}
+              onCheckedChange={setMatchesOnly}
+            />
+            <Label htmlFor="matches-only" className="text-xs text-muted-foreground cursor-pointer" title="Only return rules that matched — non-matched rules are dropped at the engine layer before results render.">
+              Matches only
             </Label>
           </div>
           <Button
