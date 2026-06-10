@@ -103,6 +103,8 @@ function Inner() {
       summary: string;
       severity: string;
       principalAmount: number;
+      duplicateJustification?: string | null;
+      duplicateOfViolationId?: string | null;
     }) => convertFinding({ ...args, userCode: userCode || 'SYSTEM' }),
     onSuccess: (newId: string) => {
       const usingQueue = isComplianceFeatureEnabled('violations.verificationQueue');
@@ -225,6 +227,8 @@ function Inner() {
               summary: payload.summary,
               severity: payload.severity,
               principalAmount: payload.principalAmount,
+              duplicateJustification: payload.duplicateJustification,
+              duplicateOfViolationId: payload.duplicateOfViolationId,
             })
           }
           busy={convert.isPending}
@@ -240,14 +244,45 @@ function ConvertDialog({
   finding: any;
   violationTypes: any[];
   onClose: () => void;
-  onSubmit: (p: { violationTypeId: string; summary: string; severity: string; principalAmount: number }) => void;
+  onSubmit: (p: {
+    violationTypeId: string;
+    summary: string;
+    severity: string;
+    principalAmount: number;
+    duplicateJustification?: string | null;
+    duplicateOfViolationId?: string | null;
+  }) => void;
   busy: boolean;
 }) {
   const [violationTypeId, setViolationTypeId] = useState<string>('');
   const [summary, setSummary] = useState<string>(finding.title || finding.description?.slice(0, 200) || '');
   const [severity, setSeverity] = useState<string>(finding.severity || 'Medium');
   const [principalAmount, setPrincipalAmount] = useState<number>(0);
+  const [duplicateJustification, setDuplicateJustification] = useState<string>('');
   const usingQueue = isComplianceFeatureEnabled('violations.verificationQueue');
+
+  const employerId = finding?.ce_inspections?.employer_id ?? null;
+
+  // Look for an existing open violation of the same type for the same employer.
+  const duplicateQ = useQuery({
+    queryKey: ['violation-duplicate-check', employerId, violationTypeId],
+    enabled: !!employerId && !!violationTypeId,
+    queryFn: async () => {
+      const { data, error } = await (supabase.from('ce_violations') as any)
+        .select('id, violation_number, status, created_at')
+        .eq('employer_id', employerId)
+        .eq('violation_type_id', violationTypeId)
+        .in('status', ['OPEN', 'PENDING_VERIFICATION', 'UNDER_REVIEW'])
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data ?? [])[0] ?? null;
+    },
+  });
+
+  const duplicate = duplicateQ.data as { id: string; violation_number: string; status: string } | null | undefined;
+  const justificationRequired = !!duplicate;
+  const justificationOk = !justificationRequired || duplicateJustification.trim().length >= 10;
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -274,6 +309,29 @@ function ConvertDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {duplicate && (
+            <div className="rounded-md border border-amber-400 bg-amber-50 p-3 text-sm text-amber-900 space-y-2">
+              <div className="font-medium">
+                Possible duplicate detected
+              </div>
+              <div className="text-xs">
+                An active violation already exists for this employer and violation type:{' '}
+                <span className="font-mono">{duplicate.violation_number}</span> ({duplicate.status}).
+                You may proceed, but please record why a new violation is justified.
+              </div>
+              <div>
+                <Label className="text-xs">Justification (required, min 10 chars)</Label>
+                <Textarea
+                  rows={2}
+                  value={duplicateJustification}
+                  onChange={(e) => setDuplicateJustification(e.target.value)}
+                  placeholder="e.g. New offence period, different fund, repeat violation after remediation…"
+                />
+              </div>
+            </div>
+          )}
+
           <div>
             <Label className="text-xs">Summary</Label>
             <Textarea rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} />
@@ -298,8 +356,15 @@ function ConvertDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button disabled={busy || !violationTypeId || !summary.trim()}
-            onClick={() => onSubmit({ violationTypeId, summary, severity, principalAmount })}>
+          <Button disabled={busy || !violationTypeId || !summary.trim() || !justificationOk}
+            onClick={() => onSubmit({
+              violationTypeId,
+              summary,
+              severity,
+              principalAmount,
+              duplicateJustification: duplicate ? duplicateJustification.trim() : null,
+              duplicateOfViolationId: duplicate?.id ?? null,
+            })}>
             {busy ? 'Converting…' : (usingQueue ? 'Convert & Send to Queue' : 'Create Confirmed Violation')}
           </Button>
         </DialogFooter>
@@ -316,6 +381,8 @@ async function convertFinding(args: {
   severity: string;
   principalAmount: number;
   userCode: string;
+  duplicateJustification?: string | null;
+  duplicateOfViolationId?: string | null;
 }): Promise<string> {
   const insp = args.finding.ce_inspections ?? {};
   const usingQueue = isComplianceFeatureEnabled('violations.verificationQueue');
@@ -339,6 +406,8 @@ async function convertFinding(args: {
       total_amount: args.principalAmount || 0,
       source_type: 'INSPECTION_FINDING',
       inspection_id: args.finding.inspection_id ?? null,
+      duplicate_justification: args.duplicateJustification ?? null,
+      duplicate_of_violation_id: args.duplicateOfViolationId ?? null,
       created_by: args.userCode,
       updated_by: args.userCode,
     })
