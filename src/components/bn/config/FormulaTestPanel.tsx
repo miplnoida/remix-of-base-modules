@@ -18,6 +18,7 @@ import {
   buildSampleMap,
   buildLabelMap,
 } from '@/hooks/bn/useBnFormulaVariableRegistry';
+import { useVariableResolver } from '@/hooks/bn/useVariableResolver';
 import { getFormulaVariable } from '@/services/bn/registries/formulaVariableRegistry';
 
 interface Props {
@@ -27,10 +28,11 @@ interface Props {
 
 export function FormulaTestPanel({ expression, outputType = 'NUMBER' }: Props) {
   const { data: registry = [] } = useBnFormulaVariableRegistry();
+  const { data: resolver } = useVariableResolver();
   const dbSamples = useMemo(() => buildSampleMap(registry), [registry]);
   const dbLabels = useMemo(() => buildLabelMap(registry), [registry]);
 
-  const parsed = useMemo(() => parseFormula(expression || ''), [expression]);
+  const parsed = useMemo(() => parseFormula(expression || '', resolver ?? null), [expression, resolver]);
   const variables = parsed.variablesUsed;
 
   const [overrides, setOverrides] = useState<Record<string, string>>({});
@@ -54,7 +56,7 @@ export function FormulaTestPanel({ expression, outputType = 'NUMBER' }: Props) {
   }, [variables, overrides, dbSamples]);
 
   const [result, setResult] = useState<{ ok: boolean; value?: number; errors: string[] } | null>(null);
-  const runTest = () => setResult(testFormula(expression || '', seeded));
+  const runTest = () => setResult(testFormula(expression || '', seeded, resolver ?? null));
 
   if (!expression?.trim()) return null;
 

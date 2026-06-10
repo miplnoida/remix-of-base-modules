@@ -810,6 +810,8 @@ const BnRuleConfiguration = lazy(() => import('@/pages/bn/config/RuleConfigurati
 const BnRuleCatalogue = lazy(() => import('@/pages/bn/config/RuleCatalogue'));
 const BnRulesAdministration = lazy(() => import('@/pages/bn/config/RulesAdministration'));
 const BnFormulaConfiguration = lazy(() => import('@/pages/bn/config/FormulaConfiguration'));
+const BnDerivedFactRegistry = lazy(() => import('@/pages/bn/config/DerivedFactRegistry'));
+const BnProductParameterRegistry = lazy(() => import('@/pages/bn/config/ProductParameterRegistry'));
 const BnGridDemo = lazy(() => import('@/pages/bn/_GridDemo'));
 const BnDocumentSetup = lazy(() => import('@/pages/bn/config/DocumentSetup'));
 const BnScreenMetadataSetup = lazy(() => import('@/pages/bn/config/ScreenMetadataSetup'));
@@ -1894,6 +1896,9 @@ export const AppRoutes = () => {
       <Route path="/bn/config/rule-catalogue" element={<BnFeatureGate flag="bn.config.rules"><BnRuleCatalogue /></BnFeatureGate>} />
       <Route path="/bn/config/rules-admin" element={<BnFeatureGate flag="bn.config.rules"><BnRulesAdministration /></BnFeatureGate>} />
       <Route path="/bn/config/formulas" element={<BnFeatureGate flag="bn.config.rules"><BnFormulaConfiguration /></BnFeatureGate>} />
+      <Route path="/bn/config/derived-facts" element={<BnFeatureGate flag="bn.config.rules"><BnDerivedFactRegistry /></BnFeatureGate>} />
+      <Route path="/bn/config/product-parameters" element={<BnFeatureGate flag="bn.config.rules"><BnProductParameterRegistry /></BnFeatureGate>} />
+
       <Route path="/bn/config/document-setup" element={<BnFeatureGate flag="bn.config.rules"><BnDocumentSetup /></BnFeatureGate>} />
       <Route path="/bn/config/screen-setup" element={<BnFeatureGate flag="bn.config.rules"><BnScreenMetadataSetup /></BnFeatureGate>} />
       <Route path="/bn/config/validation" element={<BnFeatureGate flag="bn.config.rules"><BnBenefitConfigurationValidation /></BnFeatureGate>} />

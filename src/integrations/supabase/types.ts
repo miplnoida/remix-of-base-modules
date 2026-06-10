@@ -7951,6 +7951,130 @@ export type Database = {
         }
         Relationships: []
       }
+      bn_derived_fact: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          data_type: string
+          description: string | null
+          display_name: string
+          effective_from: string
+          effective_to: string | null
+          expression: string
+          id: string
+          notes: string | null
+          previous_version_id: string | null
+          sample_value: number | null
+          seed_tag: string | null
+          source_fact_codes: string[]
+          source_parameter_codes: string[]
+          status: string
+          unit: string | null
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          data_type?: string
+          description?: string | null
+          display_name: string
+          effective_from?: string
+          effective_to?: string | null
+          expression?: string
+          id?: string
+          notes?: string | null
+          previous_version_id?: string | null
+          sample_value?: number | null
+          seed_tag?: string | null
+          source_fact_codes?: string[]
+          source_parameter_codes?: string[]
+          status?: string
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          data_type?: string
+          description?: string | null
+          display_name?: string
+          effective_from?: string
+          effective_to?: string | null
+          expression?: string
+          id?: string
+          notes?: string | null
+          previous_version_id?: string | null
+          sample_value?: number | null
+          seed_tag?: string | null
+          source_fact_codes?: string[]
+          source_parameter_codes?: string[]
+          status?: string
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_derived_fact_previous_version_id_fkey"
+            columns: ["previous_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_derived_fact"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_derived_fact_event: {
+        Row: {
+          actor_user_code: string | null
+          created_at: string
+          derived_fact_id: string
+          event_type: string
+          id: string
+          note: string | null
+          payload: Json | null
+        }
+        Insert: {
+          actor_user_code?: string | null
+          created_at?: string
+          derived_fact_id: string
+          event_type: string
+          id?: string
+          note?: string | null
+          payload?: Json | null
+        }
+        Update: {
+          actor_user_code?: string | null
+          created_at?: string
+          derived_fact_id?: string
+          event_type?: string
+          id?: string
+          note?: string | null
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_derived_fact_event_derived_fact_id_fkey"
+            columns: ["derived_fact_id"]
+            isOneToOne: false
+            referencedRelation: "bn_derived_fact"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_doc_requirement: {
         Row: {
           allowed_extensions: string[] | null
@@ -9393,6 +9517,7 @@ export type Database = {
           id: string
           input_variables: Json
           is_active: boolean
+          last_validation_at: string | null
           legal_reference: string | null
           modified_at: string | null
           modified_by: string | null
@@ -9403,6 +9528,9 @@ export type Database = {
           rounding_rule: string | null
           template_code: string
           template_name: string
+          validation_errors: Json
+          validation_status: string
+          variable_bindings: Json
           variable_source_map: Json
         }
         Insert: {
@@ -9420,6 +9548,7 @@ export type Database = {
           id?: string
           input_variables?: Json
           is_active?: boolean
+          last_validation_at?: string | null
           legal_reference?: string | null
           modified_at?: string | null
           modified_by?: string | null
@@ -9430,6 +9559,9 @@ export type Database = {
           rounding_rule?: string | null
           template_code: string
           template_name: string
+          validation_errors?: Json
+          validation_status?: string
+          variable_bindings?: Json
           variable_source_map?: Json
         }
         Update: {
@@ -9447,6 +9579,7 @@ export type Database = {
           id?: string
           input_variables?: Json
           is_active?: boolean
+          last_validation_at?: string | null
           legal_reference?: string | null
           modified_at?: string | null
           modified_by?: string | null
@@ -9457,6 +9590,9 @@ export type Database = {
           rounding_rule?: string | null
           template_code?: string
           template_name?: string
+          validation_errors?: Json
+          validation_status?: string
+          variable_bindings?: Json
           variable_source_map?: Json
         }
         Relationships: []
@@ -12097,6 +12233,130 @@ export type Database = {
             columns: ["workflow_template_id"]
             isOneToOne: false
             referencedRelation: "bn_workflow_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_product_parameter: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          data_type: string
+          default_value: number | null
+          description: string | null
+          display_name: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          notes: string | null
+          previous_version_id: string | null
+          product_id: string | null
+          scheme_id: string | null
+          seed_tag: string | null
+          status: string
+          string_value: string | null
+          unit: string | null
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          data_type?: string
+          default_value?: number | null
+          description?: string | null
+          display_name: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          previous_version_id?: string | null
+          product_id?: string | null
+          scheme_id?: string | null
+          seed_tag?: string | null
+          status?: string
+          string_value?: string | null
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          data_type?: string
+          default_value?: number | null
+          description?: string | null
+          display_name?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          notes?: string | null
+          previous_version_id?: string | null
+          product_id?: string | null
+          scheme_id?: string | null
+          seed_tag?: string | null
+          status?: string
+          string_value?: string | null
+          unit?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_product_parameter_previous_version_id_fkey"
+            columns: ["previous_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_parameter"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_product_parameter_event: {
+        Row: {
+          actor_user_code: string | null
+          created_at: string
+          event_type: string
+          id: string
+          note: string | null
+          parameter_id: string
+          payload: Json | null
+        }
+        Insert: {
+          actor_user_code?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          note?: string | null
+          parameter_id: string
+          payload?: Json | null
+        }
+        Update: {
+          actor_user_code?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          note?: string | null
+          parameter_id?: string
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_product_parameter_event_parameter_id_fkey"
+            columns: ["parameter_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_parameter"
             referencedColumns: ["id"]
           },
         ]

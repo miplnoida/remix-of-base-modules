@@ -21,6 +21,8 @@ import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { CodeFieldWithAutoGenerate, FormulaBuilder, SmartSelect } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import { parseFormula } from '@/lib/bn/formulaParser';
+import { useVariableResolver } from '@/hooks/bn/useVariableResolver';
+import { classifyVariables } from '@/services/bn/variableResolverService';
 import { FormulaTestPanel } from '@/components/bn/config/FormulaTestPanel';
 import type { BnFormulaTemplate } from '@/types/bn';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
@@ -59,6 +61,7 @@ export default function FormulaConfiguration() {
   const upsert = useUpsertBnFormulaTemplate();
   const { userCode } = useUserCode();
   const audit = useBnConfigAudit();
+  const { data: resolver } = useVariableResolver();
 
 
   const otherCodes = formulas
@@ -92,12 +95,25 @@ export default function FormulaConfiguration() {
       toast.error('Duplicate code', { description: 'Another formula already uses this code.' });
       return;
     }
-    // Validate formula against the registry
-    const parsed = parseFormula(form.formula_expression);
+    // Validate formula against the unified Variable Resolver
+    const parsed = parseFormula(form.formula_expression, resolver ?? null);
     if (!parsed.valid) {
-      toast.error('Formula is invalid', { description: parsed.errors.join('; ') });
+      const missing = parsed.unresolved.map(u => u.variable).join(', ');
+      toast.error('Formula has unregistered variables', {
+        description: missing
+          ? `Missing source for: ${missing}. Use the editor to create them as Derived Fact or Product Parameter.`
+          : parsed.errors.join('; '),
+      });
       return;
     }
+    const variableBindings = resolver
+      ? Object.fromEntries(
+          classifyVariables(parsed.variablesUsed, resolver).resolved.map(r => [
+            r.code,
+            { source: r.source, ref: r.code, refId: r.refId, displayName: r.displayName },
+          ]),
+        )
+      : {};
     try {
       const before = form.id ? formulas.find((f: BnFormulaTemplate) => f.id === form.id) ?? null : null;
       const saved = await upsert.mutateAsync({
@@ -110,13 +126,17 @@ export default function FormulaConfiguration() {
         country_code: form.country_code.trim() || null,
         is_active: form.is_active,
         entered_by: userCode ?? null,
+        variable_bindings: variableBindings,
+        validation_status: 'VALID',
+        last_validation_at: new Date().toISOString(),
+        validation_errors: [],
       } as Partial<BnFormulaTemplate>);
       audit.log({
         entityType: 'bn_formula_template',
         entityId: (saved as any)?.id ?? form.id ?? 'new',
         action: form.id ? 'UPDATE' : 'CREATE',
         before,
-        after: { ...form, variables_used: parsed.variablesUsed },
+        after: { ...form, variables_used: parsed.variablesUsed, variable_bindings: variableBindings },
       });
       toast.success(form.id ? 'Formula updated' : 'Formula created');
       setDialogOpen(false);
@@ -173,7 +193,7 @@ export default function FormulaConfiguration() {
             <DialogHeader>
               <DialogTitle>{form.id ? 'Edit Formula Template' : 'Add Formula Template'}</DialogTitle>
               <DialogDescription>
-                Reusable calculation block. Pick variables from the registry — unknown variable names are rejected.
+                Reusable calculation block. Every variable must resolve to a Fact, Derived Fact, Product Parameter or Prior Formula Result — unknown variables block save and offer quick links to create the missing source.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">

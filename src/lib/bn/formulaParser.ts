@@ -1,20 +1,22 @@
 /**
  * Lightweight formula parser for BN Formula Library.
  *
- * Grammar (subset):
- *   expr   := term (('+' | '-') term)*
- *   term   := factor (('*' | '/') factor)*
- *   factor := number | identifier | 'min'|'max'|'round' '(' expr (',' expr)* ')' | '(' expr ')' | '-' factor
- *
- * Identifiers must be in the FormulaVariableRegistry — otherwise the formula
- * is rejected. Output type is `number` (money/percent are display hints).
+ * Identifiers MUST resolve via the Variable Resolver (Fact / Derived Fact /
+ * Product Parameter / Prior Formula Result). When a resolver map is supplied
+ * unknown identifiers are returned as structured errors so the UI can offer
+ * "Create as Derived Fact / Product Parameter" actions. When no resolver is
+ * supplied the parser falls back to the legacy in-code registry for
+ * backwards compatibility with a handful of older callers.
  */
 import { isValidFormulaVariableKey, getFormulaVariable } from '@/services/bn/registries/formulaVariableRegistry';
+import { suggestSourcesFor, type ResolverMap, type UnresolvedVariable } from '@/services/bn/variableResolverService';
 
 export interface ParseResult {
   valid: boolean;
   errors: string[];
   variablesUsed: string[];
+  /** Variables that did not resolve to any registry — empty when valid. */
+  unresolved: UnresolvedVariable[];
   /** AST root, or null if invalid */
   ast: Node | null;
 }
@@ -63,22 +65,29 @@ function tokenize(src: string): Token[] {
   return tokens;
 }
 
-export function parseFormula(src: string): ParseResult {
+export function parseFormula(src: string, resolver?: ResolverMap | null): ParseResult {
   const errors: string[] = [];
   const variablesUsed = new Set<string>();
+  const unresolved: UnresolvedVariable[] = [];
+  const seenUnresolved = new Set<string>();
   let tokens: Token[];
   try {
     tokens = tokenize(src);
   } catch (e: any) {
-    return { valid: false, errors: [e.message], variablesUsed: [], ast: null };
+    return { valid: false, errors: [e.message], variablesUsed: [], unresolved: [], ast: null };
   }
   if (tokens.length === 0) {
-    return { valid: false, errors: ['Formula is empty.'], variablesUsed: [], ast: null };
+    return { valid: false, errors: ['Formula is empty.'], variablesUsed: [], unresolved: [], ast: null };
   }
 
   let pos = 0;
   const peek = () => tokens[pos];
   const consume = () => tokens[pos++];
+
+  const isKnown = (name: string): boolean => {
+    if (resolver) return resolver.has(name);
+    return isValidFormulaVariableKey(name);
+  };
 
   function parseExpr(): Node {
     let left = parseTerm();
@@ -131,10 +140,14 @@ export function parseFormula(src: string): ParseResult {
         consume();
         return { kind: 'call', fn: tk.v as any, args };
       }
-      if (!isValidFormulaVariableKey(tk.v)) {
-        throw new Error(`Unknown variable "${tk.v}"`);
-      }
       variablesUsed.add(tk.v);
+      if (!isKnown(tk.v)) {
+        if (!seenUnresolved.has(tk.v)) {
+          seenUnresolved.add(tk.v);
+          unresolved.push({ variable: tk.v, reason: 'UNREGISTERED', suggestedSources: suggestSourcesFor(tk.v) });
+        }
+        errors.push(`"${tk.v}" has no registered source (Fact / Derived Fact / Product Parameter / Prior Result).`);
+      }
       return { kind: 'var', name: tk.v };
     }
     throw new Error('Unexpected token');
@@ -143,12 +156,13 @@ export function parseFormula(src: string): ParseResult {
   try {
     const ast = parseExpr();
     if (pos !== tokens.length) {
-      return { valid: false, errors: ['Unexpected trailing input'], variablesUsed: [...variablesUsed], ast: null };
+      return { valid: false, errors: [...errors, 'Unexpected trailing input'], variablesUsed: [...variablesUsed], unresolved, ast: null };
     }
-    return { valid: true, errors, variablesUsed: [...variablesUsed], ast };
+    const valid = errors.length === 0;
+    return { valid, errors, variablesUsed: [...variablesUsed], unresolved, ast: valid ? ast : null };
   } catch (e: any) {
     errors.push(e.message);
-    return { valid: false, errors, variablesUsed: [...variablesUsed], ast: null };
+    return { valid: false, errors, variablesUsed: [...variablesUsed], unresolved, ast: null };
   }
 }
 
@@ -187,8 +201,12 @@ export function evaluateFormula(ast: Node, inputs: Record<string, number>): numb
   return walk(ast);
 }
 
-export function testFormula(src: string, sampleOverrides: Record<string, number> = {}): { ok: boolean; value?: number; errors: string[]; variablesUsed: string[] } {
-  const parsed = parseFormula(src);
+export function testFormula(
+  src: string,
+  sampleOverrides: Record<string, number> = {},
+  resolver?: ResolverMap | null,
+): { ok: boolean; value?: number; errors: string[]; variablesUsed: string[] } {
+  const parsed = parseFormula(src, resolver);
   if (!parsed.valid || !parsed.ast) {
     return { ok: false, errors: parsed.errors, variablesUsed: parsed.variablesUsed };
   }

@@ -171,6 +171,10 @@ export interface BnFormulaTemplate {
   is_active: boolean;
   entered_by: string | null;
   entered_at: string;
+  variable_bindings?: Record<string, { source: string; ref: string; refId?: string; displayName?: string }>;
+  validation_status?: string;
+  last_validation_at?: string | null;
+  validation_errors?: unknown[];
 }
 
 export interface BnCalculationRule {
