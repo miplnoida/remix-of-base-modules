@@ -15,8 +15,8 @@ import SimulationResults from '@/components/compliance/simulator/SimulationResul
 import RecommendedAction from '@/components/compliance/simulator/RecommendedAction';
 import ExplanationPanel from '@/components/compliance/simulator/ExplanationPanel';
 import { useSimulatorRules, useEmployerComplianceContext } from '@/hooks/compliance/useSimulatorData';
-import { useSaveSimulationRun } from '@/hooks/compliance/useSimulationRuns';
-import { useHasPermission } from '@/hooks/useNavigationMenu';
+// Save Run removed by request — functionality not used
+
 import {
   createDefaultFactContext,
   runSimulation,
@@ -38,8 +38,8 @@ export default function RuleSimulator() {
   const [periodOverride, setPeriodOverride] = useState<string>('');
   const [scanAllPeriods, setScanAllPeriods] = useState<boolean>(true);
 
-  const canSave = useHasPermission('ce_rule_simulator', 'edit') || useHasPermission('ce_rule_simulator', 'manage');
-  const saveRun = useSaveSimulationRun();
+
+
 
   const { data: rules, isLoading: rulesLoading } = useSimulatorRules();
   const { data: context, isLoading: contextLoading } = useEmployerComplianceContext(selectedRegNo, periodOverride || null);
