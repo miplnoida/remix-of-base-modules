@@ -64,16 +64,22 @@ function Inner() {
   const findingsQ = useQuery({
     queryKey: ['unconverted-findings'],
     queryFn: async () => {
+      // NOTE: `fund_type` lives on ce_violations, NOT ce_inspections — including it in
+      // the embedded select previously caused PostgREST to error and return zero rows.
+      // Also treat NULL violation_created as "not converted".
       const { data, error } = await (supabase.from('ce_inspection_findings') as any)
         .select(
-          'id, title, description, finding_type, severity, recommended_action, created_at, ' +
+          'id, title, description, finding_type, category, severity, recommended_action, created_at, ' +
             'violation_created, violation_id, inspection_id, ' +
-            'ce_inspections(inspection_number, employer_id, employer_name, territory, fund_type)',
+            'ce_inspections(inspection_number, employer_id, employer_name, territory)',
         )
-        .eq('violation_created', false)
+        .or('violation_created.is.null,violation_created.eq.false')
         .order('created_at', { ascending: false })
         .limit(500);
-      if (error) throw error;
+      if (error) {
+        toast.error(error.message || 'Failed to load findings');
+        throw error;
+      }
       return data ?? [];
     },
   });
