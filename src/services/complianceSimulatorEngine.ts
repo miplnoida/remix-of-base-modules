@@ -811,3 +811,131 @@ export function createDefaultFactContext(): SimulationFactContext {
     overriddenFields: [],
   };
 }
+
+// ── Multi-period scan (last N months) ──
+
+export interface PeriodFacts {
+  period: string; // YYYY-MM
+  facts: SimulationFactContext;
+}
+
+/**
+ * Run the simulation across a series of periods and merge results.
+ * Detection rows from every period are returned; per-period uniqueness is
+ * preserved via DetectionResult.period. Calculations and escalations are
+ * evaluated using the most recent period (typically previous month) to avoid
+ * double-counting financial impact.
+ */
+export function runMultiPeriodSimulation(
+  periodFactsList: PeriodFacts[],
+  detectionRules: DetectionRuleData[],
+  calculationRules: CalculationRuleData[],
+  escalationRules: EscalationRuleData[],
+  violationTypes: ViolationTypeData[],
+  options: SimulationOptions = {}
+): SimulationOutput {
+  if (periodFactsList.length === 0) {
+    // Fall back to default empty facts so the UI still renders.
+    return runSimulation(
+      createDefaultFactContext(),
+      detectionRules,
+      calculationRules,
+      escalationRules,
+      violationTypes,
+      options
+    );
+  }
+
+  // Sort newest first; most recent drives calc/escalation context.
+  const sorted = [...periodFactsList].sort((a, b) => b.period.localeCompare(a.period));
+  const allDetections: DetectionResult[] = [];
+  const aggregatedMissing = new Set<string>();
+  const aggregatedWarnings = new Set<string>();
+  const aggregatedErrors = new Set<string>();
+
+  for (const pf of sorted) {
+    const out = runSimulation(
+      pf.facts,
+      detectionRules,
+      [], // skip calc per-period — handled once at end
+      [], // skip escalation per-period
+      violationTypes,
+      options
+    );
+    out.detectionResults.forEach(d => allDetections.push({ ...d, period: pf.period }));
+    out.missingData.forEach(m => aggregatedMissing.add(m));
+    out.warnings.forEach(w => aggregatedWarnings.add(w));
+    out.errors.forEach(e => aggregatedErrors.add(e));
+  }
+
+  // Run calc/escalation only against the most recent period (current snapshot).
+  const headRun = runSimulation(
+    sorted[0].facts,
+    [], // detection already aggregated above
+    calculationRules,
+    escalationRules,
+    violationTypes,
+    options
+  );
+
+  // Build matched-vt set from ALL periods so calc/escalation know which types matched.
+  const matchedVtCodes = new Set(
+    allDetections.filter(d => d.matched && d.linkedViolationTypeCode).map(d => d.linkedViolationTypeCode!)
+  );
+
+  // Recommendations: explicit per-period missing-filing summary.
+  const recommendations: string[] = [];
+  const matched = allDetections.filter(d => d.matched);
+  if (matched.length === 0) {
+    recommendations.push('✅ No compliance violation detected across the scanned periods.');
+  } else {
+    // Group by violation type for cleaner output
+    const byVt = new Map<string, DetectionResult[]>();
+    for (const d of matched) {
+      const key = d.linkedViolationTypeCode || d.ruleCode;
+      if (!byVt.has(key)) byVt.set(key, []);
+      byVt.get(key)!.push(d);
+    }
+    for (const [vtCode, rows] of byVt.entries()) {
+      const suppressed = rows.filter(r => r.duplicateSuppressed);
+      const fresh = rows.filter(r => !r.duplicateSuppressed);
+      if (fresh.length > 0) {
+        const periods = fresh.map(r => r.period).filter(Boolean).join(', ');
+        recommendations.push(`🔴 Would create ${fresh.length} ${vtCode} violation(s) — period(s): ${periods}`);
+      }
+      if (suppressed.length > 0) {
+        const periods = suppressed.map(r => r.period).filter(Boolean).join(', ');
+        recommendations.push(`⚠️ ${suppressed.length} ${vtCode} match(es) suppressed — already exist for period(s): ${periods}`);
+      }
+    }
+    const totalCalc = headRun.calculationResults.filter(c => c.applies && c.simulatedAmount > 0)
+      .reduce((s, c) => s + c.simulatedAmount, 0);
+    if (totalCalc > 0) {
+      recommendations.push(`💰 Estimated financial consequence (current period): EC$${totalCalc.toLocaleString(undefined, { minimumFractionDigits: 2 })}`);
+    }
+  }
+
+  const duplicatesSuppressed = matched.filter(d => d.duplicateSuppressed).length;
+  const applicableCalcs = headRun.calculationResults.filter(c => c.applies);
+  const financialImpact = applicableCalcs.reduce((s, c) => s + c.simulatedAmount, 0);
+
+  return {
+    detectionResults: allDetections,
+    calculationResults: headRun.calculationResults,
+    escalationResults: headRun.escalationResults,
+    recommendations,
+    missingData: Array.from(aggregatedMissing),
+    warnings: Array.from(aggregatedWarnings),
+    errors: Array.from(aggregatedErrors),
+    summary: {
+      matchedDetections: matched.length,
+      totalDetections: allDetections.length,
+      applicableCalculations: applicableCalcs.length,
+      applicableEscalations: headRun.escalationResults.filter(e => e.applies).length,
+      wouldCreateViolation: matched.length > 0 && duplicatesSuppressed < matched.length,
+      initialStatus: matched.length > 0 ? (matched.some(d => !d.autoCreate) ? 'UNDER_REVIEW' : 'OPEN') : null,
+      financialImpact,
+      duplicatesSuppressed,
+    },
+  };
+}
