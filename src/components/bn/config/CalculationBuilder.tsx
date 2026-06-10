@@ -3,10 +3,12 @@
  *
  * Backed by structured columns on bn_product_version:
  *   formula_template_id, formula_parameter_values, cap_rules, rounding_rule,
- *   effective_date_rule, calculation_config_legacy.
+ *   effective_date_rule.
  *
- * Replaces the raw JSON editor for normal users while preserving the legacy
- * JSON as a read-only snapshot for audit.
+ * The Formula Library is the only source of executable expressions. This
+ * editor selects a formula, supplies parameter values, and configures caps
+ * and rounding. A "Formula Usage Analysis" panel surfaces every required
+ * variable / parameter and blocks activation when anything is missing.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,13 +19,13 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Calculator, Save, Sparkles, FileJson, ChevronDown } from 'lucide-react';
+import { Calculator, Save, Sparkles, ShieldCheck, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBnFormulaTemplates } from '@/hooks/bn/useBnConfig';
 import { useBnFormulaVariableRegistry, buildSampleMap, buildLabelMap } from '@/hooks/bn/useBnFormulaVariableRegistry';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { validateProductActivation, type ActivationResult } from '@/services/bn/productActivationValidator';
 
 interface Props {
   versionId: string | undefined;
@@ -47,8 +49,6 @@ type VersionCalcRow = {
   cap_rules: Record<string, number> | null;
   rounding_rule: { mode?: string; decimals?: number } | null;
   effective_date_rule: { basis?: string } | null;
-  calculation_config_legacy: Record<string, unknown> | null;
-  calculation_config: Record<string, unknown> | null;
 };
 
 // --- Fallback samples / labels used when the DB registry hasn't loaded yet ---
@@ -146,12 +146,19 @@ export function CalculationBuilder({ versionId, isReadOnly }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bn_product_version')
-        .select('id, formula_template_id, formula_parameter_values, cap_rules, rounding_rule, effective_date_rule, calculation_config_legacy, calculation_config')
+        .select('id, formula_template_id, formula_parameter_values, cap_rules, rounding_rule, effective_date_rule')
         .eq('id', versionId!)
         .single();
       if (error) throw error;
       return data as unknown as VersionCalcRow;
     },
+  });
+
+  // Formula Usage Analysis — re-evaluates whenever the version row changes.
+  const { data: analysis } = useQuery({
+    queryKey: ['bn', 'product-version-activation', versionId, version?.formula_template_id],
+    enabled: !!versionId && !!version?.formula_template_id,
+    queryFn: () => validateProductActivation(versionId!) as Promise<ActivationResult>,
   });
 
   const [templateId, setTemplateId] = useState<string>('');
@@ -352,29 +359,73 @@ export function CalculationBuilder({ versionId, isReadOnly }: Props) {
           </CardContent>
         </Card>
 
-        {version?.calculation_config_legacy && Object.keys(version.calculation_config_legacy).length > 0 && (
+        {/* Formula Usage Analysis ------------------------------------- */}
+        {analysis && (
           <Card>
-            <Collapsible>
-              <CardHeader className="pb-2">
-                <CollapsibleTrigger className="flex items-center justify-between w-full text-left">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <FileJson className="h-4 w-4" /> Legacy configuration snapshot
-                  </CardTitle>
-                  <ChevronDown className="h-4 w-4" />
-                </CollapsibleTrigger>
-                <CardDescription>Preserved for audit. The runtime now uses the structured fields above.</CardDescription>
-              </CardHeader>
-              <CollapsibleContent>
-                <CardContent>
-                  <pre className="text-xs bg-muted p-3 rounded overflow-auto">
-                    {JSON.stringify(version.calculation_config_legacy, null, 2)}
-                  </pre>
-                </CardContent>
-              </CollapsibleContent>
-            </Collapsible>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" /> Formula Usage Analysis
+              </CardTitle>
+              <CardDescription>
+                Verifies every variable and parameter referenced by the selected formula resolves to a registered source.
+                Activation is blocked until all checks pass.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <div className="text-xs text-muted-foreground">Current Formula</div>
+                  <div className="font-medium">{analysis.formulaTemplate?.template_name ?? '—'}</div>
+                  <div className="text-xs font-mono text-muted-foreground">{analysis.formulaTemplate?.template_code}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Formula Status</div>
+                  <Badge variant={analysis.formulaTemplate && ['READY_FOR_PRODUCT_USE','ACTIVE'].includes(analysis.formulaTemplate.governance_status) ? 'default' : 'destructive'}>
+                    {analysis.formulaTemplate?.governance_status ?? 'UNKNOWN'}
+                  </Badge>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Variables Required</div>
+                  <div className="text-xs font-mono">{analysis.variablesRequired.join(', ') || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Variables Mapped</div>
+                  <div className="text-xs font-mono">{analysis.variablesMapped.join(', ') || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Product Parameters Required</div>
+                  <div className="text-xs font-mono">{analysis.parametersRequired.join(', ') || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Product Parameters Mapped</div>
+                  <div className="text-xs font-mono">{analysis.parametersMapped.join(', ') || '—'}</div>
+                </div>
+              </div>
+
+              {analysis.canActivate ? (
+                <Alert>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertTitle>Ready for activation</AlertTitle>
+                  <AlertDescription>All required variables and parameters resolve. Sample simulation succeeded.</AlertDescription>
+                </Alert>
+              ) : (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{analysis.blockers.length} issue{analysis.blockers.length === 1 ? '' : 's'} blocking activation</AlertTitle>
+                  <AlertDescription>
+                    <ul className="mt-2 list-disc pl-4 space-y-1">
+                      {analysis.blockers.map((b, i) => (
+                        <li key={i}>{b.message}</li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
           </Card>
         )}
       </div>
+
 
       <Card className="lg:sticky lg:top-4 h-fit">
         <CardHeader>

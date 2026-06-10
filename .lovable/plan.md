@@ -1,130 +1,101 @@
-# Formula Library — Real Source Mapping (No Hidden Warnings)
+# Formula Library as Single Source of Calculation Truth
+
+## Current state (audit)
+`bn_product_version` already has the modern columns: `formula_template_id`, `formula_parameter_values`, `cap_rules`, `rounding_rule`, `effective_date_rule`, plus the legacy `calculation_config` and `calculation_config_legacy` jsonb. Most consumers were migrated; the legacy columns linger as fallback. `CalculationBuilder.tsx` still reads & displays `calculation_config_legacy`. Runtime services (`calculationEngine`, `simulationService`, `awardCreationService`, `entitlementService`, `claimWorkbenchService`, `paymentBoundaryService`) need to be inventoried to confirm none branch on legacy JSON.
 
 ## Goal
-Every variable referenced by a Formula Library template resolves to a registered source. The validator keeps showing errors until each variable is bound to one of:
-`FACT` · `DERIVED_FACT` · `PRODUCT_PARAMETER` · `PRIOR_FORMULA_RESULT` · `CLAIM_FIELD` · `MANUAL_INPUT`.
+1. Formula Library (`bn_formula_template`) is the only place an executable expression lives.
+2. `bn_product_version` is configuration only: picks a formula, supplies parameters, caps, rounding, variable bindings.
+3. Every runtime path (Workbench, Entitlement, Award, Payment, Simulation) loads the formula by `formula_template_id` and resolves variables via the resolver — no other code path.
+4. Validation blocks product activation when anything is missing.
+5. Every seeded SKN product runs a successful simulation.
 
-No warning hiding. No silent fallbacks.
+## Work plan
 
----
+### Phase A — Audit & freeze legacy (read-only sweep)
+1. `rg` every reference to `calculation_config`, `calculation_config_legacy`, `formula_expression` outside `bn_formula_template`. Produce a checklist file `docs/bn/formula-cutover-audit.md`:
+   | File | Symbol | Reads legacy? | Writes legacy? | Action |
+2. For each writer, replace with writes to `formula_template_id` + `formula_parameter_values` + `cap_rules` + `rounding_rule`.
+3. For each reader, route through a single helper `loadProductCalculationConfig(productVersionId)` in `src/services/bn/productCalculationLoader.ts` which returns:
+   ```ts
+   { template, parameters, capRules, rounding, effectiveDateRule, variableBindings }
+   ```
+   Reading the legacy columns is removed.
 
-## 1. Database — new sources + seeds (single migration)
+### Phase B — Runtime convergence
+Single function `runProductCalculation(productVersionId, claimContext)`:
+1. Load config via the helper.
+2. Build resolver map (Facts + Derived Facts + Product Parameters + Prior Results + Claim Fields).
+3. Apply parameter overrides from `formula_parameter_values`.
+4. Evaluate expression via `formulaParser.evaluateFormula`.
+5. Apply caps and rounding from configuration.
+6. Persist a `bn_calc_trace` row per variable: `{variable, source, value, resolver_path}` plus the final result.
+Wire `calculationEngine`, `simulationService`, `awardCreationService.computeBaseAmount`, `entitlementService.recalc`, `claimWorkbenchService.simulate`, `paymentBoundaryService.dryRun` to call only this function.
 
-### 1a. Extend variable source enum
-Update `bn_formula_variable_registry.source_type` allowed values to include:
-`FACT`, `DERIVED_FACT`, `PRODUCT_PARAMETER`, `PRIOR_FORMULA_RESULT`, `CLAIM_FIELD`, `MANUAL_INPUT`.
+### Phase C — Product Catalog UI cleanup (`CalculationBuilder.tsx`)
+- Drop the "Legacy calculation_config" panel.
+- Keep three sections: **Formula**, **Parameter values**, **Caps & Rounding**.
+- Add new **Formula Usage Analysis** panel (read-only):
+  | Field | Source |
+  |---|---|
+  | Current Formula | `bn_formula_template.template_name` |
+  | Formula Version | `bn_formula_template.governance_status` + `entered_at` |
+  | Variables Required | parsed from expression |
+  | Variables Mapped | from resolver + `formula_parameter_values` |
+  | Missing Variables | required − mapped |
+  | Product Parameters Required | `bn_formula_template.required_parameters` |
+  | Product Parameters Missing | required − (overrides ∪ defaults) |
+- "Activate" button disabled while anything in the analysis is missing (tooltip lists each gap).
 
-### 1b. Seed Product Parameters (`bn_product_parameter`, status=APPROVED, SEED-)
-`contribution_unit_size`, `base_weeks`, `increment_unit_size`, `payable_days_per_week`,
-`rate`, `replacement_rate`, `base_rate`, `increment_rate`, `flat_weekly_rate`,
-`grant_amount`, `unit_rate`, `pension_rate`, `disablement_rate`.
+### Phase D — Product activation validator
+New service `productActivationValidator.ts`:
+- formula selected
+- formula `governance_status` ∈ {`READY_FOR_PRODUCT_USE`,`ACTIVE`}
+- every required variable resolves
+- every required parameter has value (override or default)
+- simulator run succeeds with no `unresolved` and finite numeric result
+Returns `{ canActivate, blockers[] }`. Called from `productApprovalService.activate` and from the UI activation button.
 
-### 1c. Seed Derived Facts (`bn_derived_fact`, status=APPROVED, SEED-)
-| code | expression | sources |
-|---|---|---|
-| `contribution_units` | `floor(total_weeks / contribution_unit_size)` | FACT `total_weeks`, PARAM `contribution_unit_size` |
-| `additional_contribution_units` | `max(floor((total_weeks - base_weeks) / increment_unit_size), 0)` | FACT `total_weeks`, PARAMs `base_weeks`,`increment_unit_size` |
-| `payable_weeks` | `approved_days / payable_days_per_week` | CLAIM `approved_days`, PARAM `payable_days_per_week` |
-| `survivor_total_share` | `sum(beneficiary_share_percent)` | FACT collection |
+### Phase E — Seed SKN parameter values per product
+Migration `seed_skn_product_parameters.sql`:
+For each SKN product version (Sickness, Maternity, Funeral, Age Pension, Age Grant, Invalidity, Survivors, EI Temporary, EI Permanent, Disablement, NCP):
+- set `formula_template_id` to the appropriate seeded template
+- write realistic `formula_parameter_values` jsonb (e.g. Sickness `replacement_rate=0.65`, `waiting_days=3`; Age Pension `base_rate=0.30`, `increment_rate=0.01`, `base_weeks=500`, `increment_unit_size=50`; Funeral `grant_amount=2500`; NCP `flat_weekly_rate=250`; …)
+- set `cap_rules` (min/max) and `rounding_rule` per SKN policy
+All idempotent (`ON CONFLICT (product_id, version_number)` → `UPDATE`), tagged in `description` as `SEED-FORMULA`.
 
-### 1d. Seed Facts (`bn_eligibility_fact`, where missing)
-`average_weekly_wage` (`contribution.average_weekly_wage`),
-`average_insurable_wage` (`contribution.average_insurable_wage`),
-`disablement_percentage` (`medical.disablement_percentage`),
-`total_weeks`, `beneficiary_share_percent`.
+### Phase F — Simulation sweep
+Script `scripts/bn/simulate-all-products.ts` (run-once via `bunx tsx`):
+- iterate every APPROVED product version
+- call `runProductCalculation(version.id, sampleClaim)`
+- assert: `unresolved.length===0`, parameters fully bound, numeric result, no NaN
+- emit a markdown report under `/mnt/documents/bn-product-simulation-report.md`
 
-### 1e. Seed Claim Fields
-Add `bn_eligibility_fact` rows with `source_type='CLAIM_FIELD'` (re-use fact table; resolver routes via source_type) for `approved_days`.
-
-### 1f. Update seeded Formula Templates to use registered codes only
-| template | new expression |
-|---|---|
-| `AGE_GRANT` | `contribution_units * unit_rate` |
-| `PCT_AVG_WAGE` | `average_weekly_wage * replacement_rate` |
-| `TIERED_PENSION` | `base_rate + (increment_rate * additional_contribution_units)` |
-| `SURVIVOR_SPLIT` | `base_pension * beneficiary_share_percent` |
-| `NCP_FLAT_RATE` | `flat_weekly_rate` |
-| `FUNERAL_GRANT` | `grant_amount` |
-| `EI_DISABLEMENT` | `average_weekly_wage * disablement_percentage * replacement_rate` |
-
-`base_pension` is registered as `PRIOR_FORMULA_RESULT` (output of TIERED_PENSION / PCT_AVG_WAGE).
-
-### 1g. Persist required-parameters map on each template
-`bn_formula_template.required_parameters jsonb` (array of product_parameter codes) populated for each seeded template:
-- AGE_GRANT → `["contribution_unit_size","unit_rate"]`
-- PCT_AVG_WAGE → `["replacement_rate"]`
-- TIERED_PENSION → `["base_rate","base_weeks","increment_rate","increment_unit_size"]`
-- NCP_FLAT_RATE → `["flat_weekly_rate"]`
-- FUNERAL_GRANT → `["grant_amount"]`
-- EI_DISABLEMENT → `["replacement_rate"]`
-- SURVIVOR_SPLIT → `[]` (uses prior result + fact)
-
----
-
-## 2. Variable Resolver — extend to all 6 sources
-`src/services/bn/variableResolverService.ts`
-- Add `CLAIM_FIELD` and `MANUAL_INPUT` to `VariableSource`.
-- Load CLAIM_FIELD entries from `bn_eligibility_fact` where `source_type='CLAIM_FIELD'`.
-- Recognize PRIOR_FORMULA_RESULT for any `output_variable` of an active template.
-- Resolver returns structured `{ source, refId, resolverPath }` so the trace UI can render it.
-
----
-
-## 3. Formula Validator
-`src/lib/bn/formulaParser.ts` already returns structured `unresolved`. Extend `validateTemplate(template, resolverMap)`:
-1. parse → variable list
-2. each variable must be in resolverMap (else `UNREGISTERED`)
-3. each PRODUCT_PARAMETER must appear in `required_parameters`
-4. each PRIOR_FORMULA_RESULT must reference an upstream template in same product version
-5. sample simulation runs without NaN
-
-Errors surface in UI exactly as today — no suppression — but disappear because every variable now resolves.
+### Phase G — Legacy column retirement
+Once Phases A–F land and report is clean:
+- migration drops `bn_product_version.calculation_config_legacy`
+- `calculation_config` becomes a generated jsonb (or also dropped) — keep one release as read-only and remove next.
 
 ---
 
-## 4. Product Catalog — Calculation tab
-`src/pages/bn/product/...CalculationTab.tsx` (existing file used by Product Catalog):
-- On formula select, read `required_parameters` and render an input per parameter pulled from `bn_product_parameter` defaults.
-- Save writes overrides to `bn_product_channel_config.parameter_overrides jsonb`.
-- Activation guard: `canActivate = required_parameters.every(p => overrides[p] != null || param.default_value != null)`. Disabled "Activate" button with tooltip listing missing params.
-
----
-
-## 5. Runtime Calculation Engine
-`src/services/bn/calculationEngine.ts` (extend existing):
-```
-loadProductVersion → loadFormula → buildResolver(facts, params, priorResults, claim)
-  → evaluate(expression, resolver)
-  → persist bn_calc_trace rows: { variable, source, value, resolver_path }
-```
-Trace UI (`bn_calc_trace` viewer) renders columns: Variable | Source | Value | Resolver.
-
----
-
-## 6. Simulator alignment
-Simulator already uses the resolver — once the registry seeds land, the same expressions evaluate identically in simulator and runtime (single engine).
-
----
-
-## 7. Acceptance checklist
-- [ ] No "Unknown variable" warnings on any seeded template.
-- [ ] AGE_GRANT evaluates: `contribution_units * unit_rate` returns numeric.
-- [ ] Every variable used by seeded templates has a `bn_eligibility_fact` / `bn_derived_fact` / `bn_product_parameter` / template-output row.
-- [ ] Product Catalog Calculation tab forces required parameter entry before activation.
-- [ ] Simulator and runtime produce the same number for the same inputs.
-- [ ] Calc trace shows Variable | Source | Value | Resolver for every variable.
-- [ ] `tsc` passes.
-
----
+## Acceptance
+- [ ] `rg` finds no live reads of `calculation_config_legacy` (only the dropped types entry).
+- [ ] Every runtime calc path goes through `runProductCalculation`.
+- [ ] `CalculationBuilder` shows Formula Usage Analysis with no missing items for each seeded product.
+- [ ] Product Activation fails with a clear blockers list when formula/params/variables are missing.
+- [ ] `simulate-all-products.ts` report shows green for all 11 SKN products.
+- [ ] TypeScript build passes.
 
 ## Technical notes
-- All seeds idempotent (`ON CONFLICT (code) DO NOTHING`) and `SEED-` tagged.
-- No RLS (project rule); GRANT on every new/altered public table.
-- `bn_calc_trace` already exists — add `source_type` + `resolver_path` columns if missing.
-- Backfill existing `bn_formula_template.variable_bindings` from new resolver on migration.
-- `bn_formula_variable_registry` becomes a thin view over the four real sources (read-only) after cutover.
+- No RLS (project rule); GRANT preserved on all touched tables.
+- Seeds idempotent, tagged with `SEED-FORMULA`.
+- `bn_calc_trace` schema check before Phase B; add `source_type` + `resolver_path` if missing.
+- Audit report written to `docs/bn/formula-cutover-audit.md` first so each step is reviewable.
 
 ## Out of scope
-- Rebuilding calculation engine outside the variable layer.
-- Rewriting Product Catalog UI beyond the Calculation tab additions.
-- Migrating non-seeded historical templates (flagged INVALID, surfaced in admin report).
+- Rewriting the Formula Library editor.
+- Replacing the eligibility rule engine.
+- Migrating historical `bn_calc_run` rows (kept for audit).
+
+## Suggested execution order (one PR per phase)
+A audit → B runtime helper → C UI panel → D validator → E seeds → F simulation sweep → G drop legacy columns.
