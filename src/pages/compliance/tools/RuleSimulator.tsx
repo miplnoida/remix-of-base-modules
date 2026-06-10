@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { FlaskConical, Play, RotateCcw, ToggleLeft, ToggleRight, Save, Download, AlertTriangle } from 'lucide-react';
+import { FlaskConical, Play, RotateCcw, ToggleLeft, ToggleRight, Download, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import EmployerSelector from '@/components/compliance/simulator/EmployerSelector';
 import ComplianceSnapshot from '@/components/compliance/simulator/ComplianceSnapshot';
