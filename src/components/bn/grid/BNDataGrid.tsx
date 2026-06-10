@@ -33,6 +33,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ArrowDown, ArrowUp, ChevronsUpDown, FileSearch, MoreHorizontal, Plus, RefreshCw, Upload } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BNGridProps, BNGridServerState } from './types';
@@ -108,9 +109,15 @@ export function BNDataGrid<T>(props: BNGridProps<T>) {
     }
     cols.push(...columns);
     if (rowActions?.length) {
+      // Inline icon buttons for first N, overflow the rest into a dropdown.
+      const INLINE_LIMIT = 3;
+      const iconBtnWidth = 30;
+      const inlineCount = Math.min(rowActions.length, INLINE_LIMIT);
+      const hasOverflow = rowActions.length > INLINE_LIMIT;
+      const actionsWidth = (inlineCount + (hasOverflow ? 1 : 0)) * iconBtnWidth + 16;
       cols.push({
         id: '__actions__',
-        size: 56,
+        size: actionsWidth,
         enableSorting: false,
         enableHiding: false,
         enableResizing: false,
@@ -118,34 +125,63 @@ export function BNDataGrid<T>(props: BNGridProps<T>) {
         cell: ({ row }) => {
           const visible = rowActions.filter((a) => !a.hidden?.(row.original));
           if (!visible.length) return null;
+          const inline = visible.slice(0, INLINE_LIMIT);
+          const overflow = visible.slice(INLINE_LIMIT);
           return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => e.stopPropagation()} aria-label="Row actions">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                {visible.map((a, i) => (
-                  <React.Fragment key={a.key}>
-                    {i > 0 && a.variant === 'destructive' && <DropdownMenuSeparator />}
-                    <DropdownMenuItem
-                      disabled={a.disabled?.(row.original)}
-                      onClick={() => a.onClick(row.original)}
-                      className={a.variant === 'destructive' ? 'text-destructive focus:text-destructive' : ''}
-                    >
-                      {a.icon}
-                      <span className={a.icon ? 'ml-2' : ''}>{a.label}</span>
-                    </DropdownMenuItem>
-                  </React.Fragment>
+            <TooltipProvider delayDuration={150}>
+              <div className="flex items-center justify-end gap-0.5" onClick={(e) => e.stopPropagation()}>
+                {inline.map((a) => (
+                  <Tooltip key={a.key}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          'h-7 w-7',
+                          a.variant === 'destructive' && 'text-destructive hover:text-destructive hover:bg-destructive/10',
+                        )}
+                        disabled={a.disabled?.(row.original)}
+                        onClick={() => a.onClick(row.original)}
+                        aria-label={a.label}
+                      >
+                        {a.icon ?? <MoreHorizontal className="h-4 w-4" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">{a.label}</TooltipContent>
+                  </Tooltip>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                {overflow.length > 0 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="More actions">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {overflow.map((a, i) => (
+                        <React.Fragment key={a.key}>
+                          {i > 0 && a.variant === 'destructive' && <DropdownMenuSeparator />}
+                          <DropdownMenuItem
+                            disabled={a.disabled?.(row.original)}
+                            onClick={() => a.onClick(row.original)}
+                            className={a.variant === 'destructive' ? 'text-destructive focus:text-destructive' : ''}
+                          >
+                            {a.icon}
+                            <span className={a.icon ? 'ml-2' : ''}>{a.label}</span>
+                          </DropdownMenuItem>
+                        </React.Fragment>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </TooltipProvider>
           );
         },
         meta: { pinRight: true, noExport: true, align: 'right' },
       });
     }
+
     return cols;
   }, [columns, bulkActions, rowActions]);
 
@@ -290,7 +326,8 @@ export function BNDataGrid<T>(props: BNGridProps<T>) {
                           meta?.align === 'right' && 'text-right',
                           meta?.align === 'center' && 'text-center',
                           meta?.pinLeft && 'sticky left-0 z-30 bg-muted',
-                          meta?.pinRight && 'sticky right-0 z-30 bg-muted',
+                          meta?.pinRight && 'sticky right-0 z-30 bg-muted shadow-[-4px_0_6px_-4px_hsl(var(--border))]',
+
                         )}
                         style={{ width: h.getSize() }}
                       >
@@ -373,7 +410,8 @@ export function BNDataGrid<T>(props: BNGridProps<T>) {
                             meta?.align === 'right' && 'text-right',
                             meta?.align === 'center' && 'text-center',
                             meta?.pinLeft && 'sticky left-0 z-10 bg-card',
-                            meta?.pinRight && 'sticky right-0 z-10 bg-card',
+                            meta?.pinRight && 'sticky right-0 z-10 bg-card shadow-[-4px_0_6px_-4px_hsl(var(--border))]',
+
                           )}
                           style={{ width: cell.column.getSize() }}
                         >
