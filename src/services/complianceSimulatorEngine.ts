@@ -746,10 +746,11 @@ export function runSimulation(
   const financialImpact = applicableCalcs.reduce((sum, c) => sum + c.simulatedAmount, 0);
   const duplicatesSuppressed = matchedDetections.filter(d => d.duplicateSuppressed).length;
 
+  const matchesOnly = options.matchesOnly === true;
   return {
-    detectionResults,
-    calculationResults,
-    escalationResults,
+    detectionResults: matchesOnly ? detectionResults.filter(d => d.matched) : detectionResults,
+    calculationResults: matchesOnly ? calculationResults.filter(c => c.applies) : calculationResults,
+    escalationResults: matchesOnly ? escalationResults.filter(e => e.applies) : escalationResults,
     recommendations,
     missingData,
     warnings,
