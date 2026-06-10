@@ -581,6 +581,7 @@ function MyWorkQueueContent() {
           );
         })}
       </Tabs>
+      )}
     </div>
   );
 }
