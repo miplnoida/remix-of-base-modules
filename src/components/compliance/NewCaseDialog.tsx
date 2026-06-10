@@ -31,8 +31,7 @@ interface Props {
 }
 
 interface EmployerRow {
-  id: string;
-  employer_no: string | null;
+  employer_id: string;
   employer_name: string | null;
   territory: string | null;
 }
