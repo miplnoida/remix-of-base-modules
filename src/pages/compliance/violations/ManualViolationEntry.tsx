@@ -251,10 +251,10 @@ function ManualViolationEntryInner() {
               id: inserted.id,
               violation_number: inserted.violation_number,
               employer_id: employerId,
-              employer_name: employerName,
+              employer_name: resolvedEmployerName,
               territory,
               priority,
-              total_amount: 0,
+              total_amount: total,
             },
             performer,
           );
