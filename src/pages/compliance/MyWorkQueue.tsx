@@ -533,7 +533,16 @@ function MyWorkQueueContent() {
         </Badge>
       </div>
 
+      {enabled.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            Your role does not grant access to any work queue tabs. Contact your Compliance
+            administrator if you believe this is incorrect.
+          </CardContent>
+        </Card>
+      ) : (
       <Tabs defaultValue={enabled[0]?.key ?? 'violations'} className="space-y-4">
+
         <TabsList className="flex-wrap">
           {enabled.map((s, idx) => {
             const count = queries[idx].data?.length ?? 0;
