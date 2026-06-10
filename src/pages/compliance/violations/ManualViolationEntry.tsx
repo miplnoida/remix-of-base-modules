@@ -91,6 +91,7 @@ function ManualViolationEntryInner() {
     const prefill = (location.state as any)?.prefill;
     if (prefill?.employer_id) {
       setEmployerId(prefill.employer_id);
+      setEmployerName(prefill.employer_name || '');
       setEntryType('employer');
       window.history.replaceState({}, document.title);
     }
@@ -101,6 +102,13 @@ function ManualViolationEntryInner() {
     [violationTypes, violationTypeId],
   );
   const applicableFunds: string[] = selectedType?.applicable_funds || [];
+  // Issue #4 — Categories that should expose amount fields. Payment-related
+  // violations need expected / paid / penalty / interest so the violation
+  // carries a meaningful total, just like the auto-detector populates.
+  const hasFinancialFields = useMemo(() => {
+    const cat = (selectedType?.category || '').toUpperCase();
+    return ['PAYMENT', 'CONTRIBUTION', 'DECLARATION'].includes(cat);
+  }, [selectedType]);
 
   useEffect(() => {
     // Reset fund when violation type changes if not applicable
@@ -108,6 +116,16 @@ function ManualViolationEntryInner() {
       setFundType(applicableFunds[0]);
     }
   }, [violationTypeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Derived shortfall for payment-style violations
+  const shortfall = useMemo(() => {
+    const expected = parseFloat(expectedAmount) || 0;
+    const paid = parseFloat(paidAmount) || 0;
+    return Math.max(0, expected - paid);
+  }, [expectedAmount, paidAmount]);
+  const computedTotal = useMemo(() => {
+    return shortfall + (parseFloat(penaltyAmount) || 0) + (parseFloat(interestAmount) || 0);
+  }, [shortfall, penaltyAmount, interestAmount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,12 +151,20 @@ function ManualViolationEntryInner() {
       setLoading(true);
       const violationNumber = `VIO-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(16).slice(2, 10).toUpperCase()}`;
 
-      let employerName: string | undefined;
-      if (entryType === 'employer' && employerId) {
+      // Use the name already captured by the picker; fall back to a single
+      // round-trip if the user came in via prefill without a name.
+      let resolvedEmployerName: string | undefined = employerName;
+      if (entryType === 'employer' && employerId && !resolvedEmployerName) {
         const { data: emp } = await supabase
           .from('er_master').select('name').eq('regno', employerId).maybeSingle();
-        employerName = emp?.name ?? undefined;
+        resolvedEmployerName = emp?.name ?? undefined;
       }
+
+      // Issue #4 — Persist amount fields for payment/contribution types.
+      const principal = hasFinancialFields ? shortfall : 0;
+      const penalty = hasFinancialFields ? (parseFloat(penaltyAmount) || 0) : 0;
+      const interest = hasFinancialFields ? (parseFloat(interestAmount) || 0) : 0;
+      const total = hasFinancialFields ? computedTotal : 0;
 
       const performer = userCode || 'UNKNOWN';
       const { data: inserted, error } = await supabase
@@ -146,7 +172,7 @@ function ManualViolationEntryInner() {
         .insert({
           violation_number: violationNumber,
           employer_id: entryType === 'employer' ? employerId : null,
-          employer_name: employerName ?? candidateBusinessName,
+          employer_name: resolvedEmployerName ?? candidateBusinessName,
           territory,
           violation_type_id: violationTypeId,
           fund_type: fundType || null,
@@ -156,6 +182,10 @@ function ManualViolationEntryInner() {
           summary,
           description,
           period_from: periodFrom || null,
+          principal_amount: principal,
+          penalty_amount: penalty,
+          interest_amount: interest,
+          total_amount: total,
           is_unlinked: entryType === 'scouting',
           candidate_business_name: entryType === 'scouting' ? candidateBusinessName : null,
           candidate_location: entryType === 'scouting' ? candidateLocation : null,
@@ -170,7 +200,21 @@ function ManualViolationEntryInner() {
           // Freeze a snapshot of policy parameters at creation time.
           // Re-resolves are NOT performed on edit/reopen — historical violations
           // never change when Finance later updates c3_calculation_config.
-          parameters_snapshot: policyDefaults.length > 0 ? buildSnapshot(policyDefaults) : null,
+          parameters_snapshot: policyDefaults.length > 0
+            ? {
+                ...buildSnapshot(policyDefaults),
+                // Also freeze the user-entered amounts so historical reports
+                // can reconstruct how the total was derived.
+                amounts: hasFinancialFields ? {
+                  expected: parseFloat(expectedAmount) || 0,
+                  paid: parseFloat(paidAmount) || 0,
+                  shortfall: principal,
+                  penalty,
+                  interest,
+                  total,
+                } : null,
+              }
+            : null,
         } as any)
         .select('*')
         .single();
