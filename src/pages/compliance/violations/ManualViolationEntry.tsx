@@ -16,6 +16,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useUserCode } from '@/hooks/useUserCode';
 import { caseViolationService } from '@/services/caseViolationService';
 import { toast } from 'sonner';
+import { resolveMany, buildSnapshot, type ResolvedVariable } from '@/services/compliance/policyResolver';
+import { RefreshCw, Settings2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const MODULE = 'manage_compliance';
 const FUND_LABELS: Record<string, string> = {
