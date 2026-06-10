@@ -152,7 +152,7 @@ const AwardSuspensionConsole: React.FC = () => {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="t-page-title flex items-center gap-2">
             <Shield className="h-6 w-6" />
             Award Suspension & Resumption
           </h1>

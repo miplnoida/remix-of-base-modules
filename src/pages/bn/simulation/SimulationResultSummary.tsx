@@ -47,7 +47,7 @@ export default function SimulationResultSummary() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-foreground">Simulation Run Result</h1>
+          <h1 className="t-page-title">Simulation Run Result</h1>
           <p className="text-xs text-muted-foreground font-mono">Run ID: {run.id.substring(0, 8)}… · {run.run_mode} · {run.duration_ms}ms</p>
         </div>
         <Badge variant={run.run_status === 'COMPLETED' ? 'default' : 'destructive'}>{run.run_status}</Badge>

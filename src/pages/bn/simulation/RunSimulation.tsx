@@ -82,7 +82,7 @@ export default function RunSimulation() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold text-foreground">{scenario.scenario_name}</h1>
+          <h1 className="t-page-title">{scenario.scenario_name}</h1>
           <p className="text-sm text-muted-foreground">{scenario.description || 'No description'}</p>
         </div>
         <Badge variant={RUN_STATUS_VARIANT[scenario.status] || 'outline'}>{scenario.status}</Badge>

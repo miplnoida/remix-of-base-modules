@@ -151,7 +151,7 @@ const MedicalReviewScheduler: React.FC = () => {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Stethoscope className="h-6 w-6" />Medical Review Scheduler</h1>
+          <h1 className="t-page-title flex items-center gap-2"><Stethoscope className="h-6 w-6" />Medical Review Scheduler</h1>
           <p className="text-sm text-muted-foreground mt-1">Schedule and track periodic medical reviews for invalidity and injury awards</p>
         </div>
       </div>

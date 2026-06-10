@@ -146,7 +146,7 @@ export default function ClaimWorklistEnhanced() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Claim Worklist</h1>
+            <h1 className="t-page-title">Claim Worklist</h1>
             <p className="text-sm text-muted-foreground">Process, assign, and manage benefit claims</p>
           </div>
           <div className="flex gap-2">

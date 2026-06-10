@@ -325,7 +325,7 @@ export default function PaymentExceptions() {
             <ShieldAlert className="h-6 w-6 text-destructive" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Payment Exceptions</h1>
+            <h1 className="t-page-title">Payment Exceptions</h1>
             <p className="text-sm text-muted-foreground">
               Stop, Void, Reissue, and exception management with supervisor approval
             </p>

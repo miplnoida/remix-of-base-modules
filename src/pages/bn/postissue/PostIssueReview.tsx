@@ -72,7 +72,7 @@ export default function PostIssueReview() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Post-Issue Review</h1>
+          <h1 className="t-page-title">Post-Issue Review</h1>
           <p className="text-sm text-muted-foreground">
             Complete claim-side and support-table updates after payment issue
           </p>

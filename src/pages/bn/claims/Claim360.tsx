@@ -48,7 +48,7 @@ export default function Claim360() {
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="t-page-title">
               {claim.claim_number || claim.id.slice(0, 8)}
             </h1>
             <BnStatusBadge

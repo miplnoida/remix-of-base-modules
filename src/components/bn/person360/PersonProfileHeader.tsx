@@ -50,7 +50,7 @@ export const PersonProfileHeader: React.FC<PersonProfileHeaderProps> = ({ person
           {/* Identity */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-semibold text-foreground">{person.fullName}</h1>
+              <h1 className="t-page-title">{person.fullName}</h1>
               <Badge variant="outline" className={statusColor[person.status] || statusColor.pending}>
                 {person.status.toUpperCase()}
               </Badge>

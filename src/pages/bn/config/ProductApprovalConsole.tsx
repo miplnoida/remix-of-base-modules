@@ -44,7 +44,7 @@ export default function ProductApprovalConsole() {
     <div className="container mx-auto p-6 space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Product Approval Console</h1>
+          <h1 className="t-page-title">Product Approval Console</h1>
           <p className="text-sm text-muted-foreground">
             Approve, reject or publish benefit product versions (including bundled rule changes).
             Approval levels are configured per product.

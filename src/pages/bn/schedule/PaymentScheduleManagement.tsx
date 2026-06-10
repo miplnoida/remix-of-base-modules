@@ -67,7 +67,7 @@ export default function PaymentScheduleManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Payment Schedule Management</h1>
+          <h1 className="t-page-title">Payment Schedule Management</h1>
           <p className="text-sm text-muted-foreground">
             Plan one-time and recurring benefit disbursements. Schedule rows are orchestration
             records — issued payments persist in legacy payment tables (cl_cheques).

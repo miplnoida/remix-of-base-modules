@@ -163,7 +163,7 @@ export default function AuditDecisionHistory() {
             <History className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Audit & Decision History</h1>
+            <h1 className="t-page-title">Audit & Decision History</h1>
             <p className="text-sm text-muted-foreground">
               Full lifecycle audit trail — decisions, calculations, overrides, and payments
             </p>

@@ -94,7 +94,7 @@ export const LegacyClaim360View: React.FC<LegacyClaim360ViewProps> = ({ claimNum
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-semibold">
+            <h1 className="t-page-title">
               Claim {c.claimNumber}
               <span className="text-muted-foreground"> · seq {c.claimSeq}</span>
             </h1>

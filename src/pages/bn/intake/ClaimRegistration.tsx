@@ -515,7 +515,7 @@ export default function ClaimRegistration() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Register / Assist Application</h1>
+            <h1 className="t-page-title">Register / Assist Application</h1>
             <p className="text-sm text-muted-foreground">
               Staff-assisted smart intake. Identity, employer, and contribution data come from the platform registry.
             </p>
