@@ -40,6 +40,13 @@ const db = supabase as any;
 export async function executeSimulationRun(req: BnSimulationRequest): Promise<BnSimulationResult> {
   const startTime = Date.now();
 
+  // 0. Auto-seed inputs from bn_formula_variable_registry when caller
+  //    didn't supply any. Keeps the simulator runnable with one click and
+  //    avoids "unknown variable" surprises in the formula trace.
+  if (!req.inputs || req.inputs.length === 0) {
+    req = { ...req, inputs: await loadDefaultSimInputs() };
+  }
+
   // 1. Snapshot config (freeze the rules at this moment)
   const snapshot = await captureConfigSnapshot(
     req.scenarioId,
