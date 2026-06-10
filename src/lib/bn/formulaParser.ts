@@ -201,8 +201,12 @@ export function evaluateFormula(ast: Node, inputs: Record<string, number>): numb
   return walk(ast);
 }
 
-export function testFormula(src: string, sampleOverrides: Record<string, number> = {}): { ok: boolean; value?: number; errors: string[]; variablesUsed: string[] } {
-  const parsed = parseFormula(src);
+export function testFormula(
+  src: string,
+  sampleOverrides: Record<string, number> = {},
+  resolver?: ResolverMap | null,
+): { ok: boolean; value?: number; errors: string[]; variablesUsed: string[] } {
+  const parsed = parseFormula(src, resolver);
   if (!parsed.valid || !parsed.ast) {
     return { ok: false, errors: parsed.errors, variablesUsed: parsed.variablesUsed };
   }
