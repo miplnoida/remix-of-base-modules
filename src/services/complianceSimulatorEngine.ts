@@ -189,6 +189,8 @@ export interface SimulationOptions {
   existingViolationsByVtId?: Record<string, number>;
   /** Map keyed by `${violation_type_id}|${period YYYY-MM}` for per-period dedupe. Preferred over existingViolationsByVtId. */
   existingViolationsByVtIdPeriod?: Record<string, number>;
+  /** When true, drop non-matched detections and non-applicable calc/escalation results from the returned payload. */
+  matchesOnly?: boolean;
 }
 
 // ── Helpers ──
