@@ -2,9 +2,8 @@
  * Rule Configuration — Reusable rule group library
  */
 import { useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,18 +13,19 @@ import { Switch } from '@/components/ui/switch';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Plus, Edit, BookOpen, Calculator, Clock } from 'lucide-react';
+import { Edit, BookOpen, Calculator, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBnRuleGroups, useUpsertBnRuleGroup } from '@/hooks/bn/useBnConfig';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
-import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
+import { BnEmptyState, BnScreenRoleBanner } from '@/components/bn/shared';
 import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import type { BnRuleGroup } from '@/types/bn';
 import { RuleGroupLinkedRules } from '@/components/bn/ruleCatalogue/RuleGroupLinkedRules';
 import { useRuleGroupLinkCounts } from '@/hooks/bn/useRuleGroupLinkCounts';
+import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 
 type RuleGroupForm = {
   id?: string;
