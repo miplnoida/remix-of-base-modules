@@ -37,6 +37,7 @@ export default function RuleSimulator() {
   const [ruleCodeFilter, setRuleCodeFilter] = useState<string>('__all__');
   const [periodOverride, setPeriodOverride] = useState<string>('');
   const [scanAllPeriods, setScanAllPeriods] = useState<boolean>(true);
+  const [matchesOnly, setMatchesOnly] = useState<boolean>(true);
 
 
 
