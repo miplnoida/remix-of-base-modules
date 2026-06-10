@@ -771,7 +771,7 @@ export const EnhancedDetectionRuleDialog = ({
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.name || !form.trigger_event) {
       toast.error('Please check the form for valid information!', {
         description: 'Name and Trigger Event are required.',
@@ -780,13 +780,33 @@ export const EnhancedDetectionRuleDialog = ({
       });
       return;
     }
-    // Clean parameters: remove empty values and internal override flags that are false
+    // Clean parameters: remove empty values
     const cleanParams: Record<string, any> = {};
     Object.entries(form.parameters).forEach(([k, v]) => {
+      if (k === '_snapshot') return; // recomputed below
       if (v !== '' && v !== undefined && v !== null) {
         cleanParams[k] = v;
       }
     });
+
+    // Build / preserve the policy snapshot.
+    // On EDIT: keep the existing snapshot frozen — never re-resolve from live config.
+    // On CREATE: resolve current values for any c3-linked condition variables used
+    // by this trigger and freeze them into parameters._snapshot.
+    let snapshot = (rule?.parameters as any)?._snapshot ?? null;
+    if (!isEdit) {
+      const c3Keys = enrichedVars.filter(v => v.c3ConfigKey).map(v => v.value);
+      if (c3Keys.length > 0) {
+        try {
+          const resolved = await resolveMany(c3Keys);
+          snapshot = buildSnapshot(resolved);
+        } catch {
+          // resolver failure must not block rule creation
+        }
+      }
+    }
+    if (snapshot) cleanParams._snapshot = snapshot;
+
     onSave({
       ...form,
       violation_type_id: form.violation_type_id || null,
