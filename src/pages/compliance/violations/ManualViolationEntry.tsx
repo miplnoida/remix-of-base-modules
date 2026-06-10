@@ -356,6 +356,34 @@ function ManualViolationEntryInner() {
                   </Select>
                 </div>
 
+                {/* Policy Defaults — live from C3 Configuration, frozen on Save */}
+                <div className="rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50/50 dark:bg-amber-900/10 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Settings2 className="h-4 w-4 text-amber-600" />
+                      <span className="text-sm font-medium text-amber-800 dark:text-amber-300">Policy Defaults (C3 Configuration)</span>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={loadPolicyDefaults} disabled={policyLoading} className="h-7">
+                      <RefreshCw className={`h-3 w-3 mr-1 ${policyLoading ? 'animate-spin' : ''}`} />
+                      Reload defaults
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    These values are pulled live from C3 Configuration. They are frozen into this violation on Save — later changes to C3 Configuration will NOT alter this record.
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {policyDefaults.map(r => (
+                      <Badge key={r.variable_key} variant="outline" className="text-[10px] bg-background font-normal">
+                        {r.display_name}: <span className="font-mono ml-1">{r.unresolved ? '—' : r.value}</span>
+                      </Badge>
+                    ))}
+                    {!policyLoading && policyDefaults.length === 0 && (
+                      <span className="text-[11px] text-muted-foreground italic">No policy defaults available</span>
+                    )}
+                  </div>
+                </div>
+
+
                 <div className="space-y-2 pt-2 border-t">
                   <div className="flex items-center space-x-2">
                     <Checkbox id="assign-me" checked={assignToMe} onCheckedChange={(c) => setAssignToMe(c as boolean)} />
