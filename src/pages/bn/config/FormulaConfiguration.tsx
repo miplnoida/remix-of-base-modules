@@ -2,8 +2,6 @@
  * Formula Configuration — Reusable formula template library
  */
 import { useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,18 +11,19 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Plus, Edit } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBnFormulaTemplates, useUpsertBnFormulaTemplate } from '@/hooks/bn/useBnConfig';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
-import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
+import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { CodeFieldWithAutoGenerate, FormulaBuilder, SmartSelect } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import { parseFormula } from '@/lib/bn/formulaParser';
 import { FormulaTestPanel } from '@/components/bn/config/FormulaTestPanel';
 import type { BnFormulaTemplate } from '@/types/bn';
+import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 
 type FormulaForm = {
   id?: string;
