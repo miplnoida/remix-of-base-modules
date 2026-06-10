@@ -594,6 +594,16 @@ export default function CaseDetailView() {
         }}
         onCreated={() => queryClient.invalidateQueries({ queryKey: ['ce_case_detail', id] })}
       />
+
+      <AssignmentDialog
+        open={assignmentDialogOpen}
+        onOpenChange={setAssignmentDialogOpen}
+        entityType="case"
+        entityId={c.id}
+        currentOfficerId={c.assigned_officer_id || null}
+        currentOfficerName={c.assigned_officer_name || null}
+        onAssigned={() => queryClient.invalidateQueries({ queryKey: ['ce_case_detail', id] })}
+      />
     </div>
   );
 }
