@@ -381,6 +381,8 @@ async function convertFinding(args: {
   severity: string;
   principalAmount: number;
   userCode: string;
+  duplicateJustification?: string | null;
+  duplicateOfViolationId?: string | null;
 }): Promise<string> {
   const insp = args.finding.ce_inspections ?? {};
   const usingQueue = isComplianceFeatureEnabled('violations.verificationQueue');
@@ -404,6 +406,8 @@ async function convertFinding(args: {
       total_amount: args.principalAmount || 0,
       source_type: 'INSPECTION_FINDING',
       inspection_id: args.finding.inspection_id ?? null,
+      duplicate_justification: args.duplicateJustification ?? null,
+      duplicate_of_violation_id: args.duplicateOfViolationId ?? null,
       created_by: args.userCode,
       updated_by: args.userCode,
     })
