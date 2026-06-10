@@ -235,6 +235,8 @@ export function validateDetectionRule(
     trigger_event?: string;
     condition_expression?: string | null;
     is_enabled?: boolean;
+    auto_create_violation?: boolean | null;
+    violation_type_id?: string | null;
   },
   knownVariables: string[]
 ): RuleValidationResult {
@@ -244,6 +246,15 @@ export function validateDetectionRule(
   if (!rule.name?.trim()) pushError(errors, 'name', 'Name is required.');
   if (!rule.rule_code?.trim()) pushError(errors, 'rule_code', 'Rule code is required.');
   if (!rule.trigger_event?.trim()) pushError(errors, 'trigger_event', 'Trigger event is required.');
+
+  // Auto-create requires a violation type to know what to create
+  if (rule.is_enabled && rule.auto_create_violation && !rule.violation_type_id) {
+    pushError(
+      errors,
+      'violation_type_id',
+      'Auto-Create is on but no Violation Type is selected.'
+    );
+  }
 
   const condResult = validateConditionExpression(
     rule.condition_expression,
@@ -269,6 +280,8 @@ export function validateCalculationRule(
     applies_to?: string;
     formula_expression?: string | null;
     is_enabled?: boolean;
+    effective_from?: string | null;
+    effective_to?: string | null;
   },
   knownOperands: string[]
 ): RuleValidationResult {
@@ -278,6 +291,13 @@ export function validateCalculationRule(
   if (!rule.name?.trim()) pushError(errors, 'name', 'Name is required.');
   if (!rule.rule_code?.trim()) pushError(errors, 'rule_code', 'Rule code is required.');
   if (!rule.applies_to?.trim()) pushError(errors, 'applies_to', '"Applies To" is required.');
+
+  if (rule.effective_from && rule.effective_to && rule.effective_from > rule.effective_to) {
+    pushError(errors, 'effective_to', 'Effective From must be on or before Effective To.');
+  }
+  if (rule.is_enabled && rule.effective_to && rule.effective_to < new Date().toISOString().slice(0, 10)) {
+    pushError(errors, 'effective_to', 'Cannot activate a rule whose Effective To date has already passed.');
+  }
 
   const formulaResult = validateFormulaExpression(
     rule.formula_expression,
