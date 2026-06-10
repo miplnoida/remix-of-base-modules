@@ -9,6 +9,7 @@ import { Briefcase, Plus, Search, Eye, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { NewCaseDialog } from '@/components/compliance/NewCaseDialog';
 
 interface ComplianceCase {
   id: string;
