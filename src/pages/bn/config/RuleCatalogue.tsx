@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Plus, Edit, Copy, Trash2, Power, Search, AlertTriangle, CheckCircle2, FlaskConical, Database, ListChecks, Activity, ShieldCheck, XCircle, PlayCircle, LayoutDashboard, BadgeCheck, GitBranch } from 'lucide-react';
+import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 import { resolveFact } from '@/services/bn/eligibility/eligibilityFactResolver';
 import { computeRuleCoverage, type CoverageRow } from '@/services/bn/eligibility/factCoverageService';
 import { runProductEligibilityTest, type ProductTestResult } from '@/services/bn/eligibility/productEligibilityTest';
