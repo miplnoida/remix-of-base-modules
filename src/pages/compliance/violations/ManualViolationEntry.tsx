@@ -51,6 +51,35 @@ function ManualViolationEntryInner() {
   const [createCase, setCreateCase] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Policy defaults resolved live from c3_calculation_config via ce_rule_variable_mappings.
+  // SNAPSHOT CONTRACT: resolved values are loaded once on mount for display + saved as
+  // a frozen snapshot on insert. They are NOT re-resolved when the user later opens the
+  // violation, so historical violations stay immutable when Finance changes a rate.
+  const POLICY_KEYS = useMemo(
+    () => ['grace_period', 'levy_penalty_initial_rate', 'additional_rate_per_month',
+           'severance_penalty_rate', 'ss_fine_initial_rate', 'interest_rate'],
+    [],
+  );
+  const [policyDefaults, setPolicyDefaults] = useState<ResolvedVariable[]>([]);
+  const [policyLoading, setPolicyLoading] = useState(false);
+
+  const loadPolicyDefaults = async () => {
+    setPolicyLoading(true);
+    try {
+      const list = await resolveMany(POLICY_KEYS);
+      setPolicyDefaults(list);
+    } catch {
+      // Non-blocking — defaults are informational
+    } finally {
+      setPolicyLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPolicyDefaults();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const prefill = (location.state as any)?.prefill;
     if (prefill?.employer_id) {
