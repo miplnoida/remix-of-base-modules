@@ -246,7 +246,20 @@ export default function RuleSimulator() {
               value={periodOverride}
               onChange={e => setPeriodOverride(e.target.value)}
               className="h-8 w-[150px] text-xs"
+              disabled={scanAllPeriods && !isManualMode}
+              title={scanAllPeriods && !isManualMode ? 'Disable "Scan last 12 months" to pick a single period' : ''}
             />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Switch
+              id="scan-all-periods"
+              checked={scanAllPeriods}
+              onCheckedChange={setScanAllPeriods}
+              disabled={isManualMode}
+            />
+            <Label htmlFor="scan-all-periods" className="text-xs text-muted-foreground cursor-pointer">
+              Scan last 12 months
+            </Label>
           </div>
           <Button
             variant="outline"
