@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
 import { FinancialSummaryCard } from '@/components/compliance/FinancialSummaryCard';
 import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
+import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
 
 // ============================================
 // ACTION BUTTON CONFIGURATION PER STATUS
