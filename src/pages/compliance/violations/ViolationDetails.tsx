@@ -29,6 +29,7 @@ import { toast } from 'sonner';
 import { RiskScoreBadge } from '@/components/compliance/RiskScoreBadge';
 import { FinancialSummaryCard } from '@/components/compliance/FinancialSummaryCard';
 import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
+import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
 
 // ============================================
 // ACTION BUTTON CONFIGURATION PER STATUS
@@ -92,6 +93,7 @@ export default function ViolationDetails() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [confirmActionType, setConfirmActionType] = useState<ConfirmActionType>('start_work');
   const [pendingTargetStatus, setPendingTargetStatus] = useState<ViolationStatus>('IN_PROGRESS');
+  const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
@@ -463,11 +465,15 @@ export default function ViolationDetails() {
 
       {/* Assignment & Routing Info */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />
             Assignment & Routing
           </CardTitle>
+          <Button size="sm" variant="outline" onClick={() => setAssignmentDialogOpen(true)}>
+            <UserCheck className="h-4 w-4 mr-2" />
+            {v.assigned_to_name ? 'Reassign' : 'Assign'}
+          </Button>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-4">
           <div>
@@ -760,6 +766,16 @@ export default function ViolationDetails() {
         violationNumber={v.violation_number}
         actionType={confirmActionType}
         onConfirm={handleConfirmAction}
+      />
+
+      <AssignmentDialog
+        open={assignmentDialogOpen}
+        onOpenChange={setAssignmentDialogOpen}
+        entityType="violation"
+        entityId={v.id}
+        currentOfficerId={(v as any).assigned_to_user_id || null}
+        currentOfficerName={v.assigned_to_name || null}
+        onAssigned={() => queryClient.invalidateQueries({ queryKey: ['ce_violation', id] })}
       />
     </div>
   );

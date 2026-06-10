@@ -128,6 +128,8 @@ export interface DetectionResult {
   duplicateCount: number;
   /** True when an existing violation would suppress creation. */
   duplicateSuppressed: boolean;
+  /** Structured evidence rows shown in the "why" panel. Optional. */
+  evidence?: Array<{ label: string; value: string }>;
 }
 
 export interface CalculationResult {
@@ -190,6 +192,54 @@ export interface SimulationOptions {
 function getViolationType(id: string | null, types: ViolationTypeData[]): ViolationTypeData | null {
   if (!id) return null;
   return types.find(t => t.id === id) || null;
+}
+
+/**
+ * Builds structured evidence rows (e.g. period, C3 submission ID, days late,
+ * shortfall amounts) for the detection result's "why" panel.
+ */
+function buildDetectionEvidence(ruleCode: string, facts: SimulationFactContext): Array<{ label: string; value: string }> {
+  const rows: Array<{ label: string; value: string }> = [];
+  const push = (label: string, value: any) => {
+    if (value === undefined || value === null || value === '') return;
+    rows.push({ label, value: String(value) });
+  };
+  push('Employer', facts.employerRegNo);
+  push('Filing Period', facts.filingPeriod);
+  push('C3 Submission ID', (facts as any).filingSubmissionId);
+
+  switch (ruleCode) {
+    case 'DR-001': // Late filing
+      push('Filed On', facts.filingDate);
+      push('Due Day', facts.filingDueDay);
+      push('Grace Period (days)', facts.gracePeriodDays);
+      push('Filing Submitted', facts.filingSubmitted ? 'Yes' : 'No');
+      break;
+    case 'DR-002': // Non-filing
+      push('Filing Submitted', facts.filingSubmitted ? 'Yes' : 'No');
+      push('Days Past Deadline', facts.daysPastDeadline);
+      push('Missing Month', facts.filingPeriod);
+      break;
+    case 'DR-003': // Non-payment
+      push('Amount Due (EC$)', facts.amountDue);
+      push('Payment Made', facts.paymentMade ? 'Yes' : 'No');
+      push('Payment Amount (EC$)', facts.paymentAmount);
+      break;
+    case 'DR-004': // Short payment
+      push('Amount Due (EC$)', facts.amountDue);
+      push('Payment Amount (EC$)', facts.paymentAmount);
+      push('Shortfall (EC$)', facts.shortfallAmount);
+      push('Shortfall %', facts.shortfallPercent?.toFixed?.(2));
+      break;
+    case 'DR-005': // Repeat offender
+      push('Prior Same-Type Violations (12mo)', facts.priorSameTypeViolationsRolling12);
+      break;
+    case 'DR-006': // Arrangement breach
+      push('Arrangement Active', facts.arrangementActive ? 'Yes' : 'No');
+      push('Installment Overdue (days)', facts.installmentOverdueDays);
+      break;
+  }
+  return rows;
 }
 
 // ── Detection Evaluators ──
@@ -584,6 +634,7 @@ export function runSimulation(
       const autoCreate = rule.auto_create_violation ?? true;
       const duplicateCount = vt?.id ? (dupMap[vt.id] ?? 0) : 0;
       const duplicateSuppressed = matched && duplicateCount > 0;
+      const evidence = buildDetectionEvidence(rule.rule_code, facts);
 
       return {
         ruleCode: rule.rule_code,
@@ -598,6 +649,7 @@ export function runSimulation(
         priority: rule.priority,
         duplicateCount,
         duplicateSuppressed,
+        evidence,
       };
     });
 

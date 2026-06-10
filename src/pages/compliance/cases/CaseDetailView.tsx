@@ -27,6 +27,8 @@ import { caseViolationService } from '@/services/caseViolationService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
+import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
+import { UserCheck } from 'lucide-react';
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
@@ -69,6 +71,7 @@ export default function CaseDetailView() {
   const [cascading, setCascading] = useState(false);
   const [arrangementDialogOpen, setArrangementDialogOpen] = useState(false);
   const [waiverDialogOpen, setWaiverDialogOpen] = useState(false);
+  const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
@@ -283,8 +286,11 @@ export default function CaseDetailView() {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-sm font-medium text-muted-foreground">Officer</CardTitle>
+            <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setAssignmentDialogOpen(true)}>
+              <UserCheck className="h-3.5 w-3.5 mr-1" />{c.assigned_officer_name ? 'Reassign' : 'Assign'}
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="text-base font-medium">{c.assigned_officer_name || 'Unassigned'}</div>
@@ -587,6 +593,16 @@ export default function CaseDetailView() {
           ),
         }}
         onCreated={() => queryClient.invalidateQueries({ queryKey: ['ce_case_detail', id] })}
+      />
+
+      <AssignmentDialog
+        open={assignmentDialogOpen}
+        onOpenChange={setAssignmentDialogOpen}
+        entityType="case"
+        entityId={c.id}
+        currentOfficerId={c.assigned_officer_id || null}
+        currentOfficerName={c.assigned_officer_name || null}
+        onAssigned={() => queryClient.invalidateQueries({ queryKey: ['ce_case_detail', id] })}
       />
     </div>
   );

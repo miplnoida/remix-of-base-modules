@@ -39,6 +39,28 @@ export default function ArrearsReports() {
   const totalArrears = filtered.reduce((sum, r) => sum + Number(r.total_arrears || 0), 0);
   const over90 = filtered.filter(r => r.aging_category === '90+ days').reduce((sum, r) => sum + Number(r.total_arrears || 0), 0);
 
+  const byZone = useMemo(() => {
+    const map = new Map<string, { zone: string; total: number; employers: number }>();
+    filtered.forEach((r: any) => {
+      const z = r.zone || 'Unassigned';
+      const cur = map.get(z) || { zone: z, total: 0, employers: 0 };
+      cur.total += Number(r.total_arrears || 0);
+      cur.employers += 1;
+      map.set(z, cur);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [filtered]);
+
+  const asOf = useMemo(() => {
+    if (!arrearsData.length) return null;
+    const latest = arrearsData
+      .map((r: any) => r.created_at)
+      .filter(Boolean)
+      .sort()
+      .pop();
+    return latest ? new Date(latest) : null;
+  }, [arrearsData]);
+
   const handleApply = () => { setAppliedZone(zone); setAppliedThreshold(threshold); };
 
   const handleExport = async () => {
@@ -67,6 +89,10 @@ export default function ArrearsReports() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader title="Arrears & Collections Reports" subtitle="Outstanding balances, payment trends, and recovery metrics" breadcrumbs={[{ label: 'Compliance', href: '/compliance/dashboard' }, { label: 'Reports', href: '/compliance/reports' }, { label: 'Arrears' }]} />
+
+      {asOf && (
+        <p className="text-xs text-muted-foreground -mt-3">As of {asOf.toLocaleString()} · Source: ce_arrears_report_entries</p>
+      )}
 
       <Card><CardHeader><CardTitle>Filters</CardTitle></CardHeader><CardContent>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -101,6 +127,29 @@ export default function ArrearsReports() {
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">90+ Days Overdue</p><p className="text-2xl font-bold text-foreground">EC$ {(over90 / 1000).toFixed(0)}K</p></div><AlertTriangle className="h-8 w-8 text-warning" /></div></CardContent></Card>
         <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><p className="text-sm text-muted-foreground">Increasing</p><p className="text-2xl font-bold text-foreground">{filtered.filter(r => r.trend === 'increasing').length}</p></div><Calendar className="h-8 w-8 text-warning" /></div></CardContent></Card>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>Total Arrears by Zone</CardTitle></CardHeader>
+        <CardContent>
+          {byZone.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No data for the current filter.</p>
+          ) : (
+            <Table>
+              <TableHeader><TableRow><TableHead>Zone</TableHead><TableHead className="text-right">Employers</TableHead><TableHead className="text-right">Total Arrears (EC$)</TableHead><TableHead className="text-right">% of Total</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {byZone.map(z => (
+                  <TableRow key={z.zone}>
+                    <TableCell className="font-medium">{z.zone}</TableCell>
+                    <TableCell className="text-right">{z.employers}</TableCell>
+                    <TableCell className="text-right font-semibold text-destructive">{z.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right">{totalArrears > 0 ? `${((z.total / totalArrears) * 100).toFixed(1)}%` : '—'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader><div className="flex items-center justify-between"><CardTitle>Top Arrears Employers</CardTitle><Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}><Download className="h-4 w-4 mr-2" />Export CSV</Button></div></CardHeader>
