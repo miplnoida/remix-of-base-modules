@@ -28,10 +28,11 @@ interface Props {
 
 export function FormulaTestPanel({ expression, outputType = 'NUMBER' }: Props) {
   const { data: registry = [] } = useBnFormulaVariableRegistry();
+  const { data: resolver } = useVariableResolver();
   const dbSamples = useMemo(() => buildSampleMap(registry), [registry]);
   const dbLabels = useMemo(() => buildLabelMap(registry), [registry]);
 
-  const parsed = useMemo(() => parseFormula(expression || ''), [expression]);
+  const parsed = useMemo(() => parseFormula(expression || '', resolver ?? null), [expression, resolver]);
   const variables = parsed.variablesUsed;
 
   const [overrides, setOverrides] = useState<Record<string, string>>({});
