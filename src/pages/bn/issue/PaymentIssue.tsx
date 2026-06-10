@@ -88,7 +88,7 @@ export default function PaymentIssue() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="t-page-title">Payment Issue</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="t-page-subtitle mt-1">
             Issue outbound benefit disbursements to legacy payment tables.
             Each issue is fully audited with duplicate prevention.
           </p>

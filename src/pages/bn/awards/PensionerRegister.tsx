@@ -74,7 +74,7 @@ export default function PensionerRegister() {
     <div className="space-y-4 p-6">
       <div>
         <h1 className="t-page-title">Pensioner Register</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="t-page-subtitle mt-1">
           Active long-term benefit awards. Open any award to access the Award 360 view.
         </p>
       </div>

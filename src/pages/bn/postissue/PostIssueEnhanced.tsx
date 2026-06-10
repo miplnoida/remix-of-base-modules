@@ -159,7 +159,7 @@ export default function PostIssueEnhanced() {
           </div>
           <div>
             <h1 className="t-page-title">Post-Issue Review</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="t-page-subtitle mt-1">
               Complete claim-side updates, stale cheque detection, and batch finalization
             </p>
           </div>

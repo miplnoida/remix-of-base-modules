@@ -326,7 +326,7 @@ export default function PaymentExceptions() {
           </div>
           <div>
             <h1 className="t-page-title">Payment Exceptions</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="t-page-subtitle mt-1">
               Stop, Void, Reissue, and exception management with supervisor approval
             </p>
           </div>

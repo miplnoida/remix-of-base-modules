@@ -51,7 +51,7 @@ export default function TransitionMatrix() {
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
         <h1 className="t-page-title">Transition Matrix</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="t-page-subtitle mt-1">
           Configuration-driven rules that govern all claim status transitions.
         </p>
 

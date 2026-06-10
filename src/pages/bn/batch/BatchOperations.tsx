@@ -62,7 +62,7 @@ export default function BatchOperations() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="t-page-title">Batch Operations</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="t-page-subtitle mt-1">
             Group payable instructions into controlled payment batches before issue.
             Maker-checker controls enforced: creator ≠ approver.
           </p>

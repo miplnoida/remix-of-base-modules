@@ -154,7 +154,7 @@ const LifeCertificateManagement: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="t-page-title">Life Certificate Management</h1>
-          <p className="text-sm text-muted-foreground mt-1">Track and verify proof-of-life for ongoing pension and long-term awards</p>
+          <p className="t-page-subtitle mt-1 mt-1">Track and verify proof-of-life for ongoing pension and long-term awards</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" disabled><Download className="h-4 w-4 mr-1" />Export</Button>

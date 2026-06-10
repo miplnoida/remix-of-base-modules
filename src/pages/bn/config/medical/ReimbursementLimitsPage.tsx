@@ -75,7 +75,7 @@ export default function ReimbursementLimitsPage() {
         <Coins className="h-8 w-8 text-primary" />
         <div>
           <h1 className="t-page-title">Reimbursement Limits</h1>
-          <p className="text-sm text-muted-foreground">Per-claim, per-procedure, per-expense, annual and lifetime caps with reimbursement percentage.</p>
+          <p className="t-page-subtitle mt-1">Per-claim, per-procedure, per-expense, annual and lifetime caps with reimbursement percentage.</p>
         </div>
       </div>
 

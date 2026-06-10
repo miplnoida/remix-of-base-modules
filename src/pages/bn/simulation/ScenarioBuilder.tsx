@@ -198,7 +198,7 @@ export default function ScenarioBuilder() {
           <h1 className="t-page-title">
             {isEditMode ? 'Edit Simulation Scenario' : 'New Simulation Scenario'}
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="t-page-subtitle mt-1">
             Configure a test scenario to run against existing product rules
           </p>
         </div>

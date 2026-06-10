@@ -45,7 +45,7 @@ export default function ExpenseTypeConfiguration() {
         <Receipt className="h-8 w-8 text-primary" />
         <div>
           <h1 className="t-page-title">Expense Type Configuration</h1>
-          <p className="text-sm text-muted-foreground">Reimbursable expense categories with default caps.</p>
+          <p className="t-page-subtitle mt-1">Reimbursable expense categories with default caps.</p>
         </div>
       </div>
 

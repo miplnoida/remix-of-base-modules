@@ -65,7 +65,7 @@ export default function HistoricalInquiry() {
           </div>
           <div>
             <h1 className="t-page-title">Historical Inquiry</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="t-page-subtitle mt-1">
               Search and view legacy claims and benefit disbursement history
             </p>
           </div>

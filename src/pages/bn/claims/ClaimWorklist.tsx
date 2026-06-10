@@ -52,7 +52,7 @@ export default function ClaimWorklist() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="t-page-title">Benefit Work Queue</h1>
-            <p className="text-sm text-muted-foreground">Process and manage benefit claims across all products</p>
+            <p className="t-page-subtitle mt-1">Process and manage benefit claims across all products</p>
           </div>
         </div>
 

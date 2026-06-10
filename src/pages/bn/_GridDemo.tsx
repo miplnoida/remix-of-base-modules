@@ -67,7 +67,7 @@ const BNGridDemo: React.FC = () => {
     <div className="p-6 space-y-4">
       <div>
         <h1 className="t-page-title">BNDataGrid — demo</h1>
-        <p className="text-sm text-muted-foreground">Internal QA route. Validate paging, sort, filter, columns, resize, export.</p>
+        <p className="t-page-subtitle mt-1">Internal QA route. Validate paging, sort, filter, columns, resize, export.</p>
       </div>
 
       <BNDataGrid

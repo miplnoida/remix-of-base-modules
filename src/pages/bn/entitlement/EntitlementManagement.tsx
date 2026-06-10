@@ -56,7 +56,7 @@ export default function EntitlementManagement() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="t-page-title">Entitlement Management</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="t-page-subtitle mt-1">
             Manage approved benefit rights. Entitlements bridge approved claims to payment orchestration.
           </p>
         </div>
