@@ -128,6 +128,8 @@ export interface DetectionResult {
   duplicateCount: number;
   /** True when an existing violation would suppress creation. */
   duplicateSuppressed: boolean;
+  /** Structured evidence rows shown in the "why" panel. Optional. */
+  evidence?: Array<{ label: string; value: string }>;
 }
 
 export interface CalculationResult {
