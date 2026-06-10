@@ -19,6 +19,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { isComplianceFeatureEnabled } from '@/lib/compliance/featureToggles';
+import { useHasCapability } from '@/hooks/useHasCapability';
+import { COMPLIANCE_CAPABILITIES, type ComplianceCapability } from '@/lib/compliance/capabilities';
 
 const MODULE_NAME = 'ce_my_work_queue';
 
@@ -36,6 +38,8 @@ interface SectionDef {
   key: string;
   label: string;
   enabled: boolean;
+  /** Capability required to see this tab. `null` = always visible. */
+  capability: ComplianceCapability | null;
   query: () => Promise<WorkItem[]>;
   /** Assumption note shown when section is empty, only if column mapping was uncertain. */
   assumption?: string;
