@@ -240,6 +240,7 @@ export default function FormulaConfiguration() {
                 value={form.formula_expression}
                 onChange={(v) => setForm({ ...form, formula_expression: v })}
               />
+              <FormulaTestPanel expression={form.formula_expression} outputType={form.output_type} />
               <div className="flex items-end justify-between gap-4">
                 <div className="w-48">
                   <SmartSelect
