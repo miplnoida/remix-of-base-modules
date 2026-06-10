@@ -167,7 +167,7 @@ export default function WorkbasketConfig() {
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">Workbaskets</h1>
+          <h1 className="t-page-title">Workbaskets</h1>
         </div>
 
         <BnScreenRoleBanner

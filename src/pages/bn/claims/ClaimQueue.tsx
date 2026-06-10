@@ -101,7 +101,7 @@ export default function ClaimQueue() {
   return (
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
-        <h1 className="text-2xl font-semibold text-foreground">Claim Queue</h1>
+        <h1 className="t-page-title">Claim Queue</h1>
 
         {/* My Queue */}
         {myQueue.length > 0 && (

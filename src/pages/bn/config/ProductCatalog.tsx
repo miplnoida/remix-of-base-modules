@@ -49,8 +49,8 @@ export default function ProductCatalog() {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-3xl font-semibold text-foreground">Benefit Product Catalog</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <h1 className="t-page-title">Benefit Product Catalog</h1>
+        <p className="t-page-subtitle mt-1">
           Configure all rules and requirements for each benefit product — eligibility, calculation, documents, workflow, screens, timelines, interactions, and overrides.
         </p>
       </div>

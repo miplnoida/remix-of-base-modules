@@ -56,7 +56,7 @@ export default function MedicalProceduresCatalog() {
       <div className="flex items-center gap-3">
         <ClipboardList className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">Medical Procedures Catalog</h1>
+          <h1 className="t-page-title">Medical Procedures Catalog</h1>
           <p className="text-sm text-muted-foreground">Effective-dated catalog of procedures, surgeries and medical processes.</p>
         </div>
       </div>

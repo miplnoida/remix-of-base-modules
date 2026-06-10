@@ -58,7 +58,7 @@ export default function SimulationDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <h1 className="t-page-title flex items-center gap-2">
             <FlaskConical className="h-6 w-6 text-primary" />
             Benefit Simulation Engine
           </h1>

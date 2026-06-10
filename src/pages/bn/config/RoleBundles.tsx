@@ -53,7 +53,7 @@ export default function RoleBundles() {
   return (
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
-        <h1 className="text-2xl font-semibold text-foreground">Role Bundles</h1>
+        <h1 className="t-page-title">Role Bundles</h1>
         <BnScreenRoleBanner
           role="library"
           description="A role bundle assigns several operational roles to a single user — useful for small offices where one officer covers intake, document review, eligibility, calculation and claims."

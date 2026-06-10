@@ -39,7 +39,7 @@ export default function MyBenefitsWorkbench() {
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">My Workbench</h1>
+          <h1 className="t-page-title">My Workbench</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Tasks and queues for every role you currently hold.
           </p>
