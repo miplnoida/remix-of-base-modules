@@ -129,6 +129,29 @@ export default function ArrearsReports() {
       </div>
 
       <Card>
+        <CardHeader><CardTitle>Total Arrears by Zone</CardTitle></CardHeader>
+        <CardContent>
+          {byZone.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No data for the current filter.</p>
+          ) : (
+            <Table>
+              <TableHeader><TableRow><TableHead>Zone</TableHead><TableHead className="text-right">Employers</TableHead><TableHead className="text-right">Total Arrears (EC$)</TableHead><TableHead className="text-right">% of Total</TableHead></TableRow></TableHeader>
+              <TableBody>
+                {byZone.map(z => (
+                  <TableRow key={z.zone}>
+                    <TableCell className="font-medium">{z.zone}</TableCell>
+                    <TableCell className="text-right">{z.employers}</TableCell>
+                    <TableCell className="text-right font-semibold text-destructive">{z.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right">{totalArrears > 0 ? `${((z.total / totalArrears) * 100).toFixed(1)}%` : '—'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><div className="flex items-center justify-between"><CardTitle>Top Arrears Employers</CardTitle><Button variant="outline" size="sm" onClick={handleExport} disabled={filtered.length === 0}><Download className="h-4 w-4 mr-2" />Export CSV</Button></div></CardHeader>
         <CardContent>
           {isLoading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div> : filtered.length === 0 ? <div className="flex flex-col items-center py-8"><Inbox className="h-10 w-10 text-muted-foreground mb-2" /><p className="text-muted-foreground">No arrears data</p></div> : (
