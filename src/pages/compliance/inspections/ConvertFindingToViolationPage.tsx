@@ -103,6 +103,8 @@ function Inner() {
       summary: string;
       severity: string;
       principalAmount: number;
+      duplicateJustification?: string | null;
+      duplicateOfViolationId?: string | null;
     }) => convertFinding({ ...args, userCode: userCode || 'SYSTEM' }),
     onSuccess: (newId: string) => {
       const usingQueue = isComplianceFeatureEnabled('violations.verificationQueue');
