@@ -65,22 +65,29 @@ function tokenize(src: string): Token[] {
   return tokens;
 }
 
-export function parseFormula(src: string): ParseResult {
+export function parseFormula(src: string, resolver?: ResolverMap | null): ParseResult {
   const errors: string[] = [];
   const variablesUsed = new Set<string>();
+  const unresolved: UnresolvedVariable[] = [];
+  const seenUnresolved = new Set<string>();
   let tokens: Token[];
   try {
     tokens = tokenize(src);
   } catch (e: any) {
-    return { valid: false, errors: [e.message], variablesUsed: [], ast: null };
+    return { valid: false, errors: [e.message], variablesUsed: [], unresolved: [], ast: null };
   }
   if (tokens.length === 0) {
-    return { valid: false, errors: ['Formula is empty.'], variablesUsed: [], ast: null };
+    return { valid: false, errors: ['Formula is empty.'], variablesUsed: [], unresolved: [], ast: null };
   }
 
   let pos = 0;
   const peek = () => tokens[pos];
   const consume = () => tokens[pos++];
+
+  const isKnown = (name: string): boolean => {
+    if (resolver) return resolver.has(name);
+    return isValidFormulaVariableKey(name);
+  };
 
   function parseExpr(): Node {
     let left = parseTerm();
@@ -133,10 +140,14 @@ export function parseFormula(src: string): ParseResult {
         consume();
         return { kind: 'call', fn: tk.v as any, args };
       }
-      if (!isValidFormulaVariableKey(tk.v)) {
-        throw new Error(`Unknown variable "${tk.v}"`);
-      }
       variablesUsed.add(tk.v);
+      if (!isKnown(tk.v)) {
+        if (!seenUnresolved.has(tk.v)) {
+          seenUnresolved.add(tk.v);
+          unresolved.push({ variable: tk.v, reason: 'UNREGISTERED', suggestedSources: suggestSourcesFor(tk.v) });
+        }
+        errors.push(`"${tk.v}" has no registered source (Fact / Derived Fact / Product Parameter / Prior Result).`);
+      }
       return { kind: 'var', name: tk.v };
     }
     throw new Error('Unexpected token');
@@ -145,12 +156,13 @@ export function parseFormula(src: string): ParseResult {
   try {
     const ast = parseExpr();
     if (pos !== tokens.length) {
-      return { valid: false, errors: ['Unexpected trailing input'], variablesUsed: [...variablesUsed], ast: null };
+      return { valid: false, errors: [...errors, 'Unexpected trailing input'], variablesUsed: [...variablesUsed], unresolved, ast: null };
     }
-    return { valid: true, errors, variablesUsed: [...variablesUsed], ast };
+    const valid = errors.length === 0;
+    return { valid, errors, variablesUsed: [...variablesUsed], unresolved, ast: valid ? ast : null };
   } catch (e: any) {
     errors.push(e.message);
-    return { valid: false, errors, variablesUsed: [...variablesUsed], ast: null };
+    return { valid: false, errors, variablesUsed: [...variablesUsed], unresolved, ast: null };
   }
 }
 
