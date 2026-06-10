@@ -308,23 +308,31 @@ export default function SimulationResults({ output }: Props) {
             <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
               <Info className="h-3 w-3" /> Click any row to expand and see how the detection was evaluated, including parameters and thresholds.
             </p>
-            <div className="overflow-auto max-h-[500px] rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs w-24">Rule</TableHead>
-                    <TableHead className="text-xs">Name</TableHead>
-                    <TableHead className="text-xs w-16">Match</TableHead>
-                    <TableHead className="text-xs">Reason</TableHead>
-                    <TableHead className="text-xs w-28">Violation</TableHead>
-                    <TableHead className="text-xs w-24">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {output.detectionResults.map(d => <DetectionDetailRow key={d.ruleCode} d={d} />)}
-                </TableBody>
-              </Table>
-            </div>
+            {(() => {
+              const showPeriod = output.detectionResults.some(d => !!d.period);
+              return (
+                <div className="overflow-auto max-h-[500px] rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs w-24">Rule</TableHead>
+                        {showPeriod && <TableHead className="text-xs w-24">Period</TableHead>}
+                        <TableHead className="text-xs">Name</TableHead>
+                        <TableHead className="text-xs w-16">Match</TableHead>
+                        <TableHead className="text-xs">Reason</TableHead>
+                        <TableHead className="text-xs w-28">Violation</TableHead>
+                        <TableHead className="text-xs w-24">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {output.detectionResults.map((d, i) => (
+                        <DetectionDetailRow key={`${d.ruleCode}-${d.period ?? i}`} d={d} showPeriod={showPeriod} />
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="calculation" className="mt-3">
