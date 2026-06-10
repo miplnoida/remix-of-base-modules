@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,9 @@ import { toast } from "sonner";
 interface QueueOption { id: string; queue_name: string; queue_type: string; }
 interface InspectorOption { id: string; display_name: string; }
 
+const STATUS_OPTIONS = ["UNDER_REVIEW", "OPEN", "IN_PROGRESS", "ESCALATED"] as const;
+type StatusFilter = typeof STATUS_OPTIONS[number] | "ALL_REVIEW";
+
 export default function ReviewQueue() {
   const [violations, setViolations] = useState<any[]>([]);
   const [queues, setQueues] = useState<QueueOption[]>([]);
@@ -23,13 +26,21 @@ export default function ReviewQueue() {
   const [selectedViolation, setSelectedViolation] = useState<any>(null);
   const [reassignTarget, setReassignTarget] = useState({ type: "queue", queue_id: "", inspector_id: "" });
   const [saving, setSaving] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL_REVIEW");
+  const [queueScope, setQueueScope] = useState<"REV" | "ALL">("REV");
   const navigate = useNavigate();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const { data: revQueues } = await supabase.from("ce_assignment_queues").select("id, queue_name, queue_type").eq("queue_type", "REV");
-    const allQueues = revQueues || [];
-    const queueIds = allQueues.map(q => q.id);
+    const { data: allQData, error: qErr } = await supabase
+      .from("ce_assignment_queues")
+      .select("id, queue_name, queue_type")
+      .eq("is_active", true)
+      .order("queue_name");
+    if (qErr) toast.error("Failed to load queues: " + qErr.message);
+    const allQueues = allQData || [];
+    setQueues(allQueues);
+    const revQueueIds = allQueues.filter(q => q.queue_type === "REV").map(q => q.id);
 
     const [{ data: inspData }, { data: profiles }] = await Promise.all([
       supabase.from("ce_inspectors").select("id, inspector_code, legacy_inspector_code, profile_id").eq("is_active", true),
@@ -42,31 +53,48 @@ export default function ReviewQueue() {
     }));
     setInspectors(inspOptions);
 
-    const { data: allQData } = await supabase.from("ce_assignment_queues").select("id, queue_name, queue_type").eq("is_active", true).order("queue_name");
-    setQueues(allQData || []);
-
-    if (queueIds.length === 0) { setViolations([]); setLoading(false); return; }
-
-    const { data } = await supabase
+    let q = supabase
       .from("ce_violations")
       .select("id, violation_number, employer_regno, status, priority, created_at, assigned_queue_id, assigned_to_user_id, zone_id")
-      .in("assigned_queue_id", queueIds)
-      .in("status", ["UNDER_REVIEW", "OPEN"])
+      .eq("is_deleted", false)
       .order("created_at", { ascending: false })
       .limit(200);
 
-    const qMap = Object.fromEntries(allQueues.map(q => [q.id, q.queue_name]));
+    if (statusFilter === "ALL_REVIEW") {
+      q = q.in("status", ["UNDER_REVIEW", "OPEN", "IN_PROGRESS", "ESCALATED"]);
+    } else {
+      q = q.eq("status", statusFilter);
+    }
+
+    if (queueScope === "REV") {
+      if (revQueueIds.length === 0) { setViolations([]); setLoading(false); return; }
+      q = q.in("assigned_queue_id", revQueueIds);
+    }
+
+    const { data, error } = await q;
+    if (error) {
+      toast.error("Failed to load review queue: " + error.message);
+      setViolations([]); setLoading(false); return;
+    }
+
+    const qMap = Object.fromEntries(allQueues.map(qq => [qq.id, qq.queue_name]));
     const iMap = Object.fromEntries(inspOptions.map(i => [i.id, i.display_name]));
 
     setViolations((data || []).map((v: any) => ({
       ...v,
-      queue_name: qMap[v.assigned_queue_id] || "—",
+      queue_name: v.assigned_queue_id ? (qMap[v.assigned_queue_id] || "—") : "Unassigned",
       assigned_officer_name: v.assigned_to_user_id ? iMap[v.assigned_to_user_id] || v.assigned_to_user_id.slice(0, 8) : "—",
     })));
     setLoading(false);
-  }, []);
+  }, [statusFilter, queueScope]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const statusCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    violations.forEach(v => { c[v.status] = (c[v.status] || 0) + 1; });
+    return c;
+  }, [violations]);
 
   const openReassign = (v: any) => {
     setSelectedViolation(v);
@@ -103,17 +131,38 @@ export default function ReviewQueue() {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Review Queue</h1>
-        <p className="text-muted-foreground">Violations under review or pending triage</p>
+        <h1 className="t-page-title">Review Queue</h1>
+        <p className="t-page-subtitle">Violations under review or pending triage</p>
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-lg flex items-center gap-2"><Eye className="h-5 w-5" /> Review Items ({violations.length})</CardTitle></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Eye className="h-5 w-5" /> Review Items ({violations.length})
+          </CardTitle>
+          <div className="flex items-center gap-2 flex-wrap">
+            {STATUS_OPTIONS.map(s => (
+              <Badge key={s} variant={statusFilter === s ? "default" : "outline"} className="cursor-pointer"
+                onClick={() => setStatusFilter(s)}>
+                {s} {statusCounts[s] ? `(${statusCounts[s]})` : ""}
+              </Badge>
+            ))}
+            <Badge variant={statusFilter === "ALL_REVIEW" ? "default" : "outline"} className="cursor-pointer"
+              onClick={() => setStatusFilter("ALL_REVIEW")}>All</Badge>
+            <Select value={queueScope} onValueChange={(v: any) => setQueueScope(v)}>
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="REV">Review queues only</SelectItem>
+                <SelectItem value="ALL">All queues</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
           ) : violations.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No violations in review queues</p>
+            <p className="text-center text-muted-foreground py-8">No violations match the selected filters</p>
           ) : (
             <Table>
               <TableHeader>
