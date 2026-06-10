@@ -21,6 +21,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Calculator, Save, Sparkles, FileJson, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBnFormulaTemplates } from '@/hooks/bn/useBnConfig';
+import { useBnFormulaVariableRegistry, buildSampleMap, buildLabelMap } from '@/hooks/bn/useBnFormulaVariableRegistry';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
