@@ -1,42 +1,23 @@
-## Goal
-Complete Wave A by migrating the remaining 10 BN configuration screens to the unified `BNDataGrid` standard, matching the pattern used in the 7 already-migrated screens (ProductCatalog, ReasonCodes, Delegations, DocumentSetup, EscalationConfig, ServiceDocTypes, ScreenMetadataSetup).
+## Status
 
-## Screens to migrate (batched)
+Wave A — 10/17 BN configuration screens on `BNDataGrid` (others skipped as non-list-shaped).
 
-### Batch 1 — Rule & Formula libraries
-1. `RuleCatalogue.tsx` — code, name, category, scope, version, status; row actions: View/Edit/Clone.
-2. `RulesAdministration.tsx` — admin list of rules with enable/disable + audit columns.
-3. `FormulaConfiguration.tsx` — formula code, name, return type, version, status; View/Edit/Test actions.
+Wave B (Operations) — in progress.
 
-### Batch 2 — Workflow & Approvals
-4. `WorkbasketConfig.tsx` — workbasket code, owner role, SLA, item count; Edit/Members.
-5. `RuleConfiguration.tsx` — rule binding list per product (if list-shaped; otherwise skip like RoleBundles).
-6. `ProductApprovalConsole.tsx` — pending product versions with maker/checker columns + Approve/Reject row actions.
+### Migrated this batch
+- `src/pages/bn/claims/ClaimWorklist.tsx` → `bn.claim-worklist`
+- `src/pages/bn/awards/PensionerRegister.tsx` → `bn.pensioner-register`
+- `src/pages/bn/awards/AwardAdjustments.tsx` → `bn.award-adjustments`
+- `src/pages/bn/awards/SurvivorAwards.tsx` → `bn.survivor-awards`
+- `src/components/bn/entitlement/EntitlementListTable.tsx` → `bn.entitlements`
+- `src/components/bn/payables/PayablesQueueTable.tsx` → `bn.payables-queue`
 
-### Batch 3 — Communications & Validation
-7. `BenefitCommunicationTemplates.tsx` — template code, channel, event, language, status.
-8. `BenefitConfigurationValidation.tsx` — severity, area, screen, table, issue, resolution, priority; row click jumps to `resolutionHref`.
+### Remaining Wave B candidates
+- `ClaimQueue.tsx` — dual-list workbasket layout, keep as-is or convert sub-tables individually.
+- `PaymentExceptions.tsx` — large screen, evaluate next.
+- `PostIssueEnhanced.tsx` / `PostIssueReview.tsx` — uses `PostIssueTaskList` child component.
+- `BatchOperations.tsx`, `ClaimWorkbench.tsx`, `Award360.tsx`, `Claim360.tsx` — multi-panel dashboards, skip.
 
-### Batch 4 — Reference data
-9. Country reference list screen.
-10. Medical reference data list screen.
-
-## Per-screen pattern (identical to migrated 7)
-- Replace `<Table>`/`<Card>` list layouts with `<BNDataGrid id="bn.<screen>" …/>`.
-- Define `BNColumnDef<T>[]` with `meta.label`, widths, `pinLeft` on first column.
-- Move filter chips → `toolbarFilters`.
-- Move row buttons → `rowActions` (icon + label; destructive variant for delete).
-- Move existing aggregates → `summary` chips.
-- Pass `onCreate`, `onRefresh`, `onRowClick`, `exportFilename`, `defaultSort`.
-- Preserve all existing dialogs, mutations, hooks, and permission gates — only the table layer changes.
-
-## Skipped (don't fit standard grid)
-- `RoleBundles` (card layout), `TransitionMatrix` (grouped multi-tables) — already noted in prior summary.
-- Any screen above that turns out to be a card/wizard layout will be skipped with a note instead of forced into a grid.
-
-## Delivery
-Single iteration covering all 10 screens, written in parallel batches. After this, Wave A is complete and we move to Wave B (Operations).
-
-## Verification
-After build, spot-check routes:
-`/bn/config/rules`, `/bn/config/rules-admin`, `/bn/config/formulas`, `/bn/config/workbaskets`, `/bn/config/product-approvals`, `/bn/config/communications`, `/bn/config/validation`, `/bn/config/countries`, `/bn/config/medical-refs`.
+### Per-screen pattern
+Replace `<Table>` with `<BNDataGrid id="bn.<screen>" …/>`, define `BNColumnDef[]` (pinLeft on first col, widths, labels),
+move row buttons to `rowActions`, preserve dialogs/mutations/hooks unchanged.
