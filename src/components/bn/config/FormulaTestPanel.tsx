@@ -18,6 +18,7 @@ import {
   buildSampleMap,
   buildLabelMap,
 } from '@/hooks/bn/useBnFormulaVariableRegistry';
+import { useVariableResolver } from '@/hooks/bn/useVariableResolver';
 import { getFormulaVariable } from '@/services/bn/registries/formulaVariableRegistry';
 
 interface Props {
