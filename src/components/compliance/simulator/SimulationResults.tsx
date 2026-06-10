@@ -58,6 +58,16 @@ function DetectionDetailRow({ d }: { d: DetectionResult }) {
                   </div>
                 </>
               )}
+              {d.evidence && d.evidence.length > 0 && (
+                <>
+                  <p className="text-xs font-semibold text-muted-foreground mt-2">Evidence:</p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                    {d.evidence.map((ev, i) => (
+                      <DetailItem key={`ev-${i}`} label={ev.label} value={ev.value} />
+                    ))}
+                  </div>
+                </>
+              )}
               <div className="mt-2 rounded bg-muted/40 p-2">
                 <p className="text-xs">
                   <span className="font-semibold">{d.matched ? '🔴 MATCHED' : '✅ NOT MATCHED'}:</span>{' '}
