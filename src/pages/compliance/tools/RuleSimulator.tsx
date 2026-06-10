@@ -132,7 +132,7 @@ export default function RuleSimulator() {
         (dup > 0 ? ` — ${dup} suppressed as duplicate` : '') +
         (useMultiPeriod ? ` (scanned ${context!.periodFacts.length} period(s))` : '')
     );
-  }, [facts, rules, overriddenFields, ruleCodeFilter, context, isManualMode, periodOverride, scanAllPeriods]);
+  }, [facts, rules, overriddenFields, ruleCodeFilter, context, isManualMode, periodOverride, scanAllPeriods, matchesOnly]);
 
   const handleReset = useCallback(() => {
     setFacts(createDefaultFactContext());
