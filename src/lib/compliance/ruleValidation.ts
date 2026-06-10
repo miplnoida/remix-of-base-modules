@@ -280,6 +280,8 @@ export function validateCalculationRule(
     applies_to?: string;
     formula_expression?: string | null;
     is_enabled?: boolean;
+    effective_from?: string | null;
+    effective_to?: string | null;
   },
   knownOperands: string[]
 ): RuleValidationResult {
@@ -289,6 +291,13 @@ export function validateCalculationRule(
   if (!rule.name?.trim()) pushError(errors, 'name', 'Name is required.');
   if (!rule.rule_code?.trim()) pushError(errors, 'rule_code', 'Rule code is required.');
   if (!rule.applies_to?.trim()) pushError(errors, 'applies_to', '"Applies To" is required.');
+
+  if (rule.effective_from && rule.effective_to && rule.effective_from > rule.effective_to) {
+    pushError(errors, 'effective_to', 'Effective From must be on or before Effective To.');
+  }
+  if (rule.is_enabled && rule.effective_to && rule.effective_to < new Date().toISOString().slice(0, 10)) {
+    pushError(errors, 'effective_to', 'Cannot activate a rule whose Effective To date has already passed.');
+  }
 
   const formulaResult = validateFormulaExpression(
     rule.formula_expression,
