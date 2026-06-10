@@ -1,114 +1,130 @@
-# Formula Library — Registry-Enforced Variables
+# Formula Library — Real Source Mapping (No Hidden Warnings)
 
 ## Goal
-Every variable referenced in any Formula Library template must resolve to exactly one of four registered sources:
-1. **Fact Registry** (`bn_eligibility_fact`)
-2. **Derived Fact Registry** (new — `bn_derived_fact`)
-3. **Product Parameter Registry** (new — `bn_product_parameter`)
-4. **Prior Formula Result** (an upstream `bn_formula_template` output in the same calculation chain)
+Every variable referenced by a Formula Library template resolves to a registered source. The validator keeps showing errors until each variable is bound to one of:
+`FACT` · `DERIVED_FACT` · `PRODUCT_PARAMETER` · `PRIOR_FORMULA_RESULT` · `CLAIM_FIELD` · `MANUAL_INPUT`.
 
-Today `bn_formula_variable_registry` is a flat, hand-edited list and the parser only checks against it (`Unknown variable "x"`). We replace that with a unified, source-attributed Variable Resolver.
+No warning hiding. No silent fallbacks.
 
 ---
 
-## 1. Database — new registries (migration)
+## 1. Database — new sources + seeds (single migration)
 
-### `bn_derived_fact`
-- `code` (unique), `display_name`, `description`, `unit`, `data_type`
-- `expression` (text — uses Fact / Product Parameter codes)
-- `source_fact_codes text[]`, `source_parameter_codes text[]`
-- `effective_from`, `effective_to`
-- `status` (DRAFT / IN_REVIEW / APPROVED / RETIRED), `version`, `previous_version_id`
-- `created_by`, `approved_by`, `approved_at`
-- governance audit table `bn_derived_fact_event`
+### 1a. Extend variable source enum
+Update `bn_formula_variable_registry.source_type` allowed values to include:
+`FACT`, `DERIVED_FACT`, `PRODUCT_PARAMETER`, `PRIOR_FORMULA_RESULT`, `CLAIM_FIELD`, `MANUAL_INPUT`.
 
-### `bn_product_parameter`
-- `code` (unique), `display_name`, `data_type`, `unit`, `default_value`
-- `product_id` (nullable for global), `scheme_id` (nullable)
-- `effective_from`, `effective_to`, `status`, `version`
-- audit table `bn_product_parameter_event`
+### 1b. Seed Product Parameters (`bn_product_parameter`, status=APPROVED, SEED-)
+`contribution_unit_size`, `base_weeks`, `increment_unit_size`, `payable_days_per_week`,
+`rate`, `replacement_rate`, `base_rate`, `increment_rate`, `flat_weekly_rate`,
+`grant_amount`, `unit_rate`, `pension_rate`, `disablement_rate`.
 
-### `bn_formula_template` additions
-- `variable_bindings jsonb` — `{ varCode: { source: 'FACT'|'DERIVED_FACT'|'PRODUCT_PARAMETER'|'PRIOR_RESULT', ref: '<code>' } }`
-- `validation_status` (VALID / INVALID), `last_validation_at`, `validation_errors jsonb`
+### 1c. Seed Derived Facts (`bn_derived_fact`, status=APPROVED, SEED-)
+| code | expression | sources |
+|---|---|---|
+| `contribution_units` | `floor(total_weeks / contribution_unit_size)` | FACT `total_weeks`, PARAM `contribution_unit_size` |
+| `additional_contribution_units` | `max(floor((total_weeks - base_weeks) / increment_unit_size), 0)` | FACT `total_weeks`, PARAMs `base_weeks`,`increment_unit_size` |
+| `payable_weeks` | `approved_days / payable_days_per_week` | CLAIM `approved_days`, PARAM `payable_days_per_week` |
+| `survivor_total_share` | `sum(beneficiary_share_percent)` | FACT collection |
 
-All four tables: GRANT to authenticated + service_role, RLS off (project rule).
+### 1d. Seed Facts (`bn_eligibility_fact`, where missing)
+`average_weekly_wage` (`contribution.average_weekly_wage`),
+`average_insurable_wage` (`contribution.average_insurable_wage`),
+`disablement_percentage` (`medical.disablement_percentage`),
+`total_weeks`, `beneficiary_share_percent`.
+
+### 1e. Seed Claim Fields
+Add `bn_eligibility_fact` rows with `source_type='CLAIM_FIELD'` (re-use fact table; resolver routes via source_type) for `approved_days`.
+
+### 1f. Update seeded Formula Templates to use registered codes only
+| template | new expression |
+|---|---|
+| `AGE_GRANT` | `contribution_units * unit_rate` |
+| `PCT_AVG_WAGE` | `average_weekly_wage * replacement_rate` |
+| `TIERED_PENSION` | `base_rate + (increment_rate * additional_contribution_units)` |
+| `SURVIVOR_SPLIT` | `base_pension * beneficiary_share_percent` |
+| `NCP_FLAT_RATE` | `flat_weekly_rate` |
+| `FUNERAL_GRANT` | `grant_amount` |
+| `EI_DISABLEMENT` | `average_weekly_wage * disablement_percentage * replacement_rate` |
+
+`base_pension` is registered as `PRIOR_FORMULA_RESULT` (output of TIERED_PENSION / PCT_AVG_WAGE).
+
+### 1g. Persist required-parameters map on each template
+`bn_formula_template.required_parameters jsonb` (array of product_parameter codes) populated for each seeded template:
+- AGE_GRANT → `["contribution_unit_size","unit_rate"]`
+- PCT_AVG_WAGE → `["replacement_rate"]`
+- TIERED_PENSION → `["base_rate","base_weeks","increment_rate","increment_unit_size"]`
+- NCP_FLAT_RATE → `["flat_weekly_rate"]`
+- FUNERAL_GRANT → `["grant_amount"]`
+- EI_DISABLEMENT → `["replacement_rate"]`
+- SURVIVOR_SPLIT → `[]` (uses prior result + fact)
 
 ---
 
-## 2. Variable Resolver (new service)
+## 2. Variable Resolver — extend to all 6 sources
 `src/services/bn/variableResolverService.ts`
+- Add `CLAIM_FIELD` and `MANUAL_INPUT` to `VariableSource`.
+- Load CLAIM_FIELD entries from `bn_eligibility_fact` where `source_type='CLAIM_FIELD'`.
+- Recognize PRIOR_FORMULA_RESULT for any `output_variable` of an active template.
+- Resolver returns structured `{ source, refId, resolverPath }` so the trace UI can render it.
 
-Loads, caches and merges entries from the four sources into a single map:
+---
+
+## 3. Formula Validator
+`src/lib/bn/formulaParser.ts` already returns structured `unresolved`. Extend `validateTemplate(template, resolverMap)`:
+1. parse → variable list
+2. each variable must be in resolverMap (else `UNREGISTERED`)
+3. each PRODUCT_PARAMETER must appear in `required_parameters`
+4. each PRIOR_FORMULA_RESULT must reference an upstream template in same product version
+5. sample simulation runs without NaN
+
+Errors surface in UI exactly as today — no suppression — but disappear because every variable now resolves.
+
+---
+
+## 4. Product Catalog — Calculation tab
+`src/pages/bn/product/...CalculationTab.tsx` (existing file used by Product Catalog):
+- On formula select, read `required_parameters` and render an input per parameter pulled from `bn_product_parameter` defaults.
+- Save writes overrides to `bn_product_channel_config.parameter_overrides jsonb`.
+- Activation guard: `canActivate = required_parameters.every(p => overrides[p] != null || param.default_value != null)`. Disabled "Activate" button with tooltip listing missing params.
+
+---
+
+## 5. Runtime Calculation Engine
+`src/services/bn/calculationEngine.ts` (extend existing):
 ```
-{ code -> { source, refId, displayName, unit, dataType, sampleValue?, status } }
+loadProductVersion → loadFormula → buildResolver(facts, params, priorResults, claim)
+  → evaluate(expression, resolver)
+  → persist bn_calc_trace rows: { variable, source, value, resolver_path }
 ```
-- Only ACTIVE / APPROVED entries with current effective dates are returned.
-- Used by:
-  - Formula parser (replaces `isValidFormulaVariableKey`)
-  - Calculation Builder variable picker
-  - Simulation engine sample-value lookup
-
-`formulaParser.parseFormula` accepts a resolver map and rejects any token not present, returning **structured** errors:
-```ts
-{ variable: 'rate_pct', reason: 'UNREGISTERED', suggestedSources: ['DERIVED_FACT','PRODUCT_PARAMETER'] }
-```
+Trace UI (`bn_calc_trace` viewer) renders columns: Variable | Source | Value | Resolver.
 
 ---
 
-## 3. UI — Formula Library
-
-### Validation panel (FormulaConfiguration.tsx / CalculationBuilder.tsx)
-For each variable used:
-- ✅ source badge (Fact / Derived Fact / Param / Prior Result) + ref code
-- ❌ red row with: variable name, "No registered source", **"Create as Derived Fact"** / **"Create as Product Parameter"** / **"Map to existing Fact"** quick actions that deep-link to the relevant editor pre-filled with the variable code.
-- Save is blocked while any variable is unresolved.
-
-### Variable picker
-Combobox grouped by source with search. No free typing of unknown identifiers.
-
-### New pages
-- `/bn/config/derived-facts` — list + editor + governance (Draft → Submit → Approve, with diff vs previous version, simulation tab using existing `bn_sim_*` infra).
-- `/bn/config/product-parameters` — list + editor + effective-date timeline.
-
-Both reuse the existing approval policy (`bn_approval_policy`) and audit pattern.
+## 6. Simulator alignment
+Simulator already uses the resolver — once the registry seeds land, the same expressions evaluate identically in simulator and runtime (single engine).
 
 ---
 
-## 4. Simulation
-- Extend `bn_sim_run` to capture which source each variable resolved to at run-time.
-- Derived Fact editor has a "Simulate" tab: pick sample fact/parameter values → evaluate expression → show result + dependency trace.
-- Formula Library "Test Formula" pulls sample values via the resolver instead of the hard-coded `sample` field on the legacy registry.
-
----
-
-## 5. Seed data (executed in the migration)
-Seed APPROVED Derived Facts and Product Parameters for every SKN/SS benefit family currently referenced by formula templates, tagged `SEED-`:
-
-**Product Parameters** — contribution_rate_employer, contribution_rate_employee, contribution_rate_self_employed, pension_base_rate_pct, pension_increment_rate_pct, pension_qualifying_years, survivor_widow_share_pct, survivor_child_share_pct, funeral_grant_amount, ncp_flat_weekly_rate, ei_disablement_min_pct, maternity_replacement_rate, sickness_replacement_rate, sickness_waiting_days, maternity_max_weeks, …
-
-**Derived Facts** — avg_weekly_wage, avg_annual_wage, paid_weeks, credited_weeks, total_weeks, extra_qualifying_years, disablement_degree_pct, base_pension, beneficiary_share_pct, family_cap_pct, deceased_paid_weeks_156, deceased_avg_weekly_wage, ncp_flat_amount, funeral_grant_amount, …
-
-Each seeded entry binds back to existing `bn_eligibility_fact` rows where applicable (e.g. `avg_weekly_wage` is a derived fact whose `source_fact_codes` include the paid-weeks / wage facts). Every variable currently in `bn_formula_variable_registry` is migrated to its appropriate new home, then that table is marked deprecated (kept read-only for one release).
-
----
-
-## 6. Cutover
-1. Run migration (tables + seed + backfill `variable_bindings` on existing templates by matching codes → seeded entries).
-2. Run resolver-based validator across all existing `bn_formula_template` rows; templates that still have unresolved variables are flagged `INVALID` and surfaced in an "Unknown Variables" admin report (replaces ad-hoc warnings).
-3. Existing parser path that throws `Unknown variable "x"` is replaced by the new structured error UI — warnings disappear naturally once every variable is bound.
+## 7. Acceptance checklist
+- [ ] No "Unknown variable" warnings on any seeded template.
+- [ ] AGE_GRANT evaluates: `contribution_units * unit_rate` returns numeric.
+- [ ] Every variable used by seeded templates has a `bn_eligibility_fact` / `bn_derived_fact` / `bn_product_parameter` / template-output row.
+- [ ] Product Catalog Calculation tab forces required parameter entry before activation.
+- [ ] Simulator and runtime produce the same number for the same inputs.
+- [ ] Calc trace shows Variable | Source | Value | Resolver for every variable.
+- [ ] `tsc` passes.
 
 ---
 
 ## Technical notes
-- No RLS (per project rule); access control via existing role permissions on `/bn/config/*` routes.
-- Governance reuses `bn_approval_policy`, `bn_version_approval`, `bn_module_events`.
-- All new tables include `created_by` / `updated_by` populated with logged-in `user_code` (per project standard).
-- No mock data — seeds use `SEED-` prefix and are idempotent (`ON CONFLICT (code) DO NOTHING`).
-- Edit-time validator runs client-side via the resolver cache; authoritative validation runs in a Postgres function `bn_validate_formula(template_id)` invoked on save and on publish.
-
----
+- All seeds idempotent (`ON CONFLICT (code) DO NOTHING`) and `SEED-` tagged.
+- No RLS (project rule); GRANT on every new/altered public table.
+- `bn_calc_trace` already exists — add `source_type` + `resolver_path` columns if missing.
+- Backfill existing `bn_formula_template.variable_bindings` from new resolver on migration.
+- `bn_formula_variable_registry` becomes a thin view over the four real sources (read-only) after cutover.
 
 ## Out of scope
-- Rewriting actual benefit calculations (the migration only re-homes variable *definitions* — calculations continue to run against the same numbers).
-- Changing Rule Engine / Eligibility Fact editor UX beyond adding the "used by formulas" back-reference.
+- Rebuilding calculation engine outside the variable layer.
+- Rewriting Product Catalog UI beyond the Calculation tab additions.
+- Migrating non-seeded historical templates (flagged INVALID, surfaced in admin report).
