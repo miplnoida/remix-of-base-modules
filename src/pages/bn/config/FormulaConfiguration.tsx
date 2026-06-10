@@ -193,7 +193,7 @@ export default function FormulaConfiguration() {
             <DialogHeader>
               <DialogTitle>{form.id ? 'Edit Formula Template' : 'Add Formula Template'}</DialogTitle>
               <DialogDescription>
-                Reusable calculation block. Pick variables from the registry — unknown variable names are rejected.
+                Reusable calculation block. Every variable must resolve to a Fact, Derived Fact, Product Parameter or Prior Formula Result — unknown variables block save and offer quick links to create the missing source.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
