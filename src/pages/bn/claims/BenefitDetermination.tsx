@@ -107,7 +107,7 @@ export default function BenefitDetermination() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Benefit Determination</h1>
+          <h1 className="t-page-title">Benefit Determination</h1>
           <p className="text-sm text-muted-foreground">
             Review eligibility, run calculations, and prepare decisions.
           </p>

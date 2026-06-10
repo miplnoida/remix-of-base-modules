@@ -130,7 +130,7 @@ const SurvivorsBenefitProcessing: React.FC = () => {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2"><Heart className="h-6 w-6" />Survivors' Benefit Processing</h1>
+          <h1 className="t-page-title flex items-center gap-2"><Heart className="h-6 w-6" />Survivors' Benefit Processing</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage survivor claims: deceased verification, dependant shares, and payments</p>
         </div>
       </div>

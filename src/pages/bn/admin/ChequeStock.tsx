@@ -54,7 +54,7 @@ const ChequeStockPage: React.FC = () => {
   return (
     <div className="p-6 space-y-6 max-w-5xl">
       <div>
-        <h1 className="text-2xl font-bold">Cheque Stock</h1>
+        <h1 className="t-page-title">Cheque Stock</h1>
         <p className="text-sm text-muted-foreground">Register cheque book ranges per bank account.</p>
       </div>
 

@@ -101,7 +101,7 @@ export default function ApprovalConsole() {
     <div className="space-y-4 p-6 pb-24">
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold tracking-tight">Approval Console</h1>
+        <h1 className="t-page-title">Approval Console</h1>
         <p className="text-sm text-muted-foreground">
           Review and approve benefit decisions. Approval activates entitlements — does not issue payments directly.
         </p>

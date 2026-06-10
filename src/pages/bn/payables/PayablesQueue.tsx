@@ -68,7 +68,7 @@ export default function PayablesQueue() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">Payables Queue</h1>
+          <h1 className="t-page-title">Payables Queue</h1>
           <p className="text-sm text-muted-foreground">
             Manage payable instructions before payment issue. Issued payments persist
             in legacy payment tables (cl_cheques) — not managed here.

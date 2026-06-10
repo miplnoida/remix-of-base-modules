@@ -192,7 +192,7 @@ export default function PaymentHistoryInquiry() {
             <CreditCard className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Payment History</h1>
+            <h1 className="t-page-title">Payment History</h1>
             <p className="text-sm text-muted-foreground">
               Search across modern and legacy payment records
             </p>

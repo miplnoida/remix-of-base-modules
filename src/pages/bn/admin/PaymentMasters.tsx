@@ -477,7 +477,7 @@ export default function PaymentMasters() {
   return (
     <div className="container mx-auto p-6 space-y-4">
       <div>
-        <h1 className="text-2xl font-semibold">Payment Masters</h1>
+        <h1 className="t-page-title">Payment Masters</h1>
         <p className="text-sm text-muted-foreground">Configure banks, branches, payment methods, and EFT file layouts used by Payment Preparation.</p>
       </div>
       <Tabs defaultValue="banks">

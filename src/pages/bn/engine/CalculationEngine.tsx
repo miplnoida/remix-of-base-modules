@@ -6,7 +6,7 @@ export default function CalculationEngine() {
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Calculation Simulator</h1>
+        <h1 className="t-page-title">Calculation Simulator</h1>
         <p className="text-muted-foreground">Test bench for configured formulas — run sample product test cases, view calculation trace, and compare expected vs actual.</p>
       </div>
       <BnScreenRoleBanner

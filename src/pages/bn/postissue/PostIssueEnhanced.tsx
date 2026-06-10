@@ -158,7 +158,7 @@ export default function PostIssueEnhanced() {
             <ListChecks className="h-6 w-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Post-Issue Review</h1>
+            <h1 className="t-page-title">Post-Issue Review</h1>
             <p className="text-sm text-muted-foreground">
               Complete claim-side updates, stale cheque detection, and batch finalization
             </p>

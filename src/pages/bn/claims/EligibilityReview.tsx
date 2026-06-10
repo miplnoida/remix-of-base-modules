@@ -132,7 +132,7 @@ export default function EligibilityReview() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="t-page-title flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
             Eligibility Review
           </h1>

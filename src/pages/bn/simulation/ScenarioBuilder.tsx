@@ -195,7 +195,7 @@ export default function ScenarioBuilder() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-xl font-bold text-foreground">
+          <h1 className="t-page-title">
             {isEditMode ? 'Edit Simulation Scenario' : 'New Simulation Scenario'}
           </h1>
           <p className="text-sm text-muted-foreground">

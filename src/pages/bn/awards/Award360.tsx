@@ -59,7 +59,7 @@ export default function Award360() {
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={() => navigate('/bn/awards')}><ArrowLeft className="h-4 w-4 mr-1" /> Back</Button>
         <div className="flex-1">
-          <h1 className="text-xl font-bold tracking-tight">Award {a.award_number ?? a.id.slice(0, 8)}</h1>
+          <h1 className="t-page-title">Award {a.award_number ?? a.id.slice(0, 8)}</h1>
           <p className="text-sm text-muted-foreground">{pName} · {a.benefit_code} · {a.award_type}</p>
         </div>
         <Badge variant={a.status === 'ACTIVE' ? 'default' : 'secondary'}>{a.status}</Badge>
