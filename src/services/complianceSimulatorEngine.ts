@@ -638,7 +638,11 @@ export function runSimulation(
 
       const vt = getViolationType(rule.violation_type_id, violationTypes);
       const autoCreate = rule.auto_create_violation ?? true;
-      const duplicateCount = vt?.id ? (dupMap[vt.id] ?? 0) : 0;
+      // Per-period dedupe takes precedence; falls back to per-type when no period available.
+      const dupKey = vt?.id && currentPeriod ? `${vt.id}|${currentPeriod}` : null;
+      const duplicateCount = dupKey && dupMapPeriod[dupKey] !== undefined
+        ? dupMapPeriod[dupKey]
+        : (vt?.id ? (dupMap[vt.id] ?? 0) : 0);
       const duplicateSuppressed = matched && duplicateCount > 0;
       const evidence = buildDetectionEvidence(rule.rule_code, facts);
 
@@ -656,6 +660,7 @@ export function runSimulation(
         duplicateCount,
         duplicateSuppressed,
         evidence,
+        period: currentPeriod,
       };
     });
 
