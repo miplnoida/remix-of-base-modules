@@ -11,7 +11,7 @@ interface Props {
   output: SimulationOutput | null;
 }
 
-function DetectionDetailRow({ d }: { d: DetectionResult }) {
+function DetectionDetailRow({ d, showPeriod }: { d: DetectionResult; showPeriod: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -23,6 +23,9 @@ function DetectionDetailRow({ d }: { d: DetectionResult }) {
           {open ? <ChevronDown className="h-3 w-3 inline mr-1" /> : <ChevronRight className="h-3 w-3 inline mr-1" />}
           <span className="font-mono">{d.ruleCode}</span>
         </TableCell>
+        {showPeriod && (
+          <TableCell className="text-xs font-mono text-muted-foreground">{d.period || '—'}</TableCell>
+        )}
         <TableCell className="text-xs font-medium">{d.ruleName}</TableCell>
         <TableCell>
           {d.matched ? <CheckCircle className="h-4 w-4 text-destructive" /> : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
@@ -39,7 +42,7 @@ function DetectionDetailRow({ d }: { d: DetectionResult }) {
       </TableRow>
       {open && (
         <TableRow className="bg-muted/20">
-          <TableCell colSpan={6} className="p-0">
+          <TableCell colSpan={showPeriod ? 7 : 6} className="p-0">
             <div className="px-6 py-3 space-y-2 border-l-2 border-primary/30 ml-4">
               <p className="text-xs font-semibold text-primary">How this was evaluated:</p>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1">
@@ -305,23 +308,31 @@ export default function SimulationResults({ output }: Props) {
             <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
               <Info className="h-3 w-3" /> Click any row to expand and see how the detection was evaluated, including parameters and thresholds.
             </p>
-            <div className="overflow-auto max-h-[500px] rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs w-24">Rule</TableHead>
-                    <TableHead className="text-xs">Name</TableHead>
-                    <TableHead className="text-xs w-16">Match</TableHead>
-                    <TableHead className="text-xs">Reason</TableHead>
-                    <TableHead className="text-xs w-28">Violation</TableHead>
-                    <TableHead className="text-xs w-24">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {output.detectionResults.map(d => <DetectionDetailRow key={d.ruleCode} d={d} />)}
-                </TableBody>
-              </Table>
-            </div>
+            {(() => {
+              const showPeriod = output.detectionResults.some(d => !!d.period);
+              return (
+                <div className="overflow-auto max-h-[500px] rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs w-24">Rule</TableHead>
+                        {showPeriod && <TableHead className="text-xs w-24">Period</TableHead>}
+                        <TableHead className="text-xs">Name</TableHead>
+                        <TableHead className="text-xs w-16">Match</TableHead>
+                        <TableHead className="text-xs">Reason</TableHead>
+                        <TableHead className="text-xs w-28">Violation</TableHead>
+                        <TableHead className="text-xs w-24">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {output.detectionResults.map((d, i) => (
+                        <DetectionDetailRow key={`${d.ruleCode}-${d.period ?? i}`} d={d} showPeriod={showPeriod} />
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })()}
           </TabsContent>
 
           <TabsContent value="calculation" className="mt-3">

@@ -74,6 +74,7 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
     queryKey: ['simulator-employer-context', regno, periodOverride ?? null],
     queryFn: async (): Promise<{
       facts: Partial<SimulationFactContext>;
+      periodFacts: Array<{ period: string; facts: Partial<SimulationFactContext> }>;
       filingHistory: any[];
       paymentHistory: any[];
       violations: any[];
@@ -93,6 +94,7 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
         currentNoticeStage: string | null;
       };
       existingViolationsByVtId: Record<string, number>;
+      existingViolationsByVtIdPeriod: Record<string, number>;
     }> => {
       if (!regno) throw new Error('No employer selected');
 
@@ -109,9 +111,9 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
         configRes,
       ] = await Promise.all([
         supabase.from('er_master').select('regno, name, status, trade_name, activity_type, sector_code').eq('regno', regno).single(),
-        supabase.from('cn_c3_reported').select('*').eq('payer_id', regno).order('period', { ascending: false }).limit(12),
-        supabase.from('cn_payment_header').select('*, cn_payment(*)').eq('payer_id', regno).order('date_received', { ascending: false }).limit(12),
-        supabase.from('ce_violations').select('id, violation_type_id, status, priority, created_at, resolved_at, source_type').or(`employer_id.eq.${regno}`).order('created_at', { ascending: false }).limit(50),
+        supabase.from('cn_c3_reported').select('*').eq('payer_id', regno).order('period', { ascending: false }).limit(24),
+        supabase.from('cn_payment_header').select('*, cn_payment(*)').eq('payer_id', regno).order('date_received', { ascending: false }).limit(24),
+        supabase.from('ce_violations').select('id, violation_type_id, status, priority, created_at, resolved_at, source_type, period_from').or(`employer_id.eq.${regno}`).order('created_at', { ascending: false }).limit(100),
         supabase.from('ce_payment_arrangements').select('*').eq('employer_id', regno).order('created_at', { ascending: false }).limit(5),
         supabase.from('ce_employer_financial_ledger').select('amount, entry_type, created_at').eq('employer_id', regno).order('created_at', { ascending: false }).limit(100),
         supabase.from('ce_risk_profiles').select('*').eq('employer_id', regno).maybeSingle(),
@@ -129,204 +131,153 @@ export function useEmployerComplianceContext(regno: string | null, periodOverrid
       const notices = noticesRes.data || [];
       const config = configRes.data;
 
-      // ── Config values ──
       const submissionDueDay = config?.submission_due_day || 28;
       const levyMonthlyThreshold = config?.levy_monthly_threshold || 6500;
-      const gracePeriodDays = 5; // from ce_compliance_policies
+      const gracePeriodDays = 5;
 
-      // ── Expected period analysis (with override support) ──
-      let { periodStr, periodDate } = getExpectedPeriod();
-      if (periodOverride && /^\d{4}-\d{2}$/.test(periodOverride)) {
-        const [y, m] = periodOverride.split('-').map(Number);
-        periodDate = new Date(y, m - 1, 1);
-        periodStr = `${periodOverride}-01`;
-      }
       const now = new Date();
 
-      // Check if C3 was filed for the expected period
-      const latestC3ForPeriod = c3s.find((c: any) => {
-        const cPeriod = c.period?.substring(0, 7); // YYYY-MM
-        const expectedPeriod = periodStr.substring(0, 7);
-        return cPeriod === expectedPeriod;
-      });
-
-      const filingSubmitted = !!latestC3ForPeriod;
-
-      // Calculate deadline for expected period
-      const deadlineDate = new Date(periodDate.getFullYear(), periodDate.getMonth() + 1, submissionDueDay || 28);
-      const daysPastDeadline = Math.max(0, daysBetween(deadlineDate, now));
-
-      // Filing date
-      const filingDate = latestC3ForPeriod?.date_received
-        ? new Date(latestC3ForPeriod.date_received).toISOString().split('T')[0]
-        : null;
-
-      // ── Payment analysis for the expected period ──
-      // Get all C3 amounts for expected period
-      const c3ForPeriod = latestC3ForPeriod;
-      const amountDue = c3ForPeriod
-        ? (Number(c3ForPeriod.emp_ss_amt_calc) || 0) +
-          (Number(c3ForPeriod.emp_levy_amt_calc) || 0) +
-          (Number(c3ForPeriod.emp_pe_amt_calc) || 0)
-        : 0;
-
-      // Check payments for this employer (match by period if possible)
-      const paymentsForPeriod = payments.filter((p: any) => {
-        const pPayments = p.cn_payment || [];
-        return pPayments.some((pp: any) => {
-          const pPeriod = pp.period?.substring(0, 7);
-          return pPeriod === periodStr.substring(0, 7);
-        });
-      });
-
-      const totalPaid = paymentsForPeriod.reduce((sum: number, p: any) => {
-        const pPayments = p.cn_payment || [];
-        return sum + pPayments
-          .filter((pp: any) => pp.period?.substring(0, 7) === periodStr.substring(0, 7))
-          .reduce((s: number, pp: any) => s + (Number(pp.payment_amount) || 0), 0);
-      }, 0);
-
-      const paymentMade = totalPaid > 0;
-      const shortfallAmount = Math.max(0, amountDue - totalPaid);
-      const shortfallPercent = amountDue > 0 ? (shortfallAmount / amountDue) * 100 : 0;
-
-      // ── Wages & contribution analysis ──
-      const latestC3 = c3s[0]; // most recent C3 regardless of period
-      const totalWagesDeclared = Number(c3ForPeriod?.total_wages || latestC3?.total_wages || 0);
-      const employeeCountDeclared = Number(c3ForPeriod?.number_employed || latestC3?.number_employed || 0);
-      const levyAmountReported = Number(c3ForPeriod?.emp_levy_amt_calc || latestC3?.emp_levy_amt_calc || 0);
-      const severanceAmountReported = Number(c3ForPeriod?.emp_pe_amt_calc || latestC3?.emp_pe_amt_calc || 0);
-
-      // Levy eligibility: wages exceed threshold
-      const levyEligible = totalWagesDeclared > levyMonthlyThreshold;
-      // Severance eligibility: employer has employees and had prior severance
-      const severanceEligible = employeeCountDeclared > 0;
-
-      // ── Calculate total outstanding from ledger ──
+      // Pre-compute global stats reused across periods.
       const totalOutstanding = ledgerEntries.reduce((sum: number, e: any) => {
         if (e.entry_type === 'DEBIT' || e.entry_type === 'CHARGE') return sum + (Number(e.amount) || 0);
         if (e.entry_type === 'CREDIT' || e.entry_type === 'PAYMENT') return sum - (Number(e.amount) || 0);
         return sum;
       }, 0);
-
-      // ── C3 filing stats for last 6 periods ──
-      // Generate last 6 expected periods
-      const last6Periods: string[] = [];
-      for (let i = 1; i <= 6; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        last6Periods.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
-      }
-
-      const filedPeriods = new Set(c3s.map((c: any) => c.period?.substring(0, 7)));
-      const filedCount = last6Periods.filter(p => filedPeriods.has(p)).length;
-      const notFiledCount = 6 - filedCount;
-
-      // Consecutive gaps
-      let consecutiveGapCount = 0;
-      for (const p of last6Periods) {
-        if (!filedPeriods.has(p)) consecutiveGapCount++;
-        else break;
-      }
-
-      // ── Payment matching for snapshot ──
-      const paidCount = payments.filter((p: any) => p.cn_payment && p.cn_payment.length > 0).length;
-
-      // ── Violations stats ──
-      const openViolations = violations.filter((v: any) => v.status === 'OPEN').length;
-      const reviewViolations = violations.filter((v: any) => v.status === 'UNDER_REVIEW').length;
-
-      // Repeat count (rolling 12 months)
-      const oneYearAgo = new Date();
-      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      const oneYearAgo = new Date(); oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
       const recentViolations = violations.filter((v: any) => new Date(v.created_at) >= oneYearAgo);
       const repeatCount = recentViolations.length;
-
-      // ── Active arrangement ──
       const activeArr = arrangements.find((a: any) => a.status === 'ACTIVE');
-
-      // ── Latest notice stage ──
       const latestNotice = notices.length > 0 ? notices[0] : null;
-
-      // ── Calculate prior average wages from last 3 C3s ──
       const last3Wages = c3s.slice(0, 3).map((c: any) => Number(c.total_wages) || 0);
       const priorAvgWages = last3Wages.length > 0
         ? last3Wages.reduce((s: number, w: number) => s + w, 0) / last3Wages.length
         : 0;
-
-      // ── Days open (oldest open violation) ──
       const oldestOpen = violations.find((v: any) => v.status === 'OPEN' || v.status === 'UNDER_REVIEW');
       const daysOpen = oldestOpen ? daysBetween(new Date(oldestOpen.created_at), now) : 0;
+      const filedPeriodsSet = new Set(c3s.map((c: any) => c.period?.substring(0, 7)));
 
-      // ── Clearance cert check ──
-      const hasClearanceCert = false; // No clearance cert table available — default to false
+      /** Build facts for one specific period (YYYY-MM-01). */
+      const buildFactsForPeriod = (pStr: string): Partial<SimulationFactContext> => {
+        const [y, m] = pStr.substring(0, 7).split('-').map(Number);
+        const periodDate = new Date(y, m - 1, 1);
+        const periodYm = pStr.substring(0, 7);
 
-      const facts: Partial<SimulationFactContext> = {
-        employerRegNo: employer?.regno || null,
-        employerStatus: employer?.status || null,
-        employerName: employer?.name || null,
-        businessType: employer?.activity_type || null,
+        const c3ForPeriod = c3s.find((c: any) => c.period?.substring(0, 7) === periodYm);
+        const filingSubmitted = !!c3ForPeriod;
+        const deadlineDate = new Date(periodDate.getFullYear(), periodDate.getMonth() + 1, submissionDueDay);
+        const daysPastDeadline = Math.max(0, daysBetween(deadlineDate, now));
+        const filingDate = c3ForPeriod?.date_received
+          ? new Date(c3ForPeriod.date_received).toISOString().split('T')[0]
+          : null;
 
-        // Filing facts — derived from actual C3 data
-        filingSubmitted,
-        filingDate,
-        filingPeriod: periodStr,
-        filingDueDay: submissionDueDay || 28,
-        gracePeriodDays,
-        daysPastDeadline,
+        const amountDue = c3ForPeriod
+          ? (Number(c3ForPeriod.emp_ss_amt_calc) || 0) +
+            (Number(c3ForPeriod.emp_levy_amt_calc) || 0) +
+            (Number(c3ForPeriod.emp_pe_amt_calc) || 0)
+          : 0;
 
-        // Payment facts — derived from actual payment data
-        paymentMade,
-        paymentAmount: totalPaid,
-        amountDue,
-        shortfallAmount,
-        shortfallPercent,
+        const totalPaid = payments.reduce((sum: number, p: any) => {
+          const ps = p.cn_payment || [];
+          return sum + ps
+            .filter((pp: any) => pp.period?.substring(0, 7) === periodYm)
+            .reduce((s: number, pp: any) => s + (Number(pp.payment_amount) || 0), 0);
+        }, 0);
+        const paymentMade = totalPaid > 0;
+        const shortfallAmount = Math.max(0, amountDue - totalPaid);
+        const shortfallPercent = amountDue > 0 ? (shortfallAmount / amountDue) * 100 : 0;
 
-        // Arrangement
-        arrangementActive: !!activeArr,
-        installmentOverdueDays: 0, // Would need arrangement installment schedule
+        const totalWagesDeclared = Number(c3ForPeriod?.total_wages || 0);
+        const employeeCountDeclared = Number(c3ForPeriod?.number_employed || 0);
+        const levyAmountReported = Number(c3ForPeriod?.emp_levy_amt_calc || 0);
+        const severanceAmountReported = Number(c3ForPeriod?.emp_pe_amt_calc || 0);
 
-        // Contribution facts — from latest/period C3
-        levyAmountReported,
-        severanceAmountReported,
-        employeeCountDeclared,
-        employeeCountObserved: 0, // From inspections — not available without event
-        totalWagesDeclared,
-        priorAverageWages: priorAvgWages,
-        levyEligible,
-        severanceEligible,
-        hasConsecutiveGaps: consecutiveGapCount >= 2,
-        consecutiveGapCount,
-
-        // History
-        priorViolationsCount: violations.length,
-        priorSameTypeViolationsRolling12: repeatCount,
-        repeatOffender: repeatCount >= 3,
-        hasClearanceCert,
-
-        // Risk/Status
-        riskScore: risk?.total_score || 0,
-        daysOpen,
-        totalOwed: Math.max(0, totalOutstanding),
-        noticeStage: latestNotice?.notice_type || null,
-        legalResponseReceived: false,
+        return {
+          employerRegNo: employer?.regno || null,
+          employerStatus: employer?.status || null,
+          employerName: employer?.name || null,
+          businessType: employer?.activity_type || null,
+          filingSubmitted,
+          filingDate,
+          filingPeriod: `${periodYm}-01`,
+          filingDueDay: submissionDueDay,
+          gracePeriodDays,
+          daysPastDeadline,
+          paymentMade,
+          paymentAmount: totalPaid,
+          amountDue,
+          shortfallAmount,
+          shortfallPercent,
+          arrangementActive: !!activeArr,
+          installmentOverdueDays: 0,
+          levyAmountReported,
+          severanceAmountReported,
+          employeeCountDeclared,
+          employeeCountObserved: 0,
+          totalWagesDeclared,
+          priorAverageWages: priorAvgWages,
+          levyEligible: totalWagesDeclared > levyMonthlyThreshold,
+          severanceEligible: employeeCountDeclared > 0,
+          hasConsecutiveGaps: false,
+          consecutiveGapCount: 0,
+          priorViolationsCount: violations.length,
+          priorSameTypeViolationsRolling12: repeatCount,
+          repeatOffender: repeatCount >= 3,
+          hasClearanceCert: false,
+          riskScore: risk?.total_score || 0,
+          daysOpen,
+          totalOwed: Math.max(0, totalOutstanding),
+          noticeStage: latestNotice?.notice_type || null,
+          legalResponseReceived: false,
+        };
       };
 
-      // Existing open/under-review violations grouped by violation_type_id for duplicate-suppression
+      // Build last 12 periods (previous month back 12 months). Skip current month.
+      const last12: string[] = [];
+      for (let i = 1; i <= 12; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        last12.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
+      }
+
+      const periodFacts = last12.map(p => ({ period: p.substring(0, 7), facts: buildFactsForPeriod(p) }));
+
+      // Snapshot: filed vs not-filed in last 6 periods
+      const last6 = last12.slice(0, 6).map(p => p.substring(0, 7));
+      const filedCount = last6.filter(p => filedPeriodsSet.has(p)).length;
+      const notFiledCount = 6 - filedCount;
+      const paidCount = payments.filter((p: any) => p.cn_payment && p.cn_payment.length > 0).length;
+      const openViolations = violations.filter((v: any) => v.status === 'OPEN').length;
+      const reviewViolations = violations.filter((v: any) => v.status === 'UNDER_REVIEW').length;
+
+      // Primary "facts" — use override if provided, else previous month.
+      const primaryPeriod = (periodOverride && /^\d{4}-\d{2}$/.test(periodOverride))
+        ? `${periodOverride}-01`
+        : last12[0];
+      const facts = buildFactsForPeriod(primaryPeriod);
+
+      // Per-type and per-(type, period) dedupe maps.
       const existingViolationsByVtId: Record<string, number> = {};
+      const existingViolationsByVtIdPeriod: Record<string, number> = {};
       for (const v of violations) {
-        if (v.violation_type_id && (v.status === 'OPEN' || v.status === 'UNDER_REVIEW')) {
-          existingViolationsByVtId[v.violation_type_id] = (existingViolationsByVtId[v.violation_type_id] ?? 0) + 1;
+        if (!v.violation_type_id) continue;
+        if (!(v.status === 'OPEN' || v.status === 'UNDER_REVIEW')) continue;
+        existingViolationsByVtId[v.violation_type_id] = (existingViolationsByVtId[v.violation_type_id] ?? 0) + 1;
+        const vPeriod = v.period_from ? String(v.period_from).substring(0, 7) : null;
+        if (vPeriod) {
+          const key = `${v.violation_type_id}|${vPeriod}`;
+          existingViolationsByVtIdPeriod[key] = (existingViolationsByVtIdPeriod[key] ?? 0) + 1;
         }
       }
 
       return {
         facts,
+        periodFacts,
         filingHistory: c3s,
         paymentHistory: payments,
         violations,
         arrangements,
         riskProfile: risk,
         existingViolationsByVtId,
+        existingViolationsByVtIdPeriod,
         snapshot: {
           filedCount,
           notFiledCount,

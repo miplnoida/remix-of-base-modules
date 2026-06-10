@@ -283,11 +283,55 @@ Deno.serve(async (req) => {
 
           case "c3_missing_30_days":
           case "contribution_gap_detected": {
-            if (filing && filing.missed_filings_12m >= 2 && !filing.is_current) {
-              shouldFlag = true;
-              summary = `Non-filing detected: ${filing.missed_filings_12m} missed C3 submissions in last 12 months. Last filed: ${filing.last_filing_period || "Never"}.`;
-              periodFrom = asOfPeriod;
+            // Per-period emission: flag every missing month independently so each
+            // gap (e.g. February only) gets its own violation row.
+            const lookback = Number(rule.parameters?.lookback_months ?? 12);
+            const minMissed = Number(rule.parameters?.min_missed_months ?? 1);
+            const graceDays = Number(rule.parameters?.days_past_deadline ?? 30);
+            const dueDay = Number(rule.parameters?.submission_due_day ?? 28);
+
+            // Build set of filed YYYY-MM periods for this employer from the filing view's raw data
+            // (filing view exposes last_filing_period + missed_filings_12m only; we need granular periods).
+            const { data: filedRows } = await supabase
+              .from("cn_c3_reported")
+              .select("period")
+              .eq("payer_id", emp.regno)
+              .gte("period", new Date(new Date().setMonth(new Date().getMonth() - lookback - 1)).toISOString().slice(0, 10));
+            const filedSet = new Set((filedRows || []).map((r: any) => String(r.period).slice(0, 7)));
+
+            const today = new Date(asOfDate);
+            const missing: string[] = [];
+            for (let i = 1; i <= lookback; i++) {
+              const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+              const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+              const deadline = new Date(d.getFullYear(), d.getMonth() + 1, dueDay + graceDays);
+              if (today >= deadline && !filedSet.has(ym)) missing.push(ym);
             }
+
+            if (missing.length >= minMissed) {
+              for (const ym of missing) {
+                const periodFromYm = `${ym}-01`;
+                const dedupeKey = `${emp.regno}|${rule.violation_type_id}|${periodFromYm}`;
+                if (existingSet.has(dedupeKey)) continue;
+                detected.push({
+                  rule_code: rule.rule_code,
+                  rule_name: rule.name,
+                  employer_id: emp.regno,
+                  employer_name: emp.name,
+                  violation_type_id: rule.violation_type_id,
+                  violation_type_code: rule.violation_type_code || "UNKNOWN",
+                  status: initialStatus,
+                  priority: rule.priority,
+                  summary: `Non-filing: C3 not submitted for ${ym} (deadline + ${graceDays}d grace passed).`,
+                  period_from: periodFromYm,
+                  source_type: "AUTOMATED",
+                  source_rule_id: rule.id,
+                });
+                existingSet.add(dedupeKey);
+              }
+            }
+            // Skip the legacy single-row insertion below by marking handled
+            shouldFlag = false;
             break;
           }
 

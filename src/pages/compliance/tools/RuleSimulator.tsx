@@ -20,9 +20,11 @@ import { useHasPermission } from '@/hooks/useNavigationMenu';
 import {
   createDefaultFactContext,
   runSimulation,
+  runMultiPeriodSimulation,
   type SimulationFactContext,
   type SimulationOutput,
 } from '@/services/complianceSimulatorEngine';
+import { Switch } from '@/components/ui/switch';
 
 export default function RuleSimulator() {
   const [selectedRegNo, setSelectedRegNo] = useState<string | null>(null);
@@ -34,6 +36,7 @@ export default function RuleSimulator() {
   const [overriddenFields, setOverriddenFields] = useState<Set<string>>(new Set());
   const [ruleCodeFilter, setRuleCodeFilter] = useState<string>('__all__');
   const [periodOverride, setPeriodOverride] = useState<string>('');
+  const [scanAllPeriods, setScanAllPeriods] = useState<boolean>(true);
 
   const canSave = useHasPermission('ce_rule_simulator', 'edit') || useHasPermission('ce_rule_simulator', 'manage');
   const saveRun = useSaveSimulationRun();
@@ -87,25 +90,46 @@ export default function RuleSimulator() {
       overriddenFields: Array.from(overriddenFields),
     };
 
-    const result = runSimulation(
-      factsWithOverrides,
-      rules.detectionRules,
-      rules.calculationRules,
-      rules.escalationRules,
-      rules.violationTypes,
-      {
-        ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
-        existingViolationsByVtId: context?.existingViolationsByVtId ?? {},
-      }
-    );
+    // Multi-period scan only when: live employer mode + no manual period override + toggle ON.
+    const useMultiPeriod = !isManualMode && !periodOverride && scanAllPeriods && context?.periodFacts && context.periodFacts.length > 0;
+
+    const result = useMultiPeriod
+      ? runMultiPeriodSimulation(
+          context!.periodFacts.map(pf => ({
+            period: pf.period,
+            facts: { ...createDefaultFactContext(), ...pf.facts, overriddenFields: [] } as SimulationFactContext,
+          })),
+          rules.detectionRules,
+          rules.calculationRules,
+          rules.escalationRules,
+          rules.violationTypes,
+          {
+            ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
+            existingViolationsByVtId: context?.existingViolationsByVtId ?? {},
+            existingViolationsByVtIdPeriod: context?.existingViolationsByVtIdPeriod ?? {},
+          }
+        )
+      : runSimulation(
+          factsWithOverrides,
+          rules.detectionRules,
+          rules.calculationRules,
+          rules.escalationRules,
+          rules.violationTypes,
+          {
+            ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
+            existingViolationsByVtId: context?.existingViolationsByVtId ?? {},
+            existingViolationsByVtIdPeriod: context?.existingViolationsByVtIdPeriod ?? {},
+          }
+        );
 
     setOutput(result);
     const dup = result.summary.duplicatesSuppressed;
     toast.success(
       `Simulation complete: ${result.summary.matchedDetections} detection(s) matched` +
-        (dup > 0 ? ` — ${dup} suppressed as duplicate` : '')
+        (dup > 0 ? ` — ${dup} suppressed as duplicate` : '') +
+        (useMultiPeriod ? ` (scanned ${context!.periodFacts.length} period(s))` : '')
     );
-  }, [facts, rules, overriddenFields, ruleCodeFilter, context]);
+  }, [facts, rules, overriddenFields, ruleCodeFilter, context, isManualMode, periodOverride, scanAllPeriods]);
 
   const handleReset = useCallback(() => {
     setFacts(createDefaultFactContext());
@@ -222,7 +246,20 @@ export default function RuleSimulator() {
               value={periodOverride}
               onChange={e => setPeriodOverride(e.target.value)}
               className="h-8 w-[150px] text-xs"
+              disabled={scanAllPeriods && !isManualMode}
+              title={scanAllPeriods && !isManualMode ? 'Disable "Scan last 12 months" to pick a single period' : ''}
             />
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Switch
+              id="scan-all-periods"
+              checked={scanAllPeriods}
+              onCheckedChange={setScanAllPeriods}
+              disabled={isManualMode}
+            />
+            <Label htmlFor="scan-all-periods" className="text-xs text-muted-foreground cursor-pointer">
+              Scan last 12 months
+            </Label>
           </div>
           <Button
             variant="outline"

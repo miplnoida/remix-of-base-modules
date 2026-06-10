@@ -1,65 +1,40 @@
-## Compliance & Enforcements — Issue Triage & Fix Plan
+## Issue confirmed for employer 657115
 
-Below is one targeted fix per reported issue. Each item names the screen, the suspected root cause (to confirm during build), and the change.
+The screenshots show C3 reports filed for **April** and **May 2026**, but **February 2026** is missing. Neither a violation nor a simulator match appears. Root cause is in three places:
 
-### 1. Overview → Active Violations count is wrong
+### Root causes
 
-- **File:** `src/pages/compliance/dashboards/ComplianceDashboard.tsx` (and the underlying KPI hook/view).
-- **Root cause hypothesis:** the tile counts ALL `ce_violations` rows or filters on a stale enum (e.g. excludes `IN_PROGRESS`/`UNDER_REVIEW`).
-- **Fix:** define "Active" = `status NOT IN ('RESOLVED','CLOSED','DISMISSED','CANCELLED','MERGED','SPLIT_PARENT')` AND `is_archived = false`. Update the dashboard query and any DB view (`ce_v_*` metrics) to match. Add a tooltip on the tile listing the exact statuses it includes so the value is auditable.
+1. **Auto-scan threshold too strict** — `supabase/functions/ce-violation-scan/index.ts` (line 286) requires `missed_filings_12m >= 2 && !filing.is_current` before raising a NON_FILING violation. Employer 657115 has only **1 missed month (Feb)** plus current filings, so nothing is ever created.
 
-### 2. Reports → Arrears & Collections → Total Arrears by Zone — wrong revenue
+2. **Scan collapses all missed months into one `asOfPeriod`** — `periodFrom = asOfPeriod` (today's month). The actual missing month is never recorded, and the dedupe key `employer|type|period` always matches "current month", so per-month tracking is impossible.
 
-- **File:** `src/pages/compliance/reports/ArrearsReports.tsx`.
-- **Root cause hypothesis:** sum is taken from `ce_arrears_report_entries.amount` without filtering by status (includes waived/written-off) or duplicates across `ce_employer_financial_ledger`.
-- **Fix:** switch the zone aggregation to sum `outstanding_amount` (principal + penalty + interest − paid − waived − written_off) from the financial ledger grouped by `ce_zones.id`, joined via employer → office → zone. Show a small "as of &nbsp;" and a drill-down list so the user can reconcile.
+3. **Rule Simulator only evaluates ONE period at a time** — `useSimulatorData.ts` defaults to "previous month" (May 2026, which is filed). DR-002 therefore reports "Only 0 days past deadline". There is no way to iterate the last 12 months, and the duplicate-suppression keys by `violation_type_id` only (ignores period), so DR-002 can be falsely suppressed.
 
-### 3. Risk Band Distribution — labels overlapping
+4. **Duplicate-suppression in simulator** keys by `violation_type_id` only — masks a legitimate per-period hit when any other open violation of the same type exists.
 
-- **File:** chart inside `src/pages/compliance/dashboards/ComplianceAnalytics.tsx` (Recharts PieChart/BarChart).
-- **Fix:** for the pie, move labels outside with leader lines (`labelLine`, `outerRadius` reduced, `label={renderCustomLabel}`), hide labels for slices <5% and surface them via legend + tooltip only. Add `minAngle` and increase container height on narrow viewports.
+## Fix plan
 
-### 4. Manual Violation → Payment-type violation has no amount; Rule Simulator lacks "why"
+### A. Auto-scan (`supabase/functions/ce-violation-scan/index.ts`)
+- Replace the single `c3_missing_30_days` branch with a **per-period loop** over the last N months (N = `parameters.lookback_months ?? 12`). For each month where C3 is missing AND deadline + grace has passed, emit one detected violation with `period_from = YYYY-MM`.
+- Lower the implicit threshold: trigger when **≥1** month is missing (configurable via `parameters.min_missed_months`, default 1).
+- Keep dedupe key `employer|violation_type|period_from` so per-month violations stay independent.
+- Apply the same per-period treatment to `c3_deadline_passed` (DR-001) and `payment_not_received` (DR-003) so a late/non-payment in a specific month is captured even when others are clean.
 
-- **Files:** `src/pages/compliance/violations/ManualViolationEntry.tsx`, `src/components/compliance/detection/*`, simulator under `src/components/compliance/simulator/*`.
-- **Fix A (form):** when `violation_type` resolves to a payment category (non-payment, short-payment, late-payment), render the same fields the auto-detector writes: `period_month` (month picker), `expected_amount`, `paid_amount`, `shortfall_amount` (auto-calc), `due_date`, `days_overdue`, plus the existing `parameters_snapshot` resolved from `c3_calculation_config`. Persist into `ce_violations.parameters_snapshot` and the dedicated columns.
-- **Fix B (simulator):** extend the detector's result row to include `evidence`: `{ missing_period: 'YYYY-MM', c3_submission_id, expected_amount, paid_amount }`. Render an "Evidence" sub-row in the simulator table so the user sees exactly which month was missed and which C3 submission proved it.
+### B. Rule Simulator (`useSimulatorData.ts` + `RuleSimulator.tsx` + `complianceSimulatorEngine.ts`)
+- Add a **"Scan range"** mode: when no explicit period override is set, build an array of the last 12 periods and evaluate every detection rule against each. Return results grouped by period.
+- For each period, compute `filingSubmitted`, `daysPastDeadline`, `amountDue`, `paymentMade` from that month's `cn_c3_reported` / `cn_payment` rows (already fetched, just iterate instead of `find`).
+- Update `SimulationResults.tsx` to show a Period column and group rows by period when scan-range mode is active.
+- Change duplicate-suppression key to `violation_type_id|period_from` so a per-month hit is not hidden by an unrelated open violation of the same type.
 
-### 5. Manual Violation → Employer ID should be a searchable picker
+### C. UI affordance
+- In `RuleSimulator.tsx` scenario panel, add a "Scan last 12 months" toggle (default ON for employer mode). Manual scenario keeps single-period behaviour.
+- Outcome Summary banner: list each missing period detected, not a generic "duplicate suppressed" line.
 
-- **File:** `src/pages/compliance/violations/ManualViolationEntry.tsx`.
-- **Fix:** replace the free-text `employer_id` input with the existing `SearchableSelect` employer picker used on `C3 Management → C3 Contribution` (reuse the same hook/component so behaviour, paging, and search-by-name/RegNo are identical). Store the selected employer's UUID and snapshot name/RegNo into the violation row.
+### D. Verification
+- After deploy, run scan for regno 657115 → expect 1 new DR-002 violation with `period_from = 2026-02`.
+- Open Rule Simulator → DR-002 row shows `Match` for the February period with evidence `Missing Month = 2026-02, Days Past Deadline = ~100`.
+- Knowledge Repo: update `compliance/detection/DR-002` entry and add a test case "single missing month must raise NON_FILING".
 
-### 6. Send to Legal → "Generate Recommendations" does nothing
-
-- **Files:** `src/pages/compliance/legal/*`, `src/components/compliance/CaseRequestActions.tsx` and the legal-escalation hook.
-- **Root cause hypothesis:** the button calls a missing/renamed RPC or relies on `ce_legal_recommendations` insert that fails silently because of a missing `referral_id`.
-- **Fix:** wire the button to `generate_legal_recommendations(case_id)` (server function), surface errors via the shielded-error toast, and on success refresh the recommendations panel. If the RPC doesn't yet exist, add it to apply `ce_legal_escalation_policy_rules` against the case context and insert into `ce_legal_recommendations`.
-
-### 7. Auto-generated violations missing from All Violations list
-
-- **File:** `src/pages/compliance/violations/ViolationsManagement.tsx`.
-- **Root cause hypothesis:** the list query filters `source = 'MANUAL'` or `created_by IS NOT NULL`, or requires `assigned_to` which auto rows lack.
-- **Fix:** remove the implicit filter; default the list to "All sources" with a Source facet (Manual / Auto / Imported). Confirm by counting `ce_violations` grouped by `source` and matching to the screen count.
-
-### 8. Assign / Reassign violation or case to another officer
-
-- **Files:** `src/pages/compliance/cases/CaseDetailView.tsx`, `src/pages/compliance/violations/ViolationDetails.tsx`, `src/components/compliance/BulkViolationActions.tsx`, and the workboard page that "shows workload".
-- **Fix:** add an "Assign / Reassign" action that opens a dialog with an officer picker (filtered by `ce_inspectors` + `ce_queue_members` for the relevant queue/zone), reason text, and effective date. Write to `ce_violation_assignments` / `ce_case_assignments` (close prior row with `unassigned_at`, insert new row), append to `ce_case_history`, and trigger the existing notification template. Expose the same action as a bulk action on the list and from the workload page so officers can be rebalanced in one click.
-
-### 9. Explain & verify the "Split" option in Violations
-
-- **File:** `src/components/compliance/ViolationSplitDialog.tsx`.
-- **Purpose:** Split lets an officer break one detected violation that actually represents multiple distinct breaches (e.g. 3 different months of non-payment lumped into one detection) into independent child violations so each can be tracked, noticed and resolved separately. Parent is marked `SPLIT_PARENT` and remains for audit; children inherit employer + case linkage with independent statuses and amounts.
-- **Verification work:** add a unit/integration test that (a) sum of child `amount` = parent `amount`, (b) parent transitions to `SPLIT_PARENT` and no longer counts as Active (ties to issue #1), (c) children appear in All Violations (ties to #7), (d) audit row written to `ce_violation_history`. Fix any of those that fail.
-
-### Cross-cutting
-
-- Update the Knowledge Repo entries for: Violation lifecycle (split/merge/active definition), Manual Violation form schema, Legal recommendation generation, Assignment model.
-- Add SQL integrity checks under `supabase/tests/sql/` for: parent/child sum invariant; "active count" definition; zone arrears reconciliation.
-- All UI mutations go through `useBlockingMutation`; multi-row assign uses `submittingId`.
-
-### Out of scope
-
-- Re-architecting the workboard layout (only adding the assign action).
-- Changing `c3_calculation_config` semantics (already covered by the prior snapshot work).
+## Out of scope
+- Repricing or recalculating already-resolved violations.
+- Changing `ce_v_employer_filing_status` view shape (we read existing C3 rows directly for the per-period iteration).
