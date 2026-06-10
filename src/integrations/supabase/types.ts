@@ -9524,6 +9524,7 @@ export type Database = {
           output_type: string
           output_variable: string | null
           product_usage_examples: Json
+          required_parameters: Json
           required_variables: Json
           rounding_rule: string | null
           template_code: string
@@ -9555,6 +9556,7 @@ export type Database = {
           output_type?: string
           output_variable?: string | null
           product_usage_examples?: Json
+          required_parameters?: Json
           required_variables?: Json
           rounding_rule?: string | null
           template_code: string
@@ -9586,6 +9588,7 @@ export type Database = {
           output_type?: string
           output_variable?: string | null
           product_usage_examples?: Json
+          required_parameters?: Json
           required_variables?: Json
           rounding_rule?: string | null
           template_code?: string
