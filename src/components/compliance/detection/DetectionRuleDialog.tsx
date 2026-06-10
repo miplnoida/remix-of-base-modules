@@ -575,18 +575,49 @@ const DataSourcesSection = ({
   triggerEvent: string;
   conditionVars: ConditionVar[];
 }) => {
+  const sources = useMemo(
+    () =>
+      conditionVars
+        .filter(v => v.sourceTable)
+        .map(v => ({
+          variable: v.label,
+          variableKey: v.value,
+          table: v.sourceTable!,
+          column: v.sourceColumn || '*',
+          c3Key: v.c3ConfigKey,
+        })),
+    [conditionVars],
+  );
+
+  const c3VarKeys = useMemo(
+    () => Array.from(new Set(sources.filter(s => s.c3Key).map(s => s.variableKey))),
+    [sources],
+  );
+
+  const [resolved, setResolved] = useState<Record<string, ResolvedVariable>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!triggerEvent || c3VarKeys.length === 0) {
+      setResolved({});
+      return;
+    }
+    (async () => {
+      try {
+        const list = await resolveMany(c3VarKeys);
+        if (cancelled) return;
+        const map: Record<string, ResolvedVariable> = {};
+        for (const r of list) map[r.variable_key] = r;
+        setResolved(map);
+      } catch {
+        // resolver is informational only — silent fail
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [triggerEvent, c3VarKeys.join('|')]);
+
   if (!triggerEvent) return null;
-
-  // Collect unique source tables/columns from relevant condition vars
-  const sources = conditionVars.filter(v => v.sourceTable).map(v => ({
-    variable: v.label,
-    table: v.sourceTable!,
-    column: v.sourceColumn || '*',
-    c3Key: v.c3ConfigKey,
-  }));
-
   const uniqueTables = Array.from(new Set(sources.map(s => s.table)));
-
   if (uniqueTables.length === 0) return null;
 
   return (
@@ -602,21 +633,33 @@ const DataSourcesSection = ({
             <div key={table} className="flex items-start gap-2">
               <Badge variant="outline" className="text-[10px] shrink-0 font-mono bg-background">{table}</Badge>
               <div className="flex flex-wrap gap-1">
-                {cols.map((col, i) => (
-                  <span key={i} className="text-[10px] text-muted-foreground">
-                    <span className="font-mono">.{col.column}</span>
-                    <span className="text-foreground/60"> ({col.variable})</span>
-                    {col.c3Key && (
-                      <span className="text-amber-600 dark:text-amber-400 ml-0.5">← C3: {col.c3Key}</span>
-                    )}
-                    {i < cols.length - 1 && <span className="mx-0.5">·</span>}
-                  </span>
-                ))}
+                {cols.map((col, i) => {
+                  const r = resolved[col.variableKey];
+                  return (
+                    <span key={i} className="text-[10px] text-muted-foreground">
+                      <span className="font-mono">.{col.column}</span>
+                      <span className="text-foreground/60"> ({col.variable})</span>
+                      {col.c3Key && (
+                        <span className="text-amber-600 dark:text-amber-400 ml-0.5">
+                          ← C3: {col.c3Key}
+                          {r && (r.unresolved
+                            ? <span className="text-destructive ml-1">[unresolved]</span>
+                            : <span className="text-foreground/80"> = <span className="font-mono">{r.value}</span></span>
+                          )}
+                        </span>
+                      )}
+                      {i < cols.length - 1 && <span className="mx-0.5">·</span>}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           );
         })}
       </div>
+      <p className="text-[10px] text-muted-foreground italic">
+        Live values shown for reference. On save, the rule freezes a snapshot — historical detections never change when C3 Configuration is updated.
+      </p>
     </div>
   );
 };
