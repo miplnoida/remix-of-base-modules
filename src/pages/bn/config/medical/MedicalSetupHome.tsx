@@ -19,7 +19,7 @@ export default function MedicalSetupHome() {
       <div className="flex items-center gap-3">
         <Stethoscope className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">Medical Policy Library</h1>
+          <h1 className="t-page-title">Medical Policy Library</h1>
           <p className="text-sm text-muted-foreground">Reusable medical board rules, certificate categories, disablement % rules, invalidity review intervals and provider rules.</p>
         </div>
       </div>

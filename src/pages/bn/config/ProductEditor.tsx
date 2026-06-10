@@ -169,7 +169,7 @@ export default function ProductEditor() {
           </Button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-foreground">
+              <h1 className="t-page-title">
                 {isNew ? 'Create Benefit Product' : form.benefit_name}
               </h1>
               {!isNew && form.status && (

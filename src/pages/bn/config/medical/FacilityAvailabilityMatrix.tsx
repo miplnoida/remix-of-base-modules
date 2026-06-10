@@ -70,7 +70,7 @@ export default function FacilityAvailabilityMatrix() {
       <div className="flex items-center gap-3">
         <Building2 className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">Facility Availability Matrix</h1>
+          <h1 className="t-page-title">Facility Availability Matrix</h1>
           <p className="text-sm text-muted-foreground">Approved providers and which procedures they offer per jurisdiction.</p>
         </div>
       </div>

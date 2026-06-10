@@ -15,7 +15,7 @@ export default function MedicalDocumentsPage() {
       <div className="flex items-center gap-3">
         <FileText className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">Medical Documents</h1>
+          <h1 className="t-page-title">Medical Documents</h1>
           <p className="text-sm text-muted-foreground">Document requirements per procedure and jurisdiction.</p>
         </div>
       </div>
