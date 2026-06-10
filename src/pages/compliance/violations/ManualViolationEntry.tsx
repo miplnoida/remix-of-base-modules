@@ -17,8 +17,9 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { caseViolationService } from '@/services/caseViolationService';
 import { toast } from 'sonner';
 import { resolveMany, buildSnapshot, type ResolvedVariable } from '@/services/compliance/policyResolver';
-import { RefreshCw, Settings2 } from 'lucide-react';
+import { RefreshCw, Settings2, DollarSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { CompliantEmployerPicker } from '@/components/compliance/CompliantEmployerPicker';
 
 const MODULE = 'manage_compliance';
 const FUND_LABELS: Record<string, string> = {
@@ -43,6 +44,7 @@ function ManualViolationEntryInner() {
   const [assignToMe, setAssignToMe] = useState(true);
   const [dueDate, setDueDate] = useState('');
   const [employerId, setEmployerId] = useState('');
+  const [employerName, setEmployerName] = useState('');
   const [candidateBusinessName, setCandidateBusinessName] = useState('');
   const [candidateLocation, setCandidateLocation] = useState('');
   const [candidateActivityType, setCandidateActivityType] = useState('');
@@ -50,6 +52,11 @@ function ManualViolationEntryInner() {
   const [triggerWorkflow, setTriggerWorkflow] = useState(false);
   const [createCase, setCreateCase] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Issue #4 — financial fields when the violation type is payment/contribution
+  const [expectedAmount, setExpectedAmount] = useState('');
+  const [paidAmount, setPaidAmount] = useState('');
+  const [penaltyAmount, setPenaltyAmount] = useState('');
+  const [interestAmount, setInterestAmount] = useState('');
 
   // Policy defaults resolved live from c3_calculation_config via ce_rule_variable_mappings.
   // SNAPSHOT CONTRACT: resolved values are loaded once on mount for display + saved as
@@ -84,6 +91,7 @@ function ManualViolationEntryInner() {
     const prefill = (location.state as any)?.prefill;
     if (prefill?.employer_id) {
       setEmployerId(prefill.employer_id);
+      setEmployerName(prefill.employer_name || '');
       setEntryType('employer');
       window.history.replaceState({}, document.title);
     }
@@ -94,6 +102,13 @@ function ManualViolationEntryInner() {
     [violationTypes, violationTypeId],
   );
   const applicableFunds: string[] = selectedType?.applicable_funds || [];
+  // Issue #4 — Categories that should expose amount fields. Payment-related
+  // violations need expected / paid / penalty / interest so the violation
+  // carries a meaningful total, just like the auto-detector populates.
+  const hasFinancialFields = useMemo(() => {
+    const cat = (selectedType?.category || '').toUpperCase();
+    return ['PAYMENT', 'CONTRIBUTION', 'DECLARATION'].includes(cat);
+  }, [selectedType]);
 
   useEffect(() => {
     // Reset fund when violation type changes if not applicable
@@ -101,6 +116,16 @@ function ManualViolationEntryInner() {
       setFundType(applicableFunds[0]);
     }
   }, [violationTypeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Derived shortfall for payment-style violations
+  const shortfall = useMemo(() => {
+    const expected = parseFloat(expectedAmount) || 0;
+    const paid = parseFloat(paidAmount) || 0;
+    return Math.max(0, expected - paid);
+  }, [expectedAmount, paidAmount]);
+  const computedTotal = useMemo(() => {
+    return shortfall + (parseFloat(penaltyAmount) || 0) + (parseFloat(interestAmount) || 0);
+  }, [shortfall, penaltyAmount, interestAmount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,12 +151,20 @@ function ManualViolationEntryInner() {
       setLoading(true);
       const violationNumber = `VIO-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.random().toString(16).slice(2, 10).toUpperCase()}`;
 
-      let employerName: string | undefined;
-      if (entryType === 'employer' && employerId) {
+      // Use the name already captured by the picker; fall back to a single
+      // round-trip if the user came in via prefill without a name.
+      let resolvedEmployerName: string | undefined = employerName;
+      if (entryType === 'employer' && employerId && !resolvedEmployerName) {
         const { data: emp } = await supabase
           .from('er_master').select('name').eq('regno', employerId).maybeSingle();
-        employerName = emp?.name ?? undefined;
+        resolvedEmployerName = emp?.name ?? undefined;
       }
+
+      // Issue #4 — Persist amount fields for payment/contribution types.
+      const principal = hasFinancialFields ? shortfall : 0;
+      const penalty = hasFinancialFields ? (parseFloat(penaltyAmount) || 0) : 0;
+      const interest = hasFinancialFields ? (parseFloat(interestAmount) || 0) : 0;
+      const total = hasFinancialFields ? computedTotal : 0;
 
       const performer = userCode || 'UNKNOWN';
       const { data: inserted, error } = await supabase
@@ -139,7 +172,7 @@ function ManualViolationEntryInner() {
         .insert({
           violation_number: violationNumber,
           employer_id: entryType === 'employer' ? employerId : null,
-          employer_name: employerName ?? candidateBusinessName,
+          employer_name: resolvedEmployerName ?? candidateBusinessName,
           territory,
           violation_type_id: violationTypeId,
           fund_type: fundType || null,
@@ -149,6 +182,10 @@ function ManualViolationEntryInner() {
           summary,
           description,
           period_from: periodFrom || null,
+          principal_amount: principal,
+          penalty_amount: penalty,
+          interest_amount: interest,
+          total_amount: total,
           is_unlinked: entryType === 'scouting',
           candidate_business_name: entryType === 'scouting' ? candidateBusinessName : null,
           candidate_location: entryType === 'scouting' ? candidateLocation : null,
@@ -163,7 +200,21 @@ function ManualViolationEntryInner() {
           // Freeze a snapshot of policy parameters at creation time.
           // Re-resolves are NOT performed on edit/reopen — historical violations
           // never change when Finance later updates c3_calculation_config.
-          parameters_snapshot: policyDefaults.length > 0 ? buildSnapshot(policyDefaults) : null,
+          parameters_snapshot: policyDefaults.length > 0
+            ? {
+                ...buildSnapshot(policyDefaults),
+                // Also freeze the user-entered amounts so historical reports
+                // can reconstruct how the total was derived.
+                amounts: hasFinancialFields ? {
+                  expected: parseFloat(expectedAmount) || 0,
+                  paid: parseFloat(paidAmount) || 0,
+                  shortfall: principal,
+                  penalty,
+                  interest,
+                  total,
+                } : null,
+              }
+            : null,
         } as any)
         .select('*')
         .single();
@@ -200,10 +251,10 @@ function ManualViolationEntryInner() {
               id: inserted.id,
               violation_number: inserted.violation_number,
               employer_id: employerId,
-              employer_name: employerName,
+              employer_name: resolvedEmployerName,
               territory,
               priority,
-              total_amount: 0,
+              total_amount: total,
             },
             performer,
           );
@@ -246,8 +297,15 @@ function ManualViolationEntryInner() {
             <form onSubmit={handleSubmit} className="mt-6 space-y-6">
               <TabsContent value="employer" className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Employer ID *</Label>
-                  <Input value={employerId} onChange={(e) => setEmployerId(e.target.value)} placeholder="EMP-2024-001" />
+                  <Label>Employer *</Label>
+                  <CompliantEmployerPicker
+                    value={employerId || null}
+                    valueLabel={employerName}
+                    onSelect={(regno, name) => {
+                      setEmployerId(regno || '');
+                      setEmployerName(name);
+                    }}
+                  />
                 </div>
               </TabsContent>
 
@@ -322,6 +380,44 @@ function ManualViolationEntryInner() {
                     <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                   </div>
                 </div>
+
+                {/* Issue #4 — Financial fields for payment/contribution types.
+                    Mirrors what the auto-detector writes so the violation
+                    carries a meaningful total instead of zero. */}
+                {hasFinancialFields && (
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <DollarSign className="h-4 w-4 text-primary" />
+                      Amount Details — {selectedType?.category}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Expected Amount (EC$)</Label>
+                        <Input type="number" step="0.01" min="0" value={expectedAmount}
+                          onChange={(e) => setExpectedAmount(e.target.value)} placeholder="0.00" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Paid Amount (EC$)</Label>
+                        <Input type="number" step="0.01" min="0" value={paidAmount}
+                          onChange={(e) => setPaidAmount(e.target.value)} placeholder="0.00" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Penalty (EC$)</Label>
+                        <Input type="number" step="0.01" min="0" value={penaltyAmount}
+                          onChange={(e) => setPenaltyAmount(e.target.value)} placeholder="0.00" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Interest (EC$)</Label>
+                        <Input type="number" step="0.01" min="0" value={interestAmount}
+                          onChange={(e) => setInterestAmount(e.target.value)} placeholder="0.00" />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center text-xs pt-2 border-t">
+                      <span className="text-muted-foreground">Shortfall (Expected − Paid): <span className="font-mono font-medium">EC$ {shortfall.toFixed(2)}</span></span>
+                      <span className="font-medium">Total Violation Amount: <span className="font-mono text-primary">EC$ {computedTotal.toFixed(2)}</span></span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>Summary *</Label>

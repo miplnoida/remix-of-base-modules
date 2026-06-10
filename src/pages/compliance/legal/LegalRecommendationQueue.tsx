@@ -61,9 +61,23 @@ const LegalRecommendationQueue = () => {
     mutationFn: () => legalEscalationService.generateRecommendations(userCode || 'SYSTEM'),
     onSuccess: (count) => {
       invalidateAll();
-      toast.success(`Generated ${count} new recommendation${count !== 1 ? 's' : ''} from compliance data`);
+      if (count === 0) {
+        toast.info('No new recommendations generated', {
+          description: 'No employers currently meet the configured legal-escalation thresholds.',
+        });
+      } else {
+        toast.success(`Generated ${count} new recommendation${count !== 1 ? 's' : ''} from compliance data`);
+      }
     },
-    onError: () => toast.error('Failed to generate recommendations'),
+    // Issue #6 — Surface the real error from the RPC so admins can act on it
+    // (e.g. missing escalation policy, no qualifying cases, RPC permission).
+    onError: (err: any) => {
+      const msg = err?.message || err?.error?.message || 'Unknown error';
+      toast.error('Failed to generate recommendations', { description: msg });
+      // Non-blocking diagnostic log for support
+      // eslint-disable-next-line no-console
+      console.error('[LegalRecommendations] generate failed', err);
+    },
   });
 
   const approveMut = useMutation({

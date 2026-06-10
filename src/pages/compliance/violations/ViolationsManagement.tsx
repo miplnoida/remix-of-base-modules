@@ -50,8 +50,10 @@ const currencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', cu
 function ViolationsManagementInner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const currentMonth = new Date().toISOString().slice(0, 7);
-  const [filters, setFilters] = useState({ ...emptyViolationFilterState, month: currentMonth });
+  // Issue #7 — All Violations must show auto-generated rows by default. The
+  // previous implementation defaulted to the current month, which hid older
+  // DETECTION_RULE rows. Leave month empty; user can still filter by period.
+  const [filters, setFilters] = useState({ ...emptyViolationFilterState });
   const debouncedSearch = useDebounce(filters.search, 400);
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
