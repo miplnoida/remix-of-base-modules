@@ -297,8 +297,15 @@ function ManualViolationEntryInner() {
             <form onSubmit={handleSubmit} className="mt-6 space-y-6">
               <TabsContent value="employer" className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Employer ID *</Label>
-                  <Input value={employerId} onChange={(e) => setEmployerId(e.target.value)} placeholder="EMP-2024-001" />
+                  <Label>Employer *</Label>
+                  <CompliantEmployerPicker
+                    value={employerId || null}
+                    valueLabel={employerName}
+                    onSelect={(regno, name) => {
+                      setEmployerId(regno || '');
+                      setEmployerName(name);
+                    }}
+                  />
                 </div>
               </TabsContent>
 
@@ -373,6 +380,44 @@ function ManualViolationEntryInner() {
                     <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
                   </div>
                 </div>
+
+                {/* Issue #4 — Financial fields for payment/contribution types.
+                    Mirrors what the auto-detector writes so the violation
+                    carries a meaningful total instead of zero. */}
+                {hasFinancialFields && (
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <DollarSign className="h-4 w-4 text-primary" />
+                      Amount Details — {selectedType?.category}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Expected Amount (EC$)</Label>
+                        <Input type="number" step="0.01" min="0" value={expectedAmount}
+                          onChange={(e) => setExpectedAmount(e.target.value)} placeholder="0.00" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Paid Amount (EC$)</Label>
+                        <Input type="number" step="0.01" min="0" value={paidAmount}
+                          onChange={(e) => setPaidAmount(e.target.value)} placeholder="0.00" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Penalty (EC$)</Label>
+                        <Input type="number" step="0.01" min="0" value={penaltyAmount}
+                          onChange={(e) => setPenaltyAmount(e.target.value)} placeholder="0.00" />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Interest (EC$)</Label>
+                        <Input type="number" step="0.01" min="0" value={interestAmount}
+                          onChange={(e) => setInterestAmount(e.target.value)} placeholder="0.00" />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center text-xs pt-2 border-t">
+                      <span className="text-muted-foreground">Shortfall (Expected − Paid): <span className="font-mono font-medium">EC$ {shortfall.toFixed(2)}</span></span>
+                      <span className="font-medium">Total Violation Amount: <span className="font-mono text-primary">EC$ {computedTotal.toFixed(2)}</span></span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>Summary *</Label>
