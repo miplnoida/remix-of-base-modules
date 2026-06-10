@@ -72,8 +72,8 @@ export const NewCaseDialog = ({ open, onOpenChange }: Props) => {
     queryFn: async () => {
       const q = debounced.trim();
       const { data, error } = await (supabase.from('ce_employer_profile_view') as any)
-        .select('id, employer_no, employer_name, territory')
-        .or(`employer_name.ilike.%${q}%,employer_no.ilike.%${q}%`)
+        .select('employer_id, employer_name, territory')
+        .or(`employer_name.ilike.%${q}%,employer_id.ilike.%${q}%`)
         .limit(15);
       if (error) throw error;
       return (data ?? []) as EmployerRow[];
