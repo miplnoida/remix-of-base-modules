@@ -36,6 +36,7 @@ export default function RuleSimulator() {
   const [overriddenFields, setOverriddenFields] = useState<Set<string>>(new Set());
   const [ruleCodeFilter, setRuleCodeFilter] = useState<string>('__all__');
   const [periodOverride, setPeriodOverride] = useState<string>('');
+  const [scanAllPeriods, setScanAllPeriods] = useState<boolean>(true);
 
   const canSave = useHasPermission('ce_rule_simulator', 'edit') || useHasPermission('ce_rule_simulator', 'manage');
   const saveRun = useSaveSimulationRun();
