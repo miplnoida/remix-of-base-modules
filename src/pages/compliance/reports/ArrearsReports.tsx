@@ -90,6 +90,10 @@ export default function ArrearsReports() {
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader title="Arrears & Collections Reports" subtitle="Outstanding balances, payment trends, and recovery metrics" breadcrumbs={[{ label: 'Compliance', href: '/compliance/dashboard' }, { label: 'Reports', href: '/compliance/reports' }, { label: 'Arrears' }]} />
 
+      {asOf && (
+        <p className="text-xs text-muted-foreground -mt-3">As of {asOf.toLocaleString()} · Source: ce_arrears_report_entries</p>
+      )}
+
       <Card><CardHeader><CardTitle>Filters</CardTitle></CardHeader><CardContent>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div><label className="text-sm font-medium mb-2 block">Zone</label>
