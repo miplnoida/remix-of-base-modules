@@ -163,8 +163,7 @@ export function AssignmentDialog({ open, onOpenChange, entityType, entityId, cur
       setReason('');
     },
     onError: (e: any) => toast.error(e?.message || 'Failed to reassign'),
-    operationName: 'Reassigning',
-  });
+  }, 'Reassigning');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
