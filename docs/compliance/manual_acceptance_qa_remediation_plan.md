@@ -176,9 +176,33 @@ Legend — **R**isk: 🟢 Low · 🟡 Medium · 🔴 High
 
 ---
 
-## Open questions before coding
+## Answers to open questions (confirmed by product)
 
-1. Item #2: is there an existing closure-approval workflow definition already configured, or do we also need to seed one for verification?
-2. Item #3: do we also want a hard DB unique index, or warning-only for now?
-3. Item #7: please confirm the role → tab visibility matrix you want (a draft will be proposed as part of the fix if not provided).
-4. Item #10: confirm the exact status value the case → legal handoff sets (`RECOMMENDED_FOR_LEGAL` vs `PENDING_LEGAL_REVIEW` vs other).
+1. **Item #2** — Seed a `case.closure_approval` workflow definition + a `ce_workflow_mappings` row (enabled) so end-to-end verification is possible.
+2. **Item #3** — Warning-only for now. No hard DB unique index. Capture justification + `related_prior_violation_id`.
+3. **Item #7** — Yes, produce a Role → Tab visibility matrix (drafted below; will be reflected in `TAB_CAPABILITY_MAP` + `docs/compliance/case_screens_responsibility_matrix.md`).
+4. **Item #10** — Status emitted by the case → legal handoff is `RECOMMENDED_FOR_LEGAL`. Align query filter and seed `SEED-` cases in that status.
+
+### Draft Role → My Work Queue tab matrix (item #7)
+
+| Tab                       | Capability gate                          | Inspector | Senior Inspector | Compliance Head | Compliance Admin | Legal Officer |
+| ------------------------- | ---------------------------------------- | :-------: | :--------------: | :-------------: | :--------------: | :-----------: |
+| Field Work (visits)       | `compliance.field.execute`               |     ✅    |        ✅        |        ✅       |         —        |       —       |
+| Plan Approvals            | `compliance.field.approve_plans`         |     —     |        ✅        |        ✅       |         —        |       —       |
+| Report Approvals          | `compliance.field.approve_reports`       |     —     |        ✅        |        ✅       |         —        |       —       |
+| Violations (review)       | `compliance.violations.manage`           |     ✅    |        ✅        |        ✅       |         ✅       |       —       |
+| Cases (work)              | `compliance.cases.manage`                |     ✅    |        ✅        |        ✅       |         ✅       |       —       |
+| Closure Approvals         | `compliance.cases.manage` + head/senior  |     —     |        ✅        |        ✅       |         —        |       —       |
+| Notices                   | `compliance.enforcement.notices`         |     ✅    |        ✅        |        ✅       |         —        |       —       |
+| Arrangements              | `compliance.enforcement.arrangements`    |     —     |        ✅        |        ✅       |         —        |       —       |
+| Legal Recommendations     | `compliance.enforcement.legal`           |     —     |        ✅        |        ✅       |         —        |       ✅      |
+| Team Workbench            | `compliance.workbench.team`              |     —     |        ✅        |        ✅       |         —        |       —       |
+| Enterprise Workbench      | `compliance.workbench.enterprise`        |     —     |         —        |        ✅       |         —        |       —       |
+
+Empty-state shown when zero tabs visible: "No work-queue items for your role".
+
+---
+
+## Execution order (confirmed)
+
+4 → 6 → 5 → 9 → 10 → 1 → 3 → 2 → 7 → 8.  Each item ships its own commit + KB/test-case update per Entry 8.
