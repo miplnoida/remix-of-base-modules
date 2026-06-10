@@ -70,7 +70,7 @@ const BNGridDemo: React.FC = () => {
         <p className="text-sm text-muted-foreground">Internal QA route. Validate paging, sort, filter, columns, resize, export.</p>
       </div>
 
-      <BNDataGrid<Demo>
+      <BNDataGrid
         id="bn.demo"
         columns={columns}
         data={filtered}
@@ -94,8 +94,8 @@ const BNGridDemo: React.FC = () => {
           ],
         }]}
         rowActions={[
-          { key: 'view', label: 'View', icon: <Eye className="h-3.5 w-3.5" />, onClick: setSelected },
-          { key: 'edit', label: 'Edit', icon: <Pencil className="h-3.5 w-3.5" />, onClick: setSelected },
+          { key: 'view', label: 'View', icon: <Eye className="h-3.5 w-3.5" />, onClick: (r) => setSelected(r) },
+          { key: 'edit', label: 'Edit', icon: <Pencil className="h-3.5 w-3.5" />, onClick: (r) => setSelected(r) },
           { key: 'clone', label: 'Clone', icon: <Copy className="h-3.5 w-3.5" />, onClick: () => {} },
           { key: 'delete', label: 'Delete', icon: <Trash2 className="h-3.5 w-3.5" />, variant: 'destructive', onClick: () => {} },
         ]}
@@ -103,7 +103,7 @@ const BNGridDemo: React.FC = () => {
           { key: 'activate', label: 'Activate', onClick: () => {} },
           { key: 'retire', label: 'Retire', variant: 'destructive', onClick: () => {} },
         ]}
-        onRowClick={setSelected}
+        onRowClick={(r) => setSelected(r)}
         onCreate={() => alert('Create')}
         onImport={() => alert('Import')}
         onRefresh={() => alert('Refresh')}
