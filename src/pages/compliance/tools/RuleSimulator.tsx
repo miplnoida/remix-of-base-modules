@@ -20,9 +20,11 @@ import { useHasPermission } from '@/hooks/useNavigationMenu';
 import {
   createDefaultFactContext,
   runSimulation,
+  runMultiPeriodSimulation,
   type SimulationFactContext,
   type SimulationOutput,
 } from '@/services/complianceSimulatorEngine';
+import { Switch } from '@/components/ui/switch';
 
 export default function RuleSimulator() {
   const [selectedRegNo, setSelectedRegNo] = useState<string | null>(null);
