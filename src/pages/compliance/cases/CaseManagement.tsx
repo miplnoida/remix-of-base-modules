@@ -44,6 +44,7 @@ const CaseManagement = () => {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [newCaseOpen, setNewCaseOpen] = useState(false);
 
   const { data: cases = [], isLoading } = useQuery({
     queryKey: ['ce_cases'],
