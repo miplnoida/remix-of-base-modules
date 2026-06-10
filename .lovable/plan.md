@@ -1,88 +1,65 @@
-# BN Workbasket Multi-Role & Small Office Support
+## Goal
+Ship one reusable `BNDataGrid` component that enforces consistent paging, sorting, filtering, column visibility, resizing, sticky columns, row/bulk actions, exports, summaries, empty/loading states, and accessibility across every Benefits Module listing. Then migrate all BN screens to use it.
 
-Reshape BN workbaskets so one person can cover many roles (small office) while large offices keep segregation of duties. Maker-checker stays enforced for high-risk actions.
+## Approach
+- Engine: TanStack Table v8 (headless) on top of existing shadcn `Table`. CSV/Excel via SheetJS (`xlsx`), PDF via existing `htmlToPdf`.
+- Data layer: client-side paging/sorting/filtering by default; `mode="server"` opt-in with `onStateChange` + total count for high-volume screens (claims, payments, audit logs).
+- State persistence: per-grid key in `localStorage` (column visibility, widths, page size, sort, filters).
 
-## 1. Database (single migration)
+## Deliverables
 
-### a. Workbasket → multiple roles
-`bn_workbasket.assigned_role` (single text) stays as the **primary** role for backward compatibility. Add a join table for additional roles:
+### Phase 1 — Component foundation
+- Add deps: `@tanstack/react-table`, `xlsx`.
+- `src/components/bn/grid/BNDataGrid.tsx` — main grid (header, body, sticky first col + sticky actions col, horizontal scroll, resize handles, sort indicators, skeleton/empty states, a11y, internal scroll inside parent panel).
+- `src/components/bn/grid/BNGridToolbar.tsx` — quick search, advanced filters slot, saved filters menu, clear-all, active filter count.
+- `src/components/bn/grid/BNGridPagination.tsx` — First/Prev/Next/Last, page-size selector (10/25/50/100/250), "Showing X–Y of N", "Page X of Y".
+- `src/components/bn/grid/BNGridColumnPicker.tsx` — show/hide + reset.
+- `src/components/bn/grid/BNGridSummary.tsx` — totals/status counts strip above grid.
+- `src/components/bn/grid/BNGridExport.tsx` — CSV, Excel (xlsx), PDF; embeds filter+sort+timestamp+user header.
+- `src/components/bn/grid/BNGridSidePanel.tsx` — fixed-size Sheet wrapper for row detail/edit, with internal scroll, ESC + backdrop + close button, capped at `h-dvh`.
+- `src/hooks/bn/useBnGridState.ts` — persists state under `bn-grid:{id}`.
+- `src/lib/bn/grid/exporters.ts` — CSV/XLSX/PDF helpers.
+- `src/components/bn/grid/types.ts` — `BNColumnDef`, `BNRowAction`, `BNBulkAction`, `BNGridProps`.
+- Storybook-style demo route `/bn/_grid-demo` (dev only) so we can verify behavior in isolation.
 
-```
-bn_workbasket_role (workbasket_id, role_name, is_primary, created_at)
-```
-Backfill: insert one row per existing workbasket with `is_primary=true`.
+### Phase 2 — Migrate BN screens (ALL listings)
+Migrate in waves, each wave wired to BNDataGrid with screen-specific columns, filters, summary chips, row/bulk actions, and export config. Existing data hooks stay; only the table layer is swapped.
 
-### b. Role bundle
-Add seed role `BN_BENEFIT_OFFICER_GENERALIST` in `public.roles`, plus a `bn_role_bundle` + `bn_role_bundle_member` pair:
+- **Wave A — Configuration**: Product Catalogue, Rule Catalogue, Formula Library, Communication Templates, Document Types, Screen Templates, Field Metadata, Workbaskets, Transition Matrix, Approval Policies, Override Policies, Reason Codes, Role Bundles, Delegations, Escalations, Reference Data, Configuration Validation.
+- **Wave B — Operations**: Claims Workbench, Eligibility Results, Entitlements, Awards, Claimants, Employers, Contribution Snapshots.
+- **Wave C — Payments**: Payments, Payment Batches, Payment Profiles, Cheque Stock, Bank Formats, Bank Masters.
+- **Wave D — Medical & Audit**: Medical Boards, Medical Assessments, Audit Logs.
 
-```
-bn_role_bundle(code, name, description, is_active)
-bn_role_bundle_member(bundle_code, role_name)
-```
-Seed `BN_BENEFIT_OFFICER_GENERALIST` → INTAKE, DOCUMENT, ELIGIBILITY, CALCULATION, CLAIMS officer roles (no approver / payment-approval / config roles).
-Trigger on `user_roles` insert: when the role is a bundle code, expand into member roles automatically.
+For each screen:
+1. Replace bespoke `<Table>` with `<BNDataGrid id="bn.<screen>" columns={...} data={...} …/>`.
+2. Move filter chips into `toolbarFilters`.
+3. Move existing edit/view/clone modals into `BNGridSidePanel` (fixes the "expanding modal" bug).
+4. Add summary chips from existing aggregates.
+5. Add row actions + bulk actions per screen capability.
+6. Set `serverSide` for: Claims Workbench, Payments, Payment Batches, Audit Logs.
 
-### c. Delegation
-```
-bn_role_delegation(
-  id, from_user_id, to_user_id, role_name, workbasket_id NULL,
-  valid_from date, valid_to date, reason text,
-  status text CHECK in ('PENDING','APPROVED','REVOKED','EXPIRED'),
-  approved_by uuid, approved_at, created_at, created_by
-)
-```
+### Phase 3 — Special handling
+- **Configuration Validation**: severity/area/screen/table/issue/resolution/priority columns; sortable + filterable; resolution link routes to fixing screen via `resolutionHref` per row.
+- **Product Catalogue**: each section (Rules/Formulae/Documents/Workflow/Communications/Payment Setup) renders a status chip — `Configured`/`Missing`/`Incomplete` — computed in the existing data hook.
 
-### d. Self-approval guard
-Add columns to `bn_approval_policy` (already has `self_approval_allowed`):
-- `restricted_action boolean default false` — marks high-risk policy areas
-Seed/flag these areas as restricted: `ELIGIBILITY_OVERRIDE`, `CALCULATION_OVERRIDE`, `DOCUMENT_WAIVER`, `FINAL_CLAIM_APPROVAL`, `PAYMENT_RELEASE`.
-
-DB function `bn_can_approve(p_user_id, p_policy_id, p_requester_user_id) returns boolean`:
-- if `requester = user` and `self_approval_allowed=false` and `restricted_action=true` → false
-- else if user holds `approval_role` (directly, via bundle, or via active delegation) → true.
-
-### e. Helper view
-`v_bn_user_effective_roles(user_id, role_name, source)` — unions direct user_roles, bundle expansion, and active delegations. Used by both UI and validator.
-
-## 2. Services (TS)
-
-- `workbasketRoleService.ts` — fetch baskets visible to a user via `v_bn_user_effective_roles` ⨝ `bn_workbasket_role`.
-- `roleBundleService.ts` — list bundles, expand to member roles.
-- `delegationService.ts` — CRUD + approve/revoke for `bn_role_delegation`.
-- `approvalGuardService.ts` — wraps `bn_can_approve` RPC; called before any approval action.
-- Update `bnRegistryValidationService.ts`:
-  - PASS if a workbasket has ≥1 role AND ≥1 user (direct or via bundle/delegation) holds it.
-  - PASS if approval policy has ≥1 eligible alternate approver when `self_approval_allowed=false`.
-  - One user holding many roles is never an error.
-
-## 3. UI
-
-- **Workbasket Config** — multi-select role picker (primary + additional), powered by `useWorkflowRoles()`.
-- **Role Bundles page** (`/bn/config/role-bundles`) — list bundles, show member roles, toggle active.
-- **Delegations page** (`/bn/config/delegations`) — create/approve/revoke; shows active and upcoming.
-- **My Workbench dashboard** (`/bn/workbench`) grouped sections:
-  - My Assigned Tasks
-  - My Role Workbaskets (one card per role the user holds)
-  - Team Workbaskets (baskets in user's office not assigned to them)
-  - Escalated Tasks
-- **Approval action buttons** — disabled with tooltip "Self-approval not allowed for this action" when `approvalGuardService` returns false.
-- **Approval Policy editor** — expose `restricted_action`, `self_approval_allowed`, `approval_role`, `escalation_role`, `min_level`.
-
-## 4. Audit
-Every approval, delegation create/approve/revoke, and self-approval block writes to `system_audit_trail` via the existing `fn_audit_row_change` trigger plus explicit service-level audit for guard denials.
+### Phase 4 — Cleanup
+- Remove now-unused per-screen table/pagination/filter copies.
+- Update `docs/bn/` with `BN_DATA_GRID_STANDARD.md` (usage + acceptance checklist).
+- Save mem://design/bn-data-grid-standard.
 
 ## Technical notes
-- No RLS (per project rule). Access enforced in service + RPC layer.
-- Migration includes GRANTs for all new tables to `authenticated` and `service_role`.
-- `assigned_role` column retained on `bn_workbasket` for back-compat; new code reads `bn_workbasket_role`.
-- Static `BN_WORKFLOW_ROLES` fallback updated to include `BN_BENEFIT_OFFICER_GENERALIST`.
+- Sticky columns via `position: sticky` + z-index layering; horizontal scroll on the table container, not the page.
+- Resize via TanStack's column sizing; persisted widths keyed by column id.
+- Server-side mode: grid emits `{ pageIndex, pageSize, sorting, columnFilters, globalFilter }`; hook returns `{ rows, totalCount }`.
+- A11y: `role="grid"`, `aria-sort` on headers, focus ring on cells, full keyboard navigation (←↑→↓, PgUp/PgDn, Home/End), ESC closes side panel.
+- Side panels use shadcn `Sheet` with `className="h-dvh max-h-dvh w-full sm:max-w-2xl overflow-hidden"` and an inner `<ScrollArea>`.
 
-## Out of scope (ask before doing)
-- Migrating `bn_product_version.*_workbasket_id` columns to multi-basket arrays.
-- Mobile/offline delegation approval.
+## Scope & expectations
+This is a very large change set (~50 screens). I will deliver it across multiple iterations in this conversation:
+1. Phase 1 (component + demo) in the next turn.
+2. Then Waves A→D one at a time. After each wave you verify the migrated screens before I move on. This keeps the build green and lets you catch regressions early.
 
-## Acceptance
-- One user can hold INTAKE+DOC+ELIG+CALC+CLAIMS roles and sees all matching baskets.
-- Same user blocked from approving own override unless policy `self_approval_allowed=true`.
-- Validator passes with shared roles, fails only on the 4 listed conditions.
-- TypeScript build passes.
+## Out of scope
+- Rewriting BN data hooks beyond what server-side mode needs.
+- Non-BN modules (Compliance, C3, Cashier) — separate effort.
+- Saved-filters server persistence — v1 stores in `localStorage`; DB-backed saved filters is a follow-up.
