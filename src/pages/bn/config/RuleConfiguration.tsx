@@ -146,73 +146,45 @@ export default function RuleConfiguration() {
             <TabsTrigger value="timeline" className="gap-1.5"><Clock className="h-3.5 w-3.5" /> Timeline</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="groups" className="mt-6">
-            <Card>
-              <CardHeader className="pb-3">
-                <BnFilterBar
-                  search={search}
-                  onSearchChange={setSearch}
-                  searchPlaceholder="Search rule groups..."
-                  filters={[]}
-                  actions={
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <Switch id="show_inactive" checked={showInactive} onCheckedChange={setShowInactive} />
-                        <Label htmlFor="show_inactive" className="text-xs cursor-pointer">
-                          Show deprecated ({inactiveCount})
-                        </Label>
-                      </div>
-                      <Button size="sm" className="gap-1.5" onClick={openAdd}>
-                        <Plus className="h-3.5 w-3.5" /> Add Group
-                      </Button>
-                    </div>
-                  }
-                />
-              </CardHeader>
-              <CardContent className="p-0">
-                {isLoading ? (
-                  <BnEmptyState type="loading" />
-                ) : filtered.length === 0 ? (
-                  <BnEmptyState type={search ? 'no-results' : 'empty'} title="No rule groups" />
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Code</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Country</TableHead>
-                        <TableHead>Linked Rules</TableHead>
-                        <TableHead>Active</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="w-[60px]">Edit</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filtered.map((rg: BnRuleGroup) => {
-                        const count = linkCounts[rg.id] ?? 0;
-                        return (
-                        <TableRow key={rg.id} className="cursor-pointer hover:bg-muted/50" onClick={() => openEdit(rg)}>
-                          <TableCell className="font-mono text-sm">{rg.group_code}</TableCell>
-                          <TableCell className="font-medium text-sm">{rg.group_name}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{rg.country_code || 'Global'}</Badge>
-                          </TableCell>
-                          <TableCell><Badge variant={count > 0 ? 'secondary' : 'outline'}>{count}</Badge></TableCell>
-                          <TableCell>{rg.is_active ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground max-w-[300px] truncate">{rg.description}</TableCell>
-                          <TableCell onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(rg)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );})}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+          <TabsContent value="groups" className="mt-6 space-y-3">
+            <div className="flex items-center justify-end gap-2">
+              <Switch id="show_inactive" checked={showInactive} onCheckedChange={setShowInactive} />
+              <Label htmlFor="show_inactive" className="text-xs cursor-pointer">
+                Show deprecated ({inactiveCount})
+              </Label>
+            </div>
+            <BNDataGrid
+              id="bn.rule-groups"
+              columns={[
+                { accessorKey: 'group_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 160 }, cell: ({ getValue }) => <span className="font-mono text-sm">{String(getValue() ?? '')}</span> },
+                { accessorKey: 'group_name', header: 'Name', meta: { label: 'Name', width: 240 }, cell: ({ getValue }) => <span className="font-medium text-sm">{String(getValue() ?? '')}</span> },
+                { accessorKey: 'country_code', header: 'Country', meta: { label: 'Country', width: 120 }, cell: ({ getValue }) => <Badge variant="outline">{String(getValue() || 'Global')}</Badge> },
+                {
+                  id: 'linked', header: 'Linked Rules', meta: { label: 'Linked Rules', width: 130, exportValue: (rg: any) => linkCounts[rg.id] ?? 0 },
+                  cell: ({ row }) => {
+                    const rg = row.original as BnRuleGroup;
+                    const count = linkCounts[rg.id] ?? 0;
+                    return <Badge variant={count > 0 ? 'secondary' : 'outline'}>{count}</Badge>;
+                  },
+                },
+                { accessorKey: 'is_active', header: 'Active', meta: { label: 'Active', width: 90 }, cell: ({ getValue }) => getValue() ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge> },
+                { accessorKey: 'description', header: 'Description', meta: { label: 'Description', width: 320 }, cell: ({ getValue }) => <span className="text-sm text-muted-foreground">{String(getValue() ?? '')}</span> },
+              ] as BNColumnDef<BnRuleGroup>[]}
+              data={filtered as BnRuleGroup[]}
+              isLoading={isLoading}
+              searchPlaceholder="Search rule groups..."
+              defaultSort={[{ id: 'group_code', desc: false }]}
+              onCreate={openAdd}
+              onRowClick={(rg) => openEdit(rg)}
+              rowActions={[
+                { key: 'edit', label: 'Edit', icon: <Edit className="h-3.5 w-3.5" />, onClick: (rg) => openEdit(rg) },
+              ]}
+              exportFilename="bn_rule_groups"
+              emptyMessage="No rule groups yet."
+            />
           </TabsContent>
+
+
 
           <TabsContent value="eligibility" className="mt-6">
             <Card>
