@@ -359,29 +359,73 @@ export function CalculationBuilder({ versionId, isReadOnly }: Props) {
           </CardContent>
         </Card>
 
-        {version?.calculation_config_legacy && Object.keys(version.calculation_config_legacy).length > 0 && (
+        {/* Formula Usage Analysis ------------------------------------- */}
+        {analysis && (
           <Card>
-            <Collapsible>
-              <CardHeader className="pb-2">
-                <CollapsibleTrigger className="flex items-center justify-between w-full text-left">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <FileJson className="h-4 w-4" /> Legacy configuration snapshot
-                  </CardTitle>
-                  <ChevronDown className="h-4 w-4" />
-                </CollapsibleTrigger>
-                <CardDescription>Preserved for audit. The runtime now uses the structured fields above.</CardDescription>
-              </CardHeader>
-              <CollapsibleContent>
-                <CardContent>
-                  <pre className="text-xs bg-muted p-3 rounded overflow-auto">
-                    {JSON.stringify(version.calculation_config_legacy, null, 2)}
-                  </pre>
-                </CardContent>
-              </CollapsibleContent>
-            </Collapsible>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4" /> Formula Usage Analysis
+              </CardTitle>
+              <CardDescription>
+                Verifies every variable and parameter referenced by the selected formula resolves to a registered source.
+                Activation is blocked until all checks pass.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <div className="text-xs text-muted-foreground">Current Formula</div>
+                  <div className="font-medium">{analysis.formulaTemplate?.template_name ?? '—'}</div>
+                  <div className="text-xs font-mono text-muted-foreground">{analysis.formulaTemplate?.template_code}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Formula Status</div>
+                  <Badge variant={analysis.formulaTemplate && ['READY_FOR_PRODUCT_USE','ACTIVE'].includes(analysis.formulaTemplate.governance_status) ? 'default' : 'destructive'}>
+                    {analysis.formulaTemplate?.governance_status ?? 'UNKNOWN'}
+                  </Badge>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Variables Required</div>
+                  <div className="text-xs font-mono">{analysis.variablesRequired.join(', ') || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Variables Mapped</div>
+                  <div className="text-xs font-mono">{analysis.variablesMapped.join(', ') || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Product Parameters Required</div>
+                  <div className="text-xs font-mono">{analysis.parametersRequired.join(', ') || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Product Parameters Mapped</div>
+                  <div className="text-xs font-mono">{analysis.parametersMapped.join(', ') || '—'}</div>
+                </div>
+              </div>
+
+              {analysis.canActivate ? (
+                <Alert>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertTitle>Ready for activation</AlertTitle>
+                  <AlertDescription>All required variables and parameters resolve. Sample simulation succeeded.</AlertDescription>
+                </Alert>
+              ) : (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>{analysis.blockers.length} issue{analysis.blockers.length === 1 ? '' : 's'} blocking activation</AlertTitle>
+                  <AlertDescription>
+                    <ul className="mt-2 list-disc pl-4 space-y-1">
+                      {analysis.blockers.map((b, i) => (
+                        <li key={i}>{b.message}</li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
           </Card>
         )}
       </div>
+
 
       <Card className="lg:sticky lg:top-4 h-fit">
         <CardHeader>
