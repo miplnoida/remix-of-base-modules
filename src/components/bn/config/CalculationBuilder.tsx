@@ -3,10 +3,12 @@
  *
  * Backed by structured columns on bn_product_version:
  *   formula_template_id, formula_parameter_values, cap_rules, rounding_rule,
- *   effective_date_rule, calculation_config_legacy.
+ *   effective_date_rule.
  *
- * Replaces the raw JSON editor for normal users while preserving the legacy
- * JSON as a read-only snapshot for audit.
+ * The Formula Library is the only source of executable expressions. This
+ * editor selects a formula, supplies parameter values, and configures caps
+ * and rounding. A "Formula Usage Analysis" panel surfaces every required
+ * variable / parameter and blocks activation when anything is missing.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -17,13 +19,13 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Calculator, Save, Sparkles, FileJson, ChevronDown } from 'lucide-react';
+import { Calculator, Save, Sparkles, ShieldCheck, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBnFormulaTemplates } from '@/hooks/bn/useBnConfig';
 import { useBnFormulaVariableRegistry, buildSampleMap, buildLabelMap } from '@/hooks/bn/useBnFormulaVariableRegistry';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { validateProductActivation, type ActivationResult } from '@/services/bn/productActivationValidator';
 
 interface Props {
   versionId: string | undefined;
@@ -47,8 +49,6 @@ type VersionCalcRow = {
   cap_rules: Record<string, number> | null;
   rounding_rule: { mode?: string; decimals?: number } | null;
   effective_date_rule: { basis?: string } | null;
-  calculation_config_legacy: Record<string, unknown> | null;
-  calculation_config: Record<string, unknown> | null;
 };
 
 // --- Fallback samples / labels used when the DB registry hasn't loaded yet ---
@@ -146,12 +146,19 @@ export function CalculationBuilder({ versionId, isReadOnly }: Props) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('bn_product_version')
-        .select('id, formula_template_id, formula_parameter_values, cap_rules, rounding_rule, effective_date_rule, calculation_config_legacy, calculation_config')
+        .select('id, formula_template_id, formula_parameter_values, cap_rules, rounding_rule, effective_date_rule')
         .eq('id', versionId!)
         .single();
       if (error) throw error;
       return data as unknown as VersionCalcRow;
     },
+  });
+
+  // Formula Usage Analysis — re-evaluates whenever the version row changes.
+  const { data: analysis } = useQuery({
+    queryKey: ['bn', 'product-version-activation', versionId, version?.formula_template_id],
+    enabled: !!versionId && !!version?.formula_template_id,
+    queryFn: () => validateProductActivation(versionId!) as Promise<ActivationResult>,
   });
 
   const [templateId, setTemplateId] = useState<string>('');
