@@ -56,7 +56,7 @@ export function FormulaTestPanel({ expression, outputType = 'NUMBER' }: Props) {
   }, [variables, overrides, dbSamples]);
 
   const [result, setResult] = useState<{ ok: boolean; value?: number; errors: string[] } | null>(null);
-  const runTest = () => setResult(testFormula(expression || '', seeded));
+  const runTest = () => setResult(testFormula(expression || '', seeded, resolver ?? null));
 
   if (!expression?.trim()) return null;
 
