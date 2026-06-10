@@ -601,6 +601,8 @@ export function runSimulation(
 ): SimulationOutput {
   const ruleFilter = options.ruleCodeFilter ?? null;
   const dupMap = options.existingViolationsByVtId ?? {};
+  const dupMapPeriod = options.existingViolationsByVtIdPeriod ?? {};
+  const currentPeriod = facts.filingPeriod ? facts.filingPeriod.substring(0, 7) : null;
   const warnings: string[] = [];
   const errors: string[] = [];
 
