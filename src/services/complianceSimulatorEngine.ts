@@ -130,6 +130,8 @@ export interface DetectionResult {
   duplicateSuppressed: boolean;
   /** Structured evidence rows shown in the "why" panel. Optional. */
   evidence?: Array<{ label: string; value: string }>;
+  /** Period (YYYY-MM) this detection was evaluated against — populated in multi-period scan. */
+  period?: string | null;
 }
 
 export interface CalculationResult {
