@@ -111,7 +111,7 @@ export default function EscalationConfig() {
   return (
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
-        <h1 className="text-2xl font-semibold text-foreground">Escalation Policies</h1>
+        <h1 className="t-page-title">Escalation Policies</h1>
 
         <BnScreenRoleBanner
           role="library"

@@ -71,8 +71,8 @@ export default function ServiceDocTypes() {
       <div className="flex items-center gap-3">
         <FileText className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">Service Document Types</h1>
-          <p className="text-sm text-muted-foreground">Registry of special document types used across benefit claims</p>
+          <h1 className="t-page-title">Service Document Types</h1>
+          <p className="t-page-subtitle">Registry of special document types used across benefit claims</p>
         </div>
       </div>
 

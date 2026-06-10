@@ -81,7 +81,7 @@ export default function Delegations() {
   return (
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
-        <h1 className="text-2xl font-semibold text-foreground">Role Delegations</h1>
+        <h1 className="t-page-title">Role Delegations</h1>
         <BnScreenRoleBanner
           role="library"
           description="Temporarily delegate a workbasket role to another user. Each delegation needs supervisor approval and is bounded by date range."
