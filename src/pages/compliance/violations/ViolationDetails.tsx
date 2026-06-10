@@ -465,11 +465,15 @@ export default function ViolationDetails() {
 
       {/* Assignment & Routing Info */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />
             Assignment & Routing
           </CardTitle>
+          <Button size="sm" variant="outline" onClick={() => setAssignmentDialogOpen(true)}>
+            <UserCheck className="h-4 w-4 mr-2" />
+            {v.assigned_to_name ? 'Reassign' : 'Assign'}
+          </Button>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-4">
           <div>
