@@ -235,6 +235,8 @@ export function validateDetectionRule(
     trigger_event?: string;
     condition_expression?: string | null;
     is_enabled?: boolean;
+    auto_create_violation?: boolean | null;
+    violation_type_id?: string | null;
   },
   knownVariables: string[]
 ): RuleValidationResult {
@@ -244,6 +246,15 @@ export function validateDetectionRule(
   if (!rule.name?.trim()) pushError(errors, 'name', 'Name is required.');
   if (!rule.rule_code?.trim()) pushError(errors, 'rule_code', 'Rule code is required.');
   if (!rule.trigger_event?.trim()) pushError(errors, 'trigger_event', 'Trigger event is required.');
+
+  // Auto-create requires a violation type to know what to create
+  if (rule.is_enabled && rule.auto_create_violation && !rule.violation_type_id) {
+    pushError(
+      errors,
+      'violation_type_id',
+      'Auto-Create is on but no Violation Type is selected.'
+    );
+  }
 
   const condResult = validateConditionExpression(
     rule.condition_expression,
