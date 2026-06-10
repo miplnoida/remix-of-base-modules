@@ -1,20 +1,22 @@
 /**
  * Lightweight formula parser for BN Formula Library.
  *
- * Grammar (subset):
- *   expr   := term (('+' | '-') term)*
- *   term   := factor (('*' | '/') factor)*
- *   factor := number | identifier | 'min'|'max'|'round' '(' expr (',' expr)* ')' | '(' expr ')' | '-' factor
- *
- * Identifiers must be in the FormulaVariableRegistry — otherwise the formula
- * is rejected. Output type is `number` (money/percent are display hints).
+ * Identifiers MUST resolve via the Variable Resolver (Fact / Derived Fact /
+ * Product Parameter / Prior Formula Result). When a resolver map is supplied
+ * unknown identifiers are returned as structured errors so the UI can offer
+ * "Create as Derived Fact / Product Parameter" actions. When no resolver is
+ * supplied the parser falls back to the legacy in-code registry for
+ * backwards compatibility with a handful of older callers.
  */
 import { isValidFormulaVariableKey, getFormulaVariable } from '@/services/bn/registries/formulaVariableRegistry';
+import { suggestSourcesFor, type ResolverMap, type UnresolvedVariable } from '@/services/bn/variableResolverService';
 
 export interface ParseResult {
   valid: boolean;
   errors: string[];
   variablesUsed: string[];
+  /** Variables that did not resolve to any registry — empty when valid. */
+  unresolved: UnresolvedVariable[];
   /** AST root, or null if invalid */
   ast: Node | null;
 }
