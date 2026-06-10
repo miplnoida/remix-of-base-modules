@@ -130,6 +130,15 @@ export function CalculationBuilder({ versionId, isReadOnly }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
   const { data: templates = [] } = useBnFormulaTemplates();
+  const { data: registryRows = [] } = useBnFormulaVariableRegistry();
+  const SAMPLE_INPUTS = useMemo(
+    () => ({ ...FALLBACK_SAMPLE_INPUTS, ...buildSampleMap(registryRows) }),
+    [registryRows]
+  );
+  const PARAM_LABELS = useMemo(
+    () => ({ ...FALLBACK_PARAM_LABELS, ...buildLabelMap(registryRows) }),
+    [registryRows]
+  );
 
   const { data: version, isLoading } = useQuery({
     queryKey: ['bn', 'product-version-calc', versionId],
