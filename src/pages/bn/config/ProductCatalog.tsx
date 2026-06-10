@@ -60,7 +60,7 @@ export default function ProductCatalog() {
         description="This is the central Product Assembly workbench. For each product version, configure eligibility, calculation formulas, required documents, service documents, medical policy, workflow, transition fallback, screen/field template, workbasket routing, escalation policy, reason code usage and communications. All reusable building blocks are selected from the libraries — they are not redefined here."
       />
 
-      <BNDataGrid<BnProduct>
+      <BNDataGrid
         id="bn.product-catalog"
         columns={columns}
         data={products}
