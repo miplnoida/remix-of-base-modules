@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuthUser } from '@/contexts/SupabaseAuthContext';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { useBlockingMutation } from '@/hooks/useBlockingMutation';
 import { toast } from 'sonner';
 import { UserCheck } from 'lucide-react';
