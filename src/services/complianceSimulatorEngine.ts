@@ -187,6 +187,8 @@ export interface SimulationOptions {
   ruleCodeFilter?: string | null;
   /** Map of existing open/under-review violations per violation_type_id for this employer+period. */
   existingViolationsByVtId?: Record<string, number>;
+  /** Map keyed by `${violation_type_id}|${period YYYY-MM}` for per-period dedupe. Preferred over existingViolationsByVtId. */
+  existingViolationsByVtIdPeriod?: Record<string, number>;
 }
 
 // ── Helpers ──
