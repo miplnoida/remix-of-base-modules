@@ -115,8 +115,18 @@ export function ViolationSplitDialog({ open, onOpenChange, violation, onSuccess 
           <DialogTitle className="flex items-center gap-2">
             <Split className="h-5 w-5" /> Split Violation
           </DialogTitle>
-          <DialogDescription>
-            Split <Badge variant="outline" className="font-mono">{violation.violation_number}</Badge> into multiple per-period violations.
+          <DialogDescription className="space-y-2">
+            <div>
+              Split <Badge variant="outline" className="font-mono">{violation.violation_number}</Badge> into
+              multiple independent violations — useful when one detected row actually represents several distinct
+              breaches (for example, three different unpaid months bundled into a single non-payment detection)
+              so each can be tracked, noticed, and resolved separately.
+            </div>
+            <div className="text-xs text-muted-foreground">
+              The original violation is marked <strong>CANCELLED</strong> and kept for audit. Each child receives an
+              equal share of the total amount, inherits the employer/period, and starts in status <strong>OPEN</strong>.
+              A history entry is written on both the parent and every child.
+            </div>
           </DialogDescription>
         </DialogHeader>
 
