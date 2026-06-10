@@ -53,7 +53,6 @@ const OUTPUT_TYPES = [
 ];
 
 export default function FormulaConfiguration() {
-  const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormulaForm>(emptyForm);
   const { data: formulas = [], isLoading } = useBnFormulaTemplates();
@@ -61,10 +60,6 @@ export default function FormulaConfiguration() {
   const { userCode } = useUserCode();
   const audit = useBnConfigAudit();
 
-  const filtered = formulas.filter((f: BnFormulaTemplate) =>
-    !search || f.template_name?.toLowerCase().includes(search.toLowerCase()) ||
-    f.template_code?.toLowerCase().includes(search.toLowerCase())
-  );
 
   const otherCodes = formulas
     .filter((f: BnFormulaTemplate) => f.id !== form.id)
