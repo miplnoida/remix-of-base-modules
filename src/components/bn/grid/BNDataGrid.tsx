@@ -326,7 +326,8 @@ export function BNDataGrid<T>(props: BNGridProps<T>) {
                           meta?.align === 'right' && 'text-right',
                           meta?.align === 'center' && 'text-center',
                           meta?.pinLeft && 'sticky left-0 z-30 bg-muted',
-                          meta?.pinRight && 'sticky right-0 z-30 bg-muted',
+                          meta?.pinRight && 'sticky right-0 z-30 bg-muted shadow-[-4px_0_6px_-4px_hsl(var(--border))]',
+
                         )}
                         style={{ width: h.getSize() }}
                       >
