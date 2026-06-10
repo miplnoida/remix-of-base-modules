@@ -767,6 +767,16 @@ export default function ViolationDetails() {
         actionType={confirmActionType}
         onConfirm={handleConfirmAction}
       />
+
+      <AssignmentDialog
+        open={assignmentDialogOpen}
+        onOpenChange={setAssignmentDialogOpen}
+        entityType="violation"
+        entityId={v.id}
+        currentOfficerId={(v as any).assigned_to_user_id || null}
+        currentOfficerName={v.assigned_to_name || null}
+        onAssigned={() => qc.invalidateQueries({ queryKey: ['violation', id] })}
+      />
     </div>
   );
 }
