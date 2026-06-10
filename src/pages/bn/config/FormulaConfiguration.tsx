@@ -144,7 +144,7 @@ export default function FormulaConfiguration() {
           description="Reusable calculation building blocks. To assign a formula to a benefit product, open Product Catalog → select the product version → Calculation tab."
         />
 
-        <BNDataGrid<BnFormulaTemplate>
+        <BNDataGrid
           id="bn.formula-library"
           columns={[
             { accessorKey: 'template_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 160 }, cell: ({ getValue }) => <span className="font-mono text-sm">{String(getValue() ?? '')}</span> },
