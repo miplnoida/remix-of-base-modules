@@ -6,18 +6,17 @@
  */
 import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Monitor, Trash2 } from 'lucide-react';
+import { Edit, Monitor, Trash2 } from 'lucide-react';
 import { useBnScreenTemplates, useDeleteBnScreenTemplate } from '@/hooks/bn/useBnConfig';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
-import { BnEmptyState, BnFilterBar, BnScreenRoleBanner } from '@/components/bn/shared';
+import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { SMART_FIELD_TYPES } from '@/services/bn/registries';
 import { ScreenBuilder } from '@/components/bn/config/ScreenBuilder';
 import { ScreenTemplateUsageCell } from '@/components/bn/config/ScreenTemplateUsageCell';
 import { useToast } from '@/hooks/use-toast';
+import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 
 export default function ScreenMetadataSetup() {
   const { toast } = useToast();
@@ -76,70 +75,36 @@ export default function ScreenMetadataSetup() {
         {editing ? (
           <ScreenBuilder template={editing} onClose={() => { setEditing(null); refetch(); }} />
         ) : (
-          <Card>
-            <CardHeader className="pb-3">
-              <BnFilterBar
-                search={search}
-                onSearchChange={setSearch}
-                searchPlaceholder="Search screen templates..."
-                filters={[]}
-                actions={
-                  <Button size="sm" className="gap-1.5" onClick={() => setEditing({})}>
-                    <Plus className="h-3.5 w-3.5" /> Add Template
-                  </Button>
-                }
-              />
-            </CardHeader>
-            <CardContent className="p-0">
-              {isLoading ? (
-                <BnEmptyState type="loading" />
-              ) : filtered.length === 0 ? (
-                <BnEmptyState
-                  type={search ? 'no-results' : 'empty'}
-                  title="No screen templates"
-                  description="Screen templates define the layout, sections and smart fields of benefit intake forms."
-                />
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Template Code</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Layout</TableHead>
-                      <TableHead>Sections</TableHead>
-                      <TableHead>Used by</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="w-[120px]">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((s: any) => (
-                      <TableRow key={s.id}>
-                        <TableCell className="font-mono text-xs">{s.template_code}</TableCell>
-                        <TableCell className="font-medium text-sm">
-                          <div className="flex items-center gap-2">
-                            <Monitor className="h-4 w-4 text-muted-foreground" />
-                            {s.template_name}
-                          </div>
-                        </TableCell>
-                        <TableCell><Badge variant="outline" className="text-xs">{s.layout_type}</Badge></TableCell>
-                        <TableCell><Badge variant="secondary">{Array.isArray(s.sections) ? s.sections.length : 0}</Badge></TableCell>
-                        <TableCell><ScreenTemplateUsageCell templateId={s.id} /></TableCell>
-                        <TableCell className="text-sm text-muted-foreground max-w-[300px] truncate">{s.description || '—'}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => setEditing(s)}><Edit className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(s)}><Trash2 className="h-4 w-4" /></Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
+          <BNDataGrid
+            id="bn.screen-templates"
+            data={screens as any[]}
+            isLoading={isLoading}
+            searchPlaceholder="Search screen templates..."
+            onCreate={() => setEditing({})}
+            onRefresh={() => refetch()}
+            defaultSort={[{ id: 'template_code', desc: false }]}
+            exportFilename="bn_screen_templates"
+            emptyMessage="No screen templates configured."
+            columns={[
+              { accessorKey: 'template_code', header: 'Template Code', meta: { label: 'Template Code', pinLeft: true, width: 160 }, cell: ({ getValue }) => <span className="font-mono text-xs">{String(getValue() ?? '')}</span> },
+              { accessorKey: 'template_name', header: 'Name', meta: { label: 'Name', width: 260 }, cell: ({ getValue }) => (
+                <div className="flex items-center gap-2 font-medium text-sm">
+                  <Monitor className="h-4 w-4 text-muted-foreground" />
+                  {String(getValue() ?? '')}
+                </div>
+              ) },
+              { accessorKey: 'layout_type', header: 'Layout', meta: { label: 'Layout', width: 120 }, cell: ({ getValue }) => <Badge variant="outline" className="text-xs">{String(getValue() ?? '')}</Badge> },
+              { id: 'sections', header: 'Sections', meta: { label: 'Sections', width: 100 }, accessorFn: (row: any) => Array.isArray(row.sections) ? row.sections.length : 0, cell: ({ getValue }) => <Badge variant="secondary">{String(getValue() ?? 0)}</Badge> },
+              { id: 'usage', header: 'Used by', meta: { label: 'Used by', width: 120 }, cell: ({ row }) => <ScreenTemplateUsageCell templateId={(row.original as any).id} /> },
+              { accessorKey: 'description', header: 'Description', meta: { label: 'Description', width: 300 }, cell: ({ getValue }) => <span className="text-sm text-muted-foreground">{(getValue() as string) || '—'}</span> },
+            ] as BNColumnDef<any>[]}
+            rowActions={[
+              { key: 'edit', label: 'Edit', icon: <Edit className="h-3.5 w-3.5" />, onClick: (s) => setEditing(s) },
+              { key: 'delete', label: 'Delete', icon: <Trash2 className="h-3.5 w-3.5" />, variant: 'destructive', onClick: handleDelete },
+            ]}
+          />
         )}
+
       </div>
     </PermissionWrapper>
   );

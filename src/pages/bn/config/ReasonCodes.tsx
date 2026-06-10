@@ -1,14 +1,11 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
-import { Plus, Edit, Search } from 'lucide-react';
+import { Edit } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserCode } from '@/hooks/useUserCode';
@@ -18,6 +15,7 @@ import type { BnReasonCode } from '@/types/bn';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
+import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 
 const db = supabase as any;
 
@@ -28,7 +26,6 @@ export default function ReasonCodes() {
   const { userCode } = useUserCode();
   const audit = useBnConfigAudit();
   const qc = useQueryClient();
-  const [search, setSearch] = useState('');
   const [editItem, setEditItem] = useState<BnReasonCode | null>(null);
   const [isNew, setIsNew] = useState(false);
 
@@ -41,7 +38,7 @@ export default function ReasonCodes() {
     is_active: true,
   });
 
-  const { data: reasons = [], isLoading } = useQuery({
+  const { data: reasons = [], isLoading, refetch } = useQuery({
     queryKey: ['bn', 'reason-codes-admin'],
     queryFn: async () => {
       const { data, error } = await db.from('bn_reason_code').select('*').order('reason_category').order('reason_code');
@@ -50,9 +47,7 @@ export default function ReasonCodes() {
     },
   });
 
-  const otherCodes = reasons
-    .filter(r => r.id !== editItem?.id)
-    .map(r => r.reason_code);
+  const otherCodes = reasons.filter(r => r.id !== editItem?.id).map(r => r.reason_code);
 
   const saveMutation = useMutation({
     mutationFn: async (item: any) => {
@@ -80,7 +75,6 @@ export default function ReasonCodes() {
     onError: (err: any) => toast.error(err.message),
   });
 
-
   const openNew = () => {
     setIsNew(true);
     setForm({ reason_code: '', reason_label: '', reason_category: 'DENIAL', applicable_actions: [], requires_narrative: false, is_active: true });
@@ -100,11 +94,6 @@ export default function ReasonCodes() {
     setEditItem(item);
   };
 
-  const filtered = reasons.filter(r =>
-    r.reason_code.toLowerCase().includes(search.toLowerCase()) ||
-    r.reason_label.toLowerCase().includes(search.toLowerCase())
-  );
-
   const toggleAction = (action: string) => {
     setForm(prev => ({
       ...prev,
@@ -117,10 +106,7 @@ export default function ReasonCodes() {
   return (
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-foreground">Reason Codes</h1>
-          <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Add Reason Code</Button>
-        </div>
+        <h1 className="text-2xl font-semibold text-foreground">Reason Codes</h1>
 
         <BnScreenRoleBanner
           role="library"
@@ -128,61 +114,33 @@ export default function ReasonCodes() {
           description="Reusable reason master used by denial, suspension, waiver, overpayment, reopen, document rejection and medical review outcome actions."
         />
 
-
-
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Search reason codes..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        <BNDataGrid
+          id="bn.reason-codes"
+          data={reasons}
+          isLoading={isLoading}
+          searchPlaceholder="Search reason codes..."
+          onCreate={openNew}
+          onRefresh={() => refetch()}
+          defaultSort={[{ id: 'reason_code', desc: false }]}
+          exportFilename="bn_reason_codes"
+          emptyMessage="No reason codes found"
+          columns={[
+            { accessorKey: 'reason_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 140 }, cell: ({ getValue }) => <span className="font-mono text-sm">{String(getValue() ?? '')}</span> },
+            { accessorKey: 'reason_label', header: 'Label', meta: { label: 'Label', width: 260 } },
+            { accessorKey: 'reason_category', header: 'Category', meta: { label: 'Category', width: 140 }, cell: ({ getValue }) => <Badge variant="outline">{String(getValue() ?? '')}</Badge> },
+            { accessorKey: 'applicable_actions', header: 'Actions', meta: { label: 'Actions', width: 280 }, cell: ({ getValue }) => (
+              <div className="flex flex-wrap gap-1">
+                {((getValue() as string[]) || []).map(a => <Badge key={a} variant="secondary" className="text-xs">{a}</Badge>)}
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Label</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Actions</TableHead>
-                  <TableHead>Narrative</TableHead>
-                  <TableHead>Active</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map(r => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-mono text-sm">{r.reason_code}</TableCell>
-                    <TableCell>{r.reason_label}</TableCell>
-                    <TableCell><Badge variant="outline">{r.reason_category}</Badge></TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {(r.applicable_actions || []).map(a => (
-                          <Badge key={a} variant="secondary" className="text-xs">{a}</Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>{r.requires_narrative ? 'Yes' : 'No'}</TableCell>
-                    <TableCell><Badge variant={r.is_active ? 'default' : 'outline'}>{r.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(r)}>
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No reason codes found</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+            ) },
+            { accessorKey: 'requires_narrative', header: 'Narrative', meta: { label: 'Narrative', width: 100 }, cell: ({ getValue }) => getValue() ? 'Yes' : 'No' },
+            { accessorKey: 'is_active', header: 'Active', meta: { label: 'Active', width: 100 }, cell: ({ getValue }) => <Badge variant={getValue() ? 'default' : 'outline'}>{getValue() ? 'Active' : 'Inactive'}</Badge> },
+          ] as BNColumnDef<BnReasonCode>[]}
+          rowActions={[
+            { key: 'edit', label: 'Edit', icon: <Edit className="h-3.5 w-3.5" />, onClick: openEdit },
+          ]}
+        />
 
-        {/* Edit Dialog */}
         <Dialog open={!!editItem} onOpenChange={open => !open && setEditItem(null)}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
