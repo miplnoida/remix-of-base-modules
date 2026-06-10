@@ -51,8 +51,8 @@ type VersionCalcRow = {
   calculation_config: Record<string, unknown> | null;
 };
 
-// --- Sample inputs for the in-panel calculator preview ---
-const SAMPLE_INPUTS: Record<string, number> = {
+// --- Fallback samples / labels used when the DB registry hasn't loaded yet ---
+const FALLBACK_SAMPLE_INPUTS: Record<string, number> = {
   avg_weekly_wage: 850,
   base_pension: 450,
   flat_amount: 0,
@@ -61,7 +61,7 @@ const SAMPLE_INPUTS: Record<string, number> = {
   degree: 100,
 };
 
-const PARAM_LABELS: Record<string, string> = {
+const FALLBACK_PARAM_LABELS: Record<string, string> = {
   rate: 'Replacement rate (%)',
   base_rate: 'Base rate (%)',
   increment_rate: 'Increment rate per 50 weeks (%)',
