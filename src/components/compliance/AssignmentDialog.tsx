@@ -26,7 +26,7 @@ interface Props {
 
 export function AssignmentDialog({ open, onOpenChange, entityType, entityId, currentOfficerId, currentOfficerName, onAssigned }: Props) {
   const qc = useQueryClient();
-  const { user } = useAuthUser();
+  const { user } = useSupabaseAuth();
   const [toInspectorId, setToInspectorId] = useState<string>('');
   const [reason, setReason] = useState('');
   const [effectiveFrom, setEffectiveFrom] = useState(() => new Date().toISOString().slice(0, 10));
