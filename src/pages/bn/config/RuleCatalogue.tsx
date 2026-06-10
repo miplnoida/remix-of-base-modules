@@ -350,37 +350,23 @@ export default function RuleCatalogue() {
 
         {/* USAGE TAB */}
         <TabsContent value="usage">
-          <Card>
-            <CardHeader>
-              <CardTitle>Rule Usage Across Products</CardTitle>
-              <p className="text-sm text-muted-foreground">Where each catalogue rule is referenced. Override values are managed inside Product Catalog → Eligibility Rules.</p>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Rule Code</TableHead>
-                    <TableHead>Fact</TableHead>
-                    <TableHead>Operator</TableHead>
-                    <TableHead>Default Fail</TableHead>
-                    <TableHead># Product Versions Using</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rules.map(r => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-mono text-xs">{r.rule_code}</TableCell>
-                      <TableCell className="font-mono text-xs">{r.fact_key ?? '—'}</TableCell>
-                      <TableCell className="text-xs">{r.operator}</TableCell>
-                      <TableCell><Badge variant="outline">{r.default_fail_action}</Badge></TableCell>
-                      <TableCell className="text-sm font-semibold">{usage[r.rule_code] ?? 0}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <BNDataGrid
+            id="bn.rule-catalogue-usage"
+            data={rules}
+            searchPlaceholder="Search rules..."
+            exportFilename="bn_rule_catalogue_usage"
+            emptyMessage="No rules"
+            defaultSort={[{ id: 'used_count', desc: true }]}
+            columns={[
+              { accessorKey: 'rule_code', header: 'Rule Code', meta: { label: 'Rule Code', pinLeft: true, width: 220 }, cell: ({ getValue }) => <span className="font-mono text-xs">{String(getValue() ?? '')}</span> },
+              { accessorKey: 'fact_key', header: 'Fact', meta: { label: 'Fact', width: 220 }, cell: ({ getValue }) => <span className="font-mono text-xs">{String(getValue() ?? '—')}</span> },
+              { accessorKey: 'operator', header: 'Operator', meta: { label: 'Operator', width: 140 }, cell: ({ getValue }) => <span className="text-xs">{String(getValue() ?? '')}</span> },
+              { accessorKey: 'default_fail_action', header: 'Default Fail', meta: { label: 'Default Fail', width: 130 }, cell: ({ getValue }) => <Badge variant="outline">{String(getValue() ?? '')}</Badge> },
+              { id: 'used_count', header: '# Product Versions Using', meta: { label: '# Product Versions Using', width: 200, align: 'right' }, accessorFn: (r: any) => usage[r.rule_code] ?? 0, cell: ({ getValue }) => <span className="text-sm font-semibold">{Number(getValue() ?? 0)}</span> },
+            ] as BNColumnDef<RuleCatalogueItem>[]}
+          />
         </TabsContent>
+
 
         {/* TEST TAB */}
         <TabsContent value="coverage">
