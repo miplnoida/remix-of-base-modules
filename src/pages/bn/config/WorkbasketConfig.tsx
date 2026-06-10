@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Edit, X } from 'lucide-react';
+import { Edit, X } from 'lucide-react';
+import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 import { useBnWorkbaskets, useCreateBnWorkbasket, useUpdateBnWorkbasket } from '@/hooks/bn/useBnWorkbasket';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
