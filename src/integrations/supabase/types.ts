@@ -27307,7 +27307,9 @@ export type Database = {
           discovered_by: string | null
           discovered_date: string
           due_date: string | null
+          duplicate_justification: string | null
           duplicate_of_id: string | null
+          duplicate_of_violation_id: string | null
           employer_id: string | null
           employer_name: string | null
           escalated_at: string | null
@@ -27373,7 +27375,9 @@ export type Database = {
           discovered_by?: string | null
           discovered_date?: string
           due_date?: string | null
+          duplicate_justification?: string | null
           duplicate_of_id?: string | null
+          duplicate_of_violation_id?: string | null
           employer_id?: string | null
           employer_name?: string | null
           escalated_at?: string | null
@@ -27439,7 +27443,9 @@ export type Database = {
           discovered_by?: string | null
           discovered_date?: string
           due_date?: string | null
+          duplicate_justification?: string | null
           duplicate_of_id?: string | null
+          duplicate_of_violation_id?: string | null
           employer_id?: string | null
           employer_name?: string | null
           escalated_at?: string | null
@@ -27517,6 +27523,13 @@ export type Database = {
           {
             foreignKeyName: "ce_violations_duplicate_of_id_fkey"
             columns: ["duplicate_of_id"]
+            isOneToOne: false
+            referencedRelation: "ce_violations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ce_violations_duplicate_of_violation_id_fkey"
+            columns: ["duplicate_of_violation_id"]
             isOneToOne: false
             referencedRelation: "ce_violations"
             referencedColumns: ["id"]
