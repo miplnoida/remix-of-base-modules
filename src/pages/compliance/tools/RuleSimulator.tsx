@@ -142,26 +142,8 @@ export default function RuleSimulator() {
     }
   }, [context]);
 
-  const handleSaveRun = useCallback(() => {
-    if (!output) {
-      toast.error('Run a simulation first');
-      return;
-    }
-    saveRun.mutate(
-      {
-        ruleCode: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
-        ruleType: 'all',
-        employerRegno: selectedRegNo,
-        period: periodOverride || facts.filingPeriod || null,
-        facts,
-        output,
-      },
-      {
-        onSuccess: () => toast.success('Simulation run saved'),
-        onError: (e: any) => toast.error(`Failed to save: ${e?.message ?? 'unknown error'}`),
-      }
-    );
-  }, [output, saveRun, ruleCodeFilter, selectedRegNo, periodOverride, facts]);
+
+
 
   const handleExport = useCallback(() => {
     if (!output) {
