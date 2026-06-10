@@ -1,15 +1,13 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Edit, FileText } from 'lucide-react';
+import { Trash2, Edit, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBnServiceDocTypes, useUpsertServiceDocType, useDeleteServiceDocType } from '@/hooks/bn/useBnEvidence';
 import type { BnServiceDocType } from '@/types/bn';
@@ -17,6 +15,7 @@ import { useUserCode } from '@/hooks/useUserCode';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
+import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 
 const CATEGORIES = ['IDENTITY', 'FINANCIAL', 'MEDICAL', 'RELATIONSHIP', 'EMPLOYMENT', 'PERIODIC'];
 
