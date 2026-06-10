@@ -27327,6 +27327,7 @@ export type Database = {
           linked_evidence_ids: string[] | null
           linked_working_paper_id: string | null
           merged_into_id: string | null
+          parameters_snapshot: Json | null
           penalty_amount: number | null
           period_from: string | null
           period_to: string | null
@@ -27395,6 +27396,7 @@ export type Database = {
           linked_evidence_ids?: string[] | null
           linked_working_paper_id?: string | null
           merged_into_id?: string | null
+          parameters_snapshot?: Json | null
           penalty_amount?: number | null
           period_from?: string | null
           period_to?: string | null
@@ -27463,6 +27465,7 @@ export type Database = {
           linked_evidence_ids?: string[] | null
           linked_working_paper_id?: string | null
           merged_into_id?: string | null
+          parameters_snapshot?: Json | null
           penalty_amount?: number | null
           period_from?: string | null
           period_to?: string | null
