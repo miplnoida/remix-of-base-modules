@@ -90,25 +90,46 @@ export default function RuleSimulator() {
       overriddenFields: Array.from(overriddenFields),
     };
 
-    const result = runSimulation(
-      factsWithOverrides,
-      rules.detectionRules,
-      rules.calculationRules,
-      rules.escalationRules,
-      rules.violationTypes,
-      {
-        ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
-        existingViolationsByVtId: context?.existingViolationsByVtId ?? {},
-      }
-    );
+    // Multi-period scan only when: live employer mode + no manual period override + toggle ON.
+    const useMultiPeriod = !isManualMode && !periodOverride && scanAllPeriods && context?.periodFacts && context.periodFacts.length > 0;
+
+    const result = useMultiPeriod
+      ? runMultiPeriodSimulation(
+          context!.periodFacts.map(pf => ({
+            period: pf.period,
+            facts: { ...createDefaultFactContext(), ...pf.facts, overriddenFields: [] } as SimulationFactContext,
+          })),
+          rules.detectionRules,
+          rules.calculationRules,
+          rules.escalationRules,
+          rules.violationTypes,
+          {
+            ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
+            existingViolationsByVtId: context?.existingViolationsByVtId ?? {},
+            existingViolationsByVtIdPeriod: context?.existingViolationsByVtIdPeriod ?? {},
+          }
+        )
+      : runSimulation(
+          factsWithOverrides,
+          rules.detectionRules,
+          rules.calculationRules,
+          rules.escalationRules,
+          rules.violationTypes,
+          {
+            ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
+            existingViolationsByVtId: context?.existingViolationsByVtId ?? {},
+            existingViolationsByVtIdPeriod: context?.existingViolationsByVtIdPeriod ?? {},
+          }
+        );
 
     setOutput(result);
     const dup = result.summary.duplicatesSuppressed;
     toast.success(
       `Simulation complete: ${result.summary.matchedDetections} detection(s) matched` +
-        (dup > 0 ? ` — ${dup} suppressed as duplicate` : '')
+        (dup > 0 ? ` — ${dup} suppressed as duplicate` : '') +
+        (useMultiPeriod ? ` (scanned ${context!.periodFacts.length} period(s))` : '')
     );
-  }, [facts, rules, overriddenFields, ruleCodeFilter, context]);
+  }, [facts, rules, overriddenFields, ruleCodeFilter, context, isManualMode, periodOverride, scanAllPeriods]);
 
   const handleReset = useCallback(() => {
     setFacts(createDefaultFactContext());
