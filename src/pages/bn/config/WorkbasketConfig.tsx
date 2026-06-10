@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Edit, X } from 'lucide-react';
+import { Edit, X } from 'lucide-react';
+import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 import { useBnWorkbaskets, useCreateBnWorkbasket, useUpdateBnWorkbasket } from '@/hooks/bn/useBnWorkbasket';
 import { useUserCode } from '@/hooks/useUserCode';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
@@ -167,9 +166,8 @@ export default function WorkbasketConfig() {
   return (
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
+        <div>
           <h1 className="text-2xl font-semibold text-foreground">Workbaskets</h1>
-          <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Add Workbasket</Button>
         </div>
 
         <BnScreenRoleBanner
@@ -178,53 +176,43 @@ export default function WorkbasketConfig() {
           description="Reusable operational queues. A workbasket can be served by one primary role plus any number of additional roles, so small offices can let one user cover several stages."
         />
 
-        <Card>
-          <CardContent className="pt-6">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Code</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Roles</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Capacity</TableHead>
-                  <TableHead>Active</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {workbaskets.map((b) => {
-                  const roles = rolesByBasket[b.id] || [b.assigned_role];
-                  return (
-                    <TableRow key={b.id}>
-                      <TableCell className="font-mono text-sm">{b.basket_code}</TableCell>
-                      <TableCell>{b.basket_name}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {roles.map((r, i) => (
-                            <Badge key={r} variant={r === b.assigned_role ? 'default' : 'secondary'}>
-                              {r}
-                              {r === b.assigned_role && roles.length > 1 ? ' ★' : ''}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>{b.product_category || '—'}</TableCell>
-                      <TableCell>{b.max_capacity || '—'}</TableCell>
-                      <TableCell><Badge variant={b.is_active ? 'default' : 'outline'}>{b.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(b)}><Edit className="h-4 w-4" /></Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {workbaskets.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No workbaskets configured</TableCell></TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <BNDataGrid
+          id="bn.workbaskets"
+          columns={[
+            { accessorKey: 'basket_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 140 }, cell: ({ getValue }) => <span className="font-mono text-sm">{String(getValue() ?? '')}</span> },
+            { accessorKey: 'basket_name', header: 'Name', meta: { label: 'Name', width: 240 } },
+            {
+              id: 'roles', header: 'Roles', meta: { label: 'Roles', width: 280, exportValue: (b: any) => (rolesByBasket[b.id] || [b.assigned_role]).join(', ') },
+              cell: ({ row }) => {
+                const b = row.original as BnWorkbasket;
+                const roles = rolesByBasket[b.id] || [b.assigned_role];
+                return (
+                  <div className="flex flex-wrap gap-1">
+                    {roles.map((r) => (
+                      <Badge key={r} variant={r === b.assigned_role ? 'default' : 'secondary'}>
+                        {r}{r === b.assigned_role && roles.length > 1 ? ' ★' : ''}
+                      </Badge>
+                    ))}
+                  </div>
+                );
+              },
+            },
+            { accessorKey: 'product_category', header: 'Category', meta: { label: 'Category', width: 140 }, cell: ({ getValue }) => String(getValue() || '—') },
+            { accessorKey: 'max_capacity', header: 'Capacity', meta: { label: 'Capacity', width: 100 }, cell: ({ getValue }) => String(getValue() ?? '—') },
+            { accessorKey: 'is_active', header: 'Active', meta: { label: 'Active', width: 100 }, cell: ({ getValue }) => <Badge variant={getValue() ? 'default' : 'outline'}>{getValue() ? 'Active' : 'Inactive'}</Badge> },
+          ] as BNColumnDef<BnWorkbasket>[]}
+          data={workbaskets as BnWorkbasket[]}
+          searchPlaceholder="Search workbaskets..."
+          defaultSort={[{ id: 'basket_code', desc: false }]}
+          onCreate={openNew}
+          onRowClick={(b) => openEdit(b)}
+          rowActions={[
+            { key: 'edit', label: 'Edit', icon: <Edit className="h-3.5 w-3.5" />, onClick: (b) => openEdit(b) },
+          ]}
+          exportFilename="bn_workbaskets"
+          emptyMessage="No workbaskets configured"
+        />
+
 
         <Dialog open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
           <DialogContent className="max-h-[90vh] overflow-y-auto">
