@@ -586,6 +586,7 @@ export function runSimulation(
       const autoCreate = rule.auto_create_violation ?? true;
       const duplicateCount = vt?.id ? (dupMap[vt.id] ?? 0) : 0;
       const duplicateSuppressed = matched && duplicateCount > 0;
+      const evidence = buildDetectionEvidence(rule.rule_code, facts);
 
       return {
         ruleCode: rule.rule_code,
@@ -600,6 +601,7 @@ export function runSimulation(
         priority: rule.priority,
         duplicateCount,
         duplicateSuppressed,
+        evidence,
       };
     });
 
