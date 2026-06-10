@@ -27,6 +27,8 @@ import { caseViolationService } from '@/services/caseViolationService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
+import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
+import { UserCheck } from 'lucide-react';
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
