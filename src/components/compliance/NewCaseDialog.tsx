@@ -71,7 +71,7 @@ export const NewCaseDialog = ({ open, onOpenChange }: Props) => {
     enabled: open && debounced.trim().length >= 2 && !employer,
     queryFn: async () => {
       const q = debounced.trim();
-      const { data, error } = await (supabase.from('employer_register') as any)
+      const { data, error } = await (supabase.from('ce_employer_profile_view') as any)
         .select('id, employer_no, employer_name, territory')
         .or(`employer_name.ilike.%${q}%,employer_no.ilike.%${q}%`)
         .limit(15);
@@ -89,7 +89,7 @@ export const NewCaseDialog = ({ open, onOpenChange }: Props) => {
       const { data, error } = await (supabase.from('ce_cases') as any)
         .insert({
           case_number: caseNumber,
-          employer_id: employer.employer_no || employer.id,
+          employer_id: employer.employer_id,
           employer_name: employer.employer_name,
           territory: employer.territory,
           status: 'OPEN',
@@ -155,7 +155,7 @@ export const NewCaseDialog = ({ open, onOpenChange }: Props) => {
                 <div>
                   <div className="font-medium">{employer.employer_name}</div>
                   <div className="text-xs text-muted-foreground">
-                    {employer.employer_no} {employer.territory ? `· ${employer.territory}` : ''}
+                    {employer.employer_id} {employer.territory ? `· ${employer.territory}` : ''}
                   </div>
                 </div>
                 <Button size="sm" variant="ghost" onClick={() => setEmployer(null)}>Change</Button>
@@ -180,13 +180,13 @@ export const NewCaseDialog = ({ open, onOpenChange }: Props) => {
                     {employerList.map((e) => (
                       <button
                         type="button"
-                        key={e.id}
+                        key={e.employer_id}
                         className="w-full text-left p-2 text-sm hover:bg-muted"
                         onClick={() => setEmployer(e)}
                       >
                         <div className="font-medium">{e.employer_name}</div>
                         <div className="text-xs text-muted-foreground">
-                          {e.employer_no} {e.territory ? `· ${e.territory}` : ''}
+                          {e.employer_id} {e.territory ? `· ${e.territory}` : ''}
                         </div>
                       </button>
                     ))}
