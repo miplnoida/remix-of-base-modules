@@ -11,7 +11,7 @@ interface Props {
   output: SimulationOutput | null;
 }
 
-function DetectionDetailRow({ d }: { d: DetectionResult }) {
+function DetectionDetailRow({ d, showPeriod }: { d: DetectionResult; showPeriod: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -23,6 +23,9 @@ function DetectionDetailRow({ d }: { d: DetectionResult }) {
           {open ? <ChevronDown className="h-3 w-3 inline mr-1" /> : <ChevronRight className="h-3 w-3 inline mr-1" />}
           <span className="font-mono">{d.ruleCode}</span>
         </TableCell>
+        {showPeriod && (
+          <TableCell className="text-xs font-mono text-muted-foreground">{d.period || '—'}</TableCell>
+        )}
         <TableCell className="text-xs font-medium">{d.ruleName}</TableCell>
         <TableCell>
           {d.matched ? <CheckCircle className="h-4 w-4 text-destructive" /> : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
