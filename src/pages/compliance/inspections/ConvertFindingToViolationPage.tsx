@@ -227,6 +227,8 @@ function Inner() {
               summary: payload.summary,
               severity: payload.severity,
               principalAmount: payload.principalAmount,
+              duplicateJustification: payload.duplicateJustification,
+              duplicateOfViolationId: payload.duplicateOfViolationId,
             })
           }
           busy={convert.isPending}
