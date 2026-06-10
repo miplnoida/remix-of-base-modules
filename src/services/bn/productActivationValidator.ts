@@ -15,7 +15,16 @@
  *   5. a sample simulation evaluates to a finite numeric result
  */
 import { supabase } from '@/integrations/supabase/client';
-import { extractVariables } from '@/lib/bn/formulaParser';
+import { parseFormula } from '@/lib/bn/formulaParser';
+
+const extractVariables = (expr: string): string[] => {
+  try {
+    const p = parseFormula(expr);
+    return Array.from(new Set(p.variablesUsed));
+  } catch {
+    return [];
+  }
+};
 import { loadResolverMap } from './variableResolverService';
 
 const db = supabase as any;
