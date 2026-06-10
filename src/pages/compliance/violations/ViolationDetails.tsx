@@ -93,6 +93,7 @@ export default function ViolationDetails() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [confirmActionType, setConfirmActionType] = useState<ConfirmActionType>('start_work');
   const [pendingTargetStatus, setPendingTargetStatus] = useState<ViolationStatus>('IN_PROGRESS');
+  const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
