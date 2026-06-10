@@ -108,6 +108,7 @@ export default function RuleSimulator() {
             ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
             existingViolationsByVtId: context?.existingViolationsByVtId ?? {},
             existingViolationsByVtIdPeriod: context?.existingViolationsByVtIdPeriod ?? {},
+            matchesOnly,
           }
         )
       : runSimulation(
@@ -120,6 +121,7 @@ export default function RuleSimulator() {
             ruleCodeFilter: ruleCodeFilter === '__all__' ? null : ruleCodeFilter,
             existingViolationsByVtId: context?.existingViolationsByVtId ?? {},
             existingViolationsByVtIdPeriod: context?.existingViolationsByVtIdPeriod ?? {},
+            matchesOnly,
           }
         );
 
