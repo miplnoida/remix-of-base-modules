@@ -135,7 +135,7 @@ function ManualViolationEntryInner() {
       return;
     }
     if (entryType === 'employer' && !employerId) {
-      toast.error('Please enter an Employer ID');
+      toast.error('Please select an employer');
       return;
     }
     if (entryType === 'scouting' && !candidateBusinessName) {
