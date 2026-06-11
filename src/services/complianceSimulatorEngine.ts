@@ -155,6 +155,14 @@ export interface DetectionResult {
   evidence?: Array<{ label: string; value: string }>;
   /** Period (YYYY-MM) this detection was evaluated against — populated in multi-period scan. */
   period?: string | null;
+  /**
+   * Tri-state outcome: MATCHED, NOT_MATCHED, or SKIPPED. SKIPPED means the
+   * evaluator could not run because a required data source was not available
+   * for the employer/period (e.g. no inspection record for DR-009).
+   */
+  outcome: 'MATCHED' | 'NOT_MATCHED' | 'SKIPPED';
+  /** When `outcome === 'SKIPPED'`, the data source that was missing. */
+  skippedSource?: string;
 }
 
 export interface CalculationResult {
