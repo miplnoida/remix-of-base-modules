@@ -50,7 +50,7 @@ interface Props {
 }
 
 export function RateTableEditor({ open, onClose, rateTable }: Props) {
-  const { userProfile } = useSupabaseAuth();
+  const { profile } = useSupabaseAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dims, setDims] = useState<Dimension[]>([]);
