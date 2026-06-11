@@ -68,6 +68,13 @@ export const benefitsMenuItems = [
         requiresPermission: "benefits_management",
         subItems: [
           {
+            title: "Calculation Setup",
+            url: "/bn/config/calculation",
+            icon: Settings,
+            requiresPermission: "benefits_management",
+            description: "Formulas, rate / tier / matrix tables, variables, product bindings, simulation"
+          },
+          {
             title: "Communication Templates",
             url: "/bn/config/communication-templates",
             icon: FileText,

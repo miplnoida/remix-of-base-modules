@@ -5570,6 +5570,75 @@ export type Database = {
           },
         ]
       }
+      bn_calculation_trace: {
+        Row: {
+          calculation_stage: string | null
+          claim_id: string | null
+          created_at: string
+          created_by: string | null
+          duration_ms: number | null
+          error_message: string | null
+          expression_trace_json: Json
+          formula_binding_id: string | null
+          formula_code: string | null
+          formula_version: number | null
+          id: string
+          input_values_json: Json
+          lookup_trace_json: Json
+          product_id: string | null
+          product_version_id: string | null
+          result_value: number | null
+          rounded_value: number | null
+          run_mode: string
+          sequence_no: number | null
+          status: string
+        }
+        Insert: {
+          calculation_stage?: string | null
+          claim_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          expression_trace_json?: Json
+          formula_binding_id?: string | null
+          formula_code?: string | null
+          formula_version?: number | null
+          id?: string
+          input_values_json?: Json
+          lookup_trace_json?: Json
+          product_id?: string | null
+          product_version_id?: string | null
+          result_value?: number | null
+          rounded_value?: number | null
+          run_mode?: string
+          sequence_no?: number | null
+          status?: string
+        }
+        Update: {
+          calculation_stage?: string | null
+          claim_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          duration_ms?: number | null
+          error_message?: string | null
+          expression_trace_json?: Json
+          formula_binding_id?: string | null
+          formula_code?: string | null
+          formula_version?: number | null
+          id?: string
+          input_values_json?: Json
+          lookup_trace_json?: Json
+          product_id?: string | null
+          product_version_id?: string | null
+          result_value?: number | null
+          rounded_value?: number | null
+          run_mode?: string
+          sequence_no?: number | null
+          status?: string
+        }
+        Relationships: []
+      }
       bn_cheque_register: {
         Row: {
           amount: number | null
@@ -9663,6 +9732,77 @@ export type Database = {
         }
         Relationships: []
       }
+      bn_formula_version: {
+        Row: {
+          effective_from: string | null
+          effective_to: string | null
+          entered_at: string
+          entered_by: string | null
+          expression: string | null
+          expression_type: string
+          formula_code: string
+          formula_template_id: string
+          governance_status: string
+          id: string
+          is_active: boolean
+          modified_by: string | null
+          notes: string | null
+          output_variable: string | null
+          rounding_rule: string | null
+          steps_json: Json
+          updated_at: string
+          version_no: number
+        }
+        Insert: {
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          expression?: string | null
+          expression_type: string
+          formula_code: string
+          formula_template_id: string
+          governance_status?: string
+          id?: string
+          is_active?: boolean
+          modified_by?: string | null
+          notes?: string | null
+          output_variable?: string | null
+          rounding_rule?: string | null
+          steps_json?: Json
+          updated_at?: string
+          version_no?: number
+        }
+        Update: {
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          expression?: string | null
+          expression_type?: string
+          formula_code?: string
+          formula_template_id?: string
+          governance_status?: string
+          id?: string
+          is_active?: boolean
+          modified_by?: string | null
+          notes?: string | null
+          output_variable?: string | null
+          rounding_rule?: string | null
+          steps_json?: Json
+          updated_at?: string
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_formula_version_formula_template_id_fkey"
+            columns: ["formula_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_formula_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_interaction_rule: {
         Row: {
           description: string | null
@@ -12240,6 +12380,128 @@ export type Database = {
           },
         ]
       }
+      bn_product_formula_binding: {
+        Row: {
+          calculation_stage: string
+          cap_max: number | null
+          cap_min: number | null
+          entered_at: string
+          entered_by: string | null
+          formula_template_id: string
+          formula_version_id: string | null
+          id: string
+          is_active: boolean
+          modified_by: string | null
+          notes: string | null
+          output_variable: string | null
+          product_id: string | null
+          product_version_id: string | null
+          rounding_rule: string | null
+          sequence_no: number
+          updated_at: string
+        }
+        Insert: {
+          calculation_stage?: string
+          cap_max?: number | null
+          cap_min?: number | null
+          entered_at?: string
+          entered_by?: string | null
+          formula_template_id: string
+          formula_version_id?: string | null
+          id?: string
+          is_active?: boolean
+          modified_by?: string | null
+          notes?: string | null
+          output_variable?: string | null
+          product_id?: string | null
+          product_version_id?: string | null
+          rounding_rule?: string | null
+          sequence_no?: number
+          updated_at?: string
+        }
+        Update: {
+          calculation_stage?: string
+          cap_max?: number | null
+          cap_min?: number | null
+          entered_at?: string
+          entered_by?: string | null
+          formula_template_id?: string
+          formula_version_id?: string | null
+          id?: string
+          is_active?: boolean
+          modified_by?: string | null
+          notes?: string | null
+          output_variable?: string | null
+          product_id?: string | null
+          product_version_id?: string | null
+          rounding_rule?: string | null
+          sequence_no?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_product_formula_binding_formula_template_id_fkey"
+            columns: ["formula_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_formula_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_formula_binding_formula_version_id_fkey"
+            columns: ["formula_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_formula_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_product_formula_variable_mapping: {
+        Row: {
+          binding_id: string
+          default_value: string | null
+          entered_at: string
+          id: string
+          rate_table_code: string | null
+          required: boolean
+          source_key: string | null
+          source_type: string
+          updated_at: string
+          variable_name: string
+        }
+        Insert: {
+          binding_id: string
+          default_value?: string | null
+          entered_at?: string
+          id?: string
+          rate_table_code?: string | null
+          required?: boolean
+          source_key?: string | null
+          source_type: string
+          updated_at?: string
+          variable_name: string
+        }
+        Update: {
+          binding_id?: string
+          default_value?: string | null
+          entered_at?: string
+          id?: string
+          rate_table_code?: string | null
+          required?: boolean
+          source_key?: string | null
+          source_type?: string
+          updated_at?: string
+          variable_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_product_formula_variable_mapping_binding_id_fkey"
+            columns: ["binding_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_formula_binding"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_product_parameter: {
         Row: {
           approved_at: string | null
@@ -12782,6 +13044,178 @@ export type Database = {
             columns: ["workflow_template_id"]
             isOneToOne: false
             referencedRelation: "bn_workflow_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_rate_table: {
+        Row: {
+          allow_gaps: boolean
+          country_code: string
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          legal_reference: string | null
+          lookup_mode: string
+          modified_by: string | null
+          notes: string | null
+          status: string
+          table_code: string
+          table_name: string
+          table_type: string
+          updated_at: string
+          version_no: number
+        }
+        Insert: {
+          allow_gaps?: boolean
+          country_code?: string
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          legal_reference?: string | null
+          lookup_mode?: string
+          modified_by?: string | null
+          notes?: string | null
+          status?: string
+          table_code: string
+          table_name: string
+          table_type: string
+          updated_at?: string
+          version_no?: number
+        }
+        Update: {
+          allow_gaps?: boolean
+          country_code?: string
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          legal_reference?: string | null
+          lookup_mode?: string
+          modified_by?: string | null
+          notes?: string | null
+          status?: string
+          table_code?: string
+          table_name?: string
+          table_type?: string
+          updated_at?: string
+          version_no?: number
+        }
+        Relationships: []
+      }
+      bn_rate_table_dimension: {
+        Row: {
+          dimension_key: string
+          dimension_label: string
+          dimension_type: string
+          entered_at: string
+          enum_values: Json
+          id: string
+          match_type: string
+          rate_table_id: string
+          sequence_no: number
+          updated_at: string
+        }
+        Insert: {
+          dimension_key: string
+          dimension_label: string
+          dimension_type?: string
+          entered_at?: string
+          enum_values?: Json
+          id?: string
+          match_type?: string
+          rate_table_id: string
+          sequence_no?: number
+          updated_at?: string
+        }
+        Update: {
+          dimension_key?: string
+          dimension_label?: string
+          dimension_type?: string
+          entered_at?: string
+          enum_values?: Json
+          id?: string
+          match_type?: string
+          rate_table_id?: string
+          sequence_no?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_rate_table_dimension_rate_table_id_fkey"
+            columns: ["rate_table_id"]
+            isOneToOne: false
+            referencedRelation: "bn_rate_table"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_rate_table_row: {
+        Row: {
+          dimension_values_json: Json
+          effective_from: string | null
+          effective_to: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          modified_by: string | null
+          notes: string | null
+          output_key: string | null
+          output_text: string | null
+          output_type: string
+          output_value: number | null
+          rate_table_id: string
+          row_order: number
+          updated_at: string
+        }
+        Insert: {
+          dimension_values_json?: Json
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_by?: string | null
+          notes?: string | null
+          output_key?: string | null
+          output_text?: string | null
+          output_type?: string
+          output_value?: number | null
+          rate_table_id: string
+          row_order?: number
+          updated_at?: string
+        }
+        Update: {
+          dimension_values_json?: Json
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          modified_by?: string | null
+          notes?: string | null
+          output_key?: string | null
+          output_text?: string | null
+          output_type?: string
+          output_value?: number | null
+          rate_table_id?: string
+          row_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_rate_table_row_rate_table_id_fkey"
+            columns: ["rate_table_id"]
+            isOneToOne: false
+            referencedRelation: "bn_rate_table"
             referencedColumns: ["id"]
           },
         ]
