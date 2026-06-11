@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Calculator, Table as TableIcon, Variable, Layers, Beaker, ShieldCheck, Settings2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { RateTableEditor } from './RateTableEditor';
 
 type Formula = { id: string; template_code: string; template_name: string; category: string | null; governance_status: string };
 type RateTable = { id: string; table_code: string; table_name: string; table_type: string; lookup_mode: string; status: string; country_code: string; version_no: number };
@@ -25,6 +26,7 @@ export default function CalculationSetup() {
   const [rateTables, setRateTables] = useState<RateTable[]>([]);
   const [bindings, setBindings] = useState<Binding[]>([]);
   const [variables, setVariables] = useState<Variable[]>([]);
+  const [editingTable, setEditingTable] = useState<RateTable | null>(null);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -128,13 +130,13 @@ export default function CalculationSetup() {
 
             <TabsContent value="rate-tables">
               <ListCard title="Rate / Tier Tables" count={rateTables.filter((r) => ['TIER','RATE_TABLE','LOOKUP','CAP_TABLE','CONDITION_TABLE'].includes(r.table_type)).length}>
-                <RateTablesList rows={rateTables.filter((r) => ['TIER','RATE_TABLE','LOOKUP','CAP_TABLE','CONDITION_TABLE'].includes(r.table_type))} />
+                <RateTablesList rows={rateTables.filter((r) => ['TIER','RATE_TABLE','LOOKUP','CAP_TABLE','CONDITION_TABLE'].includes(r.table_type))} onEdit={setEditingTable} />
               </ListCard>
             </TabsContent>
 
             <TabsContent value="matrix">
               <ListCard title="Matrix / Share Tables" count={rateTables.filter((r) => ['MATRIX','SHARE_TABLE'].includes(r.table_type)).length}>
-                <RateTablesList rows={rateTables.filter((r) => ['MATRIX','SHARE_TABLE'].includes(r.table_type))} />
+                <RateTablesList rows={rateTables.filter((r) => ['MATRIX','SHARE_TABLE'].includes(r.table_type))} onEdit={setEditingTable} />
               </ListCard>
             </TabsContent>
 
@@ -182,6 +184,12 @@ export default function CalculationSetup() {
           </>
         )}
       </Tabs>
+
+      <RateTableEditor
+        open={!!editingTable}
+        rateTable={editingTable}
+        onClose={() => setEditingTable(null)}
+      />
     </div>
   );
 }
@@ -207,13 +215,13 @@ function PlaceholderCard({ title, hint, link }: { title: string; hint: string; l
   );
 }
 
-function RateTablesList({ rows }: { rows: RateTable[] }) {
+function RateTablesList({ rows, onEdit }: { rows: RateTable[]; onEdit?: (t: RateTable) => void }) {
   return (
     <Table>
-      <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Mode</TableHead><TableHead>Country</TableHead><TableHead>v</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+      <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Mode</TableHead><TableHead>Country</TableHead><TableHead>v</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
       <TableBody>
         {rows.map((r) => (
-          <TableRow key={r.id}>
+          <TableRow key={r.id} className={onEdit ? 'cursor-pointer hover:bg-accent/30' : ''} onClick={() => onEdit?.(r)}>
             <TableCell className="font-mono text-xs">{r.table_code}</TableCell>
             <TableCell>{r.table_name}</TableCell>
             <TableCell><Badge variant="outline">{r.table_type}</Badge></TableCell>
@@ -221,9 +229,10 @@ function RateTablesList({ rows }: { rows: RateTable[] }) {
             <TableCell>{r.country_code}</TableCell>
             <TableCell>{r.version_no}</TableCell>
             <TableCell><Badge variant={r.status === 'ACTIVE' ? 'default' : 'secondary'}>{r.status}</Badge></TableCell>
+            <TableCell>{onEdit && <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEdit(r); }}>Edit rows</Button>}</TableCell>
           </TableRow>
         ))}
-        {!rows.length && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No tables yet</TableCell></TableRow>}
+        {!rows.length && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">No tables yet</TableCell></TableRow>}
       </TableBody>
     </Table>
   );
