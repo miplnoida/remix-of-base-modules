@@ -1,101 +1,94 @@
-# Formula Library as Single Source of Calculation Truth
+## Why nothing fires for 657115 (beyond Non-Filing)
 
-## Current state (audit)
-`bn_product_version` already has the modern columns: `formula_template_id`, `formula_parameter_values`, `cap_rules`, `rounding_rule`, `effective_date_rule`, plus the legacy `calculation_config` and `calculation_config_legacy` jsonb. Most consumers were migrated; the legacy columns linger as fallback. `CalculationBuilder.tsx` still reads & displays `calculation_config_legacy`. Runtime services (`calculationEngine`, `simulationService`, `awardCreationService`, `entitlementService`, `claimWorkbenchService`, `paymentBoundaryService`) need to be inventoried to confirm none branch on legacy JSON.
+Verified directly in the DB for employer **657115 (Aida's Beauty Salon)**:
 
-## Goal
-1. Formula Library (`bn_formula_template`) is the only place an executable expression lives.
-2. `bn_product_version` is configuration only: picks a formula, supplies parameters, caps, rounding, variable bindings.
-3. Every runtime path (Workbench, Entitlement, Award, Payment, Simulation) loads the formula by `formula_template_id` and resolves variables via the resolver — no other code path.
-4. Validation blocks product activation when anything is missing.
-5. Every seeded SKN product runs a successful simulation.
+- `cn_c3_reported` rows: **0**
+- `cn_payment_header` rows: **0**
+- `ce_payment_arrangements` rows: **0**
 
-## Work plan
+So the engine has nothing on which DR-003 (Non-Payment), DR-004 (Short Payment) or DR-006 (Arrangement Breach) can match — only DR-002 (Non-Filing) can legitimately fire. The complaint isn't a rule bug for *that* employer; it's that the simulator never tells you **why** other rules cannot match, and the fact-builder feeding the engine has several hard-coded zeros that prevent rules from ever matching for *any* employer.
 
-### Phase A — Audit & freeze legacy (read-only sweep)
-1. `rg` every reference to `calculation_config`, `calculation_config_legacy`, `formula_expression` outside `bn_formula_template`. Produce a checklist file `docs/bn/formula-cutover-audit.md`:
-   | File | Symbol | Reads legacy? | Writes legacy? | Action |
-2. For each writer, replace with writes to `formula_template_id` + `formula_parameter_values` + `cap_rules` + `rounding_rule`.
-3. For each reader, route through a single helper `loadProductCalculationConfig(productVersionId)` in `src/services/bn/productCalculationLoader.ts` which returns:
-   ```ts
-   { template, parameters, capRules, rounding, effectiveDateRule, variableBindings }
-   ```
-   Reading the legacy columns is removed.
+## What's actually broken in the engine wiring
 
-### Phase B — Runtime convergence
-Single function `runProductCalculation(productVersionId, claimContext)`:
-1. Load config via the helper.
-2. Build resolver map (Facts + Derived Facts + Product Parameters + Prior Results + Claim Fields).
-3. Apply parameter overrides from `formula_parameter_values`.
-4. Evaluate expression via `formulaParser.evaluateFormula`.
-5. Apply caps and rounding from configuration.
-6. Persist a `bn_calc_trace` row per variable: `{variable, source, value, resolver_path}` plus the final result.
-Wire `calculationEngine`, `simulationService`, `awardCreationService.computeBaseAmount`, `entitlementService.recalc`, `claimWorkbenchService.simulate`, `paymentBoundaryService.dryRun` to call only this function.
+In `src/hooks/compliance/useSimulatorData.ts → buildFactsForPeriod` several facts are hard-coded and the engine therefore can never reach a positive verdict:
 
-### Phase C — Product Catalog UI cleanup (`CalculationBuilder.tsx`)
-- Drop the "Legacy calculation_config" panel.
-- Keep three sections: **Formula**, **Parameter values**, **Caps & Rounding**.
-- Add new **Formula Usage Analysis** panel (read-only):
-  | Field | Source |
-  |---|---|
-  | Current Formula | `bn_formula_template.template_name` |
-  | Formula Version | `bn_formula_template.governance_status` + `entered_at` |
-  | Variables Required | parsed from expression |
-  | Variables Mapped | from resolver + `formula_parameter_values` |
-  | Missing Variables | required − mapped |
-  | Product Parameters Required | `bn_formula_template.required_parameters` |
-  | Product Parameters Missing | required − (overrides ∪ defaults) |
-- "Activate" button disabled while anything in the analysis is missing (tooltip lists each gap).
+| Fact | Current value | Rule blocked |
+|---|---|---|
+| `installmentOverdueDays` | `0` | DR-006 Arrangement Breach |
+| `employeeCountObserved` | `0` | DR-009 Under-declared headcount |
+| `consecutiveGapCount` / `hasConsecutiveGaps` | `0` / `false` | DR-012 Contribution gaps |
+| `hasClearanceCert` | `false` | DR-011 Inactive without clearance (false positive risk) |
+| `legalResponseReceived` | `false` | ER-003 Legal escalation |
+| `noticeStage` / `daysOpen` | only from open violation row | ER-001/002/003 timing |
+| `priorSameTypeViolationsRolling12` | counts **all** types | DR-005 Repeat offender (over-counts) |
+| `snapshot.partialCount` | `0` | dashboard counter |
+| Payment lookup | `cn_payment_header.cn_payment(*)` nested select | silent join failure on some envs |
 
-### Phase D — Product activation validator
-New service `productActivationValidator.ts`:
-- formula selected
-- formula `governance_status` ∈ {`READY_FOR_PRODUCT_USE`,`ACTIVE`}
-- every required variable resolves
-- every required parameter has value (override or default)
-- simulator run succeeds with no `unresolved` and finite numeric result
-Returns `{ canActivate, blockers[] }`. Called from `productApprovalService.activate` and from the UI activation button.
+Additionally there is **no visible diagnostic** explaining which facts were resolved from real data vs defaulted, so the user can't tell a "no data" outcome from a "rule didn't match" outcome.
 
-### Phase E — Seed SKN parameter values per product
-Migration `seed_skn_product_parameters.sql`:
-For each SKN product version (Sickness, Maternity, Funeral, Age Pension, Age Grant, Invalidity, Survivors, EI Temporary, EI Permanent, Disablement, NCP):
-- set `formula_template_id` to the appropriate seeded template
-- write realistic `formula_parameter_values` jsonb (e.g. Sickness `replacement_rate=0.65`, `waiting_days=3`; Age Pension `base_rate=0.30`, `increment_rate=0.01`, `base_weeks=500`, `increment_unit_size=50`; Funeral `grant_amount=2500`; NCP `flat_weekly_rate=250`; …)
-- set `cap_rules` (min/max) and `rounding_rule` per SKN policy
-All idempotent (`ON CONFLICT (product_id, version_number)` → `UPDATE`), tagged in `description` as `SEED-FORMULA`.
+## Plan
 
-### Phase F — Simulation sweep
-Script `scripts/bn/simulate-all-products.ts` (run-once via `bunx tsx`):
-- iterate every APPROVED product version
-- call `runProductCalculation(version.id, sampleClaim)`
-- assert: `unresolved.length===0`, parameters fully bound, numeric result, no NaN
-- emit a markdown report under `/mnt/documents/bn-product-simulation-report.md`
+### 1. Real fact wiring (`useSimulatorData.ts`)
 
-### Phase G — Legacy column retirement
-Once Phases A–F land and report is clean:
-- migration drops `bn_product_version.calculation_config_legacy`
-- `calculation_config` becomes a generated jsonb (or also dropped) — keep one release as read-only and remove next.
+Add these queries in parallel with the existing ones and feed `buildFactsForPeriod`:
 
----
+- `ce_payment_arrangements` + `ce_payment_arrangement_installments` (or equivalent) → compute `installmentOverdueDays = max(0, today − next_unpaid_due_date)` for the active arrangement, plus `arrangementActive`.
+- `ce_inspection_visits` / `ce_inspector_observations` (whichever exists) → `employeeCountObserved` for the period.
+- Derive **consecutive gaps** from the last 12 periods of `cn_c3_reported`: walk newest→oldest, count contiguous missing periods, set `consecutiveGapCount` + `hasConsecutiveGaps`.
+- `ce_compliance_clearance_certs` (if present) → `hasClearanceCert` valid as of period.
+- `ce_notices` latest row → `noticeStage`, `daysOpen = today − notice.created_at` (not violation date), `legalResponseReceived` from `ce_legal_responses` if table exists.
+- Fix repeat counter: filter `priorSameTypeViolationsRolling12` per `violation_type_id` of the rule under evaluation. Easiest: pass the full violations array into the engine and let `evaluateDR005` filter by `rule.violation_type_id`.
+- Rewrite the payment join to an explicit two-step fetch (`cn_payment_header.payment_id` → `cn_payment` by `payment_id`) and compute `partialCount` correctly: `c3.due > 0 && paid > 0 && paid < c3.due`.
+- Replace the inline `payer_id = regno` assumption with the same lookup other modules use — confirm whether `er_master.regno` and `cn_*.payer_id` always match (they appear to in seed data); if not, add a fallback alias map.
 
-## Acceptance
-- [ ] `rg` finds no live reads of `calculation_config_legacy` (only the dropped types entry).
-- [ ] Every runtime calc path goes through `runProductCalculation`.
-- [ ] `CalculationBuilder` shows Formula Usage Analysis with no missing items for each seeded product.
-- [ ] Product Activation fails with a clear blockers list when formula/params/variables are missing.
-- [ ] `simulate-all-products.ts` report shows green for all 11 SKN products.
-- [ ] TypeScript build passes.
+### 2. Engine-side correctness (`complianceSimulatorEngine.ts`)
 
-## Technical notes
-- No RLS (project rule); GRANT preserved on all touched tables.
-- Seeds idempotent, tagged with `SEED-FORMULA`.
-- `bn_calc_trace` schema check before Phase B; add `source_type` + `resolver_path` if missing.
-- Audit report written to `docs/bn/formula-cutover-audit.md` first so each step is reviewable.
+- DR-005: change signature to receive the full violation list and the rule's `violation_type_id`; count only matching type in last 12 months. Same fix lets DR-005 report the *category* correctly.
+- DR-011: only flag if `hasClearanceCert === false` **and** clearance lookup actually ran (otherwise mark `SKIPPED — clearance source unavailable`).
+- DR-012: emit a clear reason when `hasConsecutiveGaps` is false because data was missing vs because the threshold wasn't met.
+- All evaluators: when a required fact came from the default zero, return a third state `'SKIPPED'` (already supported in product engine) instead of `'matched: false'` with a misleading reason. Surface this in `SimulationOutput.warnings`.
 
-## Out of scope
-- Rewriting the Formula Library editor.
-- Replacing the eligibility rule engine.
-- Migrating historical `bn_calc_run` rows (kept for audit).
+### 3. Data Coverage panel (UI)
 
-## Suggested execution order (one PR per phase)
-A audit → B runtime helper → C UI panel → D validator → E seeds → F simulation sweep → G drop legacy columns.
+Add a card under the Compliance Snapshot showing for the selected employer + period:
+
+```text
+Data Coverage
+  C3 filings (12 mo)     ✓ 7 of 12
+  Payments (12 mo)       ✓ 5 headers / 8 installments
+  Arrangements           — none
+  Inspections            — none
+  Notices                ✓ DEMAND (38 days ago)
+  Clearance cert         — source unavailable
+```
+
+Each row maps to which detection/escalation rules require it; if all rows are "—", the panel tells the user up-front that the only rule that can fire is DR-002.
+
+Implement as a new `<SimulatorDataCoverage>` component fed by the existing `useEmployerComplianceContext` return (extend it with a `coverage` block).
+
+### 4. Per-rule outcome legend
+
+In `SimulationResults.tsx`, add three filter chips: **Matched**, **Not Matched**, **Skipped (no data)**. Today only matched/not-matched is shown and "no data" hides inside the reason text.
+
+### 5. End-to-end verification
+
+- Pick three employers from real data that should hit different rules and verify in DB before running the simulator:
+  - One with filings but a known short payment → DR-004
+  - One with an active arrangement and a missed installment → DR-006
+  - One with ≥ 2 consecutive non-filed periods → DR-002 + DR-012
+- Run the simulator with **Scan last 12 months** + **All enabled rules** and confirm matches.
+- Document expected vs actual in `docs/compliance/simulator-acceptance.md`.
+
+### 6. Acceptance
+
+- For 657115 the simulator returns DR-002 matches *and* a Data Coverage card stating that DR-003/004/006/009/012 cannot evaluate due to no filings/payments/arrangements/inspections.
+- For the three sample employers above each targeted rule matches.
+- No detection rule returns "Not Matched" while its underlying fact came from a default zero — it returns "Skipped" with the data-source it needs.
+- DR-005 counts only same-type violations.
+- TypeScript build passes.
+
+### Out of scope
+
+- Creating real violations from the simulator (stays dry-run).
+- Editing rule definitions or thresholds (those stay user-configurable in the existing screens).
+- Adding new violation types or new rule codes.
