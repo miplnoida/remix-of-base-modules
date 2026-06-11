@@ -9,6 +9,8 @@ import { Loader2, Calculator, Table as TableIcon, Variable, Layers, Beaker, Shie
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RateTableEditor } from './RateTableEditor';
 import { BindingEditor, type BindingRow } from './BindingEditor';
+import { SimulationPanel } from './SimulationPanel';
+import { ValidationPanel } from './ValidationPanel';
 import { Plus } from 'lucide-react';
 
 type Formula = { id: string; template_code: string; template_name: string; category: string | null; governance_status: string };
