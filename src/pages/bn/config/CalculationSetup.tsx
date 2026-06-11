@@ -213,6 +213,13 @@ export default function CalculationSetup() {
         rateTable={editingTable}
         onClose={() => setEditingTable(null)}
       />
+
+      <BindingEditor
+        open={bindingOpen}
+        binding={editingBinding}
+        onClose={() => { setBindingOpen(false); setEditingBinding(null); }}
+        onSaved={() => setReloadKey((k) => k + 1)}
+      />
     </div>
   );
 }
