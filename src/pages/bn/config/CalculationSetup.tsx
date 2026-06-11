@@ -43,7 +43,7 @@ export default function CalculationSetup() {
       const [fT, rT, bT, vT] = await Promise.all([
         sb.from('bn_formula_template').select('id, template_code, template_name, category, governance_status').order('template_code'),
         sb.from('bn_rate_table').select('id, table_code, table_name, table_type, lookup_mode, status, country_code, version_no').order('table_code'),
-        sb.from('bn_product_formula_binding').select('id, product_id, product_version_id, calculation_stage, sequence_no, output_variable, formula_template_id').order('calculation_stage').order('sequence_no'),
+        sb.from('bn_product_formula_binding').select('id, product_id, product_version_id, formula_template_id, formula_version_id, calculation_stage, sequence_no, output_variable, rounding_rule, cap_min, cap_max, is_active, notes').order('calculation_stage').order('sequence_no'),
         sb.from('bn_formula_variable_registry').select('id, variable_code, display_name, category, data_type, unit, is_active').eq('is_active', true).order('category').order('variable_code'),
       ]);
       if (!alive) return;
@@ -54,7 +54,7 @@ export default function CalculationSetup() {
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, []);
+  }, [reloadKey]);
 
   const switchTab = (t: TabKey) => {
     setTab(t);
