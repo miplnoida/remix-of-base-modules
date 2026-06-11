@@ -31,7 +31,7 @@ function DetectionDetailRow({ d, showPeriod }: { d: DetectionResult; showPeriod:
           {d.matched
             ? <CheckCircle className="h-4 w-4 text-destructive" />
             : d.outcome === 'SKIPPED'
-              ? <AlertTriangle className="h-4 w-4 text-amber-500" titleAccess={`Skipped — ${d.skippedSource ?? 'data unavailable'}`} />
+              ? <AlertTriangle className="h-4 w-4 text-amber-500"><title>{`Skipped — ${d.skippedSource ?? 'data unavailable'}`}</title></AlertTriangle>
               : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
         </TableCell>
         <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{d.reason}</TableCell>
