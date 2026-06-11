@@ -62,6 +62,29 @@ export interface SimulationFactContext {
 
   // Source tracking
   overriddenFields: string[];
+
+  /**
+   * Optional data-availability flags. When a flag is explicitly `false`, an
+   * evaluator that depends on that source returns SKIPPED (rather than
+   * NOT_MATCHED), so the UI can distinguish "no data" from "rule didn't fire".
+   */
+  dataAvailability?: {
+    filings?: boolean;
+    payments?: boolean;
+    arrangements?: boolean;
+    installments?: boolean;
+    inspections?: boolean;
+    clearanceCerts?: boolean;
+    notices?: boolean;
+    periodHistory?: boolean;
+  };
+
+  /**
+   * Per-violation-type count of prior same-type violations in the rolling
+   * window. Populated by the data loader once per employer and re-used by
+   * every period. Keyed by violation_type_id.
+   */
+  priorSameTypeByVtId?: Record<string, number>;
 }
 
 export interface DetectionRuleData {
