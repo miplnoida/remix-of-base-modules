@@ -16,7 +16,7 @@ function DetectionDetailRow({ d, showPeriod }: { d: DetectionResult; showPeriod:
   return (
     <>
       <TableRow
-        className={`cursor-pointer ${d.matched ? 'bg-destructive/5' : 'hover:bg-muted/30'}`}
+        className={`cursor-pointer ${d.matched ? 'bg-destructive/5' : d.outcome === 'SKIPPED' ? 'bg-muted/40' : 'hover:bg-muted/30'}`}
         onClick={() => setOpen(!open)}
       >
         <TableCell className="text-xs">
@@ -28,7 +28,11 @@ function DetectionDetailRow({ d, showPeriod }: { d: DetectionResult; showPeriod:
         )}
         <TableCell className="text-xs font-medium">{d.ruleName}</TableCell>
         <TableCell>
-          {d.matched ? <CheckCircle className="h-4 w-4 text-destructive" /> : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
+          {d.matched
+            ? <CheckCircle className="h-4 w-4 text-destructive" />
+            : d.outcome === 'SKIPPED'
+              ? <AlertTriangle className="h-4 w-4 text-amber-500" titleAccess={`Skipped — ${d.skippedSource ?? 'data unavailable'}`} />
+              : <XCircle className="h-4 w-4 text-muted-foreground/40" />}
         </TableCell>
         <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{d.reason}</TableCell>
         <TableCell>
@@ -37,7 +41,11 @@ function DetectionDetailRow({ d, showPeriod }: { d: DetectionResult; showPeriod:
           )}
         </TableCell>
         <TableCell>
-          {d.matched && <Badge variant={d.initialStatus === 'OPEN' ? 'default' : 'secondary'} className="text-[10px]">{d.initialStatus}</Badge>}
+          {d.matched
+            ? <Badge variant={d.initialStatus === 'OPEN' ? 'default' : 'secondary'} className="text-[10px]">{d.initialStatus}</Badge>
+            : d.outcome === 'SKIPPED'
+              ? <Badge variant="outline" className="text-[10px]">Skipped</Badge>
+              : null}
         </TableCell>
       </TableRow>
       {open && (
