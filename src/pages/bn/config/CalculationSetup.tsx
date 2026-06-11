@@ -29,6 +29,9 @@ export default function CalculationSetup() {
   const [bindings, setBindings] = useState<Binding[]>([]);
   const [variables, setVariables] = useState<Variable[]>([]);
   const [editingTable, setEditingTable] = useState<RateTable | null>(null);
+  const [editingBinding, setEditingBinding] = useState<BindingRow | null>(null);
+  const [bindingOpen, setBindingOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const nav = useNavigate();
 
   useEffect(() => {
