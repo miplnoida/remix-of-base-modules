@@ -154,23 +154,41 @@ export default function CalculationSetup() {
             </TabsContent>
 
             <TabsContent value="bindings">
-              <ListCard title="Product Formula Bindings" count={bindings.length}>
-                <Table>
-                  <TableHeader><TableRow><TableHead>Product Version</TableHead><TableHead>Stage</TableHead><TableHead>Seq</TableHead><TableHead>Output</TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {bindings.map((b) => (
-                      <TableRow key={b.id}>
-                        <TableCell className="font-mono text-xs">{b.product_version_id ?? '—'}</TableCell>
-                        <TableCell><Badge variant="outline">{b.calculation_stage}</Badge></TableCell>
-                        <TableCell>{b.sequence_no}</TableCell>
-                        <TableCell>{b.output_variable ?? '—'}</TableCell>
-                      </TableRow>
-                    ))}
-                    {!bindings.length && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No bindings yet — link products to formulas from the Product Catalog</TableCell></TableRow>}
-                  </TableBody>
-                </Table>
-              </ListCard>
+              <Card className="mt-4">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-base">Product Formula Bindings</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">{bindings.length}</Badge>
+                    <Button size="sm" onClick={() => { setEditingBinding(null); setBindingOpen(true); }}>
+                      <Plus className="h-4 w-4 mr-1" /> New binding
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Product</TableHead><TableHead>Formula</TableHead><TableHead>Stage</TableHead><TableHead>Seq</TableHead><TableHead>Output</TableHead><TableHead>Active</TableHead><TableHead></TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {bindings.map((b) => {
+                        const f = formulas.find((x) => x.id === b.formula_template_id);
+                        return (
+                          <TableRow key={b.id} className="cursor-pointer hover:bg-accent/30" onClick={() => { setEditingBinding(b); setBindingOpen(true); }}>
+                            <TableCell className="font-mono text-xs">{b.product_id?.slice(0, 8) ?? '—'}</TableCell>
+                            <TableCell className="font-mono text-xs">{f?.template_code ?? b.formula_template_id.slice(0, 8)}</TableCell>
+                            <TableCell><Badge variant="outline">{b.calculation_stage}</Badge></TableCell>
+                            <TableCell>{b.sequence_no}</TableCell>
+                            <TableCell>{b.output_variable ?? '—'}</TableCell>
+                            <TableCell>{b.is_active ? <Badge variant="default">Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
+                            <TableCell><Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditingBinding(b); setBindingOpen(true); }}>Edit</Button></TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {!bindings.length && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No bindings yet — click "New binding"</TableCell></TableRow>}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
             </TabsContent>
+
 
             <TabsContent value="simulation">
               <PlaceholderCard
