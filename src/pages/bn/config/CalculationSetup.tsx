@@ -13,7 +13,7 @@ import { Plus } from 'lucide-react';
 
 type Formula = { id: string; template_code: string; template_name: string; category: string | null; governance_status: string };
 type RateTable = { id: string; table_code: string; table_name: string; table_type: string; lookup_mode: string; status: string; country_code: string; version_no: number };
-type Binding = { id: string; product_id: string | null; product_version_id: string | null; calculation_stage: string; sequence_no: number; output_variable: string | null; formula_template_id: string };
+type Binding = BindingRow;
 type Variable = { id: string; variable_code: string; display_name: string; category: string | null; data_type: string | null; unit: string | null; is_active: boolean };
 
 const TAB_KEYS = ['formulas','variables','rate-tables','matrix','parameters','bindings','simulation','validation'] as const;
