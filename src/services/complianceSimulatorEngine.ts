@@ -281,14 +281,23 @@ function buildDetectionEvidence(ruleCode: string, facts: SimulationFactContext):
 
 // ── Detection Evaluators ──
 
-function evaluateDR001(facts: SimulationFactContext, params: Record<string, any>): { matched: boolean; reason: string } {
+type EvalOut = { matched: boolean; reason: string; skipped?: boolean; skippedSource?: string };
+type Evaluator = (
+  facts: SimulationFactContext,
+  params: Record<string, any>,
+  rule?: DetectionRuleData,
+) => EvalOut;
+
+const skip = (source: string, reason: string): EvalOut => ({ matched: false, skipped: true, skippedSource: source, reason });
+
+function evaluateDR001(facts: SimulationFactContext, params: Record<string, any>): EvalOut {
+  if (facts.dataAvailability?.filings === false) return skip('C3 filings', 'No C3 filings on file for this employer');
   if (!facts.filingSubmitted) return { matched: false, reason: 'C3 not submitted — use DR-002 (Non-Filing) instead' };
   if (!facts.filingDate || !facts.filingPeriod) return { matched: false, reason: 'Filing date or period not available' };
 
   const grace = facts.gracePeriodDays;
   const dueDay = facts.filingDueDay;
 
-  // Parse filing period and date
   const periodDate = new Date(facts.filingPeriod + '-01');
   const deadlineDate = new Date(periodDate.getFullYear(), periodDate.getMonth() + 1, dueDay);
   const graceEnd = new Date(deadlineDate);
@@ -302,7 +311,7 @@ function evaluateDR001(facts: SimulationFactContext, params: Record<string, any>
   return { matched: false, reason: `C3 filed within deadline + ${grace}-day grace period` };
 }
 
-function evaluateDR002(facts: SimulationFactContext, params: Record<string, any>): { matched: boolean; reason: string } {
+function evaluateDR002(facts: SimulationFactContext, params: Record<string, any>): EvalOut {
   if (facts.filingSubmitted) return { matched: false, reason: 'C3 was submitted for this period' };
   const threshold = params?.days_past_deadline ?? 30;
   if (facts.daysPastDeadline >= threshold) {
@@ -311,14 +320,18 @@ function evaluateDR002(facts: SimulationFactContext, params: Record<string, any>
   return { matched: false, reason: `Only ${facts.daysPastDeadline} days past deadline (threshold: ${threshold})` };
 }
 
-function evaluateDR003(facts: SimulationFactContext): { matched: boolean; reason: string } {
+function evaluateDR003(facts: SimulationFactContext): EvalOut {
+  if (facts.dataAvailability?.filings === false) return skip('C3 filings', 'No C3 filings on file — payment shortfall cannot be evaluated');
   if (!facts.filingSubmitted) return { matched: false, reason: 'No C3 filed — payment check not applicable without filing' };
+  if (facts.dataAvailability?.payments === false) return skip('Payments', 'No payment records on file for this employer');
   if (facts.paymentMade && facts.paymentAmount > 0) return { matched: false, reason: 'Payment was received' };
   if (facts.amountDue <= 0) return { matched: false, reason: 'No amount due on this C3' };
   return { matched: true, reason: `C3 filed with amount due EC$${facts.amountDue.toLocaleString()} but no payment received` };
 }
 
-function evaluateDR004(facts: SimulationFactContext, params: Record<string, any>): { matched: boolean; reason: string } {
+function evaluateDR004(facts: SimulationFactContext, params: Record<string, any>): EvalOut {
+  if (facts.dataAvailability?.filings === false) return skip('C3 filings', 'No C3 filings on file');
+  if (facts.dataAvailability?.payments === false) return skip('Payments', 'No payment records on file');
   if (!facts.paymentMade || facts.paymentAmount <= 0) return { matched: false, reason: 'No payment made — use DR-003 (Non-Payment) instead' };
   if (facts.amountDue <= 0) return { matched: false, reason: 'No amount due' };
 
@@ -331,17 +344,24 @@ function evaluateDR004(facts: SimulationFactContext, params: Record<string, any>
   return { matched: true, reason: `Payment shortfall of EC$${facts.shortfallAmount.toLocaleString()} (${facts.shortfallPercent.toFixed(1)}%) exceeds thresholds (${minPercent}% / EC$${minAmount})` };
 }
 
-function evaluateDR005(facts: SimulationFactContext, params: Record<string, any>): { matched: boolean; reason: string } {
+function evaluateDR005(facts: SimulationFactContext, params: Record<string, any>, rule?: DetectionRuleData): EvalOut {
   const threshold = params?.violation_count_threshold ?? 3;
   const months = params?.rolling_months ?? 12;
-  if (facts.priorSameTypeViolationsRolling12 >= threshold) {
-    return { matched: true, reason: `${facts.priorSameTypeViolationsRolling12} same-type violations in rolling ${months} months (threshold: ${threshold})` };
+  // Prefer the per-type map keyed by the rule's own violation_type_id.
+  let count = facts.priorSameTypeViolationsRolling12;
+  if (rule?.violation_type_id && facts.priorSameTypeByVtId) {
+    count = facts.priorSameTypeByVtId[rule.violation_type_id] ?? 0;
   }
-  return { matched: false, reason: `Only ${facts.priorSameTypeViolationsRolling12} same-type violations in ${months} months (threshold: ${threshold})` };
+  if (count >= threshold) {
+    return { matched: true, reason: `${count} same-type violations in rolling ${months} months (threshold: ${threshold})` };
+  }
+  return { matched: false, reason: `Only ${count} same-type violations in ${months} months (threshold: ${threshold})` };
 }
 
-function evaluateDR006(facts: SimulationFactContext, params: Record<string, any>): { matched: boolean; reason: string } {
+function evaluateDR006(facts: SimulationFactContext, params: Record<string, any>): EvalOut {
+  if (facts.dataAvailability?.arrangements === false) return skip('Payment arrangements', 'No payment arrangements on file');
   if (!facts.arrangementActive) return { matched: false, reason: 'No active payment arrangement' };
+  if (facts.dataAvailability?.installments === false) return skip('Arrangement installments', 'Installment schedule not loaded for active arrangement');
   const grace = params?.grace_days_after_installment ?? 7;
   if (facts.installmentOverdueDays > grace) {
     return { matched: true, reason: `Installment overdue by ${facts.installmentOverdueDays} days (grace: ${grace} days)` };
@@ -349,19 +369,24 @@ function evaluateDR006(facts: SimulationFactContext, params: Record<string, any>
   return { matched: false, reason: `Installment ${facts.installmentOverdueDays <= 0 ? 'not yet due' : `only ${facts.installmentOverdueDays} days overdue (grace: ${grace})`}` };
 }
 
-function evaluateDR007(facts: SimulationFactContext, params: Record<string, any>): { matched: boolean; reason: string } {
+function evaluateDR007(facts: SimulationFactContext, params: Record<string, any>): EvalOut {
+  if (facts.dataAvailability?.filings === false) return skip('C3 filings', 'No C3 filings on file');
+  if (!facts.filingSubmitted) return { matched: false, reason: 'No C3 filed for this period' };
   if (!facts.levyEligible) return { matched: false, reason: 'Employer is not levy-eligible (below threshold or exempt)' };
   if (facts.totalWagesDeclared <= 0) return { matched: false, reason: 'No wages declared on C3' };
   if (facts.levyAmountReported > 0) return { matched: false, reason: `Levy amount reported: EC$${facts.levyAmountReported.toLocaleString()}` };
   return { matched: true, reason: `Levy-eligible employer with wages EC$${facts.totalWagesDeclared.toLocaleString()} but levy reported = EC$0` };
 }
 
-function evaluateDR008(facts: SimulationFactContext): { matched: boolean; reason: string } {
+function evaluateDR008(facts: SimulationFactContext): EvalOut {
   if (facts.employerRegNo) return { matched: false, reason: `Employer is registered (Reg# ${facts.employerRegNo})` };
   return { matched: true, reason: 'No employer registration found — business appears to be operating without registration' };
 }
 
-function evaluateDR009(facts: SimulationFactContext, params: Record<string, any>): { matched: boolean; reason: string } {
+function evaluateDR009(facts: SimulationFactContext, params: Record<string, any>): EvalOut {
+  if (facts.dataAvailability?.inspections === false) {
+    return skip('Inspections', 'No inspection on file for this period — observed headcount unavailable');
+  }
   const minDisc = params?.min_discrepancy ?? 2;
   const minPct = params?.min_discrepancy_percent ?? 20;
   const diff = facts.employeeCountObserved - facts.employeeCountDeclared;
@@ -372,11 +397,11 @@ function evaluateDR009(facts: SimulationFactContext, params: Record<string, any>
   return { matched: true, reason: `Declared: ${facts.employeeCountDeclared}, Observed: ${facts.employeeCountObserved} (discrepancy: ${diff}, ${pct.toFixed(0)}%)` };
 }
 
-function evaluateDR010(facts: SimulationFactContext, params: Record<string, any>): { matched: boolean; reason: string } {
+function evaluateDR010(facts: SimulationFactContext, params: Record<string, any>): EvalOut {
   const varianceThreshold = params?.historical_variance_threshold_percent ?? 30;
   const provisional = params?.provisional ?? true;
 
-  if (facts.priorAverageWages <= 0) return { matched: false, reason: 'No historical wage data available for comparison' };
+  if (facts.priorAverageWages <= 0) return skip('Historical wages', 'No historical wage data available for comparison');
 
   const drop = ((facts.priorAverageWages - facts.totalWagesDeclared) / facts.priorAverageWages) * 100;
   if (drop >= varianceThreshold) {
@@ -386,16 +411,22 @@ function evaluateDR010(facts: SimulationFactContext, params: Record<string, any>
   return { matched: false, reason: `Wage variance ${drop.toFixed(1)}% is below ${varianceThreshold}% threshold` };
 }
 
-function evaluateDR011(facts: SimulationFactContext, params: Record<string, any>): { matched: boolean; reason: string } {
+function evaluateDR011(facts: SimulationFactContext, params: Record<string, any>): EvalOut {
   const triggerStatuses = params?.trigger_on_status ?? ['I', 'D'];
   if (!facts.employerStatus || !triggerStatuses.includes(facts.employerStatus)) {
     return { matched: false, reason: `Employer status "${facts.employerStatus || 'unknown'}" is not in trigger list [${triggerStatuses.join(', ')}]` };
+  }
+  if (facts.dataAvailability?.clearanceCerts === false) {
+    return skip('Clearance certificates', 'Clearance certificate source unavailable — cannot confirm exemption');
   }
   if (facts.hasClearanceCert) return { matched: false, reason: 'Employer has compliance clearance certificate' };
   return { matched: true, reason: `Employer status is "${facts.employerStatus}" without compliance clearance certificate` };
 }
 
-function evaluateDR012(facts: SimulationFactContext, params: Record<string, any>): { matched: boolean; reason: string } {
+function evaluateDR012(facts: SimulationFactContext, params: Record<string, any>): EvalOut {
+  if (facts.dataAvailability?.periodHistory === false) {
+    return skip('Filing history', 'No prior filing history available — cannot detect contribution gaps');
+  }
   const minGaps = params?.min_consecutive_gaps ?? 2;
   if (facts.consecutiveGapCount >= minGaps) {
     return { matched: true, reason: `${facts.consecutiveGapCount} consecutive contribution gaps detected (threshold: ${minGaps})` };
@@ -403,7 +434,9 @@ function evaluateDR012(facts: SimulationFactContext, params: Record<string, any>
   return { matched: false, reason: `Only ${facts.consecutiveGapCount} consecutive gap(s) (threshold: ${minGaps})` };
 }
 
-function evaluateDR013(facts: SimulationFactContext, params: Record<string, any>): { matched: boolean; reason: string } {
+function evaluateDR013(facts: SimulationFactContext, params: Record<string, any>): EvalOut {
+  if (facts.dataAvailability?.filings === false) return skip('C3 filings', 'No C3 filings on file');
+  if (!facts.filingSubmitted) return { matched: false, reason: 'No C3 filed for this period' };
   if (!facts.severanceEligible) return { matched: false, reason: 'Employer has no severance-eligible employees' };
   if (facts.totalWagesDeclared <= 0) return { matched: false, reason: 'No wages declared on C3' };
   if (facts.severanceAmountReported > 0) return { matched: false, reason: `Severance reported: EC$${facts.severanceAmountReported.toLocaleString()}` };
