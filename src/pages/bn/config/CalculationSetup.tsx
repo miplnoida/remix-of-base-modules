@@ -130,13 +130,13 @@ export default function CalculationSetup() {
 
             <TabsContent value="rate-tables">
               <ListCard title="Rate / Tier Tables" count={rateTables.filter((r) => ['TIER','RATE_TABLE','LOOKUP','CAP_TABLE','CONDITION_TABLE'].includes(r.table_type)).length}>
-                <RateTablesList rows={rateTables.filter((r) => ['TIER','RATE_TABLE','LOOKUP','CAP_TABLE','CONDITION_TABLE'].includes(r.table_type))} />
+                <RateTablesList rows={rateTables.filter((r) => ['TIER','RATE_TABLE','LOOKUP','CAP_TABLE','CONDITION_TABLE'].includes(r.table_type))} onEdit={setEditingTable} />
               </ListCard>
             </TabsContent>
 
             <TabsContent value="matrix">
               <ListCard title="Matrix / Share Tables" count={rateTables.filter((r) => ['MATRIX','SHARE_TABLE'].includes(r.table_type)).length}>
-                <RateTablesList rows={rateTables.filter((r) => ['MATRIX','SHARE_TABLE'].includes(r.table_type))} />
+                <RateTablesList rows={rateTables.filter((r) => ['MATRIX','SHARE_TABLE'].includes(r.table_type))} onEdit={setEditingTable} />
               </ListCard>
             </TabsContent>
 
