@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Calculator, Table as TableIcon, Variable, Layers, Beaker, ShieldCheck, Settings2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RateTableEditor } from './RateTableEditor';
+import { BindingEditor, type BindingRow } from './BindingEditor';
+import { Plus } from 'lucide-react';
 
 type Formula = { id: string; template_code: string; template_name: string; category: string | null; governance_status: string };
 type RateTable = { id: string; table_code: string; table_name: string; table_type: string; lookup_mode: string; status: string; country_code: string; version_no: number };
