@@ -8,10 +8,12 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Calculator, Table as TableIcon, Variable, Layers, Beaker, ShieldCheck, Settings2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RateTableEditor } from './RateTableEditor';
+import { BindingEditor, type BindingRow } from './BindingEditor';
+import { Plus } from 'lucide-react';
 
 type Formula = { id: string; template_code: string; template_name: string; category: string | null; governance_status: string };
 type RateTable = { id: string; table_code: string; table_name: string; table_type: string; lookup_mode: string; status: string; country_code: string; version_no: number };
-type Binding = { id: string; product_id: string | null; product_version_id: string | null; calculation_stage: string; sequence_no: number; output_variable: string | null; formula_template_id: string };
+type Binding = BindingRow;
 type Variable = { id: string; variable_code: string; display_name: string; category: string | null; data_type: string | null; unit: string | null; is_active: boolean };
 
 const TAB_KEYS = ['formulas','variables','rate-tables','matrix','parameters','bindings','simulation','validation'] as const;
@@ -27,6 +29,9 @@ export default function CalculationSetup() {
   const [bindings, setBindings] = useState<Binding[]>([]);
   const [variables, setVariables] = useState<Variable[]>([]);
   const [editingTable, setEditingTable] = useState<RateTable | null>(null);
+  const [editingBinding, setEditingBinding] = useState<BindingRow | null>(null);
+  const [bindingOpen, setBindingOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const nav = useNavigate();
 
   useEffect(() => {
@@ -38,7 +43,7 @@ export default function CalculationSetup() {
       const [fT, rT, bT, vT] = await Promise.all([
         sb.from('bn_formula_template').select('id, template_code, template_name, category, governance_status').order('template_code'),
         sb.from('bn_rate_table').select('id, table_code, table_name, table_type, lookup_mode, status, country_code, version_no').order('table_code'),
-        sb.from('bn_product_formula_binding').select('id, product_id, product_version_id, calculation_stage, sequence_no, output_variable, formula_template_id').order('calculation_stage').order('sequence_no'),
+        sb.from('bn_product_formula_binding').select('id, product_id, product_version_id, formula_template_id, formula_version_id, calculation_stage, sequence_no, output_variable, rounding_rule, cap_min, cap_max, is_active, notes').order('calculation_stage').order('sequence_no'),
         sb.from('bn_formula_variable_registry').select('id, variable_code, display_name, category, data_type, unit, is_active').eq('is_active', true).order('category').order('variable_code'),
       ]);
       if (!alive) return;
@@ -49,7 +54,7 @@ export default function CalculationSetup() {
       setLoading(false);
     })();
     return () => { alive = false; };
-  }, []);
+  }, [reloadKey]);
 
   const switchTab = (t: TabKey) => {
     setTab(t);
@@ -149,23 +154,41 @@ export default function CalculationSetup() {
             </TabsContent>
 
             <TabsContent value="bindings">
-              <ListCard title="Product Formula Bindings" count={bindings.length}>
-                <Table>
-                  <TableHeader><TableRow><TableHead>Product Version</TableHead><TableHead>Stage</TableHead><TableHead>Seq</TableHead><TableHead>Output</TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {bindings.map((b) => (
-                      <TableRow key={b.id}>
-                        <TableCell className="font-mono text-xs">{b.product_version_id ?? '—'}</TableCell>
-                        <TableCell><Badge variant="outline">{b.calculation_stage}</Badge></TableCell>
-                        <TableCell>{b.sequence_no}</TableCell>
-                        <TableCell>{b.output_variable ?? '—'}</TableCell>
-                      </TableRow>
-                    ))}
-                    {!bindings.length && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">No bindings yet — link products to formulas from the Product Catalog</TableCell></TableRow>}
-                  </TableBody>
-                </Table>
-              </ListCard>
+              <Card className="mt-4">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle className="text-base">Product Formula Bindings</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">{bindings.length}</Badge>
+                    <Button size="sm" onClick={() => { setEditingBinding(null); setBindingOpen(true); }}>
+                      <Plus className="h-4 w-4 mr-1" /> New binding
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Product</TableHead><TableHead>Formula</TableHead><TableHead>Stage</TableHead><TableHead>Seq</TableHead><TableHead>Output</TableHead><TableHead>Active</TableHead><TableHead></TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {bindings.map((b) => {
+                        const f = formulas.find((x) => x.id === b.formula_template_id);
+                        return (
+                          <TableRow key={b.id} className="cursor-pointer hover:bg-accent/30" onClick={() => { setEditingBinding(b); setBindingOpen(true); }}>
+                            <TableCell className="font-mono text-xs">{b.product_id?.slice(0, 8) ?? '—'}</TableCell>
+                            <TableCell className="font-mono text-xs">{f?.template_code ?? b.formula_template_id.slice(0, 8)}</TableCell>
+                            <TableCell><Badge variant="outline">{b.calculation_stage}</Badge></TableCell>
+                            <TableCell>{b.sequence_no}</TableCell>
+                            <TableCell>{b.output_variable ?? '—'}</TableCell>
+                            <TableCell>{b.is_active ? <Badge variant="default">Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
+                            <TableCell><Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); setEditingBinding(b); setBindingOpen(true); }}>Edit</Button></TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {!bindings.length && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No bindings yet — click "New binding"</TableCell></TableRow>}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
             </TabsContent>
+
 
             <TabsContent value="simulation">
               <PlaceholderCard
@@ -189,6 +212,13 @@ export default function CalculationSetup() {
         open={!!editingTable}
         rateTable={editingTable}
         onClose={() => setEditingTable(null)}
+      />
+
+      <BindingEditor
+        open={bindingOpen}
+        binding={editingBinding}
+        onClose={() => { setBindingOpen(false); setEditingBinding(null); }}
+        onSaved={() => setReloadKey((k) => k + 1)}
       />
     </div>
   );
