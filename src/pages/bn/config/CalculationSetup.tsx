@@ -193,18 +193,11 @@ export default function CalculationSetup() {
 
 
             <TabsContent value="simulation">
-              <PlaceholderCard
-                title="Simulation"
-                hint="Run a benefit calculation against synthetic facts and view the full step-by-step trace."
-              />
+              <SimulationPanel />
             </TabsContent>
 
             <TabsContent value="validation">
-              <PlaceholderCard
-                title="Validation"
-                hint="Checks every formula's variables are registered, rate tables have no gaps/overlaps, and products have complete bindings."
-                link={() => nav('/bn/config/validation')}
-              />
+              <ValidationPanel />
             </TabsContent>
           </>
         )}
