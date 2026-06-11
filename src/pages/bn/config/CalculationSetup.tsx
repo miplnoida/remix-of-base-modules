@@ -9,6 +9,8 @@ import { Loader2, Calculator, Table as TableIcon, Variable, Layers, Beaker, Shie
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RateTableEditor } from './RateTableEditor';
 import { BindingEditor, type BindingRow } from './BindingEditor';
+import { SimulationPanel } from './SimulationPanel';
+import { ValidationPanel } from './ValidationPanel';
 import { Plus } from 'lucide-react';
 
 type Formula = { id: string; template_code: string; template_name: string; category: string | null; governance_status: string };
@@ -191,18 +193,11 @@ export default function CalculationSetup() {
 
 
             <TabsContent value="simulation">
-              <PlaceholderCard
-                title="Simulation"
-                hint="Run a benefit calculation against synthetic facts and view the full step-by-step trace."
-              />
+              <SimulationPanel />
             </TabsContent>
 
             <TabsContent value="validation">
-              <PlaceholderCard
-                title="Validation"
-                hint="Checks every formula's variables are registered, rate tables have no gaps/overlaps, and products have complete bindings."
-                link={() => nav('/bn/config/validation')}
-              />
+              <ValidationPanel />
             </TabsContent>
           </>
         )}
