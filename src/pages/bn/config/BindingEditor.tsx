@@ -67,6 +67,7 @@ interface Props {
 const sb = supabase as any;
 
 export function BindingEditor({ open, binding, onClose, onSaved }: Props) {
+  const { profile } = useSupabaseAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<BindingRow | null>(null);
