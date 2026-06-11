@@ -14,6 +14,7 @@ import ScenarioInputs from '@/components/compliance/simulator/ScenarioInputs';
 import SimulationResults from '@/components/compliance/simulator/SimulationResults';
 import RecommendedAction from '@/components/compliance/simulator/RecommendedAction';
 import ExplanationPanel from '@/components/compliance/simulator/ExplanationPanel';
+import SimulatorDataCoverage from '@/components/compliance/simulator/SimulatorDataCoverage';
 import { useSimulatorRules, useEmployerComplianceContext } from '@/hooks/compliance/useSimulatorData';
 // Save Run removed by request — functionality not used
 
@@ -359,6 +360,10 @@ export default function RuleSimulator() {
         <div className="space-y-4">
           <ComplianceSnapshot
             snapshot={context?.snapshot || null}
+            isLoading={contextLoading}
+          />
+          <SimulatorDataCoverage
+            coverage={context?.coverage ?? null}
             isLoading={contextLoading}
           />
           <ScenarioInputs
