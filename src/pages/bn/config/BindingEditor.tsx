@@ -143,7 +143,7 @@ export function BindingEditor({ open, binding, onClose, onSaved }: Props) {
     if (!form.product_id) { toast.error('Pick a product'); return; }
     setSaving(true);
     try {
-      const userCode = await requireUserCode();
+      const userCode = requireUserCode(profile?.user_code, 'edit formula binding');
       let bindingId = form.id;
       const payload = {
         product_id: form.product_id,
