@@ -209,13 +209,13 @@ function PlaceholderCard({ title, hint, link }: { title: string; hint: string; l
   );
 }
 
-function RateTablesList({ rows }: { rows: RateTable[] }) {
+function RateTablesList({ rows, onEdit }: { rows: RateTable[]; onEdit?: (t: RateTable) => void }) {
   return (
     <Table>
-      <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Mode</TableHead><TableHead>Country</TableHead><TableHead>v</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+      <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Mode</TableHead><TableHead>Country</TableHead><TableHead>v</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
       <TableBody>
         {rows.map((r) => (
-          <TableRow key={r.id}>
+          <TableRow key={r.id} className={onEdit ? 'cursor-pointer hover:bg-accent/30' : ''} onClick={() => onEdit?.(r)}>
             <TableCell className="font-mono text-xs">{r.table_code}</TableCell>
             <TableCell>{r.table_name}</TableCell>
             <TableCell><Badge variant="outline">{r.table_type}</Badge></TableCell>
@@ -223,9 +223,10 @@ function RateTablesList({ rows }: { rows: RateTable[] }) {
             <TableCell>{r.country_code}</TableCell>
             <TableCell>{r.version_no}</TableCell>
             <TableCell><Badge variant={r.status === 'ACTIVE' ? 'default' : 'secondary'}>{r.status}</Badge></TableCell>
+            <TableCell>{onEdit && <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEdit(r); }}>Edit rows</Button>}</TableCell>
           </TableRow>
         ))}
-        {!rows.length && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">No tables yet</TableCell></TableRow>}
+        {!rows.length && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">No tables yet</TableCell></TableRow>}
       </TableBody>
     </Table>
   );
