@@ -443,7 +443,7 @@ function evaluateDR013(facts: SimulationFactContext, params: Record<string, any>
   return { matched: true, reason: `Severance-eligible employer with wages EC$${facts.totalWagesDeclared.toLocaleString()} but severance reported = EC$0` };
 }
 
-const DETECTION_EVALUATORS: Record<string, (facts: SimulationFactContext, params: Record<string, any>) => { matched: boolean; reason: string }> = {
+const DETECTION_EVALUATORS: Record<string, Evaluator> = {
   'DR-001': evaluateDR001,
   'DR-002': evaluateDR002,
   'DR-003': evaluateDR003,
