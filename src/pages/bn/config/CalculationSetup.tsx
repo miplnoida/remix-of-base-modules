@@ -184,6 +184,12 @@ export default function CalculationSetup() {
           </>
         )}
       </Tabs>
+
+      <RateTableEditor
+        open={!!editingTable}
+        rateTable={editingTable}
+        onClose={() => setEditingTable(null)}
+      />
     </div>
   );
 }
