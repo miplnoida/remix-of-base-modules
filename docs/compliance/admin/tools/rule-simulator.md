@@ -7,6 +7,7 @@
 | Page component | `src/pages/compliance/tools/RuleSimulator.tsx` |
 | Module key (`app_modules`) | Tools group under `ca…0140` |
 | Engine module | `src/services/complianceSimulatorEngine.ts` |
+| Preview marker | `Test Preview UI v2 — period scan + coverage enabled` |
 
 ---
 
@@ -99,8 +100,12 @@ There are **no** server-side validations because there are no writes.
 | **Select employer** | `EmployerSelector` (search + result list) | Sets `selectedRegNo/Name/Status`, clears prior sim output, triggers `useEmployerComplianceContext`. |
 | **Toggle Live Data ↔ Manual Scenario** | "Manual Scenario" / "Live Data" button | When OFF (Live), context auto-merges into `facts` via `useMemo`. When ON, current facts are kept as the editing baseline; user-edited fields are tracked in `overriddenFields`. |
 | **Edit a fact** | Inputs in `ScenarioInputs` (filing flags, amounts, days, gaps, etc.) | Updates `facts` state and adds field name to `overriddenFields`. |
-| **Run Simulation** | "Run Simulation" button | Calls `runSimulation(factsWithOverrides, detection, calculation, escalation, violationTypes)`. Sets `output` and shows toast `Simulation complete: N detection(s) matched`. |
+| **Pick period** | `Period` selector | Runs a single selected `YYYY-MM` period when the 12-month scan is off; defaults to current-month context. |
+| **Scan multiple periods** | `Scan last 12 months` switch | In live-data mode, evaluates available period facts through `runMultiPeriodSimulation()` and suppresses period-aware duplicates. |
+| **Filter result volume** | `Matches only` switch | Keeps matched/applied outcomes only; when off, also shows not-matched and skipped evaluations. |
+| **Run Simulation** | "Run Simulation" button | Calls `runSimulation(...)` or `runMultiPeriodSimulation(...)`. Sets `output` and shows toast `Simulation complete: N detection(s) matched`. |
 | **Reset** | "Reset" button | Clears all overrides and output; if a context is loaded, re-applies it as the new baseline. |
+| **Export** | "Export" button | Downloads the current dry-run payload and result as JSON after a simulation has been run. |
 
 There are no Save / Approve / Submit / Delete buttons. **No menu actions write to any table.**
 
@@ -126,11 +131,23 @@ There are no Save / Approve / Submit / Delete buttons. **No menu actions write t
 | Panel | Component | Content |
 |---|---|---|
 | Simulation banner | inline | Amber "Dry Run Only" advisory. |
+| Preview marker | inline badge | Confirms the visible preview is running `Test Preview UI v2 — period scan + coverage enabled`. |
 | Compliance Snapshot | `ComplianceSnapshot` | Live counters from context.snapshot — filed/notFiled/paid/unpaid, total outstanding, open/review violations, repeat count, active arrangement, current notice stage. |
+| Data Coverage | `SimulatorDataCoverage` | Always visible; before employer selection it prompts the tester to select an employer, then shows which source data can support each rule family. |
 | Scenario Inputs | `ScenarioInputs` | Editable fact form (`SimulationFactContext` fields). |
 | Simulation Results | `SimulationResults` | Per-engine breakdown (matched detections, computed calculations, suggested escalations) with collapsible detail. |
 | Recommended Action | `RecommendedAction` | Plain-language next step derived from `output.recommendation`. |
 | Explanation Panel | `ExplanationPanel` | Field-by-field provenance — which facts came from DB, which from manual edit, which were defaults. |
+
+### 7.1 Acceptance test cases
+
+| Test case | Input / action | Expected result |
+|---|---|---|
+| TC-RS-001 Preview version check | Open `/compliance/admin/tools/rule-simulator` in the authenticated test preview. | Header shows `Test Preview UI v2 — period scan + coverage enabled`. |
+| TC-RS-002 Controls visible | Inspect the toolbar at desktop width. | `Period`, `Live Data`, `Scan last 12 months`, `Matches only`, `Reset`, `Run Simulation`, and `Export` are visible; `Save Run` is not visible. |
+| TC-RS-003 Empty state data coverage | Open page before selecting an employer. | `Data Coverage` card is visible and says to select an employer. |
+| TC-RS-004 Live employer scan | Search a real employer regno such as `658852`, select it, keep `Scan last 12 months` on, then run. | Results include period-aware rows where data exists; missing source families are marked as skipped rather than false no-match. |
+| TC-RS-005 Single period scan | Turn `Scan last 12 months` off, pick a period, then run. | Results are limited to the selected period context. |
 
 ---
 

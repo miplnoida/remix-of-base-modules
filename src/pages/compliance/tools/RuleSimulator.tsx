@@ -27,6 +27,8 @@ import {
 } from '@/services/complianceSimulatorEngine';
 import { Switch } from '@/components/ui/switch';
 
+const SIMULATOR_PREVIEW_VERSION = 'Test Preview UI v2 — period scan + coverage enabled';
+
 export default function RuleSimulator() {
   const [selectedRegNo, setSelectedRegNo] = useState<string | null>(null);
   const [selectedName, setSelectedName] = useState('');
@@ -188,17 +190,24 @@ export default function RuleSimulator() {
       </div>
 
       {/* Header + controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <FlaskConical className="h-5 w-5 text-primary" />
-            Compliance Rule Simulator
-          </h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Test configured detection, calculation, and escalation rules safely
-          </p>
+      <div className="space-y-3">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <FlaskConical className="h-5 w-5 text-primary" />
+              Compliance Rule Simulator
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Test configured detection, calculation, and escalation rules safely
+            </p>
+          </div>
+          <Badge variant="outline" className="w-fit text-[11px] font-medium">
+            {SIMULATOR_PREVIEW_VERSION}
+          </Badge>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+
+        <div className="rounded-lg border bg-card p-3 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
           <Select value={ruleCodeFilter} onValueChange={setRuleCodeFilter}>
             <SelectTrigger className="h-8 w-[180px] text-xs">
               <SelectValue placeholder="All rules" />
@@ -247,6 +256,18 @@ export default function RuleSimulator() {
               </SelectContent>
             </Select>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleMode}
+            className="gap-1.5 text-xs"
+          >
+            {isManualMode ? <ToggleRight className="h-3.5 w-3.5" /> : <ToggleLeft className="h-3.5 w-3.5" />}
+            {isManualMode ? 'Manual Scenario' : 'Live Data'}
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5">
             <Switch
               id="scan-all-periods"
@@ -268,15 +289,6 @@ export default function RuleSimulator() {
               Matches only
             </Label>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleMode}
-            className="gap-1.5 text-xs"
-          >
-            {isManualMode ? <ToggleRight className="h-3.5 w-3.5" /> : <ToggleLeft className="h-3.5 w-3.5" />}
-            {isManualMode ? 'Manual Scenario' : 'Live Data'}
-          </Button>
           <Button variant="outline" size="sm" onClick={handleReset} className="gap-1.5 text-xs">
             <RotateCcw className="h-3.5 w-3.5" /> Reset
           </Button>
@@ -292,6 +304,7 @@ export default function RuleSimulator() {
           >
             <Download className="h-3.5 w-3.5" /> Export
           </Button>
+        </div>
         </div>
       </div>
 
