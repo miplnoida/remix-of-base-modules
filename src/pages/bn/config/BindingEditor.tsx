@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Plus, Trash2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { requireUserCode } from '@/lib/bn/requireUserCode';
+import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 
 const STAGES = ['PRIMARY','CAP','ARREARS','PRORATION','BENEFICIARY_SPLIT','FINAL'] as const;
 const SOURCE_TYPES = ['FACT','DERIVED_FACT','PRODUCT_PARAMETER','RATE_TABLE','MATRIX_TABLE','PRIOR_FORMULA_RESULT','CLAIM_FIELD','MANUAL_INPUT','CONSTANT'] as const;
