@@ -693,10 +693,14 @@ export function runSimulation(
       const params = rule.parameters || {};
       let matched = false;
       let reason = '';
+      let skipped = false;
+      let skippedSource: string | undefined;
       if (evaluator) {
-        const out = evaluator(facts, params);
+        const out = evaluator(facts, params, rule);
         matched = out.matched;
         reason = out.reason;
+        skipped = out.skipped === true;
+        skippedSource = out.skippedSource;
       } else {
         reason = `No evaluator for ${rule.rule_code}`;
         errors.push(`Detection rule ${rule.rule_code} has no engine evaluator wired up.`);
@@ -704,13 +708,16 @@ export function runSimulation(
 
       const vt = getViolationType(rule.violation_type_id, violationTypes);
       const autoCreate = rule.auto_create_violation ?? true;
-      // Per-period dedupe takes precedence; falls back to per-type when no period available.
       const dupKey = vt?.id && currentPeriod ? `${vt.id}|${currentPeriod}` : null;
       const duplicateCount = dupKey && dupMapPeriod[dupKey] !== undefined
         ? dupMapPeriod[dupKey]
         : (vt?.id ? (dupMap[vt.id] ?? 0) : 0);
       const duplicateSuppressed = matched && duplicateCount > 0;
       const evidence = buildDetectionEvidence(rule.rule_code, facts);
+      const outcome: DetectionResult['outcome'] = matched ? 'MATCHED' : (skipped ? 'SKIPPED' : 'NOT_MATCHED');
+      if (skipped && skippedSource) {
+        warnings.push(`${rule.rule_code} skipped — ${skippedSource} unavailable for this employer/period.`);
+      }
 
       return {
         ruleCode: rule.rule_code,
@@ -727,6 +734,8 @@ export function runSimulation(
         duplicateSuppressed,
         evidence,
         period: currentPeriod,
+        outcome,
+        skippedSource,
       };
     });
 
