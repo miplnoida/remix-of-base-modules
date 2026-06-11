@@ -126,7 +126,7 @@ export function RateTableEditor({ open, onClose, rateTable }: Props) {
     if (!rateTable) return;
     let userCode: string;
     try {
-      userCode = requireUserCode(userProfile?.user_code, 'edit rate table');
+      userCode = requireUserCode(profile?.user_code, 'edit rate table');
     } catch (e: any) {
       toast.error(e.message);
       return;
