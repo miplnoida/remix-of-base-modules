@@ -1,63 +1,129 @@
-## Current finding
+# Plan: Benefits Management Module — Complete Reference Document
 
-Your screenshots are correct: the page you are seeing does not include the complete updated simulator UI. It shows only the older/partial controls:
+## Goal
+Produce a single, comprehensive Markdown document covering the entire Benefits Management (BN) module: architecture, all `bn_*` tables and their relationships, UI surfaces, hooks/services, edge functions, workflows, and end-to-end flows. Output as a downloadable artifact.
 
-- Period dropdown
-- Live Data / Reset / Run Simulation / Export
-- No visible `Scan last 12 months`
-- No visible `Matches only`
-- No `Data Coverage` card before employer selection
-- The layout is still the old two-card arrangement until more content appears
+## Deliverable
+- **File:** `/mnt/documents/BN_Benefits_Management_Complete_Reference.md`
+- **Format:** Single Markdown file (~50–80 pages worth), delivered via `presentation-artifact` tag for download.
+- **Audience:** Mixed — business stakeholders (overview, flows) and developers (tables, APIs, code paths).
 
-I checked the current source code, and the missing controls are already present in `src/pages/compliance/tools/RuleSimulator.tsx`, and the active route points to that file. So this is not a normal browser cache issue and not a wrong route issue. The preview/deployed page is serving a stale/partial build compared with the current source.
+## Investigation Plan (read-only, before writing)
+1. **Tables** — Query Supabase for all `bn_*` table columns, FKs, and indexes (≈180 tables already listed in context). Group by domain: Product/Config, Claim, Eligibility, Calculation, Entitlement, Payment, Workflow, Audit.
+2. **Code surfaces** — Enumerate:
+   - `src/pages/bn/**` (UI pages and routes)
+   - `src/components/bn/**` (shared components)
+   - `src/hooks/bn/**` (data hooks)
+   - `src/services/bn/**` (service layer + integration adapters)
+   - `src/types/bn*` and `src/types/benefitsWorkflow.ts`, `bnSimulation.ts`, etc.
+   - `src/portals/_shared/publicBenefitApiClient.ts` (external portal API surface)
+3. **Edge functions** — List `supabase/functions/**` related to BN (e.g., `public-benefits`, payment, eft, notification).
+4. **Existing specs** — Pull and consolidate `docs/BN_*.md` and `docs/bn/**`.
+5. **Routes** — Extract BN routes from `AppRoutes.tsx` / `src/config/routes.ts`.
+6. **Workflow integration** — Map `bn_claim_transition_rule`, `workflow_*` tables, and `useBnWorkflowIntegration` linkage.
 
-## Plan
+## Document Outline
 
-### 1. Force a real source-level change on the active simulator screen
-Make a small, visible versioned update in the active `RuleSimulator` component so the preview build must invalidate and reload the module. This will not publish to the live/client URL.
+```text
+1. Executive Summary
+2. Architecture Overview
+   2.1 Layered model (UI → Hooks → Services → Adapters → DB / Edge Fn)
+   2.2 Integration boundaries (BN ↔ Contributions, Employers, Persons, Payments, Legal, Compliance)
+   2.3 Internal vs external portals (Claimant / Employer / Doctor)
+   2.4 No-RLS / role-based auth model
+3. Domain Model & Data Dictionary
+   3.1 Product & Configuration  (bn_product, bn_product_version, bn_product_channel_config,
+       bn_product_parameter, bn_scheme, bn_coverage_type, bn_calculation_rule,
+       bn_formula_template, bn_eligibility_rule, bn_rule_catalogue*, bn_rule_group*)
+   3.2 Country & Localization  (bn_country*, bn_country_*_rule, bn_payment_method)
+   3.3 Claim Lifecycle  (bn_claim, bn_claim_application, bn_claim_detail, bn_claim_event,
+       bn_claim_status_def, bn_claim_transition_rule, bn_claim_decision, bn_claim_note,
+       bn_claim_document, bn_claim_amendment_log, bn_claim_correction_*)
+   3.4 Eligibility & Evidence  (bn_eligibility_fact, bn_eligibility_diagnostic,
+       bn_evidence_*, bn_doc_requirement, bn_derived_fact*)
+   3.5 Calculation & Simulation  (bn_claim_calculation, bn_calc_run, bn_calc_trace,
+       bn_calc_override, bn_calc_legacy_snapshot, bn_sim_*)
+   3.6 Awards & Entitlements  (bn_award, bn_award_beneficiary, bn_award_rate_history,
+       bn_award_status_event, bn_award_suspension_event, bn_entitlement)
+   3.7 Payment Pipeline  (bn_payment_instruction, bn_payment_schedule, bn_payment_batch,
+       bn_batch_item, bn_payment_exception, bn_payment_profile*, bn_eft_*,
+       bn_cheque_register, bn_cheque_stock, bn_issue_record, bn_overpayment,
+       bn_payment_reconciliation)
+   3.8 Workflow, Approval & Workbasket  (bn_workflow_template, bn_workbasket*,
+       bn_approval_policy, bn_override_*, bn_role_bundle*, bn_escalation_*,
+       bn_post_issue_task, bn_external_task*)
+   3.9 Communications & Notifications  (bn_letter, bn_comm_*, bn_communication_log)
+   3.10 Medical sub-domain  (bn_medical_*)
+   3.11 Reference & Metadata  (bn_data_field_registry, bn_data_source_registry,
+       bn_field_metadata, bn_reason_code, bn_screen_template, bn_timeline_rule)
+   For each table: purpose, key columns, FKs, status enums, audit fields.
+4. Entity-Relationship Diagrams (Mermaid)
+   - Claim ↔ Eligibility ↔ Calculation ↔ Award ↔ Entitlement ↔ Payment
+   - Product/Version/Parameter/Rule
+   - Payment batch issue chain to cl_cheques*
+5. UI Map
+   5.1 Route table (path → page component → role → primary tables)
+   5.2 Internal pages (src/pages/bn) grouped by feature
+   5.3 External portals (Claimant/Employer/Doctor) — task pages, intake forms
+   5.4 Sidebar/menu wiring (bnMenuItems.ts)
+6. Hooks & Services Layer
+   6.1 Data hooks (src/hooks/bn) — purpose, queryKey, dependencies
+   6.2 Service modules (src/services/bn) — business logic boundaries
+   6.3 Integration adapters (src/services/bn/integration) — contracts and swap points
+   6.4 Event bus (publishBnEvent / subscribeToBnEvents)
+7. APIs & Edge Functions
+   7.1 public-benefits edge function (endpoint catalogue from publicBenefitApiClient)
+   7.2 Other BN-relevant edge functions
+   7.3 Task token / secure link model
+   7.4 RPC functions invoked from BN
+8. End-to-End Flows (sequence + step list)
+   8.1 Public claim intake → claim record → workflow start
+   8.2 Eligibility evaluation (rule engine, derived facts)
+   8.3 Calculation run & simulation
+   8.4 Award creation, beneficiaries, rate history
+   8.5 Payment instruction → schedule → batch → issue (cl_cheques) → reconciliation
+   8.6 Exception / overpayment / suspension
+   8.7 Correction / amendment / override (maker-checker)
+   8.8 External task lifecycle (claimant, employer, doctor)
+   8.9 Communication / letter generation
+9. Workflow & Approval Model
+   - bn_claim_transition_rule vs enterprise workflow engine governance
+   - useBnWorkflowGovernance decision path
+   - Escalations and SLAs
+10. Security & Authorization
+    - Role bundles, workbasket roles, capability checks
+    - PII masking, audit trail (bn_claim_event, bn_*_audit)
+    - No RLS — server-side guards in edge functions / RPCs
+11. Reporting, Audit & Observability
+    - bn_claim_event, bn_calc_trace, bn_sim_*_trace
+    - Historical inquiry (per docs/BN_Historical_Inquiry_Specification.md)
+    - Post-issue review (per docs/BN_Post_Issue_Review_Specification.md)
+12. Backward Compatibility & Legacy Integration
+    - cl_head, cl_cheques*, cn_* anchors
+    - Legacy snapshots and formula cutover
+13. Appendices
+    A. Full table list with row counts and column counts
+    B. Enum reference (statuses, payment methods, batch states)
+    C. Glossary (Claim, Award, Entitlement, Instruction, Batch, Issue, Workbasket)
+    D. Source-of-truth file index (where each concept lives in code)
+    E. Open gaps / TODOs discovered during audit
+```
 
-Add a small version marker in the dry-run banner or header, for example:
+## Technical Notes
+- Use `supabase--read_query` against `information_schema` to extract columns/FKs for all `bn_*` tables in batched queries.
+- Use `rg` to enumerate `src/pages/bn`, `src/hooks/bn`, `src/services/bn`, and route definitions.
+- Mermaid ER diagrams embedded inline (rendered by viewers that support it); also reference companion `.mmd` files if any.
+- No code changes. No publish. No DB changes.
+- Document is generated under `/mnt/documents/` and surfaced via `<presentation-artifact>`.
 
-`Test Preview UI v2 — period scan + coverage enabled`
+## Out of Scope
+- Implementing or fixing any BN feature.
+- Touching the Compliance Rule Simulator (separate prior thread).
+- Publishing to live or test URLs.
 
-This gives us an immediate visual proof that the correct source is being served.
-
-### 2. Re-layout the simulator toolbar so the missing controls cannot be hidden
-The current controls can wrap awkwardly in the header area. I will adjust the simulator header into clear grouped rows:
-
-- Row 1: title and dry-run context
-- Row 2: rule filter, period selector, Live/Manual toggle
-- Row 3: `Scan last 12 months`, `Matches only`, Reset, Run Simulation, Export
-
-This makes the controls visible even at the screenshot viewport size.
-
-### 3. Show `Data Coverage` immediately before employer selection
-Ensure the `Data Coverage` card is always visible in the left panel, even when no employer is selected, with the message:
-
-`Select an employer to see which rules can be evaluated.`
-
-This is already implemented in the component, but the preview is not showing it; the forced rebuild plus layout adjustment should make it visible.
-
-### 4. Keep the simulator strictly dry-run only
-No Save Run button will be restored. The simulator remains read-only and will not create violations, ledger entries, notices, or escalations.
-
-### 5. Verify Manual Violation Entry separately
-Check that `/compliance/violations/manual-entry` uses the employer picker instead of free-text Employer ID. If the preview is also stale there, apply the same visible version marker/rebuild approach to that page.
-
-### 6. Verification after implementation
-After approval, I will verify in the preview route:
-
-`/compliance/admin/tools/rule-simulator`
-
-Acceptance checks:
-
-- The page shows the version marker.
-- `Scan last 12 months` is visible.
-- `Matches only` is visible.
-- `Data Coverage` card is visible before selecting an employer.
-- `Save Run` is not visible.
-- The active URL remains the preview/test URL; no live publish is performed.
-
-## Important note about URLs
-
-I will not publish to the client-facing live URL. The work will target the editor/test preview only. The published `preview--social-wellspring-app.lovable.app` style URL will continue to show the last published deployment unless you explicitly publish later.
+## Acceptance
+- Single `.md` file delivered as artifact.
+- Every `bn_*` table appears in section 3 with at least purpose + key columns.
+- Every BN route in the app appears in section 5.1.
+- Every endpoint in `publicBenefitApiClient` appears in section 7.1.
+- Flows in section 8 cite the specific tables and code files involved.
