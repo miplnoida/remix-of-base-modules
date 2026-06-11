@@ -26,6 +26,7 @@ export default function CalculationSetup() {
   const [rateTables, setRateTables] = useState<RateTable[]>([]);
   const [bindings, setBindings] = useState<Binding[]>([]);
   const [variables, setVariables] = useState<Variable[]>([]);
+  const [editingTable, setEditingTable] = useState<RateTable | null>(null);
   const nav = useNavigate();
 
   useEffect(() => {
