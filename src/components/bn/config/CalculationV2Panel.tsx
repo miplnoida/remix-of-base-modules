@@ -103,9 +103,47 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
     });
   }, [bindings]);
 
+  const resolveBoundVersion = (): FormulaVersion | undefined => {
+    if (editing?.formula_version_id) return versions.find((v) => v.id === editing.formula_version_id);
+    if (editing?.formula_template_id)
+      return versions
+        .filter((v) => v.formula_template_id === editing.formula_template_id)
+        .sort((a, b) => b.version_no - a.version_no)[0];
+    return undefined;
+  };
+
+  const handleValidateBinding = () => {
+    const issues: string[] = [];
+    if (!editing?.formula_template_id) issues.push('Pick a formula template.');
+    if (!editing?.calculation_stage) issues.push('Pick a calculation stage.');
+    const ver = resolveBoundVersion();
+    if (editing?.formula_template_id && !ver) issues.push('No ACTIVE version exists for this formula. Activate one in Formula Library first.');
+    if (ver && ver.governance_status !== 'ACTIVE') issues.push(`Selected version is ${ver.governance_status}; only ACTIVE versions are bindable.`);
+    if (!editing?.output_variable?.trim()) issues.push('Provide an output variable so downstream stages can read this result.');
+    const sm = editing?.step_mapping_json as any;
+    if (sm && Array.isArray(sm.steps)) {
+      for (const s of sm.steps) {
+        for (const inp of s.inputs ?? []) {
+          if (!inp.source || (inp.source !== 'CONSTANT' && !inp.ref)) {
+            issues.push(`Step "${s.step_key ?? s.kind}" input "${inp.key}" is unmapped.`);
+          }
+        }
+      }
+    }
+    if (issues.length) toast.error('Binding has issues', { description: issues.slice(0, 4).join(' · ') });
+    else toast.success('Binding looks good — ready to save.');
+  };
+
   const handleSave = async () => {
     if (!editing?.formula_template_id || !editing?.calculation_stage) {
       toast.error('Formula template and stage are required');
+      return;
+    }
+    const ver = resolveBoundVersion();
+    if (!ver) {
+      toast.error('No ACTIVE version available for this formula', {
+        description: 'Activate a version in Formula Library before binding it.',
+      });
       return;
     }
     setSaving(true);
@@ -114,7 +152,8 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
         product_id: productId,
         product_version_id: productVersionId,
         formula_template_id: editing.formula_template_id,
-        formula_version_id: editing.formula_version_id ?? null,
+        // Pin to the resolved ACTIVE version so a future re-activation does not silently swap bindings.
+        formula_version_id: editing.formula_version_id ?? ver.id,
         calculation_stage: editing.calculation_stage,
         sequence_no: editing.sequence_no ?? 10,
         output_variable: editing.output_variable ?? null,
