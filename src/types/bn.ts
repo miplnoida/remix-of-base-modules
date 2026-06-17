@@ -175,6 +175,8 @@ export interface BnFormulaTemplate {
   validation_status?: string;
   last_validation_at?: string | null;
   validation_errors?: unknown[];
+  governance_status?: string;
+  modified_by?: string | null;
 }
 
 export interface BnCalculationRule {
