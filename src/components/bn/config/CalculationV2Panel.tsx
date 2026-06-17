@@ -32,6 +32,7 @@ import {
 } from '@/services/bn/calc/runProductCalculationV2';
 import { runFormula, applyRounding } from '@/services/bn/calc/formulaRunner';
 import { resolveVariables, emptyContext } from '@/services/bn/calc/variableResolver';
+import { ProductFormulaStepMappings, type StepMappingJson } from '@/components/bn/config/ProductFormulaStepMappings';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
@@ -57,7 +58,7 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
   const [versions, setVersions] = useState<FormulaVersion[]>([]);
   const [rateTables, setRateTables] = useState<RateTable[]>([]);
   const [tariffTables, setTariffTables] = useState<MedicalTariffTable[]>([]);
-  const [editing, setEditing] = useState<Partial<BindingRow> & { notes?: string | null } | null>(null);
+  const [editing, setEditing] = useState<Partial<BindingRow> & { notes?: string | null; step_mapping_json?: StepMappingJson | null } | null>(null);
   const [saving, setSaving] = useState(false);
 
   const reload = async () => {
@@ -115,6 +116,7 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
         cap_max: editing.cap_max ?? null,
         is_active: editing.is_active ?? true,
         notes: editing.notes ?? null,
+        step_mapping_json: editing.step_mapping_json ?? null,
       };
       if (editing.id) {
         const { error } = await sb.from('bn_product_formula_binding').update(payload).eq('id', editing.id);
@@ -197,7 +199,10 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
                             <td className="px-3 py-2 text-right">
                               {!isReadOnly && (
                                 <div className="flex justify-end gap-1">
-                                  <Button size="sm" variant="ghost" onClick={() => setEditing(b)}>Edit</Button>
+                                  <Button size="sm" variant="ghost" onClick={async () => {
+                                    const { data } = await sb.from('bn_product_formula_binding').select('step_mapping_json').eq('id', b.id).single();
+                                    setEditing({ ...b, step_mapping_json: (data?.step_mapping_json ?? null) as StepMappingJson | null });
+                                  }}>Edit</Button>
                                   <Button size="sm" variant="ghost" onClick={() => handleDelete(b.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                                 </div>
                               )}
@@ -269,6 +274,21 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
                 <div className="md:col-span-2">
                   <Label>Notes</Label>
                   <Textarea value={editing.notes ?? ''} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} rows={2} />
+                </div>
+                <div className="md:col-span-2 border-t pt-3">
+                  <h4 className="text-sm font-semibold mb-2">Formula step mappings</h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Map each step input to a product parameter, fact, derived fact, prior formula result or constant. Rate-table dimensions are auto-resolved from the formula's LOOKUP steps. Medical tariff steps default to <span className="font-mono">bn_medical_reimbursement_limit</span>.
+                  </p>
+                  <ProductFormulaStepMappings
+                    formulaVersionId={
+                      editing.formula_version_id ??
+                      (versions.find(v => v.formula_template_id === editing.formula_template_id && v.is_active)?.id ?? null)
+                    }
+                    value={editing.step_mapping_json ?? null}
+                    onChange={(next) => setEditing({ ...editing, step_mapping_json: next })}
+                    disabled={isReadOnly}
+                  />
                 </div>
                 <div className="md:col-span-2 flex justify-end gap-2">
                   <Button variant="ghost" onClick={() => setEditing(null)} disabled={saving}>Cancel</Button>

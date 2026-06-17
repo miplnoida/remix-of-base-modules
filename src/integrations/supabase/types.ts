@@ -12724,6 +12724,7 @@ export type Database = {
           product_version_id: string | null
           rounding_rule: string | null
           sequence_no: number
+          step_mapping_json: Json | null
           updated_at: string
         }
         Insert: {
@@ -12743,6 +12744,7 @@ export type Database = {
           product_version_id?: string | null
           rounding_rule?: string | null
           sequence_no?: number
+          step_mapping_json?: Json | null
           updated_at?: string
         }
         Update: {
@@ -12762,6 +12764,7 @@ export type Database = {
           product_version_id?: string | null
           rounding_rule?: string | null
           sequence_no?: number
+          step_mapping_json?: Json | null
           updated_at?: string
         }
         Relationships: [
