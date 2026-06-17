@@ -38,7 +38,7 @@ export default function AwardAdjustments() {
         <h1 className="t-page-title">Award Adjustments</h1>
         <p className="t-page-subtitle mt-1">Rate adjustments applied to long-term awards.</p>
       </div>
-      <BNDataGrid<any>
+      <BNDataGrid
         id="bn.award-adjustments"
         data={data ?? []}
         isLoading={isLoading}

@@ -36,7 +36,7 @@ export default function SurvivorAwards() {
           Survivor benefit awards. One deceased insured person may have multiple beneficiaries — open the award to manage shares.
         </p>
       </div>
-      <BNDataGrid<any>
+      <BNDataGrid
         id="bn.survivor-awards"
         data={data ?? []}
         isLoading={isLoading}

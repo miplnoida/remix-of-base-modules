@@ -59,7 +59,7 @@ export const EntitlementListTable: React.FC<Props> = ({ items, onViewDetail, isL
   ];
 
   return (
-    <BNDataGrid<EntitlementWithContext>
+    <BNDataGrid
       id="bn.entitlements"
       data={items}
       isLoading={isLoading}
