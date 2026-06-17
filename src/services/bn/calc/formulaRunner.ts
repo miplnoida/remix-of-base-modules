@@ -17,6 +17,11 @@
 
 import { evaluateExpression } from './safeExpressionParser';
 import { lookupRate, type RateTableProvider, type LookupTraceEntry } from './rateTableLookup';
+import {
+  lookupMedicalTariff,
+  type MedicalTariffProvider,
+  type MedicalTariffTrace,
+} from './medicalTariffLookup';
 
 export interface FormulaVersionRow {
   id: string;
@@ -24,7 +29,7 @@ export interface FormulaVersionRow {
   version_no: number;
   expression_type:
     | 'SIMPLE_EXPRESSION' | 'RATE_TABLE_LOOKUP' | 'MATRIX_LOOKUP'
-    | 'MULTI_STEP' | 'CONDITIONAL';
+    | 'MEDICAL_TARIFF_LOOKUP' | 'MULTI_STEP' | 'CONDITIONAL';
   expression: string | null;
   steps_json: unknown;
   output_variable: string | null;
@@ -39,6 +44,7 @@ export interface ExpressionTraceEntry {
   table_code?: string;
   inputs?: Record<string, unknown>;
   output?: unknown;
+  medical_trace?: MedicalTariffTrace;
 }
 
 export interface FormulaRunResult {
@@ -46,12 +52,14 @@ export interface FormulaRunResult {
   scope: Record<string, unknown>;
   lookupTrace: LookupTraceEntry[];
   expressionTrace: ExpressionTraceEntry[];
+  medicalTrace: MedicalTariffTrace[];
 }
 
 interface StepExpr { kind: 'EXPR'; target?: string; expression: string }
 interface StepLookup { kind: 'LOOKUP'; target: string; table_code: string; inputs: Record<string, string> }
+interface StepMedical { kind: 'MEDICAL_TARIFF'; target: string; inputs: Record<string, string> }
 interface StepIf { kind: 'IF'; condition: string; then: Step[]; else?: Step[] }
-type Step = StepExpr | StepLookup | StepIf;
+type Step = StepExpr | StepLookup | StepMedical | StepIf;
 
 export async function runFormula(
   formula: FormulaVersionRow,
