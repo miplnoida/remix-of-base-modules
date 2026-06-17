@@ -66,10 +66,12 @@ export async function runFormula(
   scope: Record<string, unknown>,
   rateTableRefs: Record<string, string>,
   provider?: RateTableProvider,
+  medicalProvider?: MedicalTariffProvider,
 ): Promise<FormulaRunResult> {
   const workScope: Record<string, unknown> = { ...scope };
   const lookupTrace: LookupTraceEntry[] = [];
   const expressionTrace: ExpressionTraceEntry[] = [];
+  const medicalTrace: MedicalTariffTrace[] = [];
 
   // Resolve any rate-table variables that appear in mappings into callable values
   // by pre-running their lookup if the formula uses them directly via output_variable name.
