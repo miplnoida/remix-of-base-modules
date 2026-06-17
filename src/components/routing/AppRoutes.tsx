@@ -1636,6 +1636,7 @@ export const AppRoutes = () => {
       <Route path="/admin/scheduler" element={<CentralScheduler />} />
       <Route path="/admin/backup" element={<BackupRecovery />} />
       <Route path="/admin/logs" element={<SystemLogs />} />
+      <Route path="/admin/session-health" element={<SessionHealth />} />
       <Route path="/admin/employees" element={<EmployeeList />} />
       <Route path="/admin/org-units" element={<OrgUnitList />} />
       <Route path="/admin/positions" element={<PositionList />} />
