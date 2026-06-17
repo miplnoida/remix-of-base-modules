@@ -58,8 +58,9 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
   const [versions, setVersions] = useState<FormulaVersion[]>([]);
   const [rateTables, setRateTables] = useState<RateTable[]>([]);
   const [tariffTables, setTariffTables] = useState<MedicalTariffTable[]>([]);
-  const [editing, setEditing] = useState<Partial<BindingRow> & { notes?: string | null } | null>(null);
+  const [editing, setEditing] = useState<Partial<BindingRow> & { notes?: string | null; step_mapping_json?: StepMappingJson | null } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [resolvedVersionId, setResolvedVersionId] = useState<string | null>(null);
 
   const reload = async () => {
     setLoading(true);
