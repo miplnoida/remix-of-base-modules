@@ -10174,6 +10174,69 @@ export type Database = {
           },
         ]
       }
+      bn_medical_authorization_rule: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          emergency_exception_allowed: boolean
+          id: string
+          location_code: string
+          notes: string | null
+          procedure_code: string
+          provider_type_code: string | null
+          required_documents_json: Json | null
+          requires_ceo_or_director_approval: boolean
+          requires_medical_board: boolean
+          requires_overseas_approval: boolean
+          requires_referral: boolean
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          emergency_exception_allowed?: boolean
+          id?: string
+          location_code: string
+          notes?: string | null
+          procedure_code: string
+          provider_type_code?: string | null
+          required_documents_json?: Json | null
+          requires_ceo_or_director_approval?: boolean
+          requires_medical_board?: boolean
+          requires_overseas_approval?: boolean
+          requires_referral?: boolean
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          emergency_exception_allowed?: boolean
+          id?: string
+          location_code?: string
+          notes?: string | null
+          procedure_code?: string
+          provider_type_code?: string | null
+          required_documents_json?: Json | null
+          requires_ceo_or_director_approval?: boolean
+          requires_medical_board?: boolean
+          requires_overseas_approval?: boolean
+          requires_referral?: boolean
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       bn_medical_claim_expense: {
         Row: {
           approved_amount: number | null
@@ -10417,6 +10480,45 @@ export type Database = {
           },
         ]
       }
+      bn_medical_location_type: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          location_code: string
+          location_name: string
+          notes: string | null
+          priority_order: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          location_code: string
+          location_name: string
+          notes?: string | null
+          priority_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          location_code?: string
+          location_name?: string
+          notes?: string | null
+          priority_order?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       bn_medical_procedure: {
         Row: {
           category: string | null
@@ -10429,11 +10531,13 @@ export type Database = {
           id: string
           is_active: boolean
           modified_by: string | null
+          procedure_category: string | null
           procedure_code: string
           procedure_name: string
           requires_medical_board: boolean
           requires_pre_authorization: boolean
           specialty: string | null
+          treatment_type: string | null
           updated_at: string
         }
         Insert: {
@@ -10447,11 +10551,13 @@ export type Database = {
           id?: string
           is_active?: boolean
           modified_by?: string | null
+          procedure_category?: string | null
           procedure_code: string
           procedure_name: string
           requires_medical_board?: boolean
           requires_pre_authorization?: boolean
           specialty?: string | null
+          treatment_type?: string | null
           updated_at?: string
         }
         Update: {
@@ -10465,12 +10571,50 @@ export type Database = {
           id?: string
           is_active?: boolean
           modified_by?: string | null
+          procedure_category?: string | null
           procedure_code?: string
           procedure_name?: string
           requires_medical_board?: boolean
           requires_pre_authorization?: boolean
           specialty?: string | null
+          treatment_type?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      bn_medical_provider_type: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          provider_type_code: string
+          provider_type_name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          provider_type_code: string
+          provider_type_name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          provider_type_code?: string
+          provider_type_name?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
@@ -10786,6 +10930,146 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bn_medical_tariff_row: {
+        Row: {
+          approval_level: string
+          beneficiary_type: string | null
+          ceiling_amount: number | null
+          created_at: string
+          created_by: string | null
+          currency_code: string
+          effective_from: string
+          effective_to: string | null
+          emergency_allowed: boolean
+          fixed_amount: number | null
+          id: string
+          location_code: string
+          notes: string | null
+          percentage_rate: number | null
+          pre_authorization_required: boolean
+          procedure_category: string | null
+          procedure_code: string
+          provider_type_code: string
+          referral_required: boolean
+          reimbursement_method: string
+          tariff_table_id: string
+          treatment_type: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approval_level?: string
+          beneficiary_type?: string | null
+          ceiling_amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string
+          effective_from?: string
+          effective_to?: string | null
+          emergency_allowed?: boolean
+          fixed_amount?: number | null
+          id?: string
+          location_code: string
+          notes?: string | null
+          percentage_rate?: number | null
+          pre_authorization_required?: boolean
+          procedure_category?: string | null
+          procedure_code: string
+          provider_type_code: string
+          referral_required?: boolean
+          reimbursement_method: string
+          tariff_table_id: string
+          treatment_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approval_level?: string
+          beneficiary_type?: string | null
+          ceiling_amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string
+          effective_from?: string
+          effective_to?: string | null
+          emergency_allowed?: boolean
+          fixed_amount?: number | null
+          id?: string
+          location_code?: string
+          notes?: string | null
+          percentage_rate?: number | null
+          pre_authorization_required?: boolean
+          procedure_category?: string | null
+          procedure_code?: string
+          provider_type_code?: string
+          referral_required?: boolean
+          reimbursement_method?: string
+          tariff_table_id?: string
+          treatment_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_medical_tariff_row_tariff_table_id_fkey"
+            columns: ["tariff_table_id"]
+            isOneToOne: false
+            referencedRelation: "bn_medical_tariff_table"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_medical_tariff_table: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          legal_reference: string | null
+          notes: string | null
+          status: string
+          tariff_code: string
+          tariff_name: string
+          updated_at: string
+          updated_by: string | null
+          version_no: number
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          legal_reference?: string | null
+          notes?: string | null
+          status?: string
+          tariff_code: string
+          tariff_name: string
+          updated_at?: string
+          updated_by?: string | null
+          version_no?: number
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          legal_reference?: string | null
+          notes?: string | null
+          status?: string
+          tariff_code?: string
+          tariff_name?: string
+          updated_at?: string
+          updated_by?: string | null
+          version_no?: number
+        }
+        Relationships: []
       }
       bn_module_events: {
         Row: {
