@@ -320,30 +320,39 @@ export default function FormulaConfiguration() {
     });
   };
 
-  // ─── Row actions per status ────────────────────────────────────────
-  const rowActions = (row: BnFormulaTemplate) => {
-    const status = (row.governance_status ?? 'DRAFT') as FormulaStatus;
-    const actions: Array<{ key: string; label: string; icon: any; onClick: () => void }> = [];
-    if (status === 'DRAFT') {
-      actions.push({ key: 'edit', label: 'Edit draft', icon: <Edit className="h-3.5 w-3.5" />, onClick: () => openRow(row) });
-      actions.push({ key: 'submit', label: 'Submit for review', icon: <Send className="h-3.5 w-3.5" />, onClick: () => handleTransition(row, 'IN_REVIEW', 'Submit for review') });
-    } else {
-      actions.push({ key: 'view', label: 'View', icon: <Eye className="h-3.5 w-3.5" />, onClick: () => openRow(row) });
-    }
-    if (status === 'IN_REVIEW') {
-      actions.push({ key: 'activate', label: 'Activate', icon: <CheckCircle2 className="h-3.5 w-3.5" />, onClick: () => handleTransition(row, 'ACTIVE', 'Activate') });
-    }
-    if (status === 'ACTIVE') {
-      actions.push({ key: 'retire', label: 'Retire', icon: <Archive className="h-3.5 w-3.5" />, onClick: () => handleTransition(row, 'RETIRED', 'Retire') });
-    }
-    if (status === 'ACTIVE' || status === 'RETIRED') {
-      actions.push({ key: 'version', label: 'New version', icon: <GitBranch className="h-3.5 w-3.5" />, onClick: () => handleNewVersion(row) });
-    }
-    actions.push({ key: 'clone', label: 'Clone', icon: <Copy className="h-3.5 w-3.5" />, onClick: () => handleClone(row) });
-    actions.push({ key: 'usage', label: 'View usage', icon: <Eye className="h-3.5 w-3.5" />, onClick: () => handleViewUsage(row) });
-    actions.push({ key: 'delete', label: 'Delete', icon: <Trash2 className="h-3.5 w-3.5" />, onClick: () => handleDelete(row) });
-    return actions;
-  };
+  // ─── Row actions (status-aware via `hidden` predicates) ───────────
+  const rowActions: Array<{
+    key: string; label: string; icon: any;
+    onClick: (row: BnFormulaTemplate) => void;
+    hidden?: (row: BnFormulaTemplate) => boolean;
+    variant?: 'default' | 'destructive';
+  }> = [
+    { key: 'edit', label: 'Edit draft', icon: <Edit className="h-3.5 w-3.5" />,
+      onClick: (r) => openRow(r),
+      hidden: (r) => (r.governance_status ?? 'DRAFT') !== 'DRAFT' },
+    { key: 'view', label: 'View', icon: <Eye className="h-3.5 w-3.5" />,
+      onClick: (r) => openRow(r),
+      hidden: (r) => (r.governance_status ?? 'DRAFT') === 'DRAFT' },
+    { key: 'submit', label: 'Submit for review', icon: <Send className="h-3.5 w-3.5" />,
+      onClick: (r) => handleTransition(r, 'IN_REVIEW', 'Submit for review'),
+      hidden: (r) => (r.governance_status ?? 'DRAFT') !== 'DRAFT' },
+    { key: 'activate', label: 'Activate', icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+      onClick: (r) => handleTransition(r, 'ACTIVE', 'Activate'),
+      hidden: (r) => r.governance_status !== 'IN_REVIEW' },
+    { key: 'retire', label: 'Retire', icon: <Archive className="h-3.5 w-3.5" />,
+      onClick: (r) => handleTransition(r, 'RETIRED', 'Retire'),
+      hidden: (r) => r.governance_status !== 'ACTIVE' },
+    { key: 'version', label: 'New version', icon: <GitBranch className="h-3.5 w-3.5" />,
+      onClick: (r) => handleNewVersion(r),
+      hidden: (r) => !(r.governance_status === 'ACTIVE' || r.governance_status === 'RETIRED') },
+    { key: 'clone', label: 'Clone', icon: <Copy className="h-3.5 w-3.5" />,
+      onClick: (r) => handleClone(r) },
+    { key: 'usage', label: 'View usage', icon: <Eye className="h-3.5 w-3.5" />,
+      onClick: (r) => handleViewUsage(r) },
+    { key: 'delete', label: 'Delete', icon: <Trash2 className="h-3.5 w-3.5" />,
+      onClick: (r) => handleDelete(r), variant: 'destructive' },
+  ];
+
 
   const columns: BNColumnDef<BnFormulaTemplate>[] = [
     { accessorKey: 'template_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 160 },
