@@ -1,20 +1,44 @@
 /**
- * Formula Configuration — Reusable formula template library
+ * Formula Library — tabbed, with full lifecycle actions.
+ *
+ * Tabs: Active · Drafts · In Review · Retired · All
+ *
+ * Row actions:
+ *   - Edit (drafts only; ACTIVE/RETIRED rows are read-only and offer
+ *     "Create New Version" instead)
+ *   - Clone (creates a new template + DRAFT v1)
+ *   - New Version (creates DRAFT vN+1)
+ *   - Submit for Review (DRAFT → IN_REVIEW)
+ *   - Activate (IN_REVIEW → ACTIVE; retires the previously active version)
+ *   - Retire (ACTIVE → RETIRED)
+ *   - View Usage (shows binding count & version count)
+ *   - Delete (safe — refused when bound or any ACTIVE version exists)
+ *
+ * Raw JSON / inline expression edits are kept behind the existing
+ * FormulaBuilder; only DRAFT rows allow expression edits.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Edit } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Copy, Edit, GitBranch, Send, CheckCircle2, Archive, Eye, Trash2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useBnFormulaTemplates, useUpsertBnFormulaTemplate } from '@/hooks/bn/useBnConfig';
 import { useUserCode } from '@/hooks/useUserCode';
+import { useQueryClient } from '@tanstack/react-query';
 import { PermissionWrapper } from '@/components/ui/permission-wrapper';
 import { PageHeader } from '@/components/common/PageHeader';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
@@ -26,6 +50,11 @@ import { classifyVariables } from '@/services/bn/variableResolverService';
 import { FormulaTestPanel } from '@/components/bn/config/FormulaTestPanel';
 import type { BnFormulaTemplate } from '@/types/bn';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
+import {
+  cloneFormula, createNewVersion, getFormulaUsage,
+  safeDeleteFormula, transitionVersion, listVersions,
+  type FormulaStatus,
+} from '@/services/bn/formulaLifecycleService';
 
 type FormulaForm = {
   id?: string;
@@ -39,13 +68,8 @@ type FormulaForm = {
 };
 
 const emptyForm: FormulaForm = {
-  template_code: '',
-  template_name: '',
-  description: '',
-  formula_expression: '',
-  output_type: 'NUMBER',
-  country_code: '',
-  is_active: true,
+  template_code: '', template_name: '', description: '',
+  formula_expression: '', output_type: 'NUMBER', country_code: '', is_active: true,
 };
 
 const OUTPUT_TYPES = [
@@ -54,22 +78,58 @@ const OUTPUT_TYPES = [
   { value: 'PERCENT', label: 'Percent' },
 ];
 
+const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
+  DRAFT: 'outline', IN_REVIEW: 'secondary', ACTIVE: 'default', RETIRED: 'destructive',
+};
+
+type TabKey = 'ACTIVE' | 'DRAFT' | 'IN_REVIEW' | 'RETIRED' | 'ALL';
+
 export default function FormulaConfiguration() {
+  const [tab, setTab] = useState<TabKey>('ACTIVE');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<FormulaForm>(emptyForm);
+  const [readOnly, setReadOnly] = useState(false);
+  const [cloneOpen, setCloneOpen] = useState(false);
+  const [cloneSource, setCloneSource] = useState<BnFormulaTemplate | null>(null);
+  const [cloneCode, setCloneCode] = useState('');
+  const [cloneName, setCloneName] = useState('');
+  const [confirm, setConfirm] = useState<{
+    title: string; description: string; action: () => Promise<void>;
+  } | null>(null);
+  const [usageOpen, setUsageOpen] = useState<{ row: BnFormulaTemplate; usage: any; versions: any[] } | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
   const { data: formulas = [], isLoading } = useBnFormulaTemplates();
   const upsert = useUpsertBnFormulaTemplate();
   const { userCode } = useUserCode();
   const audit = useBnConfigAudit();
   const { data: resolver } = useVariableResolver();
+  const qc = useQueryClient();
 
+  const refresh = () => qc.invalidateQueries({ queryKey: ['bn', 'formula-templates'] });
+
+  const filtered = useMemo(() => {
+    const rows = formulas as BnFormulaTemplate[];
+    if (tab === 'ALL') return rows;
+    return rows.filter((f) => (f.governance_status ?? 'DRAFT') === tab);
+  }, [formulas, tab]);
+
+  const counts = useMemo(() => {
+    const c = { ACTIVE: 0, DRAFT: 0, IN_REVIEW: 0, RETIRED: 0 } as Record<string, number>;
+    (formulas as BnFormulaTemplate[]).forEach((f) => {
+      const s = f.governance_status ?? 'DRAFT';
+      if (c[s] != null) c[s] += 1;
+    });
+    return c;
+  }, [formulas]);
 
   const otherCodes = formulas
     .filter((f: BnFormulaTemplate) => f.id !== form.id)
     .map((f: BnFormulaTemplate) => f.template_code);
 
-  const openAdd = () => { setForm(emptyForm); setDialogOpen(true); };
-  const openEdit = (f: BnFormulaTemplate) => {
+  const openAdd = () => { setForm(emptyForm); setReadOnly(false); setDialogOpen(true); };
+  const openRow = (f: BnFormulaTemplate) => {
+    const status = f.governance_status ?? 'DRAFT';
     setForm({
       id: f.id,
       template_code: f.template_code,
@@ -80,35 +140,35 @@ export default function FormulaConfiguration() {
       country_code: f.country_code ?? '',
       is_active: f.is_active ?? true,
     });
+    setReadOnly(status !== 'DRAFT');
     setDialogOpen(true);
   };
 
   const handleSave = async () => {
+    if (readOnly) { setDialogOpen(false); return; }
     if (!form.template_code.trim() || !form.template_name.trim() || !form.formula_expression.trim()) {
       toast.error('Please check the form for valid information!', {
         description: 'Code, Name and Expression are required.',
       });
       return;
     }
-    // Block duplicate codes
-    if (otherCodes.map(c => c.toUpperCase()).includes(form.template_code.trim().toUpperCase())) {
+    if (otherCodes.map((c) => c.toUpperCase()).includes(form.template_code.trim().toUpperCase())) {
       toast.error('Duplicate code', { description: 'Another formula already uses this code.' });
       return;
     }
-    // Validate formula against the unified Variable Resolver
     const parsed = parseFormula(form.formula_expression, resolver ?? null);
     if (!parsed.valid) {
-      const missing = parsed.unresolved.map(u => u.variable).join(', ');
+      const missing = parsed.unresolved.map((u) => u.variable).join(', ');
       toast.error('Formula has unregistered variables', {
         description: missing
-          ? `Missing source for: ${missing}. Use the editor to create them as Derived Fact or Product Parameter.`
+          ? `Missing source for: ${missing}.`
           : parsed.errors.join('; '),
       });
       return;
     }
     const variableBindings = resolver
       ? Object.fromEntries(
-          classifyVariables(parsed.variablesUsed, resolver).resolved.map(r => [
+          classifyVariables(parsed.variablesUsed, resolver).resolved.map((r) => [
             r.code,
             { source: r.source, ref: r.code, refId: r.refId, displayName: r.displayName },
           ]),
@@ -130,13 +190,14 @@ export default function FormulaConfiguration() {
         validation_status: 'VALID',
         last_validation_at: new Date().toISOString(),
         validation_errors: [],
+        ...(form.id ? {} : { governance_status: 'DRAFT' }),
       } as Partial<BnFormulaTemplate>);
       audit.log({
         entityType: 'bn_formula_template',
         entityId: (saved as any)?.id ?? form.id ?? 'new',
         action: form.id ? 'UPDATE' : 'CREATE',
         before,
-        after: { ...form, variables_used: parsed.variablesUsed, variable_bindings: variableBindings },
+        after: { ...form, variables_used: parsed.variablesUsed },
       });
       toast.success(form.id ? 'Formula updated' : 'Formula created');
       setDialogOpen(false);
@@ -145,12 +206,169 @@ export default function FormulaConfiguration() {
     }
   };
 
+  // ─── Lifecycle handlers ────────────────────────────────────────────
+  const requireUser = (): string | null => {
+    if (!userCode) { toast.error('Sign-in required'); return null; }
+    return userCode;
+  };
+
+  const handleClone = (row: BnFormulaTemplate) => {
+    setCloneSource(row);
+    setCloneCode(`${row.template_code}-COPY`);
+    setCloneName(`${row.template_name} (copy)`);
+    setCloneOpen(true);
+  };
+
+  const doClone = async () => {
+    const u = requireUser(); if (!u || !cloneSource) return;
+    if (!cloneCode.trim() || !cloneName.trim()) {
+      toast.error('Code and name are required'); return;
+    }
+    try {
+      setBusyId(cloneSource.id);
+      await cloneFormula({
+        templateId: cloneSource.id,
+        newCode: cloneCode.trim().toUpperCase(),
+        newName: cloneName.trim(),
+        userCode: u,
+      });
+      audit.log({ entityType: 'bn_formula_template', entityId: cloneSource.id, action: 'CLONE', after: { newCode: cloneCode } });
+      toast.success('Formula cloned as DRAFT');
+      setCloneOpen(false); refresh();
+    } catch (e: any) {
+      toast.error('Clone failed', { description: e?.message });
+    } finally { setBusyId(null); }
+  };
+
+  const handleNewVersion = (row: BnFormulaTemplate) => {
+    const u = requireUser(); if (!u) return;
+    setConfirm({
+      title: `Create new version of ${row.template_code}?`,
+      description: 'A new DRAFT version will be created. The current ACTIVE version stays in use until you activate the new one.',
+      action: async () => {
+        setBusyId(row.id);
+        try {
+          await createNewVersion(row.id, u);
+          audit.log({ entityType: 'bn_formula_template', entityId: row.id, action: 'NEW_VERSION' });
+          toast.success('New DRAFT version created');
+          refresh();
+        } catch (e: any) { toast.error('Failed', { description: e?.message }); }
+        finally { setBusyId(null); }
+      },
+    });
+  };
+
+  const handleTransition = (row: BnFormulaTemplate, next: FormulaStatus, label: string) => {
+    const u = requireUser(); if (!u) return;
+    // Use the latest version of this template — RPC will reject illegal transitions.
+    setConfirm({
+      title: `${label} ${row.template_code}?`,
+      description: next === 'ACTIVE'
+        ? 'Activating this formula version will retire any previously active version of the same template.'
+        : next === 'RETIRED'
+          ? 'Retired formulas remain visible for audit but cannot be bound to new products.'
+          : 'Submit this DRAFT for review. Editing will be locked.',
+      action: async () => {
+        setBusyId(row.id);
+        try {
+          const versions = await listVersions(row.id);
+          if (!versions.length) throw new Error('No version found for this template');
+          // Pick the version whose current status is the legal predecessor.
+          const predecessor = next === 'IN_REVIEW' ? 'DRAFT'
+            : next === 'ACTIVE' ? 'IN_REVIEW'
+            : next === 'RETIRED' ? 'ACTIVE' : null;
+          const candidate = versions.find((v: any) => v.governance_status === predecessor) ?? versions[0];
+          await transitionVersion({ versionId: candidate.id, newStatus: next, userCode: u });
+          // Mirror the latest status onto the template header so the grid reflects it immediately.
+          await upsert.mutateAsync({
+            id: row.id, governance_status: next, modified_by: u,
+            ...(next === 'RETIRED' ? { is_active: false } : {}),
+          } as Partial<BnFormulaTemplate>);
+          audit.log({ entityType: 'bn_formula_template', entityId: row.id, action: `STATUS_${next}` });
+          toast.success(`${row.template_code} → ${next}`);
+          refresh();
+        } catch (e: any) { toast.error('Transition failed', { description: e?.message }); }
+        finally { setBusyId(null); }
+      },
+    });
+  };
+
+  const handleViewUsage = async (row: BnFormulaTemplate) => {
+    setBusyId(row.id);
+    try {
+      const [usage, versions] = await Promise.all([getFormulaUsage(row.id), listVersions(row.id)]);
+      setUsageOpen({ row, usage, versions });
+    } catch (e: any) { toast.error('Failed to load usage', { description: e?.message }); }
+    finally { setBusyId(null); }
+  };
+
+  const handleDelete = (row: BnFormulaTemplate) => {
+    const u = requireUser(); if (!u) return;
+    setConfirm({
+      title: `Delete ${row.template_code}?`,
+      description: 'Safe-delete: the formula is removed only if it is not bound to any product and has no ACTIVE versions. Otherwise retire it instead.',
+      action: async () => {
+        setBusyId(row.id);
+        try {
+          await safeDeleteFormula(row.id, u);
+          audit.log({ entityType: 'bn_formula_template', entityId: row.id, action: 'DELETE' });
+          toast.success('Formula deleted');
+          refresh();
+        } catch (e: any) { toast.error('Delete blocked', { description: e?.message }); }
+        finally { setBusyId(null); }
+      },
+    });
+  };
+
+  // ─── Row actions per status ────────────────────────────────────────
+  const rowActions = (row: BnFormulaTemplate) => {
+    const status = (row.governance_status ?? 'DRAFT') as FormulaStatus;
+    const actions: Array<{ key: string; label: string; icon: any; onClick: () => void }> = [];
+    if (status === 'DRAFT') {
+      actions.push({ key: 'edit', label: 'Edit draft', icon: <Edit className="h-3.5 w-3.5" />, onClick: () => openRow(row) });
+      actions.push({ key: 'submit', label: 'Submit for review', icon: <Send className="h-3.5 w-3.5" />, onClick: () => handleTransition(row, 'IN_REVIEW', 'Submit for review') });
+    } else {
+      actions.push({ key: 'view', label: 'View', icon: <Eye className="h-3.5 w-3.5" />, onClick: () => openRow(row) });
+    }
+    if (status === 'IN_REVIEW') {
+      actions.push({ key: 'activate', label: 'Activate', icon: <CheckCircle2 className="h-3.5 w-3.5" />, onClick: () => handleTransition(row, 'ACTIVE', 'Activate') });
+    }
+    if (status === 'ACTIVE') {
+      actions.push({ key: 'retire', label: 'Retire', icon: <Archive className="h-3.5 w-3.5" />, onClick: () => handleTransition(row, 'RETIRED', 'Retire') });
+    }
+    if (status === 'ACTIVE' || status === 'RETIRED') {
+      actions.push({ key: 'version', label: 'New version', icon: <GitBranch className="h-3.5 w-3.5" />, onClick: () => handleNewVersion(row) });
+    }
+    actions.push({ key: 'clone', label: 'Clone', icon: <Copy className="h-3.5 w-3.5" />, onClick: () => handleClone(row) });
+    actions.push({ key: 'usage', label: 'View usage', icon: <Eye className="h-3.5 w-3.5" />, onClick: () => handleViewUsage(row) });
+    actions.push({ key: 'delete', label: 'Delete', icon: <Trash2 className="h-3.5 w-3.5" />, onClick: () => handleDelete(row) });
+    return actions;
+  };
+
+  const columns: BNColumnDef<BnFormulaTemplate>[] = [
+    { accessorKey: 'template_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 160 },
+      cell: ({ getValue }) => <span className="font-mono text-sm">{String(getValue() ?? '')}</span> },
+    { accessorKey: 'template_name', header: 'Name', meta: { label: 'Name', width: 260 },
+      cell: ({ getValue }) => <span className="font-medium text-sm">{String(getValue() ?? '')}</span> },
+    { accessorKey: 'governance_status', header: 'Status', meta: { label: 'Status', width: 120 },
+      cell: ({ getValue }) => {
+        const s = String(getValue() ?? 'DRAFT');
+        return <Badge variant={STATUS_VARIANTS[s] ?? 'outline'}>{s}</Badge>;
+      } },
+    { accessorKey: 'output_type', header: 'Output', meta: { label: 'Output', width: 110 },
+      cell: ({ getValue }) => <Badge variant="outline">{String(getValue() ?? '—')}</Badge> },
+    { accessorKey: 'country_code', header: 'Country', meta: { label: 'Country', width: 100 },
+      cell: ({ getValue }) => <Badge variant="outline">{String(getValue() || 'Global')}</Badge> },
+    { accessorKey: 'is_active', header: 'Active', meta: { label: 'Active', width: 90 },
+      cell: ({ getValue }) => getValue() ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge> },
+  ];
+
   return (
     <PermissionWrapper moduleName="bn_configuration">
       <div className="space-y-6 p-6">
         <PageHeader
           title="Formula Library"
-          subtitle="Reusable calculation formula library"
+          subtitle="Reusable calculation formula library with versioning and lifecycle controls"
           breadcrumbs={[
             { label: 'Benefit Management', href: '/bn/claims' },
             { label: 'Configuration' },
@@ -161,47 +379,54 @@ export default function FormulaConfiguration() {
         <BnScreenRoleBanner
           role="library"
           productAssemblyHint
-          description="Reusable calculation building blocks. To assign a formula to a benefit product, open Product Catalog → select the product version → Calculation tab."
+          description="Reusable calculation building blocks. Product Catalog can only bind ACTIVE versions. Edit is allowed only on DRAFT rows; for ACTIVE rows use ‘New Version’."
         />
 
-        <BNDataGrid
-          id="bn.formula-library"
-          columns={[
-            { accessorKey: 'template_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 160 }, cell: ({ getValue }) => <span className="font-mono text-sm">{String(getValue() ?? '')}</span> },
-            { accessorKey: 'template_name', header: 'Name', meta: { label: 'Name', width: 260 }, cell: ({ getValue }) => <span className="font-medium text-sm">{String(getValue() ?? '')}</span> },
-            { accessorKey: 'output_type', header: 'Output', meta: { label: 'Output', width: 120 }, cell: ({ getValue }) => <Badge variant="outline">{String(getValue() ?? '—')}</Badge> },
-            { accessorKey: 'formula_expression', header: 'Expression', meta: { label: 'Expression', width: 380 }, cell: ({ getValue }) => <span className="font-mono text-xs text-muted-foreground">{String(getValue() ?? '—')}</span> },
-            { accessorKey: 'country_code', header: 'Country', meta: { label: 'Country', width: 100 }, cell: ({ getValue }) => <Badge variant="outline">{String(getValue() || 'Global')}</Badge> },
-            { accessorKey: 'is_active', header: 'Active', meta: { label: 'Active', width: 90 }, cell: ({ getValue }) => getValue() ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge> },
-          ] as BNColumnDef<BnFormulaTemplate>[]}
-          data={formulas as BnFormulaTemplate[]}
-          isLoading={isLoading}
-          searchPlaceholder="Search formulas..."
-          defaultSort={[{ id: 'template_code', desc: false }]}
-          onCreate={openAdd}
-          onRowClick={(f) => openEdit(f)}
-          rowActions={[
-            { key: 'edit', label: 'Edit', icon: <Edit className="h-3.5 w-3.5" />, onClick: (f) => openEdit(f) },
-          ]}
-          exportFilename="bn_formula_library"
-          emptyMessage="No formula templates yet. Click Create to add one."
-        />
+        <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
+          <TabsList>
+            <TabsTrigger value="ACTIVE">Active ({counts.ACTIVE})</TabsTrigger>
+            <TabsTrigger value="DRAFT">Drafts ({counts.DRAFT})</TabsTrigger>
+            <TabsTrigger value="IN_REVIEW">In Review ({counts.IN_REVIEW})</TabsTrigger>
+            <TabsTrigger value="RETIRED">Retired ({counts.RETIRED})</TabsTrigger>
+            <TabsTrigger value="ALL">All ({formulas.length})</TabsTrigger>
+          </TabsList>
 
+          <TabsContent value={tab} className="mt-4">
+            <BNDataGrid
+              id={`bn.formula-library.${tab}`}
+              columns={columns}
+              data={filtered}
+              isLoading={isLoading || busyId !== null}
+              searchPlaceholder="Search formulas..."
+              defaultSort={[{ id: 'template_code', desc: false }]}
+              onCreate={openAdd}
+              onRowClick={(f) => openRow(f)}
+              rowActions={(row) => rowActions(row as BnFormulaTemplate)}
+              exportFilename={`bn_formula_library_${tab.toLowerCase()}`}
+              emptyMessage={tab === 'ACTIVE'
+                ? 'No active formulas. Activate a draft from the Drafts tab.'
+                : 'No formulas in this status.'}
+            />
+          </TabsContent>
+        </Tabs>
 
+        {/* Add / Edit / View dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{form.id ? 'Edit Formula Template' : 'Add Formula Template'}</DialogTitle>
+              <DialogTitle>
+                {readOnly ? 'View Formula' : form.id ? 'Edit Draft Formula' : 'Add Formula'}
+              </DialogTitle>
               <DialogDescription>
-                Reusable calculation block. Every variable must resolve to a Fact, Derived Fact, Product Parameter or Prior Formula Result — unknown variables block save and offer quick links to create the missing source.
+                {readOnly
+                  ? 'This formula is not in DRAFT — fields are read-only. Use “New Version” to create an editable DRAFT.'
+                  : 'Every variable must resolve to a Fact, Derived Fact, Product Parameter or Prior Formula Result.'}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-2">
+            <fieldset disabled={readOnly} className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3">
                 <CodeFieldWithAutoGenerate
-                  label="Code"
-                  required
-                  prefix="FRM"
+                  label="Code" required prefix="FRM"
                   value={form.template_code}
                   onChange={(v) => setForm({ ...form, template_code: v })}
                   existingCodes={otherCodes}
@@ -210,7 +435,8 @@ export default function FormulaConfiguration() {
                 />
                 <div className="space-y-1.5">
                   <Label htmlFor="fm_country">Country code</Label>
-                  <Input id="fm_country" value={form.country_code} maxLength={3} placeholder="Leave blank for global"
+                  <Input id="fm_country" value={form.country_code} maxLength={3}
+                    placeholder="Leave blank for global"
                     onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
                 </div>
               </div>
@@ -232,8 +458,7 @@ export default function FormulaConfiguration() {
               <div className="flex items-end justify-between gap-4">
                 <div className="w-48">
                   <SmartSelect
-                    label="Output type"
-                    options={OUTPUT_TYPES}
+                    label="Output type" options={OUTPUT_TYPES}
                     value={form.output_type}
                     onValueChange={(v) => setForm({ ...form, output_type: v })}
                   />
@@ -241,18 +466,115 @@ export default function FormulaConfiguration() {
                 <div className="flex items-center gap-2 pb-2">
                   <Switch id="fm_active" checked={form.is_active}
                     onCheckedChange={(v) => setForm({ ...form, is_active: v })} />
-                  <Label htmlFor="fm_active">Active</Label>
+                  <Label htmlFor="fm_active">Active flag</Label>
+                </div>
+              </div>
+            </fieldset>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                {readOnly ? 'Close' : 'Cancel'}
+              </Button>
+              {!readOnly && (
+                <Button onClick={handleSave} disabled={upsert.isPending}>
+                  {upsert.isPending ? 'Saving…' : (form.id ? 'Save draft' : 'Create draft')}
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Clone dialog */}
+        <Dialog open={cloneOpen} onOpenChange={setCloneOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Clone formula</DialogTitle>
+              <DialogDescription>
+                Creates a new template (DRAFT v1) seeded from {cloneSource?.template_code}.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="clone_code">New code *</Label>
+                <Input id="clone_code" value={cloneCode}
+                  onChange={(e) => setCloneCode(e.target.value.toUpperCase())} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="clone_name">New name *</Label>
+                <Input id="clone_name" value={cloneName}
+                  onChange={(e) => setCloneName(e.target.value)} />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCloneOpen(false)}>Cancel</Button>
+              <Button onClick={doClone} disabled={busyId === cloneSource?.id}>Clone</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Usage dialog */}
+        <Dialog open={!!usageOpen} onOpenChange={(o) => !o && setUsageOpen(null)}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Usage — {usageOpen?.row.template_code}</DialogTitle>
+              <DialogDescription>Where this formula is used and its version history.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2 text-sm">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Product bindings</div>
+                  <div className="text-2xl font-semibold">{usageOpen?.usage.binding_count ?? 0}</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Active versions</div>
+                  <div className="text-2xl font-semibold">{usageOpen?.usage.active_version_count ?? 0}</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Total versions</div>
+                  <div className="text-2xl font-semibold">{usageOpen?.usage.total_versions ?? 0}</div>
+                </div>
+              </div>
+              <div className="rounded-md border">
+                <div className="px-3 py-2 text-xs font-medium bg-muted/40">Versions</div>
+                <div className="divide-y max-h-64 overflow-y-auto">
+                  {(usageOpen?.versions ?? []).map((v: any) => (
+                    <div key={v.id} className="flex items-center justify-between px-3 py-2">
+                      <div className="font-mono">v{v.version_no}</div>
+                      <Badge variant={STATUS_VARIANTS[v.governance_status] ?? 'outline'}>
+                        {v.governance_status}
+                      </Badge>
+                      <div className="text-xs text-muted-foreground">
+                        {v.effective_from ?? '—'} → {v.effective_to ?? '—'}
+                      </div>
+                    </div>
+                  ))}
+                  {!(usageOpen?.versions ?? []).length && (
+                    <div className="px-3 py-4 text-xs text-muted-foreground">No versions yet.</div>
+                  )}
                 </div>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={upsert.isPending}>
-                {upsert.isPending ? 'Saving…' : (form.id ? 'Save changes' : 'Create formula')}
-              </Button>
+              <Button variant="outline" onClick={() => setUsageOpen(null)}>Close</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Confirm dialog */}
+        <AlertDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{confirm?.title}</AlertDialogTitle>
+              <AlertDialogDescription>{confirm?.description}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={async () => {
+                const fn = confirm?.action; setConfirm(null);
+                if (fn) await fn();
+              }}>Confirm</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </PermissionWrapper>
   );
