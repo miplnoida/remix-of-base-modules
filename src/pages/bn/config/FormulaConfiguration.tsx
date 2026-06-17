@@ -110,6 +110,7 @@ export default function FormulaConfiguration() {
   const [usageOpen, setUsageOpen] = useState<{ row: BnFormulaTemplate; usage: any; versions: any[] } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [versionEditorId, setVersionEditorId] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const { data: formulas = [], isLoading } = useBnFormulaTemplates();
   const upsert = useUpsertBnFormulaTemplate();
