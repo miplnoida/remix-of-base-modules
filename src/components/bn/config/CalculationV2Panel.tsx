@@ -67,13 +67,20 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
       const [b, t, v, r, m] = await Promise.all([
         loadProductBindings(productVersionId),
         sb.from('bn_formula_template').select('id, template_code, template_name, category').eq('is_active', true).order('template_code'),
-        sb.from('bn_formula_version').select('id, formula_template_id, formula_code, version_no, expression_type, is_active').order('version_no', { ascending: false }),
+        // Only ACTIVE versions are eligible for binding — drafts and retired versions are filtered out.
+        sb.from('bn_formula_version')
+          .select('id, formula_template_id, formula_code, version_no, expression_type, is_active, governance_status')
+          .eq('governance_status', 'ACTIVE')
+          .order('version_no', { ascending: false }),
         sb.from('bn_rate_table').select('id, table_code, table_name, table_type, status').order('table_code'),
         sb.from('bn_medical_tariff_table').select('id, tariff_code, tariff_name, status').order('tariff_code'),
       ]);
       setBindings(b);
-      setTemplates(t.data ?? []);
-      setVersions(v.data ?? []);
+      const activeVersions: FormulaVersion[] = v.data ?? [];
+      setVersions(activeVersions);
+      // Only show templates that have at least one ACTIVE version (i.e. bindable).
+      const activeTemplateIds = new Set(activeVersions.map((vv) => vv.formula_template_id));
+      setTemplates((t.data ?? []).filter((tpl: FormulaTemplate) => activeTemplateIds.has(tpl.id)));
       setRateTables(r.data ?? []);
       setTariffTables(m.data ?? []);
     } catch (e) {
