@@ -452,8 +452,8 @@ export const nbenefitMenuItems = [
             requiresPermission: "benefits_configuration"
           },
           {
-            title: "Medical Rules Configuration",
-            url: "/nbenefit/config/medical-rules",
+            title: "Medical Policy Library",
+            url: "/bn/config/medical",
             icon: Stethoscope,
             requiresPermission: "benefits_configuration"
           },

@@ -528,7 +528,7 @@ const AgeBenefit = lazy(() => import('@/pages/nbenefit/long-term/AgeBenefit'));
 const ClaimApprovalEnhanced = lazy(() => import('@/pages/nbenefit/ClaimApprovalEnhanced'));
 const BenefitRulesList = lazy(() => import('@/pages/nbenefit/_legacy/BenefitRulesList'));
 const BenefitRuleEditor = lazy(() => import('@/pages/nbenefit/_legacy/BenefitRuleEditor'));
-const MedicalRulesConfig = lazy(() => import('@/pages/nbenefit/config/MedicalRulesConfig'));
+// Removed: MedicalRulesConfig (legacy). Use /bn/config/medical/* instead.
 const BeneficiaryRegistry = lazy(() => import('@/pages/nbenefit/long-term/BeneficiaryRegistry'));
 const BeneficiaryDetail = lazy(() => import('@/pages/nbenefit/long-term/BeneficiaryDetail'));
 const LifeCertificateManagement = lazy(() => import('@/pages/nbenefit/long-term/LifeCertificateManagement'));
@@ -1958,7 +1958,7 @@ export const AppRoutes = () => {
       {/* Shared Config & Tools */}
       <Route path="/nbenefit/shared/common-eligibility-rules" element={<CommonEligibilityRules />} />
       <Route path="/nbenefit/shared/calculation-engines" element={<CalculationEngines />} />
-      <Route path="/nbenefit/config/medical-rules" element={<MedicalRulesConfig />} />
+      <Route path="/nbenefit/config/medical-rules" element={<Navigate to="/bn/config/medical" replace />} />
       <Route path="/nbenefit/long-term/registry" element={<BeneficiaryRegistry />} />
       <Route path="/nbenefit/long-term/beneficiary/:id" element={<BeneficiaryDetail />} />
       <Route path="/nbenefit/long-term/life-certificates" element={<LifeCertificateManagement />} />
