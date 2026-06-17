@@ -50,6 +50,7 @@ import { classifyVariables } from '@/services/bn/variableResolverService';
 import { FormulaTestPanel } from '@/components/bn/config/FormulaTestPanel';
 import { FormulaVersionEditor } from '@/components/bn/config/FormulaVersionEditor';
 import { AddFormulaWizard } from '@/components/bn/config/AddFormulaWizard';
+import { LiveVersionGuardDialog } from '@/components/bn/config/LiveVersionGuardDialog';
 import type { BnFormulaTemplate } from '@/types/bn';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 import {
@@ -111,6 +112,7 @@ export default function FormulaConfiguration() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [versionEditorId, setVersionEditorId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [guardRow, setGuardRow] = useState<BnFormulaTemplate | null>(null);
 
   const { data: formulas = [], isLoading } = useBnFormulaTemplates();
   const upsert = useUpsertBnFormulaTemplate();
@@ -437,7 +439,11 @@ export default function FormulaConfiguration() {
               searchPlaceholder="Search formulas..."
               defaultSort={[{ id: 'template_code', desc: false }]}
               onCreate={openAdd}
-              onRowClick={(f) => openRow(f)}
+              onRowClick={(f) => {
+                const status = normalizeStatus(f.governance_status);
+                if (status === 'DRAFT') openRow(f);
+                else setGuardRow(f);
+              }}
               rowActions={rowActions as any}
               exportFilename={`bn_formula_library_${tab.toLowerCase()}`}
               emptyMessage={tab === 'ACTIVE'
@@ -635,6 +641,26 @@ export default function FormulaConfiguration() {
               const versions = await listVersions(usageOpen.row.id);
               setUsageOpen({ ...usageOpen, versions });
             }
+          }}
+        />
+
+        <LiveVersionGuardDialog
+          open={!!guardRow}
+          onOpenChange={(o) => !o && setGuardRow(null)}
+          intent="EDIT"
+          status={normalizeStatus(guardRow?.governance_status)}
+          versionLabel={guardRow ? `${guardRow.template_code} (${normalizeStatus(guardRow.governance_status)})` : ''}
+          busy={busyId === guardRow?.id}
+          onCreateDraft={() => {
+            if (!guardRow) return;
+            const row = guardRow;
+            setGuardRow(null);
+            handleNewVersion(row);
+            // handleNewVersion shows a confirm dialog; user confirms then editor opens.
+          }}
+          onViewCurrent={() => {
+            if (guardRow) openRow(guardRow);
+            setGuardRow(null);
           }}
         />
       </div>

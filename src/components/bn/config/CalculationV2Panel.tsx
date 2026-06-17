@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Loader2, Play, Plus, Trash2 } from 'lucide-react';
+import { CheckCircle2, Loader2, Play, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   runProductCalculationV2,
@@ -41,7 +41,7 @@ const STAGES = ['PRIMARY', 'CAP', 'ARREARS', 'PRORATION', 'BENEFICIARY_SPLIT', '
 const ROUNDING_RULES = ['NONE', 'ROUND_2', 'ROUND_0', 'CEIL_2', 'FLOOR_2'] as const;
 
 interface FormulaTemplate { id: string; template_code: string; template_name: string; category: string | null }
-interface FormulaVersion { id: string; formula_template_id: string; formula_code: string; version_no: number; expression_type: string; is_active: boolean }
+interface FormulaVersion { id: string; formula_template_id: string; formula_code: string; version_no: number; expression_type: string; is_active: boolean; governance_status: string }
 interface RateTable { id: string; table_code: string; table_name: string; table_type: string | null; status: string | null }
 interface MedicalTariffTable { id: string; tariff_code: string; tariff_name: string; status: string | null }
 
@@ -67,13 +67,20 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
       const [b, t, v, r, m] = await Promise.all([
         loadProductBindings(productVersionId),
         sb.from('bn_formula_template').select('id, template_code, template_name, category').eq('is_active', true).order('template_code'),
-        sb.from('bn_formula_version').select('id, formula_template_id, formula_code, version_no, expression_type, is_active').order('version_no', { ascending: false }),
+        // Only ACTIVE versions are eligible for binding — drafts and retired versions are filtered out.
+        sb.from('bn_formula_version')
+          .select('id, formula_template_id, formula_code, version_no, expression_type, is_active, governance_status')
+          .eq('governance_status', 'ACTIVE')
+          .order('version_no', { ascending: false }),
         sb.from('bn_rate_table').select('id, table_code, table_name, table_type, status').order('table_code'),
         sb.from('bn_medical_tariff_table').select('id, tariff_code, tariff_name, status').order('tariff_code'),
       ]);
       setBindings(b);
-      setTemplates(t.data ?? []);
-      setVersions(v.data ?? []);
+      const activeVersions: FormulaVersion[] = v.data ?? [];
+      setVersions(activeVersions);
+      // Only show templates that have at least one ACTIVE version (i.e. bindable).
+      const activeTemplateIds = new Set(activeVersions.map((vv) => vv.formula_template_id));
+      setTemplates((t.data ?? []).filter((tpl: FormulaTemplate) => activeTemplateIds.has(tpl.id)));
       setRateTables(r.data ?? []);
       setTariffTables(m.data ?? []);
     } catch (e) {
@@ -96,9 +103,47 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
     });
   }, [bindings]);
 
+  const resolveBoundVersion = (): FormulaVersion | undefined => {
+    if (editing?.formula_version_id) return versions.find((v) => v.id === editing.formula_version_id);
+    if (editing?.formula_template_id)
+      return versions
+        .filter((v) => v.formula_template_id === editing.formula_template_id)
+        .sort((a, b) => b.version_no - a.version_no)[0];
+    return undefined;
+  };
+
+  const handleValidateBinding = () => {
+    const issues: string[] = [];
+    if (!editing?.formula_template_id) issues.push('Pick a formula template.');
+    if (!editing?.calculation_stage) issues.push('Pick a calculation stage.');
+    const ver = resolveBoundVersion();
+    if (editing?.formula_template_id && !ver) issues.push('No ACTIVE version exists for this formula. Activate one in Formula Library first.');
+    if (ver && ver.governance_status !== 'ACTIVE') issues.push(`Selected version is ${ver.governance_status}; only ACTIVE versions are bindable.`);
+    if (!editing?.output_variable?.trim()) issues.push('Provide an output variable so downstream stages can read this result.');
+    const sm = editing?.step_mapping_json as any;
+    if (sm && Array.isArray(sm.steps)) {
+      for (const s of sm.steps) {
+        for (const inp of s.inputs ?? []) {
+          if (!inp.source || (inp.source !== 'CONSTANT' && !inp.ref)) {
+            issues.push(`Step "${s.step_key ?? s.kind}" input "${inp.key}" is unmapped.`);
+          }
+        }
+      }
+    }
+    if (issues.length) toast.error('Binding has issues', { description: issues.slice(0, 4).join(' · ') });
+    else toast.success('Binding looks good — ready to save.');
+  };
+
   const handleSave = async () => {
     if (!editing?.formula_template_id || !editing?.calculation_stage) {
       toast.error('Formula template and stage are required');
+      return;
+    }
+    const ver = resolveBoundVersion();
+    if (!ver) {
+      toast.error('No ACTIVE version available for this formula', {
+        description: 'Activate a version in Formula Library before binding it.',
+      });
       return;
     }
     setSaving(true);
@@ -107,7 +152,8 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
         product_id: productId,
         product_version_id: productVersionId,
         formula_template_id: editing.formula_template_id,
-        formula_version_id: editing.formula_version_id ?? null,
+        // Pin to the resolved ACTIVE version so a future re-activation does not silently swap bindings.
+        formula_version_id: editing.formula_version_id ?? ver.id,
         calculation_stage: editing.calculation_stage,
         sequence_no: editing.sequence_no ?? 10,
         output_variable: editing.output_variable ?? null,
@@ -231,13 +277,16 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
                   </Select>
                 </div>
                 <div>
-                  <Label>Formula version (optional — latest active if blank)</Label>
+                  <Label>Formula version (ACTIVE only — latest if blank)</Label>
                   <Select value={editing.formula_version_id ?? ''} onValueChange={(v) => setEditing({ ...editing, formula_version_id: v || null })}>
-                    <SelectTrigger><SelectValue placeholder="Latest active" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Latest ACTIVE" /></SelectTrigger>
                     <SelectContent>
                       {versions.filter(v => v.formula_template_id === editing.formula_template_id).map(v => (
-                        <SelectItem key={v.id} value={v.id}>v{v.version_no} ({v.expression_type}) {v.is_active ? '✓' : ''}</SelectItem>
+                        <SelectItem key={v.id} value={v.id}>v{v.version_no} · {v.expression_type} · ACTIVE</SelectItem>
                       ))}
+                      {versions.filter(v => v.formula_template_id === editing.formula_template_id).length === 0 && (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">No ACTIVE version yet — activate one in Formula Library first.</div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -292,7 +341,12 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
                 </div>
                 <div className="md:col-span-2 flex justify-end gap-2">
                   <Button variant="ghost" onClick={() => setEditing(null)} disabled={saving}>Cancel</Button>
-                  <Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save</Button>
+                  <Button variant="outline" onClick={handleValidateBinding} disabled={saving}>
+                    <ShieldCheck className="mr-2 h-4 w-4" />Validate
+                  </Button>
+                  <Button onClick={handleSave} disabled={saving}>
+                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Save
+                  </Button>
                 </div>
               </CardContent>
             </Card>
