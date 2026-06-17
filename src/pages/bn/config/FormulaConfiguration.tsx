@@ -643,6 +643,26 @@ export default function FormulaConfiguration() {
             }
           }}
         />
+
+        <LiveVersionGuardDialog
+          open={!!guardRow}
+          onOpenChange={(o) => !o && setGuardRow(null)}
+          intent="EDIT"
+          status={normalizeStatus(guardRow?.governance_status)}
+          versionLabel={guardRow ? `${guardRow.template_code} (${normalizeStatus(guardRow.governance_status)})` : ''}
+          busy={busyId === guardRow?.id}
+          onCreateDraft={() => {
+            if (!guardRow) return;
+            const row = guardRow;
+            setGuardRow(null);
+            handleNewVersion(row);
+            // handleNewVersion shows a confirm dialog; user confirms then editor opens.
+          }}
+          onViewCurrent={() => {
+            if (guardRow) openRow(guardRow);
+            setGuardRow(null);
+          }}
+        />
       </div>
     </PermissionWrapper>
   );
