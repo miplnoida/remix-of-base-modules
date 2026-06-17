@@ -19,6 +19,7 @@ import type { BnProduct, BnProductVersion, BnProductStatus } from '@/types/bn';
 import { EligibilityTabRedesigned as EligibilityRulesTab } from '@/components/bn/config/EligibilityTabRedesigned';
 import { CalculationRulesTab } from '@/components/bn/config/CalculationRulesTab';
 import { CalculationBuilder } from '@/components/bn/config/CalculationBuilder';
+import { CalculationV2Panel } from '@/components/bn/config/CalculationV2Panel';
 import { TimelineRulesTab } from '@/components/bn/config/TimelineRulesTab';
 import { DocumentRulesTab } from '@/components/bn/config/DocumentRulesTab';
 import { WorkflowTab } from '@/components/bn/config/WorkflowTab';
