@@ -346,8 +346,15 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const interval = setInterval(checkTimeouts, SESSION_CHECK_INTERVAL_MS);
 
-    const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'mousemove'];
-    events.forEach(event => window.addEventListener(event, updateActivity, { passive: true }));
+    // Broad activity surface: typing, editing, scrolling, touching, focusing — all count.
+    const events = [
+      'click', 'mousedown', 'mousemove',
+      'keydown', 'keyup', 'input', 'change',
+      'focus', 'focusin',
+      'scroll', 'wheel',
+      'touchstart', 'pointerdown',
+    ];
+    events.forEach(event => window.addEventListener(event, updateActivity, { passive: true, capture: true }));
 
     return () => {
       clearInterval(interval);
