@@ -191,7 +191,7 @@ export function RateTableEditor({ open, onClose, rateTable }: Props) {
         </SheetHeader>
 
         <div className="mt-6 space-y-4">
-          {loading ? (
+          {loading || !rateTable ? (
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : (
             <>
