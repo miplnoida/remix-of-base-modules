@@ -32,6 +32,7 @@ import {
 } from '@/services/bn/calc/runProductCalculationV2';
 import { runFormula, applyRounding } from '@/services/bn/calc/formulaRunner';
 import { resolveVariables, emptyContext } from '@/services/bn/calc/variableResolver';
+import { ProductFormulaStepMappings, type StepMappingJson } from '@/components/bn/config/ProductFormulaStepMappings';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
