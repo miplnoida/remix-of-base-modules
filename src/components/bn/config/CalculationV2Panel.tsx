@@ -277,13 +277,16 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
                   </Select>
                 </div>
                 <div>
-                  <Label>Formula version (optional — latest active if blank)</Label>
+                  <Label>Formula version (ACTIVE only — latest if blank)</Label>
                   <Select value={editing.formula_version_id ?? ''} onValueChange={(v) => setEditing({ ...editing, formula_version_id: v || null })}>
-                    <SelectTrigger><SelectValue placeholder="Latest active" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Latest ACTIVE" /></SelectTrigger>
                     <SelectContent>
                       {versions.filter(v => v.formula_template_id === editing.formula_template_id).map(v => (
-                        <SelectItem key={v.id} value={v.id}>v{v.version_no} ({v.expression_type}) {v.is_active ? '✓' : ''}</SelectItem>
+                        <SelectItem key={v.id} value={v.id}>v{v.version_no} · {v.expression_type} · ACTIVE</SelectItem>
                       ))}
+                      {versions.filter(v => v.formula_template_id === editing.formula_template_id).length === 0 && (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">No ACTIVE version yet — activate one in Formula Library first.</div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
