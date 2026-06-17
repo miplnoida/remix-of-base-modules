@@ -61,6 +61,17 @@ interface SupabaseAuthContextType {
   hasAnyRole: (roles: string[]) => boolean;
   hasPermission: (moduleName: string, actionName: string) => Promise<boolean>;
   refreshProfile: () => Promise<void>;
+  getSessionDiagnostics: () => {
+    sessionExpiresAt: number | null;
+    lastActivityAt: number;
+    idleMinutes: number;
+    idleLimitMinutes: number;
+    idleRemainingMinutes: number;
+    sessionAgeMinutes: number;
+    sessionLimitMinutes: number;
+    autoRefreshEnabled: boolean;
+    nextRefreshScheduled: boolean;
+  };
 }
 
 const SupabaseAuthContext = createContext<SupabaseAuthContextType | null>(null);
