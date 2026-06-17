@@ -10816,6 +10816,7 @@ export type Database = {
           id: string
           is_active: boolean
           jurisdiction_level: string
+          legal_reference: string | null
           location_code: string | null
           modified_by: string | null
           notes: string | null
@@ -10848,6 +10849,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           jurisdiction_level: string
+          legal_reference?: string | null
           location_code?: string | null
           modified_by?: string | null
           notes?: string | null
@@ -10880,6 +10882,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           jurisdiction_level?: string
+          legal_reference?: string | null
           location_code?: string | null
           modified_by?: string | null
           notes?: string | null

@@ -18,10 +18,10 @@
 import { evaluateExpression } from './safeExpressionParser';
 import { lookupRate, type RateTableProvider, type LookupTraceEntry } from './rateTableLookup';
 import {
-  lookupMedicalTariff,
-  type MedicalTariffProvider,
-  type MedicalTariffTrace,
-} from './medicalTariffLookup';
+  resolveReimbursement,
+  type MedicalPolicyProvider,
+  type MedicalPolicyTrace,
+} from './medicalPolicyResolver';
 
 export interface FormulaVersionRow {
   id: string;
