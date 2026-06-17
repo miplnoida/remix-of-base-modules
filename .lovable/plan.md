@@ -1,89 +1,121 @@
-## BN Configuration Reconciliation — Implementation Plan
+# Unified Formula & Calculation Platform — Completion Plan
 
-Runtime (formulaRunner, resolver, schemas, seeds) is already complete. This plan covers the UI + validation layers across four shippable slices, in order.
+This finishes the Formula Library → Calculation Setup → Product Catalog → Runtime journey. It reconciles the existing screens, replaces the basic Add Formula dialog with a typed wizard, hardens the lifecycle, and makes Product Catalog consume only ACTIVE formula versions.
 
----
+## 1. Screen Reconciliation
 
-### Slice 1 — Rate / Matrix Tables management UI
+Single source of truth per concern:
 
-Route: `/bn/config/calculation?tab=rate-tables` (existing tab, currently placeholder).
+- **Formula Library** (`FormulaConfiguration`) — create, version, govern formulas. Owns the new wizard, version editor, lifecycle actions, test panel.
+- **Calculation Setup** (`CalculationSetup`) — manage rate tables, matrix tables, medical tariff source, variable registry, derived facts, product parameters, simulator. No formula CRUD here.
+- **Product Catalog → Calculation tab** (`CalculationV2Panel` + `ProductFormulaStepMappings`) — bind ACTIVE formula versions only, map inputs, simulate, save.
 
-New files:
-- `src/services/bn/rateTableService.ts` — list/get/upsert table, dimensions, rows; bulk import CSV; status transitions.
-- `src/hooks/bn/useRateTables.ts` — list + selected-table queries, mutations with cache invalidation.
-- `src/pages/bn/config/RateTablesList.tsx` — searchable table grid (code, type, status, version, row count).
-- `src/pages/bn/config/RateTableEditor.tsx` — three-pane editor:
-  - Header (code, type TIER/RATE_TABLE/MATRIX/CAP_TABLE/SHARE_TABLE/CONDITION_TABLE, country, version, status, effective dates).
-  - Dimensions grid (key, label, type, match_type RANGE/EXACT/IN, sequence).
-  - Rows grid — dynamic columns per dimension, output_key / output_value / output_type / effective dates.
-- `src/components/bn/config/RateTableImportExport.tsx` — CSV export + drag-drop import preview.
-- `src/components/bn/config/RateTableValidator.tsx` — runs gap-overlap analyzer for RANGE dimensions, missing combination detector for MATRIX, dup output_key detector. Inline diagnostics.
-- `src/components/bn/config/RateTableSimulator.tsx` — input form (one field per dimension) → calls existing `lookupRate()` → shows matched row, value, trace.
+Removals / redirects:
+- Retire `CalculationBuilder` page route — replace its entry with a deep-link to Formula Library wizard.
+- `BindingEditor` becomes an internal component used only by `CalculationV2Panel`.
+- `CalculationReadiness` stays as the validation dashboard; rewired to the new checks.
 
-Wires into existing `CalculationSetup.tsx` tab.
+## 2. Add Formula Wizard
 
-### Slice 2 — Formula Library steps_json visual builder
+New component `AddFormulaWizard.tsx` (8 steps) replaces the current dialog in `FormulaConfiguration`.
 
-New files:
-- `src/components/bn/config/FormulaStepsBuilder.tsx` — list of steps with add/reorder/delete.
-- `src/components/bn/config/steps/LookupStepEditor.tsx` — picks rate table (from `bn_rate_table`), maps each dimension input to a registered variable (autocomplete from `bn_formula_variable_registry`), names the output variable.
-- `src/components/bn/config/steps/MedicalTariffStepEditor.tsx` — picks procedure + location + provider type variables, output binding.
-- `src/components/bn/config/steps/ConditionalStepEditor.tsx` — if/elseif/else with expression rows.
-- `src/components/bn/config/steps/ExpressionStepEditor.tsx` — final-result expression box reusing existing parser.
+Steps:
+1. **Type** — SIMPLE_EXPRESSION | RATE_TABLE_LOOKUP | MATRIX_LOOKUP | MEDICAL_TARIFF_LOOKUP | MULTI_STEP | CONDITIONAL.
+2. **Identity** — code, name, category, country, legal_ref, description.
+3. **Inputs** — multi-source picker (Fact, Derived Fact, Product Parameter, Rate Table, Matrix Table, Medical Tariff, Claim Field, Prior Result, Manual).
+4. **Build** — type-specific editor:
+   - SIMPLE → existing business expression builder
+   - RATE/MATRIX → table + dimension input mapping + output var + post-expression
+   - MEDICAL → tariff source + procedure/location/provider/expense mapping
+   - MULTI_STEP / CONDITIONAL → reuse `FormulaStepsBuilder` with step palette (LOOKUP / MATRIX / MEDICAL / EXPRESSION / IF / CAP / ROUND).
+5. **Output** — variable, type, rounding.
+6. **Test data** — sample inputs + expected result.
+7. **Validate** — calls `validateFormulaDraft()` (variables registered, tables exist, dimensions match, expression parses, sample simulates).
+8. **Save** — inserts `bn_formula_template` + v1 `bn_formula_version` in DRAFT.
 
-Edit:
-- `src/pages/bn/config/FormulaConfiguration.tsx` — when `expression_type !== SIMPLE_EXPRESSION`, render `FormulaStepsBuilder` instead of the raw expression textarea; keep `FormulaTestPanel` working by extending the simulator to run multi-step.
-- `src/lib/bn/formulaParser.ts` (small extension) — `testFormulaSteps()` that runs `steps_json` through the same client-side resolver used by lookups (calls `lookupRate` with the supplied variable map).
+Raw `steps_json` editor hidden behind an "Advanced" toggle for power users only.
 
-### Slice 3 — Product Catalog Calculation tab mappers
+## 3. Lifecycle Hardening
 
-Edit:
-- `src/pages/bn/config/ProductEditor.tsx` (Calculation tab):
-  - For each step in the bound formula's `steps_json`, render the right mapping row:
-    - LOOKUP step → confirm rate table (auto-resolved) + map each dim variable to product parameter / fact / derived fact.
-    - MEDICAL_TARIFF step → pick policy scope (defaults to `bn_medical_reimbursement_limit`).
-    - EXPRESSION step → variable mapping (existing UI, kept).
-  - Remove the legacy `calculation_config` JSON textarea; show a read-only "Legacy config (retired)" hint only when present.
-  - Persist into existing `bn_product_formula_variable_mapping` + a new lightweight column `mapping_json` if needed for non-variable bindings (added in migration below).
+States: `DRAFT → IN_REVIEW → ACTIVE → RETIRED` (existing RPCs `bn_formula_*`).
 
-Migration (small):
-- `ALTER TABLE bn_product_formula_binding ADD COLUMN IF NOT EXISTS step_mapping_json jsonb` (medical/rate-table scope overrides per step).
+Enforced rules:
+- Only DRAFT editable (already enforced in `FormulaVersionEditor`).
+- ACTIVE never editable; "Edit" on ACTIVE auto-opens New Version → DRAFT (via `LiveVersionGuardDialog`-style prompt).
+- Product Catalog binding selector filters to `governance_status = 'ACTIVE'`.
+- Retire blocked unless no active bindings reference it OR a replacement ACTIVE version exists.
 
-### Slice 4 — Configuration Validation report + retire legacy tariff
+## 4. Product Catalog Calculation Tab
 
-New files:
-- `src/services/bn/configValidationService.ts` — 7 checks:
-  1. Every formula version's referenced variables exist in `bn_formula_variable_registry`.
-  2. Every LOOKUP step's `table_code` exists in `bn_rate_table` (ACTIVE).
-  3. Each LOOKUP step's dim inputs match the table's dimensions.
-  4. `medicalPolicyResolver` source = `bn_medical_reimbursement_limit` (assert legacy tariff tables inactive).
-  5. Every ACTIVE product version has complete `bn_product_formula_binding` + mappings.
-  6. No ACTIVE product references legacy `calculation_config`.
-  7. Each seeded formula simulation passes (`AGE_PENSION`, `AGE_GRANT`, `SURVIVOR_SPLIT`, `MEDICAL_REIMBURSEMENT`).
-- `src/pages/bn/config/ConfigurationValidation.tsx` — checklist UI grouped by severity, per-row "fix" deep link.
+Update `CalculationV2Panel`:
+- Replace any free-text formula JSON with a structured "Add Formula Binding" flow.
+- Formula version dropdown shows only ACTIVE versions.
+- Use existing `ProductFormulaStepMappings` for per-step variable/table/parameter mapping.
+- "Simulate" runs `runProductCalculationV2` with sample variable registry values.
+- "Validate" runs reconciliation checks (Section 6) for this product only.
+- Persist to `bn_product_formula_binding`, `bn_product_formula_variable_mapping`, `bn_product_parameter`.
 
-Migration:
-- Mark `bn_medical_tariff_table` and `bn_medical_tariff_row` as legacy: add comment + `UPDATE ... SET is_active = false` and a CHECK preventing new inserts (trigger raising `legacy table — use bn_medical_reimbursement_limit`).
+## 5. Runtime (`runProductCalculationV2`)
 
----
+Confirm/extend the existing pipeline:
+1. Load `bn_product_formula_binding` for product version + stage.
+2. Reject if bound `bn_formula_version.governance_status != 'ACTIVE'`.
+3. Resolve facts → derived facts → product parameters → claim fields.
+4. Execute rate / matrix / medical lookups via existing resolvers.
+5. Run `formulaRunner` for expressions/steps.
+6. Apply rounding from output spec.
+7. Write `bn_calc_run` + `bn_calc_trace` rows (already wired).
 
-### Acceptance per slice
+## 6. Validation (`CalculationReadiness` + `BnConfigReconciliationCard`)
 
-| Slice | Acceptance |
-|---|---|
-| 1 | Can create/edit/import a TIER and a MATRIX table; gap/overlap warnings appear; simulate returns matched row for AGE_PENSION 1600 weeks → 0.50. |
-| 2 | Editing AGE_PENSION_RATE_LOOKUP formula shows a LOOKUP step bound to `AGE_PENSION_RATE_TABLE`; simulator returns same value as Slice 1 simulator. |
-| 3 | Editing the Age Pension product shows the bound formula's steps with all variable mappings; saving validates; activation guard already in place blocks incomplete bindings. |
-| 4 | Validation page shows all 7 checks green for the seeded set; legacy tariff inserts blocked. |
+Add/confirm checks, surface as FAIL:
+- Product still references legacy `calculation_config.formula` JSON.
+- Bound formula version not ACTIVE.
+- Unmapped variables in `step_mapping_json`.
+- Missing product parameters used by formula.
+- Referenced rate / matrix / medical tariff source missing or inactive.
+- Sample simulation fails for the bound product.
 
-### Order & safety
+## 7. Seed Examples
 
-Slice 1 → 2 → 3 → 4 (each independently buildable + green before the next). After each slice I will run `bun run build:dev` and the existing `src/__tests__/bn-calc/*` tests.
+Provide migration that ensures these formulas exist as ACTIVE v1 and are bindable:
+- **Age Pension** — `RATE_TABLE_LOOKUP(AGE_PENSION_RATE_TABLE)` → `avg_insurable_wage * pension_rate`
+- **Age Grant** — `avg_weekly_wage * grant_multiplier * contribution_units`
+- **Survivor** — `MATRIX_LOOKUP(SURVIVOR_SHARE_MATRIX)` → `base_pension * share`
+- **Medical Reimbursement** — `MEDICAL_TARIFF_LOOKUP` resolver
+- **Sickness / Maternity** — `avg_weekly_wage * replacement_rate`
 
-### Out of scope
+## 8. Acceptance
 
-- No changes to formulaRunner / resolver / medicalPolicyResolver runtime (already correct).
-- No changes to seeded data values.
-- No RLS (per project rule).
+- Every formula type creatable from the wizard.
+- Test panel runs for every type.
+- Lifecycle transitions enforced and audited.
+- Product Catalog only lists ACTIVE versions.
+- Reconciliation surfaces any legacy `calculation_config.formula` usage.
+- Seeded examples (Age Pension, Age Grant, Survivor, Medical, Sickness) simulate successfully.
+- Workbench trace shows matched rate/matrix/tariff rows.
+- TypeScript build passes.
 
-Estimated: ~22 new files, ~5 edits, 2 small migrations. Will be delivered in 4 separate turns so each can be reviewed.
+## Technical Details
+
+New / changed files (planned):
+- `src/components/bn/config/AddFormulaWizard.tsx` (new)
+- `src/components/bn/config/wizard/Step*.tsx` (8 step components)
+- `src/services/bn/validateFormulaDraft.ts` (new)
+- `src/pages/bn/config/FormulaConfiguration.tsx` (mount wizard, remove old dialog)
+- `src/components/bn/config/CalculationV2Panel.tsx` (ACTIVE-only filter, simulate/validate buttons)
+- `src/services/bn/calc/runProductCalculationV2.ts` (ACTIVE guard, trace stamping)
+- `src/services/bn/bnConfigurationReconciliationService.ts` (add legacy-formula + unmapped-variable checks)
+- `src/pages/bn/config/CalculationSetup.tsx` (remove formula CRUD entry points)
+- `src/config/routes.ts` (retire `CalculationBuilder` route)
+- `supabase/migrations/<ts>_seed_core_active_formulas.sql` (idempotent seed of 5 examples)
+
+Database touch points (no destructive changes):
+- `bn_formula_template`, `bn_formula_version` (insert via wizard / seed)
+- `bn_product_formula_binding`, `bn_product_formula_variable_mapping`, `bn_product_parameter` (writes from Calc tab)
+- `bn_rate_table*`, `bn_medical_reimbursement_limit` (read only)
+- `bn_calc_run`, `bn_calc_trace` (writes at runtime)
+
+Knowledge repo: add `docs/bn/formula-platform.md` describing the unified flow + version history entry, plus regenerate test cases for wizard, lifecycle guard, and ACTIVE-only binding (per project knowledge entry 8).
+
+Estimated work: 4 slices — Wizard, Lifecycle/Library wiring, Product Catalog tightening, Validation+Seed. I'll ship them sequentially and stop for review after each.
