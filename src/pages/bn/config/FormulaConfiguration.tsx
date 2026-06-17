@@ -49,6 +49,7 @@ import { useVariableResolver } from '@/hooks/bn/useVariableResolver';
 import { classifyVariables } from '@/services/bn/variableResolverService';
 import { FormulaTestPanel } from '@/components/bn/config/FormulaTestPanel';
 import { FormulaVersionEditor } from '@/components/bn/config/FormulaVersionEditor';
+import { AddFormulaWizard } from '@/components/bn/config/AddFormulaWizard';
 import type { BnFormulaTemplate } from '@/types/bn';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 import {
@@ -109,6 +110,7 @@ export default function FormulaConfiguration() {
   const [usageOpen, setUsageOpen] = useState<{ row: BnFormulaTemplate; usage: any; versions: any[] } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [versionEditorId, setVersionEditorId] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   const { data: formulas = [], isLoading } = useBnFormulaTemplates();
   const upsert = useUpsertBnFormulaTemplate();
@@ -136,7 +138,7 @@ export default function FormulaConfiguration() {
     .filter((f: BnFormulaTemplate) => f.id !== form.id)
     .map((f: BnFormulaTemplate) => f.template_code);
 
-  const openAdd = () => { setForm(emptyForm); setReadOnly(false); setDialogOpen(true); };
+  const openAdd = () => { setWizardOpen(true); };
   const openRow = (f: BnFormulaTemplate) => {
     const status = f.governance_status ?? 'DRAFT';
     setForm({
@@ -613,6 +615,16 @@ export default function FormulaConfiguration() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <AddFormulaWizard
+          open={wizardOpen}
+          onClose={() => setWizardOpen(false)}
+          existingCodes={(formulas as BnFormulaTemplate[]).map((f) => f.template_code)}
+          onCreated={(_tplId, versionId) => {
+            refresh();
+            setVersionEditorId(versionId);
+          }}
+        />
 
         <FormulaVersionEditor
           open={!!versionEditorId}
