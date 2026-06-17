@@ -823,6 +823,25 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       ? 'degraded'
       : 'ready';
 
+  const getSessionDiagnostics = useCallback(() => {
+    const now = Date.now();
+    const idleMs = now - lastActivityRef.current;
+    const sessionMs = now - sessionStartRef.current;
+    const idleLimit = policyRef.current.idleTimeoutMinutes;
+    const sessionLimit = policyRef.current.sessionTimeoutMinutes;
+    return {
+      sessionExpiresAt: session?.expires_at ? session.expires_at * 1000 : null,
+      lastActivityAt: lastActivityRef.current,
+      idleMinutes: idleMs / 60_000,
+      idleLimitMinutes: idleLimit,
+      idleRemainingMinutes: Math.max(0, idleLimit - idleMs / 60_000),
+      sessionAgeMinutes: sessionMs / 60_000,
+      sessionLimitMinutes: sessionLimit,
+      autoRefreshEnabled: policyRef.current.autoRefreshEnabled,
+      nextRefreshScheduled: !!refreshTimerRef.current,
+    };
+  }, [session]);
+
   const value: SupabaseAuthContextType = {
     user,
     profile,
@@ -842,6 +861,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     hasAnyRole,
     hasPermission,
     refreshProfile,
+    getSessionDiagnostics,
   };
 
   return (
