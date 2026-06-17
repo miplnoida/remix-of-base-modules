@@ -33,7 +33,9 @@ export const SessionHealth: React.FC = () => {
         title="Session Health"
         noPermission
         noPermissionMessage="Administrator role is required to view session diagnostics."
-      />
+      >
+        <div />
+      </PageShell>
     );
   }
 
