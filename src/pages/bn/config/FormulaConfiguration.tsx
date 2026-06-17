@@ -138,7 +138,7 @@ export default function FormulaConfiguration() {
     .filter((f: BnFormulaTemplate) => f.id !== form.id)
     .map((f: BnFormulaTemplate) => f.template_code);
 
-  const openAdd = () => { setForm(emptyForm); setReadOnly(false); setDialogOpen(true); };
+  const openAdd = () => { setWizardOpen(true); };
   const openRow = (f: BnFormulaTemplate) => {
     const status = f.governance_status ?? 'DRAFT';
     setForm({
