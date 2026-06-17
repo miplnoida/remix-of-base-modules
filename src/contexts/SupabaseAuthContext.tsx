@@ -358,7 +358,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     return () => {
       clearInterval(interval);
-      events.forEach(event => window.removeEventListener(event, updateActivity));
+      events.forEach(event => window.removeEventListener(event, updateActivity, { capture: true } as any));
     };
   }, [session, updateActivity, loadSessionPolicy]);
 
