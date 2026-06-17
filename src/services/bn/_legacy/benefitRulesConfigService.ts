@@ -6,7 +6,7 @@ import {
   BenefitTestCase,
   BenefitTestResults,
   BenefitRuleVersion
-} from '@/types/benefitRulesConfig';
+} from '@/types/_legacy/benefitRulesConfig';
 
 // Mock Benefit Rule Sets
 export const MOCK_BENEFIT_RULES: BenefitRuleSet[] = [

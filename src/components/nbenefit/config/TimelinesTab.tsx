@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { BenefitRuleSet } from '@/types/benefitRulesConfig';
+import { BenefitRuleSet } from '@/types/_legacy/benefitRulesConfig';
 
 interface TimelinesTabProps {
   benefitRule: BenefitRuleSet;

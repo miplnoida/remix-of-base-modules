@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { BenefitRuleSet } from '@/types/benefitRulesConfig';
+import { BenefitRuleSet } from '@/types/_legacy/benefitRulesConfig';
 
 interface BenefitDefinitionTabProps {
   benefitRule: BenefitRuleSet;

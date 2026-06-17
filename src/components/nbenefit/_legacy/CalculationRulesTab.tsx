@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { BenefitRuleSet } from '@/types/benefitRulesConfig';
+import { BenefitRuleSet } from '@/types/_legacy/benefitRulesConfig';
 
 interface CalculationRulesTabProps {
   benefitRule: BenefitRuleSet;

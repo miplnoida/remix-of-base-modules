@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Edit } from 'lucide-react';
-import { BenefitRuleSet, RequiredDocument } from '@/types/benefitRulesConfig';
+import { BenefitRuleSet, RequiredDocument } from '@/types/_legacy/benefitRulesConfig';
 
 interface RequiredDocumentsTabProps {
   benefitRule: BenefitRuleSet;

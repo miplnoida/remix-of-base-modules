@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Play, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import { BenefitRuleSet, BenefitTestCase, BenefitTestResults } from '@/types/benefitRulesConfig';
-import { benefitRulesConfigService } from '@/services/benefitRulesConfigService';
+import { BenefitRuleSet, BenefitTestCase, BenefitTestResults } from '@/types/_legacy/benefitRulesConfig';
+import { benefitRulesConfigService } from '@/services/bn/_legacy/benefitRulesConfigService';
 import { useToast } from '@/hooks/use-toast';
 
 interface PreviewTestTabProps {

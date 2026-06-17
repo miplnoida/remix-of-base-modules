@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { AddCalculationDialog } from "@/components/nbenefit/config/AddCalculationDialog";
+import { AddCalculationDialog } from "@/components/nbenefit/_legacy/AddCalculationDialog";
 import { useState } from "react";
 
 const CalculationEngines = () => {
