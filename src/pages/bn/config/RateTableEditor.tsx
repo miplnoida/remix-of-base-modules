@@ -18,6 +18,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { requireUserCode } from '@/lib/bn/requireUserCode';
+import { RateTableSimulator } from '@/components/bn/config/RateTableSimulator';
+import { RateTableValidator } from '@/components/bn/config/RateTableValidator';
+import { RateTableImportExport } from '@/components/bn/config/RateTableImportExport';
+import { clearRateTableCache } from '@/services/bn/calc/rateTableLookup';
 
 const db = supabase as any;
 
@@ -291,6 +295,24 @@ export function RateTableEditor({ open, onClose, rateTable }: Props) {
                     )}
                   </TableBody>
                 </Table>
+              </div>
+
+
+              <div className="grid md:grid-cols-2 gap-3">
+                <RateTableImportExport
+                  tableCode={rateTable!.table_code}
+                  dims={dims}
+                  rows={rows}
+                  onImport={(parsed) => setRows(parsed.map((p) => ({ ...p, _new: true, _dirty: true })))}
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Validation</div>
+                  <RateTableValidator dimensions={dims} rows={rows} />
+                </div>
+                <RateTableSimulator tableCode={rateTable!.table_code} dimensions={dims} />
               </div>
 
               <p className="text-xs text-muted-foreground">

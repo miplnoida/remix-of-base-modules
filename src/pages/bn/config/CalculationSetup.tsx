@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Loader2, Calculator, Table as TableIcon, Variable, Layers, Beaker, ShieldCheck, Settings2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RateTableEditor } from './RateTableEditor';
+import { RateTableHeaderForm } from '@/components/bn/config/RateTableHeaderForm';
 import { BindingEditor, type BindingRow } from './BindingEditor';
 import { SimulationPanel } from './SimulationPanel';
 import { ValidationPanel } from './ValidationPanel';
-import { Plus } from 'lucide-react';
+import { Plus, Pencil } from 'lucide-react';
 
 type Formula = { id: string; template_code: string; template_name: string; category: string | null; governance_status: string };
 type RateTable = { id: string; table_code: string; table_name: string; table_type: string; lookup_mode: string; status: string; country_code: string; version_no: number };
@@ -33,6 +34,8 @@ export default function CalculationSetup() {
   const [editingTable, setEditingTable] = useState<RateTable | null>(null);
   const [editingBinding, setEditingBinding] = useState<BindingRow | null>(null);
   const [bindingOpen, setBindingOpen] = useState(false);
+  const [headerFormOpen, setHeaderFormOpen] = useState(false);
+  const [editingHeaderId, setEditingHeaderId] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const nav = useNavigate();
 
@@ -136,14 +139,30 @@ export default function CalculationSetup() {
             </TabsContent>
 
             <TabsContent value="rate-tables">
-              <ListCard title="Rate / Tier Tables" count={rateTables.filter((r) => ['TIER','RATE_TABLE','LOOKUP','CAP_TABLE','CONDITION_TABLE'].includes(r.table_type)).length}>
-                <RateTablesList rows={rateTables.filter((r) => ['TIER','RATE_TABLE','LOOKUP','CAP_TABLE','CONDITION_TABLE'].includes(r.table_type))} onEdit={setEditingTable} />
+              <ListCard
+                title="Rate / Tier Tables"
+                count={rateTables.filter((r) => ['TIER','RATE_TABLE','LOOKUP','CAP_TABLE','CONDITION_TABLE'].includes(r.table_type)).length}
+                action={<Button size="sm" onClick={() => { setEditingHeaderId(null); setHeaderFormOpen(true); }}><Plus className="h-4 w-4 mr-1" />New table</Button>}
+              >
+                <RateTablesList
+                  rows={rateTables.filter((r) => ['TIER','RATE_TABLE','LOOKUP','CAP_TABLE','CONDITION_TABLE'].includes(r.table_type))}
+                  onEdit={setEditingTable}
+                  onEditHeader={(t) => { setEditingHeaderId(t.id); setHeaderFormOpen(true); }}
+                />
               </ListCard>
             </TabsContent>
 
             <TabsContent value="matrix">
-              <ListCard title="Matrix / Share Tables" count={rateTables.filter((r) => ['MATRIX','SHARE_TABLE'].includes(r.table_type)).length}>
-                <RateTablesList rows={rateTables.filter((r) => ['MATRIX','SHARE_TABLE'].includes(r.table_type))} onEdit={setEditingTable} />
+              <ListCard
+                title="Matrix / Share Tables"
+                count={rateTables.filter((r) => ['MATRIX','SHARE_TABLE'].includes(r.table_type)).length}
+                action={<Button size="sm" onClick={() => { setEditingHeaderId(null); setHeaderFormOpen(true); }}><Plus className="h-4 w-4 mr-1" />New table</Button>}
+              >
+                <RateTablesList
+                  rows={rateTables.filter((r) => ['MATRIX','SHARE_TABLE'].includes(r.table_type))}
+                  onEdit={setEditingTable}
+                  onEditHeader={(t) => { setEditingHeaderId(t.id); setHeaderFormOpen(true); }}
+                />
               </ListCard>
             </TabsContent>
 
@@ -209,6 +228,13 @@ export default function CalculationSetup() {
         onClose={() => setEditingTable(null)}
       />
 
+      <RateTableHeaderForm
+        open={headerFormOpen}
+        rateTableId={editingHeaderId}
+        onClose={() => { setHeaderFormOpen(false); setEditingHeaderId(null); }}
+        onSaved={() => setReloadKey((k) => k + 1)}
+      />
+
       <BindingEditor
         open={bindingOpen}
         binding={editingBinding}
@@ -219,10 +245,13 @@ export default function CalculationSetup() {
   );
 }
 
-function ListCard({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
+function ListCard({ title, count, action, children }: { title: string; count: number; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <Card className="mt-4">
-      <CardHeader className="flex flex-row items-center justify-between"><CardTitle className="text-base">{title}</CardTitle><Badge variant="secondary">{count}</Badge></CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle className="text-base">{title}</CardTitle>
+        <div className="flex items-center gap-2"><Badge variant="secondary">{count}</Badge>{action}</div>
+      </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>
   );
@@ -240,7 +269,7 @@ function PlaceholderCard({ title, hint, link }: { title: string; hint: string; l
   );
 }
 
-function RateTablesList({ rows, onEdit }: { rows: RateTable[]; onEdit?: (t: RateTable) => void }) {
+function RateTablesList({ rows, onEdit, onEditHeader }: { rows: RateTable[]; onEdit?: (t: RateTable) => void; onEditHeader?: (t: RateTable) => void }) {
   return (
     <Table>
       <TableHeader><TableRow><TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead>Mode</TableHead><TableHead>Country</TableHead><TableHead>v</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
@@ -254,7 +283,10 @@ function RateTablesList({ rows, onEdit }: { rows: RateTable[]; onEdit?: (t: Rate
             <TableCell>{r.country_code}</TableCell>
             <TableCell>{r.version_no}</TableCell>
             <TableCell><Badge variant={r.status === 'ACTIVE' ? 'default' : 'secondary'}>{r.status}</Badge></TableCell>
-            <TableCell>{onEdit && <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEdit(r); }}>Edit rows</Button>}</TableCell>
+            <TableCell className="flex gap-1">
+              {onEditHeader && <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEditHeader(r); }}><Pencil className="h-3.5 w-3.5" /></Button>}
+              {onEdit && <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEdit(r); }}>Rows</Button>}
+            </TableCell>
           </TableRow>
         ))}
         {!rows.length && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-6">No tables yet</TableCell></TableRow>}
