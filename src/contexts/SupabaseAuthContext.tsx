@@ -30,7 +30,7 @@ interface SessionPolicy {
 
 // Industry-standard defaults — overridden at runtime by password_policies row.
 const DEFAULT_SESSION_TIMEOUT_MINUTES = 480; // absolute ceiling (8h)
-const DEFAULT_IDLE_TIMEOUT_MINUTES = 30;     // sliding idle window
+const DEFAULT_IDLE_TIMEOUT_MINUTES = 120;    // sliding idle window (2h)
 const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000;
 const SESSION_CHECK_INTERVAL_MS = 30_000;
 const IDLE_WARNING_BEFORE_MINUTES = 2;
