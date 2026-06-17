@@ -29,7 +29,9 @@ const ALLOW_PATH_PATTERNS = [
   /\/__tests__\//,
   /\.test\.ts$/,
   /^services\/benefitRulesConfigService\.ts$/,
+  /^types\/benefitRulesConfig\.ts$/,
   /^components\/nbenefit\//,
+  /^pages\/nbenefit\//,
 ];
 
 function walk(dir: string): string[] {
