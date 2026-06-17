@@ -50,6 +50,21 @@ supabase.auth.onAuthStateChange(() => {
 
 // Create QueryClient with global error logging AND automatic audit trail for all mutations
 const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Navigation should feel instant — cached data is shown immediately;
+      // background refetch only when truly stale.
+      staleTime: 60_000,           // 1 min default freshness
+      gcTime: 10 * 60_000,         // keep cached data 10 min after unmount
+      refetchOnWindowFocus: false, // do not reload everything when user switches tabs
+      refetchOnReconnect: false,   // do not reload everything on network blip
+      refetchOnMount: false,       // re-render uses cache; explicit invalidation refetches
+      retry: 1,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
   mutationCache: new MutationCache({
     onSuccess: (data, variables, _context, mutation) => {
       // Skip logging for audit-internal or system_audit_trail writes to avoid loops

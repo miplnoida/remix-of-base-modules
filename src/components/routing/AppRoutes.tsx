@@ -363,6 +363,7 @@ const CentralScheduler = lazy(() => import('@/pages/admin/CentralScheduler'));
 const UserManagement = lazy(() => import('@/pages/systemAdmin/UserManagement'));
 const BackupRecovery = lazy(() => import('@/pages/systemAdmin/BackupRecovery'));
 const SystemLogs = lazy(() => import('@/pages/systemAdmin/SystemLogs'));
+const SessionHealth = lazy(() => import('@/pages/systemAdmin/SessionHealth'));
 const EmployeeList = lazy(() => import('@/pages/systemAdmin/EmployeeList'));
 const OrgUnitList = lazy(() => import('@/pages/systemAdmin/OrgUnitList'));
 const PositionList = lazy(() => import('@/pages/systemAdmin/PositionList'));
@@ -1636,6 +1637,7 @@ export const AppRoutes = () => {
       <Route path="/admin/scheduler" element={<CentralScheduler />} />
       <Route path="/admin/backup" element={<BackupRecovery />} />
       <Route path="/admin/logs" element={<SystemLogs />} />
+      <Route path="/admin/session-health" element={<SessionHealth />} />
       <Route path="/admin/employees" element={<EmployeeList />} />
       <Route path="/admin/org-units" element={<OrgUnitList />} />
       <Route path="/admin/positions" element={<PositionList />} />

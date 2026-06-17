@@ -30,7 +30,7 @@ interface SessionPolicy {
 
 // Industry-standard defaults — overridden at runtime by password_policies row.
 const DEFAULT_SESSION_TIMEOUT_MINUTES = 480; // absolute ceiling (8h)
-const DEFAULT_IDLE_TIMEOUT_MINUTES = 30;     // sliding idle window
+const DEFAULT_IDLE_TIMEOUT_MINUTES = 120;    // sliding idle window (2h)
 const TOKEN_REFRESH_BUFFER_MS = 2 * 60 * 1000;
 const SESSION_CHECK_INTERVAL_MS = 30_000;
 const IDLE_WARNING_BEFORE_MINUTES = 2;
@@ -61,6 +61,17 @@ interface SupabaseAuthContextType {
   hasAnyRole: (roles: string[]) => boolean;
   hasPermission: (moduleName: string, actionName: string) => Promise<boolean>;
   refreshProfile: () => Promise<void>;
+  getSessionDiagnostics: () => {
+    sessionExpiresAt: number | null;
+    lastActivityAt: number;
+    idleMinutes: number;
+    idleLimitMinutes: number;
+    idleRemainingMinutes: number;
+    sessionAgeMinutes: number;
+    sessionLimitMinutes: number;
+    autoRefreshEnabled: boolean;
+    nextRefreshScheduled: boolean;
+  };
 }
 
 const SupabaseAuthContext = createContext<SupabaseAuthContextType | null>(null);
@@ -346,12 +357,19 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const interval = setInterval(checkTimeouts, SESSION_CHECK_INTERVAL_MS);
 
-    const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'mousemove'];
-    events.forEach(event => window.addEventListener(event, updateActivity, { passive: true }));
+    // Broad activity surface: typing, editing, scrolling, touching, focusing — all count.
+    const events = [
+      'click', 'mousedown', 'mousemove',
+      'keydown', 'keyup', 'input', 'change',
+      'focus', 'focusin',
+      'scroll', 'wheel',
+      'touchstart', 'pointerdown',
+    ];
+    events.forEach(event => window.addEventListener(event, updateActivity, { passive: true, capture: true }));
 
     return () => {
       clearInterval(interval);
-      events.forEach(event => window.removeEventListener(event, updateActivity));
+      events.forEach(event => window.removeEventListener(event, updateActivity, { capture: true } as any));
     };
   }, [session, updateActivity, loadSessionPolicy]);
 
@@ -805,6 +823,25 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       ? 'degraded'
       : 'ready';
 
+  const getSessionDiagnostics = useCallback(() => {
+    const now = Date.now();
+    const idleMs = now - lastActivityRef.current;
+    const sessionMs = now - sessionStartRef.current;
+    const idleLimit = policyRef.current.idleTimeoutMinutes;
+    const sessionLimit = policyRef.current.sessionTimeoutMinutes;
+    return {
+      sessionExpiresAt: session?.expires_at ? session.expires_at * 1000 : null,
+      lastActivityAt: lastActivityRef.current,
+      idleMinutes: idleMs / 60_000,
+      idleLimitMinutes: idleLimit,
+      idleRemainingMinutes: Math.max(0, idleLimit - idleMs / 60_000),
+      sessionAgeMinutes: sessionMs / 60_000,
+      sessionLimitMinutes: sessionLimit,
+      autoRefreshEnabled: policyRef.current.autoRefreshEnabled,
+      nextRefreshScheduled: !!refreshTimerRef.current,
+    };
+  }, [session]);
+
   const value: SupabaseAuthContextType = {
     user,
     profile,
@@ -824,6 +861,7 @@ export const SupabaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     hasAnyRole,
     hasPermission,
     refreshProfile,
+    getSessionDiagnostics,
   };
 
   return (
