@@ -10799,60 +10799,99 @@ export type Database = {
       }
       bn_medical_reimbursement_limit: {
         Row: {
-          cap_amount: number
+          approval_level: string | null
+          beneficiary_type: string | null
+          cap_amount: number | null
           cap_type: string
+          ceiling_amount: number | null
           country_code: string
           created_at: string
           created_by: string | null
           currency_code: string
           effective_from: string
           effective_to: string | null
+          emergency_allowed: boolean | null
           expense_type_id: string | null
+          fixed_amount: number | null
           id: string
           is_active: boolean
           jurisdiction_level: string
+          location_code: string | null
           modified_by: string | null
           notes: string | null
+          pre_authorization_required: boolean | null
+          procedure_code: string | null
           procedure_id: string | null
-          reimbursement_percent: number
+          provider_type_code: string | null
+          referral_required: boolean | null
+          reimbursement_method: string | null
+          reimbursement_percent: number | null
+          seed_tag: string | null
+          source_tariff_row_id: string | null
           updated_at: string
         }
         Insert: {
-          cap_amount: number
+          approval_level?: string | null
+          beneficiary_type?: string | null
+          cap_amount?: number | null
           cap_type: string
+          ceiling_amount?: number | null
           country_code: string
           created_at?: string
           created_by?: string | null
           currency_code?: string
           effective_from?: string
           effective_to?: string | null
+          emergency_allowed?: boolean | null
           expense_type_id?: string | null
+          fixed_amount?: number | null
           id?: string
           is_active?: boolean
           jurisdiction_level: string
+          location_code?: string | null
           modified_by?: string | null
           notes?: string | null
+          pre_authorization_required?: boolean | null
+          procedure_code?: string | null
           procedure_id?: string | null
-          reimbursement_percent?: number
+          provider_type_code?: string | null
+          referral_required?: boolean | null
+          reimbursement_method?: string | null
+          reimbursement_percent?: number | null
+          seed_tag?: string | null
+          source_tariff_row_id?: string | null
           updated_at?: string
         }
         Update: {
-          cap_amount?: number
+          approval_level?: string | null
+          beneficiary_type?: string | null
+          cap_amount?: number | null
           cap_type?: string
+          ceiling_amount?: number | null
           country_code?: string
           created_at?: string
           created_by?: string | null
           currency_code?: string
           effective_from?: string
           effective_to?: string | null
+          emergency_allowed?: boolean | null
           expense_type_id?: string | null
+          fixed_amount?: number | null
           id?: string
           is_active?: boolean
           jurisdiction_level?: string
+          location_code?: string | null
           modified_by?: string | null
           notes?: string | null
+          pre_authorization_required?: boolean | null
+          procedure_code?: string | null
           procedure_id?: string | null
-          reimbursement_percent?: number
+          provider_type_code?: string | null
+          referral_required?: boolean | null
+          reimbursement_method?: string | null
+          reimbursement_percent?: number | null
+          seed_tag?: string | null
+          source_tariff_row_id?: string | null
           updated_at?: string
         }
         Relationships: [
