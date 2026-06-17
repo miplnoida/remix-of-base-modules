@@ -84,6 +84,26 @@ export default function ProductEditor() {
       toast({ title: 'Validation Error', description: 'Code and Name are required.', variant: 'destructive' });
       return;
     }
+    // Activation guard: block ACTIVE status unless formula bindings are healthy.
+    if (!isNew && form.status === 'ACTIVE' && existingProduct?.status !== 'ACTIVE') {
+      try {
+        const { supabase } = await import('@/integrations/supabase/client');
+        const { data, error } = await (supabase as any).rpc('bn_product_can_activate', { _product_id: id });
+        if (error) throw error;
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row && row.can_activate === false) {
+          toast({
+            title: 'Cannot activate product',
+            description: `${row.blocker_code}: ${row.blocker_message}`,
+            variant: 'destructive',
+          });
+          return;
+        }
+      } catch (err: any) {
+        toast({ title: 'Activation check failed', description: err?.message ?? 'Unable to verify formula bindings.', variant: 'destructive' });
+        return;
+      }
+    }
     try {
       if (isNew) {
         const created = await createMutation.mutateAsync(form);
@@ -97,6 +117,7 @@ export default function ProductEditor() {
       toast({ title: 'Error', description: err?.message || 'Failed to save.', variant: 'destructive' });
     }
   };
+
 
   const activeVersion = versions.find((v: BnProductVersion) => v.id === selectedVersionId);
   const isEditableVersion = activeVersion?.status === 'DRAFT';
