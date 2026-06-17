@@ -60395,6 +60395,14 @@ export type Database = {
         Args: { p_claim_id: string }
         Returns: number
       }
+      bn_product_can_activate: {
+        Args: { _product_id: string }
+        Returns: {
+          blocker_code: string
+          blocker_message: string
+          can_activate: boolean
+        }[]
+      }
       bn_record_claim_amendment: {
         Args: {
           p_affects_calculation?: boolean
