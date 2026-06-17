@@ -18,7 +18,7 @@
 import { evaluateExpression } from './safeExpressionParser';
 import { lookupRate, type RateTableProvider, type LookupTraceEntry } from './rateTableLookup';
 import {
-  resolveReimbursement,
+  resolveReimbursement as lookupMedicalTariff,
   type MedicalPolicyProvider,
   type MedicalPolicyTrace,
 } from './medicalPolicyResolver';
