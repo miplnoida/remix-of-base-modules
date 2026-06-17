@@ -232,7 +232,7 @@ export default function FormulaConfiguration() {
         newName: cloneName.trim(),
         userCode: u,
       });
-      audit.log({ entityType: 'bn_formula_template', entityId: cloneSource.id, action: 'CLONE', after: { newCode: cloneCode } });
+      audit.log({ entityType: 'bn_formula_template', entityId: cloneSource.id, action: 'CREATE' as any, after: { newCode: cloneCode } });
       toast.success('Formula cloned as DRAFT');
       setCloneOpen(false); refresh();
     } catch (e: any) {
@@ -249,7 +249,7 @@ export default function FormulaConfiguration() {
         setBusyId(row.id);
         try {
           await createNewVersion(row.id, u);
-          audit.log({ entityType: 'bn_formula_template', entityId: row.id, action: 'NEW_VERSION' });
+          audit.log({ entityType: 'bn_formula_template', entityId: row.id, action: 'CREATE' as any });
           toast.success('New DRAFT version created');
           refresh();
         } catch (e: any) { toast.error('Failed', { description: e?.message }); }
@@ -284,7 +284,7 @@ export default function FormulaConfiguration() {
             id: row.id, governance_status: next, modified_by: u,
             ...(next === 'RETIRED' ? { is_active: false } : {}),
           } as Partial<BnFormulaTemplate>);
-          audit.log({ entityType: 'bn_formula_template', entityId: row.id, action: `STATUS_${next}` });
+          audit.log({ entityType: 'bn_formula_template', entityId: row.id, action: (next === 'ACTIVE' ? 'APPROVE' : next === 'RETIRED' ? 'RETIRE' : 'UPDATE') as any });
           toast.success(`${row.template_code} → ${next}`);
           refresh();
         } catch (e: any) { toast.error('Transition failed', { description: e?.message }); }
@@ -410,7 +410,7 @@ export default function FormulaConfiguration() {
               defaultSort={[{ id: 'template_code', desc: false }]}
               onCreate={openAdd}
               onRowClick={(f) => openRow(f)}
-              rowActions={(row) => rowActions(row as BnFormulaTemplate)}
+              rowActions={rowActions as any}
               exportFilename={`bn_formula_library_${tab.toLowerCase()}`}
               emptyMessage={tab === 'ACTIVE'
                 ? 'No active formulas. Activate a draft from the Drafts tab.'
