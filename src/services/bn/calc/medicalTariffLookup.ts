@@ -106,16 +106,45 @@ const inWindow = (asOf: string, from: string, to: string | null): boolean => {
 
 export const defaultMedicalTariffProvider: MedicalTariffProvider = {
   async fetchRows(input) {
+    // Source of truth: bn_medical_reimbursement_limit (extended). The legacy
+    // bn_medical_tariff_row table has been quarantined; its rows are mirrored
+    // here via source_tariff_row_id and the runtime no longer reads from it.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sb = supabase as any;
     const { data, error } = await sb
-      .from('bn_medical_tariff_row')
-      .select('*')
+      .from('bn_medical_reimbursement_limit')
+      .select(
+        'id, source_tariff_row_id, procedure_code, location_code, provider_type_code, ' +
+        'beneficiary_type, referral_required, emergency_allowed, pre_authorization_required, ' +
+        'reimbursement_method, reimbursement_percent, fixed_amount, ceiling_amount, ' +
+        'currency_code, approval_level, effective_from, effective_to, is_active',
+      )
       .eq('procedure_code', input.procedure_code)
       .eq('location_code', input.location_code)
-      .eq('provider_type_code', input.provider_type_code);
+      .eq('provider_type_code', input.provider_type_code)
+      .eq('is_active', true);
     if (error) throw error;
-    return (data ?? []) as MedicalTariffRow[];
+    // Map the limit row shape onto MedicalTariffRow for the resolver
+    return ((data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+      id: String(r.id),
+      tariff_table_id: 'bn_medical_reimbursement_limit',
+      procedure_code: String(r.procedure_code ?? ''),
+      treatment_type: null,
+      location_code: String(r.location_code ?? ''),
+      provider_type_code: String(r.provider_type_code ?? ''),
+      beneficiary_type: (r.beneficiary_type as string | null) ?? null,
+      referral_required: !!r.referral_required,
+      emergency_allowed: r.emergency_allowed !== false,
+      pre_authorization_required: !!r.pre_authorization_required,
+      reimbursement_method: (r.reimbursement_method as ReimbursementMethod) ?? 'NOT_COVERED',
+      percentage_rate: r.reimbursement_percent != null ? Number(r.reimbursement_percent) : null,
+      fixed_amount: r.fixed_amount != null ? Number(r.fixed_amount) : null,
+      ceiling_amount: r.ceiling_amount != null ? Number(r.ceiling_amount) : null,
+      currency_code: String(r.currency_code ?? 'XCD'),
+      approval_level: String(r.approval_level ?? 'NONE'),
+      effective_from: String(r.effective_from ?? '1900-01-01'),
+      effective_to: (r.effective_to as string | null) ?? null,
+    }));
   },
   async fetchAuthRule(input) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
