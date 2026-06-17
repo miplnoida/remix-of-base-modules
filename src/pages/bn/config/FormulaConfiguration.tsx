@@ -439,7 +439,11 @@ export default function FormulaConfiguration() {
               searchPlaceholder="Search formulas..."
               defaultSort={[{ id: 'template_code', desc: false }]}
               onCreate={openAdd}
-              onRowClick={(f) => openRow(f)}
+              onRowClick={(f) => {
+                const status = normalizeStatus(f.governance_status);
+                if (status === 'DRAFT') openRow(f);
+                else setGuardRow(f);
+              }}
               rowActions={rowActions as any}
               exportFilename={`bn_formula_library_${tab.toLowerCase()}`}
               emptyMessage={tab === 'ACTIVE'
