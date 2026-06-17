@@ -79,7 +79,7 @@ export const PayablesQueueTable: React.FC<Props> = ({
   ];
 
   return (
-    <BNDataGrid<PayableWithContext>
+    <BNDataGrid
       id="bn.payables-queue"
       data={items}
       isLoading={isLoading}

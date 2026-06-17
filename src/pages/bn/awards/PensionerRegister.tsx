@@ -118,7 +118,7 @@ export default function PensionerRegister() {
         </CardContent>
       </Card>
 
-      <BNDataGrid<any>
+      <BNDataGrid
         id="bn.pensioner-register"
         data={awards ?? []}
         isLoading={isLoading}
