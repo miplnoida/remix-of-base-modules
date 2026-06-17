@@ -297,7 +297,6 @@ export function RateTableEditor({ open, onClose, rateTable }: Props) {
                 </Table>
               </div>
 
-              </div>
 
               <div className="grid md:grid-cols-2 gap-3">
                 <RateTableImportExport
