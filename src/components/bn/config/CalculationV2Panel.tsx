@@ -117,6 +117,7 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
         cap_max: editing.cap_max ?? null,
         is_active: editing.is_active ?? true,
         notes: editing.notes ?? null,
+        step_mapping_json: editing.step_mapping_json ?? null,
       };
       if (editing.id) {
         const { error } = await sb.from('bn_product_formula_binding').update(payload).eq('id', editing.id);
