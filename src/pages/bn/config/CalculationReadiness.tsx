@@ -83,8 +83,8 @@ export default function CalculationReadiness() {
       const fts = ftR.data ?? [];
       const sims = simR.data ?? [];
 
-      const ftById = new Map(fts.map((t: any) => [t.id, t]));
-      const fvById = new Map(fvs.map((v: any) => [v.id, v]));
+      const ftById = new Map<string, any>(fts.map((t: any) => [t.id, t]));
+      const fvById = new Map<string, any>(fvs.map((v: any) => [v.id, v]));
 
       const out: Row[] = [];
       for (const p of products) {
