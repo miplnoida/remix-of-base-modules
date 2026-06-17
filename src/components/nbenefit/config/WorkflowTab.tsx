@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { BenefitRuleSet } from '@/types/benefitRulesConfig';
+import { BenefitRuleSet } from '@/types/_legacy/benefitRulesConfig';
 
 interface WorkflowTabProps {
   benefitRule: BenefitRuleSet;

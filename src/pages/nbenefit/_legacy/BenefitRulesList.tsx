@@ -20,8 +20,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Search, Edit, Copy, Archive, Eye } from 'lucide-react';
-import { BenefitRuleSet } from '@/types/benefitRulesConfig';
-import { benefitRulesConfigService } from '@/services/benefitRulesConfigService';
+import { BenefitRuleSet } from '@/types/_legacy/benefitRulesConfig';
+import { benefitRulesConfigService } from '@/services/bn/_legacy/benefitRulesConfigService';
 
 export default function BenefitRulesList() {
   const navigate = useNavigate();

@@ -1,96 +1,85 @@
-# BN Calculation Engine — Configurable Build Plan
+# Product Catalogue → Formula Library Migration
 
-This is a large, multi-phase build. Given the size (15 sections, ~10 new tables, engine rewrites, seed data, simulation tests), I'll execute it in **5 sequenced phases**, each delivered as its own migration + code drop so you can review and reject before the next phase starts.
+Scope is large enough that I want sign-off before shipping. The plan below is sequenced so each phase is independently reviewable, with the build staying green between phases.
 
-## Phase 1 — Schema Foundation (DB migration)
+## Current state (audit)
 
-Create/verify tables (with GRANTs, audit columns, no RLS per project rule):
+Legacy calc still lives in these files (all to be quarantined out of runtime):
 
-**Formula Library (verify existing, add columns if missing):**
-- `bn_formula_template`, `bn_formula_version` (add `MEDICAL_TARIFF_LOOKUP` to `expression_type`)
-- `bn_formula_variable_registry`, `bn_product_formula_binding`, `bn_product_formula_variable_mapping`
-- `bn_calculation_trace`
+- `src/types/benefitRulesConfig.ts` — `calculationRules.formula`, `variables[]`, `tiers[]`, `rateTables[]`
+- `src/services/benefitRulesConfigService.ts` — `MOCK_BENEFIT_RULES` with `{AWE}`, `{AIW}`, `{PensionRate}`, `{TotalContributions}`, hardcoded `0.65`, `6`, tier table for Age Pension
+- `src/components/nbenefit/config/FormulaBuilder.tsx`, `CalculationRulesTab.tsx`, `AddCalculationDialog.tsx` — legacy editors
+- `src/pages/nbenefit/config/BenefitRulesList.tsx`, `BenefitRuleEditor.tsx`, `src/components/nbenefit/config/PreviewTestTab.tsx` — legacy consumers
 
-**Rate / Matrix (verify + extend):**
-- `bn_rate_table` — add `table_type`, `lookup_mode`, `legal_reference`, audit cols
-- `bn_rate_table_dimension` — add `match_type`, `dimension_type`
-- `bn_rate_table_row` — add `dimension_values_json`, `output_key`, `output_type`, effective dates
+The new engine (Phases 1–5 already shipped) provides: `bn_formula_template`, `bn_formula_version`, `bn_formula_variable_registry`, `bn_product_formula_binding`, `bn_product_formula_variable_mapping`, `bn_rate_table*`, `bn_medical_tariff_*`, `runProductCalculationV2`, `medicalTariffLookup`. Phase 4 added `CalculationV2Panel` as the default Calculation tab on Product Catalogue.
 
-**Medical Tariff Engine (new):**
-- `bn_medical_procedure` (extend existing with `treatment_type`, `procedure_category`)
-- `bn_medical_location_type` (new)
-- `bn_medical_provider_type` (new)
-- `bn_medical_tariff_table` (new)
-- `bn_medical_tariff_row` (new)
-- `bn_medical_authorization_rule` (new — replaces single-cap logic)
+What's missing: the legacy `nbenefit/config` editor surface still references `benefitRulesConfigService`, and there are no `bn_product_formula_binding` rows seeded for the standard products (Sickness, Maternity, EI Temp, EI Disablement, Age Pension, Age Grant, Survivor, Funeral, NCP, Medical Reimbursement). So Product Catalogue is "ready" but no product is actually bound.
 
-All tables: GRANT to authenticated + service_role, no RLS (per project rule), audit triggers for updated_at, change-log triggers writing to `system_audit_trail`.
+## Phase A — Fact + parameter registry (migration + seed)
 
-## Phase 2 — Seed Data (insert tool)
+- Verify/extend `bn_formula_variable_registry` with the contribution / derived / medical facts listed in section 3.
+- Insert missing rows in `bn_derived_fact` for `contribution.units`, `contribution.additional_units`, `claim.payable_weeks`, `claim.approved_days`, `claim.days_payable`.
+- Insert `bn_product_parameter` definitions for the per-product parameters (`sickness_replacement_rate`, `maternity_replacement_rate`, `ei_temporary_replacement_rate`, `payable_days_per_week`, `waiting_days`, `max_duration_weeks`, `age_grant_weeks_multiplier`, `contribution_unit_size`, `funeral_grant_amount`, `ncp_flat_weekly_rate`, caps).
 
-- Variable registry (~30 entries from section 6)
-- Derived facts (section 7)
-- Rate tables: `AGE_PENSION_RATE_TABLE`, `DISABLEMENT_RATE_TABLE`
-- Matrix: `SURVIVOR_SHARE_MATRIX`
-- Medical procedures (MRI_BRAIN, CARDIAC_SURGERY, DIALYSIS)
-- Location types (LOCAL_SK, CARIBBEAN, INTERNATIONAL)
-- Provider types (PUBLIC, PRIVATE, OVERSEAS, APPROVED_NETWORK, NON_NETWORK)
-- Medical tariff rows (section 9 examples)
-- Formula templates (section 10, all 8 templates)
+## Phase B — Rate / matrix tables (seed data, `SEED-` prefix)
 
-All seed rows tagged with `SEED-` prefix per project memory rule.
+- `AGE_PENSION_RATE_TABLE` rows for the 500–2000+ tiers (configurable, no hardcoding in TS).
+- `DISABLEMENT_RATE_TABLE` rows (already partially seeded — top up if missing).
+- `SURVIVOR_SHARE_MATRIX` rows for beneficiary type × count.
+- Medical tariff rows already seeded in earlier phase; verify MRI / cardiac / dialysis examples remain.
 
-## Phase 3 — Engine Code
+## Phase C — Formula templates + versions
 
-**New / updated files:**
-- `src/services/bn/calc/medicalTariffLookup.ts` — Step 1–4 logic from section 5
-- `src/services/bn/calc/rateTableLookup.ts` — extend with MATRIX_MATCH, range overlap detection
-- `src/services/bn/calc/formulaRunner.ts` — add `MEDICAL_TARIFF_LOOKUP` step kind
-- `src/services/bn/calc/calculationEngine.ts` — orchestrator: resolve variables → execute formula → write trace
-- `src/services/bn/calc/validation.ts` — formula/rate/matrix/tariff/product validators (section 12)
-- `src/services/bn/calc/legacyAudit.ts` — scanner that reports all usage from section 1
+For each benefit, ensure a `bn_formula_template` + active `bn_formula_version` exists with the right `steps_json`:
 
-**Legacy cleanup:**
-- Search & report usages of `calculationRules.formula`, `MOCK_BENEFIT_RULES`, hardcoded `{AWE}/{AIW}/{PensionRate}/{TotalContributions}` placeholders
-- Quarantine to `src/services/bn/_legacy/` (not deleted, but no longer imported by Product Catalog / Workbench / Entitlement / Payment / Simulation runtime)
+| Benefit | Template code | Steps |
+|---|---|---|
+| Sickness | `PCT_AVG_WEEKLY_WAGE` | `awe * replacement_rate`, daily proration |
+| Maternity | `PCT_AVG_WEEKLY_WAGE` | same |
+| EI Temporary | `EI_TEMPORARY_DISABLEMENT` | `awe * rate * approved_days/days_per_week` |
+| EI Disablement | `EI_DISABLEMENT` | `RATE_LOOKUP` → multiply |
+| Age Pension | `AGE_PENSION_RATE_LOOKUP` | `RATE_LOOKUP(total_weeks)` → `aiw * rate` → caps → monthly conversion |
+| Age Grant | `AGE_GRANT` | `awe * multiplier * floor(weeks/unit_size)` |
+| Survivor | `SURVIVOR_SPLIT` | `MATRIX_LOOKUP` → `base * share` → family cap |
+| Funeral | `FIXED_GRANT_AMOUNT` | `grant_amount` |
+| NCP | `NCP_FLAT_RATE` | `flat_weekly_rate` (+ monthly conv) |
+| Medical Reimbursement | `MEDICAL_REIMBURSEMENT` | `MEDICAL_TARIFF_LOOKUP` (already implemented) |
 
-## Phase 4 — Product Catalog UI
+## Phase D — Product formula bindings + variable mappings
 
-Replace legacy Calculation tab in Product Catalog with new sections:
-- Formula picker (from `bn_formula_template`)
-- Stage selector
-- Variable mapping grid (resolver-driven)
-- Rate / Matrix / Medical Tariff table pickers
-- Product parameter editor
-- Cap / min / max / rounding controls
-- Simulation runner with trace viewer
-- **Medical product mode:** procedure availability matrix, tariff binding, authorization rules, referral/emergency/approval-level controls
+For every active product version: insert `bn_product_formula_binding` + `bn_product_formula_variable_mapping` + `bn_product_parameter` values + linked rate/matrix/tariff table refs. Reference data only — no hardcoded numbers leave the DB.
 
-## Phase 5 — Simulation Tests + Acceptance
+## Phase E — Runtime cutover
 
-Vitest specs covering section 13:
-- Age Pension AIW 1000 × weeks 1200 → 400
-- Age Grant AWW 500, 250 wks, 5 units × 6 → 15000
-- Medical MRI Local 3000 @ 80% capped 2000 → 2000
-- Medical Cardiac Caribbean 90000 capped 75000 → 75000
+- Delete (or move under `src/services/bn/_legacy/`) `benefitRulesConfigService.ts`, `FormulaBuilder.tsx`, `CalculationRulesTab.tsx`, `AddCalculationDialog.tsx`, `BenefitRulesList.tsx`, `BenefitRuleEditor.tsx`, `PreviewTestTab.tsx`, `types/benefitRulesConfig.ts`. Remove their routes from `AppRoutes`.
+- Strengthen `src/__tests__/bn-calc/legacy-guard.test.ts` to fail if any active file outside `_legacy/` imports `benefitRulesConfig*`, contains `MOCK_BENEFIT_RULES`, or uses `{AWE}/{AIW}/{PensionRate}/{TotalContributions}` placeholders.
 
-Plus validator unit tests and a CI check that fails build if `MOCK_BENEFIT_RULES` or legacy placeholders re-enter runtime imports.
+## Phase F — Product Calculation Readiness report
+
+New screen `src/pages/bn/config/CalculationReadiness.tsx` listing per active product: formula selected, version, required vs mapped variables, missing parameters, linked rate/matrix/tariff tables, last simulation result, "legacy still used" flag. Backed by a single read-only RPC.
+
+## Phase G — Simulation acceptance suite
+
+Add Vitest specs in `src/__tests__/bn-calc/product-bindings.test.ts` covering exactly the cases in section 8:
+
+- Sickness 600 × 0.65 → 390
+- Age Pension AIW 1000, weeks 1200 → 400 weekly
+- Age Grant AWW 500, weeks 250, size 50, mult 6 → 15 000
+- Funeral 2500 → 2500
+- Survivor base 400, share 0.5 → 200
+- Medical MRI expense 3000 @ 0.80 cap 2000 → 2000
+
+Build must pass and all tests green.
 
 ## Technical notes
 
-- Per project memory: **no RLS**, role-based security only
-- Per project memory: seed rows use `SEED-` tag
-- Per project memory: `user_code` (VARCHAR 50) used for created_by/updated_by audit fields
-- Per project memory: RPCs dropped + recreated with explicit signatures
-- All schema changes use the migration tool with full GRANT blocks
-- Existing `bn_medical_*` tables already have data — Phase 1 migration uses `ADD COLUMN IF NOT EXISTS` and never drops existing columns
-- Formula expression evaluation continues using existing `safeExpressionParser`
+- All seed rows tagged `SEED-` per project rule.
+- No RLS; only role-based security (per project memory).
+- Migrations follow the GRANT-first pattern for any new public tables.
+- Audit columns use `user_code` VARCHAR(50).
+- Phases delivered in order, one at a time, each as its own migration + code drop so you can reject before the next.
 
-## Open questions before I start
+## Question before I start
 
-1. **Scope of legacy removal** — section 1 says "Move legacy/demo calculation config out of runtime." Do you want me to physically delete the legacy files, or quarantine to `_legacy/` and remove imports only (safer rollback)?
-2. **Product Catalog UI** (Phase 4) — should I rebuild the existing Calculation tab in-place, or create a new "Calculation v2" tab and keep the old one read-only during transition?
-3. **Currency** — seed examples use XCD. Confirm that's correct for St. Kitts & Nevis tariffs.
-4. **Phase delivery** — proceed phase-by-phase with your approval between each, or run all 5 in sequence and you review at the end?
-
-Once you answer (or say "go ahead with defaults: quarantine, in-place rebuild, XCD, all 5 phases sequential"), I'll start with the Phase 1 migration.
+1. Phase E will **delete** the legacy nbenefit/config editor pages entirely (`BenefitRulesList`, `BenefitRuleEditor`, `PreviewTestTab`, `FormulaBuilder`, `CalculationRulesTab`, `AddCalculationDialog`, `benefitRulesConfigService`, `types/benefitRulesConfig.ts`) and remove their sidebar routes — users will only have the new Product Catalogue Calculation tab. Confirm delete vs quarantine to `_legacy/`.
+2. Run all phases A–G sequentially without stopping, or pause after each for review?

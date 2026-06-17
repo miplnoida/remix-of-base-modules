@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, Edit } from 'lucide-react';
-import { BenefitRuleSet, EligibilityRule, RuleGroup, RuleParameterType, RuleOperator } from '@/types/benefitRulesConfig';
+import { BenefitRuleSet, EligibilityRule, RuleGroup, RuleParameterType, RuleOperator } from '@/types/_legacy/benefitRulesConfig';
 
 interface EligibilityRulesTabProps {
   benefitRule: BenefitRuleSet;

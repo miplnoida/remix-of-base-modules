@@ -3,18 +3,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save } from 'lucide-react';
-import { BenefitRuleSet } from '@/types/benefitRulesConfig';
-import { benefitRulesConfigService } from '@/services/benefitRulesConfigService';
+import { BenefitRuleSet } from '@/types/_legacy/benefitRulesConfig';
+import { benefitRulesConfigService } from '@/services/bn/_legacy/benefitRulesConfigService';
 import { useToast } from '@/hooks/use-toast';
 
 // Tab Components
 import BenefitDefinitionTab from '@/components/nbenefit/config/BenefitDefinitionTab';
 import EligibilityRulesTab from '@/components/nbenefit/config/EligibilityRulesTab';
-import CalculationRulesTab from '@/components/nbenefit/config/CalculationRulesTab';
+import CalculationRulesTab from '@/components/nbenefit/_legacy/CalculationRulesTab';
 import TimelinesTab from '@/components/nbenefit/config/TimelinesTab';
 import RequiredDocumentsTab from '@/components/nbenefit/config/RequiredDocumentsTab';
 import WorkflowTab from '@/components/nbenefit/config/WorkflowTab';
-import PreviewTestTab from '@/components/nbenefit/config/PreviewTestTab';
+import PreviewTestTab from '@/components/nbenefit/_legacy/PreviewTestTab';
 
 export default function BenefitRuleEditor() {
   const { id } = useParams();

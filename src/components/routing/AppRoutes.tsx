@@ -526,8 +526,8 @@ const EmploymentInjuryBenefit = lazy(() => import('@/pages/nbenefit/short-term/E
 const FuneralGrantBenefit = lazy(() => import('@/pages/nbenefit/short-term/FuneralGrantBenefit'));
 const AgeBenefit = lazy(() => import('@/pages/nbenefit/long-term/AgeBenefit'));
 const ClaimApprovalEnhanced = lazy(() => import('@/pages/nbenefit/ClaimApprovalEnhanced'));
-const BenefitRulesList = lazy(() => import('@/pages/nbenefit/config/BenefitRulesList'));
-const BenefitRuleEditor = lazy(() => import('@/pages/nbenefit/config/BenefitRuleEditor'));
+const BenefitRulesList = lazy(() => import('@/pages/nbenefit/_legacy/BenefitRulesList'));
+const BenefitRuleEditor = lazy(() => import('@/pages/nbenefit/_legacy/BenefitRuleEditor'));
 const MedicalRulesConfig = lazy(() => import('@/pages/nbenefit/config/MedicalRulesConfig'));
 const BeneficiaryRegistry = lazy(() => import('@/pages/nbenefit/long-term/BeneficiaryRegistry'));
 const BeneficiaryDetail = lazy(() => import('@/pages/nbenefit/long-term/BeneficiaryDetail'));
