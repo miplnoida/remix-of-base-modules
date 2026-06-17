@@ -200,7 +200,10 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
                             <td className="px-3 py-2 text-right">
                               {!isReadOnly && (
                                 <div className="flex justify-end gap-1">
-                                  <Button size="sm" variant="ghost" onClick={() => setEditing(b)}>Edit</Button>
+                                  <Button size="sm" variant="ghost" onClick={async () => {
+                                    const { data } = await sb.from('bn_product_formula_binding').select('step_mapping_json').eq('id', b.id).single();
+                                    setEditing({ ...b, step_mapping_json: (data?.step_mapping_json ?? null) as StepMappingJson | null });
+                                  }}>Edit</Button>
                                   <Button size="sm" variant="ghost" onClick={() => handleDelete(b.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
                                 </div>
                               )}
