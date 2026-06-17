@@ -31,11 +31,17 @@ function rowsToCsv(dims: Dim[], rows: Row[]): string {
     for (const d of dims) {
       const v = r.dimension_values_json?.[d.dimension_key];
       if (d.match_type === 'RANGE') {
-        cells.push(v?.min ?? '', v?.max ?? '');
-      } else cells.push(v ?? '');
+        cells.push(v?.min == null ? '' : String(v.min), v?.max == null ? '' : String(v.max));
+      } else cells.push(v == null ? '' : String(v));
     }
-    cells.push(r.output_value ?? '', r.output_type, r.effective_from ?? '', r.effective_to ?? '', (r.notes ?? '').replace(/"/g, '""'));
-    lines.push(cells.map((c) => /[,"\n]/.test(String(c)) ? `"${c}"` : String(c)).join(','));
+    cells.push(
+      r.output_value == null ? '' : String(r.output_value),
+      r.output_type,
+      r.effective_from ?? '',
+      r.effective_to ?? '',
+      (r.notes ?? '').replace(/"/g, '""'),
+    );
+    lines.push(cells.map((c) => /[,"\n]/.test(c) ? `"${c}"` : c).join(','));
   }
   return lines.join('\n');
 }
