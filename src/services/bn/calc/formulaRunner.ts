@@ -102,6 +102,27 @@ export async function runFormula(
         workScope[step.target] = res.value;
         last = res.value;
         expressionTrace.push({ step: i, kind: 'LOOKUP', target: step.target, table_code: step.table_code, inputs: resolvedInputs, output: res.value });
+      } else if (step.kind === 'MEDICAL_TARIFF') {
+        const resolvedInputs: Record<string, unknown> = {};
+        for (const [k, src] of Object.entries(step.inputs)) {
+          if (src in workScope) resolvedInputs[k] = workScope[src];
+          else resolvedInputs[k] = src;
+        }
+        const trace = await lookupMedicalTariff({
+          procedure_code: String(resolvedInputs.procedure_code ?? ''),
+          treatment_type: (resolvedInputs.treatment_type as string) ?? null,
+          location_code: String(resolvedInputs.location_code ?? ''),
+          provider_type_code: String(resolvedInputs.provider_type_code ?? ''),
+          beneficiary_type: (resolvedInputs.beneficiary_type as string) ?? null,
+          approved_expense_amount: Number(resolvedInputs.approved_expense_amount ?? 0),
+          emergency_flag: !!resolvedInputs.emergency_flag,
+          referral_status: !!resolvedInputs.referral_status,
+          pre_authorization_status: !!resolvedInputs.pre_authorization_status,
+        }, medicalProvider);
+        medicalTrace.push(trace);
+        workScope[step.target] = trace.payable_amount;
+        last = trace.payable_amount;
+        expressionTrace.push({ step: i, kind: 'MEDICAL_TARIFF', target: step.target, inputs: resolvedInputs, output: trace.payable_amount, medical_trace: trace });
       } else if (step.kind === 'IF') {
         const cond = evaluateExpression(step.condition, workScope);
         expressionTrace.push({ step: i, kind: 'IF', expression: step.condition, output: cond });
@@ -122,6 +143,12 @@ export async function runFormula(
   } else if (formula.expression_type === 'RATE_TABLE_LOOKUP' || formula.expression_type === 'MATRIX_LOOKUP') {
     const steps = Array.isArray(formula.steps_json) ? (formula.steps_json as Step[]) : [];
     output = await runStepList(steps);
+  } else if (formula.expression_type === 'MEDICAL_TARIFF_LOOKUP') {
+    const steps = Array.isArray(formula.steps_json) ? (formula.steps_json as Step[]) : [];
+    output = await runStepList(steps);
+    if (formula.output_variable && formula.output_variable in workScope) {
+      output = workScope[formula.output_variable];
+    }
   } else if (formula.expression_type === 'MULTI_STEP' || formula.expression_type === 'CONDITIONAL') {
     const steps = Array.isArray(formula.steps_json) ? (formula.steps_json as Step[]) : [];
     output = await runStepList(steps);
@@ -130,7 +157,7 @@ export async function runFormula(
     }
   }
 
-  return { output, scope: workScope, lookupTrace, expressionTrace };
+  return { output, scope: workScope, lookupTrace, expressionTrace, medicalTrace };
 }
 
 export function applyRounding(value: unknown, rule: string | null | undefined): number | null {
