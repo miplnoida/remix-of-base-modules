@@ -50,6 +50,7 @@ import { classifyVariables } from '@/services/bn/variableResolverService';
 import { FormulaTestPanel } from '@/components/bn/config/FormulaTestPanel';
 import { FormulaVersionEditor } from '@/components/bn/config/FormulaVersionEditor';
 import { AddFormulaWizard } from '@/components/bn/config/AddFormulaWizard';
+import { LiveVersionGuardDialog } from '@/components/bn/config/LiveVersionGuardDialog';
 import type { BnFormulaTemplate } from '@/types/bn';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 import {
