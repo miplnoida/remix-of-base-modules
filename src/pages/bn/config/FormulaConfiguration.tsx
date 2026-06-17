@@ -48,6 +48,7 @@ import { parseFormula } from '@/lib/bn/formulaParser';
 import { useVariableResolver } from '@/hooks/bn/useVariableResolver';
 import { classifyVariables } from '@/services/bn/variableResolverService';
 import { FormulaTestPanel } from '@/components/bn/config/FormulaTestPanel';
+import { FormulaVersionEditor } from '@/components/bn/config/FormulaVersionEditor';
 import type { BnFormulaTemplate } from '@/types/bn';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 import {
@@ -107,6 +108,7 @@ export default function FormulaConfiguration() {
   } | null>(null);
   const [usageOpen, setUsageOpen] = useState<{ row: BnFormulaTemplate; usage: any; versions: any[] } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [versionEditorId, setVersionEditorId] = useState<string | null>(null);
 
   const { data: formulas = [], isLoading } = useBnFormulaTemplates();
   const upsert = useUpsertBnFormulaTemplate();
@@ -561,6 +563,9 @@ export default function FormulaConfiguration() {
                       <div className="text-xs text-muted-foreground">
                         {v.effective_from ?? '—'} → {v.effective_to ?? '—'}
                       </div>
+                      <Button size="sm" variant="ghost" onClick={() => { setVersionEditorId(v.id); }}>
+                        {v.governance_status === 'DRAFT' ? 'Edit' : 'View'}
+                      </Button>
                     </div>
                   ))}
                   {!(usageOpen?.versions ?? []).length && (
@@ -591,6 +596,18 @@ export default function FormulaConfiguration() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <FormulaVersionEditor
+          open={!!versionEditorId}
+          versionId={versionEditorId}
+          onClose={() => setVersionEditorId(null)}
+          onSaved={async () => {
+            if (usageOpen) {
+              const versions = await listVersions(usageOpen.row.id);
+              setUsageOpen({ ...usageOpen, versions });
+            }
+          }}
+        />
       </div>
     </PermissionWrapper>
   );
