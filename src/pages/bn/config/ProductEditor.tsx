@@ -384,9 +384,9 @@ export default function ProductEditor() {
         </TabsContent>
 
         <TabsContent value="calculation" className="mt-6 space-y-6">
-          {product?.id && selectedVersionId && (
+          {existingProduct?.id && selectedVersionId && (
             <CalculationV2Panel
-              productId={product.id}
+              productId={existingProduct.id}
               productVersionId={selectedVersionId}
               isReadOnly={!isEditableVersion}
             />
