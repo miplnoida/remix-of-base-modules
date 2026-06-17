@@ -19,6 +19,7 @@ import type { BnProduct, BnProductVersion, BnProductStatus } from '@/types/bn';
 import { EligibilityTabRedesigned as EligibilityRulesTab } from '@/components/bn/config/EligibilityTabRedesigned';
 import { CalculationRulesTab } from '@/components/bn/config/CalculationRulesTab';
 import { CalculationBuilder } from '@/components/bn/config/CalculationBuilder';
+import { CalculationV2Panel } from '@/components/bn/config/CalculationV2Panel';
 import { TimelineRulesTab } from '@/components/bn/config/TimelineRulesTab';
 import { DocumentRulesTab } from '@/components/bn/config/DocumentRulesTab';
 import { WorkflowTab } from '@/components/bn/config/WorkflowTab';
@@ -383,10 +384,17 @@ export default function ProductEditor() {
         </TabsContent>
 
         <TabsContent value="calculation" className="mt-6 space-y-6">
-          <CalculationBuilder versionId={selectedVersionId} isReadOnly={!isEditableVersion} />
+          {existingProduct?.id && selectedVersionId && (
+            <CalculationV2Panel
+              productId={existingProduct.id}
+              productVersionId={selectedVersionId}
+              isReadOnly={!isEditableVersion}
+            />
+          )}
           <details className="rounded-md border bg-muted/30">
-            <summary className="cursor-pointer px-4 py-2 text-sm font-medium">Advanced: per-version calculation rules (legacy)</summary>
-            <div className="p-4 pt-0">
+            <summary className="cursor-pointer px-4 py-2 text-sm font-medium">Legacy: visual builder & per-version rules</summary>
+            <div className="space-y-4 p-4 pt-0">
+              <CalculationBuilder versionId={selectedVersionId} isReadOnly={!isEditableVersion} />
               <CalculationRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
             </div>
           </details>
