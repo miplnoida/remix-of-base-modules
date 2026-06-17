@@ -33,7 +33,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  Copy, Edit, GitBranch, Send, CheckCircle2, Archive, Eye, Trash2,
+  Copy, Edit, GitBranch, Send, CheckCircle2, Archive, Eye, Trash2, Sigma,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBnFormulaTemplates, useUpsertBnFormulaTemplate } from '@/hooks/bn/useBnConfig';
