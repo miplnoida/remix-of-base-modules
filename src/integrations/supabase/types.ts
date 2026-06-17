@@ -60354,6 +60354,35 @@ export type Database = {
           severity: string
         }[]
       }
+      bn_formula_check_usage: {
+        Args: { _template_id: string }
+        Returns: {
+          active_version_count: number
+          binding_count: number
+          total_versions: number
+        }[]
+      }
+      bn_formula_clone_template: {
+        Args: {
+          _new_code: string
+          _new_name: string
+          _template_id: string
+          _user_code: string
+        }
+        Returns: string
+      }
+      bn_formula_new_version: {
+        Args: { _template_id: string; _user_code: string }
+        Returns: string
+      }
+      bn_formula_safe_delete_template: {
+        Args: { _template_id: string; _user_code: string }
+        Returns: undefined
+      }
+      bn_formula_transition_version: {
+        Args: { _new_status: string; _user_code: string; _version_id: string }
+        Returns: undefined
+      }
       bn_get_contribution_summary: {
         Args: { p_from_date?: string; p_ssn: string; p_to_date?: string }
         Returns: {
