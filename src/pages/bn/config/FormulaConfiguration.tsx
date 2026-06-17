@@ -351,10 +351,12 @@ export default function FormulaConfiguration() {
     hidden?: (row: BnFormulaTemplate) => boolean;
     variant?: 'default' | 'destructive';
   }> = [
-    { key: 'edit', label: 'Edit draft', icon: <Edit className="h-3.5 w-3.5" />,
+    { key: 'edit-formula', label: 'Edit formula (steps / expression)', icon: <Sigma className="h-3.5 w-3.5" />,
+      onClick: (r) => handleEditFormulaSteps(r) },
+    { key: 'edit', label: 'Edit header (draft)', icon: <Edit className="h-3.5 w-3.5" />,
       onClick: (r) => openRow(r),
       hidden: (r) => (r.governance_status ?? 'DRAFT') !== 'DRAFT' },
-    { key: 'view', label: 'View', icon: <Eye className="h-3.5 w-3.5" />,
+    { key: 'view', label: 'View header', icon: <Eye className="h-3.5 w-3.5" />,
       onClick: (r) => openRow(r),
       hidden: (r) => (r.governance_status ?? 'DRAFT') === 'DRAFT' },
     { key: 'submit', label: 'Submit for review', icon: <Send className="h-3.5 w-3.5" />,
