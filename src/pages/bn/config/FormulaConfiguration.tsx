@@ -84,6 +84,15 @@ const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'outline' | 'des
 
 type TabKey = 'ACTIVE' | 'DRAFT' | 'IN_REVIEW' | 'RETIRED' | 'ALL';
 
+/** Defensive normalizer — maps any legacy/lowercase value to one of the 4 canonical statuses. */
+function normalizeStatus(raw: unknown): 'ACTIVE' | 'DRAFT' | 'IN_REVIEW' | 'RETIRED' {
+  const s = String(raw ?? '').trim().toUpperCase();
+  if (s === 'ACTIVE' || s === 'READY_FOR_PRODUCT_USE' || s === 'APPROVED' || s === 'LEGAL_CONFIRMED') return 'ACTIVE';
+  if (s === 'IN_REVIEW' || s === 'REVIEW' || s === 'TECHNICAL_REVIEW' || s === 'LEGAL_REVIEW') return 'IN_REVIEW';
+  if (s === 'RETIRED' || s === 'DEPRECATED' || s === 'ARCHIVED') return 'RETIRED';
+  return 'DRAFT';
+}
+
 export default function FormulaConfiguration() {
   const [tab, setTab] = useState<TabKey>('ACTIVE');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -111,17 +120,15 @@ export default function FormulaConfiguration() {
   const filtered = useMemo(() => {
     const rows = formulas as BnFormulaTemplate[];
     if (tab === 'ALL') return rows;
-    return rows.filter((f) => (f.governance_status ?? 'DRAFT') === tab);
+    return rows.filter((f) => normalizeStatus(f.governance_status) === tab);
   }, [formulas, tab]);
 
   const counts = useMemo(() => {
     const c = { ACTIVE: 0, DRAFT: 0, IN_REVIEW: 0, RETIRED: 0 } as Record<string, number>;
-    (formulas as BnFormulaTemplate[]).forEach((f) => {
-      const s = f.governance_status ?? 'DRAFT';
-      if (c[s] != null) c[s] += 1;
-    });
+    (formulas as BnFormulaTemplate[]).forEach((f) => { c[normalizeStatus(f.governance_status)] += 1; });
     return c;
   }, [formulas]);
+
 
   const otherCodes = formulas
     .filter((f: BnFormulaTemplate) => f.id !== form.id)
