@@ -253,18 +253,33 @@ export default function FormulaConfiguration() {
     const u = requireUser(); if (!u) return;
     setConfirm({
       title: `Create new version of ${row.template_code}?`,
-      description: 'A new DRAFT version will be created. The current ACTIVE version stays in use until you activate the new one.',
+      description: 'A new DRAFT version will be created. The current ACTIVE version stays in use until you activate the new one. The new DRAFT will open for editing.',
       action: async () => {
         setBusyId(row.id);
         try {
-          await createNewVersion(row.id, u);
+          const newVersionId = await createNewVersion(row.id, u);
           audit.log({ entityType: 'bn_formula_template', entityId: row.id, action: 'CREATE' as any });
-          toast.success('New DRAFT version created');
+          toast.success('New DRAFT version created — opening editor');
           refresh();
+          if (newVersionId) setVersionEditorId(newVersionId);
         } catch (e: any) { toast.error('Failed', { description: e?.message }); }
         finally { setBusyId(null); }
       },
     });
+  };
+
+  const handleEditFormulaSteps = async (row: BnFormulaTemplate) => {
+    setBusyId(row.id);
+    try {
+      const versions = await listVersions(row.id);
+      const draft = versions.find((v: any) => v.governance_status === 'DRAFT');
+      const target = draft ?? versions[0];
+      if (!target) { toast.error('No version found for this formula'); return; }
+      if (!draft) toast.info(`Opening ${target.governance_status} version in read-only mode`);
+      setVersionEditorId(target.id);
+    } catch (e: any) {
+      toast.error('Failed to load versions', { description: e?.message });
+    } finally { setBusyId(null); }
   };
 
   const handleTransition = (row: BnFormulaTemplate, next: FormulaStatus, label: string) => {
