@@ -384,10 +384,17 @@ export default function ProductEditor() {
         </TabsContent>
 
         <TabsContent value="calculation" className="mt-6 space-y-6">
-          <CalculationBuilder versionId={selectedVersionId} isReadOnly={!isEditableVersion} />
+          {product?.id && selectedVersionId && (
+            <CalculationV2Panel
+              productId={product.id}
+              productVersionId={selectedVersionId}
+              isReadOnly={!isEditableVersion}
+            />
+          )}
           <details className="rounded-md border bg-muted/30">
-            <summary className="cursor-pointer px-4 py-2 text-sm font-medium">Advanced: per-version calculation rules (legacy)</summary>
-            <div className="p-4 pt-0">
+            <summary className="cursor-pointer px-4 py-2 text-sm font-medium">Legacy: visual builder & per-version rules</summary>
+            <div className="space-y-4 p-4 pt-0">
+              <CalculationBuilder versionId={selectedVersionId} isReadOnly={!isEditableVersion} />
               <CalculationRulesTab versionId={selectedVersionId} isReadOnly={!isEditableVersion} versionStatus={activeVersion?.status} />
             </div>
           </details>
