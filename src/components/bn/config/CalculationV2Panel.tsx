@@ -276,6 +276,21 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
                   <Label>Notes</Label>
                   <Textarea value={editing.notes ?? ''} onChange={(e) => setEditing({ ...editing, notes: e.target.value })} rows={2} />
                 </div>
+                <div className="md:col-span-2 border-t pt-3">
+                  <h4 className="text-sm font-semibold mb-2">Formula step mappings</h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Map each step input to a product parameter, fact, derived fact, prior formula result or constant. Rate-table dimensions are auto-resolved from the formula's LOOKUP steps. Medical tariff steps default to <span className="font-mono">bn_medical_reimbursement_limit</span>.
+                  </p>
+                  <ProductFormulaStepMappings
+                    formulaVersionId={
+                      editing.formula_version_id ??
+                      (versions.find(v => v.formula_template_id === editing.formula_template_id && v.is_active)?.id ?? null)
+                    }
+                    value={editing.step_mapping_json ?? null}
+                    onChange={(next) => setEditing({ ...editing, step_mapping_json: next })}
+                    disabled={isReadOnly}
+                  />
+                </div>
                 <div className="md:col-span-2 flex justify-end gap-2">
                   <Button variant="ghost" onClick={() => setEditing(null)} disabled={saving}>Cancel</Button>
                   <Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save</Button>
