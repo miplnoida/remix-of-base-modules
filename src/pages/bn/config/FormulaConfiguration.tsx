@@ -616,6 +616,16 @@ export default function FormulaConfiguration() {
           </AlertDialogContent>
         </AlertDialog>
 
+        <AddFormulaWizard
+          open={wizardOpen}
+          onClose={() => setWizardOpen(false)}
+          existingCodes={(formulas as BnFormulaTemplate[]).map((f) => f.template_code)}
+          onCreated={(_tplId, versionId) => {
+            refresh();
+            setVersionEditorId(versionId);
+          }}
+        />
+
         <FormulaVersionEditor
           open={!!versionEditorId}
           versionId={versionEditorId}
