@@ -63,7 +63,7 @@ export default function ClaimWorklist() {
           <BnStatCard title="Approved" value={stats.approved} icon={CheckCircle2} />
         </div>
 
-        <BNDataGrid<BnClaim>
+        <BNDataGrid
           id="bn.claim-worklist"
           data={claims as BnClaim[]}
           isLoading={isLoading}
