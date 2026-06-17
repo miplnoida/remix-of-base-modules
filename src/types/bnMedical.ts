@@ -73,6 +73,13 @@ export interface BnMedicalExpenseType {
   description?: string | null;
 }
 
+export type MedicalLocationCode =
+  | 'LOCAL_ST_KITTS' | 'NEVIS' | 'CARIBBEAN' | 'INTERNATIONAL' | 'ANY';
+
+export type MedicalReimbursementMethod =
+  | 'FIXED_AMOUNT' | 'PERCENTAGE_UP_TO_CEILING' | 'ACTUAL_UP_TO_CEILING'
+  | 'FULL_REIMBURSEMENT' | 'NOT_COVERED';
+
 export interface BnMedicalReimbursementLimit {
   id?: string;
   procedure_id?: string | null;
@@ -87,6 +94,19 @@ export interface BnMedicalReimbursementLimit {
   effective_to?: string | null;
   is_active?: boolean;
   notes?: string | null;
+  // Extended policy fields (Phase B)
+  location_code?: MedicalLocationCode | null;
+  provider_type_code?: string | null;
+  beneficiary_type?: string | null;
+  reimbursement_method?: MedicalReimbursementMethod | null;
+  fixed_amount?: number | null;
+  ceiling_amount?: number | null;
+  referral_required?: boolean | null;
+  pre_authorization_required?: boolean | null;
+  emergency_allowed?: boolean | null;
+  approval_level?: string | null;
+  procedure_code?: string | null;
+  legal_reference?: string | null;
 }
 
 export interface BnMedicalClaimExpense {

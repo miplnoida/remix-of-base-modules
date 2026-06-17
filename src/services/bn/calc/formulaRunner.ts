@@ -18,7 +18,7 @@
 import { evaluateExpression } from './safeExpressionParser';
 import { lookupRate, type RateTableProvider, type LookupTraceEntry } from './rateTableLookup';
 import {
-  resolveReimbursement,
+  resolveReimbursement as lookupMedicalTariff,
   type MedicalPolicyProvider,
   type MedicalPolicyTrace,
 } from './medicalPolicyResolver';
@@ -44,7 +44,7 @@ export interface ExpressionTraceEntry {
   table_code?: string;
   inputs?: Record<string, unknown>;
   output?: unknown;
-  medical_trace?: MedicalTariffTrace;
+  medical_trace?: MedicalPolicyTrace;
 }
 
 export interface FormulaRunResult {
@@ -52,7 +52,7 @@ export interface FormulaRunResult {
   scope: Record<string, unknown>;
   lookupTrace: LookupTraceEntry[];
   expressionTrace: ExpressionTraceEntry[];
-  medicalTrace: MedicalTariffTrace[];
+  medicalTrace: MedicalPolicyTrace[];
 }
 
 interface StepExpr { kind: 'EXPR'; target?: string; expression: string }
@@ -66,12 +66,12 @@ export async function runFormula(
   scope: Record<string, unknown>,
   rateTableRefs: Record<string, string>,
   provider?: RateTableProvider,
-  medicalProvider?: MedicalTariffProvider,
+  medicalProvider?: MedicalPolicyProvider,
 ): Promise<FormulaRunResult> {
   const workScope: Record<string, unknown> = { ...scope };
   const lookupTrace: LookupTraceEntry[] = [];
   const expressionTrace: ExpressionTraceEntry[] = [];
-  const medicalTrace: MedicalTariffTrace[] = [];
+  const medicalTrace: MedicalPolicyTrace[] = [];
 
   // Resolve any rate-table variables that appear in mappings into callable values
   // by pre-running their lookup if the formula uses them directly via output_variable name.
