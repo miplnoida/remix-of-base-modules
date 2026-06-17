@@ -41,7 +41,7 @@ const STAGES = ['PRIMARY', 'CAP', 'ARREARS', 'PRORATION', 'BENEFICIARY_SPLIT', '
 const ROUNDING_RULES = ['NONE', 'ROUND_2', 'ROUND_0', 'CEIL_2', 'FLOOR_2'] as const;
 
 interface FormulaTemplate { id: string; template_code: string; template_name: string; category: string | null }
-interface FormulaVersion { id: string; formula_template_id: string; formula_code: string; version_no: number; expression_type: string; is_active: boolean }
+interface FormulaVersion { id: string; formula_template_id: string; formula_code: string; version_no: number; expression_type: string; is_active: boolean; governance_status: string }
 interface RateTable { id: string; table_code: string; table_name: string; table_type: string | null; status: string | null }
 interface MedicalTariffTable { id: string; tariff_code: string; tariff_name: string; status: string | null }
 
