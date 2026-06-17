@@ -19,7 +19,18 @@ export interface ReconCheck {
   details?: string[];
 }
 
-const SEEDED_FORMULAS = ['AGE_PENSION_RATE_LOOKUP', 'AGE_GRANT_FORMULA', 'SURVIVOR_SPLIT_FORMULA', 'MEDICAL_REIMBURSEMENT_FORMULA'];
+// Canonical seeded examples that must exist as ACTIVE and be structurally
+// valid — one per major benefit family (Age Pension, Age Grant, Survivor,
+// Medical, Sickness, Maternity).
+const SEEDED_FORMULAS = [
+  'CONTRIBUTION_BASED_PENSION', // Age Pension
+  'AGE_GRANT',                   // Age Grant
+  'SPOUSE_SURVIVOR_AMOUNT',      // Survivor (spouse)
+  'CHILD_SURVIVOR_AMOUNT',       // Survivor (child)
+  'MEDICAL_REIMBURSEMENT',       // Medical
+  'SICKNESS_RATE_V1',            // Sickness
+  'MATERNITY_RATE_V1',           // Maternity
+];
 
 function ok(id: string, label: string, message: string): ReconCheck { return { id, label, status: 'PASS', message }; }
 function warn(id: string, label: string, message: string, details?: string[]): ReconCheck { return { id, label, status: 'WARN', message, details }; }
