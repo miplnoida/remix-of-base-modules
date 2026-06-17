@@ -341,7 +341,12 @@ export function CalculationV2Panel({ productId, productVersionId, isReadOnly }: 
                 </div>
                 <div className="md:col-span-2 flex justify-end gap-2">
                   <Button variant="ghost" onClick={() => setEditing(null)} disabled={saving}>Cancel</Button>
-                  <Button onClick={handleSave} disabled={saving}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save</Button>
+                  <Button variant="outline" onClick={handleValidateBinding} disabled={saving}>
+                    <ShieldCheck className="mr-2 h-4 w-4" />Validate
+                  </Button>
+                  <Button onClick={handleSave} disabled={saving}>
+                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}Save
+                  </Button>
                 </div>
               </CardContent>
             </Card>
