@@ -802,6 +802,7 @@ const BnMyWorkbench = lazy(() => import('@/pages/bn/workbench/MyBenefitsWorkbenc
 const BnEscalationConfig = lazy(() => import('@/pages/bn/config/EscalationConfig'));
 const BnServiceDocTypes = lazy(() => import('@/pages/bn/config/ServiceDocTypes'));
 const BnCountryPackPage = lazy(() => import('@/pages/bn/config/country/CountryPackPage'));
+const BnCountryMaster = lazy(() => import('@/pages/bn/config/country/CountryMaster'));
 const BnCountryIdRules = lazy(() => import('@/pages/bn/config/country/CountryIdRules'));
 const BnCountryAddressModel = lazy(() => import('@/pages/bn/config/country/CountryAddressModel'));
 const BnCountryParticipantTypes = lazy(() => import('@/pages/bn/config/country/CountryParticipantTypes'));
@@ -1891,6 +1892,7 @@ export const AppRoutes = () => {
       <Route path="/bn/workbench" element={<BnFeatureGate flag="bn.config.rules"><BnMyWorkbench /></BnFeatureGate>} />
       <Route path="/bn/config/escalation" element={<BnFeatureGate flag="bn.config.rules"><BnEscalationConfig /></BnFeatureGate>} />
       <Route path="/bn/config/service-doc-types" element={<BnFeatureGate flag="bn.config.rules"><BnServiceDocTypes /></BnFeatureGate>} />
+      <Route path="/bn/config/country-master" element={<BnFeatureGate flag="bn.config.rules"><BnCountryMaster /></BnFeatureGate>} />
       <Route path="/bn/config/country" element={<BnFeatureGate flag="bn.config.rules"><BnCountryPackPage /></BnFeatureGate>} />
       <Route path="/bn/config/country/id-rules" element={<BnFeatureGate flag="bn.config.rules"><BnCountryIdRules /></BnFeatureGate>} />
       <Route path="/bn/config/country/address-model" element={<BnFeatureGate flag="bn.config.rules"><BnCountryAddressModel /></BnFeatureGate>} />

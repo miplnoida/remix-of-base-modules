@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useBnProduct, useCreateBnProduct, useUpdateBnProduct, useBnProductVersions, useCreateBnProductVersion, useCopyBnVersionRules, useCloneBnVersionToDraft } from '@/hooks/bn/useBnProduct';
 import { auditAttemptedActiveMutation } from '@/services/bn/productService';
 import { LiveVersionGuardDialog } from '@/components/bn/config/LiveVersionGuardDialog';
-import { useBnSchemes, useBnBranches } from '@/hooks/bn/useBnConfig';
+import { useBnSchemes, useBnBranches, useBnCountries } from '@/hooks/bn/useBnConfig';
 import { BN_CATEGORY_LABELS, BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProduct, BnProductVersion, BnProductStatus } from '@/types/bn';
 import { EligibilityTabRedesigned as EligibilityRulesTab } from '@/components/bn/config/EligibilityTabRedesigned';
@@ -50,13 +50,15 @@ export default function ProductEditor() {
   const { data: versions = [] } = useBnProductVersions(isNew ? undefined : id);
   const { data: schemes = [] } = useBnSchemes();
   const { data: branches = [] } = useBnBranches();
+  const { data: countries = [] } = useBnCountries();
+  const activeCountries = useMemo(() => (countries as any[]).filter(c => c.is_active), [countries]);
   const createMutation = useCreateBnProduct();
   const updateMutation = useUpdateBnProduct();
   const createVersionMutation = useCreateBnProductVersion();
 
   const [form, setForm] = useState<Partial<BnProduct>>({
     benefit_code: '', benefit_name: '', description: '', category: 'SHORT_TERM',
-    branch: 'GENERAL', payment_type: 'PERIODIC', country_code: 'KN', status: 'DRAFT', sort_order: 0,
+    branch: 'GENERAL', payment_type: 'PERIODIC', country_code: '', status: 'DRAFT', sort_order: 0,
   });
   const [selectedVersionId, setSelectedVersionId] = useState<string | undefined>();
 
@@ -64,10 +66,17 @@ export default function ProductEditor() {
   useEffect(() => {
     setForm({
       benefit_code: '', benefit_name: '', description: '', category: 'SHORT_TERM',
-      branch: 'GENERAL', payment_type: 'PERIODIC', country_code: 'KN', status: 'DRAFT', sort_order: 0,
+      branch: 'GENERAL', payment_type: 'PERIODIC', country_code: '', status: 'DRAFT', sort_order: 0,
     });
     setSelectedVersionId(undefined);
   }, [id]);
+
+  // Pre-select first active country for new products once the master loads.
+  useEffect(() => {
+    if (isNew && !form.country_code && activeCountries.length > 0) {
+      setForm(f => ({ ...f, country_code: activeCountries[0].country_code }));
+    }
+  }, [isNew, activeCountries, form.country_code]);
 
   useEffect(() => {
     if (existingProduct) setForm(existingProduct);
@@ -367,8 +376,15 @@ export default function ProductEditor() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Country Code</Label>
-                <Input value={form.country_code || 'KN'} onChange={e => updateField('country_code', e.target.value.toUpperCase())} maxLength={3} />
+                <Label>Country</Label>
+                <Select value={form.country_code || ''} onValueChange={v => updateField('country_code', v)}>
+                  <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
+                  <SelectContent>
+                    {activeCountries.map((c: any) => (
+                      <SelectItem key={c.country_code} value={c.country_code}>{c.country_name} ({c.country_code})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
