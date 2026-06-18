@@ -24,11 +24,10 @@ export default function ProductCatalog() {
   const navigate = useNavigate();
   const { data: products = [], isLoading, refetch } = useBnProducts();
   const { data: countries = [] } = useBnCountries();
-  const { activeCountryCode } = useBnCountry();
   const validCodes = useMemo(() => new Set((countries as any[]).map(c => c.country_code)), [countries]);
 
-  // 'ALL' shows everything; otherwise restrict to the country pack selection.
-  const [filterCode, setFilterCode] = useState<string>(activeCountryCode || 'ALL');
+  // Default the catalog filter to SKN (St. Kitts and Nevis); 'ALL' shows everything.
+  const [filterCode, setFilterCode] = useState<string>('SKN');
 
   const filteredProducts = useMemo(() => {
     if (filterCode === 'ALL') return products;
