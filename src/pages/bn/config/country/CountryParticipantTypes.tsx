@@ -96,8 +96,18 @@ const Content: React.FC = () => {
         <DialogContent>
           <DialogHeader><DialogTitle>{form.id ? 'Edit' : 'Add'} Participant Type</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>Type Code</Label><Input value={form.type_code || ''} onChange={e => setForm(f => ({ ...f, type_code: e.target.value.toUpperCase() }))} placeholder="SPOUSE" /></div>
-            <div><Label>Type Name</Label><Input value={form.type_name || ''} onChange={e => setForm(f => ({ ...f, type_name: e.target.value }))} placeholder="Spouse" /></div>
+            <div>
+              <Label>Participant Type *</Label>
+              <Select value={form.type_code || ''} onValueChange={(v) => setForm((f) => ({ ...f, type_code: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent>
+                  {participantOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Display Name</Label><Input value={form.type_name || ''} onChange={e => setForm(f => ({ ...f, type_name: e.target.value }))} placeholder="Auto-filled from participant type" /></div>
             <div><Label>Role</Label>
               <Select value={form.participant_role || 'CLAIMANT'} onValueChange={v => setForm(f => ({ ...f, participant_role: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
