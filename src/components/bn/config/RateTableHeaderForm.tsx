@@ -304,7 +304,7 @@ export function RateTableHeaderForm({ open, onClose, rateTableId, onSaved }: Pro
                     <SelectItem key={t.value} value={t.value}>
                       <div className="flex flex-col">
                         <span>{t.label}</span>
-                        {t.hint && <span className="text-xs text-muted-foreground">{t.hint}</span>}
+                        {t.description && <span className="text-xs text-muted-foreground">{t.description}</span>}
                       </div>
                     </SelectItem>
                   ))}
