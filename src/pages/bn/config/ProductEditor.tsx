@@ -52,7 +52,7 @@ export default function ProductEditor() {
   const { data: branches = [] } = useBnBranches();
   const { data: countries = [] } = useBnCountries();
   const activeCountries = useMemo(() => (countries as any[]).filter(c => c.is_active), [countries]);
-  const { activeCountryCode } = useBnCountry();
+  
   const createMutation = useCreateBnProduct();
   const updateMutation = useUpdateBnProduct();
   const createVersionMutation = useCreateBnProductVersion();
