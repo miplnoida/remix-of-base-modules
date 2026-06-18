@@ -68,6 +68,24 @@ export const fetchCountryParticipantTypes = async (countryCode: string): Promise
   return data ?? [];
 };
 
+/** Active-only participant types — used by Product Catalog & Online Portal pickers. */
+export const fetchActiveCountryParticipantTypes = async (countryCode: string): Promise<BnCountryParticipantType[]> => {
+  const { data, error } = await db.from('bn_country_participant_type')
+    .select('*')
+    .eq('country_code', countryCode)
+    .eq('lifecycle_status', 'ACTIVE')
+    .order('sort_order');
+  if (error) throw error;
+  return data ?? [];
+};
+
+export const fetchParticipantTypeUsage = async (countryCode: string) => {
+  const { data, error } = await db.from('v_bn_participant_type_usage')
+    .select('*').eq('country_code', countryCode);
+  if (error) throw error;
+  return (data ?? []) as Array<{ country_code: string; type_code: string; product_version_count: number; active_product_count: number; historical_claim_count: number }>;
+};
+
 export const upsertCountryParticipantType = async (pt: Partial<BnCountryParticipantType>): Promise<BnCountryParticipantType> => {
   const { data, error } = await db.from('bn_country_participant_type').upsert(pt).select().single();
   if (error) throw error;
@@ -78,6 +96,30 @@ export const deleteCountryParticipantType = async (id: string): Promise<void> =>
   const { error } = await db.from('bn_country_participant_type').delete().eq('id', id);
   if (error) throw error;
 };
+
+export const retireCountryParticipantType = async (id: string, reason: string, userCode?: string): Promise<void> => {
+  const { error } = await db.from('bn_country_participant_type')
+    .update({ lifecycle_status: 'RETIRED', is_active: false, retired_at: new Date().toISOString(), retired_by: userCode ?? null, retired_reason: reason })
+    .eq('id', id);
+  if (error) throw error;
+};
+
+export const reactivateCountryParticipantType = async (id: string): Promise<void> => {
+  const { error } = await db.from('bn_country_participant_type')
+    .update({ lifecycle_status: 'ACTIVE', is_active: true, retired_at: null, retired_by: null, retired_reason: null })
+    .eq('id', id);
+  if (error) throw error;
+};
+
+export const setParticipantTypeLifecycle = async (id: string, status: 'DRAFT' | 'ACTIVE' | 'RETIRED'): Promise<void> => {
+  const patch: any = { lifecycle_status: status };
+  if (status === 'ACTIVE') { patch.is_active = true; patch.retired_at = null; patch.retired_by = null; patch.retired_reason = null; }
+  if (status === 'RETIRED') { patch.is_active = false; patch.retired_at = new Date().toISOString(); }
+  if (status === 'DRAFT') { patch.is_active = false; }
+  const { error } = await db.from('bn_country_participant_type').update(patch).eq('id', id);
+  if (error) throw error;
+};
+
 
 // ---- Payment Config ----
 export const fetchCountryPaymentConfig = async (countryCode: string): Promise<BnCountryPaymentConfig[]> => {

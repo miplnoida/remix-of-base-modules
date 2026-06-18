@@ -15,8 +15,9 @@ import {
   useBnParticipantConfig,
   useUpsertBnParticipantConfig,
 } from '@/hooks/bn/useBnParticipantConfig';
-import { useReferenceValues } from '@/hooks/bn/useReferenceData';
-import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { fetchActiveCountryParticipantTypes } from '@/services/bn/countryPackService';
 import type { BnProductParticipantConfigInput } from '@/types/bnParticipant';
 
 interface Props {
@@ -76,8 +77,27 @@ export default function PublicFormRulesTab({ versionId, isReadOnly }: Props) {
     return <Card><CardContent className="p-6 text-sm text-muted-foreground">Loading participant rules…</CardContent></Card>;
   }
 
-  const participantTypes = useReferenceValues(BN_REF_GROUPS.PARTICIPANT_TYPE, []);
-  const refMissing = participantTypes.options.length === 0;
+  // Resolve country for this product version, then load ACTIVE country participant types
+  const { data: versionRow } = useQuery({
+    queryKey: ['bn-pv-country', versionId],
+    enabled: !!versionId,
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from('bn_product_version')
+        .select('id, product_id, bn_product:product_id(country_code)')
+        .eq('id', versionId).maybeSingle();
+      return data as any;
+    },
+  });
+  const countryCode = versionRow?.bn_product?.country_code as string | undefined;
+  const { data: activeTypes = [] } = useQuery({
+    queryKey: ['bn-active-cpt', countryCode],
+    enabled: !!countryCode,
+    queryFn: () => fetchActiveCountryParticipantTypes(countryCode!),
+    staleTime: 5 * 60_000,
+  });
+  const participantOptions = activeTypes.map(t => ({ value: t.type_code, label: t.type_name }));
+  const refMissing = participantOptions.length === 0;
   const toggleArray = (list: string[], role: string): string[] =>
     list.includes(role) ? list.filter((r) => r !== role) : [...list, role];
 
@@ -165,9 +185,9 @@ export default function PublicFormRulesTab({ versionId, isReadOnly }: Props) {
           {refMissing && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Reference data missing</AlertTitle>
+              <AlertTitle>No active participant types for this country</AlertTitle>
               <AlertDescription>
-                Participant types are not configured. Seed BN_PARTICIPANT_TYPE in Reference Data before editing participant rules.
+                Configure active participant types under Country Config → Participant Types before editing product participant rules.
               </AlertDescription>
             </Alert>
           )}
@@ -175,7 +195,7 @@ export default function PublicFormRulesTab({ versionId, isReadOnly }: Props) {
           <div>
             <Label className="mb-2 block text-sm font-medium">Allowed applicant kinds (Step 0 options)</Label>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-              {participantTypes.options.map((opt) => (
+              {participantOptions.map((opt) => (
                 <label key={opt.value} className="flex items-center gap-2 rounded border p-2 text-sm">
                   <Checkbox
                     checked={draft.allowed_applicant_kinds.includes(opt.value)}
@@ -191,7 +211,7 @@ export default function PublicFormRulesTab({ versionId, isReadOnly }: Props) {
           <div>
             <Label className="mb-2 block text-sm font-medium">Required participant roles</Label>
             <div className="flex flex-wrap gap-2">
-              {participantTypes.options.map((opt) => {
+              {participantOptions.map((opt) => {
                 const active = draft.required_roles.includes(opt.value);
                 return (
                   <Badge
@@ -205,7 +225,7 @@ export default function PublicFormRulesTab({ versionId, isReadOnly }: Props) {
                 );
               })}
               {draft.required_roles
-                .filter((r) => !participantTypes.options.some((o) => o.value === r))
+                .filter((r) => !participantOptions.some((o) => o.value === r))
                 .map((r) => (
                   <Badge key={`retired-req-${r}`} variant="outline" className="border-amber-600 text-amber-600">
                     {r} (retired)
@@ -217,7 +237,7 @@ export default function PublicFormRulesTab({ versionId, isReadOnly }: Props) {
           <div>
             <Label className="mb-2 block text-sm font-medium">Optional participant roles</Label>
             <div className="flex flex-wrap gap-2">
-              {participantTypes.options.map((opt) => {
+              {participantOptions.map((opt) => {
                 const active = draft.optional_roles.includes(opt.value);
                 return (
                   <Badge
@@ -231,7 +251,7 @@ export default function PublicFormRulesTab({ versionId, isReadOnly }: Props) {
                 );
               })}
               {draft.optional_roles
-                .filter((r) => !participantTypes.options.some((o) => o.value === r))
+                .filter((r) => !participantOptions.some((o) => o.value === r))
                 .map((r) => (
                   <Badge key={`retired-opt-${r}`} variant="outline" className="border-amber-600 text-amber-600">
                     {r} (retired)

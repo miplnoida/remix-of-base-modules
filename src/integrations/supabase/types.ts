@@ -7792,6 +7792,7 @@ export type Database = {
           entered_by: string | null
           id: string
           is_active: boolean
+          lifecycle_status: string
           max_age: number | null
           min_age: number | null
           online_access_allowed: boolean
@@ -7806,6 +7807,9 @@ export type Database = {
           requires_relationship_or_authority_proof: boolean
           requires_relationship_proof: boolean
           requires_ssn_link: boolean
+          retired_at: string | null
+          retired_by: string | null
+          retired_reason: string | null
           role_category: string | null
           sort_order: number
           suggested_document_category: string | null
@@ -7827,6 +7831,7 @@ export type Database = {
           entered_by?: string | null
           id?: string
           is_active?: boolean
+          lifecycle_status?: string
           max_age?: number | null
           min_age?: number | null
           online_access_allowed?: boolean
@@ -7841,6 +7846,9 @@ export type Database = {
           requires_relationship_or_authority_proof?: boolean
           requires_relationship_proof?: boolean
           requires_ssn_link?: boolean
+          retired_at?: string | null
+          retired_by?: string | null
+          retired_reason?: string | null
           role_category?: string | null
           sort_order?: number
           suggested_document_category?: string | null
@@ -7862,6 +7870,7 @@ export type Database = {
           entered_by?: string | null
           id?: string
           is_active?: boolean
+          lifecycle_status?: string
           max_age?: number | null
           min_age?: number | null
           online_access_allowed?: boolean
@@ -7876,6 +7885,9 @@ export type Database = {
           requires_relationship_or_authority_proof?: boolean
           requires_relationship_proof?: boolean
           requires_ssn_link?: boolean
+          retired_at?: string | null
+          retired_by?: string | null
+          retired_reason?: string | null
           role_category?: string | null
           sort_order?: number
           suggested_document_category?: string | null
@@ -60590,6 +60602,16 @@ export type Database = {
           rate: number | null
           sector: string | null
           total: number | null
+        }
+        Relationships: []
+      }
+      v_bn_participant_type_usage: {
+        Row: {
+          active_product_count: number | null
+          country_code: string | null
+          historical_claim_count: number | null
+          product_version_count: number | null
+          type_code: string | null
         }
         Relationships: []
       }

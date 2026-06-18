@@ -944,8 +944,21 @@ export interface BnCountryParticipantType {
   allowed_products: string[] | null;
   sort_order: number;
   is_active: boolean;
+  // Lifecycle
+  lifecycle_status: 'DRAFT' | 'ACTIVE' | 'RETIRED';
+  retired_at: string | null;
+  retired_by: string | null;
+  retired_reason: string | null;
   entered_by: string | null;
   entered_at: string;
+}
+
+export interface BnParticipantTypeUsage {
+  country_code: string;
+  type_code: string;
+  product_version_count: number;
+  active_product_count: number;
+  historical_claim_count: number;
 }
 
 export interface BnCountryPaymentConfig {

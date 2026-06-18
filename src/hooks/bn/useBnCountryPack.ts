@@ -42,6 +42,12 @@ export const useDeleteCountryAddressField = () => {
 export const useBnCountryParticipantTypes = (countryCode: string | undefined) =>
   useQuery({ queryKey: ['bn', 'country-participants', countryCode], queryFn: () => cps.fetchCountryParticipantTypes(countryCode!), enabled: !!countryCode });
 
+export const useBnActiveCountryParticipantTypes = (countryCode: string | undefined) =>
+  useQuery({ queryKey: ['bn', 'country-participants-active', countryCode], queryFn: () => cps.fetchActiveCountryParticipantTypes(countryCode!), enabled: !!countryCode, staleTime: 5 * 60_000 });
+
+export const useBnParticipantTypeUsage = (countryCode: string | undefined) =>
+  useQuery({ queryKey: ['bn', 'country-participants-usage', countryCode], queryFn: () => cps.fetchParticipantTypeUsage(countryCode!), enabled: !!countryCode, staleTime: 60_000 });
+
 export const useUpsertCountryParticipantType = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: cps.upsertCountryParticipantType, onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'country-participants'] }) });
@@ -50,6 +56,30 @@ export const useUpsertCountryParticipantType = () => {
 export const useDeleteCountryParticipantType = () => {
   const qc = useQueryClient();
   return useMutation({ mutationFn: cps.deleteCountryParticipantType, onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'country-participants'] }) });
+};
+
+export const useRetireCountryParticipantType = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason, userCode }: { id: string; reason: string; userCode?: string }) => cps.retireCountryParticipantType(id, reason, userCode),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'country-participants'] }),
+  });
+};
+
+export const useReactivateCountryParticipantType = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => cps.reactivateCountryParticipantType(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'country-participants'] }),
+  });
+};
+
+export const useSetParticipantTypeLifecycle = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'DRAFT' | 'ACTIVE' | 'RETIRED' }) => cps.setParticipantTypeLifecycle(id, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['bn', 'country-participants'] }),
+  });
 };
 
 // Payment Config
