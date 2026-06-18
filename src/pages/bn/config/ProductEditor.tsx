@@ -394,15 +394,18 @@ export default function ProductEditor() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Country</Label>
+                <Label>Country *</Label>
                 <Select value={form.country_code || ''} onValueChange={v => updateField('country_code', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
+                  <SelectTrigger className={!form.country_code ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
                   <SelectContent>
                     {activeCountries.map((c: any) => (
                       <SelectItem key={c.country_code} value={c.country_code}>{c.country_name} ({c.country_code})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">Determines the Country Pack (legal refs, currency, payment config) applied to this product.</p>
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
