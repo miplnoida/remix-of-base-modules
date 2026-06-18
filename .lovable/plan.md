@@ -1,116 +1,68 @@
-# Online Insured Person — Knowledge Base Document
+## Phase 2 — Country Pack Cross-Module Rollout
 
-## Goal
-Produce a single Markdown knowledge-base document that explains the **Online Insured Person (Online IP) module** exactly as it works today in the Lovable codebase, with enough fidelity that Claude (or a new dev) can rebuild the same logic in a target stack without reading the source.
+This is a large, cross-cutting change touching ~10 Benefits config screens, the template engine, validation, and the DB. Delivering it as one mega-commit will be unreviewable and risky. I propose a staged plan, each stage independently shippable with TypeScript passing.
 
-## Deliverable
-- **One file:** `docs/online-insured-person/ONLINE_INSURED_PERSON_KB.md`
-- **Format:** Plain Markdown, structured headings, bullet lists, tables, ASCII flow diagrams
-- **No code changes** to the application — documentation only
+---
 
-## Source-of-truth files the document will be derived from
-- Listing screen: `src/pages/online-applications/InsuredPersonApplications.tsx`
-- Detail screen: `src/pages/online-applications/ApplicationDetailPage.tsx`
-- Listing hook: `src/hooks/useOnlineApplications.ts` (proxy fetch + exclusion of approved/converted refs)
-- Workflow auto-binding: `src/hooks/useOnlineApplicationWorkflowBinding.ts` (instance + first task creation)
-- Workflow status lookup: `src/hooks/useApplicationWorkflowStatus.ts`
-- Conversion to IP master: `src/hooks/useConvertApplicationToIP.ts` (RPC `convert_application_to_ip`)
-- Pre-conversion validation: `src/hooks/useValidateApplicationForConversion.ts`
-- Documents: `src/hooks/useApplicationDocuments.ts`
-- Detail loader: `src/hooks/useExternalApplicationDetail.ts`
-- Routes: `src/components/routing/AppRoutes.tsx` lines 2244–2245
-- Workflow definition row: `workflow_definitions.id = cc5f077d-b7f7-4b2c-a354-4babcfee5b95` ("Online IP Registration Review Workflow")
-- Workflow tables: `workflow_instances`, `workflow_tasks`, `workflow_steps`, `workflow_logs`, `workflow_step_notifications`
-- Master tables: `ip_master`, `ip_depend`
-- Edge functions: `proxy-api`, `workflow-process-notifications`
+### Stage 1 — Foundation (token engine + shared selectors)
 
-## Document Outline (sections to write)
+**New shared building blocks** other screens will adopt in later stages.
 
-1. **Module Overview**
-   - Purpose (review online IP registration applications submitted via the external public portal before they become real IP records)
-   - Primary actors: Registration officers, supervisors, approvers
-   - Problem solved: bridge between external submission API and internal `ip_master` records, with full workflow + audit
+- `src/lib/bn/templateTokens.ts`
+  - `TOKEN_REGISTRY` grouped by `Country | LegalReference | Product | Rule | Decision | Claim | Person | Payment`
+  - `resolveTokens(template, context)` → replaces `{{group.field}}`, returns `{ output, missing[], unresolved[] }`
+  - Country tokens read from `bn_country` (+ joined office/contact fields already in schema)
+  - Legal tokens read from `bn_legal_reference` (short, full, act_name, chapter, section, subsection, regulation)
+  - Product/Rule/Decision `.legal_reference` resolve by following the FK on the entity
+- `src/hooks/bn/useTemplateTokens.ts` — list registry, resolve preview
+- `src/components/bn/selectors/CountrySelector.tsx` — already exists in `bn/country/`; re-export from `selectors/` so the rollout has one canonical import path. Default to KN only when no value, never hardcode.
+- `src/components/bn/selectors/LegalReferenceSelector.tsx` — searchable, filters by `country_code`, `status='ACTIVE'`, optional `productTags`/`ruleTags`
+- `src/hooks/bn/useLegalReferences.ts` — extend with `{ countryCode, activeOnly, tags }` filters
 
-2. **System Context & Data Sources**
-   - External API (via `proxy-api` edge function, module `insured-person-applications`)
-   - Local Supabase tables used (workflow_*, ip_master, ip_depend, ip_application_documents, dms_transfer_queue)
-   - Why listing data is "live-fetched" not cached
-   - Exclusion rule: rows with an `Approved` workflow_instance for `source_module = insured-person-applications` are hidden from list
+### Stage 2 — Communication Template editor
 
-3. **End-to-End Workflow (Application Lifecycle)**
-   - Step diagram (ASCII): External submission → listing fetch → auto workflow binding → review → approve/reject → conversion to ip_master → cleanup
-   - Auto-binding mechanics from `useOnlineApplicationWorkflowBinding`:
-     - Resolves first step of workflow `cc5f077d-...`
-     - Inserts one `workflow_instances` row keyed by `(source_module, source_record_id=referenceNumber)`
-     - Inserts first `workflow_tasks` row with assignee resolved via `approver_type` (role/designation/user/reporting_manager)
-     - Logs `workflow_started` in `workflow_logs`
-     - Invokes `workflow-process-notifications` with `trigger = step_entry`
-   - Movement between steps via Approval Console / detail page actions
-   - Final approval triggers conversion RPC
+- `BenefitCommunicationTemplates.tsx`: add `TokenPicker` (grouped tree, click to insert at caret), live `TemplatePreview` panel with sample claim/product/rule context selector, and "Missing tokens" warning badge driven by `resolveTokens`.
+- New components under `src/components/bn/templates/`: `TokenPicker.tsx`, `TemplatePreview.tsx`, `SampleContextPicker.tsx`.
 
-4. **Application Statuses**
-   - Two layers: **External API status** (Pending, Submitted, etc.) and **Workflow status** (`InProgress`, `Approved`, `Rejected`, `Completed`, `Closed`)
-   - Effective status rule (from list page): workflow status overrides API status if present
-   - Status filter buckets in UI: `Pending` (excludes closed/completed/approved/rejected), `Closed` (closed/completed/approved), `Rejected`
-   - Table of statuses, source, meaning, transitions
+### Stage 3 — Selector rollout across config screens
 
-5. **User Roles & Permissions**
-   - Roles wired via `workflow_steps.approver_type / approver_role_ids / approver_designation_ids / approver_user_ids`
-   - Permission gate on screen: `useAuth().hasPermission`
-   - What each role can do: view list, view detail, take workflow action, approve, reject, convert
+Replace free-text country/legal fields with the Stage 1 selectors in:
 
-6. **Screens & Features**
-   - **/online-applications/insured-person — Listing**
-     - Filters: status (Pending/Closed/Rejected), name, reference number
-     - Columns, sorting via `useTableSort`, pagination via `useTablePagination`
-     - Live refresh, exclusion of approved-converted rows, workflow status badge
-   - **/online-applications/insured-person/:referenceNumber — Detail**
-     - Tabs/sections: Personal, Contact, Family/Dependants, Documents, Workflow History, Actions
-     - Buttons: Approve, Reject, Convert to IP, View Document
-     - Field validations, required documents (from `useApplicationDocuments` + `useValidateApplicationForConversion`)
+| Screen | File |
+|---|---|
+| Product Catalog / Editor | `ProductCatalog.tsx`, `ProductEditor.tsx` |
+| Eligibility Rule Catalogue | `RuleCatalogue.tsx`, `RuleConfiguration.tsx` |
+| Formula Library | `FormulaConfiguration.tsx` |
+| Rate Tables | `RateTableEditor.tsx` |
+| Matrix Tables | `TransitionMatrix.tsx` |
+| Medical Tariff / Reimbursement | `src/pages/bn/config/medical/*` |
+| Document Setup | `DocumentSetup.tsx` |
+| Payment Config | `country/CountryPaymentConfig.tsx`, payment editors |
+| Approval / Override Policies | `src/pages/bn/config/approval/*` |
 
-7. **Business Rules**
-   - Reference number is the immutable key (`referenceNumber` or fallback `applicationId`)
-   - Duplicate guard: only one workflow_instance per `(source_module, source_record_id)`
-   - Conversion guards: validation hook must return ok before `convert_application_to_ip` RPC is invoked
-   - Required documents per type (from registry)
-   - SLA: `workflow_steps.sla_hours` (default 24h fallback) drives `due_at`
-   - Notifications fired by configurable engine (`workflow_step_notifications`)
+Each screen: country → `CountrySelector`, legal ref → `LegalReferenceSelector(countryCode=row.country_code)`. No schema changes — these columns already exist; we are only swapping the input control.
 
-8. **Data Flow & Field Mapping**
-   - External JSON → `ExternalApplicationListItem` / `ExternalApplicationDetail` (via `mapListItemFromApi`)
-   - Detail → RPC `convert_application_to_ip` parameters (table from `useConvertApplicationToIP.buildRpcParams`: phone digit-stripping, Y/N coercion, country-code truncation, dependant array shape)
-   - On conversion: `ip_master` row created, dependants inserted into `ip_depend`, documents pushed to DMS via `dms_transfer_queue`
-   - Approval → `workflow_instances.status = Approved` → listing excludes the row on next fetch
+### Stage 4 — Config validation
 
-9. **Edge Cases**
-   - Missing reference number → skipped from binding, logged
-   - Workflow definition inactive / missing steps → binding aborts and logs
-   - Conversion RPC failure → toast + retained workflow instance for retry
-   - Duplicate submission of the same reference → idempotent insert via existing-instance check
-   - Phone/date/country values out of spec → coerced via helpers (`digitsOnly`, `safeDate`, `countryCode`, `toYN`)
-   - Approver type `reporting_manager` with no manager → unassigned task, surfaced for manual reassignment
-   - Notifications failure → caught, non-blocking
+Extend `BenefitConfigurationValidation.tsx` + `src/services/bn/configValidationService.ts` (new) with checks:
 
-10. **Workflow Instance Creation (Detailed)**
-    - Exact insert payload for `workflow_instances`
-    - Exact insert payload for `workflow_tasks` per approver_type branch
-    - `workflow_logs` entry shape
-    - Edge function `workflow-process-notifications` invocation contract
+1. Active product → `country_code` exists in `bn_country` and country is active
+2. Active product/rule/formula/table → `legal_reference_id` (when required) → `bn_legal_reference.status='ACTIVE'`
+3. All template tokens in `bn_*_template.body` resolve against the registry
+4. No active config references a `SUPERSEDED`/`REPEALED` legal ref unless `legal_ref_override_ack=true`
 
-11. **Claude Migration Notes**
-    - Assumptions (external API contract, presence of workflow `cc5f077d-...`, RPC `convert_application_to_ip`)
-    - Dependencies (Supabase tables, edge functions, role/designation registry)
-    - UI/UX behaviour to preserve: live refresh, status badge precedence, exclusion-on-approval, default `Pending` filter, pagination defaults (10), sort by `submittedAt desc`
-    - Step-by-step rebuild recipe mirroring the auto-binding hook
-    - Pitfalls (column length limits, idempotency, notification trigger names)
+Surface as a Validation panel section "Country & Legal" with severities Error/Warning and a fix-link to the offending row.
 
-12. **Appendix**
-    - Route table
-    - Key table column inventory (workflow_instances, workflow_tasks, ip_master fields used)
-    - Glossary
+### Stage 5 — Acceptance check
 
-## Out of scope
-- No changes to code, schema, RPCs, or workflow definitions
-- Employer and Doctor online application modules (mentioned only briefly for context)
-- Public-portal submission side (covered separately)
+- Generate a sample letter end-to-end and confirm legal refs print
+- Confirm grep shows no remaining free-text country/legal `<Input>` in the listed screens
+- `tsc` passes
+
+---
+
+### Recommended delivery now
+
+Given the size, I will **implement Stage 1 + Stage 2 in this turn** (foundation + template editor — the highest-leverage pieces that unlock everything else and are testable end-to-end), then ask for go-ahead on Stages 3–5 which are largely mechanical screen-by-screen swaps.
+
+Confirm and I'll proceed, or tell me to do all stages in one go (slower, larger diff) or a different split.
