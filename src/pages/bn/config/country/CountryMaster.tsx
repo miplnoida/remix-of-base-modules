@@ -73,11 +73,13 @@ const CountryMasterInner: React.FC = () => {
     if (!form.country_code.trim() || !form.country_name.trim()) {
       toast.error('Country must be selected'); return;
     }
-    if (!findCountry(form.country_code)) {
-      toast.error('Selected country must exist in Country Master'); return;
-    }
-    if (isNew && countries.some(c => c.country_code === form.country_code)) {
-      toast.error(`Country ${form.country_code} already exists`); return;
+    if (isNew) {
+      if (!findCountry(form.country_code)) {
+        toast.error('Selected country must exist in Country Master'); return;
+      }
+      if (countries.some(c => c.country_code === form.country_code)) {
+        toast.error(`Country ${form.country_code} already exists`); return;
+      }
     }
     // 2) Currency
     if (!form.currency_code || !findCurrency(form.currency_code)) {
