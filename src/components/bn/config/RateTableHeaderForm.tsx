@@ -1,35 +1,70 @@
 /**
  * RateTableHeaderForm — create/edit dialog for a bn_rate_table header + its dimensions.
- * Used from CalculationSetup "New table" button. Saves header + dimensions atomically
- * (header first, then dims). On success calls onSaved with the new table id.
+ *
+ * Improvements over v1:
+ *  - Country pulled from Country Pack registry (default SKN), not free text.
+ *  - Table Type / Lookup Mode use business labels.
+ *  - Status is read-only on the form; lifecycle actions (Save Draft / Submit / Activate / Retire)
+ *    are exposed as explicit buttons.
+ *  - Dimensions configured via DimensionSourcePicker — keys/labels/types/match-types auto-filled
+ *    from Fact, Derived Fact, Product Parameter, or Field registries.
+ *  - Match Type dropdown restricted to combinations valid for the chosen dimension type.
+ *  - Responsive modal via BNModalShell (sticky header/footer, internal scroll, max-h 85vh).
+ *  - Pre-save validation: blank keys, duplicate keys, invalid country, missing effective date
+ *    when moving to ACTIVE.
  */
-import { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { useEffect, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Loader2, Save } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Trash2, Loader2, Save, Send, CheckCircle2, Archive, AlertTriangle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useSupabaseAuth } from '@/contexts/SupabaseAuthContext';
 import { requireUserCode } from '@/lib/bn/requireUserCode';
 import { clearRateTableCache } from '@/services/bn/calc/rateTableLookup';
+import { BNModalShell } from '@/components/bn/shared/BNModalShell';
+import { useBnCountries } from '@/hooks/bn/useBnConfig';
+import { DimensionSourcePicker } from './DimensionSourcePicker';
+import {
+  DIMENSION_TYPES, matchTypesFor, type DimensionType, type MatchType, type DimensionSourceKind,
+} from '@/services/bn/rateTableDimensionSources';
 
 const db = supabase as any;
 
-const TABLE_TYPES = ['TIER', 'RATE_TABLE', 'MATRIX', 'CAP_TABLE', 'SHARE_TABLE', 'CONDITION_TABLE'] as const;
-const MATCH_TYPES = ['RANGE', 'EXACT', 'IN'] as const;
-const LOOKUP_MODES = ['SINGLE', 'COMPOSITE'] as const;
+const TABLE_TYPES: { value: string; label: string; hint?: string }[] = [
+  { value: 'TIER', label: 'Tier Table', hint: 'Stepped tiers (e.g. age bands)' },
+  { value: 'RATE_TABLE', label: 'Rate Table', hint: 'Single rate per row' },
+  { value: 'MATRIX', label: 'Matrix Table', hint: 'Multi-dimension cross lookup' },
+  { value: 'CAP_TABLE', label: 'Cap Table', hint: 'Min/max limits' },
+  { value: 'SHARE_TABLE', label: 'Share Table', hint: 'Beneficiary % shares' },
+  { value: 'CONDITION_TABLE', label: 'Condition Table', hint: 'Flag / boolean lookup' },
+];
+
+const LOOKUP_MODES: { value: string; label: string }[] = [
+  { value: 'SINGLE', label: 'Single dimension lookup' },
+  { value: 'COMPOSITE', label: 'Multi-dimension / matrix lookup' },
+];
+
+const STATUS_COLORS: Record<string, string> = {
+  DRAFT: 'bg-muted text-muted-foreground',
+  REVIEW: 'bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200',
+  ACTIVE: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/30 dark:text-emerald-200',
+  RETIRED: 'bg-slate-200 text-slate-700 dark:bg-slate-700/40 dark:text-slate-300',
+};
 
 interface DimDraft {
   id?: string;
   dimension_key: string;
   dimension_label: string;
-  dimension_type: string;
-  match_type: 'RANGE' | 'EXACT' | 'IN';
+  dimension_type: DimensionType;
+  match_type: MatchType;
   sequence_no: number;
+  source_kind?: DimensionSourceKind;
   _dirty?: boolean;
   _new?: boolean;
 }
@@ -43,20 +78,36 @@ interface Props {
 
 export function RateTableHeaderForm({ open, onClose, rateTableId, onSaved }: Props) {
   const { profile } = useSupabaseAuth();
+  const { data: countries = [] } = useBnCountries();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
   const [header, setHeader] = useState({
     table_code: '', table_name: '', table_type: 'TIER' as string,
-    lookup_mode: 'SINGLE' as string, country_code: 'KN', version_no: 1,
+    lookup_mode: 'SINGLE' as string, country_code: 'SKN', version_no: 1,
     status: 'DRAFT', description: '', effective_from: '',
   });
   const [dims, setDims] = useState<DimDraft[]>([]);
 
+  // Default country to SKN if available, else the first active country.
+  useEffect(() => {
+    if (!countries.length) return;
+    const has = countries.some((c: any) => c.country_code === header.country_code);
+    if (!has) {
+      const skn = countries.find((c: any) => c.country_code === 'SKN' && c.is_active);
+      const first = countries.find((c: any) => c.is_active);
+      setHeader((h) => ({ ...h, country_code: (skn ?? first)?.country_code ?? h.country_code }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countries.length]);
+
   useEffect(() => {
     if (!open) return;
     if (!rateTableId) {
-      setHeader({ table_code: '', table_name: '', table_type: 'TIER', lookup_mode: 'SINGLE',
-        country_code: 'KN', version_no: 1, status: 'DRAFT', description: '', effective_from: '' });
+      setHeader({
+        table_code: '', table_name: '', table_type: 'TIER', lookup_mode: 'SINGLE',
+        country_code: 'SKN', version_no: 1, status: 'DRAFT', description: '', effective_from: '',
+      });
       setDims([]);
       return;
     }
@@ -73,7 +124,10 @@ export function RateTableHeaderForm({ open, onClose, rateTableId, onSaved }: Pro
         lookup_mode: h.data.lookup_mode, country_code: h.data.country_code, version_no: h.data.version_no,
         status: h.data.status, description: h.data.description ?? '', effective_from: h.data.effective_from ?? '',
       });
-      setDims((d.data ?? []) as DimDraft[]);
+      setDims(((d.data ?? []) as any[]).map((x) => ({
+        ...x,
+        dimension_type: (x.dimension_type ?? 'NUMBER') as DimensionType,
+      })));
       setLoading(false);
     })();
     return () => { alive = false; };
@@ -86,7 +140,16 @@ export function RateTableHeaderForm({ open, onClose, rateTableId, onSaved }: Pro
   }]);
 
   const updateDim = (idx: number, patch: Partial<DimDraft>) =>
-    setDims((arr) => arr.map((d, i) => i === idx ? { ...d, ...patch, _dirty: true } : d));
+    setDims((arr) => arr.map((d, i) => {
+      if (i !== idx) return d;
+      const next = { ...d, ...patch, _dirty: true };
+      // if dimension_type changed and match_type no longer allowed → reset to first allowed
+      if (patch.dimension_type) {
+        const allowed = matchTypesFor(patch.dimension_type);
+        if (!allowed.includes(next.match_type)) next.match_type = allowed[0];
+      }
+      return next;
+    }));
 
   const removeDim = async (idx: number) => {
     const d = dims[idx];
@@ -97,18 +160,39 @@ export function RateTableHeaderForm({ open, onClose, rateTableId, onSaved }: Pro
     setDims((arr) => arr.filter((_, i) => i !== idx));
   };
 
-  const save = async () => {
+  const validationErrors = useMemo(() => {
+    const errs: string[] = [];
+    if (!header.table_code.trim()) errs.push('Code is required');
+    if (!header.table_name.trim()) errs.push('Name is required');
+    if (!header.country_code || !countries.some((c: any) => c.country_code === header.country_code)) {
+      errs.push('Pick a valid country pack');
+    }
+    const keys = new Set<string>();
+    for (const d of dims) {
+      if (!d.dimension_key.trim()) { errs.push(`Dimension #${d.sequence_no} has no field`); continue; }
+      if (keys.has(d.dimension_key)) errs.push(`Duplicate dimension "${d.dimension_key}"`);
+      keys.add(d.dimension_key);
+    }
+    return errs;
+  }, [header, dims, countries]);
+
+  const persist = async (nextStatus: string) => {
     let userCode: string;
     try { userCode = requireUserCode(profile?.user_code, 'save rate table'); }
     catch (e: any) { toast.error(e.message); return; }
-    if (!header.table_code || !header.table_name) { toast.error('Code and name are required'); return; }
+
+    const errs = [...validationErrors];
+    if (nextStatus === 'ACTIVE' && !header.effective_from) errs.push('Effective date is required to activate');
+    if (errs.length) { toast.error(errs[0]); return; }
+
     setSaving(true);
+    setPendingStatus(nextStatus);
     try {
       let id = rateTableId;
       const payload = {
         table_code: header.table_code, table_name: header.table_name, table_type: header.table_type,
         lookup_mode: header.lookup_mode, country_code: header.country_code, version_no: header.version_no,
-        status: header.status, description: header.description || null,
+        status: nextStatus, description: header.description || null,
         effective_from: header.effective_from || null, modified_by: userCode,
       };
       if (!id) {
@@ -133,88 +217,252 @@ export function RateTableHeaderForm({ open, onClose, rateTableId, onSaved }: Pro
         }
       }
       clearRateTableCache();
-      toast.success('Saved');
+      setHeader((h) => ({ ...h, status: nextStatus }));
+      toast.success(`Saved (${nextStatus})`);
       onSaved?.(id!);
       onClose();
     } catch (e: any) {
       toast.error(e.message ?? 'Save failed');
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+      setPendingStatus(null);
+    }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>{rateTableId ? 'Edit Rate Table' : 'New Rate Table'}</DialogTitle></DialogHeader>
-        {loading ? <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div> : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Code *</Label><Input value={header.table_code} onChange={(e) => setHeader({ ...header, table_code: e.target.value.toUpperCase() })} placeholder="AGE_PENSION_RATE_TABLE" /></div>
-              <div><Label>Name *</Label><Input value={header.table_name} onChange={(e) => setHeader({ ...header, table_name: e.target.value })} /></div>
-              <div>
-                <Label>Type</Label>
-                <Select value={header.table_type} onValueChange={(v) => setHeader({ ...header, table_type: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{TABLE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Lookup mode</Label>
-                <Select value={header.lookup_mode} onValueChange={(v) => setHeader({ ...header, lookup_mode: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{LOOKUP_MODES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div><Label>Country</Label><Input value={header.country_code} onChange={(e) => setHeader({ ...header, country_code: e.target.value.toUpperCase() })} /></div>
-              <div><Label>Version</Label><Input type="number" value={header.version_no} onChange={(e) => setHeader({ ...header, version_no: Number(e.target.value) })} /></div>
-              <div>
-                <Label>Status</Label>
-                <Select value={header.status} onValueChange={(v) => setHeader({ ...header, status: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{['DRAFT', 'ACTIVE', 'RETIRED'].map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div><Label>Effective from</Label><Input type="date" value={header.effective_from} onChange={(e) => setHeader({ ...header, effective_from: e.target.value })} /></div>
-            </div>
-            <div><Label>Description</Label><Input value={header.description} onChange={(e) => setHeader({ ...header, description: e.target.value })} /></div>
+  const activeCountries = countries.filter((c: any) => c.is_active);
+  const status = header.status;
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Dimensions</Label>
-                <Button size="sm" variant="outline" onClick={addDim}><Plus className="h-4 w-4 mr-1" />Add dimension</Button>
-              </div>
-              <div className="border rounded-md">
-                <Table>
-                  <TableHeader><TableRow><TableHead>Seq</TableHead><TableHead>Key</TableHead><TableHead>Label</TableHead><TableHead>Type</TableHead><TableHead>Match</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
-                  <TableBody>
-                    {dims.map((d, idx) => (
-                      <TableRow key={d.id ?? `n-${idx}`} className={d._dirty ? 'bg-accent/30' : ''}>
-                        <TableCell><Input type="number" value={d.sequence_no} onChange={(e) => updateDim(idx, { sequence_no: Number(e.target.value) })} className="h-8 w-14" /></TableCell>
-                        <TableCell><Input value={d.dimension_key} onChange={(e) => updateDim(idx, { dimension_key: e.target.value })} className="h-8 font-mono text-xs" /></TableCell>
-                        <TableCell><Input value={d.dimension_label} onChange={(e) => updateDim(idx, { dimension_label: e.target.value })} className="h-8" /></TableCell>
-                        <TableCell><Input value={d.dimension_type} onChange={(e) => updateDim(idx, { dimension_type: e.target.value.toUpperCase() })} className="h-8 w-24" /></TableCell>
-                        <TableCell>
-                          <Select value={d.match_type} onValueChange={(v) => updateDim(idx, { match_type: v as any })}>
-                            <SelectTrigger className="h-8 w-24"><SelectValue /></SelectTrigger>
-                            <SelectContent>{MATCH_TYPES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell><Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeDim(idx)}><Trash2 className="h-4 w-4 text-destructive" /></Button></TableCell>
-                      </TableRow>
-                    ))}
-                    {!dims.length && <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-4 text-sm">No dimensions yet</TableCell></TableRow>}
-                  </TableBody>
-                </Table>
-              </div>
+  const footer = (
+    <div className="flex flex-wrap items-center gap-2 w-full justify-end">
+      <Button variant="ghost" onClick={onClose} disabled={saving}>Cancel</Button>
+      <Button variant="outline" onClick={() => persist('DRAFT')} disabled={saving}>
+        {saving && pendingStatus === 'DRAFT' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+        Save Draft
+      </Button>
+      {status !== 'ACTIVE' && status !== 'RETIRED' && (
+        <Button variant="outline" onClick={() => persist('REVIEW')} disabled={saving}>
+          {saving && pendingStatus === 'REVIEW' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
+          Submit for Review
+        </Button>
+      )}
+      {status !== 'ACTIVE' && status !== 'RETIRED' && (
+        <Button onClick={() => persist('ACTIVE')} disabled={saving}>
+          {saving && pendingStatus === 'ACTIVE' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
+          Activate
+        </Button>
+      )}
+      {status === 'ACTIVE' && (
+        <Button variant="destructive" onClick={() => persist('RETIRED')} disabled={saving}>
+          {saving && pendingStatus === 'RETIRED' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Archive className="h-4 w-4 mr-1" />}
+          Retire
+        </Button>
+      )}
+    </div>
+  );
+
+  return (
+    <BNModalShell
+      open={open}
+      onOpenChange={(o) => !o && onClose()}
+      title={rateTableId ? 'Edit Rate Table' : 'New Rate Table'}
+      size="4xl"
+      mode="edit"
+      footer={footer}
+    >
+      {loading ? (
+        <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+      ) : (
+        <div className="space-y-5">
+          <div className="flex items-center gap-2">
+            <Badge className={STATUS_COLORS[status] ?? ''}>{status}</Badge>
+            <span className="text-xs text-muted-foreground">Status changes only via the lifecycle actions below.</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Code *</Label>
+              <Input value={header.table_code}
+                onChange={(e) => setHeader({ ...header, table_code: e.target.value.toUpperCase() })}
+                placeholder="AGE_PENSION_RATE_TABLE" />
+            </div>
+            <div>
+              <Label>Name *</Label>
+              <Input value={header.table_name}
+                onChange={(e) => setHeader({ ...header, table_name: e.target.value })} />
+            </div>
+
+            <div>
+              <Label>Table type</Label>
+              <Select value={header.table_type} onValueChange={(v) => setHeader({ ...header, table_type: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {TABLE_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      <div className="flex flex-col">
+                        <span>{t.label}</span>
+                        {t.hint && <span className="text-xs text-muted-foreground">{t.hint}</span>}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Lookup mode</Label>
+              <Select value={header.lookup_mode} onValueChange={(v) => setHeader({ ...header, lookup_mode: v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {LOOKUP_MODES.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Country</Label>
+              <Select value={header.country_code} onValueChange={(v) => setHeader({ ...header, country_code: v })}>
+                <SelectTrigger><SelectValue placeholder="Select country pack" /></SelectTrigger>
+                <SelectContent>
+                  {activeCountries.map((c: any) => (
+                    <SelectItem key={c.country_code} value={c.country_code}>
+                      {c.country_name} ({c.country_code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Version</Label>
+              <Input type="number" value={header.version_no}
+                onChange={(e) => setHeader({ ...header, version_no: Number(e.target.value) })} />
+            </div>
+
+            <div>
+              <Label>Effective from {status === 'ACTIVE' && <span className="text-destructive">*</span>}</Label>
+              <Input type="date" value={header.effective_from}
+                onChange={(e) => setHeader({ ...header, effective_from: e.target.value })} />
             </div>
           </div>
-        )}
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={save} disabled={saving}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />}Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+          <div>
+            <Label>Description</Label>
+            <Textarea rows={2} value={header.description}
+              onChange={(e) => setHeader({ ...header, description: e.target.value })} />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Dimensions</Label>
+                <p className="text-xs text-muted-foreground">
+                  Pick fields from a registered source. Keys, labels, data types and allowed match
+                  types are filled in automatically.
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={addDim}>
+                <Plus className="h-4 w-4 mr-1" />Add dimension
+              </Button>
+            </div>
+            <div className="border rounded-md overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-14">Seq</TableHead>
+                    <TableHead className="min-w-[320px]">Source &amp; Field</TableHead>
+                    <TableHead>Label</TableHead>
+                    <TableHead className="w-32">Type</TableHead>
+                    <TableHead className="w-32">Match</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {dims.map((d, idx) => {
+                    const allowed = matchTypesFor(d.dimension_type);
+                    return (
+                      <TableRow key={d.id ?? `n-${idx}`} className={d._dirty ? 'bg-accent/30' : ''}>
+                        <TableCell>
+                          <Input type="number" value={d.sequence_no}
+                            onChange={(e) => updateDim(idx, { sequence_no: Number(e.target.value) })}
+                            className="h-8 w-14" />
+                        </TableCell>
+                        <TableCell>
+                          <DimensionSourcePicker
+                            value={{ kind: d.source_kind, dimension_key: d.dimension_key }}
+                            onPick={(item) => updateDim(idx, {
+                              source_kind: item.kind,
+                              dimension_key: item.dimension_key,
+                              dimension_label: item.label,
+                              dimension_type: item.dimension_type,
+                              match_type: item.allowed_match_types[0],
+                            })}
+                            compact
+                          />
+                          {d.dimension_key && (
+                            <code className="text-[10px] text-muted-foreground font-mono block mt-1">
+                              {d.dimension_key}
+                            </code>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Input value={d.dimension_label}
+                            onChange={(e) => updateDim(idx, { dimension_label: e.target.value })}
+                            className="h-8" />
+                        </TableCell>
+                        <TableCell>
+                          <Select value={d.dimension_type}
+                            onValueChange={(v) => updateDim(idx, { dimension_type: v as DimensionType })}>
+                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {DIMENSION_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Select value={d.match_type}
+                            onValueChange={(v) => updateDim(idx, { match_type: v as MatchType })}>
+                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {allowed.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="h-8 w-8"
+                            onClick={() => removeDim(idx)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {!dims.length && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-4 text-sm">
+                        No dimensions yet — click "Add dimension".
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          {validationErrors.length > 0 && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs">
+              <div className="flex items-center gap-1.5 font-medium text-destructive mb-1">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Please fix before saving
+              </div>
+              <ul className="list-disc pl-5 space-y-0.5 text-destructive">
+                {validationErrors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </BNModalShell>
   );
 }
