@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -12,8 +13,27 @@ import { toast } from 'sonner';
 import { BnCountryProvider, useBnCountry } from '@/contexts/BnCountryContext';
 import CountrySelector from '@/components/bn/country/CountrySelector';
 import { useBnCountryIdRules, useUpsertCountryIdRule, useDeleteCountryIdRule } from '@/hooks/bn/useBnCountryPack';
+import { useReferenceValues } from '@/hooks/bn/useReferenceData';
+import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
 import type { BnCountryIdRule } from '@/types/bn';
 import { PageHeader } from '@/components/common/PageHeader';
+
+const ID_TYPE_FALLBACK = [
+  { value: 'SSN', label: 'Social Security Number' },
+  { value: 'NATIONAL_ID', label: 'National ID' },
+  { value: 'PASSPORT', label: 'Passport' },
+  { value: 'BIRTH_CERTIFICATE', label: 'Birth Certificate' },
+  { value: 'WORK_PERMIT', label: 'Work Permit' },
+  { value: 'DRIVING_LICENCE', label: 'Driving Licence' },
+  { value: 'OTHER', label: 'Other' },
+];
+const VERIFY_FALLBACK = [
+  { value: 'DOCUMENT_SCAN', label: 'Document Scan' },
+  { value: 'MANUAL', label: 'Manual Verification' },
+  { value: 'EXTERNAL_API', label: 'External API' },
+  { value: 'BIOMETRIC', label: 'Biometric' },
+  { value: 'NONE', label: 'None' },
+];
 
 const emptyRule = (): Partial<BnCountryIdRule> => ({
   id_type: '', id_label: '', format_pattern: '', format_mask: '', digit_length: 6,
