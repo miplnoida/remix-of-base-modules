@@ -267,51 +267,148 @@ const CountryMasterInner: React.FC = () => {
       </Card>
 
       <Dialog open={isNew || !!editing} onOpenChange={(o) => { if (!o) closeDialog(); }}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{isNew ? 'New Country' : `Edit ${editing?.country_code}`}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
-            <div>
-              <Label>Country Code *</Label>
-              <Input maxLength={3} value={form.country_code} disabled={!isNew}
-                onChange={e => setForm(f => ({ ...f, country_code: e.target.value.toUpperCase() }))} placeholder="e.g. KN" />
-            </div>
-            <div>
-              <Label>Country Name *</Label>
-              <Input value={form.country_name} onChange={e => setForm(f => ({ ...f, country_name: e.target.value }))} placeholder="St. Kitts and Nevis" />
-            </div>
-            <div>
-              <Label>Currency Code *</Label>
-              <Input maxLength={3} value={form.currency_code} onChange={e => setForm(f => ({ ...f, currency_code: e.target.value.toUpperCase() }))} placeholder="XCD" />
-            </div>
-            <div>
-              <Label>Currency Symbol</Label>
-              <Input value={form.currency_symbol ?? ''} onChange={e => setForm(f => ({ ...f, currency_symbol: e.target.value }))} placeholder="$" />
-            </div>
-            <div>
-              <Label>Locale</Label>
-              <Input value={form.locale ?? ''} onChange={e => setForm(f => ({ ...f, locale: e.target.value }))} placeholder="en" />
-            </div>
-            <div>
-              <Label>Default Language</Label>
-              <Input value={form.default_language ?? ''} onChange={e => setForm(f => ({ ...f, default_language: e.target.value }))} placeholder="en" />
-            </div>
-            <div className="col-span-2">
-              <Label>Timezone</Label>
-              <Input value={form.timezone ?? ''} onChange={e => setForm(f => ({ ...f, timezone: e.target.value }))} placeholder="America/St_Kitts" />
-            </div>
-            <div>
-              <Label>Default Retirement Age</Label>
-              <Input type="number" value={form.default_retirement_age ?? 62} onChange={e => setForm(f => ({ ...f, default_retirement_age: parseInt(e.target.value) || 0 }))} />
-            </div>
-            <div>
-              <Label>Fiscal Year Start Month</Label>
-              <Input type="number" min={1} max={12} value={form.fiscal_year_start_month ?? 1} onChange={e => setForm(f => ({ ...f, fiscal_year_start_month: parseInt(e.target.value) || 1 }))} />
-            </div>
-            <div className="col-span-2 flex items-center gap-2">
-              <Switch checked={form.is_active ?? true} onCheckedChange={v => setForm(f => ({ ...f, is_active: v }))} />
-              <Label>Active</Label>
-            </div>
+
+          <div className="space-y-5 py-2">
+            {/* ---------------- Country identity ---------------- */}
+            <section className="space-y-3">
+              <h4 className="text-sm font-semibold text-foreground">Country identity</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label>Country (ISO master) *</Label>
+                  <SearchableSelect
+                    options={COUNTRY_MASTER.map(c => ({
+                      value: c.iso2,
+                      label: `${c.name} (${c.iso2} · ${c.iso3})`,
+                      searchText: `${c.iso3} ${c.numeric_code} ${c.phone_code}`,
+                    }))}
+                    value={form.country_code}
+                    onValueChange={onSelectIsoCountry}
+                    placeholder="Select country from ISO master…"
+                    searchPlaceholder="Search by name, ISO2, ISO3…"
+                    disabled={!isNew}
+                  />
+                </div>
+                <div>
+                  <Label>Country Code (ISO-2)</Label>
+                  <Input value={form.country_code} disabled />
+                </div>
+                <div>
+                  <Label>Country Name</Label>
+                  <Input value={form.country_name} disabled />
+                </div>
+                {form.country_code && (() => {
+                  const iso = findCountry(form.country_code);
+                  if (!iso) return null;
+                  return (
+                    <div className="col-span-2 text-xs text-muted-foreground grid grid-cols-3 gap-2 bg-muted/40 rounded px-3 py-2">
+                      <div>ISO-3: <span className="font-mono">{iso.iso3}</span></div>
+                      <div>Numeric: <span className="font-mono">{iso.numeric_code}</span></div>
+                      <div>Phone: <span className="font-mono">{iso.phone_code}</span></div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </section>
+
+            {/* ---------------- Regional settings ---------------- */}
+            <section className="space-y-3">
+              <h4 className="text-sm font-semibold text-foreground">Regional settings</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Currency *</Label>
+                  <SearchableSelect
+                    options={CURRENCY_MASTER.map(c => ({
+                      value: c.code,
+                      label: `${c.code} — ${c.name} (${c.symbol})`,
+                      searchText: c.name,
+                    }))}
+                    value={form.currency_code}
+                    onValueChange={onSelectCurrency}
+                    placeholder="Select currency…"
+                    searchPlaceholder="Search currency…"
+                  />
+                </div>
+                <div>
+                  <Label>Currency Symbol</Label>
+                  <Input value={form.currency_symbol ?? ''} disabled placeholder="Auto" />
+                </div>
+                <div className="col-span-2">
+                  <Label>Timezone (IANA) *</Label>
+                  <SearchableSelect
+                    options={tzOptions}
+                    value={form.timezone ?? ''}
+                    onValueChange={v => setForm(f => ({ ...f, timezone: v }))}
+                    placeholder={form.country_code ? 'Select timezone…' : 'Select country first'}
+                    searchPlaceholder="Search timezone…"
+                    disabled={!form.country_code}
+                  />
+                </div>
+                <div>
+                  <Label>Default Language *</Label>
+                  <SearchableSelect
+                    options={LANGUAGE_MASTER.filter(l => l.is_active).map(l => ({
+                      value: l.code, label: `${l.code} — ${l.name}`,
+                    }))}
+                    value={form.default_language ?? ''}
+                    onValueChange={v => setForm(f => ({ ...f, default_language: v }))}
+                    placeholder="Select language…"
+                  />
+                </div>
+                <div>
+                  <Label>Locale *</Label>
+                  <SearchableSelect
+                    options={LOCALE_MASTER.map(l => ({ value: l.code, label: `${l.code} — ${l.name}` }))}
+                    value={form.locale ?? ''}
+                    onValueChange={v => setForm(f => ({ ...f, locale: v }))}
+                    placeholder="Select locale…"
+                    searchPlaceholder="Search locale…"
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* ---------------- Benefit defaults ---------------- */}
+            <section className="space-y-3">
+              <h4 className="text-sm font-semibold text-foreground">Benefit defaults</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Default Retirement Age</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={120}
+                    value={form.default_retirement_age ?? 62}
+                    onChange={e => setForm(f => ({ ...f, default_retirement_age: parseInt(e.target.value) || 0 }))}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">0–120. Overridable per product parameter.</p>
+                </div>
+                <div>
+                  <Label>Fiscal Year Start Month</Label>
+                  <SearchableSelect
+                    options={FISCAL_MONTHS.map(m => ({ value: String(m.value), label: `${m.value} — ${m.label}` }))}
+                    value={String(form.fiscal_year_start_month ?? 1)}
+                    onValueChange={v => setForm(f => ({ ...f, fiscal_year_start_month: parseInt(v) || 1 }))}
+                    placeholder="Select month…"
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* ---------------- Status ---------------- */}
+            <section className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Status</h4>
+              <div className="flex items-center gap-2">
+                <Switch checked={form.is_active ?? true} onCheckedChange={v => setForm(f => ({ ...f, is_active: v }))} />
+                <Label>Active</Label>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Deactivating a country used by active products will require admin confirmation.
+              </p>
+            </section>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Cancel</Button>
             <Button onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>Save</Button>
