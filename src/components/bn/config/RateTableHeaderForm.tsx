@@ -33,19 +33,19 @@ import { DimensionSourcePicker } from './DimensionSourcePicker';
 import {
   DIMENSION_TYPES, matchTypesFor, type DimensionType, type MatchType, type DimensionSourceKind,
 } from '@/services/bn/rateTableDimensionSources';
+import { useReferenceValues } from '@/hooks/bn/useReferenceData';
+import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
 
-const db = supabase as any;
-
-const TABLE_TYPES: { value: string; label: string; hint?: string }[] = [
-  { value: 'TIER', label: 'Tier Table', hint: 'Stepped tiers (e.g. age bands)' },
-  { value: 'RATE_TABLE', label: 'Rate Table', hint: 'Single rate per row' },
-  { value: 'MATRIX', label: 'Matrix Table', hint: 'Multi-dimension cross lookup' },
-  { value: 'CAP_TABLE', label: 'Cap Table', hint: 'Min/max limits' },
-  { value: 'SHARE_TABLE', label: 'Share Table', hint: 'Beneficiary % shares' },
-  { value: 'CONDITION_TABLE', label: 'Condition Table', hint: 'Flag / boolean lookup' },
+// Fallback values (used only if the reference-data tables are unreachable).
+const TABLE_TYPES_FALLBACK = [
+  { value: 'TIER', label: 'Tier Table', description: 'Stepped tiers (e.g. age bands)' },
+  { value: 'RATE_TABLE', label: 'Rate Table', description: 'Single rate per row' },
+  { value: 'MATRIX', label: 'Matrix Table', description: 'Multi-dimension cross lookup' },
+  { value: 'CAP_TABLE', label: 'Cap Table', description: 'Min/max limits' },
+  { value: 'SHARE_TABLE', label: 'Share Table', description: 'Beneficiary % shares' },
+  { value: 'CONDITION_TABLE', label: 'Condition Table', description: 'Flag / boolean lookup' },
 ];
-
-const LOOKUP_MODES: { value: string; label: string }[] = [
+const LOOKUP_MODES_FALLBACK = [
   { value: 'SINGLE', label: 'Single dimension lookup' },
   { value: 'COMPOSITE', label: 'Multi-dimension / matrix lookup' },
 ];
