@@ -92,10 +92,35 @@ export default function ProductCatalog() {
         description="This is the central Product Assembly workbench. For each product version, configure eligibility, calculation formulas, required documents, service documents, medical policy, workflow, transition fallback, screen/field template, workbasket routing, escalation policy, reason code usage and communications. All reusable building blocks are selected from the libraries — they are not redefined here."
       />
 
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-md border bg-muted/30 p-3">
+        <div className="flex items-end gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Country Pack</Label>
+            <Select value={filterCode} onValueChange={setFilterCode}>
+              <SelectTrigger className="w-[260px] h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Countries</SelectItem>
+                {(countries as any[]).filter(c => c.is_active).map((c: any) => (
+                  <SelectItem key={c.country_code} value={c.country_code}>
+                    {c.country_name} ({c.country_code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {orphanCount > 0 && (
+          <Badge variant="destructive" className="gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            {orphanCount} product(s) with invalid country_code
+          </Badge>
+        )}
+      </div>
+
       <BNDataGrid
         id="bn.product-catalog"
         columns={columns}
-        data={products}
+        data={filteredProducts}
         isLoading={isLoading}
         searchPlaceholder="Search by code, name, category…"
         summary={summary}
