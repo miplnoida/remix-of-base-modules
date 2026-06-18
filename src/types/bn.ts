@@ -916,8 +916,25 @@ export interface BnCountryParticipantType {
   participant_role: string;
   min_age: number | null;
   max_age: number | null;
+  /** @deprecated Use requires_identity_verification */
   requires_id: boolean;
+  /** @deprecated Use requires_relationship_or_authority_proof */
   requires_relationship_proof: boolean;
+  // Verification intent (staged — no Document Library dependency)
+  requires_identity_verification: boolean;
+  requires_relationship_or_authority_proof: boolean;
+  relationship_category: string | null;
+  authority_category: string | null;
+  online_access_allowed: boolean;
+  can_apply_for_self: boolean;
+  can_apply_for_others: boolean;
+  can_receive_communication: boolean;
+  can_receive_payment: boolean;
+  requires_officer_review: boolean;
+  // Optional suggested-proof hints (linked to Document Library later)
+  proof_requirement_code: string | null;
+  suggested_document_category: string | null;
+  suggested_document_label: string | null;
   allowed_products: string[] | null;
   sort_order: number;
   is_active: boolean;
