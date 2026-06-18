@@ -156,6 +156,7 @@ export const ROUTE_FEATURE_MAP: Record<string, BnFeatureFlag> = {
   "/bn/config/workbaskets": "bn.config.rules",
   "/bn/config/escalation": "bn.config.rules",
   "/bn/config/service-doc-types": "bn.config.rules",
+  "/bn/config/country-master": "bn.config.rules",
   "/bn/config/country": "bn.config.rules",
   "/bn/config/country/id-rules": "bn.config.rules",
   "/bn/config/country/address-model": "bn.config.rules",

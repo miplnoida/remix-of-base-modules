@@ -363,13 +363,20 @@ const _bnMenuItemsRaw = [
         requiresPermission: "benefits_management",
         description: "Diagnostic · Validate product setup across all libraries and detect orphan or invalid references.",
       },
-      // ── Country Pack ──
+      // ── Country Master & Pack ──
+      {
+        title: "Country Master",
+        url: "/bn/config/country-master",
+        icon: MapPin,
+        requiresPermission: "benefits_management",
+        description: "Source of truth · CRUD for countries (bn_country) with pack-completeness status and default-pack seeding.",
+      },
       {
         title: "Country Pack",
         url: "/bn/config/country",
         icon: MapPin,
         requiresPermission: "benefits_management",
-        description: "Country-specific configuration pack.",
+        description: "Country-specific configuration pack for the selected country.",
       },
     ],
   },
