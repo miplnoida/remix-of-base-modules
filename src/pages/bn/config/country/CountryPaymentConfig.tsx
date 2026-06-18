@@ -17,10 +17,14 @@ import CountrySelector from '@/components/bn/country/CountrySelector';
 import {
   useBnCountryPaymentConfig, useUpsertCountryPaymentConfig, useDeleteCountryPaymentConfig,
 } from '@/hooks/bn/useBnCountryPack';
+import { useReferenceValues } from '@/hooks/bn/useReferenceData';
+import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
 import { BN_PAYMENT_METHODS, BN_PAYMENT_CYCLES } from '@/types/bn';
 import type { BnCountryPaymentConfig } from '@/types/bn';
 import { PageHeader } from '@/components/common/PageHeader';
 import { EFT_FORMAT_PRESETS, getPreset } from '@/lib/bn/eftFormatPresets';
+
+const PAYMENT_METHOD_FALLBACK = BN_PAYMENT_METHODS.map((m) => ({ value: m, label: m }));
 
 const empty = (): Partial<BnCountryPaymentConfig> => ({
   payment_method: '', method_label: '', is_default: false, requires_bank_account: false, requires_mobile_number: false,
@@ -35,6 +39,7 @@ const Content: React.FC = () => {
   const { data: configs = [] } = useBnCountryPaymentConfig(activeCountryCode);
   const upsert = useUpsertCountryPaymentConfig();
   const remove = useDeleteCountryPaymentConfig();
+  const { options: methodOptions } = useReferenceValues(BN_REF_GROUPS.PAYMENT_METHOD_TYPE, PAYMENT_METHOD_FALLBACK);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<BnCountryPaymentConfig>>(empty());
 
@@ -115,13 +120,19 @@ const Content: React.FC = () => {
             </TabsList>
             <TabsContent value="basics">
               <div className="grid grid-cols-2 gap-4 mt-2">
-                <div><Label>Method Code</Label>
-                  <Select value={form.payment_method || ''} onValueChange={v => setForm(f => ({ ...f, payment_method: v }))}>
+                <div><Label>Payment Method *</Label>
+                  <Select
+                    value={form.payment_method || ''}
+                    onValueChange={(v) => {
+                      const chosen = methodOptions.find((o) => o.value === v);
+                      setForm((f) => ({ ...f, payment_method: v, method_label: f.method_label || chosen?.label || v }));
+                    }}
+                  >
                     <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
-                    <SelectContent>{BN_PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                    <SelectContent>{methodOptions.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><Label>Label</Label><Input value={form.method_label || ''} onChange={e => setForm(f => ({ ...f, method_label: e.target.value }))} /></div>
+                <div><Label>Display Label</Label><Input value={form.method_label || ''} onChange={e => setForm(f => ({ ...f, method_label: e.target.value }))} placeholder="Auto-filled from method" /></div>
                 <div><Label>Payment Cycle</Label>
                   <Select value={form.payment_cycle || 'WEEKLY'} onValueChange={v => setForm(f => ({ ...f, payment_cycle: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>

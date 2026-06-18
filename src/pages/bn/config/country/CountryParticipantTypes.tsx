@@ -13,9 +13,24 @@ import { toast } from 'sonner';
 import { BnCountryProvider, useBnCountry } from '@/contexts/BnCountryContext';
 import CountrySelector from '@/components/bn/country/CountrySelector';
 import { useBnCountryParticipantTypes, useUpsertCountryParticipantType, useDeleteCountryParticipantType } from '@/hooks/bn/useBnCountryPack';
+import { useReferenceValues } from '@/hooks/bn/useReferenceData';
+import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
 import { BN_PARTICIPANT_ROLES } from '@/types/bn';
 import type { BnCountryParticipantType } from '@/types/bn';
 import { PageHeader } from '@/components/common/PageHeader';
+
+const PARTICIPANT_FALLBACK = [
+  { value: 'CLAIMANT', label: 'Claimant' },
+  { value: 'INSURED_PERSON', label: 'Insured Person' },
+  { value: 'BENEFICIARY', label: 'Beneficiary' },
+  { value: 'SPOUSE', label: 'Spouse' },
+  { value: 'CHILD', label: 'Child' },
+  { value: 'GUARDIAN', label: 'Guardian' },
+  { value: 'PAYEE', label: 'Payee' },
+  { value: 'EMPLOYER', label: 'Employer' },
+  { value: 'DOCTOR', label: 'Doctor' },
+  { value: 'FUNERAL_PROVIDER', label: 'Funeral Provider' },
+];
 
 const empty = (): Partial<BnCountryParticipantType> => ({
   type_code: '', type_name: '', participant_role: 'CLAIMANT', requires_id: true, requires_relationship_proof: false,
@@ -27,12 +42,16 @@ const Content: React.FC = () => {
   const { data: types = [] } = useBnCountryParticipantTypes(activeCountryCode);
   const upsert = useUpsertCountryParticipantType();
   const remove = useDeleteCountryParticipantType();
+  const { options: participantOptions } = useReferenceValues(BN_REF_GROUPS.PARTICIPANT_TYPE, PARTICIPANT_FALLBACK);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<BnCountryParticipantType>>(empty());
 
   const handleSave = async () => {
+    if (!form.type_code) { toast.error('Participant type is required'); return; }
     try {
-      await upsert.mutateAsync({ ...form, country_code: activeCountryCode });
+      const chosen = participantOptions.find((o) => o.value === form.type_code);
+      const payload = { ...form, type_name: form.type_name || chosen?.label || form.type_code, country_code: activeCountryCode };
+      await upsert.mutateAsync(payload);
       toast.success('Participant type saved');
       setOpen(false);
     } catch (e: any) { toast.error(e.message); }
@@ -77,8 +96,18 @@ const Content: React.FC = () => {
         <DialogContent>
           <DialogHeader><DialogTitle>{form.id ? 'Edit' : 'Add'} Participant Type</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>Type Code</Label><Input value={form.type_code || ''} onChange={e => setForm(f => ({ ...f, type_code: e.target.value.toUpperCase() }))} placeholder="SPOUSE" /></div>
-            <div><Label>Type Name</Label><Input value={form.type_name || ''} onChange={e => setForm(f => ({ ...f, type_name: e.target.value }))} placeholder="Spouse" /></div>
+            <div>
+              <Label>Participant Type *</Label>
+              <Select value={form.type_code || ''} onValueChange={(v) => setForm((f) => ({ ...f, type_code: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                <SelectContent>
+                  {participantOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Display Name</Label><Input value={form.type_name || ''} onChange={e => setForm(f => ({ ...f, type_name: e.target.value }))} placeholder="Auto-filled from participant type" /></div>
             <div><Label>Role</Label>
               <Select value={form.participant_role || 'CLAIMANT'} onValueChange={v => setForm(f => ({ ...f, participant_role: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>

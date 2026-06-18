@@ -13,8 +13,21 @@ import { toast } from 'sonner';
 import { BnCountryProvider, useBnCountry } from '@/contexts/BnCountryContext';
 import CountrySelector from '@/components/bn/country/CountrySelector';
 import { useBnCountryAddressModel, useUpsertCountryAddressField, useDeleteCountryAddressField } from '@/hooks/bn/useBnCountryPack';
+import { useReferenceValues } from '@/hooks/bn/useReferenceData';
+import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
 import type { BnCountryAddressField } from '@/types/bn';
 import { PageHeader } from '@/components/common/PageHeader';
+
+const FIELD_TYPE_FALLBACK = [
+  { value: 'TEXT', label: 'Text' },
+  { value: 'NUMBER', label: 'Number' },
+  { value: 'DROPDOWN', label: 'Dropdown' },
+  { value: 'PARISH', label: 'Parish' },
+  { value: 'ISLAND', label: 'Island' },
+  { value: 'VILLAGE', label: 'Village/Town' },
+  { value: 'POSTAL_CODE', label: 'Postal Code' },
+  { value: 'COUNTRY', label: 'Country' },
+];
 
 const empty = (): Partial<BnCountryAddressField> => ({
   field_code: '', field_label: '', field_type: 'TEXT', is_required: false, options_source: null, validation_pattern: null, sort_order: 0, is_active: true,
@@ -25,6 +38,7 @@ const Content: React.FC = () => {
   const { data: fields = [] } = useBnCountryAddressModel(activeCountryCode);
   const upsert = useUpsertCountryAddressField();
   const remove = useDeleteCountryAddressField();
+  const { options: fieldTypeOptions } = useReferenceValues(BN_REF_GROUPS.ADDRESS_FIELD_TYPE, FIELD_TYPE_FALLBACK);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<BnCountryAddressField>>(empty());
 
@@ -77,10 +91,15 @@ const Content: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Field Code</Label><Input value={form.field_code || ''} onChange={e => setForm(f => ({ ...f, field_code: e.target.value.toUpperCase() }))} placeholder="LINE_1" /></div>
             <div><Label>Label</Label><Input value={form.field_label || ''} onChange={e => setForm(f => ({ ...f, field_label: e.target.value }))} placeholder="Street Address" /></div>
-            <div><Label>Type</Label>
-              <Select value={form.field_type || 'TEXT'} onValueChange={v => setForm(f => ({ ...f, field_type: v }))}>
+            <div>
+              <Label>Field Type *</Label>
+              <Select value={form.field_type || 'TEXT'} onValueChange={(v) => setForm((f) => ({ ...f, field_type: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="TEXT">Text</SelectItem><SelectItem value="SELECT">Select</SelectItem><SelectItem value="POSTAL">Postal Code</SelectItem></SelectContent>
+                <SelectContent>
+                  {fieldTypeOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div><Label>Sort Order</Label><Input type="number" value={form.sort_order ?? 0} onChange={e => setForm(f => ({ ...f, sort_order: parseInt(e.target.value) || 0 }))} /></div>
