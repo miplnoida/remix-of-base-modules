@@ -18,10 +18,11 @@ import { Plus, Pencil, Power, Sparkles, CheckCircle2, XCircle, AlertTriangle, Ex
 import { toast } from 'sonner';
 import {
   useCountryMasterList, useCountryPackStatuses, useCreateCountry, useUpdateCountry,
-  useToggleCountryActive, useSeedCountryPack, useOrphanCountryRefs,
+  useToggleCountryActive, useSeedCountryPack, useOrphanCountryRefs, useDeleteCountry,
 } from '@/hooks/bn/useBnCountryMaster';
 import type { BnCountryInput, BnCountryRow } from '@/services/bn/countryMasterService';
-import { countActiveProductsForCountry } from '@/services/bn/countryMasterService';
+import { countActiveProductsForCountry, getCountryUsage } from '@/services/bn/countryMasterService';
+import { Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useBnCountry } from '@/contexts/BnCountryContext';
 import { BnCountryProvider } from '@/contexts/BnCountryContext';
