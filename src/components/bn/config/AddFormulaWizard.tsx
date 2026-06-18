@@ -33,6 +33,8 @@ import { useBnFormulaVariableRegistry } from '@/hooks/bn/useBnFormulaVariableReg
 import { useUserCode } from '@/hooks/useUserCode';
 import { createFormulaWithDraftVersion } from '@/services/bn/createFormulaWithDraftVersion';
 import { parseFormula } from '@/lib/bn/formulaParser';
+import CountryFieldSelector from '@/components/bn/selectors/CountryFieldSelector';
+import LegalReferenceSelector from '@/components/bn/selectors/LegalReferenceSelector';
 
 interface Props {
   open: boolean;
