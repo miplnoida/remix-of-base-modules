@@ -43,6 +43,8 @@ import {
 import { writeBnAudit } from '@/services/bn/audit/bnAuditService';
 import { useUserCode } from '@/hooks/useUserCode';
 import { BN_PLACEHOLDERS, validatePlaceholders } from '@/services/bn/communication/bnPlaceholderRegistry';
+import TokenPicker from '@/components/bn/templates/TokenPicker';
+import TemplatePreview from '@/components/bn/templates/TemplatePreview';
 
 const db = supabase as any;
 
