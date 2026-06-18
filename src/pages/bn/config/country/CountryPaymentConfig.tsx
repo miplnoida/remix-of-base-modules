@@ -39,6 +39,7 @@ const Content: React.FC = () => {
   const { data: configs = [] } = useBnCountryPaymentConfig(activeCountryCode);
   const upsert = useUpsertCountryPaymentConfig();
   const remove = useDeleteCountryPaymentConfig();
+  const { options: methodOptions } = useReferenceValues(BN_REF_GROUPS.PAYMENT_METHOD_TYPE, PAYMENT_METHOD_FALLBACK);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<BnCountryPaymentConfig>>(empty());
 
