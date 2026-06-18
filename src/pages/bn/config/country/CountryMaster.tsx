@@ -143,6 +143,23 @@ const CountryMasterInner: React.FC = () => {
     } catch (e: any) { toast.error(e.message ?? 'Seed failed'); }
   };
 
+  const handleDelete = async (c: BnCountryRow) => {
+    try {
+      const usage = await getCountryUsage(c.country_code);
+      if (usage.total > 0) {
+        const detail = usage.byTable.map(r => `• ${r.table}: ${r.count}`).join('\n');
+        window.alert(
+          `Cannot delete ${c.country_code}.\n\nIt is still referenced by:\n${detail}\n\nPlease remove all dependent records first, then try again.`
+        );
+        return;
+      }
+      const confirmed = window.confirm(`Delete country ${c.country_code} (${c.country_name})? This cannot be undone.`);
+      if (!confirmed) return;
+      await deleteMut.mutateAsync({ code: c.country_code });
+      toast.success(`Country ${c.country_code} deleted`);
+    } catch (e: any) { toast.error(e.message ?? 'Delete failed'); }
+  };
+
   // Pick a country from ISO master → auto-fill identity + suggested defaults.
   const onSelectIsoCountry = (iso2: string) => {
     const iso = findCountry(iso2);
