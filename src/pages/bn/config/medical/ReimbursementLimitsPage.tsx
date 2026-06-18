@@ -341,7 +341,17 @@ export default function ReimbursementLimitsPage() {
             <div className="space-y-2"><Label>Effective To</Label><Input type="date" value={editing.effective_to || ''} onChange={(e) => upd('effective_to', e.target.value || null)} /></div>
             <div className="space-y-2 col-span-2">
               <Label>Legal Reference</Label>
-              <Input value={editing.legal_reference ?? ''} placeholder="e.g. SI 2019/12 — Sickness Benefit Regulations" onChange={(e) => upd('legal_reference', e.target.value || null)} />
+              <LegalReferenceSelector
+                value={(editing as any).legal_reference_id ?? null}
+                countryCode={activeCountryCode}
+                onChange={(id, row) => {
+                  upd('legal_reference_id' as any, id);
+                  upd('legal_reference', row ? (row.full_reference_text || row.short_title) : null);
+                }}
+              />
+              {editing.legal_reference && (
+                <p className="text-[11px] text-muted-foreground truncate">Cited as: {editing.legal_reference}</p>
+              )}
             </div>
             <div className="flex items-center gap-2 col-span-2"><Switch checked={editing.is_active ?? true} onCheckedChange={(v) => upd('is_active', v)} /><Label>Active</Label></div>
           </div>
