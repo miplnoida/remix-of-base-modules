@@ -42,12 +42,16 @@ const Content: React.FC = () => {
   const { data: types = [] } = useBnCountryParticipantTypes(activeCountryCode);
   const upsert = useUpsertCountryParticipantType();
   const remove = useDeleteCountryParticipantType();
+  const { options: participantOptions } = useReferenceValues(BN_REF_GROUPS.PARTICIPANT_TYPE, PARTICIPANT_FALLBACK);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<BnCountryParticipantType>>(empty());
 
   const handleSave = async () => {
+    if (!form.type_code) { toast.error('Participant type is required'); return; }
     try {
-      await upsert.mutateAsync({ ...form, country_code: activeCountryCode });
+      const chosen = participantOptions.find((o) => o.value === form.type_code);
+      const payload = { ...form, type_name: form.type_name || chosen?.label || form.type_code, country_code: activeCountryCode };
+      await upsert.mutateAsync(payload);
       toast.success('Participant type saved');
       setOpen(false);
     } catch (e: any) { toast.error(e.message); }
