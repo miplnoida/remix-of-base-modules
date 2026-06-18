@@ -45,12 +45,18 @@ const CountryIdRulesContent: React.FC = () => {
   const { data: rules = [] } = useBnCountryIdRules(activeCountryCode);
   const upsert = useUpsertCountryIdRule();
   const remove = useDeleteCountryIdRule();
+  const { options: idTypeOptions } = useReferenceValues(BN_REF_GROUPS.ID_TYPE, ID_TYPE_FALLBACK);
+  const { options: verifyOptions } = useReferenceValues(BN_REF_GROUPS.ID_VERIFICATION_METHOD, VERIFY_FALLBACK);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<BnCountryIdRule>>(emptyRule());
 
   const handleSave = async () => {
+    if (!form.id_type) { toast.error('ID type is required'); return; }
     try {
-      await upsert.mutateAsync({ ...form, country_code: activeCountryCode });
+      // Default the label to the selected ID type label when empty
+      const chosen = idTypeOptions.find((o) => o.value === form.id_type);
+      const payload = { ...form, id_label: form.id_label || chosen?.label || form.id_type, country_code: activeCountryCode };
+      await upsert.mutateAsync(payload);
       toast.success('ID rule saved');
       setOpen(false);
     } catch (e: any) { toast.error(e.message); }
