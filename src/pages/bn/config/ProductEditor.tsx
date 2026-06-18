@@ -14,7 +14,6 @@ import { useBnProduct, useCreateBnProduct, useUpdateBnProduct, useBnProductVersi
 import { auditAttemptedActiveMutation } from '@/services/bn/productService';
 import { LiveVersionGuardDialog } from '@/components/bn/config/LiveVersionGuardDialog';
 import { useBnSchemes, useBnBranches, useBnCountries } from '@/hooks/bn/useBnConfig';
-import { useBnCountry } from '@/contexts/BnCountryContext';
 import { BN_CATEGORY_LABELS, BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProduct, BnProductVersion, BnProductStatus } from '@/types/bn';
 import { EligibilityTabRedesigned as EligibilityRulesTab } from '@/components/bn/config/EligibilityTabRedesigned';
@@ -53,7 +52,7 @@ export default function ProductEditor() {
   const { data: branches = [] } = useBnBranches();
   const { data: countries = [] } = useBnCountries();
   const activeCountries = useMemo(() => (countries as any[]).filter(c => c.is_active), [countries]);
-  const { activeCountryCode } = useBnCountry();
+  
   const createMutation = useCreateBnProduct();
   const updateMutation = useUpdateBnProduct();
   const createVersionMutation = useCreateBnProductVersion();
@@ -73,15 +72,14 @@ export default function ProductEditor() {
     setSelectedVersionId(undefined);
   }, [id]);
 
-  // For new products, default country to the active Country Pack context
-  // (falls back to the first active country if context is empty).
+  // For new products, default country to SKN if available, else first active country.
   useEffect(() => {
     if (!isNew || form.country_code || activeCountries.length === 0) return;
     const preferred =
-      activeCountries.find(c => c.country_code === activeCountryCode)?.country_code ??
+      activeCountries.find(c => c.country_code === 'SKN')?.country_code ??
       activeCountries[0].country_code;
     setForm(f => ({ ...f, country_code: preferred }));
-  }, [isNew, activeCountries, activeCountryCode, form.country_code]);
+  }, [isNew, activeCountries, form.country_code]);
 
   useEffect(() => {
     if (existingProduct) setForm(existingProduct);

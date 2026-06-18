@@ -5,7 +5,7 @@ import { Edit, Eye, AlertTriangle } from 'lucide-react';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { useBnProducts } from '@/hooks/bn/useBnProduct';
 import { useBnCountries } from '@/hooks/bn/useBnConfig';
-import { useBnCountry } from '@/contexts/BnCountryContext';
+
 import { BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProduct, BnProductStatus } from '@/types/bn';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
@@ -24,11 +24,10 @@ export default function ProductCatalog() {
   const navigate = useNavigate();
   const { data: products = [], isLoading, refetch } = useBnProducts();
   const { data: countries = [] } = useBnCountries();
-  const { activeCountryCode } = useBnCountry();
   const validCodes = useMemo(() => new Set((countries as any[]).map(c => c.country_code)), [countries]);
 
-  // 'ALL' shows everything; otherwise restrict to the country pack selection.
-  const [filterCode, setFilterCode] = useState<string>(activeCountryCode || 'ALL');
+  // Default the catalog filter to SKN (St. Kitts and Nevis); 'ALL' shows everything.
+  const [filterCode, setFilterCode] = useState<string>('SKN');
 
   const filteredProducts = useMemo(() => {
     if (filterCode === 'ALL') return products;
