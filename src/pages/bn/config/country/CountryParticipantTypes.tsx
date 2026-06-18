@@ -83,6 +83,8 @@ const Section: React.FC<{ title: string; description?: string; children: React.R
   </Card>
 );
 
+interface ProofReq { proof_requirement_code: string; proof_requirement_name: string; suggested_document_label: string | null; }
+
 const Content: React.FC = () => {
   const { activeCountryCode } = useBnCountry();
   const { data: types = [] } = useBnCountryParticipantTypes(activeCountryCode);
@@ -91,12 +93,28 @@ const Content: React.FC = () => {
   const { options: participantOptions } = useReferenceValues(BN_REF_GROUPS.PARTICIPANT_TYPE, PARTICIPANT_FALLBACK);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<BnCountryParticipantType>>(empty());
+  const [proofReqs, setProofReqs] = useState<ProofReq[]>([]);
+
+  React.useEffect(() => {
+    if (!activeCountryCode) { setProofReqs([]); return; }
+    (async () => {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data } = await (supabase as any)
+        .from('bn_participant_proof_requirement')
+        .select('proof_requirement_code, proof_requirement_name, suggested_document_label')
+        .eq('country_code', activeCountryCode)
+        .eq('is_active', true)
+        .order('sort_order');
+      setProofReqs((data ?? []) as ProofReq[]);
+    })();
+  }, [activeCountryCode]);
 
   const set = <K extends keyof BnCountryParticipantType>(k: K, v: BnCountryParticipantType[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
     if (!form.type_code) { toast.error('Participant type is required'); return; }
+    if (!form.role_category) { toast.error('Role category is required'); return; }
     try {
       const chosen = participantOptions.find((o) => o.value === form.type_code);
       const payload: Partial<BnCountryParticipantType> = {
