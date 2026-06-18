@@ -13,9 +13,24 @@ import { toast } from 'sonner';
 import { BnCountryProvider, useBnCountry } from '@/contexts/BnCountryContext';
 import CountrySelector from '@/components/bn/country/CountrySelector';
 import { useBnCountryParticipantTypes, useUpsertCountryParticipantType, useDeleteCountryParticipantType } from '@/hooks/bn/useBnCountryPack';
+import { useReferenceValues } from '@/hooks/bn/useReferenceData';
+import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
 import { BN_PARTICIPANT_ROLES } from '@/types/bn';
 import type { BnCountryParticipantType } from '@/types/bn';
 import { PageHeader } from '@/components/common/PageHeader';
+
+const PARTICIPANT_FALLBACK = [
+  { value: 'CLAIMANT', label: 'Claimant' },
+  { value: 'INSURED_PERSON', label: 'Insured Person' },
+  { value: 'BENEFICIARY', label: 'Beneficiary' },
+  { value: 'SPOUSE', label: 'Spouse' },
+  { value: 'CHILD', label: 'Child' },
+  { value: 'GUARDIAN', label: 'Guardian' },
+  { value: 'PAYEE', label: 'Payee' },
+  { value: 'EMPLOYER', label: 'Employer' },
+  { value: 'DOCTOR', label: 'Doctor' },
+  { value: 'FUNERAL_PROVIDER', label: 'Funeral Provider' },
+];
 
 const empty = (): Partial<BnCountryParticipantType> => ({
   type_code: '', type_name: '', participant_role: 'CLAIMANT', requires_id: true, requires_relationship_proof: false,
