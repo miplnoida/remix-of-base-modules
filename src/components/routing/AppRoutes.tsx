@@ -820,6 +820,7 @@ const BnDocumentSetup = lazy(() => import('@/pages/bn/config/DocumentSetup'));
 const BnScreenMetadataSetup = lazy(() => import('@/pages/bn/config/ScreenMetadataSetup'));
 const BnBenefitConfigurationValidation = lazy(() => import('@/pages/bn/config/BenefitConfigurationValidation'));
 const BnBenefitCommunicationTemplates = lazy(() => import('@/pages/bn/config/BenefitCommunicationTemplates'));
+const BnReferenceDataAdmin = lazy(() => import('@/pages/bn/config/ReferenceDataAdmin'));
 // Medical Benefit Setup
 const BnMedicalSetupHome = lazy(() => import('@/pages/bn/config/medical/MedicalSetupHome'));
 const BnMedicalProceduresCatalog = lazy(() => import('@/pages/bn/config/medical/MedicalProceduresCatalog'));
@@ -1902,6 +1903,7 @@ export const AppRoutes = () => {
       <Route path="/bn/config/formulas" element={<BnFeatureGate flag="bn.config.rules"><BnFormulaConfiguration /></BnFeatureGate>} />
       <Route path="/bn/config/calculation" element={<BnFeatureGate flag="bn.config.rules"><BnCalculationSetup /></BnFeatureGate>} />
       <Route path="/bn/config/calculation-readiness" element={<BnFeatureGate flag="bn.config.rules"><BnCalculationReadiness /></BnFeatureGate>} />
+      <Route path="/bn/config/reference-data" element={<BnFeatureGate flag="bn.config.rules"><BnReferenceDataAdmin /></BnFeatureGate>} />
       <Route path="/bn/config/derived-facts" element={<BnFeatureGate flag="bn.config.rules"><BnDerivedFactRegistry /></BnFeatureGate>} />
       <Route path="/bn/config/product-parameters" element={<BnFeatureGate flag="bn.config.rules"><BnProductParameterRegistry /></BnFeatureGate>} />
 

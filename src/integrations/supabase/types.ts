@@ -13602,6 +13602,113 @@ export type Database = {
           },
         ]
       }
+      bn_reference_group: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          group_code: string
+          group_name: string
+          id: string
+          is_active: boolean
+          is_system: boolean
+          module_code: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_code: string
+          group_name: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          module_code?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_code?: string
+          group_name?: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          module_code?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      bn_reference_value: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          group_id: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          is_system: boolean
+          metadata_json: Json | null
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+          value_code: string
+          value_label: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          group_id: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_system?: boolean
+          metadata_json?: Json | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          value_code: string
+          value_label: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_system?: boolean
+          metadata_json?: Json | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          value_code?: string
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_reference_value_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "bn_reference_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_role_bundle: {
         Row: {
           code: string

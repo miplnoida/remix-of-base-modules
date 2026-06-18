@@ -80,6 +80,13 @@ export const benefitsMenuItems = [
             icon: FileText,
             requiresPermission: "benefits_management",
             description: "Manage benefit notification templates — letters, emails, SMS, in-app"
+          },
+          {
+            title: "Reference Data",
+            url: "/bn/config/reference-data",
+            icon: Settings,
+            requiresPermission: "benefits_management",
+            description: "Manage dropdown values used across Benefits configuration (table types, statuses, methods)"
           }
         ]
       }
