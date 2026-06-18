@@ -194,14 +194,14 @@ const Content: React.FC = () => {
                 hint="E.g. spouse, child, guardian, executor." />
               <div>
                 <Label>Relationship Category</Label>
-                <Select value={form.relationship_category || ''} onValueChange={v => set('relationship_category', v || null)}>
+                <Select value={form.relationship_category || '__none'} onValueChange={v => set('relationship_category', v === '__none' ? null : v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>{RELATIONSHIP_CATEGORIES.map(r => <SelectItem key={r || 'none'} value={r || '__none'}>{r || '— None —'}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Authority Category</Label>
-                <Select value={form.authority_category || ''} onValueChange={v => set('authority_category', v === '__none' ? null : v)}>
+                <Select value={form.authority_category || '__none'} onValueChange={v => set('authority_category', v === '__none' ? null : v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>{AUTHORITY_CATEGORIES.map(r => <SelectItem key={r || 'none'} value={r || '__none'}>{r || '— None —'}</SelectItem>)}</SelectContent>
                 </Select>
