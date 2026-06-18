@@ -300,9 +300,12 @@ export default function RuleConfiguration() {
                     helpText="Unique rule group code. Cannot be changed after creation."
                   />
                   <div className="space-y-1.5">
-                    <Label htmlFor="rg_country2">Country code</Label>
-                    <Input id="rg_country2" value={form.country_code} maxLength={3} placeholder="Leave blank for global"
-                      onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
+                    <Label htmlFor="rg_country2">Country</Label>
+                    <CountryFieldSelector
+                      value={form.country_code || null}
+                      onChange={(code) => setForm({ ...form, country_code: code ?? '' })}
+                      placeholder="Leave blank for global"
+                    />
                   </div>
                 </div>
                 <div className="space-y-1.5">
