@@ -20,6 +20,8 @@ import type {
 } from '@/types/bnMedical';
 import { calculateReimbursement } from '@/lib/bn/medicalCalculator';
 import { useUserCode } from '@/hooks/useUserCode';
+import LegalReferenceSelector from '@/components/bn/selectors/LegalReferenceSelector';
+import { useBnCountry } from '@/contexts/BnCountryContext';
 
 const CAP_TYPES = ['PER_CLAIM', 'PER_PROCEDURE', 'PER_EXPENSE', 'ANNUAL', 'LIFETIME'] as const;
 const JURISDICTIONS = ['LOCAL', 'REGIONAL', 'INTERNATIONAL', 'ANY'] as const;
