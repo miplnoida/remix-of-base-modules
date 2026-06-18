@@ -32,26 +32,25 @@ const PARTICIPANT_FALLBACK = [
   { value: 'FUNERAL_PROVIDER', label: 'Funeral Provider' },
 ];
 
-const PROOF_CODES = [
-  { value: '', label: '— None —' },
-  { value: 'IDENTITY_PROOF', label: 'Identity Proof' },
-  { value: 'RELATIONSHIP_PROOF', label: 'Relationship Proof' },
-  { value: 'AUTHORITY_PROOF', label: 'Authority Proof' },
-  { value: 'PROVIDER_ACCREDITATION', label: 'Provider Accreditation' },
-];
-
+const ROLE_CATEGORIES = ['CLAIMANT','INSURED','BENEFICIARY','EMPLOYER','PROVIDER','OFFICER','THIRD_PARTY'];
 const RELATIONSHIP_CATEGORIES = ['', 'SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'DEPENDANT', 'OTHER'];
 const AUTHORITY_CATEGORIES = ['', 'GUARDIAN', 'POWER_OF_ATTORNEY', 'EXECUTOR', 'COURT_ORDER', 'EMPLOYER_REP', 'OTHER'];
 
 const empty = (): Partial<BnCountryParticipantType> => ({
   type_code: '', type_name: '', participant_role: 'CLAIMANT',
+  role_category: 'CLAIMANT',
   requires_identity_verification: true,
   requires_relationship_or_authority_proof: false,
+  requires_ssn_link: false,
+  requires_email_verification: false,
+  requires_phone_verification: false,
   relationship_category: null,
   authority_category: null,
   online_access_allowed: false,
+  can_register_online: false,
   can_apply_for_self: true,
   can_apply_for_others: false,
+  can_be_added_by_claimant: false,
   can_receive_communication: true,
   can_receive_payment: false,
   requires_officer_review: false,
