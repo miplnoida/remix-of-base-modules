@@ -35,6 +35,7 @@ const BENEFICIARY_TYPES = ['INSURED', 'SPOUSE', 'DEPENDANT', 'ANY'];
 export default function ReimbursementLimitsPage() {
   const { toast } = useToast();
   const { userCode } = useUserCode();
+  const { activeCountryCode } = useBnCountry();
   const { data: limits = [] } = useReimbursementLimits();
   const { data: procedures = [] } = useMedicalProcedures();
   const { data: expenseTypes = [] } = useExpenseTypes();
