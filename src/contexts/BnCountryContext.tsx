@@ -65,7 +65,7 @@ export const BnCountryProvider: React.FC<{ defaultCountry?: string; children: Re
   );
 
   const value = useMemo<BnCountryContextValue>(() => ({
-    activeCountryCode,
+    activeCountryCode: effectiveCode,
     setActiveCountryCode,
     countryPack: countryPack ?? null,
     isLoading,
@@ -75,7 +75,7 @@ export const BnCountryProvider: React.FC<{ defaultCountry?: string; children: Re
     participantTypes,
     paymentMethods,
     validateId,
-  }), [activeCountryCode, countryPack, isLoading, primaryIdRule, currency, addressFields, participantTypes, paymentMethods, validateId]);
+  }), [effectiveCode, setActiveCountryCode, countryPack, isLoading, primaryIdRule, currency, addressFields, participantTypes, paymentMethods, validateId]);
 
   return <BnCountryContext.Provider value={value}>{children}</BnCountryContext.Provider>;
 };

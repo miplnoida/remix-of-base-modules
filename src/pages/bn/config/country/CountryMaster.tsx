@@ -100,7 +100,7 @@ const CountryMasterInner: React.FC = () => {
         title="Country Master"
         subtitle="Source of truth for every country used across Benefits — products, formulas, rate tables, legal references and payment config all read from here."
         breadcrumbs={[{ label: 'Benefit Management' }, { label: 'Configuration' }, { label: 'Country Master' }]}
-        action={<Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> New Country</Button>}
+        actions={<Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> New Country</Button>}
       />
 
       {orphans.length > 0 && (
