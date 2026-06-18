@@ -76,7 +76,9 @@ export default function PublicFormRulesTab({ versionId, isReadOnly }: Props) {
     return <Card><CardContent className="p-6 text-sm text-muted-foreground">Loading participant rules…</CardContent></Card>;
   }
 
-  const toggleArray = (list: BnParticipantRole[], role: BnParticipantRole): BnParticipantRole[] =>
+  const participantTypes = useReferenceValues(BN_REF_GROUPS.PARTICIPANT_TYPE, []);
+  const refMissing = participantTypes.options.length === 0;
+  const toggleArray = (list: string[], role: string): string[] =>
     list.includes(role) ? list.filter((r) => r !== role) : [...list, role];
 
   const set = <K extends keyof BnProductParticipantConfigInput>(k: K, v: BnProductParticipantConfigInput[K]) =>
