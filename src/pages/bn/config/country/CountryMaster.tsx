@@ -49,6 +49,7 @@ const CountryMasterInner: React.FC = () => {
   const updateMut = useUpdateCountry();
   const toggleMut = useToggleCountryActive();
   const seedMut = useSeedCountryPack();
+  const deleteMut = useDeleteCountry();
 
   const [editing, setEditing] = useState<BnCountryRow | null>(null);
   const [isNew, setIsNew] = useState(false);
