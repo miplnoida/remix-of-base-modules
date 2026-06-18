@@ -120,13 +120,19 @@ const Content: React.FC = () => {
             </TabsList>
             <TabsContent value="basics">
               <div className="grid grid-cols-2 gap-4 mt-2">
-                <div><Label>Method Code</Label>
-                  <Select value={form.payment_method || ''} onValueChange={v => setForm(f => ({ ...f, payment_method: v }))}>
+                <div><Label>Payment Method *</Label>
+                  <Select
+                    value={form.payment_method || ''}
+                    onValueChange={(v) => {
+                      const chosen = methodOptions.find((o) => o.value === v);
+                      setForm((f) => ({ ...f, payment_method: v, method_label: f.method_label || chosen?.label || v }));
+                    }}
+                  >
                     <SelectTrigger><SelectValue placeholder="Select method" /></SelectTrigger>
-                    <SelectContent>{BN_PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                    <SelectContent>{methodOptions.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><Label>Label</Label><Input value={form.method_label || ''} onChange={e => setForm(f => ({ ...f, method_label: e.target.value }))} /></div>
+                <div><Label>Display Label</Label><Input value={form.method_label || ''} onChange={e => setForm(f => ({ ...f, method_label: e.target.value }))} placeholder="Auto-filled from method" /></div>
                 <div><Label>Payment Cycle</Label>
                   <Select value={form.payment_cycle || 'WEEKLY'} onValueChange={v => setForm(f => ({ ...f, payment_cycle: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
