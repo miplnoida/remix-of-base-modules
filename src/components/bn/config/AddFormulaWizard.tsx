@@ -267,13 +267,21 @@ export function AddFormulaWizard({ open, onClose, existingCodes, onCreated }: Pr
               </div>
               <div className="space-y-1.5">
                 <Label>Country</Label>
-                <Input value={country} maxLength={3} placeholder="Blank = global"
-                  onChange={(e) => setCountry(e.target.value.toUpperCase())} />
+                <CountryFieldSelector
+                  value={country || null}
+                  onChange={(code) => setCountry(code ?? '')}
+                  placeholder="Blank = global"
+                />
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label>Legal reference</Label>
-                <Input value={legalRef} maxLength={200} placeholder="e.g. SSA s.42(1)"
-                  onChange={(e) => setLegalRef(e.target.value)} />
+                <LegalReferenceSelector
+                  value={null}
+                  countryCode={country || null}
+                  onChange={(_id, row) => setLegalRef(row ? (row.full_reference_text || row.short_title) : '')}
+                  placeholder={country ? 'Select legal reference…' : 'Pick a country first'}
+                />
+                {legalRef && <p className="text-[11px] text-muted-foreground truncate">Cited as: {legalRef}</p>}
               </div>
               <div className="space-y-1.5 col-span-2">
                 <Label>Description</Label>
