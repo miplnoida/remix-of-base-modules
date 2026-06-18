@@ -1,11 +1,16 @@
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
-import { Edit, Eye } from 'lucide-react';
+import { Edit, Eye, AlertTriangle } from 'lucide-react';
 import { BnScreenRoleBanner } from '@/components/bn/shared';
 import { useBnProducts } from '@/hooks/bn/useBnProduct';
+import { useBnCountries } from '@/hooks/bn/useBnConfig';
+import { useBnCountry } from '@/contexts/BnCountryContext';
 import { BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProduct, BnProductStatus } from '@/types/bn';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 
 const statusVariant: Record<BnProductStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'secondary',
@@ -18,6 +23,22 @@ const statusVariant: Record<BnProductStatus, 'default' | 'secondary' | 'destruct
 export default function ProductCatalog() {
   const navigate = useNavigate();
   const { data: products = [], isLoading, refetch } = useBnProducts();
+  const { data: countries = [] } = useBnCountries();
+  const { activeCountryCode } = useBnCountry();
+  const validCodes = useMemo(() => new Set((countries as any[]).map(c => c.country_code)), [countries]);
+
+  // 'ALL' shows everything; otherwise restrict to the country pack selection.
+  const [filterCode, setFilterCode] = useState<string>(activeCountryCode || 'ALL');
+
+  const filteredProducts = useMemo(() => {
+    if (filterCode === 'ALL') return products;
+    return (products as BnProduct[]).filter(p => p.country_code === filterCode);
+  }, [products, filterCode]);
+
+  const orphanCount = useMemo(
+    () => (products as BnProduct[]).filter(p => !p.country_code || !validCodes.has(p.country_code)).length,
+    [products, validCodes]
+  );
 
   const columns: BNColumnDef<BnProduct>[] = [
     { accessorKey: 'benefit_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 140 }, cell: ({ getValue }) => <span className="font-mono">{String(getValue() ?? '')}</span> },
@@ -25,7 +46,18 @@ export default function ProductCatalog() {
     { accessorKey: 'category', header: 'Category', meta: { label: 'Category', width: 140 } },
     { accessorKey: 'branch', header: 'Branch', meta: { label: 'Branch', width: 140 } },
     { accessorKey: 'payment_type', header: 'Payment', meta: { label: 'Payment', width: 120 } },
-    { accessorKey: 'country_code', header: 'Country', meta: { label: 'Country', width: 90 } },
+    {
+      accessorKey: 'country_code',
+      header: 'Country',
+      meta: { label: 'Country', width: 110 },
+      cell: ({ getValue }) => {
+        const code = String(getValue() ?? '');
+        const orphan = !code || !validCodes.has(code);
+        return orphan
+          ? <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />{code || 'NONE'}</Badge>
+          : <span>{code}</span>;
+      },
+    },
     {
       accessorKey: 'status',
       header: 'Status',
@@ -38,12 +70,12 @@ export default function ProductCatalog() {
   ];
 
   const summary = [
-    { label: 'Total', value: products.length, tone: 'default' as const },
-    { label: 'Active', value: products.filter(p => p.status === 'ACTIVE').length, tone: 'success' as const },
-    { label: 'Draft', value: products.filter(p => p.status === 'DRAFT').length, tone: 'warning' as const },
-    { label: 'Pending', value: products.filter(p => p.status === 'PENDING_APPROVAL').length, tone: 'info' as const },
-    { label: 'Suspended', value: products.filter(p => p.status === 'SUSPENDED').length, tone: 'danger' as const },
-    { label: 'Archived', value: products.filter(p => p.status === 'ARCHIVED').length, tone: 'muted' as const },
+    { label: 'Total', value: filteredProducts.length, tone: 'default' as const },
+    { label: 'Active', value: filteredProducts.filter(p => p.status === 'ACTIVE').length, tone: 'success' as const },
+    { label: 'Draft', value: filteredProducts.filter(p => p.status === 'DRAFT').length, tone: 'warning' as const },
+    { label: 'Pending', value: filteredProducts.filter(p => p.status === 'PENDING_APPROVAL').length, tone: 'info' as const },
+    { label: 'Suspended', value: filteredProducts.filter(p => p.status === 'SUSPENDED').length, tone: 'danger' as const },
+    { label: 'Archived', value: filteredProducts.filter(p => p.status === 'ARCHIVED').length, tone: 'muted' as const },
   ];
 
   return (
@@ -60,10 +92,35 @@ export default function ProductCatalog() {
         description="This is the central Product Assembly workbench. For each product version, configure eligibility, calculation formulas, required documents, service documents, medical policy, workflow, transition fallback, screen/field template, workbasket routing, escalation policy, reason code usage and communications. All reusable building blocks are selected from the libraries — they are not redefined here."
       />
 
+      <div className="flex flex-wrap items-end justify-between gap-3 rounded-md border bg-muted/30 p-3">
+        <div className="flex items-end gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Country Pack</Label>
+            <Select value={filterCode} onValueChange={setFilterCode}>
+              <SelectTrigger className="w-[260px] h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Countries</SelectItem>
+                {(countries as any[]).filter(c => c.is_active).map((c: any) => (
+                  <SelectItem key={c.country_code} value={c.country_code}>
+                    {c.country_name} ({c.country_code})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {orphanCount > 0 && (
+          <Badge variant="destructive" className="gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            {orphanCount} product(s) with invalid country_code
+          </Badge>
+        )}
+      </div>
+
       <BNDataGrid
         id="bn.product-catalog"
         columns={columns}
-        data={products}
+        data={filteredProducts}
         isLoading={isLoading}
         searchPlaceholder="Search by code, name, category…"
         summary={summary}

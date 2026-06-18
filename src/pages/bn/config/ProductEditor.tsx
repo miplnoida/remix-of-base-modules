@@ -14,6 +14,7 @@ import { useBnProduct, useCreateBnProduct, useUpdateBnProduct, useBnProductVersi
 import { auditAttemptedActiveMutation } from '@/services/bn/productService';
 import { LiveVersionGuardDialog } from '@/components/bn/config/LiveVersionGuardDialog';
 import { useBnSchemes, useBnBranches, useBnCountries } from '@/hooks/bn/useBnConfig';
+import { useBnCountry } from '@/contexts/BnCountryContext';
 import { BN_CATEGORY_LABELS, BN_PRODUCT_STATUS_LABELS } from '@/types/bn';
 import type { BnProduct, BnProductVersion, BnProductStatus } from '@/types/bn';
 import { EligibilityTabRedesigned as EligibilityRulesTab } from '@/components/bn/config/EligibilityTabRedesigned';
@@ -52,6 +53,7 @@ export default function ProductEditor() {
   const { data: branches = [] } = useBnBranches();
   const { data: countries = [] } = useBnCountries();
   const activeCountries = useMemo(() => (countries as any[]).filter(c => c.is_active), [countries]);
+  const { activeCountryCode } = useBnCountry();
   const createMutation = useCreateBnProduct();
   const updateMutation = useUpdateBnProduct();
   const createVersionMutation = useCreateBnProductVersion();
@@ -71,12 +73,15 @@ export default function ProductEditor() {
     setSelectedVersionId(undefined);
   }, [id]);
 
-  // Pre-select first active country for new products once the master loads.
+  // For new products, default country to the active Country Pack context
+  // (falls back to the first active country if context is empty).
   useEffect(() => {
-    if (isNew && !form.country_code && activeCountries.length > 0) {
-      setForm(f => ({ ...f, country_code: activeCountries[0].country_code }));
-    }
-  }, [isNew, activeCountries, form.country_code]);
+    if (!isNew || form.country_code || activeCountries.length === 0) return;
+    const preferred =
+      activeCountries.find(c => c.country_code === activeCountryCode)?.country_code ??
+      activeCountries[0].country_code;
+    setForm(f => ({ ...f, country_code: preferred }));
+  }, [isNew, activeCountries, activeCountryCode, form.country_code]);
 
   useEffect(() => {
     if (existingProduct) setForm(existingProduct);
@@ -91,6 +96,19 @@ export default function ProductEditor() {
   const handleSave = async () => {
     if (!form.benefit_code || !form.benefit_name) {
       toast({ title: 'Validation Error', description: 'Code and Name are required.', variant: 'destructive' });
+      return;
+    }
+    if (!form.country_code) {
+      toast({ title: 'Validation Error', description: 'Country is required.', variant: 'destructive' });
+      return;
+    }
+    const countryRow = (countries as any[]).find(c => c.country_code === form.country_code);
+    if (!countryRow) {
+      toast({ title: 'Invalid Country', description: `Country "${form.country_code}" does not exist in Country Master.`, variant: 'destructive' });
+      return;
+    }
+    if (form.status === 'ACTIVE' && !countryRow.is_active) {
+      toast({ title: 'Invalid Country', description: `Country "${form.country_code}" is inactive — cannot activate product.`, variant: 'destructive' });
       return;
     }
     // Activation guard: block ACTIVE status unless formula bindings are healthy.
@@ -376,15 +394,18 @@ export default function ProductEditor() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Country</Label>
+                <Label>Country *</Label>
                 <Select value={form.country_code || ''} onValueChange={v => updateField('country_code', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
+                  <SelectTrigger className={!form.country_code ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Select country" />
+                  </SelectTrigger>
                   <SelectContent>
                     {activeCountries.map((c: any) => (
                       <SelectItem key={c.country_code} value={c.country_code}>{c.country_name} ({c.country_code})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">Determines the Country Pack (legal refs, currency, payment config) applied to this product.</p>
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
