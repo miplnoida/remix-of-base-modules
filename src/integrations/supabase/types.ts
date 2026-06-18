@@ -7783,8 +7783,10 @@ export type Database = {
           authority_category: string | null
           can_apply_for_others: boolean
           can_apply_for_self: boolean
+          can_be_added_by_claimant: boolean
           can_receive_communication: boolean
           can_receive_payment: boolean
+          can_register_online: boolean
           country_code: string
           entered_at: string
           entered_by: string | null
@@ -7796,11 +7798,15 @@ export type Database = {
           participant_role: string
           proof_requirement_code: string | null
           relationship_category: string | null
+          requires_email_verification: boolean
           requires_id: boolean
           requires_identity_verification: boolean
           requires_officer_review: boolean
+          requires_phone_verification: boolean
           requires_relationship_or_authority_proof: boolean
           requires_relationship_proof: boolean
+          requires_ssn_link: boolean
+          role_category: string | null
           sort_order: number
           suggested_document_category: string | null
           suggested_document_label: string | null
@@ -7812,8 +7818,10 @@ export type Database = {
           authority_category?: string | null
           can_apply_for_others?: boolean
           can_apply_for_self?: boolean
+          can_be_added_by_claimant?: boolean
           can_receive_communication?: boolean
           can_receive_payment?: boolean
+          can_register_online?: boolean
           country_code: string
           entered_at?: string
           entered_by?: string | null
@@ -7825,11 +7833,15 @@ export type Database = {
           participant_role?: string
           proof_requirement_code?: string | null
           relationship_category?: string | null
+          requires_email_verification?: boolean
           requires_id?: boolean
           requires_identity_verification?: boolean
           requires_officer_review?: boolean
+          requires_phone_verification?: boolean
           requires_relationship_or_authority_proof?: boolean
           requires_relationship_proof?: boolean
+          requires_ssn_link?: boolean
+          role_category?: string | null
           sort_order?: number
           suggested_document_category?: string | null
           suggested_document_label?: string | null
@@ -7841,8 +7853,10 @@ export type Database = {
           authority_category?: string | null
           can_apply_for_others?: boolean
           can_apply_for_self?: boolean
+          can_be_added_by_claimant?: boolean
           can_receive_communication?: boolean
           can_receive_payment?: boolean
+          can_register_online?: boolean
           country_code?: string
           entered_at?: string
           entered_by?: string | null
@@ -7854,11 +7868,15 @@ export type Database = {
           participant_role?: string
           proof_requirement_code?: string | null
           relationship_category?: string | null
+          requires_email_verification?: boolean
           requires_id?: boolean
           requires_identity_verification?: boolean
           requires_officer_review?: boolean
+          requires_phone_verification?: boolean
           requires_relationship_or_authority_proof?: boolean
           requires_relationship_proof?: boolean
+          requires_ssn_link?: boolean
+          role_category?: string | null
           sort_order?: number
           suggested_document_category?: string | null
           suggested_document_label?: string | null
@@ -11674,6 +11692,62 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "bn_override_request"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_participant_proof_requirement: {
+        Row: {
+          country_code: string
+          created_at: string
+          document_type_id: string | null
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          proof_category: string
+          proof_requirement_code: string
+          proof_requirement_name: string
+          service_document_type_id: string | null
+          sort_order: number
+          suggested_document_label: string | null
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          document_type_id?: string | null
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          proof_category: string
+          proof_requirement_code: string
+          proof_requirement_name: string
+          service_document_type_id?: string | null
+          sort_order?: number
+          suggested_document_label?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          document_type_id?: string | null
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          proof_category?: string
+          proof_requirement_code?: string
+          proof_requirement_name?: string
+          service_document_type_id?: string | null
+          sort_order?: number
+          suggested_document_label?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_participant_proof_requirement_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "bn_country"
+            referencedColumns: ["country_code"]
           },
         ]
       }

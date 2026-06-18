@@ -32,26 +32,25 @@ const PARTICIPANT_FALLBACK = [
   { value: 'FUNERAL_PROVIDER', label: 'Funeral Provider' },
 ];
 
-const PROOF_CODES = [
-  { value: '', label: '— None —' },
-  { value: 'IDENTITY_PROOF', label: 'Identity Proof' },
-  { value: 'RELATIONSHIP_PROOF', label: 'Relationship Proof' },
-  { value: 'AUTHORITY_PROOF', label: 'Authority Proof' },
-  { value: 'PROVIDER_ACCREDITATION', label: 'Provider Accreditation' },
-];
-
+const ROLE_CATEGORIES = ['CLAIMANT','INSURED','BENEFICIARY','EMPLOYER','PROVIDER','OFFICER','THIRD_PARTY'];
 const RELATIONSHIP_CATEGORIES = ['', 'SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'DEPENDANT', 'OTHER'];
 const AUTHORITY_CATEGORIES = ['', 'GUARDIAN', 'POWER_OF_ATTORNEY', 'EXECUTOR', 'COURT_ORDER', 'EMPLOYER_REP', 'OTHER'];
 
 const empty = (): Partial<BnCountryParticipantType> => ({
   type_code: '', type_name: '', participant_role: 'CLAIMANT',
+  role_category: 'CLAIMANT',
   requires_identity_verification: true,
   requires_relationship_or_authority_proof: false,
+  requires_ssn_link: false,
+  requires_email_verification: false,
+  requires_phone_verification: false,
   relationship_category: null,
   authority_category: null,
   online_access_allowed: false,
+  can_register_online: false,
   can_apply_for_self: true,
   can_apply_for_others: false,
+  can_be_added_by_claimant: false,
   can_receive_communication: true,
   can_receive_payment: false,
   requires_officer_review: false,
@@ -84,6 +83,8 @@ const Section: React.FC<{ title: string; description?: string; children: React.R
   </Card>
 );
 
+interface ProofReq { proof_requirement_code: string; proof_requirement_name: string; suggested_document_label: string | null; }
+
 const Content: React.FC = () => {
   const { activeCountryCode } = useBnCountry();
   const { data: types = [] } = useBnCountryParticipantTypes(activeCountryCode);
@@ -92,12 +93,28 @@ const Content: React.FC = () => {
   const { options: participantOptions } = useReferenceValues(BN_REF_GROUPS.PARTICIPANT_TYPE, PARTICIPANT_FALLBACK);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<BnCountryParticipantType>>(empty());
+  const [proofReqs, setProofReqs] = useState<ProofReq[]>([]);
+
+  React.useEffect(() => {
+    if (!activeCountryCode) { setProofReqs([]); return; }
+    (async () => {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data } = await (supabase as any)
+        .from('bn_participant_proof_requirement')
+        .select('proof_requirement_code, proof_requirement_name, suggested_document_label')
+        .eq('country_code', activeCountryCode)
+        .eq('is_active', true)
+        .order('sort_order');
+      setProofReqs((data ?? []) as ProofReq[]);
+    })();
+  }, [activeCountryCode]);
 
   const set = <K extends keyof BnCountryParticipantType>(k: K, v: BnCountryParticipantType[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
     if (!form.type_code) { toast.error('Participant type is required'); return; }
+    if (!form.role_category) { toast.error('Role category is required'); return; }
     try {
       const chosen = participantOptions.find((o) => o.value === form.type_code);
       const payload: Partial<BnCountryParticipantType> = {
@@ -183,6 +200,13 @@ const Content: React.FC = () => {
                 </Select>
               </div>
               <div><Label>Sort Order</Label><Input type="number" value={form.sort_order ?? 0} onChange={e => set('sort_order', parseInt(e.target.value) || 0)} /></div>
+              <div>
+                <Label>Role Category *</Label>
+                <Select value={form.role_category || ''} onValueChange={v => set('role_category', v)}>
+                  <SelectTrigger><SelectValue placeholder="Select role category" /></SelectTrigger>
+                  <SelectContent>{ROLE_CATEGORIES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </Section>
 
             <Section title="Verification Intent" description="What kind of verification this participant type needs. Actual document mapping happens later in Document Library / Product Catalog.">
@@ -192,6 +216,9 @@ const Content: React.FC = () => {
               <Toggle label="Requires Relationship / Authority Proof" checked={!!form.requires_relationship_or_authority_proof}
                 onChange={v => set('requires_relationship_or_authority_proof', v)}
                 hint="E.g. spouse, child, guardian, executor." />
+              <Toggle label="Requires SSN Link" checked={!!form.requires_ssn_link}
+                onChange={v => set('requires_ssn_link', v)}
+                hint="Participant must be linked to an SSN / Insured record." />
               <div>
                 <Label>Relationship Category</Label>
                 <Select value={form.relationship_category || '__none'} onValueChange={v => set('relationship_category', v === '__none' ? null : v)}>
@@ -209,21 +236,33 @@ const Content: React.FC = () => {
             </Section>
 
             <Section title="Online Portal & Communication">
-              <Toggle label="Online Access Allowed" checked={!!form.online_access_allowed} onChange={v => set('online_access_allowed', v)} />
+              <Toggle label="Can Register Online" checked={!!form.can_register_online} onChange={v => set('can_register_online', v)} hint="Can this participant create their own portal account?" />
+              <Toggle label="Online Access Allowed" checked={!!form.online_access_allowed} onChange={v => set('online_access_allowed', v)} hint="Can access portal once registered/linked." />
               <Toggle label="Can Apply For Self" checked={!!form.can_apply_for_self} onChange={v => set('can_apply_for_self', v)} />
               <Toggle label="Can Apply For Others" checked={!!form.can_apply_for_others} onChange={v => set('can_apply_for_others', v)} />
+              <Toggle label="Can Be Added By Claimant" checked={!!form.can_be_added_by_claimant} onChange={v => set('can_be_added_by_claimant', v)} hint="Claimant may add this participant to their own claim." />
               <Toggle label="Can Receive Communication" checked={!!form.can_receive_communication} onChange={v => set('can_receive_communication', v)} />
               <Toggle label="Can Receive Payment" checked={!!form.can_receive_payment} onChange={v => set('can_receive_payment', v)} />
+              <Toggle label="Requires Email Verification" checked={!!form.requires_email_verification} onChange={v => set('requires_email_verification', v)} />
+              <Toggle label="Requires Phone Verification" checked={!!form.requires_phone_verification} onChange={v => set('requires_phone_verification', v)} />
               <Toggle label="Requires Officer Review" checked={!!form.requires_officer_review} onChange={v => set('requires_officer_review', v)} />
             </Section>
 
-            <Section title="Suggested Proof (optional)" description="Hints only — actual document binding happens later in Document Library. Leave blank if not known yet.">
+            <Section title="Suggested Proof (optional)" description="Pick a country-level proof requirement. The actual document binding (Document Library) happens later — proof codes are hints used by Product Catalog and online portal.">
               <div>
-                <Label>Proof Requirement Code</Label>
+                <Label>Proof Requirement</Label>
                 <Select value={form.proof_requirement_code || '__none'} onValueChange={v => set('proof_requirement_code', v === '__none' ? null : v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{PROOF_CODES.map(p => <SelectItem key={p.value || 'none'} value={p.value || '__none'}>{p.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    <SelectItem value="__none">— None —</SelectItem>
+                    {proofReqs.map(p => (
+                      <SelectItem key={p.proof_requirement_code} value={p.proof_requirement_code}>
+                        {p.proof_requirement_name}{p.suggested_document_label ? ` — ${p.suggested_document_label}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
+                {proofReqs.length === 0 && <p className="text-xs text-muted-foreground mt-1">No proof requirements defined for this country yet.</p>}
               </div>
               <div><Label>Suggested Document Category</Label><Input value={form.suggested_document_category || ''} onChange={e => set('suggested_document_category', e.target.value || null)} placeholder="e.g. Civil Status" /></div>
               <div className="md:col-span-2"><Label>Suggested Document Label</Label><Input value={form.suggested_document_label || ''} onChange={e => set('suggested_document_label', e.target.value || null)} placeholder="e.g. Marriage Certificate" /></div>
