@@ -52,11 +52,17 @@ export const BN_PLACEHOLDERS: BnPlaceholder[] = [
   { key: 'SIGNATURE_BLOCK', label: 'Signature Block', description: 'Department signatory block', aliases: ['SignatureBlock'] },
 ];
 
+// Phase 2 Country Pack tokens (country.*, legal.*, product.*, rule.*, …)
+// are also valid template tokens; merge their keys into the known set so
+// the editor's "unknown placeholder" warning doesn't flag them.
+import { TOKEN_REGISTRY as BN_PHASE2_TOKENS } from '@/lib/bn/templateTokens';
+
 const _knownLowercase = new Set<string>();
 BN_PLACEHOLDERS.forEach((p) => {
   _knownLowercase.add(p.key.toLowerCase());
   (p.aliases || []).forEach((a) => _knownLowercase.add(a.toLowerCase()));
 });
+BN_PHASE2_TOKENS.forEach((t) => _knownLowercase.add(t.key.toLowerCase()));
 
 const TOKEN_RE = /\{\{\s*([\w.]+)\s*\}\}/g;
 

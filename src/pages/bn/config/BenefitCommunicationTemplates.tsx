@@ -43,6 +43,8 @@ import {
 import { writeBnAudit } from '@/services/bn/audit/bnAuditService';
 import { useUserCode } from '@/hooks/useUserCode';
 import { BN_PLACEHOLDERS, validatePlaceholders } from '@/services/bn/communication/bnPlaceholderRegistry';
+import TokenPicker from '@/components/bn/templates/TokenPicker';
+import TemplatePreview from '@/components/bn/templates/TemplatePreview';
 
 const db = supabase as any;
 
@@ -361,8 +363,14 @@ interface EditorProps {
 }
 const TemplateEditorDialog: React.FC<EditorProps> = ({ open, template, title, createMode, pending, onClose, onSave }) => {
   const [draft, setDraft] = useState<any>(null);
+  const [tab, setTab] = useState<'edit' | 'preview'>('edit');
+  const subjectRef = React.useRef<HTMLInputElement | null>(null);
+  const bodyRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const htmlRef = React.useRef<HTMLTextAreaElement | null>(null);
+
   React.useEffect(() => {
     if (open) {
+      setTab('edit');
       setDraft(template ? { ...template } : {
         name: '', template_code: 'BN_', channel: 'email', trigger_event: 'bn.', subject: '', body: '', html_body: '', description: '', category: 'benefit_lifecycle',
       });
@@ -374,71 +382,87 @@ const TemplateEditorDialog: React.FC<EditorProps> = ({ open, template, title, cr
   if (!draft) return null;
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-6xl max-h-[92vh] flex flex-col p-0 gap-0">
         <DialogHeader className="p-6 pb-3 border-b">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{createMode ? 'New draft will be created and disabled until published.' : 'Saving creates a new immutable version snapshot.'}</DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
-          {createMode && (
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Template code (must start with BN_)">
-                <Input value={draft.template_code} onChange={(e) => setDraft({ ...draft, template_code: e.target.value.toUpperCase() })} />
-              </Field>
-              <Field label="Channel">
-                <select className="w-full border rounded px-2 py-1.5 text-sm bg-background" value={draft.channel} onChange={(e) => setDraft({ ...draft, channel: e.target.value })}>
-                  {CHANNEL_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                </select>
-              </Field>
-              <Field label="Name">
-                <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
-              </Field>
-              <Field label="Trigger event">
-                <Input value={draft.trigger_event || ''} onChange={(e) => setDraft({ ...draft, trigger_event: e.target.value })} placeholder="bn.something.happened" />
-              </Field>
-            </div>
-          )}
-          <Field label="Description">
-            <Input value={draft.description ?? ''} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
-          </Field>
-          {draft.channel !== 'in_app' && (
-            <Field label="Subject">
-              <Input value={draft.subject ?? ''} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} />
-            </Field>
-          )}
-          <Field label="Body (plain text)">
-            <Textarea rows={8} value={draft.body ?? ''} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
-          </Field>
-          {(draft.channel === 'email' || draft.channel === 'letter') && (
-            <Field label="HTML Body">
-              <Textarea rows={10} value={draft.html_body ?? ''} onChange={(e) => setDraft({ ...draft, html_body: e.target.value })} className="font-mono text-xs" />
-            </Field>
-          )}
 
-          <Card>
-            <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Placeholder validation</CardTitle></CardHeader>
-            <CardContent className="py-3 space-y-2 text-xs">
-              <div>
-                <span className="text-muted-foreground">Recognised:</span>{' '}
-                {validation.recognised.length ? validation.recognised.map(k => <Badge key={k} variant="secondary" className="mr-1 text-[10px]">{k}</Badge>) : <span className="text-muted-foreground">none</span>}
-              </div>
-              {validation.unknown.length > 0 && (
-                <div>
-                  <span className="text-destructive">Unknown:</span>{' '}
-                  {validation.unknown.map(k => <Badge key={k} variant="destructive" className="mr-1 text-[10px]">{k}</Badge>)}
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="flex-1 min-h-0 flex flex-col">
+          <div className="px-6 pt-3 border-b">
+            <TabsList>
+              <TabsTrigger value="edit">Edit</TabsTrigger>
+              <TabsTrigger value="preview"><Eye className="h-3.5 w-3.5 mr-1.5" />Preview</TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="edit" className="flex-1 min-h-0 m-0 grid grid-cols-[1fr_280px] gap-0">
+            <div className="overflow-y-auto p-6 space-y-4 border-r">
+              {createMode && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Template code (must start with BN_)">
+                    <Input value={draft.template_code} onChange={(e) => setDraft({ ...draft, template_code: e.target.value.toUpperCase() })} />
+                  </Field>
+                  <Field label="Channel">
+                    <select className="w-full border rounded px-2 py-1.5 text-sm bg-background" value={draft.channel} onChange={(e) => setDraft({ ...draft, channel: e.target.value })}>
+                      {CHANNEL_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    </select>
+                  </Field>
+                  <Field label="Name">
+                    <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+                  </Field>
+                  <Field label="Trigger event">
+                    <Input value={draft.trigger_event || ''} onChange={(e) => setDraft({ ...draft, trigger_event: e.target.value })} placeholder="bn.something.happened" />
+                  </Field>
                 </div>
               )}
-              <details>
-                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">Available placeholders ({BN_PLACEHOLDERS.length})</summary>
-                <div className="mt-2 grid grid-cols-2 gap-1">
-                  {BN_PLACEHOLDERS.map(p => (
-                    <div key={p.key} className="text-[11px]"><code>{`{{${p.key}}}`}</code> — <span className="text-muted-foreground">{p.label}</span></div>
-                  ))}
-                </div>
-              </details>
-            </CardContent>
-          </Card>
-        </div>
+              <Field label="Description">
+                <Input value={draft.description ?? ''} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
+              </Field>
+              {draft.channel !== 'in_app' && (
+                <Field label="Subject">
+                  <Input ref={subjectRef} value={draft.subject ?? ''} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} />
+                </Field>
+              )}
+              <Field label="Body (plain text)">
+                <Textarea ref={bodyRef} rows={8} value={draft.body ?? ''} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
+              </Field>
+              {(draft.channel === 'email' || draft.channel === 'letter') && (
+                <Field label="HTML Body">
+                  <Textarea ref={htmlRef} rows={10} value={draft.html_body ?? ''} onChange={(e) => setDraft({ ...draft, html_body: e.target.value })} className="font-mono text-xs" />
+                </Field>
+              )}
+
+              <Card>
+                <CardHeader className="py-3"><CardTitle className="text-sm flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Placeholder validation</CardTitle></CardHeader>
+                <CardContent className="py-3 space-y-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Recognised:</span>{' '}
+                    {validation.recognised.length ? validation.recognised.map(k => <Badge key={k} variant="secondary" className="mr-1 text-[10px]">{k}</Badge>) : <span className="text-muted-foreground">none</span>}
+                  </div>
+                  {validation.unknown.length > 0 && (
+                    <div>
+                      <span className="text-destructive">Unknown:</span>{' '}
+                      {validation.unknown.map(k => <Badge key={k} variant="destructive" className="mr-1 text-[10px]">{k}</Badge>)}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="flex flex-col min-h-0 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 px-1">Token picker</p>
+              <div className="flex-1 min-h-0">
+                <TokenPicker targets={[subjectRef, bodyRef, htmlRef]} />
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="preview" className="flex-1 min-h-0 m-0 overflow-y-auto p-6">
+            <TemplatePreview subject={draft.subject} body={draft.body} htmlBody={draft.html_body} />
+          </TabsContent>
+        </Tabs>
+
         <DialogFooter className="p-6 pt-3 border-t bg-background">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={() => onSave(draft)} disabled={pending}>{pending ? 'Saving…' : createMode ? 'Create draft' : 'Save new version'}</Button>
