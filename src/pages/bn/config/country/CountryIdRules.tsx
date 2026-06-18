@@ -110,12 +110,37 @@ const CountryIdRulesContent: React.FC = () => {
         <DialogContent>
           <DialogHeader><DialogTitle>{form.id ? 'Edit' : 'Add'} ID Rule</DialogTitle></DialogHeader>
           <div className="grid grid-cols-2 gap-4">
-            <div><Label>Type Code</Label><Input value={form.id_type || ''} onChange={e => setForm(f => ({ ...f, id_type: e.target.value.toUpperCase() }))} placeholder="SSN" /></div>
-            <div><Label>Label</Label><Input value={form.id_label || ''} onChange={e => setForm(f => ({ ...f, id_label: e.target.value }))} placeholder="Social Security Number" /></div>
+            <div>
+              <Label>ID Type *</Label>
+              <Select value={form.id_type || ''} onValueChange={(v) => setForm((f) => ({ ...f, id_type: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select ID type" /></SelectTrigger>
+                <SelectContent>
+                  {idTypeOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>Label</Label><Input value={form.id_label || ''} onChange={e => setForm(f => ({ ...f, id_label: e.target.value }))} placeholder="Auto-filled from ID type" /></div>
             <div><Label>Regex Pattern</Label><Input value={form.format_pattern || ''} onChange={e => setForm(f => ({ ...f, format_pattern: e.target.value }))} placeholder="^\d{6}$" className="font-mono text-sm" /></div>
             <div><Label>Input Mask</Label><Input value={form.format_mask || ''} onChange={e => setForm(f => ({ ...f, format_mask: e.target.value }))} placeholder="XXXXXX" className="font-mono" /></div>
             <div><Label>Digit Length</Label><Input type="number" value={form.digit_length ?? 6} onChange={e => setForm(f => ({ ...f, digit_length: parseInt(e.target.value) || 6 }))} /></div>
             <div><Label>Example</Label><Input value={form.example_value || ''} onChange={e => setForm(f => ({ ...f, example_value: e.target.value }))} placeholder="123456" /></div>
+            <div>
+              <Label>Verification Method</Label>
+              <Select
+                value={form.check_digit_algorithm || ''}
+                onValueChange={(v) => setForm((f) => ({ ...f, check_digit_algorithm: v || null }))}
+              >
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  {verifyOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2"><Switch checked={form.has_check_digit ?? false} onCheckedChange={v => setForm(f => ({ ...f, has_check_digit: v }))} /><Label>Has check digit</Label></div>
             <div className="flex items-center gap-2"><Switch checked={form.is_primary ?? false} onCheckedChange={v => setForm(f => ({ ...f, is_primary: v }))} /><Label>Primary</Label></div>
             <div className="flex items-center gap-2"><Switch checked={form.is_active ?? true} onCheckedChange={v => setForm(f => ({ ...f, is_active: v }))} /><Label>Active</Label></div>
           </div>
