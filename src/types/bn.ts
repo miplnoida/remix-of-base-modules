@@ -923,13 +923,19 @@ export interface BnCountryParticipantType {
   // Verification intent (staged — no Document Library dependency)
   requires_identity_verification: boolean;
   requires_relationship_or_authority_proof: boolean;
+  role_category: string | null;
   relationship_category: string | null;
   authority_category: string | null;
   online_access_allowed: boolean;
+  can_register_online: boolean;
   can_apply_for_self: boolean;
   can_apply_for_others: boolean;
+  can_be_added_by_claimant: boolean;
   can_receive_communication: boolean;
   can_receive_payment: boolean;
+  requires_email_verification: boolean;
+  requires_phone_verification: boolean;
+  requires_ssn_link: boolean;
   requires_officer_review: boolean;
   // Optional suggested-proof hints (linked to Document Library later)
   proof_requirement_code: string | null;
