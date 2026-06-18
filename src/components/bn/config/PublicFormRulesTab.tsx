@@ -15,8 +15,9 @@ import {
   useBnParticipantConfig,
   useUpsertBnParticipantConfig,
 } from '@/hooks/bn/useBnParticipantConfig';
-import { useReferenceValues } from '@/hooks/bn/useReferenceData';
-import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { fetchActiveCountryParticipantTypes } from '@/services/bn/countryPackService';
 import type { BnProductParticipantConfigInput } from '@/types/bnParticipant';
 
 interface Props {
