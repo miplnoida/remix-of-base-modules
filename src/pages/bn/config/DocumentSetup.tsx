@@ -21,6 +21,7 @@ import { CodeFieldWithAutoGenerate } from '@/components/bn/smart';
 import { useBnConfigAudit } from '@/hooks/bn/useBnConfigAudit';
 import type { BnDocumentProfile } from '@/types/bn';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
+import CountryFieldSelector from '@/components/bn/selectors/CountryFieldSelector';
 
 type ProfileForm = {
   id?: string;
