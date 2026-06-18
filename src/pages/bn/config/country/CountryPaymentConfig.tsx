@@ -17,10 +17,14 @@ import CountrySelector from '@/components/bn/country/CountrySelector';
 import {
   useBnCountryPaymentConfig, useUpsertCountryPaymentConfig, useDeleteCountryPaymentConfig,
 } from '@/hooks/bn/useBnCountryPack';
+import { useReferenceValues } from '@/hooks/bn/useReferenceData';
+import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
 import { BN_PAYMENT_METHODS, BN_PAYMENT_CYCLES } from '@/types/bn';
 import type { BnCountryPaymentConfig } from '@/types/bn';
 import { PageHeader } from '@/components/common/PageHeader';
 import { EFT_FORMAT_PRESETS, getPreset } from '@/lib/bn/eftFormatPresets';
+
+const PAYMENT_METHOD_FALLBACK = BN_PAYMENT_METHODS.map((m) => ({ value: m, label: m }));
 
 const empty = (): Partial<BnCountryPaymentConfig> => ({
   payment_method: '', method_label: '', is_default: false, requires_bank_account: false, requires_mobile_number: false,
