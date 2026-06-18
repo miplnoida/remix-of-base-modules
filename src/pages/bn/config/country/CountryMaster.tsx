@@ -67,9 +67,39 @@ const CountryMasterInner: React.FC = () => {
   const closeDialog = () => { setEditing(null); setIsNew(false); };
 
   const handleSave = async () => {
-    if (!form.country_code.trim() || !form.country_name.trim() || !form.currency_code.trim()) {
-      toast.error('Country code, name and currency are required'); return;
+    // 1) Identity
+    if (!form.country_code.trim() || !form.country_name.trim()) {
+      toast.error('Country must be selected'); return;
     }
+    if (!findCountry(form.country_code)) {
+      toast.error('Selected country must exist in Country Master'); return;
+    }
+    if (isNew && countries.some(c => c.country_code === form.country_code)) {
+      toast.error(`Country ${form.country_code} already exists`); return;
+    }
+    // 2) Currency
+    if (!form.currency_code || !findCurrency(form.currency_code)) {
+      toast.error('Valid currency must be selected'); return;
+    }
+    // 3) Timezone
+    if (!form.timezone || !isValidIanaTimezone(form.timezone)) {
+      toast.error('A valid IANA timezone must be selected'); return;
+    }
+    // 4) Locale & language
+    if (!form.locale || !isValidLocale(form.locale)) {
+      toast.error('A valid locale must be selected'); return;
+    }
+    const lang = LANGUAGE_MASTER.find(l => l.code === form.default_language);
+    if (!lang || !lang.is_active) {
+      toast.error('Default language must be an active language'); return;
+    }
+    // 5) Fiscal month
+    const fm = form.fiscal_year_start_month ?? 0;
+    if (fm < 1 || fm > 12) { toast.error('Fiscal year start month must be 1–12'); return; }
+    // 6) Retirement age
+    const age = form.default_retirement_age ?? 0;
+    if (age < 0 || age > 120) { toast.error('Retirement age must be between 0 and 120'); return; }
+
     try {
       if (isNew) {
         await createMut.mutateAsync({ input: form });
@@ -87,6 +117,15 @@ const CountryMasterInner: React.FC = () => {
 
   const handleToggle = async (c: BnCountryRow) => {
     try {
+      if (c.is_active) {
+        const used = await countActiveProductsForCountry(c.country_code);
+        if (used > 0) {
+          const confirmed = window.confirm(
+            `${c.country_code} is used by ${used} active product${used > 1 ? 's' : ''}.\n\nDeactivating it may break dependent configurations. Continue?`,
+          );
+          if (!confirmed) return;
+        }
+      }
       await toggleMut.mutateAsync({ code: c.country_code, isActive: !c.is_active });
       toast.success(`${c.country_code} ${!c.is_active ? 'activated' : 'deactivated'}`);
     } catch (e: any) { toast.error(e.message ?? 'Failed'); }
@@ -99,6 +138,33 @@ const CountryMasterInner: React.FC = () => {
       else toast.success(`Seeded: ${res.seeded.join(', ')}`);
     } catch (e: any) { toast.error(e.message ?? 'Seed failed'); }
   };
+
+  // Pick a country from ISO master → auto-fill identity + suggested defaults.
+  const onSelectIsoCountry = (iso2: string) => {
+    const iso = findCountry(iso2);
+    if (!iso) return;
+    const cur = findCurrency(iso.default_currency);
+    setForm(f => ({
+      ...f,
+      country_code: iso.iso2,
+      country_name: iso.name,
+      currency_code: iso.default_currency,
+      currency_symbol: cur?.symbol ?? f.currency_symbol ?? '',
+      timezone: iso.default_timezone,
+      locale: iso.default_locale,
+      default_language: iso.default_language,
+    }));
+  };
+
+  const onSelectCurrency = (code: string) => {
+    const cur = findCurrency(code);
+    setForm(f => ({ ...f, currency_code: code, currency_symbol: cur?.symbol ?? f.currency_symbol ?? '' }));
+  };
+
+  const tzOptions = useMemo(() => {
+    const list = form.country_code ? timezonesForCountry(form.country_code) : [];
+    return list.map(tz => ({ value: tz, label: tz }));
+  }, [form.country_code]);
 
   return (
     <div className="p-6 space-y-6">
