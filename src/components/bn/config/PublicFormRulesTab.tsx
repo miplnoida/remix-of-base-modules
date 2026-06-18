@@ -9,26 +9,21 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Save, Users } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   useBnParticipantConfig,
   useUpsertBnParticipantConfig,
 } from '@/hooks/bn/useBnParticipantConfig';
-import {
-  BN_PARTICIPANT_ROLES,
-  BN_PARTICIPANT_ROLE_LABELS,
-  type BnParticipantRole,
-  type BnProductParticipantConfigInput,
-} from '@/types/bnParticipant';
+import { useReferenceValues } from '@/hooks/bn/useReferenceData';
+import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
+import type { BnProductParticipantConfigInput } from '@/types/bnParticipant';
 
 interface Props {
   versionId: string | undefined;
   isReadOnly?: boolean;
 }
 
-const APPLICANT_KIND_OPTIONS: BnParticipantRole[] = [
-  'INSURED_PERSON', 'APPLICANT', 'REPRESENTATIVE', 'GUARDIAN', 'PAYEE',
-  'BENEFICIARY', 'EMPLOYER', 'FUNERAL_HOME',
-];
 
 function emptyDraft(versionId: string): BnProductParticipantConfigInput {
   return {
@@ -81,7 +76,9 @@ export default function PublicFormRulesTab({ versionId, isReadOnly }: Props) {
     return <Card><CardContent className="p-6 text-sm text-muted-foreground">Loading participant rules…</CardContent></Card>;
   }
 
-  const toggleArray = (list: BnParticipantRole[], role: BnParticipantRole): BnParticipantRole[] =>
+  const participantTypes = useReferenceValues(BN_REF_GROUPS.PARTICIPANT_TYPE, []);
+  const refMissing = participantTypes.options.length === 0;
+  const toggleArray = (list: string[], role: string): string[] =>
     list.includes(role) ? list.filter((r) => r !== role) : [...list, role];
 
   const set = <K extends keyof BnProductParticipantConfigInput>(k: K, v: BnProductParticipantConfigInput[K]) =>
@@ -165,17 +162,27 @@ export default function PublicFormRulesTab({ versionId, isReadOnly }: Props) {
 
           <Separator />
 
+          {refMissing && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Reference data missing</AlertTitle>
+              <AlertDescription>
+                Participant types are not configured. Seed BN_PARTICIPANT_TYPE in Reference Data before editing participant rules.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div>
             <Label className="mb-2 block text-sm font-medium">Allowed applicant kinds (Step 0 options)</Label>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-              {APPLICANT_KIND_OPTIONS.map((role) => (
-                <label key={role} className="flex items-center gap-2 rounded border p-2 text-sm">
+              {participantTypes.options.map((opt) => (
+                <label key={opt.value} className="flex items-center gap-2 rounded border p-2 text-sm">
                   <Checkbox
-                    checked={draft.allowed_applicant_kinds.includes(role)}
+                    checked={draft.allowed_applicant_kinds.includes(opt.value)}
                     disabled={isReadOnly}
-                    onCheckedChange={() => set('allowed_applicant_kinds', toggleArray(draft.allowed_applicant_kinds, role))}
+                    onCheckedChange={() => set('allowed_applicant_kinds', toggleArray(draft.allowed_applicant_kinds, opt.value))}
                   />
-                  {BN_PARTICIPANT_ROLE_LABELS[role]}
+                  {opt.label}
                 </label>
               ))}
             </div>
@@ -184,40 +191,55 @@ export default function PublicFormRulesTab({ versionId, isReadOnly }: Props) {
           <div>
             <Label className="mb-2 block text-sm font-medium">Required participant roles</Label>
             <div className="flex flex-wrap gap-2">
-              {BN_PARTICIPANT_ROLES.map((role) => {
-                const active = draft.required_roles.includes(role);
+              {participantTypes.options.map((opt) => {
+                const active = draft.required_roles.includes(opt.value);
                 return (
                   <Badge
-                    key={role}
+                    key={opt.value}
                     variant={active ? 'default' : 'outline'}
                     className={isReadOnly ? '' : 'cursor-pointer'}
-                    onClick={() => !isReadOnly && set('required_roles', toggleArray(draft.required_roles, role))}
+                    onClick={() => !isReadOnly && set('required_roles', toggleArray(draft.required_roles, opt.value))}
                   >
-                    {BN_PARTICIPANT_ROLE_LABELS[role]}
+                    {opt.label}
                   </Badge>
                 );
               })}
+              {draft.required_roles
+                .filter((r) => !participantTypes.options.some((o) => o.value === r))
+                .map((r) => (
+                  <Badge key={`retired-req-${r}`} variant="outline" className="border-amber-600 text-amber-600">
+                    {r} (retired)
+                  </Badge>
+                ))}
             </div>
           </div>
 
           <div>
             <Label className="mb-2 block text-sm font-medium">Optional participant roles</Label>
             <div className="flex flex-wrap gap-2">
-              {BN_PARTICIPANT_ROLES.map((role) => {
-                const active = draft.optional_roles.includes(role);
+              {participantTypes.options.map((opt) => {
+                const active = draft.optional_roles.includes(opt.value);
                 return (
                   <Badge
-                    key={role}
+                    key={opt.value}
                     variant={active ? 'secondary' : 'outline'}
                     className={isReadOnly ? '' : 'cursor-pointer'}
-                    onClick={() => !isReadOnly && set('optional_roles', toggleArray(draft.optional_roles, role))}
+                    onClick={() => !isReadOnly && set('optional_roles', toggleArray(draft.optional_roles, opt.value))}
                   >
-                    {BN_PARTICIPANT_ROLE_LABELS[role]}
+                    {opt.label}
                   </Badge>
                 );
               })}
+              {draft.optional_roles
+                .filter((r) => !participantTypes.options.some((o) => o.value === r))
+                .map((r) => (
+                  <Badge key={`retired-opt-${r}`} variant="outline" className="border-amber-600 text-amber-600">
+                    {r} (retired)
+                  </Badge>
+                ))}
             </div>
           </div>
+
 
           <div>
             <Label className="mb-2 block text-sm font-medium">Notes</Label>

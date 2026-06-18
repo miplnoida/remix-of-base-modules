@@ -8,37 +8,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { BnCountryProvider, useBnCountry } from '@/contexts/BnCountryContext';
 import CountrySelector from '@/components/bn/country/CountrySelector';
 import { useBnCountryParticipantTypes, useUpsertCountryParticipantType, useDeleteCountryParticipantType } from '@/hooks/bn/useBnCountryPack';
 import { useReferenceValues } from '@/hooks/bn/useReferenceData';
 import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
-import { BN_PARTICIPANT_ROLES } from '@/types/bn';
 import type { BnCountryParticipantType } from '@/types/bn';
 import { PageHeader } from '@/components/common/PageHeader';
 
-const PARTICIPANT_FALLBACK = [
-  { value: 'CLAIMANT', label: 'Claimant' },
-  { value: 'INSURED_PERSON', label: 'Insured Person' },
-  { value: 'BENEFICIARY', label: 'Beneficiary' },
-  { value: 'SPOUSE', label: 'Spouse' },
-  { value: 'CHILD', label: 'Child' },
-  { value: 'GUARDIAN', label: 'Guardian' },
-  { value: 'PAYEE', label: 'Payee' },
-  { value: 'EMPLOYER', label: 'Employer' },
-  { value: 'DOCTOR', label: 'Doctor' },
-  { value: 'FUNERAL_PROVIDER', label: 'Funeral Provider' },
-];
-
-const ROLE_CATEGORIES = ['CLAIMANT','INSURED','BENEFICIARY','EMPLOYER','PROVIDER','OFFICER','THIRD_PARTY'];
-const RELATIONSHIP_CATEGORIES = ['', 'SPOUSE', 'CHILD', 'PARENT', 'SIBLING', 'DEPENDANT', 'OTHER'];
-const AUTHORITY_CATEGORIES = ['', 'GUARDIAN', 'POWER_OF_ATTORNEY', 'EXECUTOR', 'COURT_ORDER', 'EMPLOYER_REP', 'OTHER'];
+const NONE = '__none';
 
 const empty = (): Partial<BnCountryParticipantType> => ({
-  type_code: '', type_name: '', participant_role: 'CLAIMANT',
-  role_category: 'CLAIMANT',
+  type_code: '', type_name: '', participant_role: '',
+  role_category: '',
   requires_identity_verification: true,
   requires_relationship_or_authority_proof: false,
   requires_ssn_link: false,
@@ -57,7 +42,6 @@ const empty = (): Partial<BnCountryParticipantType> => ({
   proof_requirement_code: null,
   suggested_document_category: null,
   suggested_document_label: null,
-  // legacy mirrors
   requires_id: true,
   requires_relationship_proof: false,
   min_age: null, max_age: null, allowed_products: null, sort_order: 0, is_active: true,
@@ -85,12 +69,54 @@ const Section: React.FC<{ title: string; description?: string; children: React.R
 
 interface ProofReq { proof_requirement_code: string; proof_requirement_name: string; suggested_document_label: string | null; }
 
+/** Select bound to a reference group. Shows a warning when no active values exist. */
+const RefSelect: React.FC<{
+  label: string;
+  groupCode: string;
+  value: string | null | undefined;
+  onChange: (v: string | null) => void;
+  required?: boolean;
+  allowNone?: boolean;
+}> = ({ label, groupCode, value, onChange, required, allowNone }) => {
+  const { options, isLoading } = useReferenceValues(groupCode, []);
+  const current = value || '';
+  const retired = current && !options.some(o => o.value === current);
+  return (
+    <div>
+      <Label>{label}{required && ' *'}</Label>
+      <Select
+        value={current ? current : (allowNone ? NONE : '')}
+        onValueChange={(v) => onChange(v === NONE ? null : v)}
+        disabled={isLoading}
+      >
+        <SelectTrigger>
+          <SelectValue placeholder={isLoading ? 'Loading…' : `Select ${label.toLowerCase()}`} />
+        </SelectTrigger>
+        <SelectContent>
+          {allowNone && <SelectItem value={NONE}>— None —</SelectItem>}
+          {retired && <SelectItem value={current}>{current} (retired)</SelectItem>}
+          {options.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      {!isLoading && options.length === 0 && (
+        <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+          <AlertTriangle className="h-3 w-3" />Reference data missing for {groupCode}
+        </p>
+      )}
+      {retired && (
+        <p className="text-xs text-amber-600 mt-1">Current value "{current}" is retired in reference data.</p>
+      )}
+    </div>
+  );
+};
+
 const Content: React.FC = () => {
   const { activeCountryCode } = useBnCountry();
   const { data: types = [] } = useBnCountryParticipantTypes(activeCountryCode);
   const upsert = useUpsertCountryParticipantType();
   const remove = useDeleteCountryParticipantType();
-  const { options: participantOptions } = useReferenceValues(BN_REF_GROUPS.PARTICIPANT_TYPE, PARTICIPANT_FALLBACK);
+  const participantTypes = useReferenceValues(BN_REF_GROUPS.PARTICIPANT_TYPE, []);
+  const roleCategories = useReferenceValues(BN_REF_GROUPS.PARTICIPANT_ROLE_CATEGORY, []);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<BnCountryParticipantType>>(empty());
   const [proofReqs, setProofReqs] = useState<ProofReq[]>([]);
@@ -112,16 +138,26 @@ const Content: React.FC = () => {
   const set = <K extends keyof BnCountryParticipantType>(k: K, v: BnCountryParticipantType[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  const missingRefs = [
+    participantTypes.options.length === 0 && 'BN_PARTICIPANT_TYPE',
+    roleCategories.options.length === 0 && 'BN_PARTICIPANT_ROLE_CATEGORY',
+  ].filter(Boolean) as string[];
+
   const handleSave = async () => {
     if (!form.type_code) { toast.error('Participant type is required'); return; }
     if (!form.role_category) { toast.error('Role category is required'); return; }
+    if (!form.participant_role) { toast.error('Role is required'); return; }
+    // Block use of retired/inactive values for new records
+    if (!form.id) {
+      const ptOk = participantTypes.options.some(o => o.value === form.type_code);
+      if (!ptOk) { toast.error('Selected participant type is not active in reference data'); return; }
+    }
     try {
-      const chosen = participantOptions.find((o) => o.value === form.type_code);
+      const chosen = participantTypes.options.find((o) => o.value === form.type_code);
       const payload: Partial<BnCountryParticipantType> = {
         ...form,
         type_name: form.type_name || chosen?.label || form.type_code,
         country_code: activeCountryCode,
-        // Keep legacy columns in sync for backward compatibility with existing readers
         requires_id: !!form.requires_identity_verification,
         requires_relationship_proof: !!form.requires_relationship_or_authority_proof,
         relationship_category: form.relationship_category || null,
@@ -136,16 +172,33 @@ const Content: React.FC = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  // Helper to flag rows whose stored value is no longer in active reference data
+  const isRetired = (val: string | null | undefined, opts: { value: string }[]) =>
+    !!val && opts.length > 0 && !opts.some(o => o.value === val);
+
   return (
     <div className="space-y-6 p-6">
       <PageHeader
         title="Country Participant Types"
-        subtitle="Define who can participate and what verification they need. Actual evidence documents are configured later in Document Library and Product Catalog."
+        subtitle="Define who can participate and what verification they need. All dropdown values are managed centrally under Reference Data."
         breadcrumbs={[{ label: 'Benefit Management' }, { label: 'Country Config' }, { label: 'Participant Types' }]}
       />
+
+      {missingRefs.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Reference data missing</AlertTitle>
+          <AlertDescription>
+            Seed values for: {missingRefs.join(', ')} in Reference Data before configuring participant types.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center justify-between">
         <CountrySelector />
-        <Button size="sm" onClick={() => { setForm(empty()); setOpen(true); }}><Plus className="h-4 w-4 mr-1" />Add Type</Button>
+        <Button size="sm" onClick={() => { setForm(empty()); setOpen(true); }} disabled={missingRefs.length > 0}>
+          <Plus className="h-4 w-4 mr-1" />Add Type
+        </Button>
       </div>
       <Card><CardContent className="p-0">
         <Table>
@@ -155,23 +208,29 @@ const Content: React.FC = () => {
             <TableHead>Online</TableHead><TableHead>Active</TableHead><TableHead className="w-20">Actions</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {types.map((t: BnCountryParticipantType) => (
-              <TableRow key={t.id}>
-                <TableCell className="font-mono text-sm">{t.type_code}</TableCell>
-                <TableCell>{t.type_name}</TableCell>
-                <TableCell><Badge variant="outline">{t.participant_role}</Badge></TableCell>
-                <TableCell>{t.requires_identity_verification ?? t.requires_id ? '✓' : ''}</TableCell>
-                <TableCell>{t.requires_relationship_or_authority_proof ?? t.requires_relationship_proof ? '✓' : ''}</TableCell>
-                <TableCell>{t.online_access_allowed ? '✓' : ''}</TableCell>
-                <TableCell><Badge variant={t.is_active ? 'default' : 'secondary'}>{t.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
-                <TableCell>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => { setForm(t); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={async () => { if (confirm('Delete?')) { try { await remove.mutateAsync(t.id); toast.success('Deleted'); } catch (e: any) { toast.error(e.message); } } }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+            {types.map((t: BnCountryParticipantType) => {
+              const retired = isRetired(t.type_code, participantTypes.options);
+              return (
+                <TableRow key={t.id}>
+                  <TableCell className="font-mono text-sm">
+                    {t.type_code}
+                    {retired && <Badge variant="outline" className="ml-2 text-amber-600 border-amber-600">retired</Badge>}
+                  </TableCell>
+                  <TableCell>{t.type_name}</TableCell>
+                  <TableCell><Badge variant="outline">{t.participant_role}</Badge></TableCell>
+                  <TableCell>{(t.requires_identity_verification ?? t.requires_id) ? '✓' : ''}</TableCell>
+                  <TableCell>{(t.requires_relationship_or_authority_proof ?? t.requires_relationship_proof) ? '✓' : ''}</TableCell>
+                  <TableCell>{t.online_access_allowed ? '✓' : ''}</TableCell>
+                  <TableCell><Badge variant={t.is_active ? 'default' : 'secondary'}>{t.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => { setForm(t); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={async () => { if (confirm('Delete?')) { try { await remove.mutateAsync(t.id); toast.success('Deleted'); } catch (e: any) { toast.error(e.message); } } }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
             {!types.length && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No participant types configured</TableCell></TableRow>}
           </TableBody>
         </Table>
@@ -183,64 +242,60 @@ const Content: React.FC = () => {
 
           <div className="space-y-4">
             <Section title="Identity">
-              <div>
-                <Label>Participant Type *</Label>
-                <Select value={form.type_code || ''} onValueChange={(v) => set('type_code', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                  <SelectContent>
-                    {participantOptions.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+              <RefSelect
+                label="Participant Type"
+                groupCode={BN_REF_GROUPS.PARTICIPANT_TYPE}
+                value={form.type_code}
+                onChange={(v) => set('type_code', v || '')}
+                required
+              />
               <div><Label>Display Name</Label><Input value={form.type_name || ''} onChange={e => set('type_name', e.target.value)} placeholder="Auto-filled from participant type" /></div>
-              <div><Label>Role</Label>
-                <Select value={form.participant_role || 'CLAIMANT'} onValueChange={v => set('participant_role', v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{BN_PARTICIPANT_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
+              <RefSelect
+                label="Role"
+                groupCode={BN_REF_GROUPS.PARTICIPANT_TYPE}
+                value={form.participant_role}
+                onChange={(v) => set('participant_role', v || '')}
+                required
+              />
               <div><Label>Sort Order</Label><Input type="number" value={form.sort_order ?? 0} onChange={e => set('sort_order', parseInt(e.target.value) || 0)} /></div>
-              <div>
-                <Label>Role Category *</Label>
-                <Select value={form.role_category || ''} onValueChange={v => set('role_category', v)}>
-                  <SelectTrigger><SelectValue placeholder="Select role category" /></SelectTrigger>
-                  <SelectContent>{ROLE_CATEGORIES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
+              <RefSelect
+                label="Role Category"
+                groupCode={BN_REF_GROUPS.PARTICIPANT_ROLE_CATEGORY}
+                value={form.role_category}
+                onChange={(v) => set('role_category', v || '')}
+                required
+              />
             </Section>
 
-            <Section title="Verification Intent" description="What kind of verification this participant type needs. Actual document mapping happens later in Document Library / Product Catalog.">
+            <Section title="Verification Intent" description="Verification needs. Actual document mapping happens in Document Library / Product Catalog.">
               <Toggle label="Requires Identity Verification" checked={!!form.requires_identity_verification}
-                onChange={v => set('requires_identity_verification', v)}
-                hint="Country ID rules will be used to validate identity." />
+                onChange={v => set('requires_identity_verification', v)} />
               <Toggle label="Requires Relationship / Authority Proof" checked={!!form.requires_relationship_or_authority_proof}
-                onChange={v => set('requires_relationship_or_authority_proof', v)}
-                hint="E.g. spouse, child, guardian, executor." />
+                onChange={v => set('requires_relationship_or_authority_proof', v)} />
               <Toggle label="Requires SSN Link" checked={!!form.requires_ssn_link}
-                onChange={v => set('requires_ssn_link', v)}
-                hint="Participant must be linked to an SSN / Insured record." />
-              <div>
-                <Label>Relationship Category</Label>
-                <Select value={form.relationship_category || '__none'} onValueChange={v => set('relationship_category', v === '__none' ? null : v)}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{RELATIONSHIP_CATEGORIES.map(r => <SelectItem key={r || 'none'} value={r || '__none'}>{r || '— None —'}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Authority Category</Label>
-                <Select value={form.authority_category || '__none'} onValueChange={v => set('authority_category', v === '__none' ? null : v)}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{AUTHORITY_CATEGORIES.map(r => <SelectItem key={r || 'none'} value={r || '__none'}>{r || '— None —'}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
+                onChange={v => set('requires_ssn_link', v)} />
+              <RefSelect
+                label="Relationship Category"
+                groupCode={BN_REF_GROUPS.RELATIONSHIP_CATEGORY}
+                value={form.relationship_category}
+                onChange={(v) => set('relationship_category', v)}
+                allowNone
+              />
+              <RefSelect
+                label="Authority Category"
+                groupCode={BN_REF_GROUPS.AUTHORITY_CATEGORY}
+                value={form.authority_category}
+                onChange={(v) => set('authority_category', v)}
+                allowNone
+              />
             </Section>
 
             <Section title="Online Portal & Communication">
-              <Toggle label="Can Register Online" checked={!!form.can_register_online} onChange={v => set('can_register_online', v)} hint="Can this participant create their own portal account?" />
-              <Toggle label="Online Access Allowed" checked={!!form.online_access_allowed} onChange={v => set('online_access_allowed', v)} hint="Can access portal once registered/linked." />
+              <Toggle label="Can Register Online" checked={!!form.can_register_online} onChange={v => set('can_register_online', v)} />
+              <Toggle label="Online Access Allowed" checked={!!form.online_access_allowed} onChange={v => set('online_access_allowed', v)} />
               <Toggle label="Can Apply For Self" checked={!!form.can_apply_for_self} onChange={v => set('can_apply_for_self', v)} />
               <Toggle label="Can Apply For Others" checked={!!form.can_apply_for_others} onChange={v => set('can_apply_for_others', v)} />
-              <Toggle label="Can Be Added By Claimant" checked={!!form.can_be_added_by_claimant} onChange={v => set('can_be_added_by_claimant', v)} hint="Claimant may add this participant to their own claim." />
+              <Toggle label="Can Be Added By Claimant" checked={!!form.can_be_added_by_claimant} onChange={v => set('can_be_added_by_claimant', v)} />
               <Toggle label="Can Receive Communication" checked={!!form.can_receive_communication} onChange={v => set('can_receive_communication', v)} />
               <Toggle label="Can Receive Payment" checked={!!form.can_receive_payment} onChange={v => set('can_receive_payment', v)} />
               <Toggle label="Requires Email Verification" checked={!!form.requires_email_verification} onChange={v => set('requires_email_verification', v)} />
@@ -248,13 +303,13 @@ const Content: React.FC = () => {
               <Toggle label="Requires Officer Review" checked={!!form.requires_officer_review} onChange={v => set('requires_officer_review', v)} />
             </Section>
 
-            <Section title="Suggested Proof (optional)" description="Pick a country-level proof requirement. The actual document binding (Document Library) happens later — proof codes are hints used by Product Catalog and online portal.">
+            <Section title="Suggested Proof (optional)" description="Country-level proof requirement hint. The document binding lives in Document Library.">
               <div>
                 <Label>Proof Requirement</Label>
-                <Select value={form.proof_requirement_code || '__none'} onValueChange={v => set('proof_requirement_code', v === '__none' ? null : v)}>
+                <Select value={form.proof_requirement_code || NONE} onValueChange={v => set('proof_requirement_code', v === NONE ? null : v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none">— None —</SelectItem>
+                    <SelectItem value={NONE}>— None —</SelectItem>
                     {proofReqs.map(p => (
                       <SelectItem key={p.proof_requirement_code} value={p.proof_requirement_code}>
                         {p.proof_requirement_name}{p.suggested_document_label ? ` — ${p.suggested_document_label}` : ''}
@@ -264,7 +319,13 @@ const Content: React.FC = () => {
                 </Select>
                 {proofReqs.length === 0 && <p className="text-xs text-muted-foreground mt-1">No proof requirements defined for this country yet.</p>}
               </div>
-              <div><Label>Suggested Document Category</Label><Input value={form.suggested_document_category || ''} onChange={e => set('suggested_document_category', e.target.value || null)} placeholder="e.g. Civil Status" /></div>
+              <RefSelect
+                label="Suggested Document Category"
+                groupCode={BN_REF_GROUPS.PROOF_REQUIREMENT_CATEGORY}
+                value={form.suggested_document_category}
+                onChange={(v) => set('suggested_document_category', v)}
+                allowNone
+              />
               <div className="md:col-span-2"><Label>Suggested Document Label</Label><Input value={form.suggested_document_label || ''} onChange={e => set('suggested_document_label', e.target.value || null)} placeholder="e.g. Marriage Certificate" /></div>
             </Section>
 
