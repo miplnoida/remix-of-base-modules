@@ -185,9 +185,9 @@ export default function PublicFormRulesTab({ versionId, isReadOnly }: Props) {
           {refMissing && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Reference data missing</AlertTitle>
+              <AlertTitle>No active participant types for this country</AlertTitle>
               <AlertDescription>
-                Participant types are not configured. Seed BN_PARTICIPANT_TYPE in Reference Data before editing participant rules.
+                Configure active participant types under Country Config → Participant Types before editing product participant rules.
               </AlertDescription>
             </Alert>
           )}
