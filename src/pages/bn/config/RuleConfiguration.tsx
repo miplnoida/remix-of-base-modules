@@ -26,6 +26,7 @@ import type { BnRuleGroup } from '@/types/bn';
 import { RuleGroupLinkedRules } from '@/components/bn/ruleCatalogue/RuleGroupLinkedRules';
 import { useRuleGroupLinkCounts } from '@/hooks/bn/useRuleGroupLinkCounts';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
+import CountryFieldSelector from '@/components/bn/selectors/CountryFieldSelector';
 
 type RuleGroupForm = {
   id?: string;
