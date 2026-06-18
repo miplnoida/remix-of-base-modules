@@ -76,9 +76,13 @@ interface Props {
   onSaved?: (id: string) => void;
 }
 
+const db = supabase as any;
+
 export function RateTableHeaderForm({ open, onClose, rateTableId, onSaved }: Props) {
   const { profile } = useSupabaseAuth();
   const { data: countries = [] } = useBnCountries();
+  const { options: TABLE_TYPES } = useReferenceValues(BN_REF_GROUPS.RATE_TABLE_TYPE, TABLE_TYPES_FALLBACK);
+  const { options: LOOKUP_MODES } = useReferenceValues(BN_REF_GROUPS.LOOKUP_MODE, LOOKUP_MODES_FALLBACK);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
