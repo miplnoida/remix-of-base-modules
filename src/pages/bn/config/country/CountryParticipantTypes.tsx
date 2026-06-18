@@ -220,7 +220,7 @@ const Content: React.FC = () => {
             <Section title="Suggested Proof (optional)" description="Hints only — actual document binding happens later in Document Library. Leave blank if not known yet.">
               <div>
                 <Label>Proof Requirement Code</Label>
-                <Select value={form.proof_requirement_code || ''} onValueChange={v => set('proof_requirement_code', v || null)}>
+                <Select value={form.proof_requirement_code || '__none'} onValueChange={v => set('proof_requirement_code', v === '__none' ? null : v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>{PROOF_CODES.map(p => <SelectItem key={p.value || 'none'} value={p.value || '__none'}>{p.label}</SelectItem>)}</SelectContent>
                 </Select>
