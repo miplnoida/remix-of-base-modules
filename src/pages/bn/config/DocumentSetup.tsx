@@ -163,9 +163,12 @@ export default function DocumentSetup() {
                   helpText="Unique profile code. Cannot be changed after creation."
                 />
                 <div className="space-y-1.5">
-                  <Label htmlFor="dp_country">Country code</Label>
-                  <Input id="dp_country" value={form.country_code} maxLength={3} placeholder="Leave blank for global"
-                    onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
+                  <Label htmlFor="dp_country">Country</Label>
+                  <CountryFieldSelector
+                    value={form.country_code || null}
+                    onChange={(code) => setForm({ ...form, country_code: code ?? '' })}
+                    placeholder="Leave blank for global"
+                  />
                 </div>
               </div>
               <div className="space-y-1.5">
