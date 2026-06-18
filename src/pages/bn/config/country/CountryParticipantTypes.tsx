@@ -226,21 +226,33 @@ const Content: React.FC = () => {
             </Section>
 
             <Section title="Online Portal & Communication">
-              <Toggle label="Online Access Allowed" checked={!!form.online_access_allowed} onChange={v => set('online_access_allowed', v)} />
+              <Toggle label="Can Register Online" checked={!!form.can_register_online} onChange={v => set('can_register_online', v)} hint="Can this participant create their own portal account?" />
+              <Toggle label="Online Access Allowed" checked={!!form.online_access_allowed} onChange={v => set('online_access_allowed', v)} hint="Can access portal once registered/linked." />
               <Toggle label="Can Apply For Self" checked={!!form.can_apply_for_self} onChange={v => set('can_apply_for_self', v)} />
               <Toggle label="Can Apply For Others" checked={!!form.can_apply_for_others} onChange={v => set('can_apply_for_others', v)} />
+              <Toggle label="Can Be Added By Claimant" checked={!!form.can_be_added_by_claimant} onChange={v => set('can_be_added_by_claimant', v)} hint="Claimant may add this participant to their own claim." />
               <Toggle label="Can Receive Communication" checked={!!form.can_receive_communication} onChange={v => set('can_receive_communication', v)} />
               <Toggle label="Can Receive Payment" checked={!!form.can_receive_payment} onChange={v => set('can_receive_payment', v)} />
+              <Toggle label="Requires Email Verification" checked={!!form.requires_email_verification} onChange={v => set('requires_email_verification', v)} />
+              <Toggle label="Requires Phone Verification" checked={!!form.requires_phone_verification} onChange={v => set('requires_phone_verification', v)} />
               <Toggle label="Requires Officer Review" checked={!!form.requires_officer_review} onChange={v => set('requires_officer_review', v)} />
             </Section>
 
-            <Section title="Suggested Proof (optional)" description="Hints only — actual document binding happens later in Document Library. Leave blank if not known yet.">
+            <Section title="Suggested Proof (optional)" description="Pick a country-level proof requirement. The actual document binding (Document Library) happens later — proof codes are hints used by Product Catalog and online portal.">
               <div>
-                <Label>Proof Requirement Code</Label>
+                <Label>Proof Requirement</Label>
                 <Select value={form.proof_requirement_code || '__none'} onValueChange={v => set('proof_requirement_code', v === '__none' ? null : v)}>
                   <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{PROOF_CODES.map(p => <SelectItem key={p.value || 'none'} value={p.value || '__none'}>{p.label}</SelectItem>)}</SelectContent>
+                  <SelectContent>
+                    <SelectItem value="__none">— None —</SelectItem>
+                    {proofReqs.map(p => (
+                      <SelectItem key={p.proof_requirement_code} value={p.proof_requirement_code}>
+                        {p.proof_requirement_name}{p.suggested_document_label ? ` — ${p.suggested_document_label}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
+                {proofReqs.length === 0 && <p className="text-xs text-muted-foreground mt-1">No proof requirements defined for this country yet.</p>}
               </div>
               <div><Label>Suggested Document Category</Label><Input value={form.suggested_document_category || ''} onChange={e => set('suggested_document_category', e.target.value || null)} placeholder="e.g. Civil Status" /></div>
               <div className="md:col-span-2"><Label>Suggested Document Label</Label><Input value={form.suggested_document_label || ''} onChange={e => set('suggested_document_label', e.target.value || null)} placeholder="e.g. Marriage Certificate" /></div>
