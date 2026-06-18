@@ -45,9 +45,9 @@ export interface BnProductParticipantConfig {
   id: string;
   product_version_id: string;
   applicant_must_equal_insured: boolean;
-  allowed_applicant_kinds: BnParticipantRole[];
-  required_roles: BnParticipantRole[];
-  optional_roles: BnParticipantRole[];
+  allowed_applicant_kinds: string[];
+  required_roles: string[];
+  optional_roles: string[];
   requires_deceased: boolean;
   requires_beneficiaries: boolean;
   requires_guardian_or_payee: boolean;
