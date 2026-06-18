@@ -91,10 +91,15 @@ const Content: React.FC = () => {
           <div className="grid grid-cols-2 gap-4">
             <div><Label>Field Code</Label><Input value={form.field_code || ''} onChange={e => setForm(f => ({ ...f, field_code: e.target.value.toUpperCase() }))} placeholder="LINE_1" /></div>
             <div><Label>Label</Label><Input value={form.field_label || ''} onChange={e => setForm(f => ({ ...f, field_label: e.target.value }))} placeholder="Street Address" /></div>
-            <div><Label>Type</Label>
-              <Select value={form.field_type || 'TEXT'} onValueChange={v => setForm(f => ({ ...f, field_type: v }))}>
+            <div>
+              <Label>Field Type *</Label>
+              <Select value={form.field_type || 'TEXT'} onValueChange={(v) => setForm((f) => ({ ...f, field_type: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="TEXT">Text</SelectItem><SelectItem value="SELECT">Select</SelectItem><SelectItem value="POSTAL">Postal Code</SelectItem></SelectContent>
+                <SelectContent>
+                  {fieldTypeOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
             <div><Label>Sort Order</Label><Input type="number" value={form.sort_order ?? 0} onChange={e => setForm(f => ({ ...f, sort_order: parseInt(e.target.value) || 0 }))} /></div>
