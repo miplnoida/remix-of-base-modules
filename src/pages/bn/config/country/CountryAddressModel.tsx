@@ -13,8 +13,21 @@ import { toast } from 'sonner';
 import { BnCountryProvider, useBnCountry } from '@/contexts/BnCountryContext';
 import CountrySelector from '@/components/bn/country/CountrySelector';
 import { useBnCountryAddressModel, useUpsertCountryAddressField, useDeleteCountryAddressField } from '@/hooks/bn/useBnCountryPack';
+import { useReferenceValues } from '@/hooks/bn/useReferenceData';
+import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
 import type { BnCountryAddressField } from '@/types/bn';
 import { PageHeader } from '@/components/common/PageHeader';
+
+const FIELD_TYPE_FALLBACK = [
+  { value: 'TEXT', label: 'Text' },
+  { value: 'NUMBER', label: 'Number' },
+  { value: 'DROPDOWN', label: 'Dropdown' },
+  { value: 'PARISH', label: 'Parish' },
+  { value: 'ISLAND', label: 'Island' },
+  { value: 'VILLAGE', label: 'Village/Town' },
+  { value: 'POSTAL_CODE', label: 'Postal Code' },
+  { value: 'COUNTRY', label: 'Country' },
+];
 
 const empty = (): Partial<BnCountryAddressField> => ({
   field_code: '', field_label: '', field_type: 'TEXT', is_required: false, options_source: null, validation_pattern: null, sort_order: 0, is_active: true,
