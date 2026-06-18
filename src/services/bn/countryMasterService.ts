@@ -78,6 +78,17 @@ export async function setCountryActive(code: string, isActive: boolean, userCode
   return updateCountry(code, { is_active: isActive }, userCode);
 }
 
+/** Returns the number of active products bound to a country (for deactivation guard). */
+export async function countActiveProductsForCountry(code: string): Promise<number> {
+  const { count, error } = await db
+    .from('bn_product')
+    .select('*', { count: 'exact', head: true })
+    .eq('country_code', code)
+    .eq('is_active', true);
+  if (error) return 0;
+  return count ?? 0;
+}
+
 export async function getCountryPackStatus(code: string): Promise<CountryPackStatus> {
   const countOf = async (table: string) => {
     const { count, error } = await db.from(table).select('*', { count: 'exact', head: true }).eq('country_code', code);

@@ -21,9 +21,15 @@ import {
   useToggleCountryActive, useSeedCountryPack, useOrphanCountryRefs,
 } from '@/hooks/bn/useBnCountryMaster';
 import type { BnCountryInput, BnCountryRow } from '@/services/bn/countryMasterService';
+import { countActiveProductsForCountry } from '@/services/bn/countryMasterService';
 import { Link } from 'react-router-dom';
 import { useBnCountry } from '@/contexts/BnCountryContext';
 import { BnCountryProvider } from '@/contexts/BnCountryContext';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import {
+  COUNTRY_MASTER, CURRENCY_MASTER, LANGUAGE_MASTER, LOCALE_MASTER, FISCAL_MONTHS,
+  timezonesForCountry, findCountry, findCurrency, isValidIanaTimezone, isValidLocale,
+} from '@/data/masters/commonMasters';
 
 const emptyForm: BnCountryInput = {
   country_code: '', country_name: '', currency_code: '', currency_symbol: '',
@@ -61,9 +67,39 @@ const CountryMasterInner: React.FC = () => {
   const closeDialog = () => { setEditing(null); setIsNew(false); };
 
   const handleSave = async () => {
-    if (!form.country_code.trim() || !form.country_name.trim() || !form.currency_code.trim()) {
-      toast.error('Country code, name and currency are required'); return;
+    // 1) Identity
+    if (!form.country_code.trim() || !form.country_name.trim()) {
+      toast.error('Country must be selected'); return;
     }
+    if (!findCountry(form.country_code)) {
+      toast.error('Selected country must exist in Country Master'); return;
+    }
+    if (isNew && countries.some(c => c.country_code === form.country_code)) {
+      toast.error(`Country ${form.country_code} already exists`); return;
+    }
+    // 2) Currency
+    if (!form.currency_code || !findCurrency(form.currency_code)) {
+      toast.error('Valid currency must be selected'); return;
+    }
+    // 3) Timezone
+    if (!form.timezone || !isValidIanaTimezone(form.timezone)) {
+      toast.error('A valid IANA timezone must be selected'); return;
+    }
+    // 4) Locale & language
+    if (!form.locale || !isValidLocale(form.locale)) {
+      toast.error('A valid locale must be selected'); return;
+    }
+    const lang = LANGUAGE_MASTER.find(l => l.code === form.default_language);
+    if (!lang || !lang.is_active) {
+      toast.error('Default language must be an active language'); return;
+    }
+    // 5) Fiscal month
+    const fm = form.fiscal_year_start_month ?? 0;
+    if (fm < 1 || fm > 12) { toast.error('Fiscal year start month must be 1–12'); return; }
+    // 6) Retirement age
+    const age = form.default_retirement_age ?? 0;
+    if (age < 0 || age > 120) { toast.error('Retirement age must be between 0 and 120'); return; }
+
     try {
       if (isNew) {
         await createMut.mutateAsync({ input: form });
@@ -81,6 +117,15 @@ const CountryMasterInner: React.FC = () => {
 
   const handleToggle = async (c: BnCountryRow) => {
     try {
+      if (c.is_active) {
+        const used = await countActiveProductsForCountry(c.country_code);
+        if (used > 0) {
+          const confirmed = window.confirm(
+            `${c.country_code} is used by ${used} active product${used > 1 ? 's' : ''}.\n\nDeactivating it may break dependent configurations. Continue?`,
+          );
+          if (!confirmed) return;
+        }
+      }
       await toggleMut.mutateAsync({ code: c.country_code, isActive: !c.is_active });
       toast.success(`${c.country_code} ${!c.is_active ? 'activated' : 'deactivated'}`);
     } catch (e: any) { toast.error(e.message ?? 'Failed'); }
@@ -93,6 +138,33 @@ const CountryMasterInner: React.FC = () => {
       else toast.success(`Seeded: ${res.seeded.join(', ')}`);
     } catch (e: any) { toast.error(e.message ?? 'Seed failed'); }
   };
+
+  // Pick a country from ISO master → auto-fill identity + suggested defaults.
+  const onSelectIsoCountry = (iso2: string) => {
+    const iso = findCountry(iso2);
+    if (!iso) return;
+    const cur = findCurrency(iso.default_currency);
+    setForm(f => ({
+      ...f,
+      country_code: iso.iso2,
+      country_name: iso.name,
+      currency_code: iso.default_currency,
+      currency_symbol: cur?.symbol ?? f.currency_symbol ?? '',
+      timezone: iso.default_timezone,
+      locale: iso.default_locale,
+      default_language: iso.default_language,
+    }));
+  };
+
+  const onSelectCurrency = (code: string) => {
+    const cur = findCurrency(code);
+    setForm(f => ({ ...f, currency_code: code, currency_symbol: cur?.symbol ?? f.currency_symbol ?? '' }));
+  };
+
+  const tzOptions = useMemo(() => {
+    const list = form.country_code ? timezonesForCountry(form.country_code) : [];
+    return list.map(tz => ({ value: tz, label: tz }));
+  }, [form.country_code]);
 
   return (
     <div className="p-6 space-y-6">
@@ -195,51 +267,148 @@ const CountryMasterInner: React.FC = () => {
       </Card>
 
       <Dialog open={isNew || !!editing} onOpenChange={(o) => { if (!o) closeDialog(); }}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{isNew ? 'New Country' : `Edit ${editing?.country_code}`}</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
-            <div>
-              <Label>Country Code *</Label>
-              <Input maxLength={3} value={form.country_code} disabled={!isNew}
-                onChange={e => setForm(f => ({ ...f, country_code: e.target.value.toUpperCase() }))} placeholder="e.g. KN" />
-            </div>
-            <div>
-              <Label>Country Name *</Label>
-              <Input value={form.country_name} onChange={e => setForm(f => ({ ...f, country_name: e.target.value }))} placeholder="St. Kitts and Nevis" />
-            </div>
-            <div>
-              <Label>Currency Code *</Label>
-              <Input maxLength={3} value={form.currency_code} onChange={e => setForm(f => ({ ...f, currency_code: e.target.value.toUpperCase() }))} placeholder="XCD" />
-            </div>
-            <div>
-              <Label>Currency Symbol</Label>
-              <Input value={form.currency_symbol ?? ''} onChange={e => setForm(f => ({ ...f, currency_symbol: e.target.value }))} placeholder="$" />
-            </div>
-            <div>
-              <Label>Locale</Label>
-              <Input value={form.locale ?? ''} onChange={e => setForm(f => ({ ...f, locale: e.target.value }))} placeholder="en" />
-            </div>
-            <div>
-              <Label>Default Language</Label>
-              <Input value={form.default_language ?? ''} onChange={e => setForm(f => ({ ...f, default_language: e.target.value }))} placeholder="en" />
-            </div>
-            <div className="col-span-2">
-              <Label>Timezone</Label>
-              <Input value={form.timezone ?? ''} onChange={e => setForm(f => ({ ...f, timezone: e.target.value }))} placeholder="America/St_Kitts" />
-            </div>
-            <div>
-              <Label>Default Retirement Age</Label>
-              <Input type="number" value={form.default_retirement_age ?? 62} onChange={e => setForm(f => ({ ...f, default_retirement_age: parseInt(e.target.value) || 0 }))} />
-            </div>
-            <div>
-              <Label>Fiscal Year Start Month</Label>
-              <Input type="number" min={1} max={12} value={form.fiscal_year_start_month ?? 1} onChange={e => setForm(f => ({ ...f, fiscal_year_start_month: parseInt(e.target.value) || 1 }))} />
-            </div>
-            <div className="col-span-2 flex items-center gap-2">
-              <Switch checked={form.is_active ?? true} onCheckedChange={v => setForm(f => ({ ...f, is_active: v }))} />
-              <Label>Active</Label>
-            </div>
+
+          <div className="space-y-5 py-2">
+            {/* ---------------- Country identity ---------------- */}
+            <section className="space-y-3">
+              <h4 className="text-sm font-semibold text-foreground">Country identity</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label>Country (ISO master) *</Label>
+                  <SearchableSelect
+                    options={COUNTRY_MASTER.map(c => ({
+                      value: c.iso2,
+                      label: `${c.name} (${c.iso2} · ${c.iso3})`,
+                      searchText: `${c.iso3} ${c.numeric_code} ${c.phone_code}`,
+                    }))}
+                    value={form.country_code}
+                    onValueChange={onSelectIsoCountry}
+                    placeholder="Select country from ISO master…"
+                    searchPlaceholder="Search by name, ISO2, ISO3…"
+                    disabled={!isNew}
+                  />
+                </div>
+                <div>
+                  <Label>Country Code (ISO-2)</Label>
+                  <Input value={form.country_code} disabled />
+                </div>
+                <div>
+                  <Label>Country Name</Label>
+                  <Input value={form.country_name} disabled />
+                </div>
+                {form.country_code && (() => {
+                  const iso = findCountry(form.country_code);
+                  if (!iso) return null;
+                  return (
+                    <div className="col-span-2 text-xs text-muted-foreground grid grid-cols-3 gap-2 bg-muted/40 rounded px-3 py-2">
+                      <div>ISO-3: <span className="font-mono">{iso.iso3}</span></div>
+                      <div>Numeric: <span className="font-mono">{iso.numeric_code}</span></div>
+                      <div>Phone: <span className="font-mono">{iso.phone_code}</span></div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </section>
+
+            {/* ---------------- Regional settings ---------------- */}
+            <section className="space-y-3">
+              <h4 className="text-sm font-semibold text-foreground">Regional settings</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Currency *</Label>
+                  <SearchableSelect
+                    options={CURRENCY_MASTER.map(c => ({
+                      value: c.code,
+                      label: `${c.code} — ${c.name} (${c.symbol})`,
+                      searchText: c.name,
+                    }))}
+                    value={form.currency_code}
+                    onValueChange={onSelectCurrency}
+                    placeholder="Select currency…"
+                    searchPlaceholder="Search currency…"
+                  />
+                </div>
+                <div>
+                  <Label>Currency Symbol</Label>
+                  <Input value={form.currency_symbol ?? ''} disabled placeholder="Auto" />
+                </div>
+                <div className="col-span-2">
+                  <Label>Timezone (IANA) *</Label>
+                  <SearchableSelect
+                    options={tzOptions}
+                    value={form.timezone ?? ''}
+                    onValueChange={v => setForm(f => ({ ...f, timezone: v }))}
+                    placeholder={form.country_code ? 'Select timezone…' : 'Select country first'}
+                    searchPlaceholder="Search timezone…"
+                    disabled={!form.country_code}
+                  />
+                </div>
+                <div>
+                  <Label>Default Language *</Label>
+                  <SearchableSelect
+                    options={LANGUAGE_MASTER.filter(l => l.is_active).map(l => ({
+                      value: l.code, label: `${l.code} — ${l.name}`,
+                    }))}
+                    value={form.default_language ?? ''}
+                    onValueChange={v => setForm(f => ({ ...f, default_language: v }))}
+                    placeholder="Select language…"
+                  />
+                </div>
+                <div>
+                  <Label>Locale *</Label>
+                  <SearchableSelect
+                    options={LOCALE_MASTER.map(l => ({ value: l.code, label: `${l.code} — ${l.name}` }))}
+                    value={form.locale ?? ''}
+                    onValueChange={v => setForm(f => ({ ...f, locale: v }))}
+                    placeholder="Select locale…"
+                    searchPlaceholder="Search locale…"
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* ---------------- Benefit defaults ---------------- */}
+            <section className="space-y-3">
+              <h4 className="text-sm font-semibold text-foreground">Benefit defaults</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Default Retirement Age</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={120}
+                    value={form.default_retirement_age ?? 62}
+                    onChange={e => setForm(f => ({ ...f, default_retirement_age: parseInt(e.target.value) || 0 }))}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">0–120. Overridable per product parameter.</p>
+                </div>
+                <div>
+                  <Label>Fiscal Year Start Month</Label>
+                  <SearchableSelect
+                    options={FISCAL_MONTHS.map(m => ({ value: String(m.value), label: `${m.value} — ${m.label}` }))}
+                    value={String(form.fiscal_year_start_month ?? 1)}
+                    onValueChange={v => setForm(f => ({ ...f, fiscal_year_start_month: parseInt(v) || 1 }))}
+                    placeholder="Select month…"
+                  />
+                </div>
+              </div>
+            </section>
+
+            {/* ---------------- Status ---------------- */}
+            <section className="space-y-2">
+              <h4 className="text-sm font-semibold text-foreground">Status</h4>
+              <div className="flex items-center gap-2">
+                <Switch checked={form.is_active ?? true} onCheckedChange={v => setForm(f => ({ ...f, is_active: v }))} />
+                <Label>Active</Label>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Deactivating a country used by active products will require admin confirmation.
+              </p>
+            </section>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Cancel</Button>
             <Button onClick={handleSave} disabled={createMut.isPending || updateMut.isPending}>Save</Button>
