@@ -7459,15 +7459,25 @@ export type Database = {
           country_name: string
           currency_code: string
           currency_symbol: string | null
+          date_format: string | null
+          default_language: string | null
           default_retirement_age: number
           entered_at: string
           entered_by: string | null
           fiscal_year_start_month: number
           is_active: boolean
+          letterhead_logo_url: string | null
           locale: string
           modified_at: string
           modified_by: string | null
+          number_format: string | null
+          office_address: string | null
+          office_email: string | null
+          office_name: string | null
+          office_phone: string | null
+          office_website: string | null
           parameters: Json
+          phone_format: string | null
           timezone: string
         }
         Insert: {
@@ -7478,15 +7488,25 @@ export type Database = {
           country_name: string
           currency_code?: string
           currency_symbol?: string | null
+          date_format?: string | null
+          default_language?: string | null
           default_retirement_age?: number
           entered_at?: string
           entered_by?: string | null
           fiscal_year_start_month?: number
           is_active?: boolean
+          letterhead_logo_url?: string | null
           locale?: string
           modified_at?: string
           modified_by?: string | null
+          number_format?: string | null
+          office_address?: string | null
+          office_email?: string | null
+          office_name?: string | null
+          office_phone?: string | null
+          office_website?: string | null
           parameters?: Json
+          phone_format?: string | null
           timezone?: string
         }
         Update: {
@@ -7497,15 +7517,25 @@ export type Database = {
           country_name?: string
           currency_code?: string
           currency_symbol?: string | null
+          date_format?: string | null
+          default_language?: string | null
           default_retirement_age?: number
           entered_at?: string
           entered_by?: string | null
           fiscal_year_start_month?: number
           is_active?: boolean
+          letterhead_logo_url?: string | null
           locale?: string
           modified_at?: string
           modified_by?: string | null
+          number_format?: string | null
+          office_address?: string | null
+          office_email?: string | null
+          office_name?: string | null
+          office_phone?: string | null
+          office_website?: string | null
           parameters?: Json
+          phone_format?: string | null
           timezone?: string
         }
         Relationships: []
@@ -9980,6 +10010,98 @@ export type Database = {
             columns: ["instruction_id"]
             isOneToOne: false
             referencedRelation: "bn_payment_instruction"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_legal_reference: {
+        Row: {
+          act_name: string | null
+          applicable_products: string[] | null
+          chapter: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          full_reference_text: string | null
+          id: string
+          is_active: boolean
+          legacy_id: string | null
+          notes: string | null
+          ref_code: string
+          ref_url: string | null
+          regulation: string | null
+          section: string | null
+          short_title: string
+          status: string
+          subsection: string | null
+          supersedes_id: string | null
+          tags: string[] | null
+          updated_at: string
+          updated_by: string | null
+          version_number: number
+        }
+        Insert: {
+          act_name?: string | null
+          applicable_products?: string[] | null
+          chapter?: string | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          effective_to?: string | null
+          full_reference_text?: string | null
+          id?: string
+          is_active?: boolean
+          legacy_id?: string | null
+          notes?: string | null
+          ref_code: string
+          ref_url?: string | null
+          regulation?: string | null
+          section?: string | null
+          short_title: string
+          status?: string
+          subsection?: string | null
+          supersedes_id?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          updated_by?: string | null
+          version_number?: number
+        }
+        Update: {
+          act_name?: string | null
+          applicable_products?: string[] | null
+          chapter?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          full_reference_text?: string | null
+          id?: string
+          is_active?: boolean
+          legacy_id?: string | null
+          notes?: string | null
+          ref_code?: string
+          ref_url?: string | null
+          regulation?: string | null
+          section?: string | null
+          short_title?: string
+          status?: string
+          subsection?: string | null
+          supersedes_id?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          updated_by?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "bn_legal_reference"
             referencedColumns: ["id"]
           },
         ]
