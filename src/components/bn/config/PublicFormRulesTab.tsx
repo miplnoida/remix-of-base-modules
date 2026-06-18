@@ -9,26 +9,21 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { Save, Users } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   useBnParticipantConfig,
   useUpsertBnParticipantConfig,
 } from '@/hooks/bn/useBnParticipantConfig';
-import {
-  BN_PARTICIPANT_ROLES,
-  BN_PARTICIPANT_ROLE_LABELS,
-  type BnParticipantRole,
-  type BnProductParticipantConfigInput,
-} from '@/types/bnParticipant';
+import { useReferenceValues } from '@/hooks/bn/useReferenceData';
+import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
+import type { BnProductParticipantConfigInput } from '@/types/bnParticipant';
 
 interface Props {
   versionId: string | undefined;
   isReadOnly?: boolean;
 }
 
-const APPLICANT_KIND_OPTIONS: BnParticipantRole[] = [
-  'INSURED_PERSON', 'APPLICANT', 'REPRESENTATIVE', 'GUARDIAN', 'PAYEE',
-  'BENEFICIARY', 'EMPLOYER', 'FUNERAL_HOME',
-];
 
 function emptyDraft(versionId: string): BnProductParticipantConfigInput {
   return {
