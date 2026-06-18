@@ -285,6 +285,9 @@ export default function BenefitConfigurationValidation() {
 
       <BnConfigReconciliationCard />
 
+      <CountryLegalValidationCard />
+
+
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {(Object.keys(summary) as ValidationStatus[]).map((s) => (
           <Card key={s}>
