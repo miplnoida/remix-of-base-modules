@@ -200,6 +200,13 @@ const Content: React.FC = () => {
                 </Select>
               </div>
               <div><Label>Sort Order</Label><Input type="number" value={form.sort_order ?? 0} onChange={e => set('sort_order', parseInt(e.target.value) || 0)} /></div>
+              <div>
+                <Label>Role Category *</Label>
+                <Select value={form.role_category || ''} onValueChange={v => set('role_category', v)}>
+                  <SelectTrigger><SelectValue placeholder="Select role category" /></SelectTrigger>
+                  <SelectContent>{ROLE_CATEGORIES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
             </Section>
 
             <Section title="Verification Intent" description="What kind of verification this participant type needs. Actual document mapping happens later in Document Library / Product Catalog.">
@@ -209,6 +216,9 @@ const Content: React.FC = () => {
               <Toggle label="Requires Relationship / Authority Proof" checked={!!form.requires_relationship_or_authority_proof}
                 onChange={v => set('requires_relationship_or_authority_proof', v)}
                 hint="E.g. spouse, child, guardian, executor." />
+              <Toggle label="Requires SSN Link" checked={!!form.requires_ssn_link}
+                onChange={v => set('requires_ssn_link', v)}
+                hint="Participant must be linked to an SSN / Insured record." />
               <div>
                 <Label>Relationship Category</Label>
                 <Select value={form.relationship_category || '__none'} onValueChange={v => set('relationship_category', v === '__none' ? null : v)}>
