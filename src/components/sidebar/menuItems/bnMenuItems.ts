@@ -341,6 +341,13 @@ const _bnMenuItemsRaw = [
         requiresPermission: "benefits_management",
         description: "Governance · Approve, publish, retire, compare and audit product rule versions. No product-specific rule editing here.",
       },
+      {
+        title: "Reference Data",
+        url: "/bn/config/reference-data",
+        icon: Settings,
+        requiresPermission: "benefits_management",
+        description: "Governance · Manage dropdown values used across Benefits configuration (table types, statuses, methods).",
+      },
       // ── Simulator & Diagnostics ──
       {
         title: "Calculation Simulator",
