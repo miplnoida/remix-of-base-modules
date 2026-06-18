@@ -53,6 +53,7 @@ export default function ProductEditor() {
   const { data: branches = [] } = useBnBranches();
   const { data: countries = [] } = useBnCountries();
   const activeCountries = useMemo(() => (countries as any[]).filter(c => c.is_active), [countries]);
+  const { activeCountryCode } = useBnCountry();
   const createMutation = useCreateBnProduct();
   const updateMutation = useUpdateBnProduct();
   const createVersionMutation = useCreateBnProductVersion();
@@ -72,12 +73,15 @@ export default function ProductEditor() {
     setSelectedVersionId(undefined);
   }, [id]);
 
-  // Pre-select first active country for new products once the master loads.
+  // For new products, default country to the active Country Pack context
+  // (falls back to the first active country if context is empty).
   useEffect(() => {
-    if (isNew && !form.country_code && activeCountries.length > 0) {
-      setForm(f => ({ ...f, country_code: activeCountries[0].country_code }));
-    }
-  }, [isNew, activeCountries, form.country_code]);
+    if (!isNew || form.country_code || activeCountries.length === 0) return;
+    const preferred =
+      activeCountries.find(c => c.country_code === activeCountryCode)?.country_code ??
+      activeCountries[0].country_code;
+    setForm(f => ({ ...f, country_code: preferred }));
+  }, [isNew, activeCountries, activeCountryCode, form.country_code]);
 
   useEffect(() => {
     if (existingProduct) setForm(existingProduct);
