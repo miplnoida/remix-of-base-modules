@@ -98,6 +98,19 @@ export default function ProductEditor() {
       toast({ title: 'Validation Error', description: 'Code and Name are required.', variant: 'destructive' });
       return;
     }
+    if (!form.country_code) {
+      toast({ title: 'Validation Error', description: 'Country is required.', variant: 'destructive' });
+      return;
+    }
+    const countryRow = (countries as any[]).find(c => c.country_code === form.country_code);
+    if (!countryRow) {
+      toast({ title: 'Invalid Country', description: `Country "${form.country_code}" does not exist in Country Master.`, variant: 'destructive' });
+      return;
+    }
+    if (form.status === 'ACTIVE' && !countryRow.is_active) {
+      toast({ title: 'Invalid Country', description: `Country "${form.country_code}" is inactive — cannot activate product.`, variant: 'destructive' });
+      return;
+    }
     // Activation guard: block ACTIVE status unless formula bindings are healthy.
     if (!isNew && form.status === 'ACTIVE' && existingProduct?.status !== 'ACTIVE') {
       try {
