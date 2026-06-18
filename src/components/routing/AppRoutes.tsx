@@ -1903,6 +1903,7 @@ export const AppRoutes = () => {
       <Route path="/bn/config/formulas" element={<BnFeatureGate flag="bn.config.rules"><BnFormulaConfiguration /></BnFeatureGate>} />
       <Route path="/bn/config/calculation" element={<BnFeatureGate flag="bn.config.rules"><BnCalculationSetup /></BnFeatureGate>} />
       <Route path="/bn/config/calculation-readiness" element={<BnFeatureGate flag="bn.config.rules"><BnCalculationReadiness /></BnFeatureGate>} />
+      <Route path="/bn/config/reference-data" element={<BnFeatureGate flag="bn.config.rules"><BnReferenceDataAdmin /></BnFeatureGate>} />
       <Route path="/bn/config/derived-facts" element={<BnFeatureGate flag="bn.config.rules"><BnDerivedFactRegistry /></BnFeatureGate>} />
       <Route path="/bn/config/product-parameters" element={<BnFeatureGate flag="bn.config.rules"><BnProductParameterRegistry /></BnFeatureGate>} />
 
