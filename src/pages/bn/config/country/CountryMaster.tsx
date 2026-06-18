@@ -18,10 +18,11 @@ import { Plus, Pencil, Power, Sparkles, CheckCircle2, XCircle, AlertTriangle, Ex
 import { toast } from 'sonner';
 import {
   useCountryMasterList, useCountryPackStatuses, useCreateCountry, useUpdateCountry,
-  useToggleCountryActive, useSeedCountryPack, useOrphanCountryRefs,
+  useToggleCountryActive, useSeedCountryPack, useOrphanCountryRefs, useDeleteCountry,
 } from '@/hooks/bn/useBnCountryMaster';
 import type { BnCountryInput, BnCountryRow } from '@/services/bn/countryMasterService';
-import { countActiveProductsForCountry } from '@/services/bn/countryMasterService';
+import { countActiveProductsForCountry, getCountryUsage } from '@/services/bn/countryMasterService';
+import { Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useBnCountry } from '@/contexts/BnCountryContext';
 import { BnCountryProvider } from '@/contexts/BnCountryContext';
@@ -48,6 +49,7 @@ const CountryMasterInner: React.FC = () => {
   const updateMut = useUpdateCountry();
   const toggleMut = useToggleCountryActive();
   const seedMut = useSeedCountryPack();
+  const deleteMut = useDeleteCountry();
 
   const [editing, setEditing] = useState<BnCountryRow | null>(null);
   const [isNew, setIsNew] = useState(false);
@@ -71,11 +73,13 @@ const CountryMasterInner: React.FC = () => {
     if (!form.country_code.trim() || !form.country_name.trim()) {
       toast.error('Country must be selected'); return;
     }
-    if (!findCountry(form.country_code)) {
-      toast.error('Selected country must exist in Country Master'); return;
-    }
-    if (isNew && countries.some(c => c.country_code === form.country_code)) {
-      toast.error(`Country ${form.country_code} already exists`); return;
+    if (isNew) {
+      if (!findCountry(form.country_code)) {
+        toast.error('Selected country must exist in Country Master'); return;
+      }
+      if (countries.some(c => c.country_code === form.country_code)) {
+        toast.error(`Country ${form.country_code} already exists`); return;
+      }
     }
     // 2) Currency
     if (!form.currency_code || !findCurrency(form.currency_code)) {
@@ -137,6 +141,23 @@ const CountryMasterInner: React.FC = () => {
       if (res.seeded.length === 0) toast.info('Country Pack already configured — nothing to seed');
       else toast.success(`Seeded: ${res.seeded.join(', ')}`);
     } catch (e: any) { toast.error(e.message ?? 'Seed failed'); }
+  };
+
+  const handleDelete = async (c: BnCountryRow) => {
+    try {
+      const usage = await getCountryUsage(c.country_code);
+      if (usage.total > 0) {
+        const detail = usage.byTable.map(r => `• ${r.table}: ${r.count}`).join('\n');
+        window.alert(
+          `Cannot delete ${c.country_code}.\n\nIt is still referenced by:\n${detail}\n\nPlease remove all dependent records first, then try again.`
+        );
+        return;
+      }
+      const confirmed = window.confirm(`Delete country ${c.country_code} (${c.country_name})? This cannot be undone.`);
+      if (!confirmed) return;
+      await deleteMut.mutateAsync({ code: c.country_code });
+      toast.success(`Country ${c.country_code} deleted`);
+    } catch (e: any) { toast.error(e.message ?? 'Delete failed'); }
   };
 
   // Pick a country from ISO master → auto-fill identity + suggested defaults.
@@ -254,6 +275,9 @@ const CountryMasterInner: React.FC = () => {
                             <Link to="/bn/config/country" onClick={() => setActiveCountryCode(c.country_code)}>
                               <ExternalLink className="h-3.5 w-3.5" />
                             </Link>
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleDelete(c)} title="Delete country" disabled={deleteMut.isPending} className="text-destructive hover:text-destructive">
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </TableCell>

@@ -78,6 +78,44 @@ export async function setCountryActive(code: string, isActive: boolean, userCode
   return updateCountry(code, { is_active: isActive }, userCode);
 }
 
+/**
+ * Returns reference counts across every table that holds a country_code FK.
+ * Used by the Country Master delete guard.
+ */
+export interface CountryUsage {
+  total: number;
+  byTable: { table: string; count: number }[];
+}
+const COUNTRY_REF_TABLES = [
+  'bn_product',
+  'bn_country_id_rule',
+  'bn_country_address_model',
+  'bn_country_participant_type',
+  'bn_country_payment_config',
+  'bn_country_legal_ref',
+  'bn_scheme',
+  'bn_service_doc_type',
+  'bn_reason_code',
+];
+export async function getCountryUsage(code: string): Promise<CountryUsage> {
+  const results = await Promise.all(COUNTRY_REF_TABLES.map(async (t) => {
+    const { count } = await db.from(t).select('*', { count: 'exact', head: true }).eq('country_code', code);
+    return { table: t, count: count ?? 0 };
+  }));
+  const byTable = results.filter(r => r.count > 0);
+  return { total: byTable.reduce((s, r) => s + r.count, 0), byTable };
+}
+
+export async function deleteCountry(code: string): Promise<void> {
+  const usage = await getCountryUsage(code);
+  if (usage.total > 0) {
+    const detail = usage.byTable.map(r => `${r.table} (${r.count})`).join(', ');
+    throw new Error(`Cannot delete ${code} — still referenced in: ${detail}. Remove dependent records first.`);
+  }
+  const { error } = await db.from('bn_country').delete().eq('country_code', code);
+  if (error) throw error;
+}
+
 /** Returns the number of active products bound to a country (for deactivation guard). */
 export async function countActiveProductsForCountry(code: string): Promise<number> {
   const { count, error } = await db
