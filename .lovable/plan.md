@@ -1,68 +1,92 @@
-## Phase 2 — Country Pack Cross-Module Rollout
+## BN Participant Type Lifecycle & Cleanup
 
-This is a large, cross-cutting change touching ~10 Benefits config screens, the template engine, validation, and the DB. Delivering it as one mega-commit will be unreviewable and risky. I propose a staged plan, each stage independently shippable with TypeScript passing.
+Redesign Participant Type management with explicit lifecycle (DRAFT/ACTIVE/RETIRED), reference-data sourcing, product usage validation, and a cleaned-up admin UI.
 
----
+### 1. Database changes (migration)
 
-### Stage 1 — Foundation (token engine + shared selectors)
+**`bn_country_participant_type`** — add lifecycle + usage tracking:
+- `lifecycle_status` TEXT CHECK IN ('DRAFT','ACTIVE','RETIRED') DEFAULT 'ACTIVE'
+- `retired_at` TIMESTAMPTZ, `retired_by` TEXT, `retired_reason` TEXT
+- Backfill: rows with `is_active=true` → ACTIVE; else RETIRED
 
-**New shared building blocks** other screens will adopt in later stages.
+**`bn_reference_value`** — already has `is_active`; use as lifecycle source for ref groups. Seed/upsert for SKN to ensure all 13 recommended types are ACTIVE in `BN_PARTICIPANT_TYPE`; mark any duplicates/unclear ones (e.g. legacy `APPLICANT`, `REPRESENTATIVE` if redundant) as inactive.
 
-- `src/lib/bn/templateTokens.ts`
-  - `TOKEN_REGISTRY` grouped by `Country | LegalReference | Product | Rule | Decision | Claim | Person | Payment`
-  - `resolveTokens(template, context)` → replaces `{{group.field}}`, returns `{ output, missing[], unresolved[] }`
-  - Country tokens read from `bn_country` (+ joined office/contact fields already in schema)
-  - Legal tokens read from `bn_legal_reference` (short, full, act_name, chapter, section, subsection, regulation)
-  - Product/Rule/Decision `.legal_reference` resolve by following the FK on the entity
-- `src/hooks/bn/useTemplateTokens.ts` — list registry, resolve preview
-- `src/components/bn/selectors/CountrySelector.tsx` — already exists in `bn/country/`; re-export from `selectors/` so the rollout has one canonical import path. Default to KN only when no value, never hardcode.
-- `src/components/bn/selectors/LegalReferenceSelector.tsx` — searchable, filters by `country_code`, `status='ACTIVE'`, optional `productTags`/`ruleTags`
-- `src/hooks/bn/useLegalReferences.ts` — extend with `{ countryCode, activeOnly, tags }` filters
+**New view `v_bn_participant_type_usage`** — counts per (country_code, type_code):
+- `product_usage_count` from `bn_product_participant_config.required_roles` + `allowed_applicant_kinds` + `optional_roles` (jsonb array contains)
+- `historical_claim_count` from `bn_claim_participant.participant_type`
+- `active_product_count` joined on `bn_product_version.status='ACTIVE'`
 
-### Stage 2 — Communication Template editor
+**Seed for SKN** (insert tool, not migration): ensure 13 recommended types exist as ACTIVE rows in `bn_country_participant_type` for country_code='KN'.
 
-- `BenefitCommunicationTemplates.tsx`: add `TokenPicker` (grouped tree, click to insert at caret), live `TemplatePreview` panel with sample claim/product/rule context selector, and "Missing tokens" warning badge driven by `resolveTokens`.
-- New components under `src/components/bn/templates/`: `TokenPicker.tsx`, `TemplatePreview.tsx`, `SampleContextPicker.tsx`.
+### 2. Service layer
 
-### Stage 3 — Selector rollout across config screens
+- `countryParticipantTypeService.ts`:
+  - `listForSelection(countryCode, { includeRetired=false })` — used by Product Catalog & Online Portal pickers; filters `lifecycle_status='ACTIVE'`
+  - `listAll(countryCode)` — admin screen, returns all statuses + usage counts via view
+  - `retire(id, reason, userCode)` / `reactivate(id, userCode)` / `markDraft(id)`
+  - `validate(row)` — returns warnings array per spec §8
+- `referenceDataService.ts`: no schema change; ensure `listReferenceValues` already filters `is_active` (it does).
 
-Replace free-text country/legal fields with the Stage 1 selectors in:
+### 3. UI: Country Participant Types screen (`CountryParticipantTypes.tsx`)
 
-| Screen | File |
-|---|---|
-| Product Catalog / Editor | `ProductCatalog.tsx`, `ProductEditor.tsx` |
-| Eligibility Rule Catalogue | `RuleCatalogue.tsx`, `RuleConfiguration.tsx` |
-| Formula Library | `FormulaConfiguration.tsx` |
-| Rate Tables | `RateTableEditor.tsx` |
-| Matrix Tables | `TransitionMatrix.tsx` |
-| Medical Tariff / Reimbursement | `src/pages/bn/config/medical/*` |
-| Document Setup | `DocumentSetup.tsx` |
-| Payment Config | `country/CountryPaymentConfig.tsx`, payment editors |
-| Approval / Override Policies | `src/pages/bn/config/approval/*` |
+Replace existing list/editor with a richer table:
 
-Each screen: country → `CountrySelector`, legal ref → `LegalReferenceSelector(countryCode=row.country_code)`. No schema changes — these columns already exist; we are only swapping the input control.
+| Status badge | Type code (ref) | Role category | Country enabled | Online rules | Proof req | Product usage | Historical usage | Actions |
 
-### Stage 4 — Config validation
+- Status badge: DRAFT / ACTIVE / RETIRED with color via `StatusBadge`
+- "Show retired" toggle (default off)
+- Row actions: Edit · Retire · Reactivate · Mark Draft
+- Retire dialog: requires reason; blocks if no replacement and active products reference it (warn-only, force option)
+- Editor: lifecycle field + existing fields; inline warnings panel from `validate()`
+- "Reference value" column shows whether the `type_code` still exists & is active in `BN_PARTICIPANT_TYPE` ref group; flag if missing
+- Disable selecting retired ref values when creating new rows
 
-Extend `BenefitConfigurationValidation.tsx` + `src/services/bn/configValidationService.ts` (new) with checks:
+### 4. Product Catalog (`PublicFormRulesTab.tsx` and product participant config)
 
-1. Active product → `country_code` exists in `bn_country` and country is active
-2. Active product/rule/formula/table → `legal_reference_id` (when required) → `bn_legal_reference.status='ACTIVE'`
-3. All template tokens in `bn_*_template.body` resolve against the registry
-4. No active config references a `SUPERSEDED`/`REPEALED` legal ref unless `legal_ref_override_ack=true`
+- Replace `useReferenceValues('BN_PARTICIPANT_TYPE')` source with `listForSelection(countryCode)` from country participant types (ACTIVE only)
+- On load of an existing product, if `required_roles`/`allowed_applicant_kinds` include a RETIRED code, show inline warning badge "Retired — replace before publish"
+- Block publish/save of a NEW version that references RETIRED codes (validation in save handler)
+- Seed default participant config for the 6 example products (Sickness, Maternity, Age Pension, Funeral Grant, Survivors, Medical Expense) via insert tool
 
-Surface as a Validation panel section "Country & Legal" with severities Error/Warning and a fix-link to the offending row.
+### 5. Online portal gate (`onlineResponsePortalGate.ts` + intake)
 
-### Stage 5 — Acceptance check
+- When resolving allowed applicant kinds for a public/online form, filter by `lifecycle_status='ACTIVE'`
+- Historical claim views: read raw `participant_type` value; render label from ref value even if retired, append "(retired)" suffix
 
-- Generate a sample letter end-to-end and confirm legal refs print
-- Confirm grep shows no remaining free-text country/legal `<Input>` in the listed screens
-- `tsc` passes
+### 6. Validation rules surfaced in admin (§8)
 
----
+Compute in `validate()` and render in a "Warnings" panel on the participant type list and editor:
 
-### Recommended delivery now
+1. Active product version references RETIRED type
+2. Online application channel exposes RETIRED type (`bn_product_channel_config`)
+3. Type missing `role_category`
+4. Type has `requires_relationship_proof` / `requires_authority_proof` true but no `proof_requirement_code`
+5. Type has `can_receive_payment=true` but `requires_identity_verification=false`
 
-Given the size, I will **implement Stage 1 + Stage 2 in this turn** (foundation + template editor — the highest-leverage pieces that unlock everything else and are testable end-to-end), then ask for go-ahead on Stages 3–5 which are largely mechanical screen-by-screen swaps.
+Surface count badge in sidebar of the screen.
 
-Confirm and I'll proceed, or tell me to do all stages in one go (slower, larger diff) or a different split.
+### 7. Files touched
+
+```text
+supabase/migrations/<ts>_participant_type_lifecycle.sql    (new)
+src/services/bn/countryParticipantTypeService.ts            (new or extend)
+src/types/bn.ts                                             (lifecycle fields)
+src/pages/bn/config/country/CountryParticipantTypes.tsx     (redesign)
+src/components/bn/config/PublicFormRulesTab.tsx             (active-only + warnings)
+src/components/bn/country/ParticipantTypeSelector.tsx       (filter retired)
+src/lib/onlineResponsePortalGate.ts                         (active-only)
+src/integrations/supabase/types.ts                          (regenerated)
+```
+
+### 8. Acceptance verification
+
+- Manual: open Country Participant Types — see status column, retire toggle works, retiring blocks new product selection
+- Open Product Catalog → participant config — retired types not in dropdown, existing usages flagged
+- Open historical claim with retired participant — still renders with "(retired)" label
+- Warnings panel lists at least the §8 cases when seeded
+
+### Non-goals
+
+- No changes to legacy `cl_head` participant data
+- No new reference groups beyond what already exists
+- Document Library linkage stays out of scope (handled by earlier `bn_country_participant_proof_link`)
