@@ -17,6 +17,8 @@ import {
   type ValidationIssue,
 } from '@/services/bn/governance/ruleGovernanceService';
 import { getCurrentUserCode } from '@/services/bn/audit/getCurrentUserCode';
+import CountryFieldSelector from '@/components/bn/selectors/CountryFieldSelector';
+import LegalReferenceSelector from '@/components/bn/selectors/LegalReferenceSelector';
 
 interface Props {
   ruleId: string;
