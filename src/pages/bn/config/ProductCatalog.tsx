@@ -23,6 +23,22 @@ const statusVariant: Record<BnProductStatus, 'default' | 'secondary' | 'destruct
 export default function ProductCatalog() {
   const navigate = useNavigate();
   const { data: products = [], isLoading, refetch } = useBnProducts();
+  const { data: countries = [] } = useBnCountries();
+  const { activeCountryCode } = useBnCountry();
+  const validCodes = useMemo(() => new Set((countries as any[]).map(c => c.country_code)), [countries]);
+
+  // 'ALL' shows everything; otherwise restrict to the country pack selection.
+  const [filterCode, setFilterCode] = useState<string>(activeCountryCode || 'ALL');
+
+  const filteredProducts = useMemo(() => {
+    if (filterCode === 'ALL') return products;
+    return (products as BnProduct[]).filter(p => p.country_code === filterCode);
+  }, [products, filterCode]);
+
+  const orphanCount = useMemo(
+    () => (products as BnProduct[]).filter(p => !p.country_code || !validCodes.has(p.country_code)).length,
+    [products, validCodes]
+  );
 
   const columns: BNColumnDef<BnProduct>[] = [
     { accessorKey: 'benefit_code', header: 'Code', meta: { label: 'Code', pinLeft: true, width: 140 }, cell: ({ getValue }) => <span className="font-mono">{String(getValue() ?? '')}</span> },
@@ -30,7 +46,18 @@ export default function ProductCatalog() {
     { accessorKey: 'category', header: 'Category', meta: { label: 'Category', width: 140 } },
     { accessorKey: 'branch', header: 'Branch', meta: { label: 'Branch', width: 140 } },
     { accessorKey: 'payment_type', header: 'Payment', meta: { label: 'Payment', width: 120 } },
-    { accessorKey: 'country_code', header: 'Country', meta: { label: 'Country', width: 90 } },
+    {
+      accessorKey: 'country_code',
+      header: 'Country',
+      meta: { label: 'Country', width: 110 },
+      cell: ({ getValue }) => {
+        const code = String(getValue() ?? '');
+        const orphan = !code || !validCodes.has(code);
+        return orphan
+          ? <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" />{code || 'NONE'}</Badge>
+          : <span>{code}</span>;
+      },
+    },
     {
       accessorKey: 'status',
       header: 'Status',
@@ -43,12 +70,12 @@ export default function ProductCatalog() {
   ];
 
   const summary = [
-    { label: 'Total', value: products.length, tone: 'default' as const },
-    { label: 'Active', value: products.filter(p => p.status === 'ACTIVE').length, tone: 'success' as const },
-    { label: 'Draft', value: products.filter(p => p.status === 'DRAFT').length, tone: 'warning' as const },
-    { label: 'Pending', value: products.filter(p => p.status === 'PENDING_APPROVAL').length, tone: 'info' as const },
-    { label: 'Suspended', value: products.filter(p => p.status === 'SUSPENDED').length, tone: 'danger' as const },
-    { label: 'Archived', value: products.filter(p => p.status === 'ARCHIVED').length, tone: 'muted' as const },
+    { label: 'Total', value: filteredProducts.length, tone: 'default' as const },
+    { label: 'Active', value: filteredProducts.filter(p => p.status === 'ACTIVE').length, tone: 'success' as const },
+    { label: 'Draft', value: filteredProducts.filter(p => p.status === 'DRAFT').length, tone: 'warning' as const },
+    { label: 'Pending', value: filteredProducts.filter(p => p.status === 'PENDING_APPROVAL').length, tone: 'info' as const },
+    { label: 'Suspended', value: filteredProducts.filter(p => p.status === 'SUSPENDED').length, tone: 'danger' as const },
+    { label: 'Archived', value: filteredProducts.filter(p => p.status === 'ARCHIVED').length, tone: 'muted' as const },
   ];
 
   return (
