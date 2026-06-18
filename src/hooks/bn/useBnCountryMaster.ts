@@ -46,6 +46,24 @@ export const useToggleCountryActive = () => {
   });
 };
 
+export const useDeleteCountry = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { code: string }) => svc.deleteCountry(vars.code),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bn', 'country-master'] });
+      qc.invalidateQueries({ queryKey: ['bn', 'countries'] });
+    },
+  });
+};
+
+export const useCountryUsage = (code: string | null) =>
+  useQuery({
+    queryKey: ['bn', 'country-usage', code],
+    queryFn: () => svc.getCountryUsage(code!),
+    enabled: !!code,
+  });
+
 export const useSeedCountryPack = () => {
   const qc = useQueryClient();
   return useMutation({
