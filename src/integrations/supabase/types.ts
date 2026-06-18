@@ -7721,9 +7721,70 @@ export type Database = {
           },
         ]
       }
+      bn_country_participant_proof_link: {
+        Row: {
+          country_code: string
+          document_type_id: string | null
+          effective_from: string | null
+          effective_to: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          participant_type_code: string
+          proof_requirement_code: string
+          service_document_type_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          country_code: string
+          document_type_id?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          participant_type_code: string
+          proof_requirement_code: string
+          service_document_type_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          country_code?: string
+          document_type_id?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          participant_type_code?: string
+          proof_requirement_code?: string
+          service_document_type_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_country_participant_proof_link_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "bn_country"
+            referencedColumns: ["country_code"]
+          },
+        ]
+      }
       bn_country_participant_type: {
         Row: {
           allowed_products: string[] | null
+          authority_category: string | null
+          can_apply_for_others: boolean
+          can_apply_for_self: boolean
+          can_receive_communication: boolean
+          can_receive_payment: boolean
           country_code: string
           entered_at: string
           entered_by: string | null
@@ -7731,15 +7792,28 @@ export type Database = {
           is_active: boolean
           max_age: number | null
           min_age: number | null
+          online_access_allowed: boolean
           participant_role: string
+          proof_requirement_code: string | null
+          relationship_category: string | null
           requires_id: boolean
+          requires_identity_verification: boolean
+          requires_officer_review: boolean
+          requires_relationship_or_authority_proof: boolean
           requires_relationship_proof: boolean
           sort_order: number
+          suggested_document_category: string | null
+          suggested_document_label: string | null
           type_code: string
           type_name: string
         }
         Insert: {
           allowed_products?: string[] | null
+          authority_category?: string | null
+          can_apply_for_others?: boolean
+          can_apply_for_self?: boolean
+          can_receive_communication?: boolean
+          can_receive_payment?: boolean
           country_code: string
           entered_at?: string
           entered_by?: string | null
@@ -7747,15 +7821,28 @@ export type Database = {
           is_active?: boolean
           max_age?: number | null
           min_age?: number | null
+          online_access_allowed?: boolean
           participant_role?: string
+          proof_requirement_code?: string | null
+          relationship_category?: string | null
           requires_id?: boolean
+          requires_identity_verification?: boolean
+          requires_officer_review?: boolean
+          requires_relationship_or_authority_proof?: boolean
           requires_relationship_proof?: boolean
           sort_order?: number
+          suggested_document_category?: string | null
+          suggested_document_label?: string | null
           type_code: string
           type_name: string
         }
         Update: {
           allowed_products?: string[] | null
+          authority_category?: string | null
+          can_apply_for_others?: boolean
+          can_apply_for_self?: boolean
+          can_receive_communication?: boolean
+          can_receive_payment?: boolean
           country_code?: string
           entered_at?: string
           entered_by?: string | null
@@ -7763,10 +7850,18 @@ export type Database = {
           is_active?: boolean
           max_age?: number | null
           min_age?: number | null
+          online_access_allowed?: boolean
           participant_role?: string
+          proof_requirement_code?: string | null
+          relationship_category?: string | null
           requires_id?: boolean
+          requires_identity_verification?: boolean
+          requires_officer_review?: boolean
+          requires_relationship_or_authority_proof?: boolean
           requires_relationship_proof?: boolean
           sort_order?: number
+          suggested_document_category?: string | null
+          suggested_document_label?: string | null
           type_code?: string
           type_name?: string
         }
