@@ -17,6 +17,8 @@ import {
   type ValidationIssue,
 } from '@/services/bn/governance/ruleGovernanceService';
 import { getCurrentUserCode } from '@/services/bn/audit/getCurrentUserCode';
+import CountryFieldSelector from '@/components/bn/selectors/CountryFieldSelector';
+import LegalReferenceSelector from '@/components/bn/selectors/LegalReferenceSelector';
 
 interface Props {
   ruleId: string;
@@ -139,14 +141,23 @@ export function GovernanceActionsMenu({ ruleId, ruleCode, status, defaults, onCh
           {isLegalApproval && (
             <div className="space-y-3">
               <div>
-                <Label htmlFor="legalRef">Legal reference *</Label>
-                <Input id="legalRef" value={legalRef} onChange={e => setLegalRef(e.target.value)}
-                  placeholder="e.g. Social Security Act §32(3)" />
+                <Label htmlFor="jurisdiction">Jurisdiction / Country *</Label>
+                <CountryFieldSelector
+                  value={jurisdiction || null}
+                  onChange={(code) => setJurisdiction(code ?? '')}
+                  placeholder="Select country…"
+                  required
+                />
               </div>
               <div>
-                <Label htmlFor="jurisdiction">Jurisdiction / Country *</Label>
-                <Input id="jurisdiction" value={jurisdiction} onChange={e => setJurisdiction(e.target.value)}
-                  placeholder="e.g. KN" />
+                <Label htmlFor="legalRef">Legal reference *</Label>
+                <LegalReferenceSelector
+                  value={null}
+                  countryCode={jurisdiction || null}
+                  onChange={(_id, row) => setLegalRef(row ? (row.full_reference_text || row.short_title) : '')}
+                  required
+                />
+                {legalRef && <p className="text-[11px] text-muted-foreground mt-1 truncate">Cited as: {legalRef}</p>}
               </div>
               <div>
                 <Label htmlFor="effectiveDate">Effective date *</Label>

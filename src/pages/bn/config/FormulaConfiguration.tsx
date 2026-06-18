@@ -53,6 +53,7 @@ import { AddFormulaWizard } from '@/components/bn/config/AddFormulaWizard';
 import { LiveVersionGuardDialog } from '@/components/bn/config/LiveVersionGuardDialog';
 import type { BnFormulaTemplate } from '@/types/bn';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
+import CountryFieldSelector from '@/components/bn/selectors/CountryFieldSelector';
 import {
   cloneFormula, createNewVersion, getFormulaUsage,
   safeDeleteFormula, transitionVersion, listVersions,
@@ -477,10 +478,12 @@ export default function FormulaConfiguration() {
                   helpText="Unique formula code. Cannot be changed after creation."
                 />
                 <div className="space-y-1.5">
-                  <Label htmlFor="fm_country">Country code</Label>
-                  <Input id="fm_country" value={form.country_code} maxLength={3}
+                  <Label htmlFor="fm_country">Country</Label>
+                  <CountryFieldSelector
+                    value={form.country_code || null}
+                    onChange={(code) => setForm({ ...form, country_code: code ?? '' })}
                     placeholder="Leave blank for global"
-                    onChange={(e) => setForm({ ...form, country_code: e.target.value.toUpperCase() })} />
+                  />
                 </div>
               </div>
               <div className="space-y-1.5">
