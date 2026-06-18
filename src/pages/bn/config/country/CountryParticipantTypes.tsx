@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,14 +6,22 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Plus, Pencil, Trash2, AlertTriangle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Plus, Pencil, Trash2, AlertTriangle, Archive, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import { BnCountryProvider, useBnCountry } from '@/contexts/BnCountryContext';
 import CountrySelector from '@/components/bn/country/CountrySelector';
-import { useBnCountryParticipantTypes, useUpsertCountryParticipantType, useDeleteCountryParticipantType } from '@/hooks/bn/useBnCountryPack';
+import {
+  useBnCountryParticipantTypes,
+  useUpsertCountryParticipantType,
+  useDeleteCountryParticipantType,
+  useRetireCountryParticipantType,
+  useReactivateCountryParticipantType,
+  useBnParticipantTypeUsage,
+} from '@/hooks/bn/useBnCountryPack';
 import { useReferenceValues } from '@/hooks/bn/useReferenceData';
 import { BN_REF_GROUPS } from '@/services/bn/referenceDataService';
 import type { BnCountryParticipantType } from '@/types/bn';
@@ -21,9 +29,18 @@ import { PageHeader } from '@/components/common/PageHeader';
 
 const NONE = '__none';
 
+type Lifecycle = 'DRAFT' | 'ACTIVE' | 'RETIRED';
+
+const LIFECYCLE_BADGE: Record<Lifecycle, string> = {
+  ACTIVE: 'bg-primary/10 text-primary border-primary/20',
+  DRAFT: 'bg-muted text-muted-foreground border',
+  RETIRED: 'bg-amber-500/10 text-amber-700 border-amber-500/30',
+};
+
 const empty = (): Partial<BnCountryParticipantType> => ({
   type_code: '', type_name: '', participant_role: '',
   role_category: '',
+  lifecycle_status: 'ACTIVE',
   requires_identity_verification: true,
   requires_relationship_or_authority_proof: false,
   requires_ssn_link: false,
@@ -69,7 +86,6 @@ const Section: React.FC<{ title: string; description?: string; children: React.R
 
 interface ProofReq { proof_requirement_code: string; proof_requirement_name: string; suggested_document_label: string | null; }
 
-/** Select bound to a reference group. Shows a warning when no active values exist. */
 const RefSelect: React.FC<{
   label: string;
   groupCode: string;
@@ -110,16 +126,39 @@ const RefSelect: React.FC<{
   );
 };
 
+function validateRow(row: BnCountryParticipantType, usage?: { active_product_count: number }): string[] {
+  const w: string[] = [];
+  if (!row.role_category) w.push('Missing role category');
+  if (row.requires_relationship_or_authority_proof && !row.proof_requirement_code) w.push('Proof required but no proof requirement code');
+  if (row.can_receive_payment && !row.requires_identity_verification) w.push('Can receive payment but identity verification not required');
+  if (row.lifecycle_status === 'RETIRED' && usage && usage.active_product_count > 0) {
+    w.push(`Retired but used by ${usage.active_product_count} active product(s)`);
+  }
+  return w;
+}
+
 const Content: React.FC = () => {
   const { activeCountryCode } = useBnCountry();
   const { data: types = [] } = useBnCountryParticipantTypes(activeCountryCode);
+  const { data: usageRows = [] } = useBnParticipantTypeUsage(activeCountryCode);
   const upsert = useUpsertCountryParticipantType();
   const remove = useDeleteCountryParticipantType();
+  const retire = useRetireCountryParticipantType();
+  const reactivate = useReactivateCountryParticipantType();
   const participantTypes = useReferenceValues(BN_REF_GROUPS.PARTICIPANT_TYPE, []);
   const roleCategories = useReferenceValues(BN_REF_GROUPS.PARTICIPANT_ROLE_CATEGORY, []);
+
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<BnCountryParticipantType>>(empty());
   const [proofReqs, setProofReqs] = useState<ProofReq[]>([]);
+  const [showRetired, setShowRetired] = useState(false);
+  const [retireDialog, setRetireDialog] = useState<{ row: BnCountryParticipantType; reason: string } | null>(null);
+
+  const usageMap = useMemo(() => {
+    const m = new Map<string, { product_version_count: number; active_product_count: number; historical_claim_count: number }>();
+    for (const u of usageRows) m.set(u.type_code, u);
+    return m;
+  }, [usageRows]);
 
   React.useEffect(() => {
     if (!activeCountryCode) { setProofReqs([]); return; }
@@ -143,21 +182,35 @@ const Content: React.FC = () => {
     roleCategories.options.length === 0 && 'BN_PARTICIPANT_ROLE_CATEGORY',
   ].filter(Boolean) as string[];
 
+  const visibleTypes = showRetired ? types : types.filter(t => t.lifecycle_status !== 'RETIRED');
+
+  // Collect warnings across all rows for the panel
+  const allWarnings = useMemo(() => {
+    const result: Array<{ code: string; name: string; msg: string }> = [];
+    for (const t of types) {
+      const u = usageMap.get(t.type_code);
+      validateRow(t, u).forEach(msg => result.push({ code: t.type_code, name: t.type_name, msg }));
+    }
+    return result;
+  }, [types, usageMap]);
+
   const handleSave = async () => {
     if (!form.type_code) { toast.error('Participant type is required'); return; }
     if (!form.role_category) { toast.error('Role category is required'); return; }
     if (!form.participant_role) { toast.error('Role is required'); return; }
-    // Block use of retired/inactive values for new records
     if (!form.id) {
       const ptOk = participantTypes.options.some(o => o.value === form.type_code);
       if (!ptOk) { toast.error('Selected participant type is not active in reference data'); return; }
     }
     try {
       const chosen = participantTypes.options.find((o) => o.value === form.type_code);
+      const lifecycle = (form.lifecycle_status as Lifecycle) ?? 'ACTIVE';
       const payload: Partial<BnCountryParticipantType> = {
         ...form,
         type_name: form.type_name || chosen?.label || form.type_code,
         country_code: activeCountryCode,
+        lifecycle_status: lifecycle,
+        is_active: lifecycle === 'ACTIVE',
         requires_id: !!form.requires_identity_verification,
         requires_relationship_proof: !!form.requires_relationship_or_authority_proof,
         relationship_category: form.relationship_category || null,
@@ -172,15 +225,28 @@ const Content: React.FC = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  // Helper to flag rows whose stored value is no longer in active reference data
-  const isRetired = (val: string | null | undefined, opts: { value: string }[]) =>
-    !!val && opts.length > 0 && !opts.some(o => o.value === val);
+  const handleRetire = async () => {
+    if (!retireDialog) return;
+    if (!retireDialog.reason.trim()) { toast.error('Reason is required'); return; }
+    try {
+      await retire.mutateAsync({ id: retireDialog.row.id, reason: retireDialog.reason });
+      toast.success('Participant type retired');
+      setRetireDialog(null);
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const handleReactivate = async (row: BnCountryParticipantType) => {
+    try {
+      await reactivate.mutateAsync(row.id);
+      toast.success('Participant type reactivated');
+    } catch (e: any) { toast.error(e.message); }
+  };
 
   return (
     <div className="space-y-6 p-6">
       <PageHeader
         title="Country Participant Types"
-        subtitle="Define who can participate and what verification they need. All dropdown values are managed centrally under Reference Data."
+        subtitle="Define who can participate and what verification they need. Lifecycle controls availability for new product setup; retired types remain readable on historical claims."
         breadcrumbs={[{ label: 'Benefit Management' }, { label: 'Country Config' }, { label: 'Participant Types' }]}
       />
 
@@ -194,51 +260,171 @@ const Content: React.FC = () => {
         </Alert>
       )}
 
-      <div className="flex items-center justify-between">
+      {allWarnings.length > 0 && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>{allWarnings.length} validation warning(s)</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc pl-5 text-xs space-y-0.5 mt-1 max-h-40 overflow-y-auto">
+              {allWarnings.slice(0, 20).map((w, i) => (
+                <li key={i}><span className="font-mono">{w.code}</span> — {w.msg}</li>
+              ))}
+              {allWarnings.length > 20 && <li className="text-muted-foreground">…and {allWarnings.length - 20} more</li>}
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <CountrySelector />
-        <Button size="sm" onClick={() => { setForm(empty()); setOpen(true); }} disabled={missingRefs.length > 0}>
-          <Plus className="h-4 w-4 mr-1" />Add Type
-        </Button>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm">
+            <Switch checked={showRetired} onCheckedChange={setShowRetired} />
+            Show retired
+          </label>
+          <Button size="sm" onClick={() => { setForm(empty()); setOpen(true); }} disabled={missingRefs.length > 0}>
+            <Plus className="h-4 w-4 mr-1" />Add Type
+          </Button>
+        </div>
       </div>
-      <Card><CardContent className="p-0">
+
+      <Card><CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Role</TableHead>
-            <TableHead>ID Verify</TableHead><TableHead>Rel/Auth Proof</TableHead>
-            <TableHead>Online</TableHead><TableHead>Active</TableHead><TableHead className="w-20">Actions</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Code</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Role Category</TableHead>
+            <TableHead>Online</TableHead>
+            <TableHead>Proof</TableHead>
+            <TableHead className="text-right">Products</TableHead>
+            <TableHead className="text-right">Claims</TableHead>
+            <TableHead className="w-32">Actions</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {types.map((t: BnCountryParticipantType) => {
-              const retired = isRetired(t.type_code, participantTypes.options);
+            {visibleTypes.map((t: BnCountryParticipantType) => {
+              const lc = (t.lifecycle_status ?? 'ACTIVE') as Lifecycle;
+              const u = usageMap.get(t.type_code);
+              const refMissing = participantTypes.options.length > 0 && !participantTypes.options.some(o => o.value === t.type_code);
               return (
-                <TableRow key={t.id}>
+                <TableRow key={t.id} className={lc === 'RETIRED' ? 'opacity-70' : ''}>
+                  <TableCell>
+                    <Badge variant="outline" className={LIFECYCLE_BADGE[lc]}>{lc}</Badge>
+                  </TableCell>
                   <TableCell className="font-mono text-sm">
                     {t.type_code}
-                    {retired && <Badge variant="outline" className="ml-2 text-amber-600 border-amber-600">retired</Badge>}
+                    {refMissing && <Badge variant="outline" className="ml-2 text-amber-600 border-amber-600">ref missing</Badge>}
                   </TableCell>
                   <TableCell>{t.type_name}</TableCell>
-                  <TableCell><Badge variant="outline">{t.participant_role}</Badge></TableCell>
-                  <TableCell>{(t.requires_identity_verification ?? t.requires_id) ? '✓' : ''}</TableCell>
-                  <TableCell>{(t.requires_relationship_or_authority_proof ?? t.requires_relationship_proof) ? '✓' : ''}</TableCell>
+                  <TableCell><Badge variant="outline">{t.role_category || '—'}</Badge></TableCell>
                   <TableCell>{t.online_access_allowed ? '✓' : ''}</TableCell>
-                  <TableCell><Badge variant={t.is_active ? 'default' : 'secondary'}>{t.is_active ? 'Active' : 'Inactive'}</Badge></TableCell>
+                  <TableCell className="text-xs">{t.proof_requirement_code || (t.requires_relationship_or_authority_proof ? '⚠︎ none' : '—')}</TableCell>
+                  <TableCell className="text-right text-sm">
+                    {u?.product_version_count ?? 0}
+                    {u && u.active_product_count > 0 && <span className="text-primary"> ({u.active_product_count} active)</span>}
+                  </TableCell>
+                  <TableCell className="text-right text-sm">{u?.historical_claim_count ?? 0}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => { setForm(t); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" onClick={async () => { if (confirm('Delete?')) { try { await remove.mutateAsync(t.id); toast.success('Deleted'); } catch (e: any) { toast.error(e.message); } } }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <Button variant="ghost" size="icon" title="Edit" onClick={() => { setForm(t); setOpen(true); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      {lc !== 'RETIRED' ? (
+                        <Button variant="ghost" size="icon" title="Retire" onClick={() => setRetireDialog({ row: t, reason: '' })}>
+                          <Archive className="h-4 w-4 text-amber-600" />
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="icon" title="Reactivate" onClick={() => handleReactivate(t)}>
+                          <RotateCcw className="h-4 w-4 text-primary" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" title="Delete" onClick={async () => {
+                        if ((u?.product_version_count ?? 0) > 0 || (u?.historical_claim_count ?? 0) > 0) {
+                          toast.error('Cannot delete — type is in use. Retire it instead.');
+                          return;
+                        }
+                        if (confirm('Delete this participant type?')) {
+                          try { await remove.mutateAsync(t.id); toast.success('Deleted'); } catch (e: any) { toast.error(e.message); }
+                        }
+                      }}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               );
             })}
-            {!types.length && <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No participant types configured</TableCell></TableRow>}
+            {!visibleTypes.length && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+              {types.length === 0 ? 'No participant types configured' : 'No active types. Toggle "Show retired" to view all.'}
+            </TableCell></TableRow>}
           </TableBody>
         </Table>
       </CardContent></Card>
 
+      {/* Retire dialog */}
+      <Dialog open={!!retireDialog} onOpenChange={(o) => !o && setRetireDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Retire participant type</DialogTitle>
+            <DialogDescription>
+              Retired types remain visible on historical claims but cannot be selected for new product configuration or online applications.
+            </DialogDescription>
+          </DialogHeader>
+          {retireDialog && (() => {
+            const u = usageMap.get(retireDialog.row.type_code);
+            return (
+              <div className="space-y-3">
+                <div className="text-sm">
+                  <span className="font-mono">{retireDialog.row.type_code}</span> — {retireDialog.row.type_name}
+                </div>
+                {u && u.active_product_count > 0 && (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      Used by {u.active_product_count} active product version(s). Replace usages before next publish.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <div>
+                  <Label>Reason *</Label>
+                  <Textarea
+                    value={retireDialog.reason}
+                    onChange={(e) => setRetireDialog({ ...retireDialog, reason: e.target.value })}
+                    placeholder="e.g. Duplicate of EXECUTOR_OR_ESTATE"
+                  />
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRetireDialog(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleRetire} disabled={retire.isPending}>Retire</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Editor dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{form.id ? 'Edit' : 'Add'} Participant Type</DialogTitle></DialogHeader>
+
+          {/* Editor-level warnings */}
+          {form.id && (() => {
+            const u = usageMap.get(form.type_code ?? '');
+            const warnings = validateRow(form as BnCountryParticipantType, u);
+            if (warnings.length === 0) return null;
+            return (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Warnings</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc pl-5 text-xs space-y-0.5 mt-1">
+                    {warnings.map((w, i) => <li key={i}>{w}</li>)}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            );
+          })()}
 
           <div className="space-y-4">
             <Section title="Identity">
@@ -265,6 +451,17 @@ const Content: React.FC = () => {
                 onChange={(v) => set('role_category', v || '')}
                 required
               />
+              <div>
+                <Label>Lifecycle Status</Label>
+                <Select value={(form.lifecycle_status as string) || 'ACTIVE'} onValueChange={(v) => set('lifecycle_status', v as Lifecycle)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DRAFT">Draft</SelectItem>
+                    <SelectItem value="ACTIVE">Active</SelectItem>
+                    <SelectItem value="RETIRED">Retired</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </Section>
 
             <Section title="Verification Intent" description="Verification needs. Actual document mapping happens in Document Library / Product Catalog.">
@@ -328,10 +525,6 @@ const Content: React.FC = () => {
               />
               <div className="md:col-span-2"><Label>Suggested Document Label</Label><Input value={form.suggested_document_label || ''} onChange={e => set('suggested_document_label', e.target.value || null)} placeholder="e.g. Marriage Certificate" /></div>
             </Section>
-
-            <Section title="Status">
-              <Toggle label="Active" checked={form.is_active ?? true} onChange={v => set('is_active', v)} />
-            </Section>
           </div>
 
           <DialogFooter>
@@ -345,4 +538,5 @@ const Content: React.FC = () => {
 };
 
 const CountryParticipantTypes: React.FC = () => <BnCountryProvider><Content /></BnCountryProvider>;
+
 export default CountryParticipantTypes;
