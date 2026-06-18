@@ -72,15 +72,14 @@ export default function ProductEditor() {
     setSelectedVersionId(undefined);
   }, [id]);
 
-  // For new products, default country to the active Country Pack context
-  // (falls back to the first active country if context is empty).
+  // For new products, default country to SKN if available, else first active country.
   useEffect(() => {
     if (!isNew || form.country_code || activeCountries.length === 0) return;
     const preferred =
-      activeCountries.find(c => c.country_code === activeCountryCode)?.country_code ??
+      activeCountries.find(c => c.country_code === 'SKN')?.country_code ??
       activeCountries[0].country_code;
     setForm(f => ({ ...f, country_code: preferred }));
-  }, [isNew, activeCountries, activeCountryCode, form.country_code]);
+  }, [isNew, activeCountries, form.country_code]);
 
   useEffect(() => {
     if (existingProduct) setForm(existingProduct);
