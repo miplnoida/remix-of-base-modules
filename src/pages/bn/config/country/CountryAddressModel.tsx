@@ -38,6 +38,7 @@ const Content: React.FC = () => {
   const { data: fields = [] } = useBnCountryAddressModel(activeCountryCode);
   const upsert = useUpsertCountryAddressField();
   const remove = useDeleteCountryAddressField();
+  const { options: fieldTypeOptions } = useReferenceValues(BN_REF_GROUPS.ADDRESS_FIELD_TYPE, FIELD_TYPE_FALLBACK);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<BnCountryAddressField>>(empty());
 
