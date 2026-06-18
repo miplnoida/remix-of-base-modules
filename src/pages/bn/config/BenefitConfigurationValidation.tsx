@@ -34,6 +34,7 @@ import {
 import { findBaselineByCode } from '@/services/bn/skn/sknBenefitCatalogueBaseline';
 import { RegistryConformanceCard } from '@/components/bn/validation/RegistryConformanceCard';
 import { BnConfigReconciliationCard } from '@/components/bn/validation/BnConfigReconciliationCard';
+import { CountryLegalValidationCard } from '@/components/bn/validation/CountryLegalValidationCard';
 import { RuleGovernanceStatusCard } from '@/components/bn/governance/RuleGovernanceStatusCard';
 import { ClaimGovernanceReadinessCard } from '@/components/bn/governance/ClaimGovernanceReadinessCard';
 import { HandoffReadinessCard } from '@/components/bn/governance/HandoffReadinessCard';
