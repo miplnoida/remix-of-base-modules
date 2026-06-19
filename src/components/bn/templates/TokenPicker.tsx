@@ -1,51 +1,68 @@
 /**
- * TokenPicker — grouped tree of BN template tokens. Click a token to insert
- * it at the caret of a textarea/input referenced by `targetRef`. Falls back
- * to copying to clipboard when no target is provided.
+ * TokenPicker — grouped, searchable tree of BN template tokens.
+ *
+ * Two ways to insert into a target field:
+ *   1. Drag the token chip and drop it into any subject / body / html-body /
+ *      header / footer field. Insertion happens at the drop caret position.
+ *   2. Click the chip — inserts at the caret of the most recently focused
+ *      target ref (so it works in Subject, Body, or HTML Body, not only the
+ *      first one). Falls back to clipboard if no target.
+ *
+ * The drag payload uses the standard `application/x-bn-token` MIME plus
+ * `text/plain` so any contentEditable / textarea drop handler can consume it.
  */
 import React, { useMemo, useState } from 'react';
-import { TOKEN_GROUPS, TOKEN_REGISTRY, type TokenGroup } from '@/lib/bn/templateTokens';
+import { TOKEN_GROUPS, TOKEN_REGISTRY } from '@/lib/bn/templateTokens';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Copy } from 'lucide-react';
+import { Copy, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Props {
   /** Refs to the input(s) the token should be inserted into. */
   targets?: Array<React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>>;
+  /** Last-focused element id, set by the editor when fields receive focus. */
+  lastFocusedRef?: React.MutableRefObject<HTMLElement | null>;
   onInsert?: (token: string) => void;
 }
 
-export const TokenPicker: React.FC<Props> = ({ targets, onInsert }) => {
+export const TOKEN_DRAG_MIME = 'application/x-bn-token';
+
+export const TokenPicker: React.FC<Props> = ({ targets, lastFocusedRef, onInsert }) => {
   const [q, setQ] = useState('');
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return TOKEN_REGISTRY;
     return TOKEN_REGISTRY.filter(t =>
-      t.key.toLowerCase().includes(needle) || t.label.toLowerCase().includes(needle)
+      t.key.toLowerCase().includes(needle) ||
+      t.label.toLowerCase().includes(needle)
     );
   }, [q]);
 
+  const insertInto = (target: HTMLTextAreaElement | HTMLInputElement, token: string) => {
+    const start = target.selectionStart ?? target.value.length;
+    const end = target.selectionEnd ?? target.value.length;
+    const next = target.value.slice(0, start) + token + target.value.slice(end);
+    const proto = target instanceof HTMLTextAreaElement
+      ? window.HTMLTextAreaElement.prototype
+      : window.HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+    setter?.call(target, next);
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+    target.focus();
+    const caret = start + token.length;
+    target.setSelectionRange(caret, caret);
+  };
+
   const insert = (key: string) => {
     const token = `{{${key}}}`;
-    // Find the most-recently-focused target ref; fallback to first.
-    const target = targets?.find(r => r.current && document.activeElement === r.current)?.current
-      ?? targets?.find(r => r.current)?.current ?? null;
+    const last = lastFocusedRef?.current as HTMLTextAreaElement | HTMLInputElement | null;
+    const target =
+      (last && (last instanceof HTMLTextAreaElement || last instanceof HTMLInputElement)) ? last :
+      (targets?.find(r => r.current && document.activeElement === r.current)?.current
+        ?? targets?.find(r => r.current)?.current ?? null);
     if (target) {
-      const start = target.selectionStart ?? target.value.length;
-      const end = target.selectionEnd ?? target.value.length;
-      const next = target.value.slice(0, start) + token + target.value.slice(end);
-      // Set via native setter so React picks the change up.
-      const proto = target instanceof HTMLTextAreaElement
-        ? window.HTMLTextAreaElement.prototype
-        : window.HTMLInputElement.prototype;
-      const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
-      setter?.call(target, next);
-      target.dispatchEvent(new Event('input', { bubbles: true }));
-      target.focus();
-      const caret = start + token.length;
-      target.setSelectionRange(caret, caret);
+      insertInto(target, token);
     } else if (onInsert) {
       onInsert(token);
     } else {
@@ -53,10 +70,25 @@ export const TokenPicker: React.FC<Props> = ({ targets, onInsert }) => {
     }
   };
 
+  const onDragStart = (e: React.DragEvent, key: string) => {
+    const token = `{{${key}}}`;
+    e.dataTransfer.setData(TOKEN_DRAG_MIME, token);
+    e.dataTransfer.setData('text/plain', token);
+    e.dataTransfer.effectAllowed = 'copy';
+  };
+
   return (
     <div className="border rounded-md flex flex-col h-full min-h-0">
-      <div className="p-2 border-b">
-        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tokens…" className="h-8 text-xs" />
+      <div className="p-2 border-b space-y-1">
+        <Input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search variables…"
+          className="h-8 text-xs"
+        />
+        <p className="text-[10px] text-muted-foreground px-0.5">
+          Drag into any field, or click to insert at the cursor.
+        </p>
       </div>
       <div className="overflow-y-auto flex-1 min-h-0 p-2 space-y-3">
         {TOKEN_GROUPS.map((g) => {
@@ -73,10 +105,13 @@ export const TokenPicker: React.FC<Props> = ({ targets, onInsert }) => {
                   <button
                     key={t.key}
                     type="button"
+                    draggable
+                    onDragStart={(e) => onDragStart(e, t.key)}
                     onClick={() => insert(t.key)}
-                    title={`Insert {{${t.key}}}`}
-                    className="w-full text-left px-2 py-1 rounded hover:bg-accent flex items-center gap-2 group"
+                    title={`Drag or click to insert {{${t.key}}}\n${t.description ?? t.label}`}
+                    className="w-full text-left px-2 py-1 rounded hover:bg-accent flex items-center gap-2 group cursor-grab active:cursor-grabbing"
                   >
+                    <GripVertical className="h-3 w-3 text-muted-foreground/60 shrink-0" />
                     <code className="text-[11px] font-mono text-primary">{`{{${t.key}}}`}</code>
                     <span className="text-[11px] text-muted-foreground truncate flex-1">{t.label}</span>
                     <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 text-muted-foreground" />
@@ -93,5 +128,50 @@ export const TokenPicker: React.FC<Props> = ({ targets, onInsert }) => {
     </div>
   );
 };
+
+/**
+ * Attach drag-and-drop token insertion to a textarea/input element.
+ * Returns props to spread on the field. The token is inserted at the drop
+ * caret position (or at the current selection on browsers that don't expose
+ * `caretPositionFromPoint`).
+ */
+export function useTokenDrop() {
+  return {
+    onDragOver: (e: React.DragEvent) => {
+      if (e.dataTransfer.types.includes(TOKEN_DRAG_MIME) || e.dataTransfer.types.includes('text/plain')) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+      }
+    },
+    onDrop: (e: React.DragEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+      const token = e.dataTransfer.getData(TOKEN_DRAG_MIME) || e.dataTransfer.getData('text/plain');
+      if (!token) return;
+      e.preventDefault();
+      const target = e.currentTarget;
+      // Best-effort caret-at-point; fall back to current selection.
+      let pos = target.selectionStart ?? target.value.length;
+      const docAny = document as any;
+      try {
+        if (typeof docAny.caretPositionFromPoint === 'function') {
+          const cp = docAny.caretPositionFromPoint(e.clientX, e.clientY);
+          if (cp && cp.offsetNode === target) pos = cp.offset;
+        } else if (typeof docAny.caretRangeFromPoint === 'function') {
+          const r = docAny.caretRangeFromPoint(e.clientX, e.clientY);
+          if (r && r.startContainer === target) pos = r.startOffset;
+        }
+      } catch { /* ignore */ }
+      const next = target.value.slice(0, pos) + token + target.value.slice(pos);
+      const proto = target instanceof HTMLTextAreaElement
+        ? window.HTMLTextAreaElement.prototype
+        : window.HTMLInputElement.prototype;
+      const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+      setter?.call(target, next);
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+      target.focus();
+      const caret = pos + token.length;
+      target.setSelectionRange(caret, caret);
+    },
+  };
+}
 
 export default TokenPicker;

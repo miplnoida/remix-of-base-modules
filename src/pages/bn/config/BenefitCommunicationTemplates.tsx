@@ -43,7 +43,7 @@ import {
 import { writeBnAudit } from '@/services/bn/audit/bnAuditService';
 import { useUserCode } from '@/hooks/useUserCode';
 import { BN_PLACEHOLDERS, validatePlaceholders } from '@/services/bn/communication/bnPlaceholderRegistry';
-import TokenPicker from '@/components/bn/templates/TokenPicker';
+import TokenPicker, { useTokenDrop } from '@/components/bn/templates/TokenPicker';
 import TemplatePreview from '@/components/bn/templates/TemplatePreview';
 
 const db = supabase as any;
@@ -367,6 +367,9 @@ const TemplateEditorDialog: React.FC<EditorProps> = ({ open, template, title, cr
   const subjectRef = React.useRef<HTMLInputElement | null>(null);
   const bodyRef = React.useRef<HTMLTextAreaElement | null>(null);
   const htmlRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const lastFocusedRef = React.useRef<HTMLElement | null>(null);
+  const tokenDrop = useTokenDrop();
+  const trackFocus = (el: HTMLElement | null) => { if (el) lastFocusedRef.current = el; };
 
   React.useEffect(() => {
     if (open) {
@@ -420,16 +423,37 @@ const TemplateEditorDialog: React.FC<EditorProps> = ({ open, template, title, cr
                 <Input value={draft.description ?? ''} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
               </Field>
               {draft.channel !== 'in_app' && (
-                <Field label="Subject">
-                  <Input ref={subjectRef} value={draft.subject ?? ''} onChange={(e) => setDraft({ ...draft, subject: e.target.value })} />
+                <Field label="Subject (drop or click tokens to insert)">
+                  <Input
+                    ref={subjectRef}
+                    value={draft.subject ?? ''}
+                    onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
+                    onFocus={(e) => trackFocus(e.currentTarget)}
+                    {...tokenDrop}
+                  />
                 </Field>
               )}
-              <Field label="Body (plain text)">
-                <Textarea ref={bodyRef} rows={8} value={draft.body ?? ''} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
+              <Field label="Body (plain text — drop tokens anywhere)">
+                <Textarea
+                  ref={bodyRef}
+                  rows={8}
+                  value={draft.body ?? ''}
+                  onChange={(e) => setDraft({ ...draft, body: e.target.value })}
+                  onFocus={(e) => trackFocus(e.currentTarget)}
+                  {...tokenDrop}
+                />
               </Field>
               {(draft.channel === 'email' || draft.channel === 'letter') && (
-                <Field label="HTML Body">
-                  <Textarea ref={htmlRef} rows={10} value={draft.html_body ?? ''} onChange={(e) => setDraft({ ...draft, html_body: e.target.value })} className="font-mono text-xs" />
+                <Field label="HTML Body (drop tokens anywhere)">
+                  <Textarea
+                    ref={htmlRef}
+                    rows={10}
+                    value={draft.html_body ?? ''}
+                    onChange={(e) => setDraft({ ...draft, html_body: e.target.value })}
+                    onFocus={(e) => trackFocus(e.currentTarget)}
+                    className="font-mono text-xs"
+                    {...tokenDrop}
+                  />
                 </Field>
               )}
 
@@ -451,9 +475,9 @@ const TemplateEditorDialog: React.FC<EditorProps> = ({ open, template, title, cr
             </div>
 
             <div className="flex flex-col min-h-0 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 px-1">Token picker</p>
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 px-1">Variable library</p>
               <div className="flex-1 min-h-0">
-                <TokenPicker targets={[subjectRef, bodyRef, htmlRef]} />
+                <TokenPicker targets={[subjectRef, bodyRef, htmlRef]} lastFocusedRef={lastFocusedRef} />
               </div>
             </div>
           </TabsContent>
