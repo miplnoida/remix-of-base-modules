@@ -194,7 +194,7 @@ const Content: React.FC = () => {
         <Table>
           <TableHeader><TableRow>
             <TableHead>Method</TableHead><TableHead>Category</TableHead><TableHead>Label</TableHead>
-            <TableHead>Cycle</TableHead><TableHead>Default</TableHead>
+            <TableHead title="Default processing cycle — actual cycle availability is controlled by the matrix below">Default Cycle</TableHead><TableHead>Default</TableHead>
             <TableHead>Enabled</TableHead><TableHead className="w-20">Actions</TableHead>
           </TableRow></TableHeader>
           <TableBody>
