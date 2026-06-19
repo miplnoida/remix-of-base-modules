@@ -28,7 +28,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
 import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
-import { UserCheck } from 'lucide-react';
+import { ForwardToLegalDialog } from '@/components/compliance/ForwardToLegalDialog';
+import { UserCheck, Send } from 'lucide-react';
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
