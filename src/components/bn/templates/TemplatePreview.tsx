@@ -25,14 +25,24 @@ import CountryFieldSelector from '@/components/bn/selectors/CountryFieldSelector
 
 const db = supabase as any;
 
+/** Safe wrapper — returns null if no BnCountryProvider is mounted on this route. */
+function useOptionalBnCountry(): { activeCountryCode: string | null } {
+  try {
+    const ctx = useBnCountry();
+    return { activeCountryCode: ctx.activeCountryCode || null };
+  } catch {
+    return { activeCountryCode: null };
+  }
+}
+
 interface Props {
   subject?: string | null;
   body?: string | null;
   htmlBody?: string | null;
 }
 
-export const TemplatePreview: React.FC<Props> = ({ subject, body, htmlBody }) => {
-  const { activeCountryCode } = useBnCountry();
+const TemplatePreviewInner: React.FC<Props> = ({ subject, body, htmlBody }) => {
+  const { activeCountryCode } = useOptionalBnCountry();
   const [countryCode, setCountryCode] = useState<string | null>(activeCountryCode || 'KN');
   const [legalRefId, setLegalRefId] = useState<string | null>(null);
 
@@ -131,5 +141,30 @@ export const TemplatePreview: React.FC<Props> = ({ subject, body, htmlBody }) =>
     </div>
   );
 };
+
+// Error boundary so a resolver / context crash never blanks the editor.
+class PreviewErrorBoundary extends React.Component<{ children: React.ReactNode }, { err: Error | null }> {
+  state = { err: null as Error | null };
+  static getDerivedStateFromError(err: Error) { return { err }; }
+  componentDidCatch(err: Error) { console.warn('[TemplatePreview] render failed:', err); }
+  render() {
+    if (this.state.err) {
+      return (
+        <div className="border border-amber-300 bg-amber-50 text-amber-900 rounded p-3 text-xs space-y-1">
+          <p className="font-medium">Preview could not be rendered.</p>
+          <p>{this.state.err.message}</p>
+          <p className="text-amber-700">Fix the highlighted tokens or try a different sample context.</p>
+        </div>
+      );
+    }
+    return this.props.children as any;
+  }
+}
+
+export const TemplatePreview: React.FC<Props> = (props) => (
+  <PreviewErrorBoundary>
+    <TemplatePreviewInner {...props} />
+  </PreviewErrorBoundary>
+);
 
 export default TemplatePreview;
