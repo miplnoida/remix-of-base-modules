@@ -23,7 +23,7 @@ interface Props {
   targets?: Array<React.RefObject<HTMLTextAreaElement | HTMLInputElement | null>>;
   /** Last-focused element id, set by the editor when fields receive focus. */
   lastFocusedRef?: React.MutableRefObject<HTMLElement | null>;
-  onInsert?: (token: string) => void;
+  onInsert?: (token: string, target?: HTMLTextAreaElement | HTMLInputElement | null) => void;
 }
 
 export const TOKEN_DRAG_MIME = 'application/x-bn-token';
@@ -63,6 +63,7 @@ export const TokenPicker: React.FC<Props> = ({ targets, lastFocusedRef, onInsert
         ?? targets?.find(r => r.current)?.current ?? null);
     if (target) {
       insertInto(target, token);
+      onInsert?.(token, target);
     } else if (onInsert) {
       onInsert(token);
     } else {
@@ -135,7 +136,7 @@ export const TokenPicker: React.FC<Props> = ({ targets, lastFocusedRef, onInsert
  * caret position (or at the current selection on browsers that don't expose
  * `caretPositionFromPoint`).
  */
-export function useTokenDrop() {
+export function useTokenDrop(onInsert?: (token: string, target?: HTMLTextAreaElement | HTMLInputElement | null) => void) {
   return {
     onDragOver: (e: React.DragEvent) => {
       if (e.dataTransfer.types.includes(TOKEN_DRAG_MIME) || e.dataTransfer.types.includes('text/plain')) {
@@ -167,6 +168,7 @@ export function useTokenDrop() {
       const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
       setter?.call(target, next);
       target.dispatchEvent(new Event('input', { bubbles: true }));
+      onInsert?.(token, target);
       target.focus();
       const caret = pos + token.length;
       target.setSelectionRange(caret, caret);
