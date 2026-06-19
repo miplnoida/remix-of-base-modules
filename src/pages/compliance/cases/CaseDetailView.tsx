@@ -28,7 +28,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ComplianceTimeline } from '@/components/compliance/ComplianceTimeline';
 import { AssignmentDialog } from '@/components/compliance/AssignmentDialog';
-import { UserCheck } from 'lucide-react';
+import { ForwardToLegalDialog } from '@/components/compliance/ForwardToLegalDialog';
+import { UserCheck, Send } from 'lucide-react';
 
 const getStatusColor = (status: string) => {
   const colors: Record<string, string> = {
@@ -72,6 +73,8 @@ export default function CaseDetailView() {
   const [arrangementDialogOpen, setArrangementDialogOpen] = useState(false);
   const [waiverDialogOpen, setWaiverDialogOpen] = useState(false);
   const [assignmentDialogOpen, setAssignmentDialogOpen] = useState(false);
+  const [forwardLegalOpen, setForwardLegalOpen] = useState(false);
+
 
   const { userCode } = useUserCode();
   const currentUserCode = userCode || 'UNKNOWN';
@@ -243,6 +246,17 @@ export default function CaseDetailView() {
                 state: { prefill: { case_id: c.id, case_number: c.case_number, employer_id: c.employer_id, employer_name: c.employer_name, total_amount: c.total_amount } }
               })}>
                 <Scale className="h-4 w-4 mr-1" />Recommend Legal
+              </Button>
+            )}
+            {/* Forward to Legal — creates lg_case + referral + linkage */}
+            {!['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && !(c as any).legal_case_id && (
+              <Button size="sm" onClick={() => setForwardLegalOpen(true)}>
+                <Send className="h-4 w-4 mr-1" />Forward to Legal
+              </Button>
+            )}
+            {(c as any).legal_case_id && (
+              <Button variant="outline" size="sm" onClick={() => navigate(`/legal/cases/${(c as any).legal_case_id}`)}>
+                <Scale className="h-4 w-4 mr-1" />View Legal Case
               </Button>
             )}
             {activeViolationCount > 0 && !['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && (
@@ -603,6 +617,16 @@ export default function CaseDetailView() {
         currentOfficerId={c.assigned_officer_id || null}
         currentOfficerName={c.assigned_officer_name || null}
         onAssigned={() => queryClient.invalidateQueries({ queryKey: ['ce_case_detail', id] })}
+      />
+
+      <ForwardToLegalDialog
+        open={forwardLegalOpen}
+        onOpenChange={setForwardLegalOpen}
+        ceCaseId={c.id}
+        ceCaseNumber={c.case_number}
+        outstandingAmount={
+          Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0) - Number((c as any).amount_waived ?? 0)
+        }
       />
     </div>
   );
