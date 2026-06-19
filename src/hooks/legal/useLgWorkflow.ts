@@ -30,7 +30,7 @@ export function useLgHearings(range: HearingRange = {}) {
 export function useCreateLgHearing() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: LgHearingInsert) => createLgHearing(input),
+    mutationFn: (input: Omit<LgHearingInsert, "scheduled_at"> & { scheduled_at?: string }) => createLgHearing(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lg_hearing"] });
       qc.invalidateQueries({ queryKey: ["lg_case"] });
