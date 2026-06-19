@@ -117,6 +117,68 @@ export async function validatePayable(
     if (dup?.length) errors.push(`Duplicate payment exists for period ${instr.period_start} → ${instr.period_end}`);
   }
 
+  // 9) Country-vs-product payment hierarchy drift checks (V1, V3, V4, V5, V6, V7)
+  //    Catches the case where Country Pack capability was changed AFTER product save.
+  try {
+    if (instr.product_id && instr.payment_method) {
+      const { data: prod } = await db
+        .from('bn_product')
+        .select('country_code')
+        .eq('id', instr.product_id)
+        .maybeSingle();
+      if (prod?.country_code) {
+        const { data: cpc } = await db
+          .from('bn_country_payment_config')
+          .select(
+            'payment_method,is_active,is_method_enabled,allow_third_party_payee,allow_provider_direct_pay,' +
+              'bank_file_format,header_record_format,detail_record_format,trailer_record_format,' +
+              'cheque_stock_required,cheque_format_template_id',
+          )
+          .eq('country_code', prod.country_code)
+          .eq('payment_method', instr.payment_method)
+          .maybeSingle();
+
+        // V1 drift
+        if (!cpc || !cpc.is_active || !cpc.is_method_enabled) {
+          errors.push(`Payment method ${instr.payment_method} is no longer enabled at country level (${prod.country_code})`);
+        } else {
+          // V4 — EFT format completeness
+          if (instr.payment_method === 'EFT') {
+            const missing = ['bank_file_format', 'header_record_format', 'detail_record_format', 'trailer_record_format']
+              .filter((f) => !(cpc as any)[f]);
+            if (missing.length) errors.push(`Country EFT format incomplete (missing ${missing.join(', ')})`);
+          }
+          // V5 — Cheque stock/format
+          if (instr.payment_method === 'CHEQUE' && cpc.cheque_stock_required && !cpc.cheque_format_template_id) {
+            errors.push('Country CHEQUE config requires stock but cheque format template is not set');
+          }
+          // V6 — Third-party payee drift
+          if (instr.payee_id && !cpc.allow_third_party_payee) {
+            errors.push(`Country method ${instr.payment_method} no longer allows third-party payee`);
+          }
+          // V7 — Provider direct-pay drift
+          if (instr.provider_id && !cpc.allow_provider_direct_pay) {
+            errors.push(`Country method ${instr.payment_method} no longer allows provider direct-pay`);
+          }
+        }
+
+        // V3 — currency policy
+        const { data: ctry } = await db
+          .from('bn_country')
+          .select('currency_code,allow_foreign_currency_products,allowed_alt_currencies')
+          .eq('country_code', prod.country_code)
+          .maybeSingle();
+        if (ctry && instr.currency && instr.currency !== ctry.currency_code) {
+          if (!ctry.allow_foreign_currency_products || !(ctry.allowed_alt_currencies ?? []).includes(instr.currency)) {
+            warnings.push(`Instruction currency ${instr.currency} differs from country currency ${ctry.currency_code}`);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    warnings.push('Could not evaluate country/product payment hierarchy');
+  }
+
   const ok = errors.length === 0;
   await db
     .from('bn_payment_instruction')
