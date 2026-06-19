@@ -10,6 +10,7 @@ import CountrySelector from './CountrySelector';
 import CountryProfileEditor from './CountryProfileEditor';
 import { getCountryProfile } from '@/services/bn/countryProfileService';
 import PaymentCapabilitySummary from './PaymentCapabilitySummary';
+import PaymentCycleMethodMatrix from './PaymentCycleMethodMatrix';
 
 const StatusBadge: React.FC<{ configured: boolean; count?: number }> = ({ configured, count }) => (
   <Badge variant={configured ? 'default' : 'destructive'} className="gap-1">
