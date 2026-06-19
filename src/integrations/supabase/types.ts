@@ -8202,6 +8202,54 @@ export type Database = {
           },
         ]
       }
+      bn_country_payment_cycle_method: {
+        Row: {
+          country_code: string
+          effective_from: string | null
+          effective_to: string | null
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_default_for_cycle: boolean
+          is_enabled: boolean
+          modified_at: string
+          modified_by: string | null
+          payment_cycle: string
+          payment_method: string
+          priority: number
+        }
+        Insert: {
+          country_code: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_default_for_cycle?: boolean
+          is_enabled?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          payment_cycle: string
+          payment_method: string
+          priority?: number
+        }
+        Update: {
+          country_code?: string
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_default_for_cycle?: boolean
+          is_enabled?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          payment_cycle?: string
+          payment_method?: string
+          priority?: number
+        }
+        Relationships: []
+      }
       bn_coverage_type: {
         Row: {
           active_flag: boolean
@@ -61009,6 +61057,7 @@ export type Database = {
           country_code: string | null
           country_currency: string | null
           country_enabled_methods: string[] | null
+          cycle_enabled_methods: string[] | null
           default_payment_method: string | null
           effective_currency: string | null
           payment_frequency: string | null
