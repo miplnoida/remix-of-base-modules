@@ -49722,6 +49722,1009 @@ export type Database = {
         }
         Relationships: []
       }
+      lg_case: {
+        Row: {
+          assigned_legal_officer_id: string | null
+          assigned_team_code: string | null
+          case_category_code: string | null
+          case_type_code: string
+          claim_amount: number | null
+          closed_date: string | null
+          closure_reason_code: string | null
+          compliance_case_id: string | null
+          compliance_referral_id: string | null
+          country_code: string | null
+          court_case_no: string | null
+          court_name: string | null
+          created_at: string
+          created_by: string | null
+          current_stage_code: string
+          employer_account_id: string | null
+          employer_id: string | null
+          id: string
+          lg_case_no: string
+          next_action: string | null
+          next_action_due_date: string | null
+          next_hearing_date: string | null
+          opened_date: string
+          outstanding_amount_snapshot: number | null
+          payment_arrangement_id: string | null
+          person_id: string | null
+          priority_code: string
+          status_code: string
+          summary: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          assigned_legal_officer_id?: string | null
+          assigned_team_code?: string | null
+          case_category_code?: string | null
+          case_type_code: string
+          claim_amount?: number | null
+          closed_date?: string | null
+          closure_reason_code?: string | null
+          compliance_case_id?: string | null
+          compliance_referral_id?: string | null
+          country_code?: string | null
+          court_case_no?: string | null
+          court_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_stage_code?: string
+          employer_account_id?: string | null
+          employer_id?: string | null
+          id?: string
+          lg_case_no: string
+          next_action?: string | null
+          next_action_due_date?: string | null
+          next_hearing_date?: string | null
+          opened_date?: string
+          outstanding_amount_snapshot?: number | null
+          payment_arrangement_id?: string | null
+          person_id?: string | null
+          priority_code?: string
+          status_code?: string
+          summary?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          assigned_legal_officer_id?: string | null
+          assigned_team_code?: string | null
+          case_category_code?: string | null
+          case_type_code?: string
+          claim_amount?: number | null
+          closed_date?: string | null
+          closure_reason_code?: string | null
+          compliance_case_id?: string | null
+          compliance_referral_id?: string | null
+          country_code?: string | null
+          court_case_no?: string | null
+          court_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_stage_code?: string
+          employer_account_id?: string | null
+          employer_id?: string | null
+          id?: string
+          lg_case_no?: string
+          next_action?: string | null
+          next_action_due_date?: string | null
+          next_hearing_date?: string | null
+          opened_date?: string
+          outstanding_amount_snapshot?: number | null
+          payment_arrangement_id?: string | null
+          person_id?: string | null
+          priority_code?: string
+          status_code?: string
+          summary?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      lg_case_activity: {
+        Row: {
+          activity_type: string
+          description: string | null
+          id: string
+          lg_case_id: string
+          payload: Json | null
+          performed_at: string
+          performed_by: string | null
+        }
+        Insert: {
+          activity_type: string
+          description?: string | null
+          id?: string
+          lg_case_id: string
+          payload?: Json | null
+          performed_at?: string
+          performed_by?: string | null
+        }
+        Update: {
+          activity_type?: string
+          description?: string | null
+          id?: string
+          lg_case_id?: string
+          payload?: Json | null
+          performed_at?: string
+          performed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_activity_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_case_assignment: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          assigned_team_code: string | null
+          assigned_to_user_id: string | null
+          assignment_role: string | null
+          id: string
+          is_current: boolean
+          lg_case_id: string
+          reason: string | null
+          unassigned_at: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assigned_team_code?: string | null
+          assigned_to_user_id?: string | null
+          assignment_role?: string | null
+          id?: string
+          is_current?: boolean
+          lg_case_id: string
+          reason?: string | null
+          unassigned_at?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assigned_team_code?: string | null
+          assigned_to_user_id?: string | null
+          assignment_role?: string | null
+          id?: string
+          is_current?: boolean
+          lg_case_id?: string
+          reason?: string | null
+          unassigned_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_assignment_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_case_calendar_event: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string | null
+          event_type: string
+          id: string
+          lg_case_id: string
+          location: string | null
+          starts_at: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          event_type: string
+          id?: string
+          lg_case_id: string
+          location?: string | null
+          starts_at: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          event_type?: string
+          id?: string
+          lg_case_id?: string
+          location?: string | null
+          starts_at?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_calendar_event_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_case_deadline: {
+        Row: {
+          created_at: string
+          deadline_type: string
+          description: string | null
+          due_date: string
+          id: string
+          is_satisfied: boolean
+          lg_case_id: string
+          satisfied_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          deadline_type: string
+          description?: string | null
+          due_date: string
+          id?: string
+          is_satisfied?: boolean
+          lg_case_id: string
+          satisfied_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          deadline_type?: string
+          description?: string | null
+          due_date?: string
+          id?: string
+          is_satisfied?: boolean
+          lg_case_id?: string
+          satisfied_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_deadline_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_case_note: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_internal: boolean
+          lg_case_id: string
+          note_text: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_internal?: boolean
+          lg_case_id: string
+          note_text: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_internal?: boolean
+          lg_case_id?: string
+          note_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_note_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_case_party: {
+        Row: {
+          contact_info: Json | null
+          created_at: string
+          display_name: string
+          external_ref_id: string | null
+          id: string
+          lg_case_id: string
+          notes: string | null
+          party_role: string
+          party_type: string
+          representative_name: string | null
+        }
+        Insert: {
+          contact_info?: Json | null
+          created_at?: string
+          display_name: string
+          external_ref_id?: string | null
+          id?: string
+          lg_case_id: string
+          notes?: string | null
+          party_role: string
+          party_type: string
+          representative_name?: string | null
+        }
+        Update: {
+          contact_info?: Json | null
+          created_at?: string
+          display_name?: string
+          external_ref_id?: string | null
+          id?: string
+          lg_case_id?: string
+          notes?: string | null
+          party_role?: string
+          party_type?: string
+          representative_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_party_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_case_referral: {
+        Row: {
+          created_at: string
+          id: string
+          lg_case_id: string
+          payload: Json | null
+          referral_date: string
+          referral_reason: string | null
+          referred_by: string | null
+          source_module: string
+          source_reference_id: string | null
+          source_reference_no: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lg_case_id: string
+          payload?: Json | null
+          referral_date?: string
+          referral_reason?: string | null
+          referred_by?: string | null
+          source_module: string
+          source_reference_id?: string | null
+          source_reference_no?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lg_case_id?: string
+          payload?: Json | null
+          referral_date?: string
+          referral_reason?: string | null
+          referred_by?: string | null
+          source_module?: string
+          source_reference_id?: string | null
+          source_reference_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_referral_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_case_stage_history: {
+        Row: {
+          from_stage_code: string | null
+          id: string
+          lg_case_id: string
+          notes: string | null
+          to_stage_code: string
+          transitioned_at: string
+          transitioned_by: string | null
+        }
+        Insert: {
+          from_stage_code?: string | null
+          id?: string
+          lg_case_id: string
+          notes?: string | null
+          to_stage_code: string
+          transitioned_at?: string
+          transitioned_by?: string | null
+        }
+        Update: {
+          from_stage_code?: string | null
+          id?: string
+          lg_case_id?: string
+          notes?: string | null
+          to_stage_code?: string
+          transitioned_at?: string
+          transitioned_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_stage_history_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_case_task: {
+        Row: {
+          assigned_to_user_id: string | null
+          completed_at: string | null
+          completed_by: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          lg_case_id: string
+          status: string
+          task_type_code: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to_user_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lg_case_id: string
+          status?: string
+          task_type_code: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to_user_id?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          lg_case_id?: string
+          status?: string
+          task_type_code?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_case_task_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_document_link: {
+        Row: {
+          document_category_code: string
+          document_ref_id: string | null
+          document_ref_no: string | null
+          document_source: string
+          id: string
+          lg_case_id: string
+          linked_at: string
+          linked_by: string | null
+          notes: string | null
+          title: string | null
+        }
+        Insert: {
+          document_category_code: string
+          document_ref_id?: string | null
+          document_ref_no?: string | null
+          document_source: string
+          id?: string
+          lg_case_id: string
+          linked_at?: string
+          linked_by?: string | null
+          notes?: string | null
+          title?: string | null
+        }
+        Update: {
+          document_category_code?: string
+          document_ref_id?: string | null
+          document_ref_no?: string | null
+          document_source?: string
+          id?: string
+          lg_case_id?: string
+          linked_at?: string
+          linked_by?: string | null
+          notes?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_document_link_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_fee_charge: {
+        Row: {
+          amount: number
+          charge_date: string
+          created_at: string
+          created_by: string | null
+          currency_code: string | null
+          description: string | null
+          fee_head_code: string | null
+          fee_head_ref_id: string | null
+          id: string
+          lg_case_id: string
+          posted_invoice_ref_id: string | null
+          status: string
+        }
+        Insert: {
+          amount: number
+          charge_date?: string
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string | null
+          description?: string | null
+          fee_head_code?: string | null
+          fee_head_ref_id?: string | null
+          id?: string
+          lg_case_id: string
+          posted_invoice_ref_id?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          charge_date?: string
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string | null
+          description?: string | null
+          fee_head_code?: string | null
+          fee_head_ref_id?: string | null
+          id?: string
+          lg_case_id?: string
+          posted_invoice_ref_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_fee_charge_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_hearing: {
+        Row: {
+          court_name: string | null
+          court_room: string | null
+          created_at: string
+          created_by: string | null
+          hearing_type_code: string
+          id: string
+          judge_name: string | null
+          lg_case_id: string
+          next_hearing_date: string | null
+          outcome_code: string | null
+          outcome_notes: string | null
+          scheduled_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          court_name?: string | null
+          court_room?: string | null
+          created_at?: string
+          created_by?: string | null
+          hearing_type_code: string
+          id?: string
+          judge_name?: string | null
+          lg_case_id: string
+          next_hearing_date?: string | null
+          outcome_code?: string | null
+          outcome_notes?: string | null
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          court_name?: string | null
+          court_room?: string | null
+          created_at?: string
+          created_by?: string | null
+          hearing_type_code?: string
+          id?: string
+          judge_name?: string | null
+          lg_case_id?: string
+          next_hearing_date?: string | null
+          outcome_code?: string | null
+          outcome_notes?: string | null
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_hearing_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_hearing_attendee: {
+        Row: {
+          attended: boolean | null
+          attendee_name: string
+          attendee_role: string
+          created_at: string
+          id: string
+          lg_hearing_id: string
+          notes: string | null
+        }
+        Insert: {
+          attended?: boolean | null
+          attendee_name: string
+          attendee_role: string
+          created_at?: string
+          id?: string
+          lg_hearing_id: string
+          notes?: string | null
+        }
+        Update: {
+          attended?: boolean | null
+          attendee_name?: string
+          attendee_role?: string
+          created_at?: string
+          id?: string
+          lg_hearing_id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_hearing_attendee_lg_hearing_id_fkey"
+            columns: ["lg_hearing_id"]
+            isOneToOne: false
+            referencedRelation: "lg_hearing"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_notice: {
+        Row: {
+          acknowledged_at: string | null
+          body: string | null
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          delivery_channel: string | null
+          delivery_status: string | null
+          id: string
+          issued_date: string | null
+          issued_to_party_id: string | null
+          lg_case_id: string
+          notice_no: string
+          notice_type_code: string
+          response_due_date: string | null
+          status: string
+          subject: string | null
+          template_ref_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          delivery_channel?: string | null
+          delivery_status?: string | null
+          id?: string
+          issued_date?: string | null
+          issued_to_party_id?: string | null
+          lg_case_id: string
+          notice_no: string
+          notice_type_code: string
+          response_due_date?: string | null
+          status?: string
+          subject?: string | null
+          template_ref_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          body?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          delivery_channel?: string | null
+          delivery_status?: string | null
+          id?: string
+          issued_date?: string | null
+          issued_to_party_id?: string | null
+          lg_case_id?: string
+          notice_no?: string
+          notice_type_code?: string
+          response_due_date?: string | null
+          status?: string
+          subject?: string | null
+          template_ref_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_notice_issued_to_party_id_fkey"
+            columns: ["issued_to_party_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_party"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_notice_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_order: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_ref_id: string | null
+          effective_date: string | null
+          expiry_date: string | null
+          id: string
+          issued_by_court: string | null
+          issued_date: string | null
+          lg_case_id: string
+          order_no: string
+          order_type_code: string
+          ordered_amount: number | null
+          status: string
+          terms: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_ref_id?: string | null
+          effective_date?: string | null
+          expiry_date?: string | null
+          id?: string
+          issued_by_court?: string | null
+          issued_date?: string | null
+          lg_case_id: string
+          order_no: string
+          order_type_code: string
+          ordered_amount?: number | null
+          status?: string
+          terms?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_ref_id?: string | null
+          effective_date?: string | null
+          expiry_date?: string | null
+          id?: string
+          issued_by_court?: string | null
+          issued_date?: string | null
+          lg_case_id?: string
+          order_no?: string
+          order_type_code?: string
+          ordered_amount?: number | null
+          status?: string
+          terms?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_order_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_payment_arrangement_link: {
+        Row: {
+          id: string
+          lg_case_id: string
+          link_type: string
+          linked_at: string
+          linked_by: string | null
+          notes: string | null
+          payment_arrangement_id: string
+          source_module: string
+        }
+        Insert: {
+          id?: string
+          lg_case_id: string
+          link_type?: string
+          linked_at?: string
+          linked_by?: string | null
+          notes?: string | null
+          payment_arrangement_id: string
+          source_module?: string
+        }
+        Update: {
+          id?: string
+          lg_case_id?: string
+          link_type?: string
+          linked_at?: string
+          linked_by?: string | null
+          notes?: string | null
+          payment_arrangement_id?: string
+          source_module?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_payment_arrangement_link_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_reference_group: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
+      lg_reference_value: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          group_code: string
+          id: string
+          is_active: boolean
+          label: string
+          metadata: Json | null
+          sort_order: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          group_code: string
+          id?: string
+          is_active?: boolean
+          label: string
+          metadata?: Json | null
+          sort_order?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          group_code?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          metadata?: Json | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_reference_value_group_code_fkey"
+            columns: ["group_code"]
+            isOneToOne: false
+            referencedRelation: "lg_reference_group"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      lg_settlement: {
+        Row: {
+          accepted_at: string | null
+          agreed_amount: number | null
+          created_at: string
+          currency_code: string | null
+          id: string
+          lg_case_id: string
+          payment_arrangement_id: string | null
+          proposed_amount: number | null
+          proposed_at: string
+          proposed_by: string | null
+          rejected_at: string | null
+          rejection_reason: string | null
+          status: string
+          terms: string | null
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          agreed_amount?: number | null
+          created_at?: string
+          currency_code?: string | null
+          id?: string
+          lg_case_id: string
+          payment_arrangement_id?: string | null
+          proposed_amount?: number | null
+          proposed_at?: string
+          proposed_by?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          status?: string
+          terms?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          agreed_amount?: number | null
+          created_at?: string
+          currency_code?: string | null
+          id?: string
+          lg_case_id?: string
+          payment_arrangement_id?: string | null
+          proposed_amount?: number | null
+          proposed_at?: string
+          proposed_by?: string | null
+          rejected_at?: string | null
+          rejection_reason?: string | null
+          status?: string
+          terms?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_settlement_lg_case_id_fkey"
+            columns: ["lg_case_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       login_security_events: {
         Row: {
           created_at: string
@@ -63309,6 +64312,7 @@ export type Database = {
           title: string
         }[]
       }
+      lg_generate_case_no: { Args: never; Returns: string }
       log_audit_event: {
         Args: {
           _action_type: string
