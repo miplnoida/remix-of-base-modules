@@ -659,6 +659,8 @@ const CaseTracking = lazy(() => import('@/pages/legal/CaseTracking'));
 const CaseDetailView = lazy(() => import('@/pages/legal/CaseDetailView'));
 const CaseEditView = lazy(() => import('@/pages/legal/CaseEditView'));
 const LegalDashboard = lazy(() => import('@/pages/legal/LegalDashboard'));
+const LgDashboard = lazy(() => import('@/pages/legal/LgDashboard'));
+const LgHearingCalendar = lazy(() => import('@/pages/legal/LgHearingCalendar'));
 const LegalWorkbench = lazy(() => import('@/pages/legal/LegalWorkbench'));
 const DelinquentCases = lazy(() => import('@/pages/legal/DelinquentCases'));
 const CourtOrdersManagement = lazy(() => import('@/pages/legal/CourtOrdersManagement'));
@@ -1761,6 +1763,8 @@ export const AppRoutes = () => {
 
       {/* Legal Module Routes - New */}
       <Route path="/legal/dashboard" element={<LegalDashboard />} />
+      <Route path="/legal/lg/dashboard" element={<Suspense fallback={<div>Loading...</div>}><LgDashboard /></Suspense>} />
+      <Route path="/legal/lg/hearings" element={<Suspense fallback={<div>Loading...</div>}><LgHearingCalendar /></Suspense>} />
       <Route path="/legal/workbench" element={<LegalWorkbench />} />
       <Route path="/legal/cases" element={<CaseTracking />} />
       <Route path="/legal/cases/intake" element={<CaseIntake />} />
