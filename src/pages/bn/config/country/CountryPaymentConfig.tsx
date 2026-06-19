@@ -124,6 +124,11 @@ const Content: React.FC = () => {
   const { options: methodOptions } = useReferenceValues(BN_REF_GROUPS.PAYMENT_METHOD_TYPE, PAYMENT_METHOD_FALLBACK);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<BnCountryPaymentConfig>>(empty());
+  const { data: eftReadiness } = useQuery({
+    queryKey: ['bn', 'eft-readiness', activeCountryCode],
+    queryFn: () => getEftFormatReadiness(activeCountryCode!),
+    enabled: !!activeCountryCode,
+  });
 
   const selectedOpt = useMemo(
     () => methodOptions.find((o) => o.value === form.payment_method),
