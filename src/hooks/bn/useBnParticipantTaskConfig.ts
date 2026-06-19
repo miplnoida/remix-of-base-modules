@@ -1,5 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { auditConfigChange } from '@/services/bn/audit/bnAuditService';
+import { getCurrentUserCode } from '@/services/bn/audit/getCurrentUserCode';
+
+const safeAudit = async (i: Parameters<typeof auditConfigChange>[0]) => {
+  try {
+    const performedBy = i.performedBy || (await getCurrentUserCode()) || 'SYSTEM';
+    await auditConfigChange({ ...i, performedBy });
+  } catch (e) {
+    console.warn('[useBnParticipantTaskConfig] audit failed:', e);
+  }
+};
+
 
 export interface BnParticipantTaskConfigRow {
   id: string;
@@ -41,10 +53,27 @@ export function useUpsertParticipantTaskConfig(versionId: string | undefined) {
     mutationKey: ['bn_participant_task_config', 'upsert', versionId],
     mutationFn: async (row: BnParticipantTaskConfigInput) => {
       const payload = { ...row, product_version_id: versionId } as any;
-      const { error } = await (supabase as any)
+      let before: any = null;
+      if (row.id) {
+        const { data } = await (supabase as any)
+          .from('bn_product_participant_task_config')
+          .select('*').eq('id', row.id).maybeSingle();
+        before = data ?? null;
+      }
+      const { data, error } = await (supabase as any)
         .from('bn_product_participant_task_config')
-        .upsert(payload, { onConflict: 'id' });
+        .upsert(payload, { onConflict: 'id' })
+        .select()
+        .single();
       if (error) throw error;
+      await safeAudit({
+        entityType: 'bn_product_participant_task_config',
+        entityId: (data as any)?.id ?? row.id ?? null,
+        action: row.id ? 'UPDATE' : 'CREATE',
+        performedBy: '',
+        beforeValue: before,
+        afterValue: data,
+      });
       return { ok: true };
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['bn_participant_task_config', versionId] }),
@@ -56,13 +85,24 @@ export function useDeleteParticipantTaskConfig(versionId: string | undefined) {
   return useMutation({
     mutationKey: ['bn_participant_task_config', 'delete', versionId],
     mutationFn: async (id: string) => {
+      const { data: before } = await (supabase as any)
+        .from('bn_product_participant_task_config')
+        .select('*').eq('id', id).maybeSingle();
       const { error } = await (supabase as any)
         .from('bn_product_participant_task_config')
         .delete()
         .eq('id', id);
       if (error) throw error;
+      await safeAudit({
+        entityType: 'bn_product_participant_task_config',
+        entityId: id,
+        action: 'DELETE',
+        performedBy: '',
+        beforeValue: before ?? null,
+      });
       return { ok: true };
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['bn_participant_task_config', versionId] }),
   });
 }
+
