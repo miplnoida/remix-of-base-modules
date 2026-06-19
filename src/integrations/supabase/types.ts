@@ -8119,6 +8119,7 @@ export type Database = {
           is_active: boolean
           is_default: boolean
           is_method_enabled: boolean
+          method_config: Json
           method_label: string
           payment_cycle: string
           payment_method: string
@@ -8151,6 +8152,7 @@ export type Database = {
           is_active?: boolean
           is_default?: boolean
           is_method_enabled?: boolean
+          method_config?: Json
           method_label: string
           payment_cycle?: string
           payment_method: string
@@ -8183,6 +8185,7 @@ export type Database = {
           is_active?: boolean
           is_default?: boolean
           is_method_enabled?: boolean
+          method_config?: Json
           method_label?: string
           payment_cycle?: string
           payment_method?: string
