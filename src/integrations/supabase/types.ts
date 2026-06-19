@@ -50234,47 +50234,98 @@ export type Database = {
       }
       lg_document_link: {
         Row: {
+          confidential: boolean
+          court_filed: boolean
           document_category_code: string
           document_ref_id: string | null
           document_ref_no: string | null
           document_source: string
+          filed_date: string | null
+          hearing_id: string | null
           id: string
           lg_case_id: string
           linked_at: string
           linked_by: string | null
+          linked_stage_code: string | null
           notes: string | null
+          order_id: string | null
+          settlement_id: string | null
           title: string | null
+          uploaded_at: string
+          uploaded_by: string | null
+          version_no: number
         }
         Insert: {
+          confidential?: boolean
+          court_filed?: boolean
           document_category_code: string
           document_ref_id?: string | null
           document_ref_no?: string | null
           document_source: string
+          filed_date?: string | null
+          hearing_id?: string | null
           id?: string
           lg_case_id: string
           linked_at?: string
           linked_by?: string | null
+          linked_stage_code?: string | null
           notes?: string | null
+          order_id?: string | null
+          settlement_id?: string | null
           title?: string | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+          version_no?: number
         }
         Update: {
+          confidential?: boolean
+          court_filed?: boolean
           document_category_code?: string
           document_ref_id?: string | null
           document_ref_no?: string | null
           document_source?: string
+          filed_date?: string | null
+          hearing_id?: string | null
           id?: string
           lg_case_id?: string
           linked_at?: string
           linked_by?: string | null
+          linked_stage_code?: string | null
           notes?: string | null
+          order_id?: string | null
+          settlement_id?: string | null
           title?: string | null
+          uploaded_at?: string
+          uploaded_by?: string | null
+          version_no?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "lg_document_link_hearing_id_fkey"
+            columns: ["hearing_id"]
+            isOneToOne: false
+            referencedRelation: "lg_hearing"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lg_document_link_lg_case_id_fkey"
             columns: ["lg_case_id"]
             isOneToOne: false
             referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_document_link_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "lg_order"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_document_link_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "lg_settlement"
             referencedColumns: ["id"]
           },
         ]
@@ -50453,15 +50504,22 @@ export type Database = {
           delivered_at: string | null
           delivery_channel: string | null
           delivery_status: string | null
+          generated_at: string | null
+          generated_by: string | null
+          generated_document_id: string | null
           id: string
           issued_date: string | null
           issued_to_party_id: string | null
           lg_case_id: string
           notice_no: string
           notice_type_code: string
+          recipient_party_id: string | null
           response_due_date: string | null
+          sent_at: string | null
+          sent_by: string | null
           status: string
           subject: string | null
+          template_id: string | null
           template_ref_id: string | null
           updated_at: string
         }
@@ -50473,15 +50531,22 @@ export type Database = {
           delivered_at?: string | null
           delivery_channel?: string | null
           delivery_status?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          generated_document_id?: string | null
           id?: string
           issued_date?: string | null
           issued_to_party_id?: string | null
           lg_case_id: string
           notice_no: string
           notice_type_code: string
+          recipient_party_id?: string | null
           response_due_date?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
           status?: string
           subject?: string | null
+          template_id?: string | null
           template_ref_id?: string | null
           updated_at?: string
         }
@@ -50493,19 +50558,33 @@ export type Database = {
           delivered_at?: string | null
           delivery_channel?: string | null
           delivery_status?: string | null
+          generated_at?: string | null
+          generated_by?: string | null
+          generated_document_id?: string | null
           id?: string
           issued_date?: string | null
           issued_to_party_id?: string | null
           lg_case_id?: string
           notice_no?: string
           notice_type_code?: string
+          recipient_party_id?: string | null
           response_due_date?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
           status?: string
           subject?: string | null
+          template_id?: string | null
           template_ref_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lg_notice_generated_document_id_fkey"
+            columns: ["generated_document_id"]
+            isOneToOne: false
+            referencedRelation: "lg_document_link"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lg_notice_issued_to_party_id_fkey"
             columns: ["issued_to_party_id"]
@@ -50518,6 +50597,20 @@ export type Database = {
             columns: ["lg_case_id"]
             isOneToOne: false
             referencedRelation: "lg_case"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_notice_recipient_party_id_fkey"
+            columns: ["recipient_party_id"]
+            isOneToOne: false
+            referencedRelation: "lg_case_party"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_notice_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "notification_templates"
             referencedColumns: ["id"]
           },
         ]
