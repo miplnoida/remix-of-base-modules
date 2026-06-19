@@ -335,6 +335,15 @@ const Content: React.FC = () => {
               {cat === 'EFT' && (
                 <>
                   <SectionTitle>EFT / Bank Transfer Configuration</SectionTitle>
+                  <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3 mb-3 text-xs flex gap-2">
+                    <Info className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+                    <div>
+                      <strong>Bank file format now lives on the Funding Source Account.</strong> Configure EFT
+                      file layout per funding bank/account under Country Pack → Funding Source Accounts. The fields
+                      below are kept as a legacy country-wide fallback and are <em>only</em> used when no active
+                      source account exists.
+                    </div>
+                  </div>
                   <div className="flex items-end gap-2 p-3 bg-muted/40 rounded-md mb-3">
                     <div className="flex-1">
                       <Label className="text-xs flex items-center gap-1.5"><FileCode className="h-3.5 w-3.5" /> Load Preset</Label>
