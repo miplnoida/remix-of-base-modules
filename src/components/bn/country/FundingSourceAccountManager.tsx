@@ -24,6 +24,7 @@ import {
   type PaymentSourceAccount, type SourceFormatStatus,
 } from '@/services/bn/payment/paymentSourceAccountService';
 import { EFT_FORMAT_PRESETS, getPreset } from '@/lib/bn/eftFormatPresets';
+import { getCurrentUserCode } from '@/hooks/useUserCode';
 import { requireUserCode } from '@/lib/bn/requireUserCode';
 
 const STATUS_VARIANT: Record<SourceFormatStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -70,7 +71,7 @@ const FundingSourceAccountManager: React.FC<Props> = ({ countryCode }) => {
 
   const saveMut = useMutation({
     mutationFn: async (payload: Partial<PaymentSourceAccount>) => {
-      const userCode = await requireUserCode();
+      const userCode = requireUserCode(await getCurrentUserCode(), 'save funding source account');
       return upsertSourceAccount(payload as any, userCode);
     },
     onSuccess: () => {
