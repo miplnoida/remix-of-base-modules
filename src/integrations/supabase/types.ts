@@ -49965,7 +49965,10 @@ export type Database = {
           id: string
           is_satisfied: boolean
           lg_case_id: string
+          reminder_days_json: Json | null
+          reminder_required: boolean
           satisfied_at: string | null
+          status_code: string
         }
         Insert: {
           created_at?: string
@@ -49975,7 +49978,10 @@ export type Database = {
           id?: string
           is_satisfied?: boolean
           lg_case_id: string
+          reminder_days_json?: Json | null
+          reminder_required?: boolean
           satisfied_at?: string | null
+          status_code?: string
         }
         Update: {
           created_at?: string
@@ -49985,7 +49991,10 @@ export type Database = {
           id?: string
           is_satisfied?: boolean
           lg_case_id?: string
+          reminder_days_json?: Json | null
+          reminder_required?: boolean
           satisfied_at?: string | null
+          status_code?: string
         }
         Relationships: [
           {
@@ -50175,6 +50184,7 @@ export type Database = {
           due_date: string | null
           id: string
           lg_case_id: string
+          priority_code: string
           status: string
           task_type_code: string
           title: string
@@ -50190,6 +50200,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           lg_case_id: string
+          priority_code?: string
           status?: string
           task_type_code: string
           title: string
@@ -50205,6 +50216,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           lg_case_id?: string
+          priority_code?: string
           status?: string
           task_type_code?: string
           title?: string
@@ -50326,11 +50338,16 @@ export type Database = {
           court_room: string | null
           created_at: string
           created_by: string | null
+          hearing_date: string | null
+          hearing_time: string | null
           hearing_type_code: string
           id: string
           judge_name: string | null
           lg_case_id: string
+          location: string | null
+          minutes: string | null
           next_hearing_date: string | null
+          next_hearing_time: string | null
           outcome_code: string | null
           outcome_notes: string | null
           scheduled_at: string
@@ -50342,11 +50359,16 @@ export type Database = {
           court_room?: string | null
           created_at?: string
           created_by?: string | null
+          hearing_date?: string | null
+          hearing_time?: string | null
           hearing_type_code: string
           id?: string
           judge_name?: string | null
           lg_case_id: string
+          location?: string | null
+          minutes?: string | null
           next_hearing_date?: string | null
+          next_hearing_time?: string | null
           outcome_code?: string | null
           outcome_notes?: string | null
           scheduled_at: string
@@ -50358,11 +50380,16 @@ export type Database = {
           court_room?: string | null
           created_at?: string
           created_by?: string | null
+          hearing_date?: string | null
+          hearing_time?: string | null
           hearing_type_code?: string
           id?: string
           judge_name?: string | null
           lg_case_id?: string
+          location?: string | null
+          minutes?: string | null
           next_hearing_date?: string | null
+          next_hearing_time?: string | null
           outcome_code?: string | null
           outcome_notes?: string | null
           scheduled_at?: string
