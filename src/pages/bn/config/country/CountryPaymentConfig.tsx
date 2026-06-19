@@ -105,8 +105,11 @@ function validateConfig(form: Partial<BnCountryPaymentConfig>, meta: MethodMeta)
       if (!mc.issuer) errs.push('Money Order: issuer is required.');
       break;
     case 'WIRE':
-      if (!mc.swift_bic) errs.push('Wire Transfer: SWIFT/BIC is required.');
-      if (!mc.iban && !mc.account_number) errs.push('Wire Transfer: IBAN or account number is required.');
+      // Country config holds capability flags only; SWIFT/BIC/IBAN/account live on Payment Profile (beneficiary)
+      // and Payment Source Account (SSB funding side). Country must not store per-payee wire details.
+      if (!form.requires_bank_account) errs.push('Wire Transfer: "Requires bank account" must be true.');
+      if (mc.requires_swift_bic !== true) errs.push('Wire Transfer: "Requires SWIFT/BIC on beneficiary profile" must be true.');
+      if (mc.requires_beneficiary_address !== true) errs.push('Wire Transfer: "Requires beneficiary address" must be true.');
       break;
   }
   return errs;
