@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Pencil, Trash2, FileCode, Info } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileCode, Info, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 import { BnCountryProvider, useBnCountry } from '@/contexts/BnCountryContext';
 import CountrySelector from '@/components/bn/country/CountrySelector';
 import {
@@ -24,6 +25,8 @@ import type { BnCountryPaymentConfig } from '@/types/bn';
 import { PageHeader } from '@/components/common/PageHeader';
 import { EFT_FORMAT_PRESETS, getPreset } from '@/lib/bn/eftFormatPresets';
 import PaymentCycleMethodMatrix from '@/components/bn/country/PaymentCycleMethodMatrix';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { getEftFormatReadiness, type SourceFormatStatus } from '@/services/bn/payment/paymentSourceAccountService';
 
 type MethodCategory = 'EFT' | 'CHEQUE' | 'CASH' | 'MOBILE' | 'CARD' | 'MONEY_ORDER' | 'WIRE' | 'OTHER';
 
