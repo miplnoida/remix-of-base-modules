@@ -342,50 +342,82 @@ const Content: React.FC = () => {
 
               {cat === 'EFT' && (
                 <>
-                  <SectionTitle>EFT / Bank Transfer Configuration</SectionTitle>
+                  <SectionTitle>EFT / Bank Transfer — Country Capability</SectionTitle>
                   <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3 mb-3 text-xs flex gap-2">
                     <Info className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
                     <div>
-                      <strong>Bank file format now lives on the Funding Source Account.</strong> Configure EFT
-                      file layout per funding bank/account under Country Pack → Funding Source Accounts. The fields
-                      below are kept as a legacy country-wide fallback and are <em>only</em> used when no active
-                      source account exists.
+                      EFT file format is configured against the Social Security funding/source bank account,
+                      not directly on country payment method. Configure it under <strong>Country Pack →
+                      Funding Source Accounts</strong>.
                     </div>
                   </div>
-                  <div className="flex items-end gap-2 p-3 bg-muted/40 rounded-md mb-3">
-                    <div className="flex-1">
-                      <Label className="text-xs flex items-center gap-1.5"><FileCode className="h-3.5 w-3.5" /> Load Preset</Label>
-                      <Select onValueChange={applyPreset}>
-                        <SelectTrigger><SelectValue placeholder="Choose a bank-format preset…" /></SelectTrigger>
-                        <SelectContent>
-                          {EFT_FORMAT_PRESETS.map((p) => (
-                            <SelectItem key={p.key} value={p.key}>
-                              <div><div className="font-medium">{p.label}</div><div className="text-[10px] text-muted-foreground">{p.description}</div></div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+
+                  <div className="rounded-md border bg-muted/30 p-3 mb-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-medium">EFT Source Account Status</div>
+                      <EftStatusBadge status={(eftReadiness?.status ?? 'MISSING') as SourceFormatStatus | 'MISSING'} />
                     </div>
+                    {eftReadiness?.account ? (
+                      <div className="text-[11px] text-muted-foreground">
+                        Default account: <span className="font-mono">{eftReadiness.account.source_account_code}</span>
+                        {' — '}{eftReadiness.account.source_account_name}
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-muted-foreground">
+                        No active EFT source account configured for this country.
+                      </div>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      EFT batch/file generation is blocked until source account status is <strong>READY</strong>.
+                    </p>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><Label className="text-xs">Bank File Format *</Label><Input value={form.bank_file_format || ''} onChange={(e) => setForm((f) => ({ ...f, bank_file_format: e.target.value }))} placeholder="CSV / NACHA / SWIFT" /></div>
-                    <div><Label className="text-xs">Bank Code</Label><Input value={form.bank_code || ''} onChange={(e) => setForm((f) => ({ ...f, bank_code: e.target.value }))} /></div>
-                    <div><Label className="text-xs">File Naming Convention</Label><Input value={form.file_naming_convention || ''} onChange={(e) => setForm((f) => ({ ...f, file_naming_convention: e.target.value }))} placeholder="BN_EFT_{batch_number}_{yyyymmdd}.csv" /></div>
-                    <div><Label className="text-xs">File Date Format</Label><Input value={form.file_date_format || ''} onChange={(e) => setForm((f) => ({ ...f, file_date_format: e.target.value }))} placeholder="YYYYMMDD" /></div>
-                    <div><Label className="text-xs">Account Number Rule</Label><Input value={form.account_number_rule || ''} onChange={(e) => setForm((f) => ({ ...f, account_number_rule: e.target.value }))} /></div>
-                    <div><Label className="text-xs">Routing Number Rule</Label><Input value={form.routing_number_rule || ''} onChange={(e) => setForm((f) => ({ ...f, routing_number_rule: e.target.value }))} /></div>
-                    <div className="col-span-2"><Label className="text-xs">Bank Validation Rule Set (JSON)</Label>
-                      <Textarea rows={2} className="font-mono text-xs"
-                        value={JSON.stringify(form.bank_validation_rule_set ?? {}, null, 0)}
-                        onChange={(e) => { try { setForm((f) => ({ ...f, bank_validation_rule_set: JSON.parse(e.target.value || '{}') })); } catch { /* ignore */ } }} />
-                    </div>
-                  </div>
-                  <div className="mt-3"><Label className="text-xs">Header Record Format</Label>
-                    <Textarea rows={2} value={form.header_record_format || ''} onChange={(e) => setForm((f) => ({ ...f, header_record_format: e.target.value }))} className="font-mono text-xs" /></div>
-                  <div><Label className="text-xs">Detail Record Format *</Label>
-                    <Textarea rows={3} value={form.detail_record_format || ''} onChange={(e) => setForm((f) => ({ ...f, detail_record_format: e.target.value }))} className="font-mono text-xs" /></div>
-                  <div><Label className="text-xs">Trailer Record Format</Label>
-                    <Textarea rows={2} value={form.trailer_record_format || ''} onChange={(e) => setForm((f) => ({ ...f, trailer_record_format: e.target.value }))} className="font-mono text-xs" /></div>
+
+                  <Collapsible>
+                    <CollapsibleTrigger className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground py-2 w-full text-left border-t pt-3">
+                      <ChevronDown className="h-3.5 w-3.5 transition-transform data-[state=open]:rotate-180" />
+                      Legacy fallback EFT format (advanced)
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <p className="text-[11px] text-muted-foreground mb-2">
+                        Used only if no active EFT source account or master EFT format exists. Not recommended for
+                        production bank submission.
+                      </p>
+                      <div className="flex items-end gap-2 p-3 bg-muted/40 rounded-md mb-3">
+                        <div className="flex-1">
+                          <Label className="text-xs flex items-center gap-1.5"><FileCode className="h-3.5 w-3.5" /> Load Preset</Label>
+                          <Select onValueChange={applyPreset}>
+                            <SelectTrigger><SelectValue placeholder="Choose a bank-format preset…" /></SelectTrigger>
+                            <SelectContent>
+                              {EFT_FORMAT_PRESETS.map((p) => (
+                                <SelectItem key={p.key} value={p.key}>
+                                  <div><div className="font-medium">{p.label}</div><div className="text-[10px] text-muted-foreground">{p.description}</div></div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><Label className="text-xs">Bank File Format</Label><Input value={form.bank_file_format || ''} onChange={(e) => setForm((f) => ({ ...f, bank_file_format: e.target.value }))} placeholder="CSV / NACHA / SWIFT" /></div>
+                        <div><Label className="text-xs">Bank Code</Label><Input value={form.bank_code || ''} onChange={(e) => setForm((f) => ({ ...f, bank_code: e.target.value }))} /></div>
+                        <div><Label className="text-xs">File Naming Convention</Label><Input value={form.file_naming_convention || ''} onChange={(e) => setForm((f) => ({ ...f, file_naming_convention: e.target.value }))} placeholder="BN_EFT_{batch_number}_{yyyymmdd}.csv" /></div>
+                        <div><Label className="text-xs">File Date Format</Label><Input value={form.file_date_format || ''} onChange={(e) => setForm((f) => ({ ...f, file_date_format: e.target.value }))} placeholder="YYYYMMDD" /></div>
+                        <div><Label className="text-xs">Account Number Rule</Label><Input value={form.account_number_rule || ''} onChange={(e) => setForm((f) => ({ ...f, account_number_rule: e.target.value }))} /></div>
+                        <div><Label className="text-xs">Routing Number Rule</Label><Input value={form.routing_number_rule || ''} onChange={(e) => setForm((f) => ({ ...f, routing_number_rule: e.target.value }))} /></div>
+                        <div className="col-span-2"><Label className="text-xs">Bank Validation Rule Set (JSON)</Label>
+                          <Textarea rows={2} className="font-mono text-xs"
+                            value={JSON.stringify(form.bank_validation_rule_set ?? {}, null, 0)}
+                            onChange={(e) => { try { setForm((f) => ({ ...f, bank_validation_rule_set: JSON.parse(e.target.value || '{}') })); } catch { /* ignore */ } }} />
+                        </div>
+                      </div>
+                      <div className="mt-3"><Label className="text-xs">Header Record Format</Label>
+                        <Textarea rows={2} value={form.header_record_format || ''} onChange={(e) => setForm((f) => ({ ...f, header_record_format: e.target.value }))} className="font-mono text-xs" /></div>
+                      <div><Label className="text-xs">Detail Record Format</Label>
+                        <Textarea rows={3} value={form.detail_record_format || ''} onChange={(e) => setForm((f) => ({ ...f, detail_record_format: e.target.value }))} className="font-mono text-xs" /></div>
+                      <div><Label className="text-xs">Trailer Record Format</Label>
+                        <Textarea rows={2} value={form.trailer_record_format || ''} onChange={(e) => setForm((f) => ({ ...f, trailer_record_format: e.target.value }))} className="font-mono text-xs" /></div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </>
               )}
 
