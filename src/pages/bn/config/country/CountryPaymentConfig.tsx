@@ -498,14 +498,39 @@ const Content: React.FC = () => {
 
               {cat === 'WIRE' && (
                 <>
-                  <SectionTitle>Wire Transfer Configuration</SectionTitle>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><Label className="text-xs">SWIFT / BIC *</Label><Input value={mc.swift_bic || ''} onChange={(e) => setMc({ swift_bic: e.target.value })} /></div>
-                    <div><Label className="text-xs">IBAN / Account Number *</Label><Input value={mc.iban || mc.account_number || ''} onChange={(e) => setMc({ iban: e.target.value })} /></div>
-                    <div><Label className="text-xs">Intermediary Bank</Label><Input value={mc.intermediary_bank || ''} onChange={(e) => setMc({ intermediary_bank: e.target.value })} /></div>
-                    <div><Label className="text-xs">Correspondent Bank</Label><Input value={mc.correspondent_bank || ''} onChange={(e) => setMc({ correspondent_bank: e.target.value })} /></div>
-                    <div className="col-span-2"><Label className="text-xs">Wire Fee Rule</Label><Input value={mc.wire_fee_rule || ''} onChange={(e) => setMc({ wire_fee_rule: e.target.value })} placeholder="e.g. flat $25 or 0.1%" /></div>
+                  <SectionTitle>Wire Transfer Capability</SectionTitle>
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 mb-3">
+                    <strong>Country config defines what is allowed.</strong> Payment Profile stores <em>where to pay</em> (beneficiary SWIFT/BIC, IBAN, intermediary bank). Payment Source Account stores <em>from where SSB pays</em>. Do not enter actual SWIFT, IBAN, or account numbers here — they belong on the beneficiary's Payment Profile and on the funding Source Account.
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center justify-between rounded-md border p-2">
+                      <Label className="text-xs">Requires SWIFT/BIC on profile</Label>
+                      <Switch checked={mc.requires_swift_bic === true} onCheckedChange={(v) => setMc({ requires_swift_bic: v })} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-md border p-2">
+                      <Label className="text-xs">Requires beneficiary address</Label>
+                      <Switch checked={mc.requires_beneficiary_address === true} onCheckedChange={(v) => setMc({ requires_beneficiary_address: v })} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-md border p-2">
+                      <Label className="text-xs">Requires intermediary bank</Label>
+                      <Switch checked={mc.requires_intermediary_bank === true} onCheckedChange={(v) => setMc({ requires_intermediary_bank: v })} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-md border p-2">
+                      <Label className="text-xs">Foreign currency allowed</Label>
+                      <Switch checked={mc.foreign_currency_allowed === true} onCheckedChange={(v) => setMc({ foreign_currency_allowed: v })} />
+                    </div>
+                    <div className="flex items-center justify-between rounded-md border p-2">
+                      <Label className="text-xs">Approval required</Label>
+                      <Switch checked={mc.approval_required === true} onCheckedChange={(v) => setMc({ approval_required: v })} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Wire Fee Rule</Label>
+                      <Input value={mc.wire_fee_rule || ''} onChange={(e) => setMc({ wire_fee_rule: e.target.value })} placeholder="e.g. flat $25 or 0.1%" />
+                    </div>
+                  </div>
+                  <p className="mt-2 text-[11px] text-muted-foreground">
+                    Processing days and cut-off day are configured on the main tab. Actual bank-file format for outbound wire batches is configured under the funding <strong>Payment Source Account</strong>.
+                  </p>
                 </>
               )}
 
