@@ -218,10 +218,17 @@ const Content: React.FC = () => {
   return (
     <div className="space-y-6 p-6">
       <PageHeader
-        title="Country Payment Config"
-        subtitle="Configure country-level payment methods, validation rules, processing calendars, and method-specific formats."
-        breadcrumbs={[{ label: 'Benefit Management' }, { label: 'Country Config' }, { label: 'Payment Config' }]}
+        title="Country Payment Methods"
+        subtitle="Defines what payout methods are allowed in this country and the rules for using them. Actual destination details are maintained on Payee Payment Profiles. Funding accounts are maintained on Payment Source Accounts."
+        breadcrumbs={[{ label: 'Benefit Management' }, { label: 'Country Config' }, { label: 'Payment Methods' }]}
       />
+
+      <div className="rounded-md border bg-muted/30 p-3 text-xs grid grid-cols-1 md:grid-cols-3 gap-2">
+        <div><strong>Country Config</strong> — what methods are allowed and their rules.</div>
+        <div><strong>Payment Source Account</strong> — where money is paid <em>from</em> (SSB funding account, EFT file format).</div>
+        <div><strong>Payment Profile</strong> — where money is paid <em>to</em> (beneficiary account / wallet / address).</div>
+      </div>
+
       <div className="flex items-center justify-between">
         <CountrySelector />
         <Button size="sm" onClick={() => { setForm(empty()); setOpen(true); }}><Plus className="h-4 w-4 mr-1" />Add Method</Button>
