@@ -79,8 +79,7 @@ function validateConfig(form: Partial<BnCountryPaymentConfig>, meta: MethodMeta)
   switch (meta.category) {
     case 'EFT':
       if (!form.requires_bank_account) errs.push('EFT requires "Requires Bank Account" to be true.');
-      if (!form.bank_file_format) errs.push('EFT: Bank File Format is required.');
-      if (!form.detail_record_format) errs.push('EFT: Detail Record Format is required.');
+      // Bank file format now belongs to Funding Source Account, not country row. No country-level requirement.
       break;
     case 'CHEQUE':
       if (!form.cheque_stock_required && !form.cheque_format_template_id && !mc.cheque_print_layout) {
