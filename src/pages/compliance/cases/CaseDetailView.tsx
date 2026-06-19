@@ -248,6 +248,17 @@ export default function CaseDetailView() {
                 <Scale className="h-4 w-4 mr-1" />Recommend Legal
               </Button>
             )}
+            {/* Forward to Legal — creates lg_case + referral + linkage */}
+            {!['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && !(c as any).legal_case_id && (
+              <Button size="sm" onClick={() => setForwardLegalOpen(true)}>
+                <Send className="h-4 w-4 mr-1" />Forward to Legal
+              </Button>
+            )}
+            {(c as any).legal_case_id && (
+              <Button variant="outline" size="sm" onClick={() => navigate(`/legal/cases/${(c as any).legal_case_id}`)}>
+                <Scale className="h-4 w-4 mr-1" />View Legal Case
+              </Button>
+            )}
             {activeViolationCount > 0 && !['RESOLVED', 'CLOSED', 'COMPLETED'].includes(c.status) && (
               <Button variant="destructive" size="sm" onClick={() => setCascadeDialogOpen(true)}>
                 <CheckCircle className="h-4 w-4 mr-1" />
