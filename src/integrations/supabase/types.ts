@@ -5507,6 +5507,8 @@ export type Database = {
       bn_calculation_rule: {
         Row: {
           calc_type: string
+          created_at: string
+          created_by: string | null
           entered_at: string
           entered_by: string | null
           formula_definition: Json
@@ -5519,10 +5521,14 @@ export type Database = {
           rule_code: string
           rule_name: string
           sort_order: number
+          updated_at: string
+          updated_by: string | null
           variables: Json
         }
         Insert: {
           calc_type: string
+          created_at?: string
+          created_by?: string | null
           entered_at?: string
           entered_by?: string | null
           formula_definition?: Json
@@ -5535,10 +5541,14 @@ export type Database = {
           rule_code: string
           rule_name: string
           sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
           variables?: Json
         }
         Update: {
           calc_type?: string
+          created_at?: string
+          created_by?: string | null
           entered_at?: string
           entered_by?: string | null
           formula_definition?: Json
@@ -5551,6 +5561,8 @@ export type Database = {
           rule_code?: string
           rule_name?: string
           sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
           variables?: Json
         }
         Relationships: [
@@ -5825,6 +5837,7 @@ export type Database = {
           claim_number: string | null
           contact_email: string | null
           contact_phone: string | null
+          country_config_package_id: string | null
           death_date: string | null
           decision_date: string | null
           declaration: boolean
@@ -5866,6 +5879,7 @@ export type Database = {
           claim_number?: string | null
           contact_email?: string | null
           contact_phone?: string | null
+          country_config_package_id?: string | null
           death_date?: string | null
           decision_date?: string | null
           declaration?: boolean
@@ -5907,6 +5921,7 @@ export type Database = {
           claim_number?: string | null
           contact_email?: string | null
           contact_phone?: string | null
+          country_config_package_id?: string | null
           death_date?: string | null
           decision_date?: string | null
           declaration?: boolean
@@ -5942,6 +5957,13 @@ export type Database = {
             columns: ["channel_config_id"]
             isOneToOne: false
             referencedRelation: "bn_product_channel_config"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_claim_country_config_package_id_fkey"
+            columns: ["country_config_package_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_config_package"
             referencedColumns: ["id"]
           },
           {
@@ -7450,6 +7472,45 @@ export type Database = {
           },
         ]
       }
+      bn_config_entity_registry: {
+        Row: {
+          approval_policy_code: string | null
+          created_at: string
+          created_by: string | null
+          effective_dating_required: boolean
+          entity_type: string
+          governance_class: Database["public"]["Enums"]["bn_governance_class"]
+          lifecycle_required: boolean
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approval_policy_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_dating_required?: boolean
+          entity_type: string
+          governance_class: Database["public"]["Enums"]["bn_governance_class"]
+          lifecycle_required?: boolean
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approval_policy_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_dating_required?: boolean
+          entity_type?: string
+          governance_class?: Database["public"]["Enums"]["bn_governance_class"]
+          lifecycle_required?: boolean
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       bn_country: {
         Row: {
           address_model_version: number
@@ -7593,6 +7654,98 @@ export type Database = {
           },
         ]
       }
+      bn_country_config_package: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          immutable_hash: string | null
+          label: string
+          notes: string | null
+          package_code: string
+          retired_at: string | null
+          retired_by: string | null
+          status: Database["public"]["Enums"]["bn_lifecycle_state"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          immutable_hash?: string | null
+          label: string
+          notes?: string | null
+          package_code: string
+          retired_at?: string | null
+          retired_by?: string | null
+          status?: Database["public"]["Enums"]["bn_lifecycle_state"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          immutable_hash?: string | null
+          label?: string
+          notes?: string | null
+          package_code?: string
+          retired_at?: string | null
+          retired_by?: string | null
+          status?: Database["public"]["Enums"]["bn_lifecycle_state"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      bn_country_config_package_item: {
+        Row: {
+          entity_id: string
+          entity_type: string
+          entity_version: string | null
+          frozen_at: string
+          id: string
+          package_id: string
+          snapshot_json: Json
+        }
+        Insert: {
+          entity_id: string
+          entity_type: string
+          entity_version?: string | null
+          frozen_at?: string
+          id?: string
+          package_id: string
+          snapshot_json: Json
+        }
+        Update: {
+          entity_id?: string
+          entity_type?: string
+          entity_version?: string | null
+          frozen_at?: string
+          id?: string
+          package_id?: string
+          snapshot_json?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_country_config_package_item_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_config_package"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_country_id_rule: {
         Row: {
           check_digit_algorithm: string | null
@@ -7656,6 +7809,8 @@ export type Database = {
         Row: {
           applicable_products: string[] | null
           country_code: string
+          created_at: string
+          created_by: string | null
           effective_from: string
           effective_to: string | null
           entered_at: string
@@ -7668,11 +7823,15 @@ export type Database = {
           ref_title: string
           ref_url: string | null
           supersedes_id: string | null
+          updated_at: string
+          updated_by: string | null
           version_number: number
         }
         Insert: {
           applicable_products?: string[] | null
           country_code: string
+          created_at?: string
+          created_by?: string | null
           effective_from?: string
           effective_to?: string | null
           entered_at?: string
@@ -7685,11 +7844,15 @@ export type Database = {
           ref_title: string
           ref_url?: string | null
           supersedes_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
           version_number?: number
         }
         Update: {
           applicable_products?: string[] | null
           country_code?: string
+          created_at?: string
+          created_by?: string | null
           effective_from?: string
           effective_to?: string | null
           entered_at?: string
@@ -7702,6 +7865,8 @@ export type Database = {
           ref_title?: string
           ref_url?: string | null
           supersedes_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
           version_number?: number
         }
         Relationships: [
@@ -7788,6 +7953,8 @@ export type Database = {
           can_receive_payment: boolean
           can_register_online: boolean
           country_code: string
+          effective_from: string | null
+          effective_to: string | null
           entered_at: string
           entered_by: string | null
           id: string
@@ -7816,6 +7983,8 @@ export type Database = {
           suggested_document_label: string | null
           type_code: string
           type_name: string
+          updated_at: string
+          updated_by: string | null
         }
         Insert: {
           allowed_products?: string[] | null
@@ -7827,6 +7996,8 @@ export type Database = {
           can_receive_payment?: boolean
           can_register_online?: boolean
           country_code: string
+          effective_from?: string | null
+          effective_to?: string | null
           entered_at?: string
           entered_by?: string | null
           id?: string
@@ -7855,6 +8026,8 @@ export type Database = {
           suggested_document_label?: string | null
           type_code: string
           type_name: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           allowed_products?: string[] | null
@@ -7866,6 +8039,8 @@ export type Database = {
           can_receive_payment?: boolean
           can_register_online?: boolean
           country_code?: string
+          effective_from?: string | null
+          effective_to?: string | null
           entered_at?: string
           entered_by?: string | null
           id?: string
@@ -7894,6 +8069,8 @@ export type Database = {
           suggested_document_label?: string | null
           type_code?: string
           type_name?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -9725,6 +9902,42 @@ export type Database = {
           },
         ]
       }
+      bn_formula_resolution_report: {
+        Row: {
+          checked_at: string
+          detail: string | null
+          formula_code: string | null
+          formula_id: string | null
+          formula_version: string | null
+          id: string
+          run_id: string
+          status: string
+          variable_code: string
+        }
+        Insert: {
+          checked_at?: string
+          detail?: string | null
+          formula_code?: string | null
+          formula_id?: string | null
+          formula_version?: string | null
+          id?: string
+          run_id: string
+          status: string
+          variable_code: string
+        }
+        Update: {
+          checked_at?: string
+          detail?: string | null
+          formula_code?: string | null
+          formula_id?: string | null
+          formula_version?: string | null
+          id?: string
+          run_id?: string
+          status?: string
+          variable_code?: string
+        }
+        Relationships: []
+      }
       bn_formula_template: {
         Row: {
           category: string | null
@@ -9889,6 +10102,8 @@ export type Database = {
       }
       bn_formula_version: {
         Row: {
+          created_at: string
+          created_by: string | null
           effective_from: string | null
           effective_to: string | null
           entered_at: string
@@ -9906,9 +10121,12 @@ export type Database = {
           rounding_rule: string | null
           steps_json: Json
           updated_at: string
+          updated_by: string | null
           version_no: number
         }
         Insert: {
+          created_at?: string
+          created_by?: string | null
           effective_from?: string | null
           effective_to?: string | null
           entered_at?: string
@@ -9926,9 +10144,12 @@ export type Database = {
           rounding_rule?: string | null
           steps_json?: Json
           updated_at?: string
+          updated_by?: string | null
           version_no?: number
         }
         Update: {
+          created_at?: string
+          created_by?: string | null
           effective_from?: string | null
           effective_to?: string | null
           entered_at?: string
@@ -9946,6 +10167,7 @@ export type Database = {
           rounding_rule?: string | null
           steps_json?: Json
           updated_at?: string
+          updated_by?: string | null
           version_no?: number
         }
         Relationships: [
@@ -11484,6 +11706,8 @@ export type Database = {
           product_id: string | null
           requires_justification: boolean
           requires_maker_checker: boolean
+          updated_at: string
+          updated_by: string | null
         }
         Insert: {
           allowed_permission_key?: string | null
@@ -11504,6 +11728,8 @@ export type Database = {
           product_id?: string | null
           requires_justification?: boolean
           requires_maker_checker?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           allowed_permission_key?: string | null
@@ -11524,6 +11750,8 @@ export type Database = {
           product_id?: string | null
           requires_justification?: boolean
           requires_maker_checker?: boolean
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -12739,6 +12967,45 @@ export type Database = {
           },
         ]
       }
+      bn_product_calc_validation_report: {
+        Row: {
+          checked_at: string
+          detail: string | null
+          id: string
+          missing_dependencies: Json | null
+          product_code: string | null
+          product_id: string | null
+          run_id: string
+          status: string
+          version_id: string | null
+          version_no: string | null
+        }
+        Insert: {
+          checked_at?: string
+          detail?: string | null
+          id?: string
+          missing_dependencies?: Json | null
+          product_code?: string | null
+          product_id?: string | null
+          run_id: string
+          status: string
+          version_id?: string | null
+          version_no?: string | null
+        }
+        Update: {
+          checked_at?: string
+          detail?: string | null
+          id?: string
+          missing_dependencies?: Json | null
+          product_code?: string | null
+          product_id?: string | null
+          run_id?: string
+          status?: string
+          version_id?: string | null
+          version_no?: string | null
+        }
+        Relationships: []
+      }
       bn_product_channel_config: {
         Row: {
           allow_apply_as_guardian: boolean
@@ -13684,6 +13951,8 @@ export type Database = {
         Row: {
           allow_gaps: boolean
           country_code: string
+          created_at: string
+          created_by: string | null
           description: string | null
           effective_from: string | null
           effective_to: string | null
@@ -13699,11 +13968,14 @@ export type Database = {
           table_name: string
           table_type: string
           updated_at: string
+          updated_by: string | null
           version_no: number
         }
         Insert: {
           allow_gaps?: boolean
           country_code?: string
+          created_at?: string
+          created_by?: string | null
           description?: string | null
           effective_from?: string | null
           effective_to?: string | null
@@ -13719,11 +13991,14 @@ export type Database = {
           table_name: string
           table_type: string
           updated_at?: string
+          updated_by?: string | null
           version_no?: number
         }
         Update: {
           allow_gaps?: boolean
           country_code?: string
+          created_at?: string
+          created_by?: string | null
           description?: string | null
           effective_from?: string | null
           effective_to?: string | null
@@ -13739,6 +14014,7 @@ export type Database = {
           table_name?: string
           table_type?: string
           updated_at?: string
+          updated_by?: string | null
           version_no?: number
         }
         Relationships: []
@@ -15237,6 +15513,8 @@ export type Database = {
       bn_workflow_template: {
         Row: {
           country_code: string | null
+          created_at: string
+          created_by: string | null
           description: string | null
           entered_at: string
           entered_by: string | null
@@ -15247,10 +15525,14 @@ export type Database = {
           steps_config: Json
           template_code: string
           template_name: string
+          updated_at: string
+          updated_by: string | null
           workflow_definition_id: string | null
         }
         Insert: {
           country_code?: string | null
+          created_at?: string
+          created_by?: string | null
           description?: string | null
           entered_at?: string
           entered_by?: string | null
@@ -15261,10 +15543,14 @@ export type Database = {
           steps_config?: Json
           template_code: string
           template_name: string
+          updated_at?: string
+          updated_by?: string | null
           workflow_definition_id?: string | null
         }
         Update: {
           country_code?: string | null
+          created_at?: string
+          created_by?: string | null
           description?: string | null
           entered_at?: string
           entered_by?: string | null
@@ -15275,6 +15561,8 @@ export type Database = {
           steps_config?: Json
           template_code?: string
           template_name?: string
+          updated_at?: string
+          updated_by?: string | null
           workflow_definition_id?: string | null
         }
         Relationships: []
@@ -21718,6 +22006,8 @@ export type Database = {
           content: string | null
           created_at: string | null
           created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
           id: string
           is_active: boolean | null
           merge_fields: string[] | null
@@ -21735,6 +22025,8 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean | null
           merge_fields?: string[] | null
@@ -21752,6 +22044,8 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean | null
           merge_fields?: string[] | null
@@ -41368,6 +41662,8 @@ export type Database = {
           content: string | null
           created_at: string | null
           created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
           id: string
           is_active: boolean | null
           merge_fields: string[] | null
@@ -41385,6 +41681,8 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean | null
           merge_fields?: string[] | null
@@ -41402,6 +41700,8 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           id?: string
           is_active?: boolean | null
           merge_fields?: string[] | null
@@ -50636,6 +50936,8 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           description: string | null
+          effective_from: string | null
+          effective_to: string | null
           html_body: string | null
           id: string
           is_enabled: boolean | null
@@ -50657,6 +50959,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           html_body?: string | null
           id?: string
           is_enabled?: boolean | null
@@ -50678,6 +50982,8 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
           html_body?: string | null
           id?: string
           is_enabled?: boolean | null
@@ -59397,6 +59703,7 @@ export type Database = {
           auto_approve_on_timeout: boolean | null
           condition_expression: Json | null
           created_at: string | null
+          created_by: string | null
           description: string | null
           escalation_enabled: boolean | null
           escalation_module_id: string | null
@@ -59411,6 +59718,7 @@ export type Database = {
           step_name: string
           step_number: number
           updated_at: string | null
+          updated_by: string | null
           workflow_id: string
         }
         Insert: {
@@ -59424,6 +59732,7 @@ export type Database = {
           auto_approve_on_timeout?: boolean | null
           condition_expression?: Json | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           escalation_enabled?: boolean | null
           escalation_module_id?: string | null
@@ -59438,6 +59747,7 @@ export type Database = {
           step_name: string
           step_number: number
           updated_at?: string | null
+          updated_by?: string | null
           workflow_id: string
         }
         Update: {
@@ -59451,6 +59761,7 @@ export type Database = {
           auto_approve_on_timeout?: boolean | null
           condition_expression?: Json | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           escalation_enabled?: boolean | null
           escalation_module_id?: string | null
@@ -59465,6 +59776,7 @@ export type Database = {
           step_name?: string
           step_number?: number
           updated_at?: string | null
+          updated_by?: string | null
           workflow_id?: string
         }
         Relationships: [
@@ -60605,6 +60917,16 @@ export type Database = {
         }
         Relationships: []
       }
+      v_bn_config_lifecycle: {
+        Row: {
+          entity_id: string | null
+          entity_type: string | null
+          lifecycle_state:
+            | Database["public"]["Enums"]["bn_lifecycle_state"]
+            | null
+        }
+        Relationships: []
+      }
       v_bn_participant_type_usage: {
         Row: {
           active_product_count: number | null
@@ -60817,6 +61139,10 @@ export type Database = {
       bn_materialize_external_tasks: {
         Args: { p_claim_id: string }
         Returns: number
+      }
+      bn_normalise_lifecycle: {
+        Args: { p_raw: string }
+        Returns: Database["public"]["Enums"]["bn_lifecycle_state"]
       }
       bn_product_can_activate: {
         Args: { _product_id: string }
@@ -63447,6 +63773,18 @@ export type Database = {
         | "CONDITIONAL"
       bn_eligibility_rule_severity: "BLOCKING" | "REFER" | "WARNING" | "INFO"
       bn_eligibility_rule_unit: "DAYS" | "WEEKS" | "MONTHS" | "YEARS"
+      bn_governance_class:
+        | "SYSTEM"
+        | "CONFIGURATION"
+        | "REGULATORY"
+        | "FINANCIAL"
+      bn_lifecycle_state:
+        | "DRAFT"
+        | "IN_REVIEW"
+        | "APPROVED"
+        | "ACTIVE"
+        | "RETIRED"
+        | "REJECTED"
       bn_participant_role:
         | "APPLICANT"
         | "CLAIMANT"
@@ -63935,6 +64273,20 @@ export const Constants = {
       ],
       bn_eligibility_rule_severity: ["BLOCKING", "REFER", "WARNING", "INFO"],
       bn_eligibility_rule_unit: ["DAYS", "WEEKS", "MONTHS", "YEARS"],
+      bn_governance_class: [
+        "SYSTEM",
+        "CONFIGURATION",
+        "REGULATORY",
+        "FINANCIAL",
+      ],
+      bn_lifecycle_state: [
+        "DRAFT",
+        "IN_REVIEW",
+        "APPROVED",
+        "ACTIVE",
+        "RETIRED",
+        "REJECTED",
+      ],
       bn_participant_role: [
         "APPLICANT",
         "CLAIMANT",
