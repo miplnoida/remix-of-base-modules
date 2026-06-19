@@ -117,6 +117,8 @@ export default function ProductCatalog() {
         )}
       </div>
 
+      <PaymentHierarchyHealth countryCode={filterCode} />
+
       <BNDataGrid
         id="bn.product-catalog"
         columns={columns}
