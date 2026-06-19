@@ -786,6 +786,16 @@ export interface BnServiceDocType {
   entered_at: string;
   modified_by: string | null;
   modified_at: string;
+  // Document Library linkage (optional) — central enterprise master
+  document_library_id: string | null;
+  // Benefits-specific verification metadata
+  requires_verification: boolean;
+  verification_level: string | null;
+  periodic_renewal: boolean;
+  // Computed/joined fields (not stored on row)
+  document_library_name?: string | null;
+  used_by_products_count?: number;
+  used_by_workflows_count?: number;
 }
 
 export interface BnDocRequirement {
