@@ -90,19 +90,32 @@ function validateConfig(form: Partial<BnCountryPaymentConfig>, meta: MethodMeta)
       }
       break;
     case 'CASH':
-      if (!mc.cash_office && !mc.cash_counter) errs.push('Cash: cash office / counter is required.');
-      if (mc.collection_authorization_required === undefined) errs.push('Cash: collection authorization flag is required.');
+      // Country defines capability only — actual recipient identity/pickup person lives on Payment Instruction.
+      if (mc.pickup_allowed !== true && mc.mailing_allowed !== true) {
+        errs.push('Cash: at least one of "Pickup allowed" or "Mailing allowed" must be true.');
+      }
+      if (mc.id_verification_required === undefined) errs.push('Cash: ID verification policy is required.');
       break;
     case 'MOBILE':
+      // Country defines supported providers/currencies only — actual wallet/mobile number lives on Payment Profile.
       if (!form.requires_mobile_number) errs.push('Mobile Money: "Requires Mobile Number" must be true.');
-      if (!mc.mobile_provider) errs.push('Mobile Money: provider is required.');
+      if (!Array.isArray(mc.supported_providers) || mc.supported_providers.length === 0) {
+        errs.push('Mobile Money: at least one supported provider is required.');
+      }
       break;
     case 'CARD':
-      if (!mc.payment_gateway) errs.push('Card: payment gateway is required.');
-      if (!mc.merchant_account) errs.push('Card: merchant account is required.');
+      // Country defines payout capability and accepted networks only — PAN/token/cardholder lives on Payment Profile.
+      if (mc.card_payout_supported !== true) errs.push('Card: "Card payout supported" must be true.');
+      if (!Array.isArray(mc.supported_card_networks) || mc.supported_card_networks.length === 0) {
+        errs.push('Card: at least one supported card network is required.');
+      }
       break;
     case 'MONEY_ORDER':
-      if (!mc.issuer) errs.push('Money Order: issuer is required.');
+      // Country defines issuance/delivery capability only — recipient/mailing address lives on Payment Instruction.
+      if (mc.issuance_supported !== true) errs.push('Money Order: "Issuance supported" must be true.');
+      if (mc.mailing_supported !== true && mc.pickup_supported !== true) {
+        errs.push('Money Order: at least one of "Mailing" or "Pickup" must be supported.');
+      }
       break;
     case 'WIRE':
       // Country config holds capability flags only; SWIFT/BIC/IBAN/account live on Payment Profile (beneficiary)
