@@ -77,7 +77,7 @@ function normalize(role: string): LgRole | null {
 }
 
 export function useLgAccess() {
-  const { user } = useAuth();
+  const { user } = useSupabaseAuth();
 
   const { data: rolesData } = useQuery({
     queryKey: ["lg_access", user?.id],
