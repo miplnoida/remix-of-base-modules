@@ -618,6 +618,16 @@ export default function CaseDetailView() {
         currentOfficerName={c.assigned_officer_name || null}
         onAssigned={() => queryClient.invalidateQueries({ queryKey: ['ce_case_detail', id] })}
       />
+
+      <ForwardToLegalDialog
+        open={forwardLegalOpen}
+        onOpenChange={setForwardLegalOpen}
+        ceCaseId={c.id}
+        ceCaseNumber={c.case_number}
+        outstandingAmount={
+          Number(c.total_amount ?? 0) - Number(c.amount_collected ?? 0) - Number((c as any).amount_waived ?? 0)
+        }
+      />
     </div>
   );
 }
