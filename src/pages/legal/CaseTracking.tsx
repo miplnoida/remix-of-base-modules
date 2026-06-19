@@ -151,7 +151,7 @@ const CaseTracking = () => {
                         {c.next_action_due_date && <div className="text-xs text-muted-foreground">{formatDateForDisplay(c.next_action_due_date)}</div>}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => navigate(`/legal/cases/${c.id}`)}><Eye className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="sm" onClick={() => navigate(`/legal/lg/cases/${c.id}`)}><Eye className="h-4 w-4" /></Button>
                         <Button variant="ghost" size="sm" onClick={() => navigate(`/legal/cases/${c.id}/edit`)}><Edit className="h-4 w-4" /></Button>
                       </TableCell>
                     </TableRow>
