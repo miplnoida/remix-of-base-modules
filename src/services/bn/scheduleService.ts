@@ -27,8 +27,31 @@
 import { supabase } from '@/integrations/supabase/client';
 import { addWeeks, addDays, addMonths, isBefore, isAfter, startOfDay } from 'date-fns';
 import { toStorageDate } from '@/lib/culture/culture';
+import { auditConfigChange } from '@/services/bn/audit/bnAuditService';
 
 const db = supabase as any;
+
+const safeScheduleAudit = async (
+  action: string,
+  entityId: string | null,
+  performedBy: string,
+  beforeValue: Record<string, any> | null,
+  afterValue: Record<string, any> | null,
+) => {
+  try {
+    await auditConfigChange({
+      entityType: 'bn_payment_schedule',
+      entityId,
+      action,
+      performedBy: performedBy || 'SYSTEM',
+      beforeValue,
+      afterValue,
+    });
+  } catch (e) {
+    console.warn('[scheduleService] audit failed (non-blocking):', e);
+  }
+};
+
 
 // ─── Types ──────────────────────────────────────────────────────────
 
