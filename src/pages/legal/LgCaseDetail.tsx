@@ -1,0 +1,518 @@
+import React, { useMemo, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, Lock } from "lucide-react";
+import { useLgCase } from "@/hooks/legal/useLgCases";
+import { useLgDocumentLinks } from "@/hooks/legal/useLgTemplates";
+import {
+  useLgArrangementLinks,
+  useArrangementSummary,
+  useLgFeeCharges,
+  useLegalFeeHeads,
+  useCreateAndPostLegalFee,
+  useDetectArrangementDefaults,
+} from "@/hooks/legal/useLgFinancials";
+import { useLgAccess } from "@/hooks/legal/useLgAccess";
+import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { logLgActivity, listLgActivity } from "@/services/legal/lgAuditService";
+import { useToast } from "@/hooks/use-toast";
+
+const sb = supabase as any;
+
+function StatBadge({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="border rounded p-2 text-center">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function useLgList<T = any>(table: string, caseId: string | undefined, orderBy: string, ascending = false) {
+  return useQuery<T[]>({
+    queryKey: [table, caseId],
+    enabled: !!caseId,
+    queryFn: async () => {
+      const { data, error } = await sb.from(table).select("*").eq("lg_case_id", caseId).order(orderBy, { ascending });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+const LgCaseDetail: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { profile } = useSupabaseAuth();
+  const access = useLgAccess();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const { data: caseData, isLoading, error } = useLgCase(id);
+
+  // ----- tab data sources -----
+  const parties = useLgList("lg_case_party", id, "created_at");
+  const referrals = useLgList("lg_case_referral", id, "created_at");
+  const documents = useLgDocumentLinks(id);
+  const hearings = useLgList("lg_hearing", id, "hearing_date");
+  const notices = useLgList("lg_notice", id, "created_at");
+  const arrangementLinks = useLgArrangementLinks(id);
+  const primaryArrangementId = arrangementLinks.data?.[0]?.payment_arrangement_id;
+  const arrangementSummary = useArrangementSummary(primaryArrangementId);
+  const fees = useLgFeeCharges(id);
+  const orders = useLgList("lg_order", id, "issued_date");
+  const settlements = useLgList("lg_settlement", id, "proposed_at");
+  const tasks = useLgList("lg_case_task", id, "created_at");
+  const activity = useQuery({
+    queryKey: ["lg_case_activity", id],
+    enabled: !!id,
+    queryFn: () => listLgActivity(id as string),
+  });
+
+  // ----- fee posting -----
+  const feeHeads = useLegalFeeHeads();
+  const postFee = useCreateAndPostLegalFee();
+  const [feeForm, setFeeForm] = useState({ head: "", amount: "", reason: "" });
+
+  const detectDefaults = useDetectArrangementDefaults();
+
+  // ----- stage change -----
+  const stageChange = useMutation({
+    mutationFn: async (newStage: string) => {
+      const prev = caseData?.current_stage_code;
+      const { error } = await sb.from("lg_case").update({ current_stage_code: newStage }).eq("id", id);
+      if (error) throw error;
+      await sb.from("lg_case_stage_history").insert({
+        lg_case_id: id, from_stage_code: prev, to_stage_code: newStage, changed_by: profile?.user_code ?? null,
+      });
+      await logLgActivity({
+        lg_case_id: id!, activity_type: "STAGE_CHANGED",
+        description: `${prev ?? "—"} → ${newStage}`,
+        performed_by: profile?.user_code ?? null,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lg_case"] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity", id] });
+      toast({ title: "Stage updated" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const closeCase = useMutation({
+    mutationFn: async () => {
+      const { error } = await sb.from("lg_case").update({
+        status_code: "CLOSED", current_stage_code: "CLOSED",
+        closed_date: new Date().toISOString().slice(0, 10),
+      }).eq("id", id);
+      if (error) throw error;
+      await logLgActivity({ lg_case_id: id!, activity_type: "CASE_CLOSED", performed_by: profile?.user_code ?? null });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["lg_case"] });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity", id] });
+      toast({ title: "Case closed" });
+    },
+  });
+
+  const handlePostFee = async () => {
+    if (!access.can("postFee")) return;
+    const amount = Number(feeForm.amount);
+    const head = feeHeads.data?.find((h) => h.id === feeForm.head);
+    if (!head || !(amount > 0) || !caseData?.employer_id) {
+      toast({ title: "Validation", description: "Pick a fee head, enter an amount, and ensure the case has an employer.", variant: "destructive" });
+      return;
+    }
+    try {
+      const { data: er } = await sb.from("au_er_master").select("er_no, er_name").eq("id", caseData.employer_id).maybeSingle();
+      const charge = await postFee.mutateAsync({
+        lg_case_id: id!,
+        fee_head_ref_id: head.id,
+        fee_head_code: head.code,
+        amount,
+        charge_reason: feeForm.reason,
+        employer_id: er?.er_no ?? caseData.employer_id,
+        employer_name: er?.er_name ?? null,
+        employer_account_id: caseData.employer_account_id ?? null,
+        created_by: profile?.user_code ?? null,
+      });
+      await logLgActivity({
+        lg_case_id: id!, activity_type: "FEE_POSTED",
+        description: `${head.code} posted (invoice #${charge.employer_account_transaction_id})`,
+        performed_by: profile?.user_code ?? null,
+        payload: { fee_charge_id: charge.id, amount, code: head.code },
+      });
+      setFeeForm({ head: "", amount: "", reason: "" });
+      qc.invalidateQueries({ queryKey: ["lg_case_activity", id] });
+      toast({ title: "Fee posted to employer account" });
+    } catch (e: any) {
+      toast({ title: "Posting failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  // ----- guards -----
+  if (!access.hasLegalAccess) {
+    return (
+      <div className="min-h-screen p-8 max-w-3xl mx-auto">
+        <Alert variant="destructive">
+          <Lock className="h-4 w-4" />
+          <AlertDescription>You do not have access to the Legal module.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+  if (isLoading) {
+    return <div className="p-8 flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Loading case…</div>;
+  }
+  if (error || !caseData) {
+    return <div className="p-8 text-destructive">Case not found.</div>;
+  }
+
+  const stageOptions = ["REFERRAL_RECEIVED","LEGAL_REVIEW","DEMAND_NOTICE","SETTLEMENT_NEGOTIATION","COURT_FILING","HEARING","JUDGMENT","ENFORCEMENT","CLOSED"];
+
+  return (
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/legal/cases")}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Cases
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">{caseData.lg_case_no}</h1>
+              <p className="text-sm text-muted-foreground">{caseData.summary || caseData.case_type_code}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="gap-1"><ShieldCheck className="h-3 w-3" /> {access.isAdmin ? "Admin" : access.roles.join(", ") || "—"}</Badge>
+            <Badge>{caseData.status_code}</Badge>
+            <Badge variant="secondary">{caseData.current_stage_code}</Badge>
+            <Badge variant={caseData.priority_code === "HIGH" || caseData.priority_code === "URGENT" ? "destructive" : "outline"}>{caseData.priority_code}</Badge>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <StatBadge label="Court Case" value={caseData.court_case_no || "—"} />
+          <StatBadge label="Claim Amount" value={caseData.claim_amount ? Number(caseData.claim_amount).toFixed(2) : "—"} />
+          <StatBadge label="Outstanding" value={caseData.outstanding_amount_snapshot ? Number(caseData.outstanding_amount_snapshot).toFixed(2) : "—"} />
+          <StatBadge label="Next Hearing" value={caseData.next_hearing_date || "—"} />
+          <StatBadge label="Opened" value={caseData.opened_date} />
+        </div>
+
+        <Tabs defaultValue="summary" className="space-y-4">
+          <TabsList className="flex-wrap h-auto">
+            <TabsTrigger value="summary">Summary</TabsTrigger>
+            <TabsTrigger value="parties">Parties ({parties.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="referral">Compliance Referral</TabsTrigger>
+            <TabsTrigger value="documents">Documents ({documents.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="hearings">Hearings ({hearings.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="notices">Notices ({notices.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="arrangement">Payment Arrangement</TabsTrigger>
+            <TabsTrigger value="fees">Fees ({fees.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="orders">Orders ({orders.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="settlements">Settlements ({settlements.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="tasks">Tasks ({tasks.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+          </TabsList>
+
+          {/* Summary */}
+          <TabsContent value="summary">
+            <Card>
+              <CardHeader><CardTitle>Case Summary</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div><span className="text-muted-foreground">Type:</span> {caseData.case_type_code}</div>
+                  <div><span className="text-muted-foreground">Stage:</span> {caseData.current_stage_code}</div>
+                  <div><span className="text-muted-foreground">Court:</span> {caseData.court_name || "—"}</div>
+                  <div><span className="text-muted-foreground">Officer:</span> {caseData.assigned_legal_officer_id || "—"}</div>
+                  <div className="md:col-span-2"><span className="text-muted-foreground">Next Action:</span> {caseData.next_action || "—"} {caseData.next_action_due_date ? `(due ${caseData.next_action_due_date})` : ""}</div>
+                </div>
+                <Separator />
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Change stage</div>
+                  <div className="flex flex-wrap gap-2">
+                    {stageOptions.map((s) => (
+                      <Button
+                        key={s}
+                        size="sm"
+                        variant={s === caseData.current_stage_code ? "default" : "outline"}
+                        disabled={!access.can("changeStage") || s === caseData.current_stage_code || stageChange.isPending}
+                        onClick={() => stageChange.mutate(s)}
+                      >{s}</Button>
+                    ))}
+                  </div>
+                  {!access.can("changeStage") && <p className="text-xs text-muted-foreground">Read-only role — stage changes disabled.</p>}
+                </div>
+                {caseData.status_code !== "CLOSED" && (
+                  <div>
+                    <Button variant="destructive" disabled={!access.can("closeCase") || closeCase.isPending} onClick={() => closeCase.mutate()}>
+                      Close Case
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Parties */}
+          <TabsContent value="parties">
+            <Card><CardContent className="pt-6">
+              {parties.data?.length ? (
+                <div className="space-y-2">
+                  {parties.data.map((p: any) => (
+                    <div key={p.id} className="border rounded p-3 flex justify-between">
+                      <div><div className="font-medium">{p.display_name}</div><div className="text-xs text-muted-foreground">{p.party_role} · {p.party_type}</div></div>
+                      <div className="text-xs text-muted-foreground">{p.representative_name || ""}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-muted-foreground">No parties recorded.</p>}
+            </CardContent></Card>
+          </TabsContent>
+
+          {/* Referral */}
+          <TabsContent value="referral">
+            <Card><CardContent className="pt-6 space-y-3">
+              <div className="text-sm"><span className="text-muted-foreground">Compliance Case:</span> {caseData.compliance_case_id ? <Link className="underline" to={`/compliance/cases/${caseData.compliance_case_id}`}>{caseData.compliance_case_id.slice(0, 8)}</Link> : "—"}</div>
+              <div className="text-sm"><span className="text-muted-foreground">Referral Record:</span> {caseData.compliance_referral_id ?? "—"}</div>
+              <Separator />
+              {referrals.data?.length ? referrals.data.map((r: any) => (
+                <div key={r.id} className="border rounded p-3 text-sm">
+                  <div className="font-medium">{r.referral_type_code || "Referral"}</div>
+                  <div className="text-xs text-muted-foreground">{r.referred_at ?? r.created_at}</div>
+                  <div className="mt-1">{r.referral_reason || "—"}</div>
+                </div>
+              )) : <p className="text-sm text-muted-foreground">No referral metadata.</p>}
+            </CardContent></Card>
+          </TabsContent>
+
+          {/* Documents */}
+          <TabsContent value="documents">
+            <Card><CardHeader><CardTitle>Linked Documents</CardTitle><CardDescription>References only — files live in the central Document module.</CardDescription></CardHeader><CardContent>
+              {documents.data?.length ? (
+                <div className="space-y-2">
+                  {documents.data.map((d: any) => (
+                    <div key={d.id} className="border rounded p-3 flex justify-between text-sm">
+                      <div>
+                        <div className="font-medium">{d.title || d.document_ref_no || d.document_category_code}</div>
+                        <div className="text-xs text-muted-foreground">{d.document_category_code} · v{d.version_no} · {d.document_source}</div>
+                      </div>
+                      <div className="flex gap-1 items-center">
+                        {d.court_filed && <Badge variant="outline">Court-filed{d.filed_date ? ` ${d.filed_date}` : ""}</Badge>}
+                        {d.confidential && <Badge variant="destructive">Confidential</Badge>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-muted-foreground">No documents linked.</p>}
+            </CardContent></Card>
+          </TabsContent>
+
+          {/* Hearings */}
+          <TabsContent value="hearings">
+            <Card><CardContent className="pt-6">
+              {hearings.data?.length ? (
+                <div className="space-y-2">
+                  {hearings.data.map((h: any) => (
+                    <div key={h.id} className="border rounded p-3 text-sm">
+                      <div className="flex justify-between">
+                        <div className="font-medium">{h.hearing_type_code} · {h.hearing_date}{h.hearing_time ? ` ${h.hearing_time}` : ""}</div>
+                        <Badge variant="outline">{h.outcome_code || "Pending"}</Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground">{h.court_name} {h.court_room ? `· Rm ${h.court_room}` : ""}</div>
+                      {h.minutes && <div className="mt-1">{h.minutes}</div>}
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-muted-foreground">No hearings scheduled.</p>}
+            </CardContent></Card>
+          </TabsContent>
+
+          {/* Notices */}
+          <TabsContent value="notices">
+            <Card><CardHeader>
+              <div className="flex justify-between items-center">
+                <div><CardTitle>Notices</CardTitle><CardDescription>Generated from central templates.</CardDescription></div>
+                <Button size="sm" disabled={!access.can("generateNotice")} onClick={() => navigate("/legal/notices")}>Generate</Button>
+              </div>
+            </CardHeader><CardContent>
+              {notices.data?.length ? (
+                <div className="space-y-2">
+                  {notices.data.map((n: any) => (
+                    <div key={n.id} className="border rounded p-3 text-sm">
+                      <div className="flex justify-between"><div className="font-medium">{n.notice_no} · {n.notice_type_code}</div><Badge>{n.status}</Badge></div>
+                      <div className="text-xs text-muted-foreground">{n.delivery_channel ?? "—"} · issued {n.issued_date ?? "—"}</div>
+                      {n.subject && <div className="mt-1">{n.subject}</div>}
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-muted-foreground">No notices issued.</p>}
+            </CardContent></Card>
+          </TabsContent>
+
+          {/* Arrangement */}
+          <TabsContent value="arrangement">
+            <Card><CardHeader>
+              <div className="flex justify-between items-center">
+                <div><CardTitle>Payment Arrangement</CardTitle><CardDescription>Referenced from Compliance — not duplicated.</CardDescription></div>
+                <Button size="sm" variant="outline" disabled={!id || detectDefaults.isPending} onClick={() => detectDefaults.mutate(id!)}>
+                  Re-check defaults
+                </Button>
+              </div>
+            </CardHeader><CardContent className="space-y-4">
+              {arrangementLinks.data?.length ? arrangementLinks.data.map((l) => (
+                <div key={l.id} className="border rounded p-3 text-sm">
+                  <div className="flex justify-between">
+                    <div className="font-medium">Arrangement {l.payment_arrangement_id.slice(0, 8)} <span className="text-xs text-muted-foreground">({l.link_type} · {l.source_module})</span></div>
+                    {l.default_monitoring_required && <Badge variant="outline">Default monitored</Badge>}
+                  </div>
+                  {l.link_reason && <div className="text-xs text-muted-foreground mt-1">{l.link_reason}</div>}
+                </div>
+              )) : <p className="text-sm text-muted-foreground">No linked arrangement.</p>}
+
+              {arrangementSummary.data && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <StatBadge label="Total Debt" value={arrangementSummary.data.totals.total_debt.toFixed(2)} />
+                  <StatBadge label="Paid" value={arrangementSummary.data.totals.total_paid.toFixed(2)} />
+                  <StatBadge label="Outstanding" value={arrangementSummary.data.totals.outstanding.toFixed(2)} />
+                  <StatBadge label="Installments" value={`${arrangementSummary.data.totals.installments_paid}/${arrangementSummary.data.totals.installments_total}`} />
+                  {arrangementSummary.data.totals.is_defaulted && (
+                    <div className="md:col-span-4">
+                      <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>Arrangement is in default — {arrangementSummary.data.totals.installments_overdue} overdue installment(s).</AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent></Card>
+          </TabsContent>
+
+          {/* Fees */}
+          <TabsContent value="fees">
+            <Card><CardHeader><CardTitle>Legal Fees</CardTitle><CardDescription>Posted to the employer account via central fee/head master.</CardDescription></CardHeader><CardContent className="space-y-4">
+              <div className="grid md:grid-cols-4 gap-2 items-end">
+                <div>
+                  <label className="text-xs text-muted-foreground">Fee Head</label>
+                  <select className="w-full border rounded h-9 px-2 bg-background" value={feeForm.head} onChange={(e) => setFeeForm((p) => ({ ...p, head: e.target.value }))}>
+                    <option value="">Select…</option>
+                    {feeHeads.data?.map((h) => <option key={h.id} value={h.id}>{h.code} — {h.description}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Amount</label>
+                  <input type="number" min="0" step="0.01" className="w-full border rounded h-9 px-2 bg-background" value={feeForm.amount} onChange={(e) => setFeeForm((p) => ({ ...p, amount: e.target.value }))} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs text-muted-foreground">Reason</label>
+                  <input className="w-full border rounded h-9 px-2 bg-background" value={feeForm.reason} onChange={(e) => setFeeForm((p) => ({ ...p, reason: e.target.value }))} />
+                </div>
+                <div className="md:col-span-4">
+                  <Button onClick={handlePostFee} disabled={!access.can("postFee") || postFee.isPending}>
+                    {postFee.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Post Fee to Employer Account
+                  </Button>
+                </div>
+              </div>
+              <Separator />
+              {fees.data?.length ? (
+                <div className="space-y-2">
+                  {fees.data.map((f) => (
+                    <div key={f.id} className="border rounded p-3 text-sm flex justify-between">
+                      <div>
+                        <div className="font-medium">{f.fee_head_code} · {f.currency_code} {Number(f.amount).toFixed(2)}</div>
+                        <div className="text-xs text-muted-foreground">{f.charge_date} · {f.charge_reason || "—"}</div>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant={f.posting_status === "POSTED" ? "default" : f.posting_status === "FAILED" ? "destructive" : "outline"}>{f.posting_status}</Badge>
+                        {f.employer_account_transaction_id && <div className="text-xs text-muted-foreground">Invoice #{f.employer_account_transaction_id}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-muted-foreground">No fees posted.</p>}
+            </CardContent></Card>
+          </TabsContent>
+
+          {/* Orders */}
+          <TabsContent value="orders">
+            <Card><CardContent className="pt-6">
+              {orders.data?.length ? (
+                <div className="space-y-2">
+                  {orders.data.map((o: any) => (
+                    <div key={o.id} className="border rounded p-3 text-sm">
+                      <div className="flex justify-between"><div className="font-medium">{o.order_no} · {o.order_type_code}</div><Badge>{o.status}</Badge></div>
+                      <div className="text-xs text-muted-foreground">{o.issued_by_court} · {o.issued_date}</div>
+                      {o.ordered_amount && <div>Amount: {Number(o.ordered_amount).toFixed(2)}</div>}
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-muted-foreground">No orders.</p>}
+            </CardContent></Card>
+          </TabsContent>
+
+          {/* Settlements */}
+          <TabsContent value="settlements">
+            <Card><CardContent className="pt-6">
+              {settlements.data?.length ? (
+                <div className="space-y-2">
+                  {settlements.data.map((s: any) => (
+                    <div key={s.id} className="border rounded p-3 text-sm">
+                      <div className="flex justify-between"><div className="font-medium">Proposed {s.proposed_amount ?? "—"} → Agreed {s.agreed_amount ?? "—"}</div><Badge>{s.status}</Badge></div>
+                      <div className="text-xs text-muted-foreground">{s.currency_code} · {s.proposed_at}</div>
+                      {s.terms && <div className="mt-1">{s.terms}</div>}
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-muted-foreground">No settlements.</p>}
+            </CardContent></Card>
+          </TabsContent>
+
+          {/* Tasks */}
+          <TabsContent value="tasks">
+            <Card><CardContent className="pt-6">
+              {tasks.data?.length ? (
+                <div className="space-y-2">
+                  {tasks.data.map((t: any) => (
+                    <div key={t.id} className="border rounded p-3 text-sm">
+                      <div className="flex justify-between"><div className="font-medium">{t.title}</div><Badge variant={t.status === "DONE" ? "default" : "outline"}>{t.status}</Badge></div>
+                      <div className="text-xs text-muted-foreground">{t.task_type_code} · {t.priority_code} · due {t.due_date ?? "—"}</div>
+                      {t.description && <div className="mt-1">{t.description}</div>}
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="text-sm text-muted-foreground">No tasks.</p>}
+            </CardContent></Card>
+          </TabsContent>
+
+          {/* Activity */}
+          <TabsContent value="activity">
+            <Card><CardHeader><CardTitle>Audit Trail</CardTitle><CardDescription>Every critical Legal action is recorded here.</CardDescription></CardHeader><CardContent>
+              {activity.data?.length ? (
+                <ol className="relative border-l ml-3 space-y-3">
+                  {activity.data.map((a: any) => (
+                    <li key={a.id} className="ml-4">
+                      <div className="absolute -left-1.5 h-3 w-3 rounded-full bg-primary" />
+                      <div className="text-sm font-medium">{a.activity_type}</div>
+                      <div className="text-xs text-muted-foreground">{new Date(a.performed_at).toLocaleString()} {a.performed_by ? `· ${a.performed_by}` : ""}</div>
+                      {a.description && <div className="text-sm">{a.description}</div>}
+                    </li>
+                  ))}
+                </ol>
+              ) : <p className="text-sm text-muted-foreground">No activity recorded.</p>}
+            </CardContent></Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+};
+
+export default LgCaseDetail;
