@@ -142,11 +142,27 @@ export async function validatePayable(
         if (!cpc || !cpc.is_active || !cpc.is_method_enabled) {
           errors.push(`Payment method ${instr.payment_method} is no longer enabled at country level (${prod.country_code})`);
         } else {
-          // V4 — EFT format completeness
+          // V4 — EFT format completeness. Source account (bn_payment_source_account)
+          // is the source of truth for bank-file mechanics; country row is legacy fallback only.
           if (instr.payment_method === 'EFT') {
-            const missing = ['bank_file_format', 'header_record_format', 'detail_record_format', 'trailer_record_format']
-              .filter((f) => !(cpc as any)[f]);
-            if (missing.length) errors.push(`Country EFT format incomplete (missing ${missing.join(', ')})`);
+            const { data: src } = await db
+              .from('bn_payment_source_account')
+              .select('format_status')
+              .eq('country_code', prod.country_code)
+              .eq('payment_method', 'EFT')
+              .eq('is_active', true)
+              .order('is_default', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (src) {
+              if (src.format_status !== 'READY') {
+                errors.push(`EFT source account is not READY (status: ${src.format_status}). Complete bank account + file format before generating EFT batches.`);
+              }
+            } else {
+              const missing = ['bank_file_format', 'header_record_format', 'detail_record_format', 'trailer_record_format']
+                .filter((f) => !(cpc as any)[f]);
+              if (missing.length) errors.push(`No EFT source account configured and country EFT format incomplete (missing ${missing.join(', ')})`);
+            }
           }
           // V5 — Cheque stock/format
           if (instr.payment_method === 'CHEQUE' && cpc.cheque_stock_required && !cpc.cheque_format_template_id) {
