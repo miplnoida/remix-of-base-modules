@@ -79,10 +79,11 @@ const TemplatePreviewInner: React.FC<Props> = ({ subject, body, htmlBody }) => {
   }, [countryRow, legalRow]);
 
   const subjectRes = useMemo(() => resolveTokens(subject ?? '', ctx), [subject, ctx]);
-  const bodyRes = useMemo(() => resolveTokens(htmlBody || body || '', ctx), [body, htmlBody, ctx]);
+  const bodyRes = useMemo(() => resolveTokens(body ?? '', ctx), [body, ctx]);
+  const htmlRes = useMemo(() => resolveTokens(htmlBody ?? '', ctx), [htmlBody, ctx]);
 
-  const allMissing = [...new Set([...subjectRes.missing, ...bodyRes.missing])];
-  const allUnknown = [...new Set([...subjectRes.unknown, ...bodyRes.unknown])];
+  const allMissing = [...new Set([...subjectRes.missing, ...bodyRes.missing, ...htmlRes.missing])];
+  const allUnknown = [...new Set([...subjectRes.unknown, ...bodyRes.unknown, ...htmlRes.unknown])];
 
   return (
     <div className="space-y-3">
@@ -132,12 +133,26 @@ const TemplatePreviewInner: React.FC<Props> = ({ subject, body, htmlBody }) => {
           <p className="text-sm font-medium border rounded px-3 py-2 bg-muted/30">{subjectRes.output}</p>
         </div>
       )}
-      <div>
-        <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Body</p>
-        {htmlBody
-          ? <div className="border rounded p-3 prose prose-sm max-w-none bg-background" dangerouslySetInnerHTML={{ __html: bodyRes.output }} />
-          : <pre className="border rounded p-3 text-sm whitespace-pre-wrap bg-background">{bodyRes.output}</pre>}
-      </div>
+      {body && (
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Plain text body</p>
+          <pre className="border rounded p-3 text-sm whitespace-pre-wrap bg-background">{bodyRes.output}</pre>
+        </div>
+      )}
+
+      {htmlBody && (
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">HTML / letter body</p>
+          <div className="border rounded p-3 prose prose-sm max-w-none bg-background" dangerouslySetInnerHTML={{ __html: htmlRes.output }} />
+        </div>
+      )}
+
+      {!body && !htmlBody && (
+        <div>
+          <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Body</p>
+          <pre className="border rounded p-3 text-sm whitespace-pre-wrap bg-background" />
+        </div>
+      )}
     </div>
   );
 };
