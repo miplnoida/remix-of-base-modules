@@ -112,6 +112,19 @@ function validateConfig(form: Partial<BnCountryPaymentConfig>, meta: MethodMeta)
   return errs;
 }
 
+const EFT_STATUS_VARIANT: Record<string, { label: string; cls: string }> = {
+  READY: { label: 'READY', cls: 'bg-green-100 text-green-800 border-green-300' },
+  DRAFT: { label: 'DRAFT', cls: 'bg-amber-100 text-amber-800 border-amber-300' },
+  PENDING_BANK_SPECIFICATION: { label: 'PENDING BANK SPEC', cls: 'bg-orange-100 text-orange-800 border-orange-300' },
+  RETIRED: { label: 'RETIRED', cls: 'bg-slate-100 text-slate-700 border-slate-300' },
+  MISSING: { label: 'MISSING', cls: 'bg-red-100 text-red-800 border-red-300' },
+};
+
+const EftStatusBadge: React.FC<{ status: SourceFormatStatus | 'MISSING' }> = ({ status }) => {
+  const v = EFT_STATUS_VARIANT[status] ?? EFT_STATUS_VARIANT.MISSING;
+  return <Badge variant="outline" className={`text-[10px] ${v.cls}`}>{v.label}</Badge>;
+};
+
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h4 className="text-sm font-semibold text-foreground mt-4 mb-2 border-b pb-1">{children}</h4>
 );
