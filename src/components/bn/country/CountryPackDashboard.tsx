@@ -120,6 +120,7 @@ const CountryPackDashboard: React.FC = () => {
       </div>
 
       {activeCountryCode && <PaymentCapabilitySummary countryCode={activeCountryCode} />}
+      {activeCountryCode && <PaymentCycleMethodMatrix countryCode={activeCountryCode} />}
 
       <CountryProfileEditor countryCode={activeCountryCode} open={editProfile} onOpenChange={setEditProfile} />
     </div>
