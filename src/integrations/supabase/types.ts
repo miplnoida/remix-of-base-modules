@@ -50334,43 +50334,61 @@ export type Database = {
         Row: {
           amount: number
           charge_date: string
+          charge_reason: string | null
           created_at: string
           created_by: string | null
           currency_code: string | null
           description: string | null
+          employer_account_id: string | null
+          employer_account_transaction_id: number | null
           fee_head_code: string | null
           fee_head_ref_id: string | null
           id: string
           lg_case_id: string
+          posted_at: string | null
+          posted_by: string | null
           posted_invoice_ref_id: string | null
+          posting_status: string
           status: string
         }
         Insert: {
           amount: number
           charge_date?: string
+          charge_reason?: string | null
           created_at?: string
           created_by?: string | null
           currency_code?: string | null
           description?: string | null
+          employer_account_id?: string | null
+          employer_account_transaction_id?: number | null
           fee_head_code?: string | null
           fee_head_ref_id?: string | null
           id?: string
           lg_case_id: string
+          posted_at?: string | null
+          posted_by?: string | null
           posted_invoice_ref_id?: string | null
+          posting_status?: string
           status?: string
         }
         Update: {
           amount?: number
           charge_date?: string
+          charge_reason?: string | null
           created_at?: string
           created_by?: string | null
           currency_code?: string | null
           description?: string | null
+          employer_account_id?: string | null
+          employer_account_transaction_id?: number | null
           fee_head_code?: string | null
           fee_head_ref_id?: string | null
           id?: string
           lg_case_id?: string
+          posted_at?: string | null
+          posted_by?: string | null
           posted_invoice_ref_id?: string | null
+          posting_status?: string
           status?: string
         }
         Relationships: [
@@ -50679,8 +50697,10 @@ export type Database = {
       }
       lg_payment_arrangement_link: {
         Row: {
+          default_monitoring_required: boolean
           id: string
           lg_case_id: string
+          link_reason: string | null
           link_type: string
           linked_at: string
           linked_by: string | null
@@ -50689,8 +50709,10 @@ export type Database = {
           source_module: string
         }
         Insert: {
+          default_monitoring_required?: boolean
           id?: string
           lg_case_id: string
+          link_reason?: string | null
           link_type?: string
           linked_at?: string
           linked_by?: string | null
@@ -50699,8 +50721,10 @@ export type Database = {
           source_module?: string
         }
         Update: {
+          default_monitoring_required?: boolean
           id?: string
           lg_case_id?: string
+          link_reason?: string | null
           link_type?: string
           linked_at?: string
           linked_by?: string | null
