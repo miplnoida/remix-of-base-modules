@@ -40,6 +40,10 @@ export interface BnAuditInput {
   critical?: boolean;
   route?: string | null;
   payload?: Record<string, any> | null;
+  /** Optional request context — auto-resolved from browser when not supplied. */
+  ipAddress?: string | null;
+  sessionId?: string | null;
+  deviceInfo?: string | null;
 }
 
 const CRITICAL_ACTIONS = new Set([
@@ -105,7 +109,31 @@ export async function writeBnAudit(input: BnAuditInput): Promise<void> {
   const critical = isCritical(input);
   const performedBy = requireUserCode(input.performedBy, input.action);
 
-  const row = {
+  // Auto-resolve missing browser context (ip/session/device/route/correlation_id).
+  let ctx = {
+    ipAddress: input.ipAddress ?? null,
+    sessionId: input.sessionId ?? null,
+    deviceInfo: input.deviceInfo ?? null,
+    route: input.route ?? null,
+    correlationId: input.correlationId ?? null,
+  };
+  if (!ctx.sessionId || !ctx.deviceInfo || !ctx.route || !ctx.correlationId) {
+    try {
+      const { getAuditRequestContext } = await import('@/lib/audit/requestContext');
+      const resolved = await getAuditRequestContext(ctx);
+      ctx = {
+        ipAddress: resolved.ipAddress ?? null,
+        sessionId: resolved.sessionId ?? null,
+        deviceInfo: resolved.deviceInfo ?? null,
+        route: resolved.route ?? null,
+        correlationId: resolved.correlationId ?? null,
+      };
+    } catch {
+      /* non-blocking — fall back to whatever the caller passed */
+    }
+  }
+
+  const row: Record<string, any> = {
     timestamp: new Date().toISOString(),
     module: input.module ?? 'BN',
     entity_type: input.entityType,
@@ -115,15 +143,17 @@ export async function writeBnAudit(input: BnAuditInput): Promise<void> {
     after_value: input.afterValue ?? null,
     user_name: performedBy,
     severity: input.severity ?? (critical ? 'critical' : 'info'),
-    correlation_id: input.correlationId ?? null,
-    route: input.route ?? null,
+    correlation_id: ctx.correlationId,
+    route: ctx.route,
+    ip_address: ctx.ipAddress,
+    session_id: ctx.sessionId,
+    device_info: ctx.deviceInfo,
     payload_json: input.payload ?? (input.notes ? { notes: input.notes } : null),
   };
 
   const { error } = await db.from('system_audit_trail').insert(row);
   if (error) {
     if (critical) {
-      // Surface to caller so the mutation can be reported as failed.
       throw new Error(
         `[BN-Audit] CRITICAL audit write failed for ${input.action} on ${input.entityType}/${input.entityId ?? ''}: ${error.message}`,
       );

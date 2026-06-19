@@ -27,8 +27,31 @@
 import { supabase } from '@/integrations/supabase/client';
 import { addWeeks, addDays, addMonths, isBefore, isAfter, startOfDay } from 'date-fns';
 import { toStorageDate } from '@/lib/culture/culture';
+import { auditConfigChange } from '@/services/bn/audit/bnAuditService';
 
 const db = supabase as any;
+
+const safeScheduleAudit = async (
+  action: string,
+  entityId: string | null,
+  performedBy: string,
+  beforeValue: Record<string, any> | null,
+  afterValue: Record<string, any> | null,
+) => {
+  try {
+    await auditConfigChange({
+      entityType: 'bn_payment_schedule',
+      entityId,
+      action,
+      performedBy: performedBy || 'SYSTEM',
+      beforeValue,
+      afterValue,
+    });
+  } catch (e) {
+    console.warn('[scheduleService] audit failed (non-blocking):', e);
+  }
+};
+
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -605,8 +628,11 @@ export async function executeScheduleRowAction(params: ExecuteScheduleActionPara
     },
   });
 
+  await safeScheduleAudit(`SCHEDULE_${action}`, rowId, performedBy, { status: row.status }, { status: newStatus });
+
   return { success: true, newStatus };
 }
+
 
 // ─── Schedule-Level Actions ─────────────────────────────────────────
 
@@ -656,8 +682,11 @@ export async function suspendFutureRows(entitlementId: string, performedBy: stri
     });
   }
 
+  await safeScheduleAudit('SUSPEND_FUTURE_ROWS', entitlementId, performedBy, null, { rows_affected: rows.length, narrative, reasonCodeId });
+
   return rows.length;
 }
+
 
 export async function regenerateSchedule(
   entitlementId: string,
@@ -741,8 +770,11 @@ export async function regenerateSchedule(
     },
   });
 
+  await safeScheduleAudit('REGENERATE_SCHEDULE', entitlementId, performedBy, { cancelled_rows: cancelled?.length ?? 0 }, { new_rows: newRows.length, narrative });
+
   return { cancelledRows: cancelled?.length ?? 0, newRows: newRows.length };
 }
+
 
 // ─── Arrears Generation ─────────────────────────────────────────────
 
@@ -814,5 +846,8 @@ export async function generateArrearsRows(
     },
   });
 
+  await safeScheduleAudit('GENERATE_ARREARS', entitlementId, performedBy, null, { rows_created: insertRows.length, arrears_from: arrearsFrom, arrears_to: arrearsTo, narrative });
+
   return insertRows.length;
 }
+
