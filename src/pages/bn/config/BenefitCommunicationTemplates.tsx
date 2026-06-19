@@ -368,8 +368,14 @@ const TemplateEditorDialog: React.FC<EditorProps> = ({ open, template, title, cr
   const bodyRef = React.useRef<HTMLTextAreaElement | null>(null);
   const htmlRef = React.useRef<HTMLTextAreaElement | null>(null);
   const lastFocusedRef = React.useRef<HTMLElement | null>(null);
-  const tokenDrop = useTokenDrop();
   const trackFocus = (el: HTMLElement | null) => { if (el) lastFocusedRef.current = el; };
+  const syncTokenTarget = React.useCallback((_token: string, target?: HTMLTextAreaElement | HTMLInputElement | null) => {
+    if (!target) return;
+    if (target === subjectRef.current) setDraft((d: any) => ({ ...d, subject: target.value }));
+    if (target === bodyRef.current) setDraft((d: any) => ({ ...d, body: target.value }));
+    if (target === htmlRef.current) setDraft((d: any) => ({ ...d, html_body: target.value }));
+  }, []);
+  const tokenDrop = useTokenDrop(syncTokenTarget);
 
   React.useEffect(() => {
     if (open) {
@@ -477,7 +483,7 @@ const TemplateEditorDialog: React.FC<EditorProps> = ({ open, template, title, cr
             <div className="flex flex-col min-h-0 p-3">
               <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2 px-1">Variable library</p>
               <div className="flex-1 min-h-0">
-                <TokenPicker targets={[subjectRef, bodyRef, htmlRef]} lastFocusedRef={lastFocusedRef} />
+                <TokenPicker targets={[subjectRef, bodyRef, htmlRef]} lastFocusedRef={lastFocusedRef} onInsert={syncTokenTarget} />
               </div>
             </div>
           </TabsContent>
