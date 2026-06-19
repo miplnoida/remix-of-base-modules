@@ -37,8 +37,7 @@ export async function listLgHearings(range: HearingRange = {}): Promise<LgHearin
   return rows as LgHearing[];
 }
 
-export async function createLgHearing(input: LgHearingInsert): Promise<LgHearing> {
-  // Derive scheduled_at from hearing_date/time if missing
+export async function createLgHearing(input: Omit<LgHearingInsert, "scheduled_at"> & { scheduled_at?: string }): Promise<LgHearing> {
   const scheduled_at =
     input.scheduled_at ??
     (input.hearing_date
