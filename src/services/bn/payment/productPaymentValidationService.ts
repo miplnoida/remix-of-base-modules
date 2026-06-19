@@ -37,7 +37,7 @@ export interface ProductPaymentSetupInput {
 }
 
 export interface ProductPaymentValidationIssue {
-  rule: 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6' | 'V7' | 'V8' | 'V9';
+  rule: 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6' | 'V7' | 'V8' | 'V9' | 'V10';
   severity: 'error' | 'warning';
   message: string;
   context?: Record<string, any>;
@@ -193,6 +193,30 @@ export async function validateProductPaymentSetup(
       });
     }
   }
+
+  // V10 — Cycle restriction: product methods must be in cycle's enabled methods (if cycle override exists)
+  if (input.payment_frequency && input.allowed_payment_methods.length) {
+    const { data: cycleRows = [] } = await db
+      .from('bn_country_payment_cycle_method')
+      .select('payment_method,is_enabled')
+      .eq('country_code', product.country_code)
+      .eq('payment_cycle', input.payment_frequency);
+    const rows = cycleRows as any[];
+    if (rows.length > 0) {
+      const cycleEnabled = new Set(rows.filter(r => r.is_enabled).map(r => r.payment_method));
+      for (const m of input.allowed_payment_methods) {
+        if (!cycleEnabled.has(m)) {
+          issues.push({
+            rule: 'V10',
+            severity: 'error',
+            message: `Method "${m}" is not enabled for cycle ${input.payment_frequency} in ${product.country_code}`,
+            context: { method: m, cycle: input.payment_frequency },
+          });
+        }
+      }
+    }
+  }
+
 
   // V8 — threshold currency
   if (

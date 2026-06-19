@@ -173,8 +173,37 @@ export async function validatePayable(
             warnings.push(`Instruction currency ${instr.currency} differs from country currency ${ctry.currency_code}`);
           }
         }
+
+        // V10 — Cycle restriction (resolve product cycle via channel config)
+        try {
+          const { data: pcc } = await db
+            .from('bn_product_channel_config')
+            .select('payment_frequency')
+            .eq('product_id', instr.product_id)
+            .not('payment_frequency', 'is', null)
+            .limit(1)
+            .maybeSingle();
+          const cycle = pcc?.payment_frequency;
+          if (cycle) {
+            const { data: cycleRows = [] } = await db
+              .from('bn_country_payment_cycle_method')
+              .select('payment_method,is_enabled')
+              .eq('country_code', prod.country_code)
+              .eq('payment_cycle', cycle);
+            const rows = (cycleRows as any[]) ?? [];
+            if (rows.length > 0) {
+              const enabled = rows.find((r) => r.payment_method === instr.payment_method && r.is_enabled);
+              if (!enabled) {
+                errors.push(`Method ${instr.payment_method} is not enabled for cycle ${cycle} in ${prod.country_code}`);
+              }
+            }
+          }
+        } catch {
+          warnings.push('Could not evaluate cycle×method restriction');
+        }
       }
     }
+
   } catch (e) {
     warnings.push('Could not evaluate country/product payment hierarchy');
   }
