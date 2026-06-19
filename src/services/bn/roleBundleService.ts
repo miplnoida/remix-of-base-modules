@@ -41,4 +41,18 @@ export async function setBundleActive(code: string, isActive: boolean): Promise<
     .update({ is_active: isActive, updated_at: new Date().toISOString() })
     .eq('code', code);
   if (error) throw error;
+  try {
+    const { auditConfigChange } = await import('@/services/bn/audit/bnAuditService');
+    const { getCurrentUserCode } = await import('@/services/bn/audit/getCurrentUserCode');
+    await auditConfigChange({
+      entityType: 'bn_role_bundle',
+      entityId: code,
+      action: isActive ? 'ACTIVATE' : 'DEACTIVATE',
+      performedBy: (await getCurrentUserCode()) || 'SYSTEM',
+      afterValue: { is_active: isActive },
+    });
+  } catch (e) {
+    console.warn('[roleBundleService] audit failed (non-blocking):', e);
+  }
 }
+

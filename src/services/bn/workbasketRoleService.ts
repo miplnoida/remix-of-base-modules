@@ -1,6 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
+import { auditConfigChange } from '@/services/bn/audit/bnAuditService';
+import { getCurrentUserCode } from '@/services/bn/audit/getCurrentUserCode';
 
 const db = supabase as any;
+
 
 export interface BnWorkbasketRole {
   id: string;
@@ -39,6 +42,11 @@ export async function setWorkbasketRoles(
   const cleaned = Array.from(new Set(roles.filter(Boolean)));
   if (cleaned.length === 0) throw new Error('At least one role is required');
 
+  const { data: before } = await db
+    .from('bn_workbasket_role')
+    .select('role_name, is_primary')
+    .eq('workbasket_id', workbasketId);
+
   const { error: delErr } = await db
     .from('bn_workbasket_role')
     .delete()
@@ -60,7 +68,21 @@ export async function setWorkbasketRoles(
     .update({ assigned_role: cleaned[0], modified_at: new Date().toISOString() })
     .eq('id', workbasketId);
   if (updErr) throw updErr;
+
+  try {
+    await auditConfigChange({
+      entityType: 'bn_workbasket_role',
+      entityId: workbasketId,
+      action: 'UPDATE',
+      performedBy: userCode || (await getCurrentUserCode()) || 'SYSTEM',
+      beforeValue: { roles: before ?? [] },
+      afterValue: { roles: rows },
+    });
+  } catch (e) {
+    console.warn('[workbasketRoleService] audit failed (non-blocking):', e);
+  }
 }
+
 
 /** Returns workbaskets visible to a user via direct, bundle, or delegated roles. */
 export async function fetchWorkbasketsForUser(userId: string): Promise<WorkbasketForUser[]> {
