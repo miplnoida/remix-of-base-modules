@@ -472,46 +472,80 @@ const Content: React.FC = () => {
 
               {cat === 'CASH' && (
                 <>
-                  <SectionTitle>Cash Pickup Configuration</SectionTitle>
+                  <SectionTitle>Cash Pickup Capability</SectionTitle>
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 mb-3">
+                    Country config defines whether cash pickup is allowed and the policies. Actual recipient identity, pickup person and ID number live on the <strong>Payment Instruction / Payee Profile</strong>.
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><Label className="text-xs">Cash Office</Label><Input value={mc.cash_office || ''} onChange={(e) => setMc({ cash_office: e.target.value })} /></div>
-                    <div><Label className="text-xs">Cash Counter</Label><Input value={mc.cash_counter || ''} onChange={(e) => setMc({ cash_counter: e.target.value })} /></div>
-                    <div className="flex items-center gap-2"><Switch checked={!!mc.collection_authorization_required} onCheckedChange={(v) => setMc({ collection_authorization_required: v })} /><Label>Collection Authorization Required</Label></div>
-                    <div className="flex items-center gap-2"><Switch checked={!!mc.id_verification_required} onCheckedChange={(v) => setMc({ id_verification_required: v })} /><Label>ID Verification Required</Label></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">Pickup allowed</Label><Switch checked={mc.pickup_allowed === true} onCheckedChange={(v) => setMc({ pickup_allowed: v })} /></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">Mailing allowed</Label><Switch checked={mc.mailing_allowed === true} onCheckedChange={(v) => setMc({ mailing_allowed: v })} /></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">Collection authorization required</Label><Switch checked={!!mc.collection_authorization_required} onCheckedChange={(v) => setMc({ collection_authorization_required: v })} /></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">ID verification required</Label><Switch checked={!!mc.id_verification_required} onCheckedChange={(v) => setMc({ id_verification_required: v })} /></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">Approval required</Label><Switch checked={!!mc.approval_required} onCheckedChange={(v) => setMc({ approval_required: v })} /></div>
                     <div><Label className="text-xs">Pickup Expiry Days</Label><Input type="number" value={mc.pickup_expiry_days ?? ''} onChange={(e) => setMc({ pickup_expiry_days: parseInt(e.target.value) || null })} /></div>
+                    <div className="col-span-2"><Label className="text-xs">Approved Pickup Locations (comma-separated)</Label>
+                      <Input value={(mc.approved_pickup_locations || []).join(', ')} onChange={(e) => setMc({ approved_pickup_locations: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} placeholder="e.g. Basseterre HQ, Charlestown Office" />
+                    </div>
+                    <div className="col-span-2"><Label className="text-xs">Accepted ID Types (comma-separated)</Label>
+                      <Input value={(mc.accepted_id_types || []).join(', ')} onChange={(e) => setMc({ accepted_id_types: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} placeholder="e.g. Passport, National ID, Driver License" />
+                    </div>
                   </div>
                 </>
               )}
 
               {cat === 'MOBILE' && (
                 <>
-                  <SectionTitle>Mobile Money Configuration</SectionTitle>
+                  <SectionTitle>Mobile Money Capability</SectionTitle>
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 mb-3">
+                    Country config defines supported providers and validation rules. Actual wallet ID / mobile number lives on the beneficiary's <strong>Payment Profile</strong>.
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><Label className="text-xs">Mobile Provider *</Label><Input value={mc.mobile_provider || ''} onChange={(e) => setMc({ mobile_provider: e.target.value })} placeholder="e.g. Digicel, FLOW" /></div>
+                    <div className="col-span-2"><Label className="text-xs">Supported Providers (comma-separated) *</Label>
+                      <Input value={(mc.supported_providers || []).join(', ')} onChange={(e) => setMc({ supported_providers: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} placeholder="e.g. Digicel MyCash, FLOW Money" />
+                    </div>
+                    <div className="col-span-2"><Label className="text-xs">Supported Countries (ISO codes, comma-separated)</Label>
+                      <Input value={(mc.supported_countries || []).join(', ')} onChange={(e) => setMc({ supported_countries: e.target.value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) })} placeholder="e.g. KN, AG, LC" />
+                    </div>
                     <div><Label className="text-xs">Mobile Number Validation Rule</Label><Input value={mc.mobile_number_rule || ''} onChange={(e) => setMc({ mobile_number_rule: e.target.value })} placeholder="e.g. ^1869\\d{7}$" /></div>
-                    <div className="col-span-2"><Label className="text-xs">Wallet Verification Rule</Label><Input value={mc.wallet_verification_rule || ''} onChange={(e) => setMc({ wallet_verification_rule: e.target.value })} /></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">Approval required</Label><Switch checked={!!mc.approval_required} onCheckedChange={(v) => setMc({ approval_required: v })} /></div>
                   </div>
                 </>
               )}
 
               {cat === 'CARD' && (
                 <>
-                  <SectionTitle>Card Configuration</SectionTitle>
+                  <SectionTitle>Card Payout Capability</SectionTitle>
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 mb-3">
+                    Country config defines whether card payout is allowed and which networks are accepted. PAN/token/cardholder details live on the beneficiary's <strong>Payment Profile</strong>.
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><Label className="text-xs">Payment Gateway *</Label><Input value={mc.payment_gateway || ''} onChange={(e) => setMc({ payment_gateway: e.target.value })} placeholder="e.g. Stripe, CyberSource" /></div>
-                    <div><Label className="text-xs">Merchant Account *</Label><Input value={mc.merchant_account || ''} onChange={(e) => setMc({ merchant_account: e.target.value })} /></div>
-                    <div className="col-span-2"><Label className="text-xs">Settlement Rule</Label><Input value={mc.settlement_rule || ''} onChange={(e) => setMc({ settlement_rule: e.target.value })} placeholder="e.g. T+2 daily" /></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">Card payout supported</Label><Switch checked={mc.card_payout_supported === true} onCheckedChange={(v) => setMc({ card_payout_supported: v })} /></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">Foreign currency allowed</Label><Switch checked={mc.foreign_currency_allowed === true} onCheckedChange={(v) => setMc({ foreign_currency_allowed: v })} /></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">Approval required</Label><Switch checked={!!mc.approval_required} onCheckedChange={(v) => setMc({ approval_required: v })} /></div>
+                    <div className="col-span-2"><Label className="text-xs">Supported Card Networks (comma-separated) *</Label>
+                      <Input value={(mc.supported_card_networks || []).join(', ')} onChange={(e) => setMc({ supported_card_networks: e.target.value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) })} placeholder="e.g. VISA, MASTERCARD, AMEX" />
+                    </div>
+                    <div className="col-span-2"><Label className="text-xs">Currency Restrictions (ISO codes, comma-separated)</Label>
+                      <Input value={(mc.allowed_currencies || []).join(', ')} onChange={(e) => setMc({ allowed_currencies: e.target.value.split(',').map(s => s.trim().toUpperCase()).filter(Boolean) })} placeholder="e.g. XCD, USD" />
+                    </div>
                   </div>
                 </>
               )}
 
               {cat === 'MONEY_ORDER' && (
                 <>
-                  <SectionTitle>Money Order Configuration</SectionTitle>
+                  <SectionTitle>Money Order Capability</SectionTitle>
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 mb-3">
+                    Country config defines issuance and delivery capability. Recipient name / mailing address live on the <strong>Payment Instruction / Payee Profile</strong>.
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div><Label className="text-xs">Issuer *</Label><Input value={mc.issuer || ''} onChange={(e) => setMc({ issuer: e.target.value })} placeholder="e.g. Post Office" /></div>
-                    <div><Label className="text-xs">Reference Number Rule</Label><Input value={mc.reference_number_rule || ''} onChange={(e) => setMc({ reference_number_rule: e.target.value })} /></div>
-                    <div className="col-span-2"><Label className="text-xs">Template</Label><Input value={mc.template || ''} onChange={(e) => setMc({ template: e.target.value })} /></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">Issuance supported</Label><Switch checked={mc.issuance_supported === true} onCheckedChange={(v) => setMc({ issuance_supported: v })} /></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">Mailing supported</Label><Switch checked={mc.mailing_supported === true} onCheckedChange={(v) => setMc({ mailing_supported: v })} /></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">Pickup supported</Label><Switch checked={mc.pickup_supported === true} onCheckedChange={(v) => setMc({ pickup_supported: v })} /></div>
+                    <div className="flex items-center justify-between rounded-md border p-2"><Label className="text-xs">Approval required</Label><Switch checked={!!mc.approval_required} onCheckedChange={(v) => setMc({ approval_required: v })} /></div>
+                    <div className="col-span-2"><Label className="text-xs">Approved Issuers (comma-separated)</Label>
+                      <Input value={(mc.approved_issuers || []).join(', ')} onChange={(e) => setMc({ approved_issuers: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })} placeholder="e.g. Post Office" />
+                    </div>
                   </div>
                 </>
               )}
