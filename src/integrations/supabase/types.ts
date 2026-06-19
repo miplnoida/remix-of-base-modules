@@ -15092,45 +15092,57 @@ export type Database = {
           country_code: string | null
           default_expiry_days: number | null
           description: string | null
+          document_library_id: string | null
           entered_at: string
           entered_by: string | null
           id: string
           is_active: boolean
           modified_at: string
           modified_by: string | null
+          periodic_renewal: boolean
+          requires_verification: boolean
           requires_witness: boolean
           type_code: string
           type_name: string
+          verification_level: string | null
         }
         Insert: {
           category?: string
           country_code?: string | null
           default_expiry_days?: number | null
           description?: string | null
+          document_library_id?: string | null
           entered_at?: string
           entered_by?: string | null
           id?: string
           is_active?: boolean
           modified_at?: string
           modified_by?: string | null
+          periodic_renewal?: boolean
+          requires_verification?: boolean
           requires_witness?: boolean
           type_code: string
           type_name: string
+          verification_level?: string | null
         }
         Update: {
           category?: string
           country_code?: string | null
           default_expiry_days?: number | null
           description?: string | null
+          document_library_id?: string | null
           entered_at?: string
           entered_by?: string | null
           id?: string
           is_active?: boolean
           modified_at?: string
           modified_by?: string | null
+          periodic_renewal?: boolean
+          requires_verification?: boolean
           requires_witness?: boolean
           type_code?: string
           type_name?: string
+          verification_level?: string | null
         }
         Relationships: [
           {
@@ -15139,6 +15151,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "bn_country"
             referencedColumns: ["country_code"]
+          },
+          {
+            foreignKeyName: "bn_service_doc_type_document_library_id_fkey"
+            columns: ["document_library_id"]
+            isOneToOne: false
+            referencedRelation: "module_doc_configs"
+            referencedColumns: ["id"]
           },
         ]
       }
