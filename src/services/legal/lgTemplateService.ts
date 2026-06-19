@@ -44,7 +44,7 @@ export interface LgTokenContext {
 const EMPTY = "";
 
 export async function listLegalTemplates(): Promise<LgTemplate[]> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("notification_templates")
     .select("id, template_code, name, subject, body, placeholders, category, channel")
     .eq("category", "legal")
@@ -58,7 +58,7 @@ export async function listLegalTemplates(): Promise<LgTemplate[]> {
 }
 
 export async function getTemplate(id: string): Promise<LgTemplate | null> {
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from("notification_templates")
     .select("id, template_code, name, subject, body, placeholders, category, channel")
     .eq("id", id)
@@ -94,7 +94,7 @@ export async function buildTokenContext(lgCaseId: string): Promise<LgTokenContex
 
   // Employer (au_er_master)
   if (lg.employer_id) {
-    const { data: er } = await supabase
+    const { data: er } = await (supabase as any)
       .from("au_er_master")
       .select("er_name, er_no")
       .eq("id", lg.employer_id as string)
@@ -107,7 +107,7 @@ export async function buildTokenContext(lgCaseId: string): Promise<LgTokenContex
 
   // Compliance case (ce_cases)
   if (lg.compliance_case_id) {
-    const { data: cc } = await supabase
+    const { data: cc } = await (supabase as any)
       .from("ce_cases")
       .select("case_no")
       .eq("id", lg.compliance_case_id as string)
@@ -117,7 +117,7 @@ export async function buildTokenContext(lgCaseId: string): Promise<LgTokenContex
 
   // Payment arrangement
   if (lg.payment_arrangement_id) {
-    const { data: pa } = await supabase
+    const { data: pa } = await (supabase as any)
       .from("ce_payment_arrangements")
       .select("arrangement_no, total_amount, collected_amount, waived_amount")
       .eq("id", lg.payment_arrangement_id as string)
