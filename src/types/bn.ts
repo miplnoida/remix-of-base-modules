@@ -976,6 +976,11 @@ export interface BnCountryPaymentConfig {
   is_active: boolean;
   entered_by: string | null;
   entered_at: string;
+  // Capability / governance
+  is_method_enabled?: boolean | null;
+  default_priority?: number | null;
+  allow_third_party_payee?: boolean | null;
+  allow_provider_direct_pay?: boolean | null;
   // EFT / bank file format
   bank_file_format?: string | null;
   header_record_format?: string | null;
@@ -986,6 +991,12 @@ export interface BnCountryPaymentConfig {
   routing_number_rule?: string | null;
   file_naming_convention?: string | null;
   bank_code?: string | null;
+  bank_validation_rule_set?: Record<string, unknown> | null;
+  // Cheque
+  cheque_stock_required?: boolean | null;
+  cheque_format_template_id?: string | null;
+  // Method-specific extensible config (cash / mobile / card / money order / wire / cheque extras)
+  method_config?: Record<string, any> | null;
 }
 
 export interface BnCountryLegalRef {
