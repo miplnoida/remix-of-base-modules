@@ -11,6 +11,7 @@ import type { BnProduct, BnProductStatus } from '@/types/bn';
 import { BNDataGrid, type BNColumnDef } from '@/components/bn/grid';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import PaymentHierarchyHealth from '@/components/bn/product/PaymentHierarchyHealth';
 
 const statusVariant: Record<BnProductStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'secondary',
