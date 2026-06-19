@@ -108,6 +108,26 @@ export async function getCountryCurrencyPolicy(countryCode: string): Promise<Cou
   return (data ?? null) as CountryCurrencyPolicy | null;
 }
 
+export interface ReferencePaymentMethod {
+  method_code: string;
+  method_name: string;
+  requires_bank_account: boolean;
+  requires_postal_address: boolean;
+  generates_eft_file: boolean;
+  consumes_cheque_stock: boolean;
+  active: boolean;
+  sort_order: number | null;
+}
+
+export async function listReferencePaymentMethods(): Promise<ReferencePaymentMethod[]> {
+  const { data, error } = await db
+    .from('bn_payment_method')
+    .select('method_code,method_name,requires_bank_account,requires_postal_address,generates_eft_file,consumes_cheque_stock,active,sort_order')
+    .order('sort_order', { ascending: true, nullsFirst: false });
+  if (error) throw error;
+  return (data ?? []) as ReferencePaymentMethod[];
+}
+
 // ---------------------------------------------------------------------------
 // Writes — every mutation is audited
 // ---------------------------------------------------------------------------
