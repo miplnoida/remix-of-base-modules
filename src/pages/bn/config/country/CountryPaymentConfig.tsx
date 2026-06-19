@@ -290,11 +290,12 @@ const Content: React.FC = () => {
               <SectionTitle>Processing Calendar</SectionTitle>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Payment Cycle</Label>
+                  <Label>Default Processing Cycle</Label>
                   <Select value={form.payment_cycle || 'WEEKLY'} onValueChange={(v) => setForm((f) => ({ ...f, payment_cycle: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>{BN_PAYMENT_CYCLES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                   </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">Hint only. Actual cycle × method availability is controlled by the Cycle Availability matrix.</p>
                 </div>
                 <div>
                   <Label>Processing Days</Label>
