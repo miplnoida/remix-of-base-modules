@@ -5960,6 +5960,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bn_claim_channel_config_id_fkey"
+            columns: ["channel_config_id"]
+            isOneToOne: false
+            referencedRelation: "v_bn_product_effective_payment_config"
+            referencedColumns: ["channel_config_id"]
+          },
+          {
             foreignKeyName: "bn_claim_country_config_package_id_fkey"
             columns: ["country_config_package_id"]
             isOneToOne: false
@@ -7514,6 +7521,8 @@ export type Database = {
       bn_country: {
         Row: {
           address_model_version: number
+          allow_foreign_currency_products: boolean
+          allowed_alt_currencies: string[]
           contribution_ceiling_annual: number | null
           contribution_ceiling_weekly: number | null
           country_code: string
@@ -7543,6 +7552,8 @@ export type Database = {
         }
         Insert: {
           address_model_version?: number
+          allow_foreign_currency_products?: boolean
+          allowed_alt_currencies?: string[]
           contribution_ceiling_annual?: number | null
           contribution_ceiling_weekly?: number | null
           country_code: string
@@ -7572,6 +7583,8 @@ export type Database = {
         }
         Update: {
           address_model_version?: number
+          allow_foreign_currency_products?: boolean
+          allowed_alt_currencies?: string[]
           contribution_ceiling_annual?: number | null
           contribution_ceiling_weekly?: number | null
           country_code?: string
@@ -8085,11 +8098,17 @@ export type Database = {
       bn_country_payment_config: {
         Row: {
           account_number_rule: string | null
+          allow_provider_direct_pay: boolean
+          allow_third_party_payee: boolean
           bank_code: string | null
           bank_file_format: string | null
+          bank_validation_rule_set: Json
           calendar_config: Json
+          cheque_format_template_id: string | null
+          cheque_stock_required: boolean
           country_code: string
           cut_off_day: number | null
+          default_priority: number | null
           detail_record_format: string | null
           entered_at: string
           entered_by: string | null
@@ -8099,6 +8118,7 @@ export type Database = {
           id: string
           is_active: boolean
           is_default: boolean
+          is_method_enabled: boolean
           method_label: string
           payment_cycle: string
           payment_method: string
@@ -8110,11 +8130,17 @@ export type Database = {
         }
         Insert: {
           account_number_rule?: string | null
+          allow_provider_direct_pay?: boolean
+          allow_third_party_payee?: boolean
           bank_code?: string | null
           bank_file_format?: string | null
+          bank_validation_rule_set?: Json
           calendar_config?: Json
+          cheque_format_template_id?: string | null
+          cheque_stock_required?: boolean
           country_code: string
           cut_off_day?: number | null
+          default_priority?: number | null
           detail_record_format?: string | null
           entered_at?: string
           entered_by?: string | null
@@ -8124,6 +8150,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          is_method_enabled?: boolean
           method_label: string
           payment_cycle?: string
           payment_method: string
@@ -8135,11 +8162,17 @@ export type Database = {
         }
         Update: {
           account_number_rule?: string | null
+          allow_provider_direct_pay?: boolean
+          allow_third_party_payee?: boolean
           bank_code?: string | null
           bank_file_format?: string | null
+          bank_validation_rule_set?: Json
           calendar_config?: Json
+          cheque_format_template_id?: string | null
+          cheque_stock_required?: boolean
           country_code?: string
           cut_off_day?: number | null
+          default_priority?: number | null
           detail_record_format?: string | null
           entered_at?: string
           entered_by?: string | null
@@ -8149,6 +8182,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           is_default?: boolean
+          is_method_enabled?: boolean
           method_label?: string
           payment_cycle?: string
           payment_method?: string
@@ -13019,6 +13053,8 @@ export type Database = {
           allow_guardian_payee: boolean
           allow_managed_contributor_selection: boolean
           allow_manual_workbasket_override: boolean
+          allow_payee: boolean
+          allow_provider_direct_pay: boolean
           allow_save_draft: boolean
           allow_third_party_payee: boolean
           allow_upload_later: boolean
@@ -13026,6 +13062,8 @@ export type Database = {
           allowed_payment_methods: string[]
           allowed_subject_types: string[]
           applicant_must_equal_insured: boolean
+          approval_threshold_amount: number | null
+          approval_threshold_currency: string | null
           assisted_screen_template_id: string | null
           blocks_submission_if_documents_missing: boolean
           blocks_submission_if_precheck_fails: boolean
@@ -13034,6 +13072,7 @@ export type Database = {
           confirmation_template_id: string | null
           correction_allowed: boolean
           correction_deadline_days: number | null
+          currency_code: string | null
           default_payment_method: string | null
           default_source: string | null
           document_profile_id: string | null
@@ -13047,6 +13086,9 @@ export type Database = {
           modified_at: string
           modified_by: string | null
           payment_details_visibility: string
+          payment_frequency: string | null
+          payment_hold_rules: Json
+          payment_pattern: string | null
           payment_required_at_application: boolean
           payment_required_before_approval: boolean
           payment_required_before_payment: boolean
@@ -13089,6 +13131,8 @@ export type Database = {
           allow_guardian_payee?: boolean
           allow_managed_contributor_selection?: boolean
           allow_manual_workbasket_override?: boolean
+          allow_payee?: boolean
+          allow_provider_direct_pay?: boolean
           allow_save_draft?: boolean
           allow_third_party_payee?: boolean
           allow_upload_later?: boolean
@@ -13096,6 +13140,8 @@ export type Database = {
           allowed_payment_methods?: string[]
           allowed_subject_types?: string[]
           applicant_must_equal_insured?: boolean
+          approval_threshold_amount?: number | null
+          approval_threshold_currency?: string | null
           assisted_screen_template_id?: string | null
           blocks_submission_if_documents_missing?: boolean
           blocks_submission_if_precheck_fails?: boolean
@@ -13104,6 +13150,7 @@ export type Database = {
           confirmation_template_id?: string | null
           correction_allowed?: boolean
           correction_deadline_days?: number | null
+          currency_code?: string | null
           default_payment_method?: string | null
           default_source?: string | null
           document_profile_id?: string | null
@@ -13117,6 +13164,9 @@ export type Database = {
           modified_at?: string
           modified_by?: string | null
           payment_details_visibility?: string
+          payment_frequency?: string | null
+          payment_hold_rules?: Json
+          payment_pattern?: string | null
           payment_required_at_application?: boolean
           payment_required_before_approval?: boolean
           payment_required_before_payment?: boolean
@@ -13159,6 +13209,8 @@ export type Database = {
           allow_guardian_payee?: boolean
           allow_managed_contributor_selection?: boolean
           allow_manual_workbasket_override?: boolean
+          allow_payee?: boolean
+          allow_provider_direct_pay?: boolean
           allow_save_draft?: boolean
           allow_third_party_payee?: boolean
           allow_upload_later?: boolean
@@ -13166,6 +13218,8 @@ export type Database = {
           allowed_payment_methods?: string[]
           allowed_subject_types?: string[]
           applicant_must_equal_insured?: boolean
+          approval_threshold_amount?: number | null
+          approval_threshold_currency?: string | null
           assisted_screen_template_id?: string | null
           blocks_submission_if_documents_missing?: boolean
           blocks_submission_if_precheck_fails?: boolean
@@ -13174,6 +13228,7 @@ export type Database = {
           confirmation_template_id?: string | null
           correction_allowed?: boolean
           correction_deadline_days?: number | null
+          currency_code?: string | null
           default_payment_method?: string | null
           default_source?: string | null
           document_profile_id?: string | null
@@ -13187,6 +13242,9 @@ export type Database = {
           modified_at?: string
           modified_by?: string | null
           payment_details_visibility?: string
+          payment_frequency?: string | null
+          payment_hold_rules?: Json
+          payment_pattern?: string | null
           payment_required_at_application?: boolean
           payment_required_before_approval?: boolean
           payment_required_before_payment?: boolean
@@ -60936,6 +60994,46 @@ export type Database = {
           type_code: string | null
         }
         Relationships: []
+      }
+      v_bn_product_effective_payment_config: {
+        Row: {
+          allow_foreign_currency_products: boolean | null
+          allow_payee: boolean | null
+          allow_provider_direct_pay: boolean | null
+          allowed_alt_currencies: string[] | null
+          approval_threshold_amount: number | null
+          approval_threshold_currency: string | null
+          benefit_code: string | null
+          channel_code: string | null
+          channel_config_id: string | null
+          country_code: string | null
+          country_currency: string | null
+          country_enabled_methods: string[] | null
+          default_payment_method: string | null
+          effective_currency: string | null
+          payment_frequency: string | null
+          payment_hold_rules: Json | null
+          payment_pattern: string | null
+          product_allowed_methods: string[] | null
+          product_id: string | null
+          product_version_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_product_channel_config_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_channel_config_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_version"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_bn_product_public_config_issues: {
         Row: {
