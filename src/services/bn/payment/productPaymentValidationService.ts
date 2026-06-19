@@ -37,7 +37,7 @@ export interface ProductPaymentSetupInput {
 }
 
 export interface ProductPaymentValidationIssue {
-  rule: 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6' | 'V7' | 'V8' | 'V9';
+  rule: 'V1' | 'V2' | 'V3' | 'V4' | 'V5' | 'V6' | 'V7' | 'V8' | 'V9' | 'V10';
   severity: 'error' | 'warning';
   message: string;
   context?: Record<string, any>;
