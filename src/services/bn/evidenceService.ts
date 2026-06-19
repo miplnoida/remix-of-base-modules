@@ -5,20 +5,78 @@ const db = supabase as any;
 
 // ── Reference Data ──
 
-export async function fetchServiceDocTypes(): Promise<BnServiceDocType[]> {
-  const { data, error } = await db
-    .from('bn_service_doc_type')
-    .select('*')
-    .eq('is_active', true)
-    .order('type_name');
+export interface ServiceDocTypeListOptions {
+  activeOnly?: boolean;
+  withCounts?: boolean;
+  withLibrary?: boolean;
+}
+
+export async function fetchServiceDocTypes(opts: ServiceDocTypeListOptions = {}): Promise<BnServiceDocType[]> {
+  const { activeOnly = false, withCounts = true, withLibrary = true } = opts;
+  let query = db.from('bn_service_doc_type').select('*').order('type_name');
+  if (activeOnly) query = query.eq('is_active', true);
+  const { data, error } = await query;
   if (error) throw error;
-  return (data || []) as BnServiceDocType[];
+  const rows = (data || []) as BnServiceDocType[];
+  if (rows.length === 0) return rows;
+
+  // Optional Document Library names
+  if (withLibrary) {
+    const libIds = Array.from(new Set(rows.map(r => r.document_library_id).filter(Boolean))) as string[];
+    if (libIds.length > 0) {
+      const { data: libs } = await db
+        .from('module_doc_configs')
+        .select('id, document_name')
+        .in('id', libIds);
+      const libMap = new Map<string, string>((libs || []).map((l: any) => [l.id, l.document_name]));
+      rows.forEach(r => {
+        r.document_library_name = r.document_library_id ? libMap.get(r.document_library_id) ?? null : null;
+      });
+    }
+  }
+
+  // Usage counts from bn_doc_requirement (Product Catalog)
+  if (withCounts) {
+    const codes = rows.map(r => r.type_code);
+    const { data: reqs } = await db
+      .from('bn_doc_requirement')
+      .select('document_type_code, product_id, stage, is_active')
+      .in('document_type_code', codes)
+      .eq('is_active', true);
+    const productsByCode = new Map<string, Set<string>>();
+    const stagesByCode = new Map<string, Set<string>>();
+    (reqs || []).forEach((r: any) => {
+      if (!productsByCode.has(r.document_type_code)) productsByCode.set(r.document_type_code, new Set());
+      if (!stagesByCode.has(r.document_type_code)) stagesByCode.set(r.document_type_code, new Set());
+      if (r.product_id) productsByCode.get(r.document_type_code)!.add(r.product_id);
+      if (r.stage) stagesByCode.get(r.document_type_code)!.add(r.stage);
+    });
+    rows.forEach(r => {
+      r.used_by_products_count = productsByCode.get(r.type_code)?.size ?? 0;
+      r.used_by_workflows_count = stagesByCode.get(r.type_code)?.size ?? 0;
+    });
+  }
+
+  return rows;
 }
 
 export async function upsertServiceDocType(record: Partial<BnServiceDocType>): Promise<BnServiceDocType> {
+  // Validation: cannot link an inactive Document Library entry on a new record
+  if (record.document_library_id) {
+    const { data: lib } = await db
+      .from('module_doc_configs')
+      .select('id, is_active')
+      .eq('id', record.document_library_id)
+      .maybeSingle();
+    if (lib && lib.is_active === false && !record.id) {
+      throw new Error('Cannot link an inactive Document Library entry to a new Service Document Type.');
+    }
+  }
+  // Strip computed fields before persisting
+  const { document_library_name, used_by_products_count, used_by_workflows_count, ...persistable } = record as any;
   const { data, error } = await db
     .from('bn_service_doc_type')
-    .upsert(record, { onConflict: 'id' })
+    .upsert(persistable, { onConflict: 'id' })
     .select()
     .single();
   if (error) throw error;
@@ -28,6 +86,16 @@ export async function upsertServiceDocType(record: Partial<BnServiceDocType>): P
 export async function deleteServiceDocType(id: string): Promise<void> {
   const { error } = await db.from('bn_service_doc_type').delete().eq('id', id);
   if (error) throw error;
+}
+
+// Flat Document Library list for the Service Doc Type linkage dropdown
+export async function fetchDocumentLibraryOptions(): Promise<Array<{ id: string; document_name: string; is_active: boolean }>> {
+  const { data, error } = await db
+    .from('module_doc_configs')
+    .select('id, document_name, is_active')
+    .order('document_name');
+  if (error) throw error;
+  return (data || []) as Array<{ id: string; document_name: string; is_active: boolean }>;
 }
 
 // ── Doc Requirements ──

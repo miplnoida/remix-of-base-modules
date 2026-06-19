@@ -4,10 +4,10 @@ import type { BnServiceDocType, BnDocRequirement, BnClaimEvidence } from '@/type
 
 // ── Reference Data ──
 
-export function useBnServiceDocTypes() {
+export function useBnServiceDocTypes(opts?: evidenceService.ServiceDocTypeListOptions) {
   return useQuery({
-    queryKey: ['bn', 'service-doc-types'],
-    queryFn: evidenceService.fetchServiceDocTypes,
+    queryKey: ['bn', 'service-doc-types', opts ?? {}],
+    queryFn: () => evidenceService.fetchServiceDocTypes(opts),
   });
 }
 
