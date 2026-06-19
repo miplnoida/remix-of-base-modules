@@ -13072,7 +13072,7 @@ export type Database = {
           confirmation_template_id: string | null
           correction_allowed: boolean
           correction_deadline_days: number | null
-          currency_code: string | null
+          currency_code: string
           default_payment_method: string | null
           default_source: string | null
           document_profile_id: string | null
@@ -13150,7 +13150,7 @@ export type Database = {
           confirmation_template_id?: string | null
           correction_allowed?: boolean
           correction_deadline_days?: number | null
-          currency_code?: string | null
+          currency_code: string
           default_payment_method?: string | null
           default_source?: string | null
           document_profile_id?: string | null
@@ -13228,7 +13228,7 @@ export type Database = {
           confirmation_template_id?: string | null
           correction_allowed?: boolean
           correction_deadline_days?: number | null
-          currency_code?: string | null
+          currency_code?: string
           default_payment_method?: string | null
           default_source?: string | null
           document_profile_id?: string | null
