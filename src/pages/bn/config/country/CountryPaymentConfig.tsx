@@ -79,8 +79,7 @@ function validateConfig(form: Partial<BnCountryPaymentConfig>, meta: MethodMeta)
   switch (meta.category) {
     case 'EFT':
       if (!form.requires_bank_account) errs.push('EFT requires "Requires Bank Account" to be true.');
-      if (!form.bank_file_format) errs.push('EFT: Bank File Format is required.');
-      if (!form.detail_record_format) errs.push('EFT: Detail Record Format is required.');
+      // Bank file format now belongs to Funding Source Account, not country row. No country-level requirement.
       break;
     case 'CHEQUE':
       if (!form.cheque_stock_required && !form.cheque_format_template_id && !mc.cheque_print_layout) {
@@ -335,6 +334,15 @@ const Content: React.FC = () => {
               {cat === 'EFT' && (
                 <>
                   <SectionTitle>EFT / Bank Transfer Configuration</SectionTitle>
+                  <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3 mb-3 text-xs flex gap-2">
+                    <Info className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+                    <div>
+                      <strong>Bank file format now lives on the Funding Source Account.</strong> Configure EFT
+                      file layout per funding bank/account under Country Pack → Funding Source Accounts. The fields
+                      below are kept as a legacy country-wide fallback and are <em>only</em> used when no active
+                      source account exists.
+                    </div>
+                  </div>
                   <div className="flex items-end gap-2 p-3 bg-muted/40 rounded-md mb-3">
                     <div className="flex-1">
                       <Label className="text-xs flex items-center gap-1.5"><FileCode className="h-3.5 w-3.5" /> Load Preset</Label>

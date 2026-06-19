@@ -67,15 +67,32 @@ export async function generateEftFile(input: {
     return data;
   }
 
-  // 2) Legacy country-config template path.
-
-  // Country payment config (EFT template)
-  const { data: cfg } = await db
-    .from('bn_country_payment_config')
+  // 2) Funding source account is the primary source for bank-file mechanics.
+  //    Falls back to bn_country_payment_config only if no source account exists.
+  const { data: src } = await db
+    .from('bn_payment_source_account')
     .select('*')
     .eq('country_code', countryCode)
     .eq('payment_method', 'EFT')
+    .eq('is_active', true)
+    .order('is_default', { ascending: false })
+    .limit(1)
     .maybeSingle();
+
+  if (src && src.format_status !== 'READY') {
+    throw new Error(`EFT source account "${src.source_account_code}" is in ${src.format_status}. Complete bank/file specification before generating EFT batches.`);
+  }
+
+  let cfg: any = src;
+  if (!cfg) {
+    const { data: legacy } = await db
+      .from('bn_country_payment_config')
+      .select('*')
+      .eq('country_code', countryCode)
+      .eq('payment_method', 'EFT')
+      .maybeSingle();
+    cfg = legacy;
+  }
 
   const headerTpl = cfg?.header_record_format || 'H,{file_reference},{generated_date},{count},{total_amount}';
   const detailTpl = cfg?.detail_record_format ||

@@ -12780,6 +12780,110 @@ export type Database = {
           },
         ]
       }
+      bn_payment_source_account: {
+        Row: {
+          account_number_rule: string | null
+          bank_account_name: string | null
+          bank_account_number: string | null
+          bank_code: string | null
+          bank_file_format: string | null
+          bank_id: string | null
+          bank_validation_rule_set: Json | null
+          country_code: string
+          currency_code: string | null
+          detail_record_format: string | null
+          effective_from: string | null
+          effective_to: string | null
+          entered_at: string
+          entered_by: string | null
+          file_date_format: string | null
+          file_naming_convention: string | null
+          format_status: string
+          header_record_format: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          modified_at: string
+          modified_by: string | null
+          notes: string | null
+          payment_method: string
+          routing_number_rule: string | null
+          source_account_code: string
+          source_account_name: string
+          trailer_record_format: string | null
+        }
+        Insert: {
+          account_number_rule?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_code?: string | null
+          bank_file_format?: string | null
+          bank_id?: string | null
+          bank_validation_rule_set?: Json | null
+          country_code: string
+          currency_code?: string | null
+          detail_record_format?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          file_date_format?: string | null
+          file_naming_convention?: string | null
+          format_status?: string
+          header_record_format?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          payment_method?: string
+          routing_number_rule?: string | null
+          source_account_code: string
+          source_account_name: string
+          trailer_record_format?: string | null
+        }
+        Update: {
+          account_number_rule?: string | null
+          bank_account_name?: string | null
+          bank_account_number?: string | null
+          bank_code?: string | null
+          bank_file_format?: string | null
+          bank_id?: string | null
+          bank_validation_rule_set?: Json | null
+          country_code?: string
+          currency_code?: string | null
+          detail_record_format?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string
+          entered_by?: string | null
+          file_date_format?: string | null
+          file_naming_convention?: string | null
+          format_status?: string
+          header_record_format?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          modified_at?: string
+          modified_by?: string | null
+          notes?: string | null
+          payment_method?: string
+          routing_number_rule?: string | null
+          source_account_code?: string
+          source_account_name?: string
+          trailer_record_format?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_payment_source_account_bank_id_fkey"
+            columns: ["bank_id"]
+            isOneToOne: false
+            referencedRelation: "bn_bank_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_policy_area: {
         Row: {
           code: string
