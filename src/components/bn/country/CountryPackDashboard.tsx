@@ -9,6 +9,7 @@ import { useBnCountry } from '@/contexts/BnCountryContext';
 import CountrySelector from './CountrySelector';
 import CountryProfileEditor from './CountryProfileEditor';
 import { getCountryProfile } from '@/services/bn/countryProfileService';
+import PaymentCapabilitySummary from './PaymentCapabilitySummary';
 
 const StatusBadge: React.FC<{ configured: boolean; count?: number }> = ({ configured, count }) => (
   <Badge variant={configured ? 'default' : 'destructive'} className="gap-1">
@@ -116,6 +117,8 @@ const CountryPackDashboard: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      {activeCountryCode && <PaymentCapabilitySummary countryCode={activeCountryCode} />}
 
       <CountryProfileEditor countryCode={activeCountryCode} open={editProfile} onOpenChange={setEditProfile} />
     </div>
