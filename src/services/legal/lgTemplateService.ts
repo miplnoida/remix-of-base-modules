@@ -70,7 +70,7 @@ export async function getTemplate(id: string): Promise<LgTemplate | null> {
 
 /** Build the token context for a given legal case by joining referenced modules. */
 export async function buildTokenContext(lgCaseId: string): Promise<LgTokenContext> {
-  const { data: lg, error } = await supabase
+  const { data: lg, error } = await (supabase as any)
     .from("lg_case")
     .select("*")
     .eq("id", lgCaseId)
