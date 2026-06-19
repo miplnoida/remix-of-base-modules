@@ -367,6 +367,9 @@ const TemplateEditorDialog: React.FC<EditorProps> = ({ open, template, title, cr
   const subjectRef = React.useRef<HTMLInputElement | null>(null);
   const bodyRef = React.useRef<HTMLTextAreaElement | null>(null);
   const htmlRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const lastFocusedRef = React.useRef<HTMLElement | null>(null);
+  const tokenDrop = useTokenDrop();
+  const trackFocus = (el: HTMLElement | null) => { if (el) lastFocusedRef.current = el; };
 
   React.useEffect(() => {
     if (open) {
