@@ -113,7 +113,7 @@ export default function LgDashboard() {
                       <TableCell>{h.hearing_type_code}</TableCell>
                       <TableCell>{[h.court_name, h.court_room].filter(Boolean).join(" / ") || "—"}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => navigate(`/legal/cases/${h.lg_case_id}`)}>Open</Button>
+                        <Button variant="ghost" size="sm" onClick={() => navigate(`/legal/lg/cases/${h.lg_case_id}`)}>Open</Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -132,7 +132,7 @@ export default function LgDashboard() {
                   {overdueTasks.length === 0 ? (
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No overdue tasks</TableCell></TableRow>
                   ) : overdueTasks.map((t: any) => (
-                    <TableRow key={t.id} className="cursor-pointer" onClick={() => navigate(`/legal/cases/${t.lg_case_id}`)}>
+                    <TableRow key={t.id} className="cursor-pointer" onClick={() => navigate(`/legal/lg/cases/${t.lg_case_id}`)}>
                       <TableCell className="text-destructive">{formatDateForDisplay(t.due_date)}</TableCell>
                       <TableCell>{t.title}</TableCell>
                       <TableCell>{t.lg_case?.lg_case_no ?? "—"}</TableCell>
@@ -155,7 +155,7 @@ export default function LgDashboard() {
                   {myAssigned.length === 0 ? (
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No cases</TableCell></TableRow>
                   ) : myAssigned.slice(0, 25).map((c) => (
-                    <TableRow key={c.id} className="cursor-pointer" onClick={() => navigate(`/legal/cases/${c.id}`)}>
+                    <TableRow key={c.id} className="cursor-pointer" onClick={() => navigate(`/legal/lg/cases/${c.id}`)}>
                       <TableCell className="font-medium">{c.lg_case_no}</TableCell>
                       <TableCell>{stageLabel(c.current_stage_code)}</TableCell>
                       <TableCell><Badge variant="outline">{c.status_code}</Badge></TableCell>

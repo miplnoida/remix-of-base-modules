@@ -120,7 +120,7 @@ export default function LgHearingCalendar() {
                       <TableCell>{[h.court_name, h.court_room].filter(Boolean).join(" / ") || "—"}</TableCell>
                       <TableCell><Badge variant="outline">{h.status}</Badge></TableCell>
                       <TableCell className="text-right space-x-1">
-                        <Button size="sm" variant="ghost" onClick={() => navigate(`/legal/cases/${h.lg_case_id}`)}>Case</Button>
+                        <Button size="sm" variant="ghost" onClick={() => navigate(`/legal/lg/cases/${h.lg_case_id}`)}>Case</Button>
                         <Button size="sm" onClick={() => { setSelected(h); setOutcomeOpen(true); }}>
                           <Gavel className="h-4 w-4 mr-1" /> Outcome
                         </Button>
