@@ -63,9 +63,11 @@ export default function CoreTemplateManagement({
   const [creating, setCreating] = useState(false);
   const [previewTpl, setPreviewTpl] = useState<CoreTemplate | null>(null);
   const [previewVer, setPreviewVer] = useState<CoreTemplateVersion | null>(null);
+  const [previewLinks, setPreviewLinks] = useState<TemplateLegalRefLink[]>([]);
   const [historyTpl, setHistoryTpl] = useState<CoreTemplate | null>(null);
   const [historyRows, setHistoryRows] = useState<CoreTemplateVersion[]>([]);
   const [sampleResult, setSampleResult] = useState<{ ref: string; html: string; subject?: string } | null>(null);
+
 
   const layoutById = useMemo(() => {
     const m: Record<string, CoreTemplateLayout> = {};
