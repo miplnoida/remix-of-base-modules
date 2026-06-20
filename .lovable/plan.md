@@ -1,108 +1,216 @@
 
-# Legal Reference Versioning — Enterprise Refactor Plan
+# Legal / Benefits / Compliance Template Framework — Audit & Redesign Plan
 
-This is a large structural change. Splitting it into 4 sequenced migrations + service/UI updates so each step is reviewable and reversible.
+## Phase 1 — Current State (measured from DB)
 
-## Scope reminder
-Canonical going forward:
-- `core_legal_reference` (master record only)
-- `core_legal_reference_version` (NEW — versioned regulatory content)
-- `core_module_legal_reference` (module/entity mapping)
-- `core_template_legal_reference` (template ↔ ref/version link)
-- `core_generated_document_legal_reference` (NEW — immutable per-document snapshot)
+**Templates in `core_template`:** 33 — all `module_code = LEGAL`, all `country_code = KN`, all `status = ACTIVE`.
+**Versions:** 33 (one per template, all `PUBLISHED`, all `v1`). No multi-version history.
+**Legal references linked:** 44 links across 32 templates (1 template has no reference).
+**Generated documents:** 7 (low test coverage).
+**Tokens registered:** 44 in `core_template_token`.
+**Layouts:** single shared `core_template_layout` set, no module/country/channel variants.
 
-Legacy `bn_legal_reference` / `bn_country_legal_ref` already replaced by views; no new runtime writes are introduced here.
+### Entities present
+- `core_template`, `core_template_version`, `core_template_layout`, `core_template_section`, `core_template_token`, `core_template_legal_reference`, `core_template_schedule_policy`, `core_template_usage`, `core_generated_document`, `core_generated_document_legal_reference`.
 
----
+### Entities MISSING (critical)
+- `core_template_category` (categories are free-text strings — "court", "COURT", "Court & Hearing" all coexist → data quality issue).
+- `core_template_channel` and `core_template_channel_variant` (no channel concept exists; only PDF/HTML body is implied).
+- `core_template_country_override` (no override mechanism; SKN is the only country).
+- `core_template_approval` / `core_template_workflow_state` (no review/approval audit trail; templates jump straight to PUBLISHED).
+- `core_template_token_group` (tokens have no grouping/category column).
+- `core_template_variable_binding` (no declared variable contract per template).
+- `core_template_localization` (no i18n).
 
-## Migration 1 — Schema split (master vs version)
-
-1. Create `core_legal_reference_version` per spec (all version fields, status enum, supersedes link, audit cols).
-2. Add `current_version_id`, `parent_reference_id` to `core_legal_reference`; demote version-specific fields to be sourced from `current_version_id` (kept on master temporarily as denormalized cache for backward compat, populated by trigger).
-3. Constraints:
-   - UNIQUE `(legal_reference_id, version_number)`
-   - UNIQUE `(legal_reference_id, effective_from)`
-   - CHECK `effective_to IS NULL OR effective_to > effective_from`
-   - Exclusion-style trigger preventing overlapping PUBLISHED effective ranges per `legal_reference_id`.
-4. GRANTs for `authenticated` + `service_role`; RLS stays off (project standard).
-
-## Migration 2 — Data migration v1
-
-For each existing `core_legal_reference` row, insert a `v1` `core_legal_reference_version` row mapping:
-- section, subsection, regulation, citation_text, full_reference_text, summary, source_url, gazette_number, effective_from/to
-- status → version_status (ACTIVE→PUBLISHED, DRAFT→DRAFT, SUPERSEDED→SUPERSEDED, REPEALED→ARCHIVED)
-- published_at = updated_at when PUBLISHED
-- supersedes_version_id from existing `supersedes_id` master link (resolved to that master's current_version_id)
-
-Set master `current_version_id` to the v1 published row (or latest non-archived).
-
-## Migration 3 — Immutability + lifecycle triggers
-
-- Trigger `trg_core_legal_ref_version_immutable`:
-  - On UPDATE: if OLD.version_status = 'PUBLISHED', allow change only to `effective_to`, `version_status` (→ SUPERSEDED/ARCHIVED), `updated_by`, `updated_at`.
-  - On DELETE: block when OLD.version_status IN ('PUBLISHED','SUPERSEDED','ARCHIVED').
-- Trigger `trg_core_legal_ref_version_sync_master`: after a version becomes PUBLISHED, update master `current_version_id`, `status`='ACTIVE', and refresh denormalized fields.
-- Helper SQL functions (SECURITY DEFINER):
-  - `core_legal_ref_create_version(master_id, payload)` — clones from current draft if any
-  - `core_legal_ref_submit(version_id, user_code)`
-  - `core_legal_ref_approve(version_id, user_code)`
-  - `core_legal_ref_publish(version_id, user_code)` — sets effective dates, supersedes prior, writes audit
-  - `core_legal_ref_supersede(version_id, by_version_id, user_code)`
-  - `core_legal_ref_archive(version_id, user_code)`
-  - `get_active_legal_reference_version(ref_code, country_code, as_of_date)` returns version row
-
-All lifecycle functions write to `legal_admin_audit` (existing table) with old/new JSONB.
-
-## Migration 4 — Generated document snapshots + template version pinning
-
-- Create `core_generated_document_legal_reference` per spec (immutable snapshot: ref_code, citation_snapshot, full_reference_snapshot, effective_from/to_snapshot).
-- Add `legal_reference_version_id` to `core_template_legal_reference` (already has `legal_reference_id`).
-- Backfill: for any existing `core_generated_document.legal_references_snapshot` JSONB, expand into rows of the new snapshot table (best-effort; keep JSONB column as legacy).
-- Trigger blocking UPDATE/DELETE on snapshot rows (write-once).
-- Add `core_module_legal_reference.legal_reference_version_id` column (nullable).
+### Data quality issues found
+- `template_category` case-inconsistent: `court` vs `COURT`, `enforcement` vs `ENFORCEMENT`, `settlement` vs `SETTLEMENT`, etc.
+- No Benefits (`BN`) or Compliance (`CE`) templates in `core_template` — those modules still rely on legacy `legal_templates`, `ce_audit_communication_templates`, `ce_document_templates`, `ce_notice_templates`, `bn_letter`, etc. → fragmentation.
+- All templates SKN-only — no global base.
+- No DRAFT/REVIEW templates → no working lifecycle.
+- Channels not modeled — emails, SMS, in-app notifications go through `notification_templates` (separate silo).
 
 ---
 
-## Service layer
+## Phase 2 — Channel Strategy (target)
 
-- `src/services/legal-reference/legalReferenceService.ts`
-  - `listMasters({countryCode, moduleCode})`, `getMaster(id)`, `listVersions(masterId)`, `getActiveVersion(refCode, countryCode, asOfDate)`, `compareVersions(aId, bId)`.
-- `src/services/legal-reference/versionLifecycleService.ts` (NEW) — wraps lifecycle RPCs.
-- `src/services/legal-reference/impactAnalysisService.ts` (NEW) — counts/lists: templates, cases (`lg_case`), notices (`lg_notice`), products (`bn_product`), rules, generated docs using the version/master.
-- `src/services/coreDocumentGenerationService.ts` — when generating a document, resolve active version per linked legal reference, insert snapshot rows in `core_generated_document_legal_reference` (replaces JSONB column as source of truth).
-- `src/services/coreTemplateLegalRefService.ts` — when template version is published, freeze `legal_reference_version_id` for each link.
+Add `core_template_channel` (master) and `core_template_channel_variant` (per template-version × channel body).
 
-## UI
+Channels to register:
+- **Document:** PDF, DOCX, PRINT_LETTER, ORDER, DECISION, JUDGMENT, NOTICE, CERTIFICATE
+- **Digital:** EMAIL, SMS, PUSH, WHATSAPP, IN_APP, PORTAL_MSG
+- **Regulatory:** COMPLIANCE_FILING, REG_SUBMISSION, GOV_NOTICE, OFFICIAL_PUB
+- **Integration:** API_PAYLOAD, JSON_EXPORT, XML_EXPORT, PARTNER_DELIVERY
 
-- `src/pages/legal/admin/LegalReferenceLibrary.tsx`
-  - Master list (status pill, current version, country).
-  - Detail drawer with tabs: **Current**, **Version history**, **Compare**, **Impact**, **Linked entities**.
-  - Lifecycle action buttons gated by `version_status`.
-- `src/components/legal-reference/VersionEditor.tsx` (NEW) — read-only when PUBLISHED.
-- `src/components/legal-reference/VersionDiff.tsx` (NEW) — field-by-field diff.
-- `src/components/legal-reference/ImpactAnalysisPanel.tsx` (NEW).
-- `src/components/legal-reference/LegalReferenceSelector.tsx` — show active version label + supersession warning.
-- `src/components/templates/CoreTemplateManagement.tsx` — warn when linked reference has no PUBLISHED version or is SUPERSEDED.
-
-## Validation report
-
-Add `src/services/legal-reference/verificationReport.ts` + admin page `src/pages/legal/admin/LegalReferenceVerification.tsx` producing the counts listed in spec §14.
-
-## TypeScript / build
-
-After migrations are approved, regenerated `src/integrations/supabase/types.ts` will surface the new tables; service code will be updated to match. Final `tsc --noEmit` via build pipeline.
+Each template version declares 1..N supported channels; each variant has its own body, subject, max_length, attachments policy.
 
 ---
 
-## Execution order
+## Phase 3 — Legal Module Catalog Gap
 
-1. Migration 1 (schema) → approval
-2. Migration 2 (data migration) → approval
-3. Migration 3 (triggers + lifecycle functions) → approval
-4. Migration 4 (snapshots + template pinning) → approval
-5. Service refactor + new services
-6. UI: Library, VersionEditor, Diff, Impact, Selector, Template warnings
-7. Verification report page
-8. Audit pass + build check
+Existing 33 templates cover Demand/Enforcement/Settlement/Hearing/Judgment well. **Missing (to seed):**
 
-Each migration is independent enough that we can pause between steps to verify data and catch issues early. Confirm and I'll start with Migration 1.
+| Group | Missing |
+|---|---|
+| Case Mgmt | Case Creation Notice, Case Transfer Notice |
+| Hearings | Hearing Reschedule, Hearing Cancellation, Hearing Reminder |
+| Orders | Interim Order, Final Order, Suspension Order, Revocation Order |
+| Decisions | Preliminary Decision, Final Decision, Appeal Decision |
+| Legal Notices | Show Cause, Warning, Breach, Compliance Notice, Investigation Notice |
+| Enforcement | Penalty Notice, Fine Notice |
+| Appeals | Appeal Acknowledgement, Appeal Hearing Notice |
+| Certificates | Compliance Certificate, Registration Certificate, Approval Certificate |
+| Correspondence | Legal Memo, Legal Opinion, Advisory Letter |
+
+→ **~23 missing Legal templates.**
+
+---
+
+## Phase 4 — Benefits Module (0 in `core_template`)
+
+All 11 standard templates missing from core framework: Approval, Rejection, Suspension, Termination, Appeal, Payment Notice, Eligibility Notice, Review Notice, Renewal Notice, Overpayment Notice, Recovery Notice. Currently scattered in `bn_letter` / `bn_comm_mapping`.
+
+## Phase 5 — Compliance Module (0 in `core_template`)
+
+All 8 standard templates missing: Warning, Investigation, Finding, Breach, Closure, Escalation, Audit Result, Remediation Notice. Currently in `ce_audit_communication_templates`, `ce_notice_templates`, `ce_document_templates`.
+
+---
+
+## Phase 6 — Architecture Redesign
+
+Target hierarchy:
+
+```text
+core_template (MASTER, global)
+  └─ core_template_version (immutable when PUBLISHED)
+        ├─ core_template_country_override  (SKN, JAM, BRB ...)
+        │     └─ core_template_channel_variant (PDF, EMAIL, SMS ...)
+        └─ core_template_channel_variant (default channel bodies)
+              └─ core_template_legal_reference (pinned legal_reference_version_id)
+```
+
+Schema additions:
+1. `core_template.scope` enum (GLOBAL / COUNTRY / JURISDICTION).
+2. `core_template.parent_template_id` (override chain).
+3. `core_template_channel` master + `core_template_channel_variant` (template_version_id, channel_code, subject, body, format, max_length).
+4. `core_template_category` master with code/name/module/sort_order; FK `core_template.category_id` (replace text column).
+5. `core_template_workflow_state` enum: DRAFT, REVIEW, APPROVED, PUBLISHED, RETIRED.
+6. `core_template_approval` (version_id, action, actor, decided_at, notes) for audit.
+7. `core_template_token.token_group` + `data_type` + `is_required` + sample resolver.
+8. `core_template_variable_binding` (template_version_id, token_code, required, default_value).
+9. `core_template_localization` (template_version_id, locale, subject, body).
+
+---
+
+## Phase 7 — Variable Framework
+
+Current 44 tokens are flat. Group into:
+- **system.*** — date, generated_by, organization, reference_no
+- **person.*** — name, address, contact, ssn_masked
+- **employer.*** — name, regno, address
+- **case.*** — number, status, hearing_date, court_name
+- **legal_reference.*** — citation, act_name, regulation, version_number (exists, expand)
+- **benefit.*** — product, amount, eligibility_status, payment_date
+- **compliance.*** — breach_type, severity, due_date, finding_id
+- **payment.*** — amount_due, arrears, plan_terms
+
+Target ~120 tokens with strict naming `{group}.{field}` and resolver service per group.
+
+---
+
+## Phase 8 — Legal Reference Integration (audit)
+
+✅ `core_template_legal_reference` exists with `legal_reference_version_id` pinning.
+✅ `core_generated_document_legal_reference` snapshot exists.
+⚠️ Only 32/33 templates linked — `LG-TPL-EVIDENCE-COVER` missing references.
+⚠️ No UI warning when a linked reference is SUPERSEDED (service exists; not wired to template editor banner).
+⚠️ Publish action does not auto-freeze `legal_reference_version_id` (manual call required).
+
+---
+
+## Phase 9 — Workflow Gaps
+
+Lifecycle DRAFT→REVIEW→APPROVED→PUBLISHED→RETIRED **not enforced**. Today: all rows jump to PUBLISHED v1. Need:
+- Approval policy per module.
+- Multi-reviewer support.
+- Rollback (revert active_version_id to previous PUBLISHED).
+- Change diff between versions (UI exists for legal refs; reuse for template body).
+
+---
+
+## Phase 10 — Country Pack Strategy
+
+- Promote SKN templates to GLOBAL base where content is country-agnostic.
+- Add `parent_template_id` so JAM/BRB inherit and only override jurisdiction-specific clauses + legal references.
+- Country Pack export/import: bundle (template + version + legal refs + channels + tokens used).
+
+---
+
+## Phase 11 — Generated Documents (audit)
+
+`core_generated_document` already stores `template_id`, `template_version_id`, `layout_id`, `resolved_tokens`, snapshot of legal refs. **Missing:** `channel_code`, `delivery_status`, `delivered_at`, `recipient_address`, `content_hash` (immutability proof). Add these columns.
+
+---
+
+## Phase 12 — Gap Analysis Summary
+
+| Area | Have | Gap |
+|---|---|---|
+| Templates seeded | 33 (LEGAL only) | +23 Legal, +11 BN, +8 CE = **42 missing** |
+| Modules covered | 1 | 2 missing (BN, CE) |
+| Countries | 1 (KN) | Global base + overrides absent |
+| Channels | 1 (PDF/HTML) | 18+ channels not modeled |
+| Categories | free text, inconsistent | needs master table |
+| Workflow states | DRAFT/PUBLISHED only | REVIEW, APPROVED, RETIRED + approvals |
+| Versions | all v1 | no real version history exercised |
+| Tokens | 44 flat | grouping + binding + resolvers |
+| Legal refs | 32/33 linked | 1 missing; auto-freeze + supersession warning |
+| Localization | none | locale support |
+| Generated docs | basic snapshot | channel + delivery + hash |
+| Legacy silos | `legal_templates`, `bn_letter`, `ce_*_templates`, `notification_templates` | consolidate into core framework |
+
+---
+
+## Phase 13 — Implementation Roadmap
+
+**Stage 1 — Foundation (schema)**
+- Add `core_template_category`, `core_template_channel`, `core_template_channel_variant`, `core_template_approval`, `core_template_workflow_state` enum, `parent_template_id`, `scope`, `token_group`, `core_template_variable_binding`, `core_template_localization`.
+- Backfill: normalize `template_category` text → FK; assign default PDF channel variants to existing 33 templates.
+- Add `channel_code`, `delivery_status`, `content_hash` to `core_generated_document`.
+
+**Stage 2 — Legal Catalog Completion**
+- Seed 23 missing Legal templates with categories, legal references, default PDF + EMAIL variants.
+- Link `LG-TPL-EVIDENCE-COVER` to `SSA_S46_RECOVERY` or appropriate reference.
+
+**Stage 3 — Channel Expansion**
+- Implement renderers per channel (EMAIL via React Email, SMS short body, IN_APP, API_PAYLOAD JSON schema).
+- Wire `coreDocumentGenerationService` to pick variant by channel.
+
+**Stage 4 — Benefits + Compliance Catalogs**
+- Seed 11 BN + 8 CE templates in `core_template`.
+- Migrate active content from `bn_letter`, `ce_audit_communication_templates`, `ce_notice_templates` and deprecate the silos with read-only flag + redirect.
+
+**Stage 5 — Country Pack**
+- Promote SKN templates → GLOBAL where content is jurisdictionally neutral.
+- Introduce override chain for JAM/BRB pilot.
+- Country Pack import/export tool.
+
+**Stage 6 — Workflow & Automation**
+- Enforce DRAFT→REVIEW→APPROVED→PUBLISHED with `core_template_approval` audit.
+- Auto-freeze `legal_reference_version_id` on publish.
+- Supersession warning banner in `CoreTemplateManagement`.
+- Rollback action; version diff view.
+- Verification report extension: channel coverage, category normalization, missing refs.
+
+---
+
+## Deliverables (ready when you approve)
+
+1. SQL migration for Stage 1 schema (single file).
+2. Seed migrations for Stages 2 + 4 (Legal/BN/CE catalogs).
+3. Service updates: `coreTemplateChannelService`, extend `coreDocumentGenerationService` for channel routing.
+4. UI: channel matrix editor, category dropdown from master, approval workflow panel, override-chain view, supersession banner.
+5. Verification page extension to show channel/category/country gaps.
+
+---
+
+**Recommended next action:** approve Stage 1 (foundation schema + category normalization + channel model) before any further seeding — every later stage depends on it.
