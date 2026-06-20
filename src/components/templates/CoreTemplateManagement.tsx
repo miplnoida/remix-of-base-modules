@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Eye, Pencil, Plus, Save, Copy, Power, PowerOff, FileDown, History, Sparkles } from "lucide-react";
+import { Eye, Pencil, Plus, Save, Copy, Power, PowerOff, FileDown, History, Sparkles, Scale, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 import {
@@ -20,6 +20,9 @@ import {
   CoreTemplateVersion,
 } from "@/services/coreTemplateService";
 import { coreDocumentGenerationService } from "@/services/coreDocumentGenerationService";
+import { coreTemplateLegalRefService, TemplateLegalRefLink } from "@/services/coreTemplateLegalRefService";
+import type { LegalReference } from "@/services/legal-reference/types";
+
 
 interface Props {
   fixedModuleCode?: string;
@@ -60,9 +63,11 @@ export default function CoreTemplateManagement({
   const [creating, setCreating] = useState(false);
   const [previewTpl, setPreviewTpl] = useState<CoreTemplate | null>(null);
   const [previewVer, setPreviewVer] = useState<CoreTemplateVersion | null>(null);
+  const [previewLinks, setPreviewLinks] = useState<TemplateLegalRefLink[]>([]);
   const [historyTpl, setHistoryTpl] = useState<CoreTemplate | null>(null);
   const [historyRows, setHistoryRows] = useState<CoreTemplateVersion[]>([]);
   const [sampleResult, setSampleResult] = useState<{ ref: string; html: string; subject?: string } | null>(null);
+
 
   const layoutById = useMemo(() => {
     const m: Record<string, CoreTemplateLayout> = {};
@@ -102,9 +107,14 @@ export default function CoreTemplateManagement({
 
   const openPreview = async (tpl: CoreTemplate) => {
     setPreviewTpl(tpl);
-    const ver = await coreTemplateService.getActiveVersion(tpl.id);
+    const [ver, links] = await Promise.all([
+      coreTemplateService.getActiveVersion(tpl.id),
+      coreTemplateLegalRefService.listForTemplate(tpl.id).catch(() => [] as TemplateLegalRefLink[]),
+    ]);
     setPreviewVer(ver);
+    setPreviewLinks(links);
   };
+
 
   const handleClone = async (tpl: CoreTemplate) => {
     try {
@@ -370,7 +380,7 @@ export default function CoreTemplateManagement({
       </Tabs>
 
       {/* Preview */}
-      <Dialog open={!!previewTpl} onOpenChange={(o) => { if (!o) { setPreviewTpl(null); setPreviewVer(null); } }}>
+      <Dialog open={!!previewTpl} onOpenChange={(o) => { if (!o) { setPreviewTpl(null); setPreviewVer(null); setPreviewLinks([]); } }}>
         <DialogContent className="max-w-3xl">
           <DialogHeader><DialogTitle>{previewTpl?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3 text-sm">
@@ -378,9 +388,24 @@ export default function CoreTemplateManagement({
             {previewVer?.subject && <div><strong>Subject:</strong> {previewVer.subject}</div>}
             <div className="border rounded p-4 max-h-96 overflow-auto prose prose-sm"
                  dangerouslySetInnerHTML={{ __html: previewVer?.body_html || "<em>No active version</em>" }} />
+            {previewLinks.length > 0 && (
+              <div className="border rounded p-3 bg-muted/30">
+                <div className="text-xs font-semibold mb-2 flex items-center gap-1"><Scale className="h-3.5 w-3.5" />Linked Legal References ({previewLinks.length})</div>
+                <ol className="text-xs space-y-1 list-decimal pl-4">
+                  {previewLinks.map((l) => (
+                    <li key={l.id}>
+                      <span className="font-mono">{l.legal_reference?.ref_code}</span> · {l.legal_reference?.short_title}
+                      {l.legal_reference?.section && <> · §{l.legal_reference.section}</>}
+                      {l.required_flag && <Badge variant="outline" className="ml-1 text-[10px]">required</Badge>}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
+
 
       {/* Version History */}
       <Dialog open={!!historyTpl} onOpenChange={(o) => { if (!o) { setHistoryTpl(null); setHistoryRows([]); } }}>
@@ -568,7 +593,13 @@ function TemplateFormDialog({
               </div>
             )}
           </div>
+          {template && (template.module_code === "LEGAL" || form.module_code === "LEGAL") && (
+            <div className="col-span-2">
+              <TemplateLegalReferencesPanel templateId={template.id} countryCode={template.country_code || "KN"} />
+            </div>
+          )}
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={save} disabled={saving}>
@@ -579,3 +610,151 @@ function TemplateFormDialog({
     </Dialog>
   );
 }
+
+function TemplateLegalReferencesPanel({ templateId, countryCode }: { templateId: string; countryCode: string }) {
+  const { toast } = useToast();
+  const [links, setLinks] = useState<TemplateLegalRefLink[]>([]);
+  const [available, setAvailable] = useState<LegalReference[]>([]);
+  const [selectedRefId, setSelectedRefId] = useState<string>("");
+  const [requiredFlag, setRequiredFlag] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const country = countryCode === "KN" ? "SKN" : countryCode;
+
+  const reload = async () => {
+    setLoading(true);
+    try {
+      const [l, a] = await Promise.all([
+        coreTemplateLegalRefService.listForTemplate(templateId),
+        coreTemplateLegalRefService.listAvailableRefs(country),
+      ]);
+      setLinks(l);
+      setAvailable(a);
+    } catch (e: any) {
+      toast({ title: "Failed to load legal references", description: e.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { if (templateId) reload(); /* eslint-disable-next-line */ }, [templateId, country]);
+
+  const linkedIds = useMemo(() => new Set(links.map((l) => l.legal_reference_id)), [links]);
+  const selectable = useMemo(() => available.filter((r) => !linkedIds.has(r.id)), [available, linkedIds]);
+
+  const addRef = async () => {
+    if (!selectedRefId) return;
+    try {
+      await coreTemplateLegalRefService.addLink({
+        template_id: templateId,
+        legal_reference_id: selectedRefId,
+        required_flag: requiredFlag,
+        display_order: links.length,
+      });
+      setSelectedRefId(""); setRequiredFlag(false);
+      reload();
+    } catch (e: any) {
+      toast({ title: "Add failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const removeLink = async (id: string) => {
+    try {
+      await coreTemplateLegalRefService.removeLink(id);
+      reload();
+    } catch (e: any) {
+      toast({ title: "Remove failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const toggleRequired = async (l: TemplateLegalRefLink) => {
+    try {
+      await coreTemplateLegalRefService.updateLink(l.id, { required_flag: !l.required_flag });
+      reload();
+    } catch (e: any) {
+      toast({ title: "Update failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="border rounded-md p-3 bg-muted/20">
+      <div className="flex items-center gap-2 mb-2">
+        <Scale className="h-4 w-4" />
+        <Label className="mb-0">Linked Legal References ({country})</Label>
+      </div>
+      <p className="text-xs text-muted-foreground mb-2">
+        Only ACTIVE references for {country} can be linked. Generated letters will cite these and snapshot the exact version used.
+      </p>
+
+      <div className="flex gap-2 items-end mb-3">
+        <div className="flex-1">
+          <Label className="text-xs">Add reference</Label>
+          <Select value={selectedRefId} onValueChange={setSelectedRefId}>
+            <SelectTrigger><SelectValue placeholder={selectable.length === 0 ? "All available linked" : "Choose reference"} /></SelectTrigger>
+            <SelectContent className="max-h-72">
+              {selectable.map((r) => (
+                <SelectItem key={r.id} value={r.id}>
+                  <span className="font-mono text-xs">{r.ref_code}</span> · {r.short_title}
+                  {r.section && <> · §{r.section}</>}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <label className="flex items-center gap-1 text-xs mb-2">
+          <input type="checkbox" checked={requiredFlag} onChange={(e) => setRequiredFlag(e.target.checked)} />
+          Required
+        </label>
+        <Button size="sm" onClick={addRef} disabled={!selectedRefId}>
+          <Plus className="h-3.5 w-3.5 mr-1" />Add
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="text-xs text-muted-foreground">Loading…</div>
+      ) : links.length === 0 ? (
+        <div className="text-xs text-muted-foreground italic">No legal references linked yet.</div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">#</TableHead>
+              <TableHead>Ref Code</TableHead>
+              <TableHead>Title / Section</TableHead>
+              <TableHead className="w-24">Version</TableHead>
+              <TableHead className="w-20">Required</TableHead>
+              <TableHead className="w-12"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {links.map((l, idx) => (
+              <TableRow key={l.id}>
+                <TableCell className="text-xs">{idx + 1}</TableCell>
+                <TableCell className="font-mono text-xs">{l.legal_reference?.ref_code}</TableCell>
+                <TableCell className="text-xs">
+                  {l.legal_reference?.short_title}
+                  {l.legal_reference?.section && <span className="text-muted-foreground"> · §{l.legal_reference.section}</span>}
+                  {l.legal_reference?.act_name && <div className="text-[10px] text-muted-foreground">{l.legal_reference.act_name}</div>}
+                </TableCell>
+                <TableCell className="text-xs">v{l.legal_reference?.version_number}</TableCell>
+                <TableCell>
+                  <button type="button" onClick={() => toggleRequired(l)} title="Toggle required">
+                    <Badge variant={l.required_flag ? "default" : "outline"} className="text-[10px] cursor-pointer">
+                      {l.required_flag ? "Required" : "Optional"}
+                    </Badge>
+                  </button>
+                </TableCell>
+                <TableCell>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeLink(l.id)} title="Remove">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
+  );
+}
+
