@@ -37,7 +37,12 @@ export type LgCapability =
   | "approveSettlement"
   | "postFee"
   | "createOrder"
-  | "manageTemplates";
+  | "manageTemplates"
+  | "applyFeeBundle"
+  | "addManualFee"
+  | "requestWaiver"
+  | "approveWaiver"
+  | "configureFees";
 
 const MATRIX: Record<LgRole, LgCapability[]> = {
   LEGAL_READ_ONLY: ["viewCase"],
@@ -47,6 +52,7 @@ const MATRIX: Record<LgRole, LgCapability[]> = {
     "generateNotice", "linkDocument",
     "createSettlement", "postFee", "createOrder",
     "changeStage",
+    "applyFeeBundle", "addManualFee", "requestWaiver",
   ],
   SENIOR_LEGAL_OFFICER: [
     "viewCase", "createCase", "editCase", "closeCase",
@@ -54,6 +60,7 @@ const MATRIX: Record<LgRole, LgCapability[]> = {
     "addHearing", "recordHearingOutcome",
     "generateNotice", "linkDocument",
     "createSettlement", "approveSettlement", "postFee", "createOrder",
+    "applyFeeBundle", "addManualFee", "requestWaiver", "approveWaiver",
   ],
   LEGAL_MANAGER: [
     "viewCase", "createCase", "editCase", "closeCase",
@@ -62,6 +69,7 @@ const MATRIX: Record<LgRole, LgCapability[]> = {
     "generateNotice", "linkDocument",
     "createSettlement", "approveSettlement", "postFee", "createOrder",
     "manageTemplates",
+    "applyFeeBundle", "addManualFee", "requestWaiver", "approveWaiver", "configureFees",
   ],
 };
 

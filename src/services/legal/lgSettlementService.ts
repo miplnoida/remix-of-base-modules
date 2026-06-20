@@ -47,5 +47,11 @@ export async function updateLgSettlement(
   if (patch.status === "REJECTED" && !next.rejected_at) next.rejected_at = new Date().toISOString();
   const { data, error } = await sb.from("lg_settlement").update(next).eq("id", id).select("*").single();
   if (error) throw error;
+  if (patch.status === "ACCEPTED" && data?.lg_case_id) {
+    try {
+      const { autoApplyForEvent } = await import("@/services/legal/lgFeeEngineService");
+      autoApplyForEvent(data.lg_case_id, "SETTLEMENT_APPROVED", null).catch(() => {});
+    } catch { /* non-blocking */ }
+  }
   return data;
 }

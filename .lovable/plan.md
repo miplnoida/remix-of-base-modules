@@ -1,109 +1,89 @@
-## Goal
 
-Reset Legal module data, then seed a **realistic, fully integrated** dataset so every Legal screen has meaningful content and every button has something to act on. Data must reference real employers (`er_master`), compliance cases (`ce_cases`), legal officers (`profiles` with `CI-*` codes), and `core_reference_value` codes already loaded for `LEGAL` module.
+# Legal Fee Engine
 
-Audit / SEED tagging: every row marked `created_by = 'SEED'` and `lg_case_no` prefixed `SEED-LG-...` so cleanup is easy and rows are identifiable.
+## Reuse, don't duplicate
+- Central fee head master: `tb_income_codes` (already has `LEGAL_*` codes). Legal references it via `fee_head_id`.
+- Employer ledger: `ce_employer_financial_ledger` (already immutable, supports reversals). All postings go here. Transaction id stored on `lg_fee_charge.employer_account_transaction_id`.
+- Reference codes for case_type/stage/event come from existing `core_reference_group` / `core_reference_value` (LG_CASE_TYPE, LG_CASE_STAGE, etc.). Add new groups `LG_FEE_EVENT`, `LG_WAIVER_REASON`, `LG_FORMULA`.
 
----
+## New tables (migration)
 
-## Step 1 — Wipe (migration, single transaction)
+### `lg_fee_rule` — fee configuration
+`id, fee_rule_code (unique), fee_rule_name, country_code, case_type_code, stage_code, event_code, fee_head_id → tb_income_codes, calculation_type (FIXED|PERCENTAGE|FORMULA|TIER|MANUAL), fixed_amount, percentage_rate, base_variable (claim_amount|outstanding_amount|arrears_amount|...), min_amount, max_amount, formula_code, tier_config_json, effective_from, effective_to, auto_apply bool, allow_waiver bool, waiver_requires_approval bool, status (ACTIVE|INACTIVE|DRAFT), audit cols`
 
-Delete in FK-safe order from all 17 `lg_*` tables:
+### `lg_fee_bundle`
+`id, bundle_code (unique), bundle_name, country_code, case_type_code, stage_code, trigger_event, status, audit`
 
-```
-lg_hearing_attendee, lg_document_link, lg_payment_arrangement_link,
-lg_fee_charge, lg_order, lg_settlement, lg_notice, lg_case_task,
-lg_hearing, lg_case_calendar_event, lg_case_deadline, lg_case_note,
-lg_case_activity, lg_case_stage_history, lg_case_assignment,
-lg_case_referral, lg_case_party, lg_case
-```
+### `lg_fee_bundle_item`
+`id, bundle_id → lg_fee_bundle, fee_rule_id → lg_fee_rule, sequence_no, mandatory bool, allow_waiver bool`
 
-Also clear legacy mirror tables (`legal_cases`, `legal_hearings`, `legal_orders`, `legal_settlements`, `legal_parties`, `legal_tasks`, `legal_documents`, `legal_penalties`, `legal_timeline_events`) — all currently 0 but truncate to keep them clean.
+### `lg_fee_waiver`
+`id, fee_charge_id → lg_fee_charge, waiver_reason_code, requested_by (user_code), requested_at, waiver_amount, waiver_percent, approval_status (PENDING|APPROVED|REJECTED|AUTO_APPROVED), approved_by, approved_at, comments, reversal_ledger_entry_id (uuid → ce_employer_financial_ledger)`
 
----
+### `lg_fee_charge` — extend
+Add columns: `fee_rule_id, fee_bundle_id, calculated_amount, waived_amount default 0, net_amount (computed = amount - waived_amount), waiver_status (NONE|REQUESTED|APPROVED|REJECTED), source_event, auto_applied bool, manual_override_reason, ledger_entry_id uuid → ce_employer_financial_ledger`. Keep existing `employer_account_transaction_id` for backward compat.
 
-## Step 2 — Seed 10 anchor cases (covers every stage + status)
+Full GRANTs on every new table to `authenticated`/`service_role`. RLS stays off per project NO-RLS policy.
 
-Each case linked to a real `er_master.regno` employer and (when relevant) a `ce_cases.id`. Officer assigned from `profiles` (`CI-01` Vincent Sutton, `CI-02` Dexter Richardson, etc.).
+## Calculation engine — `src/services/legal/lgFeeEngineService.ts`
+Pure TS function `calculateFee(rule, context) → { amount, breakdown }`. Context exposes: `claim_amount, outstanding_amount, arrears_amount, number_of_hearings, stage, case_type, employer_size, risk_score, days_overdue, court_type, service_method, enforcement_type`. Branches by `calculation_type`; applies min/max clamp; formula type loads from `LG_FORMULA` ref (safe whitelisted expression eval).
 
-| # | lg_case_no | Type | Stage | Status | Anchor |
-|---|---|---|---|---|---|
-| 1 | SEED-LG-2026-0001 | NON_COMPLIANCE | REFERRAL_RECEIVED | OPEN | Sigrid Ziemann (regno 000003) |
-| 2 | SEED-LG-2026-0002 | RECOVERY | DEMAND_NOTICE | IN_PROGRESS | next employer |
-| 3 | SEED-LG-2026-0003 | NON_COMPLIANCE | SETTLEMENT_NEGOTIATION | IN_PROGRESS | + settlement |
-| 4 | SEED-LG-2026-0004 | PROSECUTION | COURT_FILING | IN_PROGRESS | court_case_no set |
-| 5 | SEED-LG-2026-0005 | RECOVERY | HEARING | IN_PROGRESS | 2 hearings (past + upcoming) |
-| 6 | SEED-LG-2026-0006 | PROSECUTION | JUDGMENT | IN_PROGRESS | judgment order + fee |
-| 7 | SEED-LG-2026-0007 | RECOVERY | ENFORCEMENT | IN_PROGRESS | garnishee order + arrangement |
-| 8 | SEED-LG-2026-0008 | NON_COMPLIANCE | CLOSED | SETTLED | settled + arrangement linked |
-| 9 | SEED-LG-2026-0009 | APPEAL | LEGAL_REVIEW | PENDING_REVIEW | appeal flow |
-| 10 | SEED-LG-2026-0010 | FRAUD | CLOSED | WITHDRAWN | closed/withdrawn |
+## Auto-apply triggers
+Service hooks (not DB triggers) invoked from existing services:
+- `lgWorkflowService.changeStage(...)` → `applyAutoFeesForEvent("STAGE_" + stage_code)`
+- `lgCaseService` hearing scheduled → `HEARING_SCHEDULED`
+- `lgOrderService` judgment recorded → `JUDGMENT_RECORDED`
+- enforcement start → `ENFORCEMENT_STARTED`
+- `lgTemplateService` notice served → `NOTICE_SERVED`
+- `lgSettlementService` approved → `SETTLEMENT_APPROVED`
+- `lgPaymentArrangementService` default → `ARRANGEMENT_DEFAULTED`
+Each calls `autoApplyForEvent(caseId, event)` which finds matching `lg_fee_rule` rows (auto_apply=true, effective window) + matching `lg_fee_bundle` and creates `lg_fee_charge` rows. Idempotency key = `LG_FEE:{case}:{rule_or_bundle}:{event}`.
 
-For each case insert child rows so every tab on `LgCaseDetail` is non-empty:
+## Posting
+`postFeeCharge(chargeId)`:
+1. Insert into `ce_employer_financial_ledger` (entry_type=DEBIT, fund_type=ADMIN/LEGAL, idempotency_key=`LG_FEE:{chargeId}`, reference_type='LG_FEE_CHARGE', reference_id=chargeId, source_system='LEGAL').
+2. Update `lg_fee_charge.ledger_entry_id`, `posting_status='POSTED'`, `posted_by`, `posted_at`.
+3. Audit via `logLgActivity`.
 
-- **lg_case_party** — Plaintiff (Social Security Board) + Defendant (employer/individual). 2-4 per case.
-- **lg_case_assignment** — current officer row + 1 historical reassignment for cases 5,7.
-- **lg_case_stage_history** — full progression from REFERRAL_RECEIVED → current stage.
-- **lg_case_activity** — 3-6 timeline entries per case (referral received, officer assigned, notice issued, hearing scheduled, etc.).
-- **lg_case_note** — 1-2 internal notes per case.
-- **lg_case_deadline** — response/filing/hearing-prep deadlines, mix of pending and met.
-- **lg_case_task** — 2-3 tasks per case across OPEN/IN_PROGRESS/COMPLETED with assigned_to and due_date.
-- **lg_hearing** — for cases 4-7,9: 1 past hearing (status COMPLETED, outcome ADJOURNED/HEARD) + 1 upcoming (SCHEDULED). Includes `lg_hearing_attendee` rows.
-- **lg_case_calendar_event** — synced for upcoming hearings.
-- **lg_notice** — 1-3 per case across DRAFT/ISSUED/SERVED/ACKNOWLEDGED, typed appropriately (DEMAND for case 2, COURT_FILING_COVER for 4, HEARING for 5, JUDGMENT for 6, ENFORCEMENT for 7).
-- **lg_order** — judgment order on case 6, garnishee on case 7, consent on case 8.
-- **lg_settlement** — proposed on case 3 (PROPOSED), accepted on case 8 (ACCEPTED + payment_arrangement_id).
-- **lg_payment_arrangement_link** — link cases 7 & 8 to a synthetic arrangement uuid (recorded for display; downstream Payments arrangement may be null but link row exists).
-- **lg_fee_charge** — court filing fee, service fee, legal cost per active case; mix of PENDING and POSTED `posting_status`.
-- **lg_document_link** — 2-3 per case across categories REFERRAL_PACK, EVIDENCE, COURT_FILING, ORDER, NOTICE; some linked to hearing/order/settlement so cross-tab navigation works.
-- **lg_case_referral** — origin row for cases sourced from Compliance (1,2,3,7).
+## Waiver
+`requestWaiver(chargeId, reason, amount|percent, comments)` → insert `lg_fee_waiver`, set `waiver_status='REQUESTED'`. Auto-approve if `rule.waiver_requires_approval=false`.
+`approveWaiver(waiverId)` →
+1. Compute waived_amount; update `lg_fee_charge.waived_amount`, `waiver_status='APPROVED'`.
+2. If original was posted, post a CREDIT reversal entry to ledger (reversal_of_id = original ledger entry); store id on waiver.
+3. Audit. Charge row stays visible.
 
----
+## Services
+- `src/services/legal/lgFeeRuleService.ts` — CRUD rules + bundles
+- `src/services/legal/lgFeeEngineService.ts` — calculate + autoApplyForEvent
+- `src/services/legal/lgFeeWaiverService.ts` — request/approve/reject
+- Extend `lgFeeChargeService.ts` — post via ledger (replace invoice path) + manual fee
+- Hook auto-apply calls into existing workflow/order/hearing/settlement/notice/arrangement services
 
-## Step 3 — Cross-module integration
+## UI
 
-- For cases anchored to compliance, set `lg_case.compliance_case_id` to a real `ce_cases.id` (or NULL if none exist; query first and degrade gracefully).
-- Set `employer_id` to `NULL` (UUID type — `er_master` uses string `regno`). Store regno + name in `lg_case_party.display_name` + `contact_info` jsonb so the UI shows the right employer everywhere.
-- `assigned_legal_officer_id` left NULL (UUID, profiles keyed by `user_code`); officer name surfaced via `lg_case_assignment.assigned_to_user_id` (also NULL) but `assigned_to_name`/notes carries the user_code. Verify schema; if `lg_case_assignment` carries only uuid, store officer `user_code` in a note column / fallback to display through `assigned_team_code`.
-- `next_hearing_date` & `next_action_due_date` on `lg_case` set from the earliest upcoming hearing/deadline so dashboards and lists show correct "next action" data. (Triggers may auto-sync — verify and avoid double-setting.)
+### Case Detail → Fees tab (`src/components/legal/lg/CaseFeesTab.tsx`)
+Sub-tabs: Auto Fees · Manual Fee · Fee Bundles · Waivers · Posted Transactions.
+Buttons (gated by `useLgAccess`): Apply Fee Bundle, Add Manual Fee, Request Waiver, Approve Waiver (manager+), Post Fee, View Employer Ledger Entry (link to ledger row).
+Dialogs (new under `src/components/legal/lg/`): `ApplyFeeBundleDialog`, `AddManualFeeDialog`, `RequestWaiverDialog`, `ApproveWaiverDialog`.
 
----
+### Admin → Legal Fee Configuration (`src/pages/legal/LgFeeConfig.tsx`, route `/legal/admin/fees`)
+Tabs: Rules · Bundles. CRUD with effective dates + status toggle. Read-only fee head dropdown from `tb_income_codes` (LEGAL_* filter — managed centrally, not editable here).
 
-## Step 4 — Code touch-ups (only where required to make seeded data usable)
+Wire route into `AppRoutes.tsx` and link from `AdminConfig.tsx`.
 
-Most screens already query `lg_*` tables (Phase 1+2 work). Verify each screen renders cleanly against seeded data and patch only if broken:
+## Seed (after migration approved)
+- ~10 `lg_fee_rule` rows mapped to existing LEGAL_* income codes (Court Filing, Service, Processing, Judgment, Attorney, Execution, Recovery, Appeal).
+- 2 bundles: `COURT_FILING_BUNDLE` (Filing + Service + Processing), `JUDGMENT_BUNDLE` (Judgment + Attorney + Execution).
+- `LG_FEE_EVENT`, `LG_WAIVER_REASON` ref values.
 
-1. `LgDashboard` — counts by status/stage, upcoming hearings, overdue deadlines.
-2. `LgCaseList` — filters by status/stage/type/priority show non-zero buckets.
-3. `LgCaseDetail` — every tab has at least one row for at least one seeded case.
-4. `LgHearingCalendar` — upcoming hearings visible across next 60 days.
-5. Legacy screens (`CourtOrdersManagement`, `EnforcementActions`, `LegalPaymentPlans`, `EvidenceManagement`, `NoticeGeneration`, `CaseTracking`) — pull from `lg_*` via `lgRegistryService`; confirm rendering, fix column-mapping bugs only.
-6. Sidebar — ensure `/legal/lg/*` entries exist; remove dead links to legacy paths if any 404.
-
-No new tables, no schema changes (schema is already complete from prior phases). Only `INSERT` / `DELETE` via the migration tool.
-
----
-
-## Step 5 — Audit + verification
-
-- Every seed insert sets `created_by='SEED'`.
-- After seed, run row-count assertions:
-  - `lg_case = 10`
-  - `lg_hearing >= 8`, `lg_notice >= 15`, `lg_case_task >= 25`, `lg_order >= 3`, `lg_settlement >= 2`, `lg_fee_charge >= 12`, `lg_document_link >= 25`, `lg_case_party >= 20`, `lg_case_stage_history >= 30`.
-- Spot-check `LgDashboard`, `LgCaseList`, `LgCaseDetail` (case 5 — has hearings + tasks + notices + fees + documents), `LgHearingCalendar`.
-- TypeScript build must pass.
-
----
+## Acceptance verification
+- TS build passes.
+- DB row counts: `lg_fee_rule≥8`, `lg_fee_bundle=2`, `lg_fee_bundle_item≥6`.
+- Manual smoke (Playwright) on a seeded case: apply bundle → 3 charges; post one → ledger row created with matching ref; request waiver → approve → reversal ledger row appears; manual fee created.
 
 ## Out of scope
-
-- New tables, RLS, or schema migrations.
-- Touching `er_master` / `ce_cases` data.
-- Wiring Legal into Payments arrangements end-to-end (link rows exist, but no real `payment_arrangement_id` UUID is enforced).
-- Removing SSB* legacy Legal screens.
-
-## Technical notes
-
-- Single migration: `DELETE` → `INSERT` for all 17 tables in one transaction; uses CTEs to capture generated `lg_case.id` UUIDs and reuse them for child rows.
-- `core_reference_value` codes are already loaded — seed uses the verified codes shown above (CASE_TYPE, CASE_STAGE, CASE_STATUS, PARTY_ROLE, PARTY_TYPE, HEARING_TYPE, HEARING_OUTCOME, NOTICE_TYPE/STATUS, ORDER_TYPE, TASK_TYPE, PRIORITY, CLOSURE_REASON, DEADLINE_TYPE, DELIVERY_STATUS, DOCUMENT_CATEGORY).
-- Triggers `lg_sync_case_next_hearing` and `lg_hearing_workflow` will fire on hearing inserts — confirm they don't fail on seed data (likely just compute `next_hearing_date`).
+- No new fee head master (reusing `tb_income_codes`).
+- No changes to `ce_employer_financial_ledger` schema or triggers.
+- No payment allocation / collection flow.
+- SSB* legacy legal screens untouched.
+- Formula language: only whitelisted variables + arithmetic (no general expression engine).
