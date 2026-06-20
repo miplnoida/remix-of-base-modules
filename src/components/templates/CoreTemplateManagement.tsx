@@ -194,12 +194,18 @@ export default function CoreTemplateManagement({
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{title || "Template Management"}</h1>
-        <p className="text-muted-foreground">{description || "Manage central templates"}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{title || "Template Management"}</h1>
+          <p className="text-muted-foreground">{description || "Manage central templates"}</p>
+        </div>
+        <Button size="lg" onClick={() => setCreating(true)}>
+          <Plus className="h-4 w-4 mr-2" />New Template
+        </Button>
       </div>
 
       <Tabs defaultValue="templates">
+
         <TabsList>
           <TabsTrigger value="templates">Templates ({templates.length})</TabsTrigger>
           <TabsTrigger value="layouts">Layouts ({layouts.length})</TabsTrigger>
