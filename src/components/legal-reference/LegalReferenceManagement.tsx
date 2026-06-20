@@ -229,14 +229,31 @@ export const LegalReferenceManagement: React.FC<LegalReferenceManagementProps> =
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(r)} aria-label="Edit">
-                        <Pencil className="h-4 w-4" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => { setVersionsTarget({ id: r.id, code: r.ref_code }); setVersionsOpen(true); }}
+                        aria-label="Versions"
+                        title="Version history"
+                      >
+                        <History className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEdit(r)}
+                        aria-label="Edit"
+                        title={r.status === 'ACTIVE' ? 'Published — open Versions to amend' : 'Edit'}
+                      >
+                        {r.status === 'ACTIVE'
+                          ? <Lock className="h-4 w-4 text-muted-foreground" />
+                          : <Pencil className="h-4 w-4" />}
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={async () => {
-                          if (!confirm('Delete this reference? It cannot be deleted if it is in use.')) return;
+                          if (!confirm('Delete this reference? It cannot be deleted if it is in use or published.')) return;
                           try {
                             await remove.mutateAsync(r.id);
                             toast.success('Deleted');
@@ -250,6 +267,7 @@ export const LegalReferenceManagement: React.FC<LegalReferenceManagementProps> =
                       </Button>
                     </div>
                   </TableCell>
+
                 </TableRow>
               ))}
               {!refs.length && !isLoading && (
