@@ -380,7 +380,7 @@ export default function CoreTemplateManagement({
       </Tabs>
 
       {/* Preview */}
-      <Dialog open={!!previewTpl} onOpenChange={(o) => { if (!o) { setPreviewTpl(null); setPreviewVer(null); } }}>
+      <Dialog open={!!previewTpl} onOpenChange={(o) => { if (!o) { setPreviewTpl(null); setPreviewVer(null); setPreviewLinks([]); } }}>
         <DialogContent className="max-w-3xl">
           <DialogHeader><DialogTitle>{previewTpl?.name}</DialogTitle></DialogHeader>
           <div className="space-y-3 text-sm">
@@ -388,9 +388,24 @@ export default function CoreTemplateManagement({
             {previewVer?.subject && <div><strong>Subject:</strong> {previewVer.subject}</div>}
             <div className="border rounded p-4 max-h-96 overflow-auto prose prose-sm"
                  dangerouslySetInnerHTML={{ __html: previewVer?.body_html || "<em>No active version</em>" }} />
+            {previewLinks.length > 0 && (
+              <div className="border rounded p-3 bg-muted/30">
+                <div className="text-xs font-semibold mb-2 flex items-center gap-1"><Scale className="h-3.5 w-3.5" />Linked Legal References ({previewLinks.length})</div>
+                <ol className="text-xs space-y-1 list-decimal pl-4">
+                  {previewLinks.map((l) => (
+                    <li key={l.id}>
+                      <span className="font-mono">{l.legal_reference?.ref_code}</span> · {l.legal_reference?.short_title}
+                      {l.legal_reference?.section && <> · §{l.legal_reference.section}</>}
+                      {l.required_flag && <Badge variant="outline" className="ml-1 text-[10px]">required</Badge>}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
+
 
       {/* Version History */}
       <Dialog open={!!historyTpl} onOpenChange={(o) => { if (!o) { setHistoryTpl(null); setHistoryRows([]); } }}>
