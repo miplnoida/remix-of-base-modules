@@ -107,6 +107,11 @@ export default function WorkbasketConfig() {
       country_code: '',
       max_capacity: '',
       is_active: true,
+      default_escalation_policy_id: '',
+      supervisor_role: '',
+      manager_role: '',
+      allow_auto_reassign: true,
+      escalation_target_basket_id: '',
     });
     setEditItem({} as any);
   };
@@ -123,6 +128,11 @@ export default function WorkbasketConfig() {
       country_code: item.country_code || '',
       max_capacity: item.max_capacity?.toString() || '',
       is_active: item.is_active,
+      default_escalation_policy_id: item.default_escalation_policy_id || '',
+      supervisor_role: item.supervisor_role || '',
+      manager_role: item.manager_role || '',
+      allow_auto_reassign: item.allow_auto_reassign ?? true,
+      escalation_target_basket_id: item.escalation_target_basket_id || '',
     });
     setEditItem(item);
   };
@@ -146,7 +156,13 @@ export default function WorkbasketConfig() {
       country_code: form.country_code || null,
       max_capacity: form.max_capacity ? parseInt(form.max_capacity) : null,
       is_active: form.is_active,
+      default_escalation_policy_id: form.default_escalation_policy_id || null,
+      supervisor_role: form.supervisor_role || null,
+      manager_role: form.manager_role || null,
+      allow_auto_reassign: form.allow_auto_reassign,
+      escalation_target_basket_id: form.escalation_target_basket_id || null,
     };
+
 
     try {
       let id: string;
