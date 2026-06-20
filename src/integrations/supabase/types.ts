@@ -15797,54 +15797,84 @@ export type Database = {
       }
       bn_workbasket: {
         Row: {
+          allow_auto_reassign: boolean
           assigned_role: string
           basket_code: string
           basket_name: string
           country_code: string | null
+          default_escalation_policy_id: string | null
           description: string | null
           entered_at: string
           entered_by: string | null
+          escalation_target_basket_id: string | null
           id: string
           is_active: boolean
+          manager_role: string | null
           max_capacity: number | null
           modified_at: string
           modified_by: string | null
           priority_rules: Json | null
           product_category: string | null
+          supervisor_role: string | null
         }
         Insert: {
+          allow_auto_reassign?: boolean
           assigned_role: string
           basket_code: string
           basket_name: string
           country_code?: string | null
+          default_escalation_policy_id?: string | null
           description?: string | null
           entered_at?: string
           entered_by?: string | null
+          escalation_target_basket_id?: string | null
           id?: string
           is_active?: boolean
+          manager_role?: string | null
           max_capacity?: number | null
           modified_at?: string
           modified_by?: string | null
           priority_rules?: Json | null
           product_category?: string | null
+          supervisor_role?: string | null
         }
         Update: {
+          allow_auto_reassign?: boolean
           assigned_role?: string
           basket_code?: string
           basket_name?: string
           country_code?: string | null
+          default_escalation_policy_id?: string | null
           description?: string | null
           entered_at?: string
           entered_by?: string | null
+          escalation_target_basket_id?: string | null
           id?: string
           is_active?: boolean
+          manager_role?: string | null
           max_capacity?: number | null
           modified_at?: string
           modified_by?: string | null
           priority_rules?: Json | null
           product_category?: string | null
+          supervisor_role?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bn_workbasket_default_escalation_policy_id_fkey"
+            columns: ["default_escalation_policy_id"]
+            isOneToOne: false
+            referencedRelation: "bn_escalation_policy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_workbasket_escalation_target_basket_id_fkey"
+            columns: ["escalation_target_basket_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workbasket"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bn_workbasket_role: {
         Row: {
