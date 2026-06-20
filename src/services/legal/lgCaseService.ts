@@ -81,14 +81,14 @@ export async function updateLgCase(id: string, patch: LgCaseUpdate): Promise<LgC
 export async function listLgReferenceValues(groupCode: string): Promise<LgReferenceValue[]> {
   const db = supabase as any;
   const { data: g } = await db
-    .from("bn_reference_group")
+    .from("core_reference_group")
     .select("id")
     .eq("group_code", groupCode)
-    .eq("module_code", "LEGAL")
+    .in("module_code", ["LEGAL", "COMMON"])
     .maybeSingle();
   if (!g) return [];
   const { data, error } = await db
-    .from("bn_reference_value")
+    .from("core_reference_value")
     .select("id, value_code, value_label, sort_order, is_active, status")
     .eq("group_id", g.id)
     .eq("status", "ACTIVE")
