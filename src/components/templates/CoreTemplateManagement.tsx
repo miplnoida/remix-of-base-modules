@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Eye, Pencil, Plus, Save, Copy, Power, PowerOff, FileDown, History, Sparkles } from "lucide-react";
+import { Eye, Pencil, Plus, Save, Copy, Power, PowerOff, FileDown, History, Sparkles, Scale, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 import {
@@ -20,6 +20,9 @@ import {
   CoreTemplateVersion,
 } from "@/services/coreTemplateService";
 import { coreDocumentGenerationService } from "@/services/coreDocumentGenerationService";
+import { coreTemplateLegalRefService, TemplateLegalRefLink } from "@/services/coreTemplateLegalRefService";
+import type { LegalReference } from "@/services/legal-reference/types";
+
 
 interface Props {
   fixedModuleCode?: string;
