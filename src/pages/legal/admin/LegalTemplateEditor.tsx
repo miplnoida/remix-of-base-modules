@@ -318,7 +318,7 @@ export default function LegalTemplateEditor() {
         if (active) {
           setVersion(active);
           setSubject(active.subject || "");
-          const structure = active.template_structure as Block[] | null;
+          const structure = (active as any).template_structure as Block[] | null;
           if (structure && Array.isArray(structure) && structure.length) {
             setBlocks(structure);
           } else {
