@@ -1,127 +1,65 @@
 ## Goal
-
-Turn Legal Reference into a **module-agnostic** domain shared by Benefits, Legal, and future modules — no `bn_*` tables remain for shared Legal Reference functionality. Done once, preserving all existing data.
+Consolidate legal references into a central, country-aware, module-aware model shared by Benefits, Legal, Compliance, and Templates. Default Legal module to SKN. Seed SKN legal references and link them to Legal use cases and templates.
 
 ## Current state (verified)
+- `bn_country_legal_ref` (19 cols) — country-pack BN legal refs
+- `legal_reference` (27 cols) + `legal_reference_type` (7 cols) — Legal module table (already exists, country_code likely present)
+- `module_legal_reference_mapping` (11 cols) — already added in earlier turn
+- `legal_templates`, `lg_notice`, `lg_case`, `core_template*` — consumers
 
-- `bn_legal_reference` — 14 rows. Structured master used by Benefits (Country Pack, templates, validation, selectors).
-- `bn_country_legal_ref` — 14 rows. Legacy loose-text table referenced by older country-package services.
-- Code touching `bn_legal_reference`:
-  - `src/services/bn/legalReferenceService.ts`
-  - `src/hooks/bn/useLegalReferences.ts`
-  - `src/components/bn/selectors/LegalReferenceSelector.tsx`
-  - `src/pages/bn/config/country/CountryLegalRefs.tsx`
-  - `src/components/bn/validation/CountryLegalValidationCard.tsx`
-  - `src/components/bn/templates/TemplatePreview.tsx`
-  - `src/lib/bn/templateTokens.ts`
-  - `src/services/bn/{governance/countryPackageService,countryPackService,countryMasterService}.ts`
-- No usage in Legal module yet.
+## 1. Schema (migration)
 
-## Target schema (single migration)
+### `core_legal_reference` (new, central)
+Columns: id, country_code (NOT NULL), jurisdiction_name, ref_code, short_title, act_name, chapter, section, subsection, regulation, full_reference_text, ref_url, effective_from, effective_to, status (DRAFT/ACTIVE/SUPERSEDED/REPEALED), version_number, supersedes_id (self-FK), tags (text[]), notes, is_active, created_by, created_at, updated_by, updated_at.
+Indexes: (country_code, status), (ref_code, country_code, version_number unique), (supersedes_id).
+GRANTs to authenticated + service_role (no RLS per project policy).
 
-New tables in `public`:
+### `core_module_legal_reference` (rename/repurpose existing `module_legal_reference_mapping`)
+Drop old `module_legal_reference_mapping` (created earlier turn) and create:
+id, legal_reference_id (FK core_legal_reference), module_code (BENEFITS/LEGAL/COMPLIANCE/COMMON), entity_type (CASE/TEMPLATE/NOTICE/PRODUCT/RULE/ORDER/HEARING/FEE/SETTLEMENT), entity_id (nullable uuid/text), usage_context, is_required, is_default, created_by, created_at.
+Unique: (legal_reference_id, module_code, entity_type, COALESCE(entity_id,'')).
 
-1. `legal_reference` — same columns as `bn_legal_reference` minus the BN-specific `applicable_products` (kept as generic `tags`). Preserves PK so existing IDs continue to work after copy.
-2. `legal_reference_type` — small lookup (`ACT`, `REGULATION`, `RULE`, `POLICY`, `CIRCULAR`, `CASE_LAW`) seeded with defaults.
-3. `module_legal_reference_mapping` — `(id, module_code, entity_table, entity_id, legal_reference_id, role, notes, created_by, created_at)` with unique `(module_code, entity_table, entity_id, legal_reference_id, role)`. `module_code` is a short token (`BN`, `LG`, `CE`, …). Indexed on `(legal_reference_id)` and `(module_code, entity_id)`.
+### Compatibility views
+- `bn_legal_reference` view → `core_legal_reference`
+- `bn_country_legal_ref` view → `core_legal_reference` (BN/COMMON-mapped subset)
 
-```text
-legal_reference 1───* module_legal_reference_mapping *───1 <any module entity>
-```
+### Data migration
+- Copy rows from `bn_country_legal_ref` → `core_legal_reference` (country_code=SKN where missing)
+- Copy rows from `legal_reference` → `core_legal_reference`, dedupe by (country_code, ref_code)
+- Backfill `core_module_legal_reference` entries for BENEFITS for migrated bn rows; for LEGAL for migrated legal_reference rows.
 
-Data migration (same migration, before drop):
+## 2. Seed SKN Legal references
+Insert/link SKN-context references for: employer enforcement (recovery, fail-to-register, remit, arrears, penalties, inspection, prosecution), payment arrangements (default, breach, court-ordered, settlement), court/hearing (filing, summons, adjournment, judgment, enforcement, garnishment), insured person matters (appeal, overpayment, fraud, estate), legal fees (filing cost, processing, service, enforcement, waiver authority), and template bindings (Demand, Final Demand, Notice Before Action, Hearing Notice, Court Filing Cover, Payment Default, Settlement Offer, Judgment Notice, Enforcement Notice, Legal Fee Notice). Each gets a `core_module_legal_reference` row with module_code='LEGAL', entity_type and usage_context filled.
 
-- `INSERT INTO legal_reference SELECT … FROM bn_legal_reference` (keep IDs, map `applicable_products` into `tags` array).
-- Recreate `bn_legal_reference` as an updatable **view** over `legal_reference` so any code we miss keeps working until follow-up. The view is marked deprecated in a comment.
-- Leave the legacy `bn_country_legal_ref` table untouched (out of scope — it's loose text, different shape, only used by Country Pack import/export).
+## 3. Services / hooks
+- Update `src/services/legal-reference/*` to read/write `core_legal_reference` + `core_module_legal_reference`.
+- Add `country_code` filter (default SKN for LEGAL).
+- Update `src/services/bn/legalReferenceService.ts` to consume the central table via compat view or direct query.
+- Update `useLegalReferences`/`useEntityLegalReferences` to require module + country.
 
-GRANTs on both new tables for `authenticated` and `service_role`. No RLS (project rule).
+## 4. UI
+- Legal Admin → Legal References page: default country SKN, module=LEGAL filter, category tabs (Employer enforcement / Payment arrangements / Court & Hearings / Insured Person / Legal Fees / Templates). Allow linking existing core refs and tagging usage.
+- Country Pack page: continues to manage SKN catalogue, now via core table.
+- Legal case detail: enforce country_code presence; reference selector limited to country.
+- Legal template editor: reference attach UI + tokens `{{legal_reference.full|short_title|act_name|section|regulation}}`.
 
-## Backend / service layer
+## 5. Validation
+- Block legal case save without `country_code`.
+- Block template using ref from a different country.
+- Block document generation with INACTIVE/REPEALED ref.
+- Warn on SUPERSEDED, near-expiry, or missing-required ref.
 
-New shared layer under `src/services/legal-reference/`:
+## 6. Document generation
+- Resolver filters by country + ACTIVE.
+- On generation, snapshot exact `legal_reference_id` + `version_number` into `core_generated_document` metadata.
 
-- `legalReferenceService.ts` — `list/get/upsert/delete/setStatus`, country-scoped, module-agnostic. Mirrors the old BN service signatures.
-- `moduleLegalReferenceMappingService.ts` — `listForEntity`, `attach`, `detach`, `listEntitiesForReference`.
-- `types.ts` — `LegalReference`, `ModuleLegalReferenceMapping`, `ModuleCode`.
-
-`src/services/bn/legalReferenceService.ts` becomes a thin re-export wrapper around the shared service so existing imports keep compiling.
-
-New hooks under `src/hooks/legal-reference/`:
-
-- `useLegalReferences`, `useLegalReference`, `useUpsertLegalReference`, `useDeleteLegalReference`, `useSetLegalReferenceStatus`
-- `useEntityLegalReferences(moduleCode, entityTable, entityId)`, `useAttachLegalReference`, `useDetachLegalReference`
-
-`src/hooks/bn/useLegalReferences.ts` re-exports from the shared hooks (zero call-site churn in BN).
-
-## Shared UI
-
-Move and generalise components into `src/components/legal-reference/`:
-
-- `LegalReferenceSelector` (ported from `components/bn/selectors/LegalReferenceSelector.tsx`, country-scoped, optional tag/module filter).
-- `LegalReferenceSearchDialog` — full-screen search with code/title/act filters.
-- `LegalReferenceDetail` — read-only detail card.
-- `EntityLegalReferenceManager` — add / remove / list mappings for a given `(moduleCode, entityTable, entityId)`. Drop-in for any module's detail screen.
-
-`components/bn/selectors/LegalReferenceSelector.tsx` becomes a re-export shim.
-
-## Module integrations
-
-**Benefits**
-
-- Update `pages/bn/config/country/CountryLegalRefs.tsx` to read/write `legal_reference` via the shared hooks (drop direct `bn_legal_reference` access). No UX change.
-- `CountryLegalValidationCard`, `TemplatePreview`, `templateTokens`, country-pack services: switch table name to `legal_reference`.
-
-**Legal**
-
-- New page `src/pages/legal/admin/LegalReferenceLibrary.tsx` — same management UI as Benefits but module-scoped to `LG`. Mounted at `/legal/admin/legal-references` and added to the Legal Admin submenu.
-- New tab inside `LgCaseDetail` ("Legal References") that uses `EntityLegalReferenceManager` with `(moduleCode='LG', entityTable='lg_case', entityId=caseId)`.
-
-## Validation & rollback
-
-- After-migration check (run in same SQL): `SELECT count(*) FROM legal_reference` must equal `(SELECT count(*) FROM bn_legal_reference_backup)` (raise exception if not).
-- Mapping integrity: no orphan rows (FK `ON DELETE RESTRICT` on `legal_reference_id`).
-- Rollback: a companion `-- ROLLBACK` comment block in the migration documents the inverse (drop view, recreate table from `legal_reference`, drop new tables).
-
-## File-by-file plan
-
-```text
-supabase/migrations/<ts>_legal_reference_shared.sql       NEW
-src/services/legal-reference/types.ts                     NEW
-src/services/legal-reference/legalReferenceService.ts     NEW
-src/services/legal-reference/moduleMappingService.ts      NEW
-src/hooks/legal-reference/useLegalReferences.ts           NEW
-src/hooks/legal-reference/useEntityLegalReferences.ts     NEW
-src/components/legal-reference/LegalReferenceSelector.tsx NEW
-src/components/legal-reference/LegalReferenceSearchDialog NEW
-src/components/legal-reference/LegalReferenceDetail.tsx   NEW
-src/components/legal-reference/EntityLegalReferenceManager NEW
-src/pages/legal/admin/LegalReferenceLibrary.tsx           NEW
-
-src/services/bn/legalReferenceService.ts                  shim → shared
-src/hooks/bn/useLegalReferences.ts                        shim → shared
-src/components/bn/selectors/LegalReferenceSelector.tsx    shim → shared
-src/pages/bn/config/country/CountryLegalRefs.tsx          use shared hooks
-src/components/bn/validation/CountryLegalValidationCard   table rename
-src/components/bn/templates/TemplatePreview.tsx           table rename
-src/lib/bn/templateTokens.ts                              table rename
-src/services/bn/governance/countryPackageService.ts       table rename
-src/services/bn/countryPackService.ts                     table rename
-src/services/bn/countryMasterService.ts                   table rename
-
-src/components/routing/AppRoutes.tsx                      + legal ref route
-src/components/sidebar/menuItems/legalMenuItems.ts        + submenu entry
-src/pages/legal/LgCaseDetail.tsx                          + Legal Refs tab
-```
-
-## Acceptance
-
-- `legal_reference` and `module_legal_reference_mapping` exist; 14 rows migrated; IDs preserved.
-- `bn_legal_reference` survives only as a deprecated view for one release (no direct writes from new code).
-- Benefits Country Pack and templates work unchanged; selectors still resolve refs.
-- Legal Admin has a "Legal References" page; Legal Case Detail can attach/detach references.
+## 7. Acceptance
+- One central table, country-aware, module-aware.
+- SKN default everywhere in Legal.
+- Compat views keep old BN code working until services migrate.
 - TypeScript build passes.
 
----
-
-**Question before I build:** OK to keep `bn_legal_reference` as a **deprecated view** for one release (safer), or do you want it fully dropped now (riskier, requires touching every BN import in this single change)? i think you can keep it , but i would like to use the other core 
+## Notes
+- Big migration; will run as one supabase--migration call (create tables → migrate data → views → seed → mappings).
+- No RLS (project policy).
+- Will not delete `bn_country_legal_ref` table until services confirmed switched — replaced by view after data copy.
