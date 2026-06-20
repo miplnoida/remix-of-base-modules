@@ -626,6 +626,15 @@ const LgCaseDetail: React.FC = () => {
             </CardContent></Card>
           </TabsContent>
 
+          <TabsContent value="letters">
+            <AvailableLettersPanel
+              caseId={String(id)}
+              caseTypeCode={caseData.case_type_code ?? null}
+              currentStage={caseData.current_stage_code ?? null}
+              canGenerate={access.can("editCase")}
+            />
+          </TabsContent>
+
           <TabsContent value="legalrefs">
             <EntityLegalReferenceManager
               entityKey={{ moduleCode: 'LG', entityTable: 'lg_case', entityId: String(id) }}
