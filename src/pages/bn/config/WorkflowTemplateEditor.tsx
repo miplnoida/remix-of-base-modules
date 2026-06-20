@@ -51,6 +51,94 @@ function normalizeSteps(raw: unknown): StepConfig[] {
   return [];
 }
 
+function ChannelSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { data: channels = [] } = useQuery({
+    queryKey: ['bn', 'ref', 'BN_APPLICATION_CHANNEL'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('bn_reference_value')
+        .select('value_code, value_label, sort_order, group:bn_reference_group!inner(group_code)')
+        .eq('group.group_code', 'BN_APPLICATION_CHANNEL')
+        .eq('is_active', true)
+        .order('sort_order');
+      if (error) throw error;
+      return (data ?? []) as Array<{ value_code: string; value_label: string }>;
+    },
+  });
+  return (
+    <Select value={value || '__none__'} onValueChange={(v) => onChange(v === '__none__' ? '' : v)}>
+      <SelectTrigger><SelectValue placeholder="Any" /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__none__">Any (channel-agnostic)</SelectItem>
+        {channels.map((c) => <SelectItem key={c.value_code} value={c.value_code}>{c.value_label}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function WorkflowDefinitionSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { data: defs = [] } = useQuery({
+    queryKey: ['workflow_definitions', 'all'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('workflow_definitions')
+        .select('id, definition_name, definition_code, is_active')
+        .order('definition_name');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  return (
+    <Select value={value || '__none__'} onValueChange={(v) => onChange(v === '__none__' ? '' : v)}>
+      <SelectTrigger><SelectValue placeholder="— Not linked —" /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="__none__">— Not linked (config-only) —</SelectItem>
+        {defs.map((d: any) => (
+          <SelectItem key={d.id} value={d.id}>
+            {d.definition_name} {d.is_active === false ? '(inactive)' : ''}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function WorkflowDefinitionStepsPreview({ definitionId }: { definitionId: string }) {
+  const { data: steps = [], isLoading } = useQuery({
+    queryKey: ['workflow_steps', definitionId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('workflow_steps')
+        .select('id, step_name, step_code, step_type, step_order, assigned_role')
+        .eq('workflow_definition_id', definitionId)
+        .order('step_order');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Linked Workflow Steps (read-only)</CardTitle>
+        <CardDescription>Pulled from <code>workflow_steps</code> of the linked definition. Edit in the workflow engine.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading && <p className="text-xs text-muted-foreground">Loading…</p>}
+        {!isLoading && steps.length === 0 && <p className="text-xs text-muted-foreground">No steps defined on the linked workflow definition.</p>}
+        <ol className="space-y-1">
+          {steps.map((s: any, i: number) => (
+            <li key={s.id} className="flex items-center gap-2 text-sm">
+              <Badge variant="outline" className="w-6 justify-center">{i + 1}</Badge>
+              <span className="font-medium">{s.step_name}</span>
+              <span className="text-xs text-muted-foreground">{s.step_code} · {s.step_type} {s.assigned_role ? `· ${s.assigned_role}` : ''}</span>
+            </li>
+          ))}
+        </ol>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function WorkflowTemplateEditor() {
   const { toast } = useToast();
   const { data: templates = [], isLoading } = useBnWorkflowTemplates();
