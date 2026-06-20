@@ -232,7 +232,7 @@ export async function escalateOverdueExternalTasks(
   const nowIso = new Date().toISOString();
 
   // ─── Gather overdue tasks from all relevant sources ─────────────
-  const [extRes, qaRes, ovrRes, batchRes] = await Promise.all([
+  const [extRes, qaRes, ovrRes] = await Promise.all([
     db.from('bn_external_task')
       .select('id, claim_id, participant_kind, task_type, due_at, status')
       .eq('status', 'PENDING').not('due_at', 'is', null).lt('due_at', nowIso),
@@ -241,12 +241,8 @@ export async function escalateOverdueExternalTasks(
       .eq('is_active', true).is('completed_at', null)
       .not('due_at', 'is', null).lt('due_at', nowIso),
     db.from('bn_override_request')
-      .select('id, claim_id, status, due_at, created_at')
-      .in('status', ['PENDING', 'IN_REVIEW']).not('due_at', 'is', null).lt('due_at', nowIso),
-    db.from('bn_payment_batch')
-      .select('id, status, approval_due_at, claim_ids')
-      .in('status', ['PENDING_APPROVAL', 'PREPARING'])
-      .not('approval_due_at', 'is', null).lt('approval_due_at', nowIso),
+      .select('id, claim_id, status, expires_at, created_at')
+      .in('status', ['PENDING', 'IN_REVIEW']).not('expires_at', 'is', null).lt('expires_at', nowIso),
   ]);
 
   type Item = { source: string; id: string; claim_id: string; workbasket_id?: string | null; step_code?: string | null; reason: string };
@@ -270,19 +266,8 @@ export async function escalateOverdueExternalTasks(
     items.push({
       source: 'override_request',
       id: o.id, claim_id: o.claim_id,
-      reason: `Override review overdue since ${o.due_at}`,
+      reason: `Override review overdue since ${o.expires_at}`,
     });
-  }
-  // Payment batches may map to multiple claims; expand
-  for (const b of (batchRes.data ?? []) as any[]) {
-    const claimIds: string[] = Array.isArray(b.claim_ids) ? b.claim_ids : [];
-    for (const cid of claimIds) {
-      items.push({
-        source: 'payment_batch',
-        id: b.id, claim_id: cid,
-        reason: `Payment batch ${b.status} overdue since ${b.approval_due_at}`,
-      });
-    }
   }
 
   result.scanned = items.length;
