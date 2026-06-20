@@ -103,7 +103,7 @@ const NoticeGeneration = () => {
         generated_at: new Date().toISOString(),
       } as any);
       toast({ title: 'Notice created', description: notice.notice_no });
-      navigate(`/legal/cases/${form.lg_case_id}`);
+      navigate(`/legal/lg/cases/${form.lg_case_id}`);
     } catch (e: any) {
       toast({ title: 'Error', description: e.message ?? 'Failed to create notice', variant: 'destructive' });
     }
