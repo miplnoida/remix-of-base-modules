@@ -24,11 +24,28 @@ import {
   fetchRolesForWorkbaskets,
 } from '@/services/bn/workbasketRoleService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+
+function useEscalationPolicyOptions() {
+  return useQuery({
+    queryKey: ['bn', 'escalation-policies', 'options'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('bn_escalation_policy')
+        .select('id, policy_code, policy_name, is_active')
+        .eq('is_active', true)
+        .order('policy_name');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
 
 export default function WorkbasketConfig() {
   const { userCode } = useUserCode();
   const { data: workbaskets = [] } = useBnWorkbaskets();
   const { roles: workflowRoles } = useWorkflowRoles();
+  const { data: escalationPolicies = [] } = useEscalationPolicyOptions();
   const createMut = useCreateBnWorkbasket();
   const updateMut = useUpdateBnWorkbasket();
   const { log } = useBnConfigAudit();
@@ -46,6 +63,11 @@ export default function WorkbasketConfig() {
     country_code: '',
     max_capacity: '',
     is_active: true,
+    default_escalation_policy_id: '',
+    supervisor_role: '',
+    manager_role: '',
+    allow_auto_reassign: true,
+    escalation_target_basket_id: '',
   });
 
   // All role mappings for the table view
