@@ -50,7 +50,16 @@ const LegalReferenceLibrary: React.FC = () => {
         title="Legal References"
         subtitle={`Acts, regulations and policies cited by Legal cases, notices, orders and settlements (Jurisdiction: ${COUNTRY_CODE})`}
         breadcrumbs={[{ label: 'Legal' }, { label: 'Legal Admin' }, { label: 'Legal References' }]}
+        actions={
+          <a
+            href="/legal/admin/legal-references/verification"
+            className="text-sm text-primary hover:underline"
+          >
+            Verification report →
+          </a>
+        }
       />
+
 
       <Card>
         <CardHeader>
