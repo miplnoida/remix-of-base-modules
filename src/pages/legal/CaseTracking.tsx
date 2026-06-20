@@ -75,7 +75,7 @@ const CaseTracking = () => {
               <p className="text-sm text-muted-foreground">Track and manage all legal cases</p>
             </div>
           </div>
-          <Button onClick={() => navigate('/legal/cases/new')}>
+          <Button onClick={() => navigate('/legal/lg/cases')}>
             <Plus className="h-4 w-4 mr-1" /> New Case
           </Button>
         </div>
