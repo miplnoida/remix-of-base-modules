@@ -36,6 +36,8 @@ import { AddTaskDialog } from "@/components/legal/lg/AddTaskDialog";
 import { GenerateNoticeDialog } from "@/components/legal/lg/GenerateNoticeDialog";
 import { AssignOfficerDialog } from "@/components/legal/lg/AssignOfficerDialog";
 import CaseFeesTab from "@/components/legal/lg/CaseFeesTab";
+import { AvailableLettersPanel } from "@/components/legal/lg/AvailableLettersPanel";
+import { useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { autoApplyForEvent } from "@/services/legal/lgFeeEngineService";
 
 
@@ -104,6 +106,7 @@ const LgCaseDetail: React.FC = () => {
     enabled: !!id,
     queryFn: () => listLgActivity(id as string),
   });
+  const missingRequired = useMissingRequiredForCase(id, caseData?.current_stage_code ?? null);
 
   // ----- fee posting -----
   const feeHeads = useLegalFeeHeads();
@@ -271,12 +274,23 @@ const LgCaseDetail: React.FC = () => {
             <TabsTrigger value="orders">Orders ({orders.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="settlements">Settlements ({settlements.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="tasks">Tasks ({tasks.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="letters">Letters</TabsTrigger>
             <TabsTrigger value="legalrefs">Legal Refs</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
           {/* Summary */}
           <TabsContent value="summary">
+            {(missingRequired.data?.length ?? 0) > 0 && (
+              <Alert variant="destructive" className="mb-3">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Missing required letters for {caseData.current_stage_code}:</strong>{" "}
+                  {missingRequired.data!.map((m) => m.code).join(", ")}.{" "}
+                  Open the <em>Letters</em> tab to generate them.
+                </AlertDescription>
+              </Alert>
+            )}
             <Card>
               <CardHeader><CardTitle>Case Summary</CardTitle></CardHeader>
               <CardContent className="space-y-4">
@@ -621,6 +635,15 @@ const LgCaseDetail: React.FC = () => {
                 </ol>
               ) : <p className="text-sm text-muted-foreground">No activity recorded.</p>}
             </CardContent></Card>
+          </TabsContent>
+
+          <TabsContent value="letters">
+            <AvailableLettersPanel
+              caseId={String(id)}
+              caseTypeCode={caseData.case_type_code ?? null}
+              currentStage={caseData.current_stage_code ?? null}
+              canGenerate={access.can("editCase")}
+            />
           </TabsContent>
 
           <TabsContent value="legalrefs">
