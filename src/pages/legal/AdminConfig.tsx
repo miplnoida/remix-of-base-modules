@@ -21,6 +21,17 @@ import {
   Code, FileText, Clock, Shield, Plug, History, Plus, Edit, Trash2, ArrowUp, ArrowDown,
   Eye, Save, Check, X, AlertTriangle, Settings, Building2
 } from 'lucide-react';
+import CoreTemplateManagement from '@/components/templates/CoreTemplateManagement';
+
+function LegalCoreTemplates() {
+  return (
+    <CoreTemplateManagement
+      fixedModuleCode="LEGAL"
+      title="Document Templates"
+      description="Manage Legal notices, letters and PDFs via the Core Template framework"
+    />
+  );
+}
 
 // Mock data for code sets
 const mockCodeSets = [
