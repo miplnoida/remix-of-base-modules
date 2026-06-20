@@ -107,9 +107,14 @@ export default function CoreTemplateManagement({
 
   const openPreview = async (tpl: CoreTemplate) => {
     setPreviewTpl(tpl);
-    const ver = await coreTemplateService.getActiveVersion(tpl.id);
+    const [ver, links] = await Promise.all([
+      coreTemplateService.getActiveVersion(tpl.id),
+      coreTemplateLegalRefService.listForTemplate(tpl.id).catch(() => [] as TemplateLegalRefLink[]),
+    ]);
     setPreviewVer(ver);
+    setPreviewLinks(links);
   };
+
 
   const handleClone = async (tpl: CoreTemplate) => {
     try {
