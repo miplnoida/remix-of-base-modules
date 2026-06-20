@@ -8,9 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Eye, Pencil, Plus, Save } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Eye, Pencil, Plus, Save, Copy, Power, PowerOff, FileDown, History, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   coreTemplateService,
   CoreTemplate,
@@ -18,9 +19,10 @@ import {
   CoreTemplateToken,
   CoreTemplateVersion,
 } from "@/services/coreTemplateService";
+import { coreDocumentGenerationService } from "@/services/coreDocumentGenerationService";
 
 interface Props {
-  fixedModuleCode?: string; // when provided, screen is module-scoped
+  fixedModuleCode?: string;
   title?: string;
   description?: string;
   showAllModules?: boolean;
@@ -28,6 +30,16 @@ interface Props {
 
 const TEMPLATE_TYPES = ["LETTER", "NOTICE", "EMAIL", "SMS", "PDF", "FORM"];
 const MODULES = ["LEGAL", "BENEFITS", "COMPLIANCE", "EMPLOYER", "COMMON"];
+
+// Map module → doc ref prefix used by core_document_sequence
+const REF_PREFIX_BY_TYPE: Record<string, string> = {
+  NOTICE: "LG-NOT",
+  LETTER: "LG-LTR",
+  PDF: "LG-PDF",
+  FORM: "LG-FRM",
+  EMAIL: "LG-EML",
+  SMS: "LG-SMS",
+};
 
 export default function CoreTemplateManagement({
   fixedModuleCode,
@@ -48,6 +60,15 @@ export default function CoreTemplateManagement({
   const [creating, setCreating] = useState(false);
   const [previewTpl, setPreviewTpl] = useState<CoreTemplate | null>(null);
   const [previewVer, setPreviewVer] = useState<CoreTemplateVersion | null>(null);
+  const [historyTpl, setHistoryTpl] = useState<CoreTemplate | null>(null);
+  const [historyRows, setHistoryRows] = useState<CoreTemplateVersion[]>([]);
+  const [sampleResult, setSampleResult] = useState<{ ref: string; html: string; subject?: string } | null>(null);
+
+  const layoutById = useMemo(() => {
+    const m: Record<string, CoreTemplateLayout> = {};
+    layouts.forEach((l) => (m[l.id] = l));
+    return m;
+  }, [layouts]);
 
   const reload = async () => {
     setLoading(true);
@@ -74,7 +95,7 @@ export default function CoreTemplateManagement({
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return templates.filter(t =>
+    return templates.filter((t) =>
       !q || t.name.toLowerCase().includes(q) || t.code.toLowerCase().includes(q)
     );
   }, [templates, search]);
@@ -83,6 +104,92 @@ export default function CoreTemplateManagement({
     setPreviewTpl(tpl);
     const ver = await coreTemplateService.getActiveVersion(tpl.id);
     setPreviewVer(ver);
+  };
+
+  const handleClone = async (tpl: CoreTemplate) => {
+    try {
+      const newCode = `${tpl.code}-COPY-${Date.now().toString(36).toUpperCase()}`;
+      const ver = await coreTemplateService.getActiveVersion(tpl.id);
+      const cloned = await coreTemplateService.createTemplate({
+        code: newCode,
+        name: `${tpl.name} (Copy)`,
+        module_code: tpl.module_code,
+        country_code: tpl.country_code,
+        institution_code: tpl.institution_code,
+        template_type: tpl.template_type,
+        template_category: tpl.template_category || undefined,
+        owning_department: tpl.owning_department || undefined,
+        status: "DRAFT",
+        source_system: "CORE",
+        is_active: true,
+        default_layout_id: tpl.default_layout_id || null,
+      } as any);
+      if (ver?.body_html) {
+        const nv = await coreTemplateService.createDraftVersion(
+          cloned.id,
+          ver.body_html,
+          ver.subject || undefined,
+          tpl.default_layout_id || null
+        );
+        await coreTemplateService.publishVersion(nv.id);
+      }
+      toast({ title: "Template cloned", description: newCode });
+      reload();
+    } catch (e: any) {
+      toast({ title: "Clone failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const setStatus = async (tpl: CoreTemplate, status: "ACTIVE" | "RETIRED") => {
+    try {
+      await coreTemplateService.updateTemplate(tpl.id, { status, is_active: status === "ACTIVE" } as any);
+      toast({ title: `Template ${status === "ACTIVE" ? "published" : "retired"}` });
+      reload();
+    } catch (e: any) {
+      toast({ title: "Status change failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const generateSample = async (tpl: CoreTemplate) => {
+    try {
+      const prefix = REF_PREFIX_BY_TYPE[tpl.template_type] || `${tpl.module_code}-DOC`;
+      const result = await coreDocumentGenerationService.generate({
+        template_id: tpl.id,
+        module_code: tpl.module_code,
+        doc_type_code: tpl.template_type,
+        prefix,
+        tokens: Object.fromEntries(tokens.map((k) => [k.token_code, k.sample_value || `{{${k.token_code}}}`])),
+        layout_id: tpl.default_layout_id || null,
+        generated_by: "SAMPLE",
+      });
+      setSampleResult({ ref: result.reference_no, html: result.generated_html, subject: undefined });
+      toast({ title: "Sample generated", description: result.reference_no });
+    } catch (e: any) {
+      toast({ title: "Sample failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const openHistory = async (tpl: CoreTemplate) => {
+    setHistoryTpl(tpl);
+    const rows = await coreTemplateService.listVersions(tpl.id);
+    setHistoryRows(rows);
+  };
+
+  const exportCsv = () => {
+    const header = ["code", "name", "type", "category", "layout", "status", "updated_at"];
+    const rows = filtered.map((t) => [
+      t.code, t.name, t.template_type, t.template_category || "",
+      layoutById[t.default_layout_id || ""]?.code || "",
+      t.status, t.updated_at,
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fixedModuleCode || "templates"}-export.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -111,7 +218,7 @@ export default function CoreTemplateManagement({
                         <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="ALL">All</SelectItem>
-                          {MODULES.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                          {MODULES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -121,7 +228,10 @@ export default function CoreTemplateManagement({
                     <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or code" className="w-64" />
                   </div>
                 </div>
-                <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-2" />New Template</Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={exportCsv}><FileDown className="h-4 w-4 mr-2" />Export</Button>
+                  <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4 mr-2" />New Template</Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -138,37 +248,61 @@ export default function CoreTemplateManagement({
                       {showAllModules && <TableHead>Module</TableHead>}
                       <TableHead>Type</TableHead>
                       <TableHead>Category</TableHead>
-                      <TableHead>Source</TableHead>
+                      <TableHead>Layout</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="w-24 text-right">Actions</TableHead>
+                      <TableHead>Last Updated</TableHead>
+                      <TableHead className="w-[220px] text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map(t => (
-                      <TableRow key={t.id}>
-                        <TableCell className="font-mono text-xs">{t.code}</TableCell>
-                        <TableCell>{t.name}</TableCell>
-                        {showAllModules && <TableCell><Badge variant="outline">{t.module_code}</Badge></TableCell>}
-                        <TableCell>{t.template_type}</TableCell>
-                        <TableCell>{t.template_category || "-"}</TableCell>
-                        <TableCell>
-                          <Badge variant={t.source_system === "CORE" ? "default" : "secondary"}>
-                            {t.source_system}
-                          </Badge>
-                        </TableCell>
-                        <TableCell><Badge>{t.status}</Badge></TableCell>
-                        <TableCell className="text-right">
-                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Preview" onClick={() => openPreview(t)}>
-                            <Eye className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit"
-                                  disabled={t.source_system === "COMPLIANCE_LEGACY"}
-                                  onClick={() => setEditing(t)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filtered.map((t) => {
+                      const layout = layoutById[t.default_layout_id || ""];
+                      const isLegacy = t.source_system === "COMPLIANCE_LEGACY";
+                      return (
+                        <TableRow key={t.id}>
+                          <TableCell className="font-mono text-xs">{t.code}</TableCell>
+                          <TableCell>{t.name}</TableCell>
+                          {showAllModules && <TableCell><Badge variant="outline">{t.module_code}</Badge></TableCell>}
+                          <TableCell>{t.template_type}</TableCell>
+                          <TableCell>{t.template_category || "-"}</TableCell>
+                          <TableCell className="text-xs">{layout?.code || "-"}</TableCell>
+                          <TableCell>
+                            <Badge variant={t.status === "ACTIVE" ? "default" : t.status === "RETIRED" ? "destructive" : "secondary"}>
+                              {t.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {new Date(t.updated_at).toLocaleDateString("en-GB")}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Preview" onClick={() => openPreview(t)}>
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit" disabled={isLegacy} onClick={() => setEditing(t)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Clone" onClick={() => handleClone(t)}>
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Version History" onClick={() => openHistory(t)}>
+                              <History className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Generate Sample" disabled={!t.active_version_id} onClick={() => generateSample(t)}>
+                              <Sparkles className="h-3.5 w-3.5" />
+                            </Button>
+                            {t.status !== "ACTIVE" ? (
+                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Publish" disabled={isLegacy} onClick={() => setStatus(t, "ACTIVE")}>
+                                <Power className="h-3.5 w-3.5" />
+                              </Button>
+                            ) : (
+                              <Button size="icon" variant="ghost" className="h-8 w-8" title="Retire" disabled={isLegacy} onClick={() => setStatus(t, "RETIRED")}>
+                                <PowerOff className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               )}
@@ -187,7 +321,7 @@ export default function CoreTemplateManagement({
                   <TableHead>Pre-Printed</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {layouts.map(l => (
+                  {layouts.map((l) => (
                     <TableRow key={l.id}>
                       <TableCell className="font-mono text-xs">{l.code}</TableCell>
                       <TableCell>{l.name}</TableCell>
@@ -204,7 +338,7 @@ export default function CoreTemplateManagement({
 
         <TabsContent value="tokens">
           <Card>
-            <CardHeader><CardTitle>Tokens</CardTitle><CardDescription>Available merge tokens</CardDescription></CardHeader>
+            <CardHeader><CardTitle>Tokens</CardTitle><CardDescription>Available merge tokens (use as <code>{`{{token.code}}`}</code> in templates)</CardDescription></CardHeader>
             <CardContent>
               <Table>
                 <TableHeader><TableRow>
@@ -213,7 +347,7 @@ export default function CoreTemplateManagement({
                   <TableHead>Sample</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
-                  {tokens.map(t => (
+                  {tokens.map((t) => (
                     <TableRow key={t.id}>
                       <TableCell className="font-mono text-xs">{`{{${t.token_code}}}`}</TableCell>
                       <TableCell>{t.token_label}</TableCell>
@@ -242,18 +376,56 @@ export default function CoreTemplateManagement({
         </DialogContent>
       </Dialog>
 
+      {/* Version History */}
+      <Dialog open={!!historyTpl} onOpenChange={(o) => { if (!o) { setHistoryTpl(null); setHistoryRows([]); } }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Version History — {historyTpl?.name}</DialogTitle></DialogHeader>
+          <Table>
+            <TableHeader><TableRow>
+              <TableHead>Version</TableHead><TableHead>Status</TableHead>
+              <TableHead>Published</TableHead><TableHead>Updated</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {historyRows.map((v) => (
+                <TableRow key={v.id}>
+                  <TableCell>v{v.version_no}</TableCell>
+                  <TableCell><Badge variant={v.status === "PUBLISHED" ? "default" : "secondary"}>{v.status}</Badge></TableCell>
+                  <TableCell className="text-xs">{v.published_at ? new Date(v.published_at).toLocaleString("en-GB") : "-"}</TableCell>
+                  <TableCell className="text-xs">{new Date((v as any).updated_at).toLocaleDateString("en-GB")}</TableCell>
+                </TableRow>
+              ))}
+              {historyRows.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground text-sm">No versions</TableCell></TableRow>}
+            </TableBody>
+          </Table>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sample preview */}
+      <Dialog open={!!sampleResult} onOpenChange={(o) => { if (!o) setSampleResult(null); }}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Generated Sample</DialogTitle>
+            <DialogDescription>Reference: <span className="font-mono">{sampleResult?.ref}</span></DialogDescription>
+          </DialogHeader>
+          <div className="border rounded p-4 max-h-[60vh] overflow-auto prose prose-sm"
+               dangerouslySetInnerHTML={{ __html: sampleResult?.html || "" }} />
+        </DialogContent>
+      </Dialog>
+
       {/* Create / Edit */}
       <TemplateFormDialog
         open={creating || !!editing}
         template={editing}
         defaultModule={fixedModuleCode}
         layouts={layouts}
+        tokens={tokens}
         onClose={() => { setCreating(false); setEditing(null); }}
         onSaved={() => { setCreating(false); setEditing(null); reload(); }}
       />
     </div>
   );
 }
+
 
 function TemplateFormDialog({
   open, template, defaultModule, layouts, onClose, onSaved,
