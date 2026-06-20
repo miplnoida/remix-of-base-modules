@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,22 +7,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Plus, Trash2, ArrowLeft, ShieldCheck } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Loader2, Plus, Trash2, ArrowLeft, ShieldCheck, Info } from "lucide-react";
 import { toast } from "sonner";
 import {
   useLgDepartmentProfile, useLgPolicies, useLgRoleMappings,
   type LgDepartmentProfile, type LgWorkflowPolicy,
 } from "@/hooks/legal/useLgPolicy";
 import {
-  updateDepartmentProfile, upsertRoleMapping, deleteRoleMapping, updateWorkflowPolicy,
+  updateDepartmentProfile, upsertRoleMapping, deleteRoleMapping,
+  updateWorkflowPolicy, validateRoleMapping,
 } from "@/services/legal/lgPolicyService";
-import { useLgAccess, type LgRoleType } from "@/hooks/legal/useLgAccess";
+import {
+  useLgAccess, LG_BASE_MATRIX, type LgRoleType, type LgCapability,
+} from "@/hooks/legal/useLgAccess";
 import { useUserCode } from "@/hooks/useUserCode";
+import { formatDateForDisplay } from "@/lib/format-config";
 
 const ROLE_TYPES: LgRoleType[] = [
   "LG_CASE_HANDLER","LG_LEGAL_ASSISTANT","LG_REVIEWER","LG_APPROVER","LG_ADMIN","LG_READ_ONLY",
+];
+
+const PREVIEW_CAPS: LgCapability[] = [
+  "viewCase","createCase","editCase",
+  "acceptReferral","assignOfficer",
+  "prepareNotice","approveNotice","sendNotice",
+  "addHearing","recordHearingOutcome",
+  "draftFee","postFee",
+  "requestWaiver","approveWaiver",
+  "approveSettlement","closeCase","configurePolicy",
 ];
 
 export default function LgPolicyConfig() {
@@ -41,14 +57,14 @@ export default function LgPolicyConfig() {
 
   return (
     <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <ShieldCheck className="h-6 w-6" /> Legal Department Configuration
             </h1>
             <p className="text-sm text-muted-foreground">
-              Configure department size, role mappings, and per-action approval policies.
+              Legal uses common Security roles. Map each Security role to a Legal role-type, then configure per-action approval policies.
             </p>
           </div>
           <Button variant="outline" onClick={() => navigate("/legal/lg")}>
@@ -56,15 +72,17 @@ export default function LgPolicyConfig() {
           </Button>
         </div>
 
-        <Tabs defaultValue="profile">
+        <Tabs defaultValue="mapping">
           <TabsList>
             <TabsTrigger value="profile">Department Profile</TabsTrigger>
-            <TabsTrigger value="mapping">Role Type Mapping</TabsTrigger>
+            <TabsTrigger value="mapping">Role &amp; Capability Mapping</TabsTrigger>
+            <TabsTrigger value="preview">Capability Preview</TabsTrigger>
             <TabsTrigger value="policy">Workflow Policies</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile"><ProfileTab /></TabsContent>
           <TabsContent value="mapping"><MappingTab /></TabsContent>
+          <TabsContent value="preview"><CapabilityPreviewTab /></TabsContent>
           <TabsContent value="policy"><PolicyTab /></TabsContent>
         </Tabs>
       </div>
@@ -160,47 +178,90 @@ function ProfileTab() {
 function MappingTab() {
   const { data: rows = [], isLoading } = useLgRoleMappings();
   const qc = useQueryClient();
+  const { userCode } = useUserCode();
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState<any>({
-    system_role: "", role_type: "LG_CASE_HANDLER",
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const blank = {
+    system_role: "", role_type: "LG_CASE_HANDLER" as LgRoleType,
     can_prepare: true, can_review: false, can_approve: false,
     can_post_fee: false, can_close_case: false, is_active: true,
-  });
+  };
+  const [draft, setDraft] = useState<any>(blank);
 
-  const reload = () => qc.invalidateQueries({ queryKey: ["lg_role_mappings"] });
+  const reload = () => {
+    qc.invalidateQueries({ queryKey: ["lg_role_mappings"] });
+    qc.invalidateQueries({ queryKey: ["lg_role_type_mapping_all"] });
+  };
 
-  const add = async () => {
-    if (!draft.system_role) return toast.error("System role is required");
+  const startAdd = () => { setDraft(blank); setAdding(true); setEditingId(null); };
+  const startEdit = (r: any) => { setDraft({ ...r }); setEditingId(r.id); setAdding(false); };
+  const cancel = () => { setAdding(false); setEditingId(null); setDraft(blank); };
+
+  const save = async () => {
+    const err = validateRoleMapping(draft);
+    if (err) return toast.error(err);
     try {
-      await upsertRoleMapping(draft);
-      toast.success("Mapping added");
-      setAdding(false);
-      setDraft({ ...draft, system_role: "" });
+      await upsertRoleMapping(draft, userCode || undefined);
+      toast.success(editingId ? "Mapping updated" : "Mapping added");
+      cancel();
       reload();
-      qc.invalidateQueries({ queryKey: ["lg_role_type_mapping_all"] });
     } catch (e: any) { toast.error(e.message); }
   };
 
   const remove = async (id: string) => {
+    if (!confirm("Remove this role mapping?")) return;
     try {
       await deleteRoleMapping(id);
       toast.success("Mapping removed");
       reload();
-      qc.invalidateQueries({ queryKey: ["lg_role_type_mapping_all"] });
     } catch (e: any) { toast.error(e.message); }
   };
 
   if (isLoading) return <Loading />;
 
+  const editorRow = (key: string) => (
+    <TableRow key={key} className="bg-muted/30">
+      <TableCell>
+        <Input value={draft.system_role}
+          onChange={(e) => setDraft({ ...draft, system_role: e.target.value.toUpperCase().replace(/\s+/g, "_") })}
+          placeholder="e.g. LEGAL_ASSISTANT" />
+      </TableCell>
+      <TableCell>
+        <Select value={draft.role_type} onValueChange={(v) => setDraft({ ...draft, role_type: v })}>
+          <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {ROLE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </TableCell>
+      {(["can_prepare","can_review","can_approve","can_post_fee","can_close_case","is_active"] as const).map((f) => (
+        <TableCell key={f}>
+          <Switch checked={!!draft[f]} onCheckedChange={(v) => setDraft({ ...draft, [f]: v })} />
+        </TableCell>
+      ))}
+      <TableCell className="text-xs text-muted-foreground">—</TableCell>
+      <TableCell className="flex gap-1">
+        <Button size="sm" onClick={save}>Save</Button>
+        <Button size="sm" variant="ghost" onClick={cancel}>Cancel</Button>
+      </TableCell>
+    </TableRow>
+  );
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Security Role → Legal Role Type</CardTitle>
-        <Button size="sm" onClick={() => setAdding(true)}>
+        <div>
+          <CardTitle>Security Role → Legal Role Type</CardTitle>
+          <p className="text-xs text-muted-foreground mt-1">
+            Legal does not have its own users. Each Security role is mapped to one or more Legal role-types
+            that determine what the user can prepare, review, approve, post or close.
+          </p>
+        </div>
+        <Button size="sm" onClick={startAdd} disabled={adding || !!editingId}>
           <Plus className="h-4 w-4 mr-1" /> Add mapping
         </Button>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
             <TableHead>System Role</TableHead>
@@ -210,40 +271,19 @@ function MappingTab() {
             <TableHead>Approve</TableHead>
             <TableHead>Post Fee</TableHead>
             <TableHead>Close Case</TableHead>
+            <TableHead>Active</TableHead>
+            <TableHead>Audit</TableHead>
             <TableHead></TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {adding && (
-              <TableRow>
-                <TableCell><Input value={draft.system_role}
-                  onChange={(e) => setDraft({ ...draft, system_role: e.target.value })}
-                  placeholder="e.g. LEGAL_ASSISTANT" /></TableCell>
-                <TableCell>
-                  <Select value={draft.role_type} onValueChange={(v) => setDraft({ ...draft, role_type: v })}>
-                    <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {ROLE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                {(["can_prepare","can_review","can_approve","can_post_fee","can_close_case"] as const).map((f) => (
-                  <TableCell key={f}>
-                    <Switch checked={!!draft[f]} onCheckedChange={(v) => setDraft({ ...draft, [f]: v })} />
-                  </TableCell>
-                ))}
-                <TableCell className="flex gap-1">
-                  <Button size="sm" onClick={add}>Save</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>Cancel</Button>
-                </TableCell>
-              </TableRow>
-            )}
+            {adding && editorRow("__new__")}
             {rows.length === 0 && !adding && (
-              <TableRow><TableCell colSpan={8} className="py-6 text-center text-muted-foreground">
+              <TableRow><TableCell colSpan={10} className="py-6 text-center text-muted-foreground">
                 No mappings configured. Built-in defaults will be applied.
               </TableCell></TableRow>
             )}
-            {rows.map((r: any) => (
-              <TableRow key={r.id}>
+            {rows.map((r: any) => editingId === r.id ? editorRow(r.id) : (
+              <TableRow key={r.id} className={r.is_active ? "" : "opacity-60"}>
                 <TableCell className="font-medium">{r.system_role}</TableCell>
                 <TableCell>{r.role_type}</TableCell>
                 <TableCell>{r.can_prepare ? "✓" : "—"}</TableCell>
@@ -252,7 +292,19 @@ function MappingTab() {
                 <TableCell>{r.can_post_fee ? "✓" : "—"}</TableCell>
                 <TableCell>{r.can_close_case ? "✓" : "—"}</TableCell>
                 <TableCell>
-                  <Button size="icon" variant="ghost" onClick={() => remove(r.id)}>
+                  {r.is_active
+                    ? <Badge variant="default">Active</Badge>
+                    : <Badge variant="secondary">Inactive</Badge>}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  <div>By: {r.created_by ?? "—"}</div>
+                  <div>Updated: {r.updated_at ? formatDateForDisplay(r.updated_at) : "—"}{r.updated_by ? ` (${r.updated_by})` : ""}</div>
+                </TableCell>
+                <TableCell className="flex gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => startEdit(r)}
+                    disabled={adding || !!editingId}>Edit</Button>
+                  <Button size="icon" variant="ghost" onClick={() => remove(r.id)}
+                    disabled={adding || !!editingId}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </TableCell>
@@ -260,6 +312,84 @@ function MappingTab() {
             ))}
           </TableBody>
         </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function CapabilityPreviewTab() {
+  const { data: rows = [], isLoading } = useLgRoleMappings();
+
+  // group by system_role -> set of legal role-types (only active mappings count)
+  const grouped = useMemo(() => {
+    const m = new Map<string, LgRoleType[]>();
+    for (const r of rows as any[]) {
+      if (!r.is_active) continue;
+      const list = m.get(r.system_role) ?? [];
+      if (!list.includes(r.role_type)) list.push(r.role_type);
+      m.set(r.system_role, list);
+    }
+    return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [rows]);
+
+  if (isLoading) return <Loading />;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          Derived Capability Preview
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger><Info className="h-4 w-4 text-muted-foreground" /></TooltipTrigger>
+              <TooltipContent className="max-w-sm">
+                Shows the capabilities that <code>useLgAccess</code> grants users who hold each
+                Security role, based on the active Role &amp; Capability mappings above and the
+                built-in role-type matrix.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-0 overflow-x-auto">
+        {grouped.length === 0 ? (
+          <div className="p-6 text-center text-muted-foreground text-sm">
+            No active role mappings. Add a mapping to see derived capabilities.
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="sticky left-0 bg-background">System Role</TableHead>
+                <TableHead>Legal Role Types</TableHead>
+                {PREVIEW_CAPS.map((c) => (
+                  <TableHead key={c} className="text-xs whitespace-nowrap">{c}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {grouped.map(([sysRole, types]) => {
+                const caps = new Set<LgCapability>();
+                types.forEach((t) => LG_BASE_MATRIX[t]?.forEach((c) => caps.add(c)));
+                return (
+                  <TableRow key={sysRole}>
+                    <TableCell className="font-medium sticky left-0 bg-background">{sysRole}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {types.map((t) => <Badge key={t} variant="outline">{t}</Badge>)}
+                      </div>
+                    </TableCell>
+                    {PREVIEW_CAPS.map((c) => (
+                      <TableCell key={c} className="text-center">
+                        {caps.has(c) ? <span className="text-success">✓</span> : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   );
@@ -286,27 +416,36 @@ function PolicyTab() {
     setEditing((e) => ({ ...e, [id]: { ...e[id], [k]: v } }));
 
   const valueOf = (r: LgWorkflowPolicy, k: keyof LgWorkflowPolicy) =>
-    editing[r.id]?.[k] ?? r[k];
+    (editing[r.id]?.[k] ?? r[k]) as any;
 
   if (isLoading) return <Loading />;
 
   return (
     <Card>
-      <CardHeader><CardTitle>Per-action approval policy</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle>Per-action approval policy</CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          Configure who prepares, who approves, and how strictly each Legal action is gated.
+          Small departments can leave Approval Required off; larger ones can require multiple approvers.
+        </p>
+      </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
             <TableHead>Action</TableHead>
             <TableHead>Approval req.</TableHead>
-            <TableHead>Assistant prepares</TableHead>
-            <TableHead>Lawyer reviews</TableHead>
             <TableHead>Preparer role</TableHead>
             <TableHead>Approver role</TableHead>
+            <TableHead>Min approvers</TableHead>
+            <TableHead>Self approve</TableHead>
+            <TableHead>Assistant prepares</TableHead>
+            <TableHead>Lawyer reviews</TableHead>
+            <TableHead>Active</TableHead>
             <TableHead></TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {rows.map((r) => (
-              <TableRow key={r.id}>
+              <TableRow key={r.id} className={valueOf(r, "is_active") ? "" : "opacity-60"}>
                 <TableCell>
                   <div className="font-medium">{r.action_label}</div>
                   <div className="text-xs text-muted-foreground">{r.action_code}</div>
@@ -314,6 +453,35 @@ function PolicyTab() {
                 <TableCell>
                   <Switch checked={!!valueOf(r, "approval_required")}
                     onCheckedChange={(v) => update(r.id, "approval_required", v)} />
+                </TableCell>
+                <TableCell>
+                  <Select value={(valueOf(r, "preparer_role_type") as string) ?? "__none__"}
+                    onValueChange={(v) => update(r.id, "preparer_role_type", v === "__none__" ? null : v)}>
+                    <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— None —</SelectItem>
+                      {ROLE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Select value={(valueOf(r, "approver_role_type") as string) ?? "__none__"}
+                    onValueChange={(v) => update(r.id, "approver_role_type", v === "__none__" ? null : v)}>
+                    <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">— None —</SelectItem>
+                      {ROLE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
+                  <Input type="number" min={1} className="w-20"
+                    value={(valueOf(r, "min_approvers") as number) ?? 1}
+                    onChange={(e) => update(r.id, "min_approvers", Math.max(1, parseInt(e.target.value || "1", 10)))} />
+                </TableCell>
+                <TableCell>
+                  <Switch checked={!!valueOf(r, "allow_self_approval")}
+                    onCheckedChange={(v) => update(r.id, "allow_self_approval", v)} />
                 </TableCell>
                 <TableCell>
                   <Switch checked={!!valueOf(r, "assistant_can_prepare")}
@@ -324,24 +492,8 @@ function PolicyTab() {
                     onCheckedChange={(v) => update(r.id, "lawyer_must_review", v)} />
                 </TableCell>
                 <TableCell>
-                  <Select value={(valueOf(r, "preparer_role_type") as string) ?? "__none__"}
-                    onValueChange={(v) => update(r.id, "preparer_role_type", v === "__none__" ? null : v)}>
-                    <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">— None —</SelectItem>
-                      {ROLE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Select value={(valueOf(r, "approver_role_type") as string) ?? "__none__"}
-                    onValueChange={(v) => update(r.id, "approver_role_type", v === "__none__" ? null : v)}>
-                    <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">— None —</SelectItem>
-                      {ROLE_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <Switch checked={!!valueOf(r, "is_active")}
+                    onCheckedChange={(v) => update(r.id, "is_active", v)} />
                 </TableCell>
                 <TableCell>
                   <Button size="sm" disabled={!editing[r.id]} onClick={() => save(r)}>Save</Button>
