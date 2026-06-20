@@ -1,212 +1,101 @@
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DollarSign, Eye, CheckCircle, XCircle } from "lucide-react";
-
-interface PaymentPlan {
-  planId: string;
-  caseNumber: string;
-  partyName: string;
-  planType: "Court-Ordered" | "Voluntary Agreement";
-  totalAmount: number;
-  installmentAmount: number;
-  frequency: string;
-  startDate: string;
-  numberOfInstallments: number;
-  installmentsPaid: number;
-  totalPaid: number;
-  outstanding: number;
-  nextDueDate: string;
-  status: string;
-}
-
-const mockPaymentPlans: PaymentPlan[] = [
-  {
-    planId: "PLAN-001",
-    caseNumber: "SSB/LGL/001/2024",
-    partyName: "ABC Construction Ltd",
-    planType: "Court-Ordered",
-    totalAmount: 109000,
-    installmentAmount: 10000,
-    frequency: "Monthly",
-    startDate: "2024-10-01",
-    numberOfInstallments: 11,
-    installmentsPaid: 2,
-    totalPaid: 20000,
-    outstanding: 89000,
-    nextDueDate: "2024-12-01",
-    status: "Active - Current"
-  },
-  {
-    planId: "PLAN-002",
-    caseNumber: "SSB/LGL/002/2024",
-    partyName: "XYZ Services Inc",
-    planType: "Voluntary Agreement",
-    totalAmount: 53900,
-    installmentAmount: 5000,
-    frequency: "Monthly",
-    startDate: "2024-11-01",
-    numberOfInstallments: 11,
-    installmentsPaid: 0,
-    totalPaid: 0,
-    outstanding: 53900,
-    nextDueDate: "2024-12-01",
-    status: "Active - Current"
-  },
-  {
-    planId: "PLAN-003",
-    caseNumber: "SSB/LGL/004/2024",
-    partyName: "Quick Shop Ltd",
-    planType: "Court-Ordered",
-    totalAmount: 32000,
-    installmentAmount: 4000,
-    frequency: "Monthly",
-    startDate: "2024-08-01",
-    numberOfInstallments: 8,
-    installmentsPaid: 3,
-    totalPaid: 12000,
-    outstanding: 20000,
-    nextDueDate: "2024-11-01",
-    status: "Defaulted"
-  }
-];
+import { CreditCard, Eye, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { listAllLgArrangementLinks } from "@/services/legal/lgRegistryService";
+import { formatDateForDisplay } from "@/lib/format-config";
 
 const LegalPaymentPlans = () => {
-  const activePlans = mockPaymentPlans.filter(p => p.status.includes("Active")).length;
-  const defaultedPlans = mockPaymentPlans.filter(p => p.status === "Defaulted").length;
-  const totalOutstanding = mockPaymentPlans.reduce((sum, p) => sum + p.outstanding, 0);
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+
+  const { data: links = [], isLoading } = useQuery({
+    queryKey: ["lg_arrangement_links_all"],
+    queryFn: listAllLgArrangementLinks,
+  });
+
+  const filtered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    if (!s) return links;
+    return links.filter(l =>
+      l.lg_case?.lg_case_no?.toLowerCase().includes(s) ||
+      l.payment_arrangement_id?.toLowerCase().includes(s) ||
+      l.link_type?.toLowerCase().includes(s)
+    );
+  }, [links, search]);
+
+  const stats = useMemo(() => ({
+    total: links.length,
+    monitored: links.filter(l => l.default_monitoring_required).length,
+    byType: new Set(links.map(l => l.link_type)).size,
+  }), [links]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
-        title="Payment Plans"
-        subtitle="Court-ordered installment plans and voluntary agreements"
+        title="Legal Payment Arrangements"
+        subtitle="Payment arrangements linked to legal cases"
         breadcrumbs={[
-          { label: "Legal Management", href: "/legal/dashboard" },
-          { label: "Court Orders & Enforcement", href: "/legal/court-orders" },
-          { label: "Payment Plans" }
+          { label: "Legal Management", href: "/legal/lg/dashboard" },
+          { label: "Payment Plans", href: "/legal/payment-plans" },
         ]}
       />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Plans</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{activePlans}</div>
-            <p className="text-xs text-muted-foreground">Current and compliant</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Defaulted Plans</CardTitle>
-            <XCircle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{defaultedPlans}</div>
-            <p className="text-xs text-muted-foreground">Missed payments</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">EC${totalOutstanding.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Across all plans</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completion Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0%</div>
-            <p className="text-xs text-muted-foreground">Plans fully paid</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><div className="text-sm text-muted-foreground">Linked Arrangements</div><div className="text-2xl font-bold">{stats.total}</div></div><CreditCard className="h-5 w-5 text-muted-foreground" /></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-sm text-muted-foreground">Default Monitoring</div><div className="text-2xl font-bold">{stats.monitored}</div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-sm text-muted-foreground">Link Types</div><div className="text-2xl font-bold">{stats.byType}</div></CardContent></Card>
       </div>
 
-      {/* Payment Plans Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Payment Plans ({mockPaymentPlans.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardHeader><CardTitle>Arrangements Registry</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <Input placeholder="Search case/arrangement/link type..." value={search} onChange={e => setSearch(e.target.value)} />
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Plan ID</TableHead>
-                  <TableHead>Case Number</TableHead>
-                  <TableHead>Party Name</TableHead>
-                  <TableHead>Plan Type</TableHead>
-                  <TableHead className="text-right">Total Amount</TableHead>
-                  <TableHead>Installment</TableHead>
-                  <TableHead>Progress</TableHead>
-                  <TableHead className="text-right">Outstanding</TableHead>
-                  <TableHead>Next Due</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Case</TableHead>
+                  <TableHead>Arrangement ID</TableHead>
+                  <TableHead>Link Type</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Linked At</TableHead>
+                  <TableHead>Monitor</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockPaymentPlans.map((plan) => (
-                  <TableRow key={plan.planId}>
-                    <TableCell className="font-medium">{plan.planId}</TableCell>
-                    <TableCell>{plan.caseNumber}</TableCell>
-                    <TableCell>{plan.partyName}</TableCell>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No payment arrangements linked</TableCell></TableRow>
+                ) : filtered.map(l => (
+                  <TableRow key={l.id}>
                     <TableCell>
-                      <Badge variant="outline">{plan.planType}</Badge>
+                      <button className="text-primary hover:underline" onClick={() => navigate(`/legal/lg/cases/${l.lg_case_id}`)}>
+                        {l.lg_case?.lg_case_no ?? '—'}
+                      </button>
                     </TableCell>
-                    <TableCell className="text-right">EC${plan.totalAmount.toLocaleString()}</TableCell>
-                    <TableCell>
-                      {plan.frequency}: EC${plan.installmentAmount.toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="text-sm">
-                          {plan.installmentsPaid}/{plan.numberOfInstallments}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          ({Math.round((plan.installmentsPaid / plan.numberOfInstallments) * 100)}%)
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      EC${plan.outstanding.toLocaleString()}
-                    </TableCell>
-                    <TableCell>{plan.nextDueDate}</TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={
-                          plan.status === "Defaulted" ? "destructive" :
-                          plan.status.includes("Active") ? "default" : "secondary"
-                        }
-                      >
-                        {plan.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                    <TableCell className="font-mono text-xs">{l.payment_arrangement_id}</TableCell>
+                    <TableCell><Badge variant="outline">{l.link_type}</Badge></TableCell>
+                    <TableCell className="text-sm">{l.source_module}</TableCell>
+                    <TableCell>{formatDateForDisplay(l.linked_at)}</TableCell>
+                    <TableCell>{l.default_monitoring_required ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/legal/lg/cases/${l.lg_case_id}`)}><Eye className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
+          <p className="text-xs text-muted-foreground">To link a new arrangement, open the case and use the Settlements tab.</p>
         </CardContent>
       </Card>
     </div>
