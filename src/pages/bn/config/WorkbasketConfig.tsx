@@ -329,6 +329,67 @@ export default function WorkbasketConfig() {
                 </div>
                 <div className="space-y-1"><label className="text-sm font-medium">Max Capacity</label><Input type="number" value={form.max_capacity} onChange={(e) => setForm((p) => ({ ...p, max_capacity: e.target.value }))} placeholder="Optional" /></div>
               </div>
+
+              <div className="rounded-md border p-3 space-y-3">
+                <div className="text-sm font-semibold">SLA / Escalation</div>
+                <p className="text-xs text-muted-foreground">
+                  Default escalation policy applied to all tasks in this basket. Workflow-step level policy (if any) overrides this default.
+                </p>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Default Escalation Policy</label>
+                  <SmartSelect
+                    value={form.default_escalation_policy_id}
+                    onValueChange={(v) => setForm((p) => ({ ...p, default_escalation_policy_id: v }))}
+                    options={[
+                      { value: '', label: '— None (fall through to product/global) —' },
+                      ...escalationPolicies.map((e: any) => ({ value: e.id, label: `${e.policy_name} (${e.policy_code})` })),
+                    ]}
+                    placeholder="Select policy"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Supervisor Role</label>
+                    <SmartSelect
+                      value={form.supervisor_role}
+                      onValueChange={(v) => setForm((p) => ({ ...p, supervisor_role: v }))}
+                      options={[{ value: '', label: '— None —' }, ...workflowRoles.map((r) => ({ value: r, label: r.replace(/_/g, ' ') }))]}
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Manager Role</label>
+                    <SmartSelect
+                      value={form.manager_role}
+                      onValueChange={(v) => setForm((p) => ({ ...p, manager_role: v }))}
+                      options={[{ value: '', label: '— None —' }, ...workflowRoles.map((r) => ({ value: r, label: r.replace(/_/g, ' ') }))]}
+                      placeholder="Optional"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Escalation Target Workbasket</label>
+                  <SmartSelect
+                    value={form.escalation_target_basket_id}
+                    onValueChange={(v) => setForm((p) => ({ ...p, escalation_target_basket_id: v }))}
+                    options={[
+                      { value: '', label: '— None —' },
+                      ...workbaskets
+                        .filter((b) => b.id !== editItem?.id)
+                        .map((b) => ({ value: b.id, label: `${b.basket_name} (${b.basket_code})` })),
+                    ]}
+                    placeholder="Where to auto-reassign on escalation"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={form.allow_auto_reassign}
+                    onCheckedChange={(v) => setForm((p) => ({ ...p, allow_auto_reassign: v }))}
+                  />
+                  <label className="text-sm">Allow Auto-Reassign on Escalation</label>
+                </div>
+              </div>
+
               <div className="flex items-center gap-2"><Switch checked={form.is_active} onCheckedChange={(v) => setForm((p) => ({ ...p, is_active: v }))} /><label className="text-sm">Active</label></div>
             </div>
             <DialogFooter>
