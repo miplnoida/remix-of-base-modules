@@ -1,0 +1,12 @@
+
+UPDATE public.app_modules
+SET parent_id = '1e9a1000-0000-0000-0000-000000000120'
+WHERE id IN (
+  '1e9a1000-0000-0000-0000-000000000003', -- Waiver Policies
+  '1e9a1000-0000-0000-0000-000000000121', -- Fee Configuration
+  '1e9a1000-0000-0000-0000-000000000122', -- Workflow & Role Policy
+  '1e9a1000-0000-0000-0000-000000000123', -- Code Sets
+  '1e9a1000-0000-0000-0000-000000000124', -- Templates
+  '1e9a1000-0000-0000-0000-000000000125', -- Legal References
+  '1e9a1000-0000-0000-0000-000000000126'  -- Complainant Settings
+);
