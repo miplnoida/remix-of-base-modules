@@ -14573,140 +14573,6 @@ export type Database = {
           },
         ]
       }
-      bn_reference_group: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          description: string | null
-          group_category: string | null
-          group_code: string
-          group_name: string
-          id: string
-          is_active: boolean
-          is_system: boolean
-          is_system_group: boolean
-          manage_permission_code: string | null
-          module_code: string
-          module_name: string | null
-          owner_role_code: string | null
-          sort_order: number
-          updated_at: string
-          updated_by: string | null
-          view_permission_code: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          group_category?: string | null
-          group_code: string
-          group_name: string
-          id?: string
-          is_active?: boolean
-          is_system?: boolean
-          is_system_group?: boolean
-          manage_permission_code?: string | null
-          module_code?: string
-          module_name?: string | null
-          owner_role_code?: string | null
-          sort_order?: number
-          updated_at?: string
-          updated_by?: string | null
-          view_permission_code?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          group_category?: string | null
-          group_code?: string
-          group_name?: string
-          id?: string
-          is_active?: boolean
-          is_system?: boolean
-          is_system_group?: boolean
-          manage_permission_code?: string | null
-          module_code?: string
-          module_name?: string | null
-          owner_role_code?: string | null
-          sort_order?: number
-          updated_at?: string
-          updated_by?: string | null
-          view_permission_code?: string | null
-        }
-        Relationships: []
-      }
-      bn_reference_value: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          description: string | null
-          effective_from: string | null
-          effective_to: string | null
-          group_id: string
-          id: string
-          is_active: boolean
-          is_default: boolean
-          is_system: boolean
-          metadata_json: Json | null
-          module_code: string | null
-          sort_order: number
-          status: string
-          updated_at: string
-          updated_by: string | null
-          value_code: string
-          value_label: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          effective_from?: string | null
-          effective_to?: string | null
-          group_id: string
-          id?: string
-          is_active?: boolean
-          is_default?: boolean
-          is_system?: boolean
-          metadata_json?: Json | null
-          module_code?: string | null
-          sort_order?: number
-          status?: string
-          updated_at?: string
-          updated_by?: string | null
-          value_code: string
-          value_label: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          description?: string | null
-          effective_from?: string | null
-          effective_to?: string | null
-          group_id?: string
-          id?: string
-          is_active?: boolean
-          is_default?: boolean
-          is_system?: boolean
-          metadata_json?: Json | null
-          module_code?: string | null
-          sort_order?: number
-          status?: string
-          updated_at?: string
-          updated_by?: string | null
-          value_code?: string
-          value_label?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bn_reference_value_group_id_fkey"
-            columns: ["group_id"]
-            isOneToOne: false
-            referencedRelation: "bn_reference_group"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       bn_role_bundle: {
         Row: {
           code: string
@@ -36170,6 +36036,150 @@ export type Database = {
             columns: ["registration_id"]
             isOneToOne: false
             referencedRelation: "compliance_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_reference_group: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          group_category: string | null
+          group_code: string
+          group_name: string
+          id: string
+          is_active: boolean
+          is_system: boolean
+          is_system_group: boolean
+          manage_permission_code: string | null
+          module_code: string
+          module_name: string | null
+          owner_role_code: string | null
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+          view_permission_code: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_category?: string | null
+          group_code: string
+          group_name: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          is_system_group?: boolean
+          manage_permission_code?: string | null
+          module_code?: string
+          module_name?: string | null
+          owner_role_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          view_permission_code?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_category?: string | null
+          group_code?: string
+          group_name?: string
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          is_system_group?: boolean
+          manage_permission_code?: string | null
+          module_code?: string
+          module_name?: string | null
+          owner_role_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          view_permission_code?: string | null
+        }
+        Relationships: []
+      }
+      core_reference_value: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          group_id: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          is_system: boolean
+          metadata_json: Json | null
+          module_code: string | null
+          sort_order: number
+          status: string
+          updated_at: string
+          updated_by: string | null
+          value_code: string
+          value_description: string | null
+          value_label: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          group_id: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_system?: boolean
+          metadata_json?: Json | null
+          module_code?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          value_code: string
+          value_description?: string | null
+          value_label: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_system?: boolean
+          metadata_json?: Json | null
+          module_code?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          value_code?: string
+          value_description?: string | null
+          value_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_reference_value_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "bn_reference_group"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_reference_value_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "core_reference_group"
             referencedColumns: ["id"]
           },
         ]
@@ -61506,6 +61516,150 @@ export type Database = {
       }
     }
     Views: {
+      bn_reference_group: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          group_category: string | null
+          group_code: string | null
+          group_name: string | null
+          id: string | null
+          is_active: boolean | null
+          is_system: boolean | null
+          is_system_group: boolean | null
+          manage_permission_code: string | null
+          module_code: string | null
+          module_name: string | null
+          owner_role_code: string | null
+          sort_order: number | null
+          updated_at: string | null
+          updated_by: string | null
+          view_permission_code: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          group_category?: string | null
+          group_code?: string | null
+          group_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_system?: boolean | null
+          is_system_group?: boolean | null
+          manage_permission_code?: string | null
+          module_code?: string | null
+          module_name?: string | null
+          owner_role_code?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          view_permission_code?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          group_category?: string | null
+          group_code?: string | null
+          group_name?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_system?: boolean | null
+          is_system_group?: boolean | null
+          manage_permission_code?: string | null
+          module_code?: string | null
+          module_name?: string | null
+          owner_role_code?: string | null
+          sort_order?: number | null
+          updated_at?: string | null
+          updated_by?: string | null
+          view_permission_code?: string | null
+        }
+        Relationships: []
+      }
+      bn_reference_value: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          effective_from: string | null
+          effective_to: string | null
+          group_id: string | null
+          id: string | null
+          is_active: boolean | null
+          is_default: boolean | null
+          is_system: boolean | null
+          metadata_json: Json | null
+          module_code: string | null
+          sort_order: number | null
+          status: string | null
+          updated_at: string | null
+          updated_by: string | null
+          value_code: string | null
+          value_description: string | null
+          value_label: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          group_id?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          is_system?: boolean | null
+          metadata_json?: Json | null
+          module_code?: string | null
+          sort_order?: number | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          value_code?: string | null
+          value_description?: string | null
+          value_label?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          group_id?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_default?: boolean | null
+          is_system?: boolean | null
+          metadata_json?: Json | null
+          module_code?: string | null
+          sort_order?: number | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          value_code?: string | null
+          value_description?: string | null
+          value_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_reference_value_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "bn_reference_group"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_reference_value_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "core_reference_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_rule_catalogue_group_usage: {
         Row: {
           catalogue_rule_id: string | null

@@ -28,8 +28,8 @@ function useChannels() {
     queryKey: ['bn', 'ref', 'BN_APPLICATION_CHANNEL'],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from('bn_reference_value')
-        .select('value_code, value_label, sort_order, group:bn_reference_group!inner(group_code)')
+        .from('core_reference_value')
+        .select('value_code, value_label, sort_order, group:core_reference_group!inner(group_code)')
         .eq('group.group_code', 'BN_APPLICATION_CHANNEL')
         .eq('is_active', true)
         .order('sort_order');

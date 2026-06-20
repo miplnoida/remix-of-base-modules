@@ -1,6 +1,6 @@
 /**
  * Legal Reference Data — module-scoped view over the central
- * bn_reference_group / bn_reference_value tables, filtered to module_code='LEGAL'.
+ * core_reference_group / core_reference_value tables, filtered to module_code='LEGAL'.
  * Path: /legal/config/reference-data
  */
 import ReferenceDataAdmin from '@/pages/bn/config/ReferenceDataAdmin';

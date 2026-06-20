@@ -16,7 +16,7 @@ import {
 export const lgKeys = {
   cases: (f: LgCaseListFilters) => ["lg_case", "list", f] as const,
   case: (id: string) => ["lg_case", "detail", id] as const,
-  ref: (g: string) => ["bn_reference_value", "LEGAL", g] as const,
+  ref: (g: string) => ["core_reference_value", "LEGAL", g] as const,
   notices: (caseId?: string) => ["lg_notice", "list", caseId ?? "all"] as const,
 };
 
