@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, Lock } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, Lock, Plus, UserCheck, CheckCircle2, Gavel } from "lucide-react";
 import { useLgCase } from "@/hooks/legal/useLgCases";
 import { useLgDocumentLinks } from "@/hooks/legal/useLgTemplates";
 import {
@@ -17,12 +17,24 @@ import {
   useCreateAndPostLegalFee,
   useDetectArrangementDefaults,
 } from "@/hooks/legal/useLgFinancials";
+import { useCompleteLgTask } from "@/hooks/legal/useLgWorkflow";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { logLgActivity, listLgActivity } from "@/services/legal/lgAuditService";
 import { useToast } from "@/hooks/use-toast";
+import { useUserCode } from "@/hooks/useUserCode";
+import { HearingOutcomeDialog } from "@/components/legal/HearingOutcomeDialog";
+import { AddPartyDialog } from "@/components/legal/lg/AddPartyDialog";
+import { LinkDocumentDialog } from "@/components/legal/lg/LinkDocumentDialog";
+import { AddSettlementDialog } from "@/components/legal/lg/AddSettlementDialog";
+import { AddOrderDialog } from "@/components/legal/lg/AddOrderDialog";
+import { LinkArrangementDialog } from "@/components/legal/lg/LinkArrangementDialog";
+import { AddTaskDialog } from "@/components/legal/lg/AddTaskDialog";
+import { GenerateNoticeDialog } from "@/components/legal/lg/GenerateNoticeDialog";
+import { AssignOfficerDialog } from "@/components/legal/lg/AssignOfficerDialog";
+
 
 const sb = supabase as any;
 
