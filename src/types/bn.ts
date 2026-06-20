@@ -716,6 +716,12 @@ export interface BnWorkbasket {
   is_active: boolean;
   entered_by: string | null;
   entered_at: string;
+  // SLA / escalation linkage
+  default_escalation_policy_id?: string | null;
+  supervisor_role?: string | null;
+  manager_role?: string | null;
+  allow_auto_reassign?: boolean;
+  escalation_target_basket_id?: string | null;
 }
 
 export interface BnClaimQueueAssignment {
