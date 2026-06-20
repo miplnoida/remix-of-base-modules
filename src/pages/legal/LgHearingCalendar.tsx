@@ -55,10 +55,45 @@ export default function LgHearingCalendar() {
       };
     });
 
-  const upcoming = [...hearings]
-    .filter((h: any) => h.hearing_date && h.hearing_date >= new Date().toISOString().slice(0, 10) && h.status === "SCHEDULED")
-    .sort((a: any, b: any) => (a.hearing_date < b.hearing_date ? -1 : 1))
-    .slice(0, 25);
+  const listRows = useMemo(
+    () => [...hearings].sort((a: any, b: any) => (a.hearing_date < b.hearing_date ? -1 : 1)),
+    [hearings],
+  );
+
+  type Row = any;
+  const hearingColumns: LgColumnDef<Row>[] = useMemo(() => [
+    {
+      accessorKey: "hearing_date", header: "Date", meta: { label: "Date", pinLeft: true, width: 120 },
+      cell: ({ getValue }) => formatDateForDisplay(getValue<string>()),
+    },
+    {
+      id: "days_remaining", header: "Days", meta: { label: "Days Remaining", width: 110 },
+      accessorFn: (r) => r.hearing_date,
+      cell: ({ row }) => {
+        const tone = daysRemainingTone(row.original.hearing_date);
+        const cls = tone === "danger" ? "bg-destructive/10 text-destructive border-destructive/20"
+          : tone === "warn" ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+          : tone === "ok" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+          : "bg-muted text-muted-foreground border-border";
+        return <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium", cls)}>{daysRemainingLabel(row.original.hearing_date)}</span>;
+      },
+    },
+    { accessorKey: "hearing_time", header: "Time", meta: { label: "Time", width: 90 }, cell: ({ getValue }) => getValue<string>() ?? "—" },
+    {
+      id: "case_no", header: "Case", meta: { label: "Case No", width: 150 },
+      accessorFn: (r) => r.lg_case?.lg_case_no ?? "—",
+      cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span>,
+    },
+    { accessorKey: "hearing_type_code", header: "Type", meta: { label: "Type", width: 130 } },
+    {
+      id: "court", header: "Court", meta: { label: "Court", width: 180 },
+      accessorFn: (r) => [r.court_name, r.court_room].filter(Boolean).join(" / ") || "—",
+    },
+    {
+      accessorKey: "status", header: "Status", meta: { label: "Status", width: 130 },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue<string>()} />,
+    },
+  ], []);
 
   return (
     <div className="min-h-screen bg-background p-6">
