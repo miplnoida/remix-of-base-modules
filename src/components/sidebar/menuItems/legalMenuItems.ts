@@ -22,7 +22,7 @@ export const legalMenuItems = [
         icon: Settings,
         description: "Configure Legal module",
         subItems: [
-          { title: "Overview",            url: "/legal/admin",                 icon: Settings,    description: "Admin landing page" },
+          
           { title: "Code Sets",           url: "/legal/admin/codesets",        icon: Code,        description: "Dropdown values and reference data" },
           { title: "Templates",           url: "/legal/admin/templates",       icon: FileText,    description: "Notices, letters and PDFs (Core Templates)" },
           { title: "Complainant Settings",url: "/legal/admin/complainant",     icon: Building2,   description: "Default complainant info" },
