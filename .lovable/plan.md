@@ -1,47 +1,105 @@
+# BN Workflow Templates — Clarify & Channel-Aware Mapping
+
 ## Goal
+Make `bn_workflow_template` an explicit **Benefits wrapper** over the existing workflow engine (`workflow_definitions` / `workflow_steps` / `workflow_instances` / `workflow_tasks`), and let one product version map to **different workflows per channel** (online portal, office-assisted, back-office, paper, API).
 
-Make Country Payment Config a pure **method-capability** screen. Move EFT bank-file mechanics fully behind the Source Account, and reduce the current EFT fields on the country screen to a collapsed legacy-fallback section.
+## 1. Database (single migration)
 
-## Scope
+### 1a. Add channel + executable flag to `bn_workflow_template`
+- `channel_code TEXT` — FK-style reference to `bn_reference_value` group `BN_APPLICATION_CHANNEL` (no enum, no hardcoded list)
+- ensure `workflow_definition_id UUID` exists and is the link to the real engine
+- add `is_executable BOOLEAN GENERATED ALWAYS AS (workflow_definition_id IS NOT NULL) STORED` (or plain column maintained by trigger)
+- index `(channel_code, is_active)`
 
-Frontend + small validation tweaks only. No schema changes — `bn_payment_source_account`, `paymentSourceAccountService`, `eftFileService` precedence (master → source account → country fallback) are already in place.
+### 1b. Seed reference group `BN_APPLICATION_CHANNEL`
+Seed via insert tool (not migration): ONLINE_PORTAL, OFFICE_ASSISTED, BACK_OFFICE, PAPER, API.
 
-## Changes
+### 1c. New table `bn_product_version_workflow`
+```
+product_version_id UUID NOT NULL
+channel_code       TEXT NOT NULL
+workflow_template_id UUID NOT NULL REFERENCES bn_workflow_template
+is_default         BOOLEAN NOT NULL DEFAULT false
+is_active          BOOLEAN NOT NULL DEFAULT true
+effective_from     DATE
+effective_to       DATE
+created_by / updated_by / timestamps
+UNIQUE (product_version_id, channel_code, effective_from)
+```
+Partial unique index: only one `is_default = true` per `(product_version_id)`.
 
-### 1. `src/pages/bn/config/country/CountryPaymentConfig.tsx`
+GRANT SELECT/INSERT/UPDATE/DELETE to `authenticated`; GRANT ALL to `service_role`. RLS stays **off** per project NO-RLS policy.
 
-- **EFT method section** — replace current entry-form fields with a capability summary:
-  - "EFT enabled nationally" (toggle, bound to `is_method_enabled`)
-  - "Requires bank account" (toggle)
-  - Read-only **EFT Source Account status** for the country: pulls `getEftFormatReadiness(country)` and shows `MISSING / PENDING_BANK_SPECIFICATION / DRAFT / READY / RETIRED` as a colored badge, plus the default source account code/name when present.
-  - Warning callout: *"EFT file format is configured against the Social Security funding/source bank account, not on country payment method."*
-  - Primary action button **"Configure EFT Source Account"** → scrolls to / opens `FundingSourceAccountManager` (already mounted on the Country Pack).
-- **Legacy fallback collapsible** — wrap the existing `bank_file_format`, `file_naming_convention`, `file_date_format`, `header/detail/trailer_record_format`, `account_number_rule`, `routing_number_rule`, `bank_code`, and preset picker inside a `<Collapsible>` titled **"Legacy fallback EFT format (advanced)"**, default closed, with help text: *"Used only if no active EFT source account or master EFT format exists. Not recommended for production bank submission."*
-- **Validation** — relax `validateConfig` for EFT: stop requiring `bank_file_format` / record formats at the country level. Keep `requires_bank_account = true` as the only EFT capability rule. Cheque/Cash/Mobile/Card/Money Order/Wire rules unchanged.
-- Remove the `FileCode` preset apply path from the visible UI (it stays inside the collapsed legacy section).
+### 1d. Keep legacy `bn_product_version.workflow_template_id`
+Treated as the **product-level fallback** only. No drop in this round (safe migration).
 
-### 2. New small hook/usage
+## 2. Runtime resolution
 
-Inside the page, add a `useQuery` (key `['bn','eft-readiness', countryCode]`) calling `getEftFormatReadiness` from `paymentSourceAccountService` to drive the EFT status badge. No new service file.
+New service `src/services/bn/workflow/resolveProductWorkflow.ts`:
 
-### 3. EFT batch validation (verify only)
+```text
+input:  product_version_id, channel_code
+order:
+  1. bn_product_version_workflow active for (product_version_id, channel_code) within effective dates
+  2. bn_product_version_workflow active where is_default = true
+  3. bn_product_version.workflow_template_id (legacy fallback)
+output: { workflowTemplate, workflowDefinitionId, source }
+```
 
-Confirm `payableValidationService` / `eftFileService` already block batch generation when `format_status !== 'READY'`. If the block is missing, tighten the existing check in `eftFileService.resolveEftFormat` to throw when source account exists but is not `READY` and no master format/`batch.eft_format_code` is set. No new tables.
+Wire into:
+- `claimIntakeService.ts` — when creating claim/application, resolve before instantiating a workflow_instance
+- `intakeReadinessService.ts` — surface "no workflow for channel" as a readiness error
 
-### 4. SKN seed
+## 3. UI
 
-Keep current seed as-is — already matches the spec (EFT enabled+default+requires_bank_account; CHEQUE enabled; CASH/MOBILE/CARD/MONEY_ORDER/WIRE disabled; matrix WEEKLY/MONTHLY/ONE_OFF/AD_HOC enabled for EFT+CHEQUE; no fabricated bank format). No migration needed unless verification finds drift — then a single data-only `supabase--insert` to null out stale `bank_file_format` on the SKN EFT row.
+### 3a. Workflow Template editor (`WorkflowTemplateEditor.tsx`)
+- Channel dropdown (from `BN_APPLICATION_CHANNEL` reference group)
+- Linked workflow definition picker (`workflow_definitions`)
+- Read-only **Steps Preview** pulled from `workflow_steps` of the linked definition
+- "BN Overrides" section kept separate (existing `steps_config`, `sla_config`, `escalation_config`)
+- Badge: Executable / Not executable (based on workflow_definition_id presence)
 
-## Out of scope
+### 3b. Product Workflow tab (`WorkflowTab.tsx`)
+Replace single workflow_template_id picker with a **channel mapping grid**:
+```
+Channel | Workflow Template | Default | Active | Effective From | Effective To | actions
+```
+- Add row, edit, delete, toggle default/active
+- Validation: at least one row marked default; warn if a channel enabled on the product has no workflow
 
-- No changes to `bn_country_payment_config` schema.
-- No changes to `FundingSourceAccountManager` UI itself.
-- Cheque/Cash/Mobile/Card/MoneyOrder/Wire sections stay as they are.
-- Product Catalog already reads from `v_bn_product_effective_payment_config` (country-enabled ∩ cycle-available); no changes needed.
+## 4. Validation (config validation service)
+Add checks in `configurationValidationService.ts`:
+- WARN if `bn_workflow_template.workflow_definition_id` is null
+- ERROR if product version has no default workflow mapping AND no legacy `workflow_template_id`
+- WARN if a product channel is enabled but no mapping exists for it
+- ERROR if a workflow step has no `workbasket_id` or `assigned_role`
+- WARN if active product references an inactive workflow template
+
+## 5. Escalation/workbasket linkage (no schema change)
+Already implemented earlier (step → workbasket → product fallback). Just confirm `resolveProductWorkflow` returns the template whose steps already carry workbasket/escalation overrides.
+
+## 6. Out of scope (this round)
+- Dropping `bn_product_version.workflow_template_id` — kept as fallback
+- Migrating existing product rows into `bn_product_version_workflow` — handled by a follow-up data backfill task
+- Channel-specific step library (online vs office vs paper canned templates) — listed in docs only
+
+## Technical details
+- Files to add:
+  - `supabase/migrations/<new>.sql`
+  - `src/services/bn/workflow/resolveProductWorkflow.ts`
+  - `src/components/bn/config/ProductWorkflowChannelGrid.tsx`
+- Files to edit:
+  - `src/components/bn/config/WorkflowTab.tsx` (grid replaces single picker)
+  - `src/pages/bn/config/WorkflowTemplateEditor.tsx` (channel + steps preview + executable badge)
+  - `src/services/bn/intake/claimIntakeService.ts` (use resolver)
+  - `src/services/bn/intake/intakeReadinessService.ts` (surface missing-channel-workflow)
+  - `src/services/bn/configurationValidationService.ts` (new checks)
+  - `src/types/bn.ts` (channel_code, mapping row type)
+- Seed: insert `BN_APPLICATION_CHANNEL` reference values via insert tool after migration.
 
 ## Acceptance
-
-- Country Payment Config EFT tab shows capability + source-account readiness, not bank-file entry fields.
-- Legacy EFT fields exist but are collapsed and labeled fallback.
-- EFT batch generation fails when source account isn't `READY` and no master format is bound.
+- `bn_workflow_template` clearly shows channel + linked workflow_definition + executable badge.
+- Product Workflow tab shows per-channel grid; default + active are explicit.
+- Claim/application intake resolves workflow by (product_version, channel) with documented fallback order.
+- Validation warns on the gaps listed in §4.
 - TypeScript build passes.
