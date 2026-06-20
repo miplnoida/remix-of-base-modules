@@ -72,6 +72,7 @@ export default function LgHearingCalendar() {
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2"><Label className="text-sm">My hearings only</Label><Switch checked={scopeMine} onCheckedChange={setScopeMine} /></div>
+            <AddHearingButton disabled={!access.can("addHearing")} onCreate={(caseId) => { setCreateCaseId(caseId); setMode("create"); setSelected(null); setOutcomeOpen(true); }} />
             <Button onClick={() => navigate("/legal/lg/dashboard")} variant="outline">Dashboard</Button>
           </div>
         </div>
@@ -97,6 +98,7 @@ export default function LgHearingCalendar() {
                     views={["month", "week", "day", "agenda"]}
                     onSelectEvent={(e: any) => {
                       setSelected(e.resource);
+                      setMode("outcome");
                       setOutcomeOpen(true);
                     }}
                   />
@@ -126,7 +128,7 @@ export default function LgHearingCalendar() {
                       <TableCell><Badge variant="outline">{h.status}</Badge></TableCell>
                       <TableCell className="text-right space-x-1">
                         <Button size="sm" variant="ghost" onClick={() => navigate(`/legal/lg/cases/${h.lg_case_id}`)}>Case</Button>
-                        <Button size="sm" onClick={() => { setSelected(h); setOutcomeOpen(true); }}>
+                        <Button size="sm" onClick={() => { setSelected(h); setMode("outcome"); setOutcomeOpen(true); }}>
                           <Gavel className="h-4 w-4 mr-1" /> Outcome
                         </Button>
                       </TableCell>
@@ -143,8 +145,40 @@ export default function LgHearingCalendar() {
         open={outcomeOpen}
         onOpenChange={setOutcomeOpen}
         hearing={selected}
-        mode="outcome"
+        lgCaseId={mode === "create" ? createCaseId : undefined}
+        mode={mode}
       />
     </div>
   );
 }
+
+function AddHearingButton({ disabled, onCreate }: { disabled?: boolean; onCreate: (caseId: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [caseId, setCaseId] = useState("");
+  const { data: cases = [] } = useLgCases({});
+
+  return (
+    <>
+      <Button onClick={() => setOpen(true)} disabled={disabled} title={disabled ? "You do not have permission to schedule hearings" : undefined}>
+        <Plus className="h-4 w-4 mr-1" /> Add Hearing
+      </Button>
+      {open && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center" onClick={() => setOpen(false)}>
+          <div className="bg-background rounded-lg p-6 w-full max-w-md space-y-3" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold">Select Case</h3>
+            <p className="text-xs text-muted-foreground">Pick the case to schedule a hearing for.</p>
+            <select className="w-full border rounded h-9 px-2 bg-background" value={caseId} onChange={(e) => setCaseId(e.target.value)}>
+              <option value="">Select…</option>
+              {cases.map((c) => <option key={c.id} value={c.id}>{c.lg_case_no} · {c.case_type_code}</option>)}
+            </select>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+              <Button disabled={!caseId} onClick={() => { onCreate(caseId); setOpen(false); setCaseId(""); }}>Next</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
