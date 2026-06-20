@@ -237,12 +237,15 @@ const LgCaseDetail: React.FC = () => {
               <UserCheck className="h-4 w-4 mr-1" /> Assign Officer
             </Button>
             <Button
-              size="sm"
+              size="icon"
               variant="outline"
+              className="h-8 w-8"
               onClick={() => navigate(`/legal/case-edit/${id}`)}
               disabled={!access.can("editCase")}
-              title={!access.can("editCase") ? "Read-only role" : undefined}
-            >Edit</Button>
+              title={!access.can("editCase") ? "Read-only role" : "Edit case"}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </div>
 

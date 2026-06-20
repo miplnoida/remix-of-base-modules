@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Plus, Save, Lock } from "lucide-react";
+import { Loader2, Plus, Save, Lock, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useUserCode } from "@/hooks/useUserCode";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
