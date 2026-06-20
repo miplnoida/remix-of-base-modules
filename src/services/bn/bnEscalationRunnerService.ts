@@ -16,7 +16,7 @@
  *   - bn_external_task (employer/doctor/claimant external tasks)
  *   - bn_claim_queue_assignment (internal workflow tasks routed via workbasket)
  *   - bn_override_request (pending override review)
- *   - bn_payment_batch (pending payment approval/preparation)
+ *   - bn_override_request (pending override review)
  *
  * Side effects per fire:
  *   - inserts bn_escalation_event
