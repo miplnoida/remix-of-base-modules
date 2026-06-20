@@ -66216,6 +66216,68 @@ export type Database = {
         }
         Returns: undefined
       }
+      core_resolve_template: {
+        Args: { p_code: string; p_country?: string }
+        Returns: {
+          active_version_id: string | null
+          category_id: string | null
+          code: string
+          country_code: string
+          created_at: string
+          created_by: string | null
+          default_layout_id: string | null
+          description: string | null
+          id: string
+          institution_code: string
+          is_active: boolean
+          module_code: string
+          module_name: string | null
+          name: string
+          owning_department: string | null
+          parent_template_id: string | null
+          scope: string
+          source_ref_id: string | null
+          source_system: string
+          status: string
+          tags: string[] | null
+          template_category: string | null
+          template_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "core_template"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      core_resolve_template_version: {
+        Args: { p_code: string; p_country?: string }
+        Returns: {
+          body_html: string | null
+          body_text: string | null
+          change_summary: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          layout_id: string | null
+          published_at: string | null
+          published_by: string | null
+          status: string
+          subject: string | null
+          template_id: string
+          updated_at: string
+          updated_by: string | null
+          version_no: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "core_template_version"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_c3_config_period: {
         Args: {
           p_description?: string
