@@ -49,6 +49,11 @@ export async function createLgHearing(input: Omit<LgHearingInsert, "scheduled_at
     .select("*")
     .single();
   if (error) throw error;
+  // Fire-and-forget: auto-apply fees mapped to HEARING_SCHEDULED
+  try {
+    const { autoApplyForEvent } = await import("@/services/legal/lgFeeEngineService");
+    if (data.lg_case_id) autoApplyForEvent(data.lg_case_id, "HEARING_SCHEDULED", (input as any).created_by ?? null).catch(() => {});
+  } catch { /* non-blocking */ }
   return data;
 }
 
