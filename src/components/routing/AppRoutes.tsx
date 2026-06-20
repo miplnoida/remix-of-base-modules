@@ -718,6 +718,7 @@ const LegalEvidenceManagement = lazy(() => import('@/pages/legal/EvidenceManagem
 const LegalReports = lazy(() => import('@/pages/legal/LegalReports'));
 const LegalReportsAnalytics = lazy(() => import('@/pages/legal/ReportsAnalytics'));
 const LegalAdminConfig = lazy(() => import('@/pages/legal/AdminConfig'));
+const LgFeeConfig = lazy(() => import('@/pages/legal/LgFeeConfig'));
 const CaseWorkflow = lazy(() => import('@/pages/legal/settings/CaseWorkflow'));
 
 // LegalFinal Module pages
