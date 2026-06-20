@@ -414,6 +414,15 @@ export const LegalReferenceManagement: React.FC<LegalReferenceManagementProps> =
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {versionsTarget && (
+        <VersionHistoryDialog
+          open={versionsOpen}
+          onOpenChange={(o) => { setVersionsOpen(o); if (!o) setVersionsTarget(null); }}
+          masterId={versionsTarget.id}
+          masterCode={versionsTarget.code}
+        />
+      )}
     </div>
   );
 };
