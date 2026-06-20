@@ -532,7 +532,7 @@ export default function AdminConfig() {
                     type="tel"
                     value={complainantData.phone}
                     onChange={(e) => setComplainantData({ ...complainantData, phone: e.target.value })}
-                    placeholder="+501-XXX-XXXX"
+                    placeholder="+1 (869) XXX-XXXX"
                   />
                 </div>
               </div>
