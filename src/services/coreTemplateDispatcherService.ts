@@ -115,6 +115,9 @@ export const coreTemplateDispatcherService = {
         delivery_status,
         recipient_address: input.recipient_address || null,
         content_hash,
+        case_stage_code: input.case_stage_code ?? null,
+        case_type_code: input.case_type_code ?? null,
+        legal_reference_version_id: primary?.legal_reference_version_id ?? null,
       }).select("*").single();
     if (error) throw error;
 
