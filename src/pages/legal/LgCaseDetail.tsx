@@ -445,11 +445,16 @@ const LgCaseDetail: React.FC = () => {
           {/* Arrangement */}
           <TabsContent value="arrangement">
             <Card><CardHeader>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center gap-2 flex-wrap">
                 <div><CardTitle>Payment Arrangement</CardTitle><CardDescription>Referenced from Compliance — not duplicated.</CardDescription></div>
-                <Button size="sm" variant="outline" disabled={!id || detectDefaults.isPending} onClick={() => detectDefaults.mutate(id!)}>
-                  Re-check defaults
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" disabled={!id || detectDefaults.isPending} onClick={() => detectDefaults.mutate(id!)}>
+                    Re-check defaults
+                  </Button>
+                  <Button size="sm" onClick={() => setArrangementOpen(true)} disabled={!access.can("editCase")}>
+                    <Plus className="h-4 w-4 mr-1" /> Link Arrangement
+                  </Button>
+                </div>
               </div>
             </CardHeader><CardContent className="space-y-4">
               {arrangementLinks.data?.length ? arrangementLinks.data.map((l) => (
