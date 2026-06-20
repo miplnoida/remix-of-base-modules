@@ -593,7 +593,13 @@ function TemplateFormDialog({
               </div>
             )}
           </div>
+          {template && (template.module_code === "LEGAL" || form.module_code === "LEGAL") && (
+            <div className="col-span-2">
+              <TemplateLegalReferencesPanel templateId={template.id} countryCode={template.country_code || "KN"} />
+            </div>
+          )}
         </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button onClick={save} disabled={saving}>
