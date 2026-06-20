@@ -28,7 +28,16 @@ import {
   type BnReferenceGroup, type BnReferenceValue,
 } from '@/services/bn/referenceDataService';
 
-export default function ReferenceDataAdmin() {
+interface ReferenceDataAdminProps {
+  /** Restrict groups to specific module code(s). Undefined = all. */
+  moduleCode?: string | string[];
+  /** Default module_code for newly-created groups. */
+  defaultNewModule?: string;
+  title?: string;
+  description?: string;
+}
+
+export default function ReferenceDataAdmin({ moduleCode, defaultNewModule = 'BN', title, description }: ReferenceDataAdminProps = {}) {
   const { profile } = useSupabaseAuth();
   const userCode = profile?.user_code ?? profile?.email ?? 'system';
 
@@ -40,14 +49,15 @@ export default function ReferenceDataAdmin() {
   const [editValue, setEditValue] = useState<Partial<BnReferenceValue> | null>(null);
   const [editGroup, setEditGroup] = useState<Partial<BnReferenceGroup> | null>(null);
   const [search, setSearch] = useState('');
+  const [moduleFilter, setModuleFilter] = useState<string>('ALL');
 
-  useEffect(() => { void loadGroups(); }, []);
+  useEffect(() => { void loadGroups(); }, [moduleCode]);
   useEffect(() => { if (selectedGroupId) void loadValues(selectedGroupId); }, [selectedGroupId]);
 
   async function loadGroups() {
     try {
       setLoading(true);
-      const g = await listReferenceGroups();
+      const g = await listReferenceGroups({ moduleCode });
       setGroups(g);
       if (!selectedGroupId && g.length) setSelectedGroupId(g[0].id);
     } catch (e: any) {
