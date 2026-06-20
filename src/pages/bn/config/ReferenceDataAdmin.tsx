@@ -75,12 +75,15 @@ export default function ReferenceDataAdmin({ moduleCode, defaultNewModule = 'BN'
   }
 
   const selectedGroup = useMemo(() => groups.find((g) => g.id === selectedGroupId) ?? null, [groups, selectedGroupId]);
+  const availableModules = useMemo(() => Array.from(new Set(groups.map((g) => g.module_code))).sort(), [groups]);
   const filteredGroups = useMemo(() => {
     const s = search.trim().toLowerCase();
-    if (!s) return groups;
-    return groups.filter((g) =>
-      g.group_code.toLowerCase().includes(s) || g.group_name.toLowerCase().includes(s));
-  }, [groups, search]);
+    return groups.filter((g) => {
+      if (moduleFilter !== 'ALL' && g.module_code !== moduleFilter) return false;
+      if (!s) return true;
+      return g.group_code.toLowerCase().includes(s) || g.group_name.toLowerCase().includes(s);
+    });
+  }, [groups, search, moduleFilter]);
 
   async function handleSaveValue() {
     if (!editValue || !selectedGroupId) return;
