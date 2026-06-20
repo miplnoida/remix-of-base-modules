@@ -66,22 +66,10 @@ export const legalMenuItems = [
         description: "Configure code sets, templates, and integrations"
       },
       {
-        title: "Settings",
-        icon: Settings,
-        subItems: [
-          {
-            title: "Templates (Legacy)",
-            url: "/legal/templates",
-            icon: FileText,
-            description: "Manage legal notification templates"
-          },
-          {
-            title: "Core Templates",
-            url: "/legal/admin/templates",
-            icon: FileText,
-            description: "Manage Legal letters, notices and PDFs (core framework)"
-          }
-        ]
+        title: "Templates",
+        url: "/legal/admin/templates",
+        icon: FileText,
+        description: "Manage Legal notices, letters and PDFs (Core Template framework)"
       }
     ]
   }
