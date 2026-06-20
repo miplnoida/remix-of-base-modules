@@ -1,12 +1,8 @@
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, Search, Filter, Eye, DollarSign } from "lucide-react";
-import { useState } from "react";
+import { FileText, DollarSign } from "lucide-react";
+import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from "@/components/legal/grid";
 
 interface LegalSubcase {
   subcaseId: string;
@@ -52,7 +48,7 @@ const mockSubcases: LegalSubcase[] = [
     outstanding: 84000,
     lastHearingDate: "2024-11-15",
     nextHearingDate: "2024-12-10",
-    assignedOfficer: "Officer Smith"
+    assignedOfficer: "Officer Smith",
   },
   {
     subcaseId: "SUB-002",
@@ -74,7 +70,7 @@ const mockSubcases: LegalSubcase[] = [
     outstanding: 53900,
     lastHearingDate: "",
     nextHearingDate: "2024-12-05",
-    assignedOfficer: "Officer Johnson"
+    assignedOfficer: "Officer Johnson",
   },
   {
     subcaseId: "SUB-003",
@@ -96,29 +92,69 @@ const mockSubcases: LegalSubcase[] = [
     outstanding: 15300,
     lastHearingDate: "2024-10-20",
     nextHearingDate: "",
-    assignedOfficer: "Officer Williams"
-  }
+    assignedOfficer: "Officer Williams",
+  },
+];
+
+const STATUSES = [
+  "Filed - Awaiting Hearing",
+  "Judgment Obtained",
+  "Enforcement - Garnishment",
+  "Enforcement - Writ",
+  "Closed",
 ];
 
 const LegalWorkbench = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterTerritory, setFilterTerritory] = useState<string>("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterTerritory, setFilterTerritory] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
 
-  const filteredSubcases = mockSubcases.filter(subcase => {
-    const matchesSearch = 
-      subcase.caseNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subcase.partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subcase.courtCaseNo.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesTerritory = filterTerritory === "all" || subcase.territory === filterTerritory;
-    const matchesStatus = filterStatus === "all" || subcase.legalStatus === filterStatus;
-    
-    return matchesSearch && matchesTerritory && matchesStatus;
-  });
+  const filteredSubcases = useMemo(
+    () =>
+      mockSubcases.filter((s) => {
+        if (filterTerritory && s.territory !== filterTerritory) return false;
+        if (filterStatus && s.legalStatus !== filterStatus) return false;
+        return true;
+      }),
+    [filterTerritory, filterStatus],
+  );
 
-  const totalOutstanding = filteredSubcases.reduce((sum, sub) => sum + sub.outstanding, 0);
-  const totalCases = filteredSubcases.length;
+  const totalOutstanding = filteredSubcases.reduce((sum, s) => sum + s.outstanding, 0);
+
+  const summary = useMemo(() => [
+    { label: "Total Cases", value: filteredSubcases.length, tone: "default" as const },
+    { label: "Outstanding", value: `EC$${totalOutstanding.toLocaleString()}`, tone: "danger" as const },
+    { label: "St Kitts", value: mockSubcases.filter((s) => s.territory === "St Kitts").length, tone: "info" as const },
+    { label: "Nevis", value: mockSubcases.filter((s) => s.territory === "Nevis").length, tone: "muted" as const },
+  ], [filteredSubcases, totalOutstanding]);
+
+  const columns: LgColumnDef<LegalSubcase>[] = useMemo(() => [
+    { accessorKey: "caseNumber", header: "Case Number", meta: { label: "Case Number", pinLeft: true, width: 170 } },
+    {
+      accessorKey: "partyName", header: "Party", meta: { label: "Party", width: 200 },
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.partyName}</div>
+          <div className="text-xs text-muted-foreground">{row.original.partyType}</div>
+        </div>
+      ),
+    },
+    { accessorKey: "subcaseType", header: "Type", meta: { label: "Type", width: 190 } },
+    { accessorKey: "territory", header: "Territory", meta: { label: "Territory", width: 110 } },
+    { accessorKey: "courtCaseNo", header: "Court Case No.", meta: { label: "Court Case No.", width: 140 } },
+    {
+      accessorKey: "legalStatus", header: "Legal Status", meta: { label: "Legal Status", width: 200 },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue<string>().replace(/\s+/g, "_").toUpperCase()} label={getValue<string>()} />,
+    },
+    {
+      accessorKey: "outstanding", header: "Outstanding", meta: { label: "Outstanding", align: "right", width: 140 },
+      cell: ({ getValue }) => `EC$${getValue<number>().toLocaleString()}`,
+    },
+    {
+      accessorKey: "nextHearingDate", header: "Next Hearing", meta: { label: "Next Hearing", width: 130 },
+      cell: ({ getValue }) => getValue<string>() || <span className="text-muted-foreground">—</span>,
+    },
+    { accessorKey: "assignedOfficer", header: "Officer", meta: { label: "Officer", width: 150 } },
+  ], []);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -127,7 +163,7 @@ const LegalWorkbench = () => {
         subtitle="Manage all legal subcases and enforcement actions"
         breadcrumbs={[
           { label: "Legal Management", href: "/legal/dashboard" },
-          { label: "Legal Workbench" }
+          { label: "Legal Workbench" },
         ]}
       />
 
@@ -139,11 +175,10 @@ const LegalWorkbench = () => {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalCases}</div>
+            <div className="text-2xl font-bold">{filteredSubcases.length}</div>
             <p className="text-xs text-muted-foreground">Active legal subcases</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Outstanding</CardTitle>
@@ -154,151 +189,52 @@ const LegalWorkbench = () => {
             <p className="text-xs text-muted-foreground">Across all legal cases</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">St Kitts</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {mockSubcases.filter(s => s.territory === "St Kitts").length}
-            </div>
+            <div className="text-2xl font-bold">{mockSubcases.filter((s) => s.territory === "St Kitts").length}</div>
             <p className="text-xs text-muted-foreground">Active cases</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Nevis</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {mockSubcases.filter(s => s.territory === "Nevis").length}
-            </div>
+            <div className="text-2xl font-bold">{mockSubcases.filter((s) => s.territory === "Nevis").length}</div>
             <p className="text-xs text-muted-foreground">Active cases</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Filter Legal Subcases</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search case number, party, court case..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            <Select value={filterTerritory} onValueChange={setFilterTerritory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Territory" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Territories</SelectItem>
-                <SelectItem value="St Kitts">St Kitts</SelectItem>
-                <SelectItem value="Nevis">Nevis</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger>
-                <SelectValue placeholder="Legal Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="Filed - Awaiting Hearing">Filed - Awaiting Hearing</SelectItem>
-                <SelectItem value="Judgment Obtained">Judgment Obtained</SelectItem>
-                <SelectItem value="Enforcement - Garnishment">Enforcement - Garnishment</SelectItem>
-                <SelectItem value="Enforcement - Writ">Enforcement - Writ</SelectItem>
-                <SelectItem value="Closed">Closed</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button variant="outline">
-              <Filter className="h-4 w-4 mr-2" />
-              More Filters
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Legal Subcases Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Legal Subcases ({filteredSubcases.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Case Number</TableHead>
-                  <TableHead>Party</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Territory</TableHead>
-                  <TableHead>Court Case No.</TableHead>
-                  <TableHead>Legal Status</TableHead>
-                  <TableHead className="text-right">Outstanding</TableHead>
-                  <TableHead>Next Hearing</TableHead>
-                  <TableHead>Officer</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSubcases.map((subcase) => (
-                  <TableRow key={subcase.subcaseId}>
-                    <TableCell className="font-medium">{subcase.caseNumber}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{subcase.partyName}</div>
-                        <div className="text-xs text-muted-foreground">{subcase.partyType}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{subcase.subcaseType}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{subcase.territory}</Badge>
-                    </TableCell>
-                    <TableCell>{subcase.courtCaseNo}</TableCell>
-                    <TableCell>
-                      <Badge 
-                        variant={
-                          subcase.legalStatus === "Judgment Obtained" ? "default" :
-                          subcase.legalStatus === "Filed - Awaiting Hearing" ? "secondary" :
-                          "destructive"
-                        }
-                      >
-                        {subcase.legalStatus}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      EC${subcase.outstanding.toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      {subcase.nextHearingDate || <span className="text-muted-foreground">-</span>}
-                    </TableCell>
-                    <TableCell>{subcase.assignedOfficer}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      <LgDataGrid
+        id="lg.workbench"
+        columns={columns}
+        data={filteredSubcases}
+        getRowId={(r) => r.subcaseId}
+        searchPlaceholder="Search case number, party, court case…"
+        summary={summary}
+        defaultSort={[{ id: "nextHearingDate", desc: false }]}
+        toolbarFilters={[
+          {
+            key: "territory", label: "Territory", value: filterTerritory, onChange: setFilterTerritory,
+            options: ["St Kitts", "Nevis"].map((v) => ({ value: v, label: v })),
+          },
+          {
+            key: "status", label: "Legal Status", value: filterStatus, onChange: setFilterStatus,
+            options: STATUSES.map((v) => ({ value: v, label: v })),
+          },
+        ]}
+        rowActions={buildLgRowActions<LegalSubcase>({
+          onView: (r) => console.log("View subcase", r.subcaseId),
+        })}
+        emptyMessage="No legal subcases match the current filters."
+        exportFilename="legal-workbench"
+      />
     </div>
   );
 };
