@@ -314,7 +314,10 @@ export default function CoreTemplateManagement({
                             <Button size="icon" variant="ghost" className="h-8 w-8" title="Preview" onClick={() => openPreview(t)}>
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit" disabled={isLegacy} onClick={() => setEditing(t)}>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit" disabled={isLegacy} onClick={() => {
+                              if ((fixedModuleCode || t.module_code) === "LEGAL") navigate(`/legal/admin/templates/${t.id}/edit`);
+                              else setEditing(t);
+                            }}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             <Button size="icon" variant="ghost" className="h-8 w-8" title="Clone" onClick={() => handleClone(t)}>
