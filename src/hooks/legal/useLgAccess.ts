@@ -189,7 +189,7 @@ export function useLgAccess() {
     }
 
     const caps = new Set<LgCapability>();
-    typeSet.forEach((t) => BASE_MATRIX[t]?.forEach((c) => caps.add(c)));
+    typeSet.forEach((t) => LG_BASE_MATRIX[t]?.forEach((c) => caps.add(c)));
 
     // Map back to legacy LgRole strings for callers that still import them
     const legacyRoles: LgRole[] = [];
