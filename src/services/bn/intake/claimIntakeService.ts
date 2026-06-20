@@ -145,15 +145,14 @@ export async function submitClaimApplication(
           cfg?.workflow_definition_id ?? cfg?.workflow_template_id ?? null;
         workbasketId = workbasketId ?? cfg?.workbasket_id ?? null;
 
-        // Version-level fallback
+        // Channel-aware product workflow mapping (per-channel → default → legacy)
         if (!workflowDefinitionId) {
-          const { data: ver } = await db
-            .from('bn_product_version')
-            .select('workflow_template_id')
-            .eq('id', productVersionId)
-            .maybeSingle();
+          const { resolveProductWorkflow } = await import(
+            '@/services/bn/workflow/resolveProductWorkflow'
+          );
+          const resolved = await resolveProductWorkflow(productVersionId, channelCode);
           workflowDefinitionId =
-            (ver as any)?.workflow_template_id ?? null;
+            resolved.workflowDefinitionId ?? resolved.workflowTemplateId ?? null;
         }
       }
 
