@@ -545,6 +545,22 @@ function TemplateFormDialog({
           <div className="col-span-2">
             <Label>Body (HTML, supports {`{{tokens}}`})</Label>
             <Textarea rows={8} value={body} onChange={(e) => setBody(e.target.value)} />
+            {tokens.length > 0 && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                <div className="mb-1">Available tokens (click to copy):</div>
+                <div className="flex flex-wrap gap-1 max-h-24 overflow-auto">
+                  {tokens.map((tk) => (
+                    <button
+                      key={tk.id}
+                      type="button"
+                      className="font-mono px-1.5 py-0.5 rounded bg-muted hover:bg-accent text-[10px]"
+                      onClick={() => navigator.clipboard.writeText(`{{${tk.token_code}}}`)}
+                      title={tk.token_label}
+                    >{`{{${tk.token_code}}}`}</button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
         <DialogFooter>
