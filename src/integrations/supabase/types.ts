@@ -50601,9 +50601,104 @@ export type Database = {
           },
         ]
       }
+      lg_fee_bundle: {
+        Row: {
+          bundle_code: string
+          bundle_name: string
+          case_type_code: string | null
+          country_code: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          stage_code: string | null
+          status: string
+          trigger_event: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bundle_code: string
+          bundle_name: string
+          case_type_code?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          stage_code?: string | null
+          status?: string
+          trigger_event?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bundle_code?: string
+          bundle_name?: string
+          case_type_code?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          stage_code?: string | null
+          status?: string
+          trigger_event?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      lg_fee_bundle_item: {
+        Row: {
+          allow_waiver: boolean
+          bundle_id: string
+          created_at: string
+          fee_rule_id: string
+          id: string
+          mandatory: boolean
+          sequence_no: number
+        }
+        Insert: {
+          allow_waiver?: boolean
+          bundle_id: string
+          created_at?: string
+          fee_rule_id: string
+          id?: string
+          mandatory?: boolean
+          sequence_no?: number
+        }
+        Update: {
+          allow_waiver?: boolean
+          bundle_id?: string
+          created_at?: string
+          fee_rule_id?: string
+          id?: string
+          mandatory?: boolean
+          sequence_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_fee_bundle_item_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "lg_fee_bundle"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_fee_bundle_item_fee_rule_id_fkey"
+            columns: ["fee_rule_id"]
+            isOneToOne: false
+            referencedRelation: "lg_fee_rule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_fee_charge: {
         Row: {
           amount: number
+          auto_applied: boolean
+          calculated_amount: number | null
           charge_date: string
           charge_reason: string | null
           created_at: string
@@ -50612,18 +50707,29 @@ export type Database = {
           description: string | null
           employer_account_id: string | null
           employer_account_transaction_id: number | null
+          fee_bundle_id: string | null
           fee_head_code: string | null
           fee_head_ref_id: string | null
+          fee_rule_id: string | null
           id: string
+          idempotency_key: string | null
+          ledger_entry_id: string | null
           lg_case_id: string
+          manual_override_reason: string | null
+          net_amount: number | null
           posted_at: string | null
           posted_by: string | null
           posted_invoice_ref_id: string | null
           posting_status: string
+          source_event: string | null
           status: string
+          waived_amount: number
+          waiver_status: string
         }
         Insert: {
           amount: number
+          auto_applied?: boolean
+          calculated_amount?: number | null
           charge_date?: string
           charge_reason?: string | null
           created_at?: string
@@ -50632,18 +50738,29 @@ export type Database = {
           description?: string | null
           employer_account_id?: string | null
           employer_account_transaction_id?: number | null
+          fee_bundle_id?: string | null
           fee_head_code?: string | null
           fee_head_ref_id?: string | null
+          fee_rule_id?: string | null
           id?: string
+          idempotency_key?: string | null
+          ledger_entry_id?: string | null
           lg_case_id: string
+          manual_override_reason?: string | null
+          net_amount?: number | null
           posted_at?: string | null
           posted_by?: string | null
           posted_invoice_ref_id?: string | null
           posting_status?: string
+          source_event?: string | null
           status?: string
+          waived_amount?: number
+          waiver_status?: string
         }
         Update: {
           amount?: number
+          auto_applied?: boolean
+          calculated_amount?: number | null
           charge_date?: string
           charge_reason?: string | null
           created_at?: string
@@ -50652,23 +50769,262 @@ export type Database = {
           description?: string | null
           employer_account_id?: string | null
           employer_account_transaction_id?: number | null
+          fee_bundle_id?: string | null
           fee_head_code?: string | null
           fee_head_ref_id?: string | null
+          fee_rule_id?: string | null
           id?: string
+          idempotency_key?: string | null
+          ledger_entry_id?: string | null
           lg_case_id?: string
+          manual_override_reason?: string | null
+          net_amount?: number | null
           posted_at?: string | null
           posted_by?: string | null
           posted_invoice_ref_id?: string | null
           posting_status?: string
+          source_event?: string | null
           status?: string
+          waived_amount?: number
+          waiver_status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lg_fee_charge_fee_bundle_id_fkey"
+            columns: ["fee_bundle_id"]
+            isOneToOne: false
+            referencedRelation: "lg_fee_bundle"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_fee_charge_fee_rule_id_fkey"
+            columns: ["fee_rule_id"]
+            isOneToOne: false
+            referencedRelation: "lg_fee_rule"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_fee_charge_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_financial_ledger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_fee_charge_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["original_entry_id"]
+          },
+          {
+            foreignKeyName: "lg_fee_charge_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["reversal_entry_id"]
+          },
+          {
+            foreignKeyName: "lg_fee_charge_ledger_entry_id_fkey"
+            columns: ["ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_unobserved_payment_entries"
+            referencedColumns: ["ledger_entry_id"]
+          },
           {
             foreignKeyName: "lg_fee_charge_lg_case_id_fkey"
             columns: ["lg_case_id"]
             isOneToOne: false
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_fee_rule: {
+        Row: {
+          allow_waiver: boolean
+          auto_apply: boolean
+          base_variable: string | null
+          calculation_type: string
+          case_type_code: string | null
+          country_code: string | null
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          event_code: string | null
+          fee_head_code: string | null
+          fee_head_id: string | null
+          fee_rule_code: string
+          fee_rule_name: string
+          fixed_amount: number | null
+          formula_code: string | null
+          id: string
+          max_amount: number | null
+          min_amount: number | null
+          notes: string | null
+          percentage_rate: number | null
+          stage_code: string | null
+          status: string
+          tier_config_json: Json | null
+          updated_at: string
+          updated_by: string | null
+          waiver_requires_approval: boolean
+        }
+        Insert: {
+          allow_waiver?: boolean
+          auto_apply?: boolean
+          base_variable?: string | null
+          calculation_type?: string
+          case_type_code?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          event_code?: string | null
+          fee_head_code?: string | null
+          fee_head_id?: string | null
+          fee_rule_code: string
+          fee_rule_name: string
+          fixed_amount?: number | null
+          formula_code?: string | null
+          id?: string
+          max_amount?: number | null
+          min_amount?: number | null
+          notes?: string | null
+          percentage_rate?: number | null
+          stage_code?: string | null
+          status?: string
+          tier_config_json?: Json | null
+          updated_at?: string
+          updated_by?: string | null
+          waiver_requires_approval?: boolean
+        }
+        Update: {
+          allow_waiver?: boolean
+          auto_apply?: boolean
+          base_variable?: string | null
+          calculation_type?: string
+          case_type_code?: string | null
+          country_code?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          event_code?: string | null
+          fee_head_code?: string | null
+          fee_head_id?: string | null
+          fee_rule_code?: string
+          fee_rule_name?: string
+          fixed_amount?: number | null
+          formula_code?: string | null
+          id?: string
+          max_amount?: number | null
+          min_amount?: number | null
+          notes?: string | null
+          percentage_rate?: number | null
+          stage_code?: string | null
+          status?: string
+          tier_config_json?: Json | null
+          updated_at?: string
+          updated_by?: string | null
+          waiver_requires_approval?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_fee_rule_fee_head_id_fkey"
+            columns: ["fee_head_id"]
+            isOneToOne: false
+            referencedRelation: "tb_income_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_fee_waiver: {
+        Row: {
+          approval_status: string
+          approved_at: string | null
+          approved_by: string | null
+          comments: string | null
+          created_at: string
+          fee_charge_id: string
+          id: string
+          requested_at: string
+          requested_by: string | null
+          reversal_ledger_entry_id: string | null
+          updated_at: string
+          waiver_amount: number | null
+          waiver_percent: number | null
+          waiver_reason_code: string | null
+        }
+        Insert: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          comments?: string | null
+          created_at?: string
+          fee_charge_id: string
+          id?: string
+          requested_at?: string
+          requested_by?: string | null
+          reversal_ledger_entry_id?: string | null
+          updated_at?: string
+          waiver_amount?: number | null
+          waiver_percent?: number | null
+          waiver_reason_code?: string | null
+        }
+        Update: {
+          approval_status?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          comments?: string | null
+          created_at?: string
+          fee_charge_id?: string
+          id?: string
+          requested_at?: string
+          requested_by?: string | null
+          reversal_ledger_entry_id?: string | null
+          updated_at?: string
+          waiver_amount?: number | null
+          waiver_percent?: number | null
+          waiver_reason_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_fee_waiver_fee_charge_id_fkey"
+            columns: ["fee_charge_id"]
+            isOneToOne: false
+            referencedRelation: "lg_fee_charge"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_fee_waiver_reversal_ledger_entry_id_fkey"
+            columns: ["reversal_ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_employer_financial_ledger"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_fee_waiver_reversal_ledger_entry_id_fkey"
+            columns: ["reversal_ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["original_entry_id"]
+          },
+          {
+            foreignKeyName: "lg_fee_waiver_reversal_ledger_entry_id_fkey"
+            columns: ["reversal_ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_ledger_reversals_v"
+            referencedColumns: ["reversal_entry_id"]
+          },
+          {
+            foreignKeyName: "lg_fee_waiver_reversal_ledger_entry_id_fkey"
+            columns: ["reversal_ledger_entry_id"]
+            isOneToOne: false
+            referencedRelation: "ce_v_unobserved_payment_entries"
+            referencedColumns: ["ledger_entry_id"]
           },
         ]
       }
