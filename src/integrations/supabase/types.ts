@@ -37384,6 +37384,7 @@ export type Database = {
       core_template_version: {
         Row: {
           body_html: string | null
+          body_metadata: Json | null
           body_text: string | null
           change_summary: string | null
           created_at: string
@@ -37395,12 +37396,14 @@ export type Database = {
           status: string
           subject: string | null
           template_id: string
+          template_structure: Json | null
           updated_at: string
           updated_by: string | null
           version_no: number
         }
         Insert: {
           body_html?: string | null
+          body_metadata?: Json | null
           body_text?: string | null
           change_summary?: string | null
           created_at?: string
@@ -37412,12 +37415,14 @@ export type Database = {
           status?: string
           subject?: string | null
           template_id: string
+          template_structure?: Json | null
           updated_at?: string
           updated_by?: string | null
           version_no: number
         }
         Update: {
           body_html?: string | null
+          body_metadata?: Json | null
           body_text?: string | null
           change_summary?: string | null
           created_at?: string
@@ -37429,6 +37434,7 @@ export type Database = {
           status?: string
           subject?: string | null
           template_id?: string
+          template_structure?: Json | null
           updated_at?: string
           updated_by?: string | null
           version_no?: number
@@ -66256,6 +66262,7 @@ export type Database = {
         Args: { p_code: string; p_country?: string }
         Returns: {
           body_html: string | null
+          body_metadata: Json | null
           body_text: string | null
           change_summary: string | null
           created_at: string
@@ -66267,6 +66274,7 @@ export type Database = {
           status: string
           subject: string | null
           template_id: string
+          template_structure: Json | null
           updated_at: string
           updated_by: string | null
           version_no: number
@@ -67403,7 +67411,37 @@ export type Database = {
           title: string
         }[]
       }
+      lg_build_standard_body: {
+        Args: {
+          p_action: string
+          p_consequences?: string
+          p_intro: string
+          p_subject: string
+        }
+        Returns: string
+      }
+      lg_build_standard_structure: {
+        Args: { p_action: string; p_intro: string; p_subject: string }
+        Returns: Json
+      }
       lg_generate_case_no: { Args: never; Returns: string }
+      lg_template_completeness: {
+        Args: { p_country?: string; p_module_code?: string }
+        Returns: {
+          channel_count: number
+          code: string
+          completion_pct: number
+          has_body: boolean
+          has_footer: boolean
+          has_legal_refs: boolean
+          has_signature: boolean
+          has_structure: boolean
+          has_subject: boolean
+          name: string
+          status: string
+          template_id: string
+        }[]
+      }
       log_audit_event: {
         Args: {
           _action_type: string
