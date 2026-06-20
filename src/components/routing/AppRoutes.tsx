@@ -724,6 +724,7 @@ const LgFeeWaiverPolicyConfig = lazy(() => import('@/pages/legal/LgFeeWaiverPoli
 const LegalTemplateManagement = lazy(() => import('@/pages/legal/LegalTemplateManagement'));
 const LegalAdminCodeSets = lazy(() => import('@/pages/legal/admin/LegalAdminCodeSets'));
 const LegalAdminComplainant = lazy(() => import('@/pages/legal/admin/LegalAdminComplainant'));
+const LegalReferenceLibrary = lazy(() => import('@/pages/legal/admin/LegalReferenceLibrary'));
 const CoreTemplateAdmin = lazy(() => import('@/pages/admin/CoreTemplateAdmin'));
 const CaseWorkflow = lazy(() => import('@/pages/legal/settings/CaseWorkflow'));
 
@@ -1784,6 +1785,7 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/templates" element={<Suspense fallback={<div>Loading...</div>}><LegalTemplateManagement /></Suspense>} />
       <Route path="/legal/admin/codesets" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminCodeSets /></Suspense>} />
       <Route path="/legal/admin/complainant" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminComplainant /></Suspense>} />
+      <Route path="/legal/admin/legal-references" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceLibrary /></Suspense>} />
       <Route path="/admin/core-templates" element={<Suspense fallback={<div>Loading...</div>}><CoreTemplateAdmin /></Suspense>} />
       <Route path="/legal/workbench" element={<LegalWorkbench />} />
       <Route path="/legal/cases" element={<CaseTracking />} />

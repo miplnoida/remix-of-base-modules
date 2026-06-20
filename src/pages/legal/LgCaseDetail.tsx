@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, Lock, Plus, UserCheck, CheckCircle2, Gavel, Pencil } from "lucide-react";
 import { useLgCase } from "@/hooks/legal/useLgCases";
+import EntityLegalReferenceManager from "@/components/legal-reference/EntityLegalReferenceManager";
 import { useLgDocumentLinks } from "@/hooks/legal/useLgTemplates";
 import {
   useLgArrangementLinks,
@@ -270,6 +271,7 @@ const LgCaseDetail: React.FC = () => {
             <TabsTrigger value="orders">Orders ({orders.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="settlements">Settlements ({settlements.data?.length ?? 0})</TabsTrigger>
             <TabsTrigger value="tasks">Tasks ({tasks.data?.length ?? 0})</TabsTrigger>
+            <TabsTrigger value="legalrefs">Legal Refs</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
@@ -619,6 +621,14 @@ const LgCaseDetail: React.FC = () => {
                 </ol>
               ) : <p className="text-sm text-muted-foreground">No activity recorded.</p>}
             </CardContent></Card>
+          </TabsContent>
+
+          <TabsContent value="legalrefs">
+            <EntityLegalReferenceManager
+              entityKey={{ moduleCode: 'LG', entityTable: 'lg_case', entityId: String(id) }}
+              countryCode={(import.meta as any).env?.VITE_DEFAULT_COUNTRY_CODE || 'KN'}
+              title="Legal References for this Case"
+            />
           </TabsContent>
         </Tabs>
       </div>

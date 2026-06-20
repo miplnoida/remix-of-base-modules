@@ -36,7 +36,7 @@ async function runChecks(): Promise<Finding[]> {
   // 1. Load reference data once
   const [{ data: countries }, { data: legalRefs }] = await Promise.all([
     db.from('bn_country').select('country_code, country_name, is_active'),
-    db.from('bn_legal_reference').select('id, ref_code, short_title, country_code, status, is_active'),
+    db.from('legal_reference').select('id, ref_code, short_title, country_code, status, is_active'),
   ]);
   const countryMap = new Map<string, any>((countries || []).map((c: any) => [c.country_code, c]));
   const legalMap = new Map<string, any>((legalRefs || []).map((r: any) => [r.id, r]));
