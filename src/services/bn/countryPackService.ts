@@ -140,27 +140,73 @@ export const deleteCountryPaymentConfig = async (id: string): Promise<void> => {
 };
 
 // ---- Legal References ----
+// Backed by core_legal_reference. The BnCountryLegalRef shape is kept for the
+// Country Pack UI; we translate column names at the service boundary.
+const toBnLegalRef = (row: any): BnCountryLegalRef => ({
+  id: row.id,
+  country_code: row.country_code,
+  ref_code: row.ref_code,
+  ref_title: row.short_title ?? row.ref_title ?? row.ref_code,
+  ref_section: row.section ?? row.ref_section ?? null,
+  ref_url: row.ref_url ?? null,
+  applicable_products: row.applicable_products ?? null,
+  effective_from: row.effective_from,
+  effective_to: row.effective_to ?? null,
+  version_number: row.version_number ?? 1,
+  supersedes_id: row.supersedes_id ?? null,
+  notes: row.notes ?? null,
+  is_active: row.is_active ?? true,
+  entered_by: row.created_by ?? null,
+  entered_at: row.created_at,
+});
+
+const toCoreLegalRef = (ref: Partial<BnCountryLegalRef>) => ({
+  id: ref.id,
+  country_code: ref.country_code,
+  ref_code: ref.ref_code,
+  short_title: ref.ref_title ?? ref.ref_code ?? '',
+  section: ref.ref_section ?? null,
+  ref_url: ref.ref_url ?? null,
+  applicable_products: ref.applicable_products ?? null,
+  effective_from: ref.effective_from ?? new Date().toISOString().slice(0, 10),
+  effective_to: ref.effective_to ?? null,
+  version_number: ref.version_number ?? 1,
+  supersedes_id: ref.supersedes_id ?? null,
+  notes: ref.notes ?? null,
+  is_active: ref.is_active ?? true,
+  status: 'ACTIVE',
+  created_by: ref.entered_by ?? null,
+});
+
 export const fetchCountryLegalRefs = async (countryCode: string, productId?: string): Promise<BnCountryLegalRef[]> => {
-  let q = db.from('bn_country_legal_ref').select('*').eq('country_code', countryCode).eq('is_active', true).order('ref_code');
-  // Client-side filter for product if needed (applicable_products is text[])
-  const { data, error } = await q;
+  const { data, error } = await db
+    .from('core_legal_reference')
+    .select('*')
+    .eq('country_code', countryCode)
+    .eq('is_active', true)
+    .order('ref_code');
   if (error) throw error;
-  if (productId && data) {
-    return data.filter((r: BnCountryLegalRef) => !r.applicable_products || r.applicable_products.length === 0 || r.applicable_products.includes(productId));
+  let rows = (data ?? []).map(toBnLegalRef);
+  if (productId) {
+    rows = rows.filter((r) => !r.applicable_products || r.applicable_products.length === 0 || r.applicable_products.includes(productId));
   }
-  return data ?? [];
+  return rows;
 };
 
 export const upsertCountryLegalRef = async (ref: Partial<BnCountryLegalRef>): Promise<BnCountryLegalRef> => {
-  const { data, error } = await db.from('bn_country_legal_ref').upsert(ref).select().single();
+  const payload = toCoreLegalRef(ref);
+  // Remove id when undefined so insert path gets a generated UUID
+  if (!payload.id) delete (payload as any).id;
+  const { data, error } = await db.from('core_legal_reference').upsert(payload).select().single();
   if (error) throw error;
-  return data;
+  return toBnLegalRef(data);
 };
 
 export const deleteCountryLegalRef = async (id: string): Promise<void> => {
-  const { error } = await db.from('bn_country_legal_ref').delete().eq('id', id);
+  const { error } = await db.from('core_legal_reference').delete().eq('id', id);
   if (error) throw error;
 };
+
 
 // ---- ID Validation ----
 export const validateIdByCountry = (rules: BnCountryIdRule[], value: string): { valid: boolean; message: string } => {

@@ -49,7 +49,7 @@ export const LegalReferenceSelector: React.FC<LegalReferenceSelectorProps> = ({
     enabled: !!countryCode,
     queryFn: async () => {
       let q = db
-        .from('legal_reference')
+        .from('core_legal_reference')
         .select('id, ref_code, short_title, full_reference_text, status, country_code, tags')
         .eq('country_code', countryCode)
         .eq('is_active', true);

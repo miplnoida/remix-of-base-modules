@@ -18,7 +18,7 @@ export async function listEntityLegalReferences(
   key: EntityKey,
 ): Promise<ModuleLegalReferenceMapping[]> {
   const { data, error } = await db
-    .from('module_legal_reference_mapping')
+    .from('core_module_legal_reference')
     .select('*, legal_reference:legal_reference_id(*)')
     .eq('module_code', key.moduleCode)
     .eq('entity_table', key.entityTable)
@@ -34,7 +34,7 @@ export async function attachLegalReference(
   opts?: { role?: string; notes?: string; userCode?: string },
 ): Promise<string> {
   const { data, error } = await db
-    .from('module_legal_reference_mapping')
+    .from('core_module_legal_reference')
     .insert({
       module_code: key.moduleCode,
       entity_table: key.entityTable,
@@ -53,7 +53,7 @@ export async function attachLegalReference(
 
 export async function detachLegalReference(mappingId: string): Promise<void> {
   const { error } = await db
-    .from('module_legal_reference_mapping')
+    .from('core_module_legal_reference')
     .delete()
     .eq('id', mappingId);
   if (error) throw error;
@@ -63,7 +63,7 @@ export async function listEntitiesForReference(
   legalReferenceId: string,
 ): Promise<ModuleLegalReferenceMapping[]> {
   const { data, error } = await db
-    .from('module_legal_reference_mapping')
+    .from('core_module_legal_reference')
     .select('*')
     .eq('legal_reference_id', legalReferenceId)
     .order('module_code')
@@ -83,7 +83,7 @@ export async function listModuleLegalReferences(opts: {
   entityType?: string;
 }): Promise<ModuleLegalReferenceMapping[]> {
   let q = db
-    .from('module_legal_reference_mapping')
+    .from('core_module_legal_reference')
     .select('*, legal_reference:legal_reference_id(*)')
     .eq('module_code', opts.moduleCode);
   if (opts.entityType) q = q.eq('entity_type', opts.entityType);

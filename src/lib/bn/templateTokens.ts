@@ -192,7 +192,7 @@ export async function loadCountryContext(countryCode: string | null | undefined)
 /** Fetch legal ref by id and build its token context. */
 export async function loadLegalContext(legalRefId: string | null | undefined) {
   if (!legalRefId) return null;
-  const { data } = await db.from('legal_reference').select('*').eq('id', legalRefId).maybeSingle();
+  const { data } = await db.from('core_legal_reference').select('*').eq('id', legalRefId).maybeSingle();
   return data ? buildLegalContext(data) : null;
 }
 

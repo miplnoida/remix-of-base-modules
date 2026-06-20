@@ -67,7 +67,7 @@ export async function activate(packageId: string, performedBy: string): Promise<
   // Snapshot helpers — pull from each constituent table for the country.
   const country = pkg.country_code;
   const sources: Array<{ entity_type: string; query: () => Promise<any[]>; versionField?: string }> = [
-    { entity_type: 'bn_country_legal_ref',         query: () => db.from('bn_country_legal_ref').select('*').eq('country_code', country).then((r: any) => r.data ?? []) },
+    { entity_type: 'core_legal_reference',         query: () => db.from('core_legal_reference').select('*').eq('country_code', country).then((r: any) => r.data ?? []) },
     { entity_type: 'bn_country_participant_type',  query: () => db.from('bn_country_participant_type').select('*').eq('country_code', country).then((r: any) => r.data ?? []) },
     { entity_type: 'bn_formula_version',           query: () => db.from('bn_formula_version').select('*').then((r: any) => r.data ?? []) },
     { entity_type: 'bn_rate_table',                query: () => db.from('bn_rate_table').select('*').then((r: any) => r.data ?? []), versionField: 'version_no' },
