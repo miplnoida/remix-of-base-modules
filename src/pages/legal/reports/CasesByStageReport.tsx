@@ -1,10 +1,9 @@
+import { useMemo } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ExportActions } from "@/components/reports/ExportActions";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { FileText, DollarSign, Calendar } from "lucide-react";
+import { LgDataGrid, LgStatusBadge, type LgColumnDef } from "@/components/legal/grid";
 
 const stageData = [
   { stage: "Filed", count: 12, amount: 450000 },
@@ -25,6 +24,26 @@ const CHART_COLORS = {
 };
 
 const CasesByStageReport = () => {
+  const columns: LgColumnDef<any>[] = useMemo(() => [
+    { accessorKey: "caseNumber", header: "Case Number", meta: { label: "Case Number", pinLeft: true } },
+    { accessorKey: "party", header: "Party", meta: { label: "Party" } },
+    { 
+      accessorKey: "stage", 
+      header: "Stage", 
+      meta: { label: "Stage" },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue() as string} />
+    },
+    { accessorKey: "territory", header: "Territory", meta: { label: "Territory" } },
+    { accessorKey: "filedDate", header: "Filed Date", meta: { label: "Filed Date" } },
+    { accessorKey: "judgmentDate", header: "Judgment Date", meta: { label: "Judgment Date" }, cell: ({ getValue }) => getValue() || "-" },
+    { 
+      accessorKey: "amount", 
+      header: "Amount", 
+      meta: { label: "Amount", align: "right" },
+      cell: ({ getValue }) => `EC$${Number(getValue()).toLocaleString()}`
+    },
+  ], []);
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
@@ -77,32 +96,13 @@ const CasesByStageReport = () => {
           <CardTitle>Case Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Case Number</TableHead>
-                <TableHead>Party</TableHead>
-                <TableHead>Stage</TableHead>
-                <TableHead>Territory</TableHead>
-                <TableHead>Filed Date</TableHead>
-                <TableHead>Judgment Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {detailedData.map((row) => (
-                <TableRow key={row.caseNumber}>
-                  <TableCell className="font-medium">{row.caseNumber}</TableCell>
-                  <TableCell>{row.party}</TableCell>
-                  <TableCell><Badge variant="outline">{row.stage}</Badge></TableCell>
-                  <TableCell><Badge variant="secondary">{row.territory}</Badge></TableCell>
-                  <TableCell>{row.filedDate}</TableCell>
-                  <TableCell>{row.judgmentDate || "-"}</TableCell>
-                  <TableCell className="text-right font-semibold">EC${row.amount.toLocaleString()}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <LgDataGrid
+            id="lg.reports.casesByStage"
+            columns={columns}
+            data={detailedData}
+            searchPlaceholder="Search case number or party..."
+            exportFilename="cases-by-stage-details"
+          />
         </CardContent>
       </Card>
     </div>

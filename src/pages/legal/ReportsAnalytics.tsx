@@ -108,6 +108,23 @@ export default function ReportsAnalytics() {
     });
   };
 
+    const agingColumns: LgColumnDef<any>[] = useMemo(() => [
+    { accessorKey: "bucket", header: "Age Bucket", meta: { label: "Age Bucket", pinLeft: true } },
+    { accessorKey: "count", header: "Case Count", meta: { label: "Case Count", align: "right" } },
+    { 
+      accessorKey: "amount", 
+      header: "Amount", 
+      meta: { label: "Amount", align: "right" },
+      cell: ({ getValue }) => `$${Number(getValue()).toLocaleString()}`
+    },
+    { 
+      id: "avgPerCase",
+      header: "Avg per Case", 
+      meta: { label: "Avg per Case", align: "right" },
+      cell: ({ row }) => `$${Math.round(row.original.amount / row.original.count).toLocaleString()}`
+    },
+  ], []);
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <BackNavigation to="/legal" backText="Back to Legal Dashboard" />
@@ -286,38 +303,16 @@ export default function ReportsAnalytics() {
               <CardDescription>Cases by age and outstanding amounts</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Age Bucket</TableHead>
-                    <TableHead className="text-right">Case Count</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead className="text-right">Avg per Case</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {agingData.map((row) => (
-                    <TableRow key={row.bucket}>
-                      <TableCell className="font-medium">{row.bucket}</TableCell>
-                      <TableCell className="text-right">{row.count}</TableCell>
-                      <TableCell className="text-right">${row.amount.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">
-                        ${Math.round(row.amount / row.count).toLocaleString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  <TableRow className="font-bold bg-muted/50">
-                    <TableCell>Total</TableCell>
-                    <TableCell className="text-right">
-                      {agingData.reduce((sum, row) => sum + row.count, 0)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      ${agingData.reduce((sum, row) => sum + row.amount, 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right">-</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+              <LgDataGrid
+                id="lg.reports.aging"
+                columns={agingColumns}
+                data={agingData}
+                exportFilename="aging-buckets-report"
+                summary={[
+                  { label: "Total Cases", value: agingData.reduce((sum, row) => sum + row.count, 0), tone: "default" },
+                  { label: "Total Amount", value: `$${agingData.reduce((sum, row) => sum + row.amount, 0).toLocaleString()}`, tone: "danger" },
+                ]}
+              />
             </CardContent>
           </Card>
         </TabsContent>

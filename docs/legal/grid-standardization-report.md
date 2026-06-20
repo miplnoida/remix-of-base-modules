@@ -90,3 +90,24 @@ const columns: LgColumnDef<Row>[] = [
   exportFilename="legal-<screen>"
 />
 ```
+
+## Grid Standardization Update (2026-06-21)
+
+The following screens have been migrated to the standardized `LgDataGrid` framework:
+
+| Screen | Grid ID | Status |
+|---|---|---|
+| Fee Mappings | `lg.fees` | Migrated |
+| Territory Settings | `lg.territories` | Migrated |
+| Cases by Legal Stage | `lg.reports.casesByStage` | Migrated |
+| Legal Evidence & Documents | `lg.evidence` | Migrated |
+| Enforcement & Penalty | `lg.enforcement.recent`, `lg.enforcement.tracking`, `lg.enforcement.collection` | Migrated |
+| Appeal Submission | `lg.appeals` | Migrated |
+| Reports & Analytics | `lg.reports.aging` | Migrated |
+| Legal Dept Configuration | `lg.config.capabilities` | Migrated (Preview only, Mapping kept as-is due to inline editing) |
+| Legal Fee Waiver Policies | `lg.waiver.policies`, `lg.waiver.tiers` | Migrated |
+| Legal Administration | `lg.admin.codesets`, `lg.admin.templates` | Migrated |
+| Case List | `lg.cases` | Migrated (De-duplicated to `LgCaseList`) |
+| Legal Case List | `lg.cases` | Migrated (De-duplicated to `LgCaseList`) |
+
+All migrated screens now benefit from standardized toolbar, paging, sorting, filtering, column selection, and export capabilities.

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,15 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2, Pencil, ShieldCheck } from "lucide-react";
+import { Plus, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   listPolicies, listTiers, upsertPolicy, deletePolicy, upsertTier, deleteTier,
   type LgFeeWaiverPolicy, type LgFeeWaiverPolicyTier,
 } from "@/services/legal/lgFeeWaiverPolicyService";
+import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from "@/components/legal/grid";
 
 const ROLE_TYPES = ["AUTO", "LG_LEGAL_ASSISTANT", "LG_CASE_HANDLER", "LG_REVIEWER", "LG_APPROVER", "LG_ADMIN"];
 const WORKBASKETS = [
@@ -77,6 +77,53 @@ export default function LgFeeWaiverPolicyConfig() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["lg_fee_waiver_policy_tier", selectedId] }),
   });
 
+  const policyColumns: LgColumnDef<LgFeeWaiverPolicy>[] = useMemo(() => [
+    { accessorKey: "policy_code", header: "Code", meta: { label: "Code", pinLeft: true } },
+    { accessorKey: "policy_name", header: "Name", meta: { label: "Name" } },
+    { accessorKey: "max_waiver_amount_without_approval", header: "Auto ≤ Amt", meta: { label: "Auto ≤ Amt" } },
+    { 
+      accessorKey: "max_waiver_percent_without_approval", 
+      header: "Auto ≤ %", 
+      meta: { label: "Auto ≤ %" },
+      cell: ({ getValue }) => `${getValue()}%`
+    },
+    { 
+      accessorKey: "status", 
+      header: "Status", 
+      meta: { label: "Status" },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue() as string} />
+    },
+  ], []);
+
+  const tierColumns: LgColumnDef<LgFeeWaiverPolicyTier>[] = useMemo(() => [
+    { accessorKey: "tier_order", header: "#", meta: { label: "Order" } },
+    { 
+      id: "amountRange",
+      header: "Amount Range", 
+      meta: { label: "Amount Range" },
+      cell: ({ row }) => `${row.original.min_amount ?? "—"} … ${row.original.max_amount ?? "∞"}`
+    },
+    { 
+      id: "percentRange",
+      header: "% Range", 
+      meta: { label: "% Range" },
+      cell: ({ row }) => `${row.original.min_percent ?? "—"} … ${row.original.max_percent ?? "∞"}%`
+    },
+    { 
+      accessorKey: "approver_role_type", 
+      header: "Approver", 
+      meta: { label: "Approver" },
+      cell: ({ getValue }) => <Badge variant="outline">{getValue() as string ?? "—"}</Badge>
+    },
+    { accessorKey: "workbasket_code", header: "Workbasket", meta: { label: "Workbasket" } },
+    { 
+      accessorKey: "requires_finance", 
+      header: "Finance?", 
+      meta: { label: "Finance?" },
+      cell: ({ getValue }) => getValue() ? "Yes" : "No"
+    },
+  ], []);
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-3">
@@ -90,7 +137,6 @@ export default function LgFeeWaiverPolicyConfig() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
-        {/* Policies list */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -102,47 +148,21 @@ export default function LgFeeWaiverPolicyConfig() {
             </Button>
           </CardHeader>
           <CardContent>
-            {isLoading ? <div className="text-sm text-muted-foreground">Loading…</div> :
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Code</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Auto ≤ Amt</TableHead>
-                    <TableHead>Auto ≤ %</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {policies.map(p => (
-                    <TableRow
-                      key={p.id}
-                      onClick={() => setSelectedId(p.id)}
-                      className={selectedId === p.id ? "bg-muted cursor-pointer" : "cursor-pointer"}
-                    >
-                      <TableCell className="font-mono text-xs">{p.policy_code}</TableCell>
-                      <TableCell>{p.policy_name}</TableCell>
-                      <TableCell>{p.max_waiver_amount_without_approval}</TableCell>
-                      <TableCell>{p.max_waiver_percent_without_approval}%</TableCell>
-                      <TableCell><Badge variant={p.status === "ACTIVE" ? "default" : "secondary"}>{p.status}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setEditing(p); }}>
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); if (confirm("Delete policy?")) removePolicy.mutate(p.id); }}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            }
+            <LgDataGrid
+              id="lg.waiver.policies"
+              columns={policyColumns}
+              data={policies}
+              isLoading={isLoading}
+              onRowClick={(r) => setSelectedId(r.id)}
+              rowActions={buildLgRowActions({
+                onEdit: (r) => setEditing(r),
+                onDelete: (r) => { if (confirm("Delete policy?")) removePolicy.mutate(r.id); }
+              })}
+              exportFilename="fee-waiver-policies"
+            />
           </CardContent>
         </Card>
 
-        {/* Tiers */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -158,42 +178,16 @@ export default function LgFeeWaiverPolicyConfig() {
           </CardHeader>
           <CardContent>
             {!selectedId ? <div className="text-sm text-muted-foreground">No policy selected.</div> :
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>#</TableHead>
-                    <TableHead>Amount Range</TableHead>
-                    <TableHead>% Range</TableHead>
-                    <TableHead>Approver</TableHead>
-                    <TableHead>Workbasket</TableHead>
-                    <TableHead>Finance?</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {tiers.map(t => (
-                    <TableRow key={t.id}>
-                      <TableCell>{t.tier_order}</TableCell>
-                      <TableCell>{t.min_amount ?? "—"} … {t.max_amount ?? "∞"}</TableCell>
-                      <TableCell>{t.min_percent ?? "—"} … {t.max_percent ?? "∞"}%</TableCell>
-                      <TableCell><Badge variant="outline">{t.approver_role_type ?? "—"}</Badge></TableCell>
-                      <TableCell className="font-mono text-xs">{t.workbasket_code ?? "—"}</TableCell>
-                      <TableCell>{t.requires_finance ? "Yes" : "No"}</TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => { setTierDraft(t); setTierOpen(true); }}>
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => { if (confirm("Delete tier?")) removeTier.mutate(t.id); }}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {tiers.length === 0 && (
-                    <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-4">No tiers — every request will require default approval.</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
+              <LgDataGrid
+                id="lg.waiver.tiers"
+                columns={tierColumns}
+                data={tiers}
+                rowActions={buildLgRowActions({
+                  onEdit: (r) => { setTierDraft(r); setTierOpen(true); },
+                  onDelete: (r) => { if (confirm("Delete tier?")) removeTier.mutate(r.id); }
+                })}
+                exportFilename="fee-waiver-tiers"
+              />
             }
           </CardContent>
         </Card>
