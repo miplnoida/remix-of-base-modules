@@ -209,16 +209,19 @@ export async function seedDefaultCountryPack(code: string, userCode?: string): P
   }
 
   if (status.legalRefs === 0) {
-    await db.from('bn_country_legal_ref').insert({
+    await db.from('core_legal_reference').insert({
       country_code: code,
       ref_code: 'PRIMARY_ACT',
-      ref_title: 'Social Security Act',
+      short_title: 'Social Security Act',
       ref_type: 'ACT',
+      effective_from: new Date().toISOString().slice(0, 10),
+      status: 'ACTIVE',
       is_active: true,
-      entered_by: tag,
+      created_by: tag,
     });
     seeded.push('legalRefs');
   }
+
 
   return { seeded };
 }
