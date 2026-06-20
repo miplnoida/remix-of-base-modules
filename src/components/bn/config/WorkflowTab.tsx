@@ -13,6 +13,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { ProductWorkflowChannelGrid } from './ProductWorkflowChannelGrid';
 
 interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
