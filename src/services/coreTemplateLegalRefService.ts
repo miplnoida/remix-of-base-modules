@@ -6,6 +6,7 @@ export interface TemplateLegalRefLink {
   template_id: string;
   template_version_id: string | null;
   legal_reference_id: string;
+  legal_reference_version_id: string | null;
   required_flag: boolean;
   display_order: number;
   usage_note: string | null;
@@ -14,6 +15,7 @@ export interface TemplateLegalRefLink {
   updated_at: string;
   legal_reference?: LegalReference | null;
 }
+
 
 export const coreTemplateLegalRefService = {
   async listForTemplate(templateId: string): Promise<TemplateLegalRefLink[]> {
