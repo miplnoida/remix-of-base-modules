@@ -224,7 +224,34 @@ export default function AdminConfig() {
             <Save className="mr-2 h-4 w-4" />
             Save All
           </Button>
-        </div>
+      </div>
+
+      {/* Quick links to dedicated admin areas */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Link to="/legal/admin/fees" className="block">
+          <Card className="hover:border-primary transition-colors h-full">
+            <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+              <DollarSignIcon className="h-6 w-6 text-primary" />
+              <div>
+                <CardTitle className="text-base">Fee Configuration</CardTitle>
+                <CardDescription>Rules, bundles, waivers (lg_fee_rule, lg_fee_bundle, lg_fee_waiver)</CardDescription>
+              </div>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link to="/legal/admin/policy" className="block">
+          <Card className="hover:border-primary transition-colors h-full">
+            <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+              <WorkflowIcon className="h-6 w-6 text-primary" />
+              <div>
+                <CardTitle className="text-base">Workflow &amp; Role Policy</CardTitle>
+                <CardDescription>Department profile, role mapping, per-action approvals</CardDescription>
+              </div>
+            </CardHeader>
+          </Card>
+        </Link>
+      </div>
+
       </div>
 
       <Tabs defaultValue="codesets" className="space-y-4">
