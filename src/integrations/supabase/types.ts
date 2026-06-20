@@ -9555,61 +9555,112 @@ export type Database = {
       }
       bn_escalation_policy: {
         Row: {
+          applies_to_entity_type: string
           auto_reassign: boolean
+          breach_after_hours: number | null
+          calendar_code: string | null
           country_code: string | null
+          create_escalation_task: boolean
+          description: string | null
+          due_after_hours: number | null
+          effective_from: string | null
+          effective_to: string | null
           entered_at: string
           entered_by: string | null
           escalation_target_basket_id: string | null
           escalation_target_role: string
+          escalation_target_user: string | null
           id: string
           is_active: boolean
+          max_repeat_count: number | null
           modified_at: string
           modified_by: string | null
+          notification_template_code: string | null
           notification_template_id: string | null
+          notify_assignee: boolean
+          notify_supervisor: boolean
+          notify_target_role: boolean
           policy_code: string
           policy_name: string
           product_category: string | null
+          repeat_interval_hours: number | null
           severity: string
           trigger_config: Json
           trigger_type: string
+          use_business_hours: boolean
+          warning_before_hours: number | null
         }
         Insert: {
+          applies_to_entity_type?: string
           auto_reassign?: boolean
+          breach_after_hours?: number | null
+          calendar_code?: string | null
           country_code?: string | null
+          create_escalation_task?: boolean
+          description?: string | null
+          due_after_hours?: number | null
+          effective_from?: string | null
+          effective_to?: string | null
           entered_at?: string
           entered_by?: string | null
           escalation_target_basket_id?: string | null
           escalation_target_role: string
+          escalation_target_user?: string | null
           id?: string
           is_active?: boolean
+          max_repeat_count?: number | null
           modified_at?: string
           modified_by?: string | null
+          notification_template_code?: string | null
           notification_template_id?: string | null
+          notify_assignee?: boolean
+          notify_supervisor?: boolean
+          notify_target_role?: boolean
           policy_code: string
           policy_name: string
           product_category?: string | null
+          repeat_interval_hours?: number | null
           severity?: string
           trigger_config?: Json
           trigger_type: string
+          use_business_hours?: boolean
+          warning_before_hours?: number | null
         }
         Update: {
+          applies_to_entity_type?: string
           auto_reassign?: boolean
+          breach_after_hours?: number | null
+          calendar_code?: string | null
           country_code?: string | null
+          create_escalation_task?: boolean
+          description?: string | null
+          due_after_hours?: number | null
+          effective_from?: string | null
+          effective_to?: string | null
           entered_at?: string
           entered_by?: string | null
           escalation_target_basket_id?: string | null
           escalation_target_role?: string
+          escalation_target_user?: string | null
           id?: string
           is_active?: boolean
+          max_repeat_count?: number | null
           modified_at?: string
           modified_by?: string | null
+          notification_template_code?: string | null
           notification_template_id?: string | null
+          notify_assignee?: boolean
+          notify_supervisor?: boolean
+          notify_target_role?: boolean
           policy_code?: string
           policy_name?: string
           product_category?: string | null
+          repeat_interval_hours?: number | null
           severity?: string
           trigger_config?: Json
           trigger_type?: string
+          use_business_hours?: boolean
+          warning_before_hours?: number | null
         }
         Relationships: [
           {
@@ -9617,6 +9668,74 @@ export type Database = {
             columns: ["escalation_target_basket_id"]
             isOneToOne: false
             referencedRelation: "bn_workbasket"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bn_escalation_policy_level: {
+        Row: {
+          action_type: string
+          auto_reassign: boolean
+          entered_at: string
+          entered_by: string | null
+          id: string
+          is_active: boolean
+          level_no: number
+          max_repeat_count: number | null
+          modified_at: string
+          modified_by: string | null
+          notification_template_code: string | null
+          policy_id: string
+          repeat_interval_hours: number | null
+          severity: string
+          target_role: string
+          target_user: string | null
+          trigger_after_hours: number
+        }
+        Insert: {
+          action_type?: string
+          auto_reassign?: boolean
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          level_no: number
+          max_repeat_count?: number | null
+          modified_at?: string
+          modified_by?: string | null
+          notification_template_code?: string | null
+          policy_id: string
+          repeat_interval_hours?: number | null
+          severity?: string
+          target_role: string
+          target_user?: string | null
+          trigger_after_hours: number
+        }
+        Update: {
+          action_type?: string
+          auto_reassign?: boolean
+          entered_at?: string
+          entered_by?: string | null
+          id?: string
+          is_active?: boolean
+          level_no?: number
+          max_repeat_count?: number | null
+          modified_at?: string
+          modified_by?: string | null
+          notification_template_code?: string | null
+          policy_id?: string
+          repeat_interval_hours?: number | null
+          severity?: string
+          target_role?: string
+          target_user?: string | null
+          trigger_after_hours?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_escalation_policy_level_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "bn_escalation_policy"
             referencedColumns: ["id"]
           },
         ]
