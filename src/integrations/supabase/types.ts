@@ -35905,6 +35905,8 @@ export type Database = {
       }
       core_generated_document: {
         Row: {
+          case_stage_code: string | null
+          case_type_code: string | null
           channel_code: string | null
           content_hash: string | null
           created_at: string
@@ -35919,6 +35921,7 @@ export type Database = {
           generated_pdf_url: string | null
           id: string
           layout_id: string | null
+          legal_reference_version_id: string | null
           legal_references_snapshot: Json | null
           module_code: string
           recipient_address: string | null
@@ -35931,6 +35934,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          case_stage_code?: string | null
+          case_type_code?: string | null
           channel_code?: string | null
           content_hash?: string | null
           created_at?: string
@@ -35945,6 +35950,7 @@ export type Database = {
           generated_pdf_url?: string | null
           id?: string
           layout_id?: string | null
+          legal_reference_version_id?: string | null
           legal_references_snapshot?: Json | null
           module_code: string
           recipient_address?: string | null
@@ -35957,6 +35963,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          case_stage_code?: string | null
+          case_type_code?: string | null
           channel_code?: string | null
           content_hash?: string | null
           created_at?: string
@@ -35971,6 +35979,7 @@ export type Database = {
           generated_pdf_url?: string | null
           id?: string
           layout_id?: string | null
+          legal_reference_version_id?: string | null
           legal_references_snapshot?: Json | null
           module_code?: string
           recipient_address?: string | null
@@ -37278,48 +37287,72 @@ export type Database = {
       }
       core_template_usage: {
         Row: {
+          approval_required: boolean
+          auto_generate_allowed: boolean
+          case_type_code: string | null
           created_at: string
           entity_type: string | null
           feature_area: string | null
           id: string
           is_active: boolean
+          is_default: boolean
+          is_required: boolean
           module_code: string
           notes: string | null
           screen_code: string | null
+          sort_order: number
+          stage_code: string | null
           template_id: string
           template_version_id: string | null
           trigger_event: string | null
           updated_at: string
+          usage_context: string | null
           workflow_code: string | null
         }
         Insert: {
+          approval_required?: boolean
+          auto_generate_allowed?: boolean
+          case_type_code?: string | null
           created_at?: string
           entity_type?: string | null
           feature_area?: string | null
           id?: string
           is_active?: boolean
+          is_default?: boolean
+          is_required?: boolean
           module_code: string
           notes?: string | null
           screen_code?: string | null
+          sort_order?: number
+          stage_code?: string | null
           template_id: string
           template_version_id?: string | null
           trigger_event?: string | null
           updated_at?: string
+          usage_context?: string | null
           workflow_code?: string | null
         }
         Update: {
+          approval_required?: boolean
+          auto_generate_allowed?: boolean
+          case_type_code?: string | null
           created_at?: string
           entity_type?: string | null
           feature_area?: string | null
           id?: string
           is_active?: boolean
+          is_default?: boolean
+          is_required?: boolean
           module_code?: string
           notes?: string | null
           screen_code?: string | null
+          sort_order?: number
+          stage_code?: string | null
           template_id?: string
           template_version_id?: string | null
           trigger_event?: string | null
           updated_at?: string
+          usage_context?: string | null
           workflow_code?: string | null
         }
         Relationships: [
@@ -67409,6 +67442,15 @@ export type Database = {
           screen_key: string
           summary: string
           title: string
+        }[]
+      }
+      legal_stage_template_completeness: {
+        Args: never
+        Returns: {
+          missing_required: string[]
+          stage_code: string
+          total_mapped: number
+          total_required: number
         }[]
       }
       lg_build_standard_body: {
