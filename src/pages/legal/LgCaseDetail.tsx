@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, Lock, Plus, UserCheck, CheckCircle2, Gavel, Pencil } from "lucide-react";
 import { useLgCase } from "@/hooks/legal/useLgCases";
+import EntityLegalReferenceManager from "@/components/legal-reference/EntityLegalReferenceManager";
 import { useLgDocumentLinks } from "@/hooks/legal/useLgTemplates";
 import {
   useLgArrangementLinks,
