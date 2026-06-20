@@ -1,17 +1,8 @@
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -19,8 +10,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from "@/components/legal/grid";
 
 interface FeeMapping {
   id: string;
@@ -164,6 +156,26 @@ export default function FeeMappings() {
     });
   };
 
+  const columns: LgColumnDef<FeeMapping>[] = useMemo(() => [
+    { accessorKey: "eventName", header: "Event Name", meta: { label: "Event Name", pinLeft: true } },
+    { accessorKey: "eventCode", header: "Event Code", meta: { label: "Event Code" } },
+    { accessorKey: "feeCode", header: "Fee Code", meta: { label: "Fee Code" } },
+    { accessorKey: "feeName", header: "Fee Name", meta: { label: "Fee Name" } },
+    { 
+      accessorKey: "feeAmount", 
+      header: "Amount", 
+      meta: { label: "Amount", align: "right" },
+      cell: ({ getValue }) => `EC$ ${Number(getValue()).toFixed(2)}`
+    },
+    { accessorKey: "accountingHead", header: "Accounting Head", meta: { label: "Accounting Head" } },
+    { 
+      accessorKey: "active", 
+      header: "Status", 
+      meta: { label: "Status" },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue() ? "ACTIVE" : "INACTIVE"} />
+    },
+  ], []);
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -299,65 +311,17 @@ export default function FeeMappings() {
         </Dialog>
       </div>
 
-      <Card className="p-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Event Name</TableHead>
-              <TableHead>Event Code</TableHead>
-              <TableHead>Fee Code</TableHead>
-              <TableHead>Fee Name</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Accounting Head</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {mappings.map((mapping) => (
-              <TableRow key={mapping.id}>
-                <TableCell className="font-medium">
-                  {mapping.eventName}
-                </TableCell>
-                <TableCell>{mapping.eventCode}</TableCell>
-                <TableCell>{mapping.feeCode}</TableCell>
-                <TableCell>{mapping.feeName}</TableCell>
-                <TableCell>EC$ {mapping.feeAmount.toFixed(2)}</TableCell>
-                <TableCell>{mapping.accountingHead}</TableCell>
-                <TableCell>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      mapping.active
-                        ? "bg-success/10 text-success"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {mapping.active ? "Active" : "Inactive"}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(mapping)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(mapping.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <LgDataGrid
+        id="lg.fees"
+        columns={columns}
+        data={mappings}
+        searchPlaceholder="Search fee mapping..."
+        rowActions={buildLgRowActions({
+          onEdit: handleEdit,
+          onDelete: (r) => handleDelete(r.id),
+        })}
+        exportFilename="legal-fee-mappings"
+      />
     </div>
   );
 }

@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, FileText, Eye, CheckCircle, XCircle, Clock, Send } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, Clock, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from "@/components/legal/grid";
 
 const AppealSubmission = () => {
   const navigate = useNavigate();
@@ -115,23 +114,20 @@ const AppealSubmission = () => {
     });
   };
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'Under Review': return 'default';
-      case 'Approved': return 'default';
-      case 'Rejected': return 'destructive';
-      default: return 'secondary';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Under Review': return <Clock className="h-4 w-4" />;
-      case 'Approved': return <CheckCircle className="h-4 w-4" />;
-      case 'Rejected': return <XCircle className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
-    }
-  };
+  const columns: LgColumnDef<any>[] = useMemo(() => [
+    { accessorKey: "id", header: "Appeal ID", meta: { label: "Appeal ID", pinLeft: true } },
+    { accessorKey: "caseId", header: "Case ID", meta: { label: "Case ID" } },
+    { accessorKey: "appellant", header: "Appellant", meta: { label: "Appellant" } },
+    { 
+      accessorKey: "status", 
+      header: "Status", 
+      meta: { label: "Status" },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue() as string} />
+    },
+    { accessorKey: "reviewOfficer", header: "Review Officer", meta: { label: "Review Officer" } },
+    { accessorKey: "dateSubmitted", header: "Date Submitted", meta: { label: "Date Submitted" } },
+    { accessorKey: "decisionDate", header: "Decision Date", meta: { label: "Decision Date" }, cell: ({ getValue }) => getValue() || 'Pending' },
+  ], []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -299,46 +295,16 @@ const AppealSubmission = () => {
               <CardDescription>Monitor the status of submitted appeals</CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Appeal ID</TableHead>
-                    <TableHead>Case ID</TableHead>
-                    <TableHead>Appellant</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Review Officer</TableHead>
-                    <TableHead>Date Submitted</TableHead>
-                    <TableHead>Decision Date</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockAppeals.map((appeal) => (
-                    <TableRow key={appeal.id}>
-                      <TableCell className="font-medium">{appeal.id}</TableCell>
-                      <TableCell>{appeal.caseId}</TableCell>
-                      <TableCell>{appeal.appellant}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={getStatusBadgeVariant(appeal.status)}
-                          className="flex items-center space-x-1"
-                        >
-                          {getStatusIcon(appeal.status)}
-                          <span>{appeal.status}</span>
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{appeal.reviewOfficer}</TableCell>
-                      <TableCell>{appeal.dateSubmitted}</TableCell>
-                      <TableCell>{appeal.decisionDate || 'Pending'}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <LgDataGrid
+                id="lg.appeals"
+                columns={columns}
+                data={mockAppeals}
+                searchPlaceholder="Search appeals..."
+                rowActions={buildLgRowActions({
+                  onView: (r) => toast({ title: "View", description: `Viewing ${r.id}` }),
+                })}
+                exportFilename="appeal-tracking"
+              />
 
               {/* Appeal Details */}
               <div className="mt-6 space-y-4">
@@ -348,9 +314,7 @@ const AppealSubmission = () => {
                     <CardContent className="pt-4">
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-medium">{appeal.id}</h4>
-                        <Badge variant={getStatusBadgeVariant(appeal.status)}>
-                          {appeal.status}
-                        </Badge>
+                        <LgStatusBadge status={appeal.status} />
                       </div>
                       <p className="text-sm text-gray-600 mb-2">
                         <strong>Grounds:</strong> {appeal.grounds}

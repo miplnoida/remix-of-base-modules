@@ -1,15 +1,14 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, DollarSign, Gavel, FileText, Download, Eye, Plus, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, DollarSign, Gavel, Download, Plus, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from "@/components/legal/grid";
 
 const EnforcementPenalty = () => {
   const navigate = useNavigate();
@@ -125,23 +124,61 @@ const EnforcementPenalty = () => {
     });
   };
 
-  const getCollectionStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Outstanding': return <Badge variant="destructive">{status}</Badge>;
-      case 'Partial': return <Badge variant="secondary">{status}</Badge>;
-      case 'Paid': return <Badge variant="default">{status}</Badge>;
-      default: return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
+  const columns: LgColumnDef<any>[] = useMemo(() => [
+    { accessorKey: "id", header: "Enforcement ID", meta: { label: "Enforcement ID", pinLeft: true } },
+    { accessorKey: "caseId", header: "Case ID", meta: { label: "Case ID" } },
+    { accessorKey: "party", header: "Party", meta: { label: "Party" } },
+    { accessorKey: "action", header: "Action", meta: { label: "Action" } },
+    { 
+      accessorKey: "amount", 
+      header: "Amount", 
+      meta: { label: "Amount", align: "right" },
+      cell: ({ getValue }) => `$${Number(getValue()).toLocaleString()}`
+    },
+    { accessorKey: "effectiveDate", header: "Effective Date", meta: { label: "Effective Date" } },
+    { 
+      accessorKey: "status", 
+      header: "Status", 
+      meta: { label: "Status" },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue() as string} />
+    },
+    { 
+      accessorKey: "collectionStatus", 
+      header: "Collection", 
+      meta: { label: "Collection" },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue() as string} />
+    },
+  ], []);
 
-  const getEnforcementStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Active': return <Badge variant="default">{status}</Badge>;
-      case 'Completed': return <Badge variant="default">{status}</Badge>;
-      case 'Suspended': return <Badge variant="secondary">{status}</Badge>;
-      default: return <Badge variant="secondary">{status}</Badge>;
-    }
-  };
+  const collectionColumns: LgColumnDef<any>[] = useMemo(() => [
+    { accessorKey: "id", header: "Enforcement ID", meta: { label: "Enforcement ID", pinLeft: true } },
+    { accessorKey: "party", header: "Party", meta: { label: "Party" } },
+    { 
+      accessorKey: "amount", 
+      header: "Total Amount", 
+      meta: { label: "Total Amount", align: "right" },
+      cell: ({ getValue }) => `$${Number(getValue()).toLocaleString()}`
+    },
+    { 
+      accessorKey: "paymentReceived", 
+      header: "Paid", 
+      meta: { label: "Paid", align: "right" },
+      cell: ({ getValue }) => `$${Number(getValue()).toLocaleString()}`
+    },
+    { 
+      id: "outstanding",
+      header: "Outstanding", 
+      meta: { label: "Outstanding", align: "right" },
+      cell: ({ row }) => `$${(row.original.amount - row.original.paymentReceived).toLocaleString()}`
+    },
+    { 
+      accessorKey: "collectionStatus", 
+      header: "Status", 
+      meta: { label: "Status" },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue() as string} />
+    },
+    { accessorKey: "lastPaymentDate", header: "Last Payment", meta: { label: "Last Payment" }, cell: ({ getValue }) => getValue() || '—' },
+  ], []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -240,36 +277,15 @@ const EnforcementPenalty = () => {
                 <CardDescription>Latest enforcement activities and their status</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Enforcement ID</TableHead>
-                      <TableHead>Party</TableHead>
-                      <TableHead>Action</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Collection</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockEnforcements.slice(0, 5).map((enforcement) => (
-                      <TableRow key={enforcement.id}>
-                        <TableCell className="font-medium">{enforcement.id}</TableCell>
-                        <TableCell>{enforcement.party}</TableCell>
-                        <TableCell>{enforcement.action}</TableCell>
-                        <TableCell>${enforcement.amount.toLocaleString()}</TableCell>
-                        <TableCell>{getEnforcementStatusBadge(enforcement.status)}</TableCell>
-                        <TableCell>{getCollectionStatusBadge(enforcement.collectionStatus)}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <LgDataGrid
+                  id="lg.enforcement.recent"
+                  columns={columns}
+                  data={mockEnforcements.slice(0, 5)}
+                  rowActions={buildLgRowActions({
+                    onView: (r) => toast({ title: "View", description: `Viewing ${r.id}` }),
+                  })}
+                  exportFilename="recent-enforcements"
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -376,40 +392,15 @@ const EnforcementPenalty = () => {
                 <CardDescription>Monitor all enforcement actions and their progress</CardDescription>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Enforcement ID</TableHead>
-                      <TableHead>Case ID</TableHead>
-                      <TableHead>Party</TableHead>
-                      <TableHead>Action Type</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Effective Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Collection Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockEnforcements.map((enforcement) => (
-                      <TableRow key={enforcement.id}>
-                        <TableCell className="font-medium">{enforcement.id}</TableCell>
-                        <TableCell>{enforcement.caseId}</TableCell>
-                        <TableCell>{enforcement.party}</TableCell>
-                        <TableCell>{enforcement.action}</TableCell>
-                        <TableCell>${enforcement.amount.toLocaleString()}</TableCell>
-                        <TableCell>{enforcement.effectiveDate}</TableCell>
-                        <TableCell>{getEnforcementStatusBadge(enforcement.status)}</TableCell>
-                        <TableCell>{getCollectionStatusBadge(enforcement.collectionStatus)}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <LgDataGrid
+                  id="lg.enforcement.tracking"
+                  columns={columns}
+                  data={mockEnforcements}
+                  rowActions={buildLgRowActions({
+                    onView: (r) => toast({ title: "View", description: `Viewing ${r.id}` }),
+                  })}
+                  exportFilename="enforcement-tracking"
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -421,79 +412,19 @@ const EnforcementPenalty = () => {
                 <CardDescription>Track payment collections and outstanding amounts</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-6">
-                  {/* Collection Summary */}
-                  <div className="grid grid-cols-4 gap-4 p-4 bg-muted rounded-lg">
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-destructive">
-                        ${collectionStats.totalOutstanding.toLocaleString()}
-                      </div>
-                      <p className="text-sm text-muted-foreground">Total Outstanding</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-primary">
-                        ${collectionStats.collectedThisYear.toLocaleString()}
-                      </div>
-                      <p className="text-sm text-muted-foreground">Collected This Year</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-foreground">
-                        {collectionStats.collectionRate}%
-                      </div>
-                      <p className="text-sm text-muted-foreground">Collection Rate</p>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-foreground">
-                        {collectionStats.averageCollectionTime}
-                      </div>
-                      <p className="text-sm text-muted-foreground">Avg. Collection Days</p>
-                    </div>
-                  </div>
-
-                  {/* Detailed Collection Table */}
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Enforcement ID</TableHead>
-                        <TableHead>Party</TableHead>
-                        <TableHead>Total Amount</TableHead>
-                        <TableHead>Paid Amount</TableHead>
-                        <TableHead>Outstanding</TableHead>
-                        <TableHead>Last Payment</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {mockEnforcements.map((enforcement) => {
-                        const outstanding = enforcement.amount - enforcement.paymentReceived;
-                        return (
-                          <TableRow key={enforcement.id}>
-                            <TableCell className="font-medium">{enforcement.id}</TableCell>
-                            <TableCell>{enforcement.party}</TableCell>
-                            <TableCell>${enforcement.amount.toLocaleString()}</TableCell>
-                            <TableCell>${enforcement.paymentReceived.toLocaleString()}</TableCell>
-                            <TableCell className={outstanding > 0 ? 'text-destructive font-medium' : 'text-primary'}>
-                              ${outstanding.toLocaleString()}
-                            </TableCell>
-                            <TableCell>{enforcement.lastPaymentDate || 'No payments'}</TableCell>
-                            <TableCell>{getCollectionStatusBadge(enforcement.collectionStatus)}</TableCell>
-                            <TableCell>
-                              <div className="flex space-x-1">
-                                <Button variant="ghost" size="sm">
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="sm">
-                                  <FileText className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
+                <LgDataGrid
+                  id="lg.enforcement.collection"
+                  columns={collectionColumns}
+                  data={mockEnforcements}
+                  rowActions={buildLgRowActions({
+                    onView: (r) => toast({ title: "View", description: `Viewing ${r.id}` }),
+                  })}
+                  exportFilename="payment-collection-status"
+                  summary={[
+                    { label: "Total Outstanding", value: `$${collectionStats.totalOutstanding.toLocaleString()}`, tone: "danger" },
+                    { label: "Collected This Month", value: `$${collectionStats.collectedThisMonth.toLocaleString()}`, tone: "info" },
+                  ]}
+                />
               </CardContent>
             </Card>
           </TabsContent>

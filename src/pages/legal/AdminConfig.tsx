@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from '@/components/legal/grid';
+import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -204,6 +205,35 @@ export default function AdminConfig() {
     });
   };
 
+    const codesetColumns: LgColumnDef<any>[] = useMemo(() => [
+    { accessorKey: "code", header: "Code", meta: { label: "Code", pinLeft: true } },
+    { accessorKey: "label", header: "Label", meta: { label: "Label" } },
+    { 
+      accessorKey: "usageCount", 
+      header: "Usage", 
+      meta: { label: "Usage", align: "right" },
+      cell: ({ getValue }) => <Badge variant="outline">{getValue() as number} uses</Badge>
+    },
+    { 
+      accessorKey: "isActive", 
+      header: "Status", 
+      meta: { label: "Status" },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue() ? "ACTIVE" : "INACTIVE"} />
+    },
+  ], []);
+  const templateColumns: LgColumnDef<any>[] = useMemo(() => [
+    { accessorKey: "name", header: "Template Name", meta: { label: "Template Name", pinLeft: true } },
+    { accessorKey: "type", header: "Type", meta: { label: "Type" } },
+    { 
+      accessorKey: "status", 
+      header: "Status", 
+      meta: { label: "Status" },
+      cell: ({ getValue }) => <Badge variant={getValue() === "Published" ? "default" : "secondary"}>{getValue() as string}</Badge>
+    },
+    { accessorKey: "version", header: "Version", meta: { label: "Version" } },
+    { accessorKey: "lastUpdated", header: "Last Updated", meta: { label: "Last Updated" } },
+  ], []);
+
   return (
     <div className="p-6 space-y-6">
     
@@ -363,7 +393,7 @@ export default function AdminConfig() {
                 </Select>
               </div>
 
-              <Table>
+              <LgDataGrid id="lg.admin.codesets" columns={codesetColumns} data={filteredCodeSets} rowActions={buildLgRowActions({ onEdit: () => {}, onDelete: (r) => handleDelete(r.label), canDelete: (r) => r.usageCount === 0 })} exportFilename="legal-codesets" />{/*
                 <TableHeader>
                   <TableRow>
                     <TableHead>Code</TableHead>
@@ -415,7 +445,7 @@ export default function AdminConfig() {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
+              */}
             </CardContent>
           </Card>
         </TabsContent>
@@ -506,7 +536,7 @@ export default function AdminConfig() {
               </div>
             </CardHeader>
             <CardContent>
-              <Table>
+              <LgDataGrid id="lg.admin.templates" columns={templateColumns} data={mockTemplates} rowActions={buildLgRowActions({ onView: () => {}, onEdit: () => setIsTemplateEditorOpen(true) })} exportFilename="legal-templates" />{/*
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
@@ -545,7 +575,7 @@ export default function AdminConfig() {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
+              */}
             </CardContent>
           </Card>
         </TabsContent>

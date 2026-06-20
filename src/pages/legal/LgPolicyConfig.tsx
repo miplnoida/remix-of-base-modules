@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LgDataGrid, type LgColumnDef } from "@/components/legal/grid";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Loader2, Plus, Trash2, ArrowLeft, ShieldCheck, Info } from "lucide-react";
 import { toast } from "sonner";
@@ -219,6 +219,32 @@ function MappingTab() {
 
   if (isLoading) return <Loading />;
 
+    const previewColumns: LgColumnDef<any>[] = useMemo(() => [
+    { accessorKey: "sysRole", header: "System Role", meta: { label: "System Role", pinLeft: true } },
+    { 
+      accessorKey: "types", 
+      header: "Legal Role Types", 
+      meta: { label: "Legal Role Types" },
+      cell: ({ getValue }) => (
+        <div className="flex flex-wrap gap-1">
+          {(getValue() as string[]).map((t) => <Badge key={t} variant="outline">{t}</Badge>)}
+        </div>
+      )
+    },
+    ...PREVIEW_CAPS.map(c => ({
+      id: c,
+      header: c,
+      meta: { label: c },
+      cell: ({ row }: { row: any }) => {
+        const types = row.original.types;
+        const caps = new Set();
+        types.forEach((t: any) => LG_BASE_MATRIX[t]?.forEach((cp: any) => caps.add(cp)));
+        return caps.has(c) ? <span className="text-success">✓</span> : <span className="text-muted-foreground">—</span>;
+      }
+    }))
+  ], []);
+  const previewData = grouped.map(([sysRole, types]) => ({ sysRole, types }));
+
   const editorRow = (key: string) => (
     <TableRow key={key} className="bg-muted/30">
       <TableCell>
@@ -334,6 +360,32 @@ function CapabilityPreviewTab() {
 
   if (isLoading) return <Loading />;
 
+    const previewColumns: LgColumnDef<any>[] = useMemo(() => [
+    { accessorKey: "sysRole", header: "System Role", meta: { label: "System Role", pinLeft: true } },
+    { 
+      accessorKey: "types", 
+      header: "Legal Role Types", 
+      meta: { label: "Legal Role Types" },
+      cell: ({ getValue }) => (
+        <div className="flex flex-wrap gap-1">
+          {(getValue() as string[]).map((t) => <Badge key={t} variant="outline">{t}</Badge>)}
+        </div>
+      )
+    },
+    ...PREVIEW_CAPS.map(c => ({
+      id: c,
+      header: c,
+      meta: { label: c },
+      cell: ({ row }: { row: any }) => {
+        const types = row.original.types;
+        const caps = new Set();
+        types.forEach((t: any) => LG_BASE_MATRIX[t]?.forEach((cp: any) => caps.add(cp)));
+        return caps.has(c) ? <span className="text-success">✓</span> : <span className="text-muted-foreground">—</span>;
+      }
+    }))
+  ], []);
+  const previewData = grouped.map(([sysRole, types]) => ({ sysRole, types }));
+
   return (
     <Card>
       <CardHeader>
@@ -352,43 +404,17 @@ function CapabilityPreviewTab() {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0 overflow-x-auto">
-        {grouped.length === 0 ? (
+        {previewData.length > 0 ? (
+          <LgDataGrid
+            id="lg.config.capabilities"
+            columns={previewColumns}
+            data={previewData}
+            exportFilename="derived-capabilities-preview"
+          />
+        ) : (
           <div className="p-6 text-center text-muted-foreground text-sm">
             No active role mappings. Add a mapping to see derived capabilities.
           </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="sticky left-0 bg-background">System Role</TableHead>
-                <TableHead>Legal Role Types</TableHead>
-                {PREVIEW_CAPS.map((c) => (
-                  <TableHead key={c} className="text-xs whitespace-nowrap">{c}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {grouped.map(([sysRole, types]) => {
-                const caps = new Set<LgCapability>();
-                types.forEach((t) => LG_BASE_MATRIX[t]?.forEach((c) => caps.add(c)));
-                return (
-                  <TableRow key={sysRole}>
-                    <TableCell className="font-medium sticky left-0 bg-background">{sysRole}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {types.map((t) => <Badge key={t} variant="outline">{t}</Badge>)}
-                      </div>
-                    </TableCell>
-                    {PREVIEW_CAPS.map((c) => (
-                      <TableCell key={c} className="text-center">
-                        {caps.has(c) ? <span className="text-success">✓</span> : <span className="text-muted-foreground">—</span>}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
         )}
       </CardContent>
     </Card>
@@ -419,6 +445,32 @@ function PolicyTab() {
     (editing[r.id]?.[k] ?? r[k]) as any;
 
   if (isLoading) return <Loading />;
+
+    const previewColumns: LgColumnDef<any>[] = useMemo(() => [
+    { accessorKey: "sysRole", header: "System Role", meta: { label: "System Role", pinLeft: true } },
+    { 
+      accessorKey: "types", 
+      header: "Legal Role Types", 
+      meta: { label: "Legal Role Types" },
+      cell: ({ getValue }) => (
+        <div className="flex flex-wrap gap-1">
+          {(getValue() as string[]).map((t) => <Badge key={t} variant="outline">{t}</Badge>)}
+        </div>
+      )
+    },
+    ...PREVIEW_CAPS.map(c => ({
+      id: c,
+      header: c,
+      meta: { label: c },
+      cell: ({ row }: { row: any }) => {
+        const types = row.original.types;
+        const caps = new Set();
+        types.forEach((t: any) => LG_BASE_MATRIX[t]?.forEach((cp: any) => caps.add(cp)));
+        return caps.has(c) ? <span className="text-success">✓</span> : <span className="text-muted-foreground">—</span>;
+      }
+    }))
+  ], []);
+  const previewData = grouped.map(([sysRole, types]) => ({ sysRole, types }));
 
   return (
     <Card>

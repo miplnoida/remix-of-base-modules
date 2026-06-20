@@ -1,17 +1,8 @@
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -19,8 +10,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from "@/components/legal/grid";
 
 interface TerritoryMapping {
   id: string;
@@ -149,6 +141,20 @@ export default function TerritorySettings() {
       description: "Territory mapping deleted successfully",
     });
   };
+
+  const columns: LgColumnDef<TerritoryMapping>[] = useMemo(() => [
+    { accessorKey: "territory", header: "Territory", meta: { label: "Territory", pinLeft: true } },
+    { accessorKey: "court", header: "Court", meta: { label: "Court" } },
+    { accessorKey: "courtAddress", header: "Address", meta: { label: "Address" } },
+    { accessorKey: "defaultJudge", header: "Default Judge", meta: { label: "Default Judge" } },
+    { accessorKey: "registrar", header: "Registrar", meta: { label: "Registrar" } },
+    { 
+      accessorKey: "active", 
+      header: "Status", 
+      meta: { label: "Status" },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue() ? "ACTIVE" : "INACTIVE"} />
+    },
+  ], []);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -294,63 +300,17 @@ export default function TerritorySettings() {
         </Dialog>
       </div>
 
-      <Card className="p-6">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Territory</TableHead>
-              <TableHead>Court</TableHead>
-              <TableHead>Address</TableHead>
-              <TableHead>Default Judge</TableHead>
-              <TableHead>Registrar</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {mappings.map((mapping) => (
-              <TableRow key={mapping.id}>
-                <TableCell className="font-medium">
-                  {mapping.territory}
-                </TableCell>
-                <TableCell>{mapping.court}</TableCell>
-                <TableCell>{mapping.courtAddress}</TableCell>
-                <TableCell>{mapping.defaultJudge}</TableCell>
-                <TableCell>{mapping.registrar}</TableCell>
-                <TableCell>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      mapping.active
-                        ? "bg-success/10 text-success"
-                        : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {mapping.active ? "Active" : "Inactive"}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(mapping)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(mapping.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <LgDataGrid
+        id="lg.territories"
+        columns={columns}
+        data={mappings}
+        searchPlaceholder="Search territory mapping..."
+        rowActions={buildLgRowActions({
+          onEdit: handleEdit,
+          onDelete: (r) => handleDelete(r.id),
+        })}
+        exportFilename="legal-territory-settings"
+      />
     </div>
   );
 }
