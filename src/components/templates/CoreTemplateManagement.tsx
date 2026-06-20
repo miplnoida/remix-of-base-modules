@@ -462,6 +462,12 @@ export default function CoreTemplateManagement({
             </CardContent>
           </Card>
         </TabsContent>
+
+        {(fixedModuleCode === "LEGAL" || !fixedModuleCode) && (
+          <TabsContent value="completeness">
+            <CompletenessReport moduleCode="LEGAL" country="KN" onEdit={(id) => navigate(`/legal/admin/templates/${id}/edit`)} />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Preview */}
