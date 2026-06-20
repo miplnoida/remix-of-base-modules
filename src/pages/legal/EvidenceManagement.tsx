@@ -1,292 +1,119 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, FileText, Download, Eye, Trash2, Search, Filter, Lock } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useMemo, useState } from "react";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FolderOpen, Eye, Loader2, ShieldAlert } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { listAllLgDocumentLinks } from "@/services/legal/lgRegistryService";
+import { useLgReference } from "@/hooks/legal/useLgCases";
+import { formatDateForDisplay } from "@/lib/format-config";
+
+const ALL = "__all__";
 
 const EvidenceManagement = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [caseFilter, setCaseFilter] = useState('');
+  const [search, setSearch] = useState("");
+  const [cat, setCat] = useState(ALL);
 
-  const documentTypes = [
-    'Notice', 'Court Order', 'Testimony', 'Wage Record', 'Financial Statement',
-    'Medical Report', 'Photo Evidence', 'Audio Recording', 'Video Recording',
-    'Email Correspondence', 'Contract', 'Other'
-  ];
-
-  const mockDocuments = [
-    { id: 'DOC-2024-001', caseId: 'LC-2024-089', fileName: 'penalty_notice_signed.pdf', documentType: 'Notice', uploadedBy: 'Sarah Johnson', dateUploaded: '2024-01-20', fileSize: '2.4 MB', accessLevel: 'Restricted', version: 1, description: 'Signed penalty notice delivered to ABC Manufacturing', isEncrypted: true },
-    { id: 'DOC-2024-002', caseId: 'LC-2024-089', fileName: 'wage_records_q4_2023.xlsx', documentType: 'Wage Record', uploadedBy: 'Michael Chen', dateUploaded: '2024-01-18', fileSize: '1.2 MB', accessLevel: 'Internal', version: 2, description: 'Employee wage records for Q4 2023 - ABC Manufacturing', isEncrypted: true },
-    { id: 'DOC-2024-003', caseId: 'LC-2024-088', fileName: 'medical_report_john_smith.pdf', documentType: 'Medical Report', uploadedBy: 'Lisa Wang', dateUploaded: '2024-01-15', fileSize: '856 KB', accessLevel: 'Confidential', version: 1, description: 'Medical assessment report for disability claim review', isEncrypted: true },
-    { id: 'DOC-2024-004', caseId: 'LC-2024-087', fileName: 'court_summons_xyz_corp.pdf', documentType: 'Court Order', uploadedBy: 'David Rodriguez', dateUploaded: '2024-01-12', fileSize: '724 KB', accessLevel: 'Public', version: 1, description: 'Court summons issued to XYZ Services Corp', isEncrypted: false },
-    { id: 'DOC-2024-005', caseId: 'LC-2024-089', fileName: 'bank_statements_abc_manufacturing.pdf', documentType: 'Financial Statement', uploadedBy: 'Emma Thompson', dateUploaded: '2024-01-10', fileSize: '3.1 MB', accessLevel: 'Confidential', version: 1, description: 'Bank statements showing payment history', isEncrypted: true }
-  ];
-
-  const mockCases = [
-    { id: 'LC-2024-089', party: 'ABC Manufacturing Ltd', type: 'Non-Compliance' },
-    { id: 'LC-2024-088', party: 'John Smith', type: 'Benefit Dispute' },
-    { id: 'LC-2024-087', party: 'XYZ Services Corp', type: 'Appeal' }
-  ];
-
-  const filteredDocuments = mockDocuments.filter(doc => {
-    const matchesSearch = searchTerm === '' || 
-      doc.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === '' || doc.documentType === typeFilter;
-    const matchesCase = caseFilter === '' || doc.caseId === caseFilter;
-    return matchesSearch && matchesType && matchesCase;
+  const { data: categories = [] } = useLgReference("LG_DOCUMENT_CATEGORY");
+  const { data: docs = [], isLoading } = useQuery({
+    queryKey: ["lg_documents_all", cat, search],
+    queryFn: () => listAllLgDocumentLinks({
+      category: cat === ALL ? undefined : cat,
+      search: search || undefined,
+    }),
   });
 
-  const handleFileUpload = () => {
-    toast({ title: "Document Uploaded", description: "Evidence document has been uploaded and encrypted successfully." });
-  };
+  const catLabel = (c: string) => categories.find(x => x.code === c)?.label ?? c;
 
-  const handleDownload = (document: any) => {
-    toast({ title: "Download Started", description: `Downloading ${document.fileName}...` });
-  };
-
-  const handleDelete = (document: any) => {
-    toast({ title: "Document Deleted", description: `${document.fileName} has been permanently deleted.`, variant: "destructive" });
-  };
-
-  const getAccessLevelBadge = (accessLevel: string) => {
-    switch (accessLevel) {
-      case 'Public': return <Badge variant="secondary">{accessLevel}</Badge>;
-      case 'Internal': return <Badge variant="default">{accessLevel}</Badge>;
-      case 'Restricted': return <Badge variant="secondary">{accessLevel}</Badge>;
-      case 'Confidential': return <Badge variant="destructive">{accessLevel}</Badge>;
-      default: return <Badge variant="secondary">{accessLevel}</Badge>;
-    }
-  };
-
-  const getDocumentIcon = (documentType: string) => {
-    switch (documentType) {
-      case 'Notice':
-      case 'Court Order':
-        return <FileText className="h-4 w-4 text-info" />;
-      case 'Financial Statement':
-      case 'Wage Record':
-        return <FileText className="h-4 w-4 text-success" />;
-      case 'Medical Report':
-        return <FileText className="h-4 w-4 text-destructive" />;
-      default:
-        return <FileText className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
+  const stats = useMemo(() => ({
+    total: docs.length,
+    courtFiled: docs.filter(d => d.court_filed).length,
+    confidential: docs.filter(d => d.confidential).length,
+  }), [docs]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="bg-card shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/legal')} className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Legal Module
-              </Button>
-              <div className="h-6 w-px bg-border" />
-              <nav className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <span>Legal Module</span>
-                <span>/</span>
-                <span className="text-foreground font-medium">Evidence & Document Management</span>
-              </nav>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Bulk Download
-              </Button>
-              <Button size="sm" onClick={handleFileUpload}>
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Evidence
-              </Button>
-            </div>
-          </div>
-        </div>
+    <div className="container mx-auto p-6 space-y-6">
+      <PageHeader
+        title="Legal Evidence & Documents"
+        subtitle="Documents linked to legal cases (read-only registry)"
+        breadcrumbs={[
+          { label: "Legal Management", href: "/legal/lg/dashboard" },
+          { label: "Evidence", href: "/legal/evidence" },
+        ]}
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><div className="text-sm text-muted-foreground">Total Documents</div><div className="text-2xl font-bold">{stats.total}</div></div><FolderOpen className="h-5 w-5 text-muted-foreground" /></div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="text-sm text-muted-foreground">Court Filed</div><div className="text-2xl font-bold">{stats.courtFiled}</div></CardContent></Card>
+        <Card><CardContent className="pt-6"><div className="flex items-center justify-between"><div><div className="text-sm text-muted-foreground">Confidential</div><div className="text-2xl font-bold text-amber-600">{stats.confidential}</div></div><ShieldAlert className="h-5 w-5 text-amber-600" /></div></CardContent></Card>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Evidence & Document Management</h1>
-          <p className="text-muted-foreground">Securely manage legal documents and evidence with version control</p>
-        </div>
-
-        {/* Upload Section */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Upload New Evidence</CardTitle>
-            <CardDescription>Add documents and evidence to legal cases</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div className="space-y-2">
-                <Label>Linked Case ID</Label>
-                <Select>
-                  <SelectTrigger><SelectValue placeholder="Select case" /></SelectTrigger>
-                  <SelectContent>
-                    {mockCases.map((case_) => (
-                      <SelectItem key={case_.id} value={case_.id}>{case_.id} - {case_.party}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Document Type</Label>
-                <Select>
-                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                  <SelectContent>
-                    {documentTypes.map((type) => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Access Level</Label>
-                <Select>
-                  <SelectTrigger><SelectValue placeholder="Select access level" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Public">Public</SelectItem>
-                    <SelectItem value="Internal">Internal</SelectItem>
-                    <SelectItem value="Restricted">Restricted</SelectItem>
-                    <SelectItem value="Confidential">Confidential</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="border-2 border-dashed border-border rounded-lg p-6">
-              <div className="text-center">
-                <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-2">Drop files here or click to upload</p>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Supported formats: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, MP3, MP4 (Max 10MB)
-                </p>
-                <Button variant="outline" size="sm" onClick={handleFileUpload}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Choose Files
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Document List */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Evidence Documents</CardTitle>
-                <CardDescription>All uploaded documents with secure access control</CardDescription>
-              </div>
-              <div className="flex items-center space-x-2">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search documents..." className="pl-8 w-64" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-                </div>
-                <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v === 'ALL' ? '' : v)}>
-                  <SelectTrigger className="w-40"><SelectValue placeholder="All Types" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Types</SelectItem>
-                    {documentTypes.map((type) => (<SelectItem key={type} value={type}>{type}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-                <Select value={caseFilter} onValueChange={(v) => setCaseFilter(v === 'ALL' ? '' : v)}>
-                  <SelectTrigger className="w-40"><SelectValue placeholder="All Cases" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALL">All Cases</SelectItem>
-                    {mockCases.map((case_) => (<SelectItem key={case_.id} value={case_.id}>{case_.id}</SelectItem>))}
-                  </SelectContent>
-                </Select>
-                <Button variant="outline" size="sm"><Filter className="h-4 w-4 mr-2" />More Filters</Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
+      <Card>
+        <CardHeader><CardTitle>Document Registry</CardTitle></CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-3">
+            <Input placeholder="Search title or ref no..." value={search} onChange={e => setSearch(e.target.value)} className="flex-1" />
+            <Select value={cat} onValueChange={setCat}>
+              <SelectTrigger className="md:w-56"><SelectValue placeholder="Category" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>All categories</SelectItem>
+                {categories.map(c => <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Document</TableHead>
-                  <TableHead>Case ID</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Uploaded By</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Size</TableHead>
-                  <TableHead>Access Level</TableHead>
-                  <TableHead>Version</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Title / Ref</TableHead>
+                  <TableHead>Case</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Source</TableHead>
+                  <TableHead>Uploaded</TableHead>
+                  <TableHead>Flags</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDocuments.map((document) => (
-                  <TableRow key={document.id}>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
+                ) : docs.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No documents found</TableCell></TableRow>
+                ) : docs.map(d => (
+                  <TableRow key={d.id}>
                     <TableCell>
-                      <div className="flex items-center space-x-3">
-                        {getDocumentIcon(document.documentType)}
-                        <div>
-                          <div className="font-medium flex items-center space-x-2">
-                            <span>{document.fileName}</span>
-                            {document.isEncrypted && <Lock className="h-3 w-3 text-success" />}
-                          </div>
-                          <div className="text-sm text-muted-foreground">{document.id}</div>
-                        </div>
-                      </div>
+                      <div className="font-medium">{d.title || '(untitled)'}</div>
+                      {d.document_ref_no && <div className="text-xs text-muted-foreground font-mono">{d.document_ref_no}</div>}
                     </TableCell>
-                    <TableCell>{document.caseId}</TableCell>
-                    <TableCell>{document.documentType}</TableCell>
-                    <TableCell>{document.uploadedBy}</TableCell>
-                    <TableCell>{document.dateUploaded}</TableCell>
-                    <TableCell>{document.fileSize}</TableCell>
-                    <TableCell>{getAccessLevelBadge(document.accessLevel)}</TableCell>
-                    <TableCell><Badge variant="outline">v{document.version}</Badge></TableCell>
                     <TableCell>
-                      <div className="flex space-x-1">
-                        <Button variant="ghost" size="sm"><Eye className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDownload(document)}><Download className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(document)}><Trash2 className="h-4 w-4" /></Button>
-                      </div>
+                      <button className="text-primary hover:underline" onClick={() => navigate(`/legal/lg/cases/${d.lg_case_id}`)}>
+                        {d.lg_case?.lg_case_no ?? '—'}
+                      </button>
+                    </TableCell>
+                    <TableCell><Badge variant="outline">{catLabel(d.document_category_code)}</Badge></TableCell>
+                    <TableCell className="text-sm">{d.document_source}</TableCell>
+                    <TableCell>{formatDateForDisplay(d.uploaded_at)}</TableCell>
+                    <TableCell className="space-x-1">
+                      {d.court_filed && <Badge variant="secondary">Filed</Badge>}
+                      {d.confidential && <Badge variant="destructive">Confidential</Badge>}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/legal/lg/cases/${d.lg_case_id}`)}><Eye className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-
-            {filteredDocuments.length === 0 && (
-              <div className="text-center py-8">
-                <FileText className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
-                <p className="text-muted-foreground">No documents found matching your criteria.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Security Notice */}
-        <Card className="mt-6 border-info/30 bg-info/5">
-          <CardContent className="pt-6">
-            <div className="flex items-start space-x-3">
-              <Lock className="h-5 w-5 text-info mt-0.5" />
-              <div>
-                <h4 className="font-medium text-foreground">Security & Compliance</h4>
-                <p className="text-sm text-muted-foreground mt-1">
-                  All uploaded documents are automatically encrypted and access is logged for audit purposes. 
-                  Only authorized personnel can view confidential and restricted documents. 
-                  Documents are stored with version control and cannot be modified once uploaded.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+          <p className="text-xs text-muted-foreground">To link a new document, open the case and use the Documents tab.</p>
+        </CardContent>
+      </Card>
     </div>
   );
 };

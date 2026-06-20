@@ -1,339 +1,163 @@
+import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Gavel, Plus, Eye, FileText, DollarSign } from "lucide-react";
-import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Gavel, Eye, FileText, DollarSign, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { listAllLgOrders } from "@/services/legal/lgRegistryService";
+import { useLgReference } from "@/hooks/legal/useLgCases";
+import { formatDateForDisplay } from "@/lib/format-config";
 
-interface CourtOrder {
-  orderId: string;
-  caseNumber: string;
-  partyName: string;
-  orderType: string;
-  orderDate: string;
-  court: string;
-  judge: string;
-  principal: number;
-  interest: number;
-  penalties: number;
-  courtCosts: number;
-  totalOrdered: number;
-  dueDate: string;
-  installmentSchedule: string;
-  status: string;
-}
-
-const mockOrders: CourtOrder[] = [
-  {
-    orderId: "ORD-001",
-    caseNumber: "SSB/LGL/001/2024",
-    partyName: "ABC Construction Ltd",
-    orderType: "Judgment",
-    orderDate: "2024-09-15",
-    court: "High Court - St Kitts",
-    judge: "Hon. Justice Williams",
-    principal: 85000,
-    interest: 12000,
-    penalties: 8500,
-    courtCosts: 3500,
-    totalOrdered: 109000,
-    dueDate: "2024-12-15",
-    installmentSchedule: "Monthly - EC$10,000",
-    status: "Active"
-  },
-  {
-    orderId: "ORD-002",
-    caseNumber: "SSB/LGL/002/2024",
-    partyName: "XYZ Services Inc",
-    orderType: "Interim Order",
-    orderDate: "2024-10-20",
-    court: "Magistrate Court - Nevis",
-    judge: "Hon. Magistrate Brown",
-    principal: 42000,
-    interest: 5600,
-    penalties: 4200,
-    courtCosts: 2100,
-    totalOrdered: 53900,
-    dueDate: "2025-01-20",
-    installmentSchedule: "Lump Sum",
-    status: "Active"
-  }
-];
+const ALL = "__all__";
 
 const CourtOrdersManagement = () => {
-  const { toast } = useToast();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const navigate = useNavigate();
+  const [typeFilter, setTypeFilter] = useState(ALL);
+  const [statusFilter, setStatusFilter] = useState(ALL);
+  const [search, setSearch] = useState("");
 
-  const handleAddOrder = () => {
-    toast({
-      title: "Court Order Recorded",
-      description: "Court order has been successfully recorded",
-    });
-    setIsAddDialogOpen(false);
-  };
+  const { data: orderTypes = [] } = useLgReference("LG_ORDER_TYPE");
+  const { data: orders = [], isLoading } = useQuery({
+    queryKey: ["lg_order_all", typeFilter, statusFilter],
+    queryFn: () => listAllLgOrders({
+      type: typeFilter === ALL ? undefined : typeFilter,
+      status: statusFilter === ALL ? undefined : statusFilter,
+    }),
+  });
+
+  const typeLabel = (c: string) => orderTypes.find(t => t.code === c)?.label ?? c;
+
+  const filtered = useMemo(() => {
+    const s = search.trim().toLowerCase();
+    if (!s) return orders;
+    return orders.filter(o =>
+      o.order_no?.toLowerCase().includes(s) ||
+      o.lg_case?.lg_case_no?.toLowerCase().includes(s) ||
+      o.issued_by_court?.toLowerCase().includes(s)
+    );
+  }, [orders, search]);
+
+  const stats = useMemo(() => ({
+    total: orders.length,
+    totalAmount: orders.reduce((s, o) => s + (Number(o.ordered_amount) || 0), 0),
+    judgments: orders.filter(o => o.order_type_code === "JUDGMENT").length,
+    interim: orders.filter(o => o.order_type_code === "INTERIM").length,
+  }), [orders]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <PageHeader
-        title="Court Orders Management"
-        subtitle="Record and manage all court orders and judgments"
+        title="Court Orders & Judgments"
+        subtitle="All orders issued across legal cases"
         breadcrumbs={[
-          { label: "Legal Management", href: "/legal/dashboard" },
-          { label: "Court Orders & Enforcement", href: "/legal/court-orders" }
+          { label: "Legal Management", href: "/legal/lg/dashboard" },
+          { label: "Court Orders", href: "/legal/court-orders" },
         ]}
       />
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
             <Gavel className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{mockOrders.length}</div>
-            <p className="text-xs text-muted-foreground">Active court orders</p>
-          </CardContent>
+          <CardContent><div className="text-2xl font-bold">{stats.total}</div></CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total Ordered</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              EC${mockOrders.reduce((sum, o) => sum + o.totalOrdered, 0).toLocaleString()}
-            </div>
-            <p className="text-xs text-muted-foreground">Sum of all orders</p>
-          </CardContent>
+          <CardContent><div className="text-2xl font-bold">EC${stats.totalAmount.toLocaleString()}</div></CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Judgments</CardTitle>
             <Gavel className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {mockOrders.filter(o => o.orderType === "Judgment").length}
-            </div>
-            <p className="text-xs text-muted-foreground">Final judgments</p>
-          </CardContent>
+          <CardContent><div className="text-2xl font-bold">{stats.judgments}</div></CardContent>
         </Card>
-
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Interim Orders</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {mockOrders.filter(o => o.orderType === "Interim Order").length}
-            </div>
-            <p className="text-xs text-muted-foreground">Pending final judgment</p>
-          </CardContent>
+          <CardContent><div className="text-2xl font-bold">{stats.interim}</div></CardContent>
         </Card>
       </div>
 
-      {/* Actions and Add Order */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Court Orders</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Record Court Order
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Record New Court Order</DialogTitle>
-              <DialogDescription>
-                Enter court order details and financial breakdown
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Case Number *</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select case" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">SSB/LGL/001/2024</SelectItem>
-                      <SelectItem value="2">SSB/LGL/002/2024</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Order Type *</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="judgment">Judgment</SelectItem>
-                      <SelectItem value="interim">Interim Order</SelectItem>
-                      <SelectItem value="consent">Consent Order</SelectItem>
-                      <SelectItem value="variation">Variation Order</SelectItem>
-                      <SelectItem value="adjournment">Adjournment</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Court *</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select court" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hc-sk">High Court - St Kitts</SelectItem>
-                      <SelectItem value="mc-sk">Magistrate Court - St Kitts</SelectItem>
-                      <SelectItem value="hc-nv">High Court - Nevis</SelectItem>
-                      <SelectItem value="mc-nv">Magistrate Court - Nevis</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Judge *</Label>
-                  <Input placeholder="Enter judge name" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Order Date *</Label>
-                  <Input type="date" />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Due Date *</Label>
-                  <Input type="date" />
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="font-semibold mb-4">Financial Breakdown</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Principal Amount (EC$)</Label>
-                    <Input type="number" step="0.01" placeholder="0.00" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Interest (EC$)</Label>
-                    <Input type="number" step="0.01" placeholder="0.00" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Penalties (EC$)</Label>
-                    <Input type="number" step="0.01" placeholder="0.00" />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Court Costs (EC$)</Label>
-                    <Input type="number" step="0.01" placeholder="0.00" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Installment Schedule</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select schedule" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="lump">Lump Sum</SelectItem>
-                    <SelectItem value="monthly">Monthly Installments</SelectItem>
-                    <SelectItem value="quarterly">Quarterly Installments</SelectItem>
-                    <SelectItem value="custom">Custom Schedule</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Order Notes</Label>
-                <Textarea rows={3} placeholder="Additional order details, conditions, or remarks" />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleAddOrder}>
-                  Record Order
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Court Orders Table */}
       <Card>
-        <CardContent className="pt-6">
+        <CardHeader>
+          <CardTitle>Orders Registry</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-3">
+            <Input placeholder="Search order/case/court..." value={search} onChange={e => setSearch(e.target.value)} className="flex-1" />
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="md:w-56"><SelectValue placeholder="Order type" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>All types</SelectItem>
+                {orderTypes.map(t => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="md:w-44"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ALL}>All statuses</SelectItem>
+                <SelectItem value="ISSUED">Issued</SelectItem>
+                <SelectItem value="ACTIVE">Active</SelectItem>
+                <SelectItem value="COMPLIED">Complied</SelectItem>
+                <SelectItem value="VACATED">Vacated</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order ID</TableHead>
-                  <TableHead>Case Number</TableHead>
-                  <TableHead>Party</TableHead>
-                  <TableHead>Order Type</TableHead>
+                  <TableHead>Order No</TableHead>
+                  <TableHead>Case</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Court</TableHead>
-                  <TableHead>Judge</TableHead>
-                  <TableHead>Order Date</TableHead>
-                  <TableHead className="text-right">Total Ordered</TableHead>
-                  <TableHead>Installment Plan</TableHead>
+                  <TableHead>Issued</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockOrders.map((order) => (
-                  <TableRow key={order.orderId}>
-                    <TableCell className="font-medium">{order.orderId}</TableCell>
-                    <TableCell>{order.caseNumber}</TableCell>
-                    <TableCell>{order.partyName}</TableCell>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="h-5 w-5 animate-spin inline" /></TableCell></TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No orders found</TableCell></TableRow>
+                ) : filtered.map(o => (
+                  <TableRow key={o.id}>
+                    <TableCell className="font-medium">{o.order_no}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{order.orderType}</Badge>
+                      <button className="text-primary hover:underline" onClick={() => navigate(`/legal/lg/cases/${o.lg_case_id}`)}>
+                        {o.lg_case?.lg_case_no ?? '—'}
+                      </button>
                     </TableCell>
-                    <TableCell className="text-sm">{order.court}</TableCell>
-                    <TableCell className="text-sm">{order.judge}</TableCell>
-                    <TableCell>{order.orderDate}</TableCell>
-                    <TableCell className="text-right font-semibold">
-                      EC${order.totalOrdered.toLocaleString()}
-                    </TableCell>
-                    <TableCell>{order.installmentSchedule}</TableCell>
-                    <TableCell>
-                      <Badge>{order.status}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                    <TableCell><Badge variant="outline">{typeLabel(o.order_type_code)}</Badge></TableCell>
+                    <TableCell className="text-sm">{o.issued_by_court ?? '—'}</TableCell>
+                    <TableCell>{o.issued_date ? formatDateForDisplay(o.issued_date) : '—'}</TableCell>
+                    <TableCell className="text-right font-semibold">{o.ordered_amount != null ? `EC$${Number(o.ordered_amount).toLocaleString()}` : '—'}</TableCell>
+                    <TableCell><Badge>{o.status}</Badge></TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" onClick={() => navigate(`/legal/lg/cases/${o.lg_case_id}`)}><Eye className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
+          <p className="text-xs text-muted-foreground">To record a new order, open the case and use the Orders tab.</p>
         </CardContent>
       </Card>
     </div>
