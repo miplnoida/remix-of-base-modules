@@ -1,0 +1,330 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Plus, Trash2, Save, ArrowUp, ArrowDown, Workflow, ShieldAlert } from 'lucide-react';
+import { useBnWorkflowTemplates, useUpsertBnWorkflowTemplate } from '@/hooks/bn/useBnConfig';
+import { useBnWorkbaskets } from '@/hooks/bn/useBnWorkbasket';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+interface StepConfig {
+  step_code?: string;
+  step_name?: string;
+  step_type?: string;
+  assigned_role?: string;
+  workbasket_id?: string | null;
+  sla_hours?: number | null;
+  escalation_policy_id?: string | null;
+  notify_template_code?: string | null;
+  is_optional?: boolean;
+  description?: string;
+}
+
+const STEP_TYPES = ['INTAKE', 'REVIEW', 'ELIGIBILITY', 'CALCULATION', 'DECISION', 'APPROVAL', 'PAYMENT', 'NOTIFICATION', 'EXTERNAL_TASK', 'CUSTOM'];
+
+function useEscalationPolicies() {
+  return useQuery({
+    queryKey: ['bn', 'escalation-policies', 'editor'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('bn_escalation_policy')
+        .select('id, policy_code, policy_name, is_active, hours_overdue, severity')
+        .eq('is_active', true)
+        .order('policy_name');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+function normalizeSteps(raw: unknown): StepConfig[] {
+  if (Array.isArray(raw)) return raw.map((s: any) => ({ ...s }));
+  return [];
+}
+
+export default function WorkflowTemplateEditor() {
+  const { toast } = useToast();
+  const { data: templates = [], isLoading } = useBnWorkflowTemplates();
+  const { data: workbaskets = [] } = useBnWorkbaskets();
+  const { data: policies = [] } = useEscalationPolicies();
+  const upsert = useUpsertBnWorkflowTemplate();
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [form, setForm] = useState<any>(null);
+  const [steps, setSteps] = useState<StepConfig[]>([]);
+  const [activeStep, setActiveStep] = useState<number>(0);
+
+  const selected = useMemo(() => templates.find((t: any) => t.id === selectedId), [templates, selectedId]);
+
+  useEffect(() => {
+    if (!selectedId && templates.length) setSelectedId((templates[0] as any).id);
+  }, [templates, selectedId]);
+
+  useEffect(() => {
+    if (selected) {
+      const v: any = selected;
+      setForm({
+        id: v.id,
+        template_code: v.template_code || '',
+        template_name: v.template_name || '',
+        description: v.description || '',
+        country_code: v.country_code || '',
+        is_active: !!v.is_active,
+      });
+      setSteps(normalizeSteps(v.steps_config));
+      setActiveStep(0);
+    }
+  }, [selected]);
+
+  const updateStep = (i: number, patch: Partial<StepConfig>) => {
+    setSteps((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  };
+
+  const addStep = () => {
+    setSteps((prev) => [...prev, { step_code: `STEP_${prev.length + 1}`, step_name: `Step ${prev.length + 1}`, step_type: 'REVIEW' }]);
+    setActiveStep(steps.length);
+  };
+
+  const removeStep = (i: number) => {
+    setSteps((prev) => prev.filter((_, idx) => idx !== i));
+    setActiveStep((a) => Math.max(0, Math.min(a, steps.length - 2)));
+  };
+
+  const move = (i: number, dir: -1 | 1) => {
+    setSteps((prev) => {
+      const next = [...prev];
+      const j = i + dir;
+      if (j < 0 || j >= next.length) return prev;
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
+    setActiveStep((a) => a + dir);
+  };
+
+  const handleNewTemplate = () => {
+    setSelectedId(null);
+    setForm({ template_code: '', template_name: '', description: '', country_code: '', is_active: true });
+    setSteps([]);
+    setActiveStep(0);
+  };
+
+  const handleSave = async () => {
+    if (!form?.template_code || !form?.template_name) {
+      toast({ title: 'Missing fields', description: 'Template code and name are required.', variant: 'destructive' });
+      return;
+    }
+    try {
+      const payload: any = {
+        ...form,
+        country_code: form.country_code || null,
+        steps_config: steps,
+      };
+      const saved = await upsert.mutateAsync(payload);
+      setSelectedId((saved as any).id);
+      toast({ title: 'Saved', description: `Template "${form.template_name}" saved with ${steps.length} step(s).` });
+    } catch (err: any) {
+      toast({ title: 'Save failed', description: err?.message, variant: 'destructive' });
+    }
+  };
+
+  const step = steps[activeStep];
+
+  return (
+    <div className="container mx-auto py-6 space-y-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold flex items-center gap-2"><Workflow className="h-6 w-6" /> Workflow Templates</h1>
+          <p className="text-sm text-muted-foreground">Build reusable workflow templates and assign per-step SLA escalation policies, workbaskets, and roles.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleNewTemplate}><Plus className="h-4 w-4 mr-1" /> New Template</Button>
+          <Button onClick={handleSave} disabled={upsert.isPending || !form}><Save className="h-4 w-4 mr-1" /> Save</Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-12 gap-4">
+        {/* Template list */}
+        <Card className="col-span-3">
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Templates</CardTitle></CardHeader>
+          <CardContent className="p-2">
+            <ScrollArea className="h-[70vh]">
+              <div className="space-y-1">
+                {isLoading && <p className="text-xs text-muted-foreground p-2">Loading…</p>}
+                {!isLoading && templates.length === 0 && <p className="text-xs text-muted-foreground p-2">No templates yet.</p>}
+                {templates.map((t: any) => (
+                  <button
+                    key={t.id}
+                    onClick={() => setSelectedId(t.id)}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm hover:bg-accent ${selectedId === t.id ? 'bg-accent' : ''}`}
+                  >
+                    <div className="font-medium truncate">{t.template_name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{t.template_code} · {(t.steps_config?.length ?? 0)} step(s)</div>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        {/* Template detail */}
+        <div className="col-span-9 space-y-4">
+          {form && (
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Template Details</CardTitle></CardHeader>
+              <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div><Label className="text-xs">Code *</Label><Input value={form.template_code} onChange={(e) => setForm({ ...form, template_code: e.target.value })} /></div>
+                <div className="md:col-span-2"><Label className="text-xs">Name *</Label><Input value={form.template_name} onChange={(e) => setForm({ ...form, template_name: e.target.value })} /></div>
+                <div><Label className="text-xs">Country</Label><Input placeholder="e.g. KN" value={form.country_code} onChange={(e) => setForm({ ...form, country_code: e.target.value })} /></div>
+                <div className="md:col-span-3"><Label className="text-xs">Description</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+                <div className="flex items-end gap-2"><Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} /><Label className="text-xs">Active</Label></div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Steps editor */}
+          <Card>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-base">Workflow Steps</CardTitle>
+                <CardDescription>Edit the ordered list of steps. Per-step escalation policy overrides workbasket and product defaults.</CardDescription>
+              </div>
+              <Button size="sm" variant="outline" onClick={addStep}><Plus className="h-4 w-4 mr-1" /> Add Step</Button>
+            </CardHeader>
+            <CardContent>
+              {steps.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No steps yet. Click "Add Step" to begin.</p>
+              ) : (
+                <div className="grid grid-cols-12 gap-3">
+                  {/* Step list */}
+                  <div className="col-span-4">
+                    <ScrollArea className="h-[55vh]">
+                      <ol className="space-y-1">
+                        {steps.map((s, i) => (
+                          <li key={i}>
+                            <button
+                              onClick={() => setActiveStep(i)}
+                              className={`w-full text-left p-2 rounded-md border text-sm hover:bg-accent ${activeStep === i ? 'bg-accent border-primary' : ''}`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline">{i + 1}</Badge>
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-medium truncate">{s.step_name || s.step_code || `Step ${i + 1}`}</div>
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {[s.step_type, s.assigned_role, s.sla_hours ? `${s.sla_hours}h SLA` : null].filter(Boolean).join(' · ')}
+                                  </div>
+                                </div>
+                                {s.escalation_policy_id && <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />}
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ol>
+                    </ScrollArea>
+                  </div>
+
+                  {/* Step detail editor */}
+                  <div className="col-span-8">
+                    {step && (
+                      <div className="space-y-3 border rounded-md p-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold">Step #{activeStep + 1}</h4>
+                          <div className="flex gap-1">
+                            <Button size="icon" variant="ghost" disabled={activeStep === 0} onClick={() => move(activeStep, -1)}><ArrowUp className="h-4 w-4" /></Button>
+                            <Button size="icon" variant="ghost" disabled={activeStep === steps.length - 1} onClick={() => move(activeStep, 1)}><ArrowDown className="h-4 w-4" /></Button>
+                            <Button size="icon" variant="ghost" onClick={() => removeStep(activeStep)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><Label className="text-xs">Step Code</Label><Input value={step.step_code || ''} onChange={(e) => updateStep(activeStep, { step_code: e.target.value })} /></div>
+                          <div><Label className="text-xs">Step Name</Label><Input value={step.step_name || ''} onChange={(e) => updateStep(activeStep, { step_name: e.target.value })} /></div>
+                          <div>
+                            <Label className="text-xs">Step Type</Label>
+                            <Select value={step.step_type || ''} onValueChange={(v) => updateStep(activeStep, { step_type: v })}>
+                              <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                              <SelectContent>{STEP_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                          <div><Label className="text-xs">Assigned Role</Label><Input value={step.assigned_role || ''} onChange={(e) => updateStep(activeStep, { assigned_role: e.target.value })} /></div>
+                          <div>
+                            <Label className="text-xs">Workbasket</Label>
+                            <Select
+                              value={step.workbasket_id || '__none__'}
+                              onValueChange={(v) => updateStep(activeStep, { workbasket_id: v === '__none__' ? null : v })}
+                            >
+                              <SelectTrigger><SelectValue placeholder="Not assigned" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Not assigned</SelectItem>
+                                {workbaskets.map((b: any) => (
+                                  <SelectItem key={b.id} value={b.id}>{b.basket_name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs">SLA (hours)</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              value={step.sla_hours ?? ''}
+                              onChange={(e) => updateStep(activeStep, { sla_hours: e.target.value === '' ? null : Number(e.target.value) })}
+                            />
+                          </div>
+                        </div>
+
+                        <Separator />
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <ShieldAlert className="h-4 w-4 text-amber-600" />
+                            <Label className="text-sm font-semibold">Escalation Policy (overrides workbasket & product)</Label>
+                          </div>
+                          <Select
+                            value={step.escalation_policy_id || '__none__'}
+                            onValueChange={(v) => updateStep(activeStep, { escalation_policy_id: v === '__none__' ? null : v })}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Inherit from workbasket / product" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">Inherit (workbasket → product → default)</SelectItem>
+                              {policies.map((p: any) => (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.policy_name} ({p.policy_code}) · {p.hours_overdue}h · {p.severity}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-muted-foreground">
+                            Resolution order at runtime: <span className="font-mono">step → workbasket → product → country/category → global</span>
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><Label className="text-xs">Notify Template Code</Label><Input value={step.notify_template_code || ''} onChange={(e) => updateStep(activeStep, { notify_template_code: e.target.value || null })} /></div>
+                          <div className="flex items-end gap-2"><Switch checked={!!step.is_optional} onCheckedChange={(v) => updateStep(activeStep, { is_optional: v })} /><Label className="text-xs">Optional Step</Label></div>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs">Description</Label>
+                          <Textarea rows={2} value={step.description || ''} onChange={(e) => updateStep(activeStep, { description: e.target.value })} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
