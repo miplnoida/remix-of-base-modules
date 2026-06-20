@@ -66,6 +66,9 @@ const LgFeeConfig: React.FC = () => {
   const [editing, setEditing] = useState<any | null>(null);
   const [bundleEditing, setBundleEditing] = useState<any | null>(null);
 
+  const headsList = heads.data ?? [];
+  const headById = useMemo(() => new Map(headsList.map((h) => [h.id, h])), [headsList]);
+
   if (!access.can("configureFees") && !access.isAdmin) {
     return (
       <div className="p-8 max-w-3xl mx-auto">
@@ -73,9 +76,6 @@ const LgFeeConfig: React.FC = () => {
       </div>
     );
   }
-
-  const headsList = heads.data ?? [];
-  const headById = useMemo(() => new Map(headsList.map((h) => [h.id, h])), [headsList]);
 
   const saveRule = async () => {
     if (!editing.fee_rule_code || !editing.fee_rule_name) { toast({ title: "Code and name required", variant: "destructive" }); return; }
