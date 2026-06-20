@@ -182,7 +182,7 @@ const LgCaseDetail: React.FC = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/legal/cases")}>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/legal/lg/cases")}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Cases
             </Button>
             <div>
@@ -340,7 +340,7 @@ const LgCaseDetail: React.FC = () => {
             <Card><CardHeader>
               <div className="flex justify-between items-center">
                 <div><CardTitle>Notices</CardTitle><CardDescription>Generated from central templates.</CardDescription></div>
-                <Button size="sm" disabled={!access.can("generateNotice")} onClick={() => navigate("/legal/notices")}>Generate</Button>
+                <Button size="sm" disabled={!access.can("generateNotice")} onClick={() => setNoticeOpen(true)}>Generate</Button>
               </div>
             </CardHeader><CardContent>
               {notices.data?.length ? (
