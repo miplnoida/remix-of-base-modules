@@ -50503,6 +50503,39 @@ export type Database = {
           },
         ]
       }
+      lg_department_profile: {
+        Row: {
+          approvals_mode: string
+          assistant_review_required: boolean
+          auto_assign_mode: string
+          department_size_mode: string
+          id: string
+          manager_role_required: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          approvals_mode?: string
+          assistant_review_required?: boolean
+          auto_assign_mode?: string
+          department_size_mode?: string
+          id?: string
+          manager_role_required?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          approvals_mode?: string
+          assistant_review_required?: boolean
+          auto_assign_mode?: string
+          department_size_mode?: string
+          id?: string
+          manager_role_required?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       lg_document_link: {
         Row: {
           confidential: boolean
@@ -51369,6 +51402,45 @@ export type Database = {
           },
         ]
       }
+      lg_role_type_mapping: {
+        Row: {
+          can_approve: boolean
+          can_close_case: boolean
+          can_post_fee: boolean
+          can_prepare: boolean
+          can_review: boolean
+          created_at: string
+          id: string
+          is_active: boolean
+          role_type: string
+          system_role: string
+        }
+        Insert: {
+          can_approve?: boolean
+          can_close_case?: boolean
+          can_post_fee?: boolean
+          can_prepare?: boolean
+          can_review?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          role_type: string
+          system_role: string
+        }
+        Update: {
+          can_approve?: boolean
+          can_close_case?: boolean
+          can_post_fee?: boolean
+          can_prepare?: boolean
+          can_review?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          role_type?: string
+          system_role?: string
+        }
+        Relationships: []
+      }
       lg_settlement: {
         Row: {
           accepted_at: string | null
@@ -51430,6 +51502,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lg_workflow_policy: {
+        Row: {
+          action_code: string
+          action_label: string
+          allow_self_approval: boolean
+          approval_required: boolean
+          approver_role_type: string | null
+          assistant_can_prepare: boolean
+          created_at: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          lawyer_must_review: boolean
+          min_approvers: number
+          preparer_role_type: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          action_code: string
+          action_label: string
+          allow_self_approval?: boolean
+          approval_required?: boolean
+          approver_role_type?: string | null
+          assistant_can_prepare?: boolean
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          lawyer_must_review?: boolean
+          min_approvers?: number
+          preparer_role_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          action_code?: string
+          action_label?: string
+          allow_self_approval?: boolean
+          approval_required?: boolean
+          approver_role_type?: string | null
+          assistant_can_prepare?: boolean
+          created_at?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          lawyer_must_review?: boolean
+          min_approvers?: number
+          preparer_role_type?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       login_security_events: {
         Row: {

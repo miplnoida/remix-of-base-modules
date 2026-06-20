@@ -1,89 +1,120 @@
+## Refine Legal module for small + large departments
 
-# Legal Fee Engine
+Scope: foundation for role-type based, configurable Legal that ships St. Kitts–ready (SMALL mode) and scales without redesign.
 
-## Reuse, don't duplicate
-- Central fee head master: `tb_income_codes` (already has `LEGAL_*` codes). Legal references it via `fee_head_id`.
-- Employer ledger: `ce_employer_financial_ledger` (already immutable, supports reversals). All postings go here. Transaction id stored on `lg_fee_charge.employer_account_transaction_id`.
-- Reference codes for case_type/stage/event come from existing `core_reference_group` / `core_reference_value` (LG_CASE_TYPE, LG_CASE_STAGE, etc.). Add new groups `LG_FEE_EVENT`, `LG_WAIVER_REASON`, `LG_FORMULA`.
+### 1. Database (one migration)
 
-## New tables (migration)
+`**lg_department_profile**` (single-row config)
 
-### `lg_fee_rule` — fee configuration
-`id, fee_rule_code (unique), fee_rule_name, country_code, case_type_code, stage_code, event_code, fee_head_id → tb_income_codes, calculation_type (FIXED|PERCENTAGE|FORMULA|TIER|MANUAL), fixed_amount, percentage_rate, base_variable (claim_amount|outstanding_amount|arrears_amount|...), min_amount, max_amount, formula_code, tier_config_json, effective_from, effective_to, auto_apply bool, allow_waiver bool, waiver_requires_approval bool, status (ACTIVE|INACTIVE|DRAFT), audit cols`
+- `department_size_mode` (SMALL|MEDIUM|LARGE), `auto_assign_mode`, `approvals_mode` (LIGHT|STANDARD|STRICT)
+- `assistant_review_required` bool, `manager_role_required` bool
+- Seed: SMALL / SELF_ASSIGN / LIGHT / true / false
 
-### `lg_fee_bundle`
-`id, bundle_code (unique), bundle_name, country_code, case_type_code, stage_code, trigger_event, status, audit`
+`**lg_role_type_mapping**`
 
-### `lg_fee_bundle_item`
-`id, bundle_id → lg_fee_bundle, fee_rule_id → lg_fee_rule, sequence_no, mandatory bool, allow_waiver bool`
+- `role_type` (LG_CASE_HANDLER, LG_LEGAL_ASSISTANT, LG_REVIEWER, LG_APPROVER, LG_ADMIN, LG_READ_ONLY)
+- `system_role` (free text — matches `user_roles.role`)
+- Seed: maps existing `LEGAL_OFFICER` → CASE_HANDLER+REVIEWER+APPROVER, `LEGAL_MANAGER` → all, etc.  
+  
 
-### `lg_fee_waiver`
-`id, fee_charge_id → lg_fee_charge, waiver_reason_code, requested_by (user_code), requested_at, waiver_amount, waiver_percent, approval_status (PENDING|APPROVED|REJECTED|AUTO_APPROVED), approved_by, approved_at, comments, reversal_ledger_entry_id (uuid → ce_employer_financial_ledger)`
 
-### `lg_fee_charge` — extend
-Add columns: `fee_rule_id, fee_bundle_id, calculated_amount, waived_amount default 0, net_amount (computed = amount - waived_amount), waiver_status (NONE|REQUESTED|APPROVED|REJECTED), source_event, auto_applied bool, manual_override_reason, ledger_entry_id uuid → ce_employer_financial_ledger`. Keep existing `employer_account_transaction_id` for backward compat.
+`**lg_workflow_policy**`
 
-Full GRANTs on every new table to `authenticated`/`service_role`. RLS stays off per project NO-RLS policy.
+- `action_code` (NOTICE_DEMAND, NOTICE_COURT_FILING, HEARING_BUNDLE, HEARING_OUTCOME, FEE_POST, FEE_WAIVER, SETTLEMENT_APPROVE, CASE_CLOSE, …)
+- `approval_required`, `preparer_role_type`, `approver_role_type`, `min_approvers` (default 1)
+- `allow_self_approval`, `assistant_can_prepare`, `lawyer_must_review`
+- `effective_from`, `effective_to`
+- Seed St. Kitts defaults: assistant prepares notices/bundles/draft fees; lawyer approves waiver/settlement/closure/final-fee.
 
-## Calculation engine — `src/services/legal/lgFeeEngineService.ts`
-Pure TS function `calculateFee(rule, context) → { amount, breakdown }`. Context exposes: `claim_amount, outstanding_amount, arrears_amount, number_of_hearings, stage, case_type, employer_size, risk_score, days_overdue, court_type, service_method, enforcement_type`. Branches by `calculation_type`; applies min/max clamp; formula type loads from `LG_FORMULA` ref (safe whitelisted expression eval).
+`**lg_action_audit**` (records prepare/approve events) — extend existing `lg_case_activity` via an `event_type` column instead of new table to keep simple.
 
-## Auto-apply triggers
-Service hooks (not DB triggers) invoked from existing services:
-- `lgWorkflowService.changeStage(...)` → `applyAutoFeesForEvent("STAGE_" + stage_code)`
-- `lgCaseService` hearing scheduled → `HEARING_SCHEDULED`
-- `lgOrderService` judgment recorded → `JUDGMENT_RECORDED`
-- enforcement start → `ENFORCEMENT_STARTED`
-- `lgTemplateService` notice served → `NOTICE_SERVED`
-- `lgSettlementService` approved → `SETTLEMENT_APPROVED`
-- `lgPaymentArrangementService` default → `ARRANGEMENT_DEFAULTED`
-Each calls `autoApplyForEvent(caseId, event)` which finds matching `lg_fee_rule` rows (auto_apply=true, effective window) + matching `lg_fee_bundle` and creates `lg_fee_charge` rows. Idempotency key = `LG_FEE:{case}:{rule_or_bundle}:{event}`.
+GRANTs for authenticated + service_role; NO-RLS per project policy.
 
-## Posting
-`postFeeCharge(chargeId)`:
-1. Insert into `ce_employer_financial_ledger` (entry_type=DEBIT, fund_type=ADMIN/LEGAL, idempotency_key=`LG_FEE:{chargeId}`, reference_type='LG_FEE_CHARGE', reference_id=chargeId, source_system='LEGAL').
-2. Update `lg_fee_charge.ledger_entry_id`, `posting_status='POSTED'`, `posted_by`, `posted_at`.
-3. Audit via `logLgActivity`.
+### 2. Access layer
 
-## Waiver
-`requestWaiver(chargeId, reason, amount|percent, comments)` → insert `lg_fee_waiver`, set `waiver_status='REQUESTED'`. Auto-approve if `rule.waiver_requires_approval=false`.
-`approveWaiver(waiverId)` →
-1. Compute waived_amount; update `lg_fee_charge.waived_amount`, `waiver_status='APPROVED'`.
-2. If original was posted, post a CREDIT reversal entry to ledger (reversal_of_id = original ledger entry); store id on waiver.
-3. Audit. Charge row stays visible.
+`useLgAccess` extended:
 
-## Services
-- `src/services/legal/lgFeeRuleService.ts` — CRUD rules + bundles
-- `src/services/legal/lgFeeEngineService.ts` — calculate + autoApplyForEvent
-- `src/services/legal/lgFeeWaiverService.ts` — request/approve/reject
-- Extend `lgFeeChargeService.ts` — post via ledger (replace invoice path) + manual fee
-- Hook auto-apply calls into existing workflow/order/hearing/settlement/notice/arrangement services
+- New role types: `LG_CASE_HANDLER | LG_LEGAL_ASSISTANT | LG_REVIEWER | LG_APPROVER | LG_ADMIN | LG_READ_ONLY`
+- Mapping: read from `lg_role_type_mapping` (fallback to built-in defaults for existing LEGAL_* roles)
+- Capability matrix split prepare vs approve:
+  - prepareNotice / approveNotice / sendNotice
+  - prepareHearingBundle / confirmHearingOutcome
+  - draftFee / approveFee / postFee
+  - draftSettlement / approveSettlement
+  - requestWaiver / approveWaiver
+  - draftCaseClosure / approveCaseClosure
+  - draftTask / assignTask
+- Keep existing capabilities working (backward compatible).
 
-## UI
+New hook `useLgPolicy(actionCode)` → returns `{ approvalRequired, preparerRoleType, approverRoleType, assistantCanPrepare, lawyerMustReview }`.
 
-### Case Detail → Fees tab (`src/components/legal/lg/CaseFeesTab.tsx`)
-Sub-tabs: Auto Fees · Manual Fee · Fee Bundles · Waivers · Posted Transactions.
-Buttons (gated by `useLgAccess`): Apply Fee Bundle, Add Manual Fee, Request Waiver, Approve Waiver (manager+), Post Fee, View Employer Ledger Entry (link to ledger row).
-Dialogs (new under `src/components/legal/lg/`): `ApplyFeeBundleDialog`, `AddManualFeeDialog`, `RequestWaiverDialog`, `ApproveWaiverDialog`.
+Helper `useLgCan(actionCode, mode: 'prepare'|'approve')` combines access + policy.
 
-### Admin → Legal Fee Configuration (`src/pages/legal/LgFeeConfig.tsx`, route `/legal/admin/fees`)
-Tabs: Rules · Bundles. CRUD with effective dates + status toggle. Read-only fee head dropdown from `tb_income_codes` (LEGAL_* filter — managed centrally, not editable here).
+### 3. UI
 
-Wire route into `AppRoutes.tsx` and link from `AdminConfig.tsx`.
+**Case Detail (`LgCaseDetail.tsx`)** — actions panel becomes role-aware:
 
-## Seed (after migration approved)
-- ~10 `lg_fee_rule` rows mapped to existing LEGAL_* income codes (Court Filing, Service, Processing, Judgment, Attorney, Execution, Recovery, Appeal).
-- 2 bundles: `COURT_FILING_BUNDLE` (Filing + Service + Processing), `JUDGMENT_BUNDLE` (Judgment + Attorney + Execution).
-- `LG_FEE_EVENT`, `LG_WAIVER_REASON` ref values.
+- Assistant sees: Prepare Notice / Upload Document / Prepare Hearing Bundle / Add Draft Fee / Add Note / Update Parties
+- Lawyer sees additionally: Approve & Send Notice / Record Hearing Outcome / Approve Fee / Approve Settlement / Approve Waiver / Close Case
+- Drafts show a "Pending lawyer approval" badge when `assistant_review_required` is true.
 
-## Acceptance verification
-- TS build passes.
-- DB row counts: `lg_fee_rule≥8`, `lg_fee_bundle=2`, `lg_fee_bundle_item≥6`.
-- Manual smoke (Playwright) on a seeded case: apply bundle → 3 charges; post one → ledger row created with matching ref; request waiver → approve → reversal ledger row appears; manual fee created.
+**New admin page `/legal/admin/policy` (`LgPolicyConfig.tsx`)**:
 
-## Out of scope
-- No new fee head master (reusing `tb_income_codes`).
-- No changes to `ce_employer_financial_ledger` schema or triggers.
-- No payment allocation / collection flow.
-- SSB* legacy legal screens untouched.
-- Formula language: only whitelisted variables + arithmetic (no general expression engine).
+- Tab 1 — Department Profile (single form)
+- Tab 2 — Role Type Mapping (system role ↔ role type)
+- Tab 3 — Workflow Policies (table editor per action_code)
+- Linked from `LgDashboard` admin tile, gated to LG_ADMIN.
+
+**Workbasket / dashboard**: queue cards driven by `department_size_mode`. SMALL renders only: Unassigned, My Cases, Assistant Drafts, Lawyer Review, Upcoming Hearings, Overdue Actions. LARGE adds the extended queues.
+
+### 4. Wiring to existing services
+
+- `lgFeeEngineService.postFeeCharge` already creates draft; gate the "Post" button behind `approveFee` policy. Drafts created by assistants stay in `DRAFT` until lawyer approval.
+- `lgSettlementService` / `lgWorkflowService` close-case path gated behind `approveCaseClosure`.
+- `lgFeeWaiverService.approveWaiver` already lawyer-only — wire UI to use `useLgCan('FEE_WAIVER', 'approve')`.  
+  
+Do not create a separate Legal user/role system.
+  Use existing Security module users, roles, and permissions.
+  Create Legal role mapping only if needed:
+  - security_role_id
+  - legal_role_type
+  - can_prepare
+  - can_review
+  - can_approve
+  - can_post_fee
+  - can_close_case
+  Legal role types:
+  - LG_CASE_HANDLER
+  - LG_LEGAL_ASSISTANT
+  - LG_REVIEWER
+  - LG_APPROVER
+  - LG_ADMIN
+  - LG_READ_ONLY
+  Example:
+  Existing Security Role: Legal Officer
+  → LG_CASE_HANDLER, LG_REVIEWER, LG_APPROVER
+  Existing Security Role: Legal Assistant
+  → LG_LEGAL_ASSISTANT
+  Existing Security Role: Finance Officer
+  → can_post_fee if configured
+  Workflow and workbaskets must use these mappings, not hardcoded role names.
+  Acceptance:
+  - users remain managed in Security module
+  - permissions remain assigned through common role-permission screen
+  - Legal does not create duplicate roles/users
+  - small department can assign multiple legal capabilities to one person
+  - large department can split capabilities across roles
+
+### 5. Out of scope this round
+
+- No new case lifecycle states beyond the existing 6.
+- No new fee tables (use existing engine from previous round).
+- No notification-engine changes.
+
+### Acceptance check
+
+- Build passes; existing LEGAL_OFFICER/MANAGER users keep current power via mapping seed.
+- A user with only LG_LEGAL_ASSISTANT system role sees prepare actions but not approve actions.
+- Toggling `approvals_mode = LIGHT` removes mandatory approval rows; STRICT enforces them.
+- `/legal/admin/policy` lets admin reconfigure without code changes.  
+  
