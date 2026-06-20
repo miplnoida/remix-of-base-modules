@@ -25,6 +25,7 @@ export const legalMenuItems = [
           
           { title: "Code Sets",           url: "/legal/admin/codesets",        icon: Code,        description: "Dropdown values and reference data" },
           { title: "Templates",           url: "/legal/admin/templates",       icon: FileText,    description: "Notices, letters and PDFs (Core Templates)" },
+          { title: "Legal References",    url: "/legal/admin/legal-references", icon: Scale,      description: "Acts, regulations and policies (shared)" },
           { title: "Complainant Settings",url: "/legal/admin/complainant",     icon: Building2,   description: "Default complainant info" },
           { title: "Fee Configuration",   url: "/legal/admin/fees",            icon: DollarSign,  description: "Rules, bundles and charges" },
           { title: "Workflow & Roles",    url: "/legal/admin/policy",          icon: Workflow,    description: "Department, roles, approvals" },
