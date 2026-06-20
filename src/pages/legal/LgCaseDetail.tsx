@@ -126,10 +126,13 @@ const LgCaseDetail: React.FC = () => {
         description: `${prev ?? "—"} → ${newStage}`,
         performed_by: profile?.user_code ?? null,
       });
+      // Auto-apply any fee rules tied to this stage event (idempotent)
+      try { await autoApplyForEvent(id!, `STAGE_${newStage}`, profile?.user_code ?? null); } catch (e) { /* non-blocking */ }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lg_case"] });
       qc.invalidateQueries({ queryKey: ["lg_case_activity", id] });
+      qc.invalidateQueries({ queryKey: ["lg_fee_charge", id] });
       toast({ title: "Stage updated" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
