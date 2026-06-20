@@ -11,7 +11,7 @@ export async function listLegalReferences(
   countryCode: string,
   opts?: { includeInactive?: boolean; tags?: string[]; statuses?: LegalRefStatus[] },
 ): Promise<LegalReference[]> {
-  let q = db.from('legal_reference').select('*').eq('country_code', countryCode);
+  let q = db.from('core_legal_reference').select('*').eq('country_code', countryCode);
   if (!opts?.includeInactive) q = q.eq('is_active', true);
   if (opts?.statuses?.length) q = q.in('status', opts.statuses);
   q = q.order('status').order('ref_code').order('version_number', { ascending: false });
@@ -26,7 +26,7 @@ export async function listLegalReferences(
 }
 
 export async function getLegalReference(id: string): Promise<LegalReference | null> {
-  const { data, error } = await db.from('legal_reference').select('*').eq('id', id).maybeSingle();
+  const { data, error } = await db.from('core_legal_reference').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
   return (data ?? null) as LegalReference | null;
 }
@@ -65,18 +65,18 @@ export async function upsertLegalReference(
     updated_by: userCode ?? null,
   };
   if (ref.id) {
-    const { error } = await db.from('legal_reference').update(payload).eq('id', ref.id);
+    const { error } = await db.from('core_legal_reference').update(payload).eq('id', ref.id);
     if (error) throw error;
     return ref.id;
   }
   payload.created_by = userCode ?? null;
-  const { data, error } = await db.from('legal_reference').insert(payload).select('id').single();
+  const { data, error } = await db.from('core_legal_reference').insert(payload).select('id').single();
   if (error) throw error;
   return data.id as string;
 }
 
 export async function deleteLegalReference(id: string): Promise<void> {
-  const { error } = await db.from('legal_reference').delete().eq('id', id);
+  const { error } = await db.from('core_legal_reference').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -86,7 +86,7 @@ export async function setLegalReferenceStatus(
   userCode?: string,
 ): Promise<void> {
   const { error } = await db
-    .from('legal_reference')
+    .from('core_legal_reference')
     .update({
       status,
       is_active: status === 'ACTIVE' || status === 'DRAFT',

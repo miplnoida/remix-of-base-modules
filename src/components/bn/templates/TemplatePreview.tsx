@@ -59,7 +59,7 @@ const TemplatePreviewInner: React.FC<Props> = ({ subject, body, htmlBody }) => {
     queryKey: ['bn-legal-ref-row', legalRefId],
     enabled: !!legalRefId,
     queryFn: async () => {
-      const { data } = await db.from('legal_reference').select('*').eq('id', legalRefId).maybeSingle();
+      const { data } = await db.from('core_legal_reference').select('*').eq('id', legalRefId).maybeSingle();
       return data;
     },
   });
