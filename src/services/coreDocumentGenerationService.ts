@@ -40,7 +40,11 @@ export const coreDocumentGenerationService = {
     const baseTokens: Record<string, any> = {
       "document.reference_no": reference_no,
       "document.generated_date": new Date().toLocaleDateString("en-GB"),
-      "institution.name": "Social Security Board",
+      "institution.name": "St. Christopher and Nevis Social Security Board",
+      "institution.address": "Bay Road, Basseterre, St. Kitts",
+      "institution.phone": "+1 (869) 465-2535",
+      "institution.email": "legal@socialsecurity.kn",
+      "institution.website": "www.socialsecurity.kn",
       ...(input.tokens || {}),
     };
 

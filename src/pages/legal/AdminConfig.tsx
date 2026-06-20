@@ -33,7 +33,7 @@ function LegalCoreTemplates() {
   );
 }
 
-// Mock data for code sets
+// Mock data for code sets (UI prototype only; real codesets will be DB-driven)
 const mockCodeSets = [
   { id: '1', category: 'caseTypes', code: 'PROSECUTION', label: 'Prosecution', usageCount: 45, isActive: true },
   { id: '2', category: 'caseTypes', code: 'APPEAL', label: 'Appeal', usageCount: 32, isActive: true },
@@ -41,13 +41,6 @@ const mockCodeSets = [
   { id: '4', category: 'statuses', code: 'DRAFT', label: 'Draft', usageCount: 15, isActive: true },
   { id: '5', category: 'statuses', code: 'FILED', label: 'Filed', usageCount: 42, isActive: true },
   { id: '6', category: 'hearingTypes', code: 'PRELIMINARY', label: 'Preliminary Hearing', usageCount: 18, isActive: true },
-];
-
-// Mock data for templates
-const mockTemplates = [
-  { id: '1', name: 'Summons Notice', type: 'Summons', status: 'Published', version: 2, lastUpdated: '2025-10-01' },
-  { id: '2', name: 'Payment Order', type: 'Order', status: 'Published', version: 1, lastUpdated: '2025-09-28' },
-  { id: '3', name: 'Compliance Notice', type: 'Notice', status: 'Draft', version: 1, lastUpdated: '2025-10-02' },
 ];
 
 // Mock data for SLA rules
@@ -65,21 +58,23 @@ const mockIntegrations = [
   { id: '4', name: 'eSign Provider', type: 'eSign', isActive: true, lastSync: '2025-10-02 11:20' },
 ];
 
+const SKN_DEFAULT_COMPLAINANT = {
+  name: "St. Christopher and Nevis Social Security Board",
+  address: "Bay Road, Basseterre, St. Kitts",
+  contactPerson: "",
+  email: "legal@socialsecurity.kn",
+  phone: "+1 (869) 465-2535",
+  defaultOfficer: "",
+  defaultPriority: "Medium",
+};
+
 export default function AdminConfig() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedCategory, setSelectedCategory] = useState('caseTypes');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isTemplateEditorOpen, setIsTemplateEditorOpen] = useState(false);
-  const [complainantData, setComplainantData] = useState({
-    name: "Social Security Board",
-    address: "123 Main Street\nBelmopan, Belize",
-    contactPerson: "John Doe",
-    email: "legal@ssb.gov.bz",
-    phone: "+501-222-4444",
-    defaultOfficer: "",
-    defaultPriority: "Medium"
-  });
+  const [complainantData, setComplainantData] = useState({ ...SKN_DEFAULT_COMPLAINANT });
 
   const categories = [
     { value: 'caseTypes', label: 'Case Types' },
@@ -129,11 +124,11 @@ export default function AdminConfig() {
   useEffect(() => {
     if (settings) {
       setComplainantData({
-        name: settings.name || "Social Security Board",
-        address: settings.address || "",
+        name: settings.name || SKN_DEFAULT_COMPLAINANT.name,
+        address: settings.address || SKN_DEFAULT_COMPLAINANT.address,
         contactPerson: settings.contact_person || "",
-        email: settings.email || "legal@ssb.gov.bz",
-        phone: settings.phone || "",
+        email: settings.email || SKN_DEFAULT_COMPLAINANT.email,
+        phone: settings.phone || SKN_DEFAULT_COMPLAINANT.phone,
         defaultOfficer: settings.default_officer || "",
         defaultPriority: settings.default_priority || "Medium"
       });
@@ -201,11 +196,11 @@ export default function AdminConfig() {
   const handleCancelComplainant = () => {
     if (settings) {
       setComplainantData({
-        name: settings.name || "Social Security Board",
-        address: settings.address || "",
+        name: settings.name || SKN_DEFAULT_COMPLAINANT.name,
+        address: settings.address || SKN_DEFAULT_COMPLAINANT.address,
         contactPerson: settings.contact_person || "",
-        email: settings.email || "legal@ssb.gov.bz",
-        phone: settings.phone || "",
+        email: settings.email || SKN_DEFAULT_COMPLAINANT.email,
+        phone: settings.phone || SKN_DEFAULT_COMPLAINANT.phone,
         defaultOfficer: settings.default_officer || "",
         defaultPriority: settings.default_priority || "Medium"
       });
@@ -537,7 +532,7 @@ export default function AdminConfig() {
                     type="tel"
                     value={complainantData.phone}
                     onChange={(e) => setComplainantData({ ...complainantData, phone: e.target.value })}
-                    placeholder="+501-XXX-XXXX"
+                    placeholder="+1 (869) XXX-XXXX"
                   />
                 </div>
               </div>

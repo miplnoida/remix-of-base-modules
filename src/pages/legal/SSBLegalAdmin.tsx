@@ -14,11 +14,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 export default function SSBLegalAdmin() {
   const queryClient = useQueryClient();
   const [complainantData, setComplainantData] = useState({
-    name: "Social Security Board",
-    address: "123 Main Street\nBelmopan, Belize",
+    name: "St. Christopher and Nevis Social Security Board",
+    address: "Bay Road, Basseterre, St. Kitts",
     contactPerson: "John Doe",
-    email: "legal@ssb.gov.bz",
-    phone: "+501-222-4444",
+    email: "legal@socialsecurity.kn",
+    phone: "+1 (869) 465-2535",
     defaultOfficer: "",
     defaultPriority: "Medium"
   });
@@ -43,10 +43,10 @@ export default function SSBLegalAdmin() {
   useEffect(() => {
     if (settings) {
       setComplainantData({
-        name: settings.name || "Social Security Board",
+        name: settings.name || "St. Christopher and Nevis Social Security Board",
         address: settings.address || "",
         contactPerson: settings.contact_person || "",
-        email: settings.email || "legal@ssb.gov.bz",
+        email: settings.email || "legal@socialsecurity.kn",
         phone: settings.phone || "",
         defaultOfficer: settings.default_officer || "",
         defaultPriority: settings.default_priority || "Medium"
@@ -109,10 +109,10 @@ export default function SSBLegalAdmin() {
     // Reset to loaded values
     if (settings) {
       setComplainantData({
-        name: settings.name || "Social Security Board",
+        name: settings.name || "St. Christopher and Nevis Social Security Board",
         address: settings.address || "",
         contactPerson: settings.contact_person || "",
-        email: settings.email || "legal@ssb.gov.bz",
+        email: settings.email || "legal@socialsecurity.kn",
         phone: settings.phone || "",
         defaultOfficer: settings.default_officer || "",
         defaultPriority: settings.default_priority || "Medium"
@@ -212,7 +212,7 @@ export default function SSBLegalAdmin() {
                       type="tel"
                       value={complainantData.phone}
                       onChange={(e) => setComplainantData({ ...complainantData, phone: e.target.value })}
-                      placeholder="+501-XXX-XXXX"
+                      placeholder="+1 (869) XXX-XXXX"
                     />
                   </div>
                 </div>
