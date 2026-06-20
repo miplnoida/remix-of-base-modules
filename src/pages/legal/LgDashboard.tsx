@@ -65,6 +65,9 @@ export default function LgDashboard() {
             {(access.can("configureFees") || access.isAdmin) && (
               <Button variant="outline" onClick={() => navigate("/legal/admin/fees")}>Fee Config</Button>
             )}
+            {(access.can("configurePolicy") || access.isAdmin) && (
+              <Button variant="outline" onClick={() => navigate("/legal/admin/policy")}>Policy Config</Button>
+            )}
           </div>
         </div>
 
