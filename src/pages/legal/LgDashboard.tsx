@@ -169,9 +169,12 @@ export default function LgDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <NewCaseDialog open={newOpen} onOpenChange={setNewOpen} />
     </div>
   );
 }
+
 
 function Stat({ label, value, icon, tone }: { label: string; value: number; icon: React.ReactNode; tone?: "destructive" }) {
   return (
