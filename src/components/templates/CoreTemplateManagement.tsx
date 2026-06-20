@@ -849,3 +849,92 @@ function TemplateLegalReferencesPanel({ templateId, countryCode }: { templateId:
   );
 }
 
+function CompletenessReport({ moduleCode, country, onEdit }: { moduleCode: string; country: string; onEdit: (id: string) => void }) {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"ALL" | "INCOMPLETE">("INCOMPLETE");
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      const { data, error } = await (supabase as any).rpc("lg_template_completeness", {
+        p_module_code: moduleCode, p_country: country,
+      });
+      if (!error) setRows((data || []) as any[]);
+      setLoading(false);
+    })();
+  }, [moduleCode, country]);
+
+  const filtered = filter === "INCOMPLETE" ? rows.filter(r => r.completion_pct < 100) : rows;
+  const avg = rows.length ? Math.round(rows.reduce((s, r) => s + (r.completion_pct || 0), 0) / rows.length) : 0;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Template Completeness Report</CardTitle>
+        <CardDescription>
+          Module: {moduleCode} · Country: {country} · Templates: {rows.length} · Average completeness: <strong>{avg}%</strong>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex gap-2 mb-3">
+          <Button size="sm" variant={filter === "INCOMPLETE" ? "default" : "outline"} onClick={() => setFilter("INCOMPLETE")}>
+            Show Below 100%
+          </Button>
+          <Button size="sm" variant={filter === "ALL" ? "default" : "outline"} onClick={() => setFilter("ALL")}>
+            Show All
+          </Button>
+        </div>
+        {loading ? (
+          <div className="text-sm text-muted-foreground">Loading…</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Code</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-center">Subject</TableHead>
+                <TableHead className="text-center">Body</TableHead>
+                <TableHead className="text-center">Blocks</TableHead>
+                <TableHead className="text-center">Refs</TableHead>
+                <TableHead className="text-center">Sig</TableHead>
+                <TableHead className="text-center">Footer</TableHead>
+                <TableHead className="text-center">Channels</TableHead>
+                <TableHead className="text-right">Completion</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((r: any) => (
+                <TableRow key={r.template_id}>
+                  <TableCell className="font-mono text-xs">{r.code}</TableCell>
+                  <TableCell>{r.name}</TableCell>
+                  <TableCell><Badge variant={r.status === "ACTIVE" ? "default" : "secondary"}>{r.status}</Badge></TableCell>
+                  <TableCell className="text-center">{r.has_subject ? "✓" : "—"}</TableCell>
+                  <TableCell className="text-center">{r.has_body ? "✓" : "—"}</TableCell>
+                  <TableCell className="text-center">{r.has_structure ? "✓" : "—"}</TableCell>
+                  <TableCell className="text-center">{r.has_legal_refs ? "✓" : "—"}</TableCell>
+                  <TableCell className="text-center">{r.has_signature ? "✓" : "—"}</TableCell>
+                  <TableCell className="text-center">{r.has_footer ? "✓" : "—"}</TableCell>
+                  <TableCell className="text-center">{r.channel_count}</TableCell>
+                  <TableCell className="text-right">
+                    <Badge variant={r.completion_pct >= 100 ? "default" : r.completion_pct >= 70 ? "secondary" : "destructive"}>
+                      {r.completion_pct}%
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button size="sm" variant="ghost" onClick={() => onEdit(r.template_id)}>
+                      <Pencil className="h-3.5 w-3.5"/>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
