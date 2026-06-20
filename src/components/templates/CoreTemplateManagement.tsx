@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Eye, Pencil, Plus, Save, Copy, Power, PowerOff, FileDown, History, Sparkles, Scale, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, Save, Copy, Power, PowerOff, FileDown, History, Sparkles, Scale, Trash2, AlertTriangle, CheckCircle2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { LgDataGrid, buildLgRowActions, type LgColumnDef, type LgRowAction, type LgBulkAction } from "@/components/legal/grid";
 
 import {
   coreTemplateService,
@@ -25,6 +26,18 @@ import { coreTemplateLegalRefService, TemplateLegalRefLink } from "@/services/co
 import { coreTemplateChannelService, CoreTemplateChannel } from "@/services/coreTemplateChannelService";
 import { supabase } from "@/integrations/supabase/client";
 import type { LegalReference } from "@/services/legal-reference/types";
+
+type AugmentedTemplate = CoreTemplate & {
+  _layout_code?: string;
+  _ref_count: number;
+  _variant_codes: string[];
+  _missing_channels: string[];
+  _has_active_version: boolean;
+  _invalid_tokens: string[];
+  _used_by_count: number;
+};
+const EXPECTED_CHANNELS = ["EMAIL", "PRINT_LETTER", "PDF", "SMS", "PORTAL_MSG"];
+const ALL = "__all__";
 
 
 interface Props {
@@ -65,6 +78,18 @@ export default function CoreTemplateManagement({
   const [moduleFilter, setModuleFilter] = useState<string>(fixedModuleCode || "ALL");
   const [search, setSearch] = useState("");
 
+  // Legal-grid filters
+  const [fStatus, setFStatus] = useState(ALL);
+  const [fType, setFType] = useState(ALL);
+  const [fCategory, setFCategory] = useState(ALL);
+  const [fChannel, setFChannel] = useState(ALL);
+  const [fLayout, setFLayout] = useState(ALL);
+  const [fHasRef, setFHasRef] = useState(ALL); // YES | NO
+  const [fMissingChannel, setFMissingChannel] = useState(ALL); // YES | NO
+
+  const [variantMap, setVariantMap] = useState<Record<string, string[]>>({});
+  const [refCountMap, setRefCountMap] = useState<Record<string, number>>({});
+
   const [editing, setEditing] = useState<CoreTemplate | null>(null);
   const [creating, setCreating] = useState(false);
   const [previewTpl, setPreviewTpl] = useState<CoreTemplate | null>(null);
@@ -74,12 +99,15 @@ export default function CoreTemplateManagement({
   const [historyRows, setHistoryRows] = useState<CoreTemplateVersion[]>([]);
   const [sampleResult, setSampleResult] = useState<{ ref: string; html: string; subject?: string } | null>(null);
 
+  const isLegal = fixedModuleCode === "LEGAL";
 
   const layoutById = useMemo(() => {
     const m: Record<string, CoreTemplateLayout> = {};
     layouts.forEach((l) => (m[l.id] = l));
     return m;
   }, [layouts]);
+
+  const tokenCodeSet = useMemo(() => new Set(tokens.map((t) => t.token_code)), [tokens]);
 
   const reload = async () => {
     setLoading(true);
@@ -100,6 +128,27 @@ export default function CoreTemplateManagement({
       setTokens(k);
       setChannels(ch);
       setCategories(cats);
+
+      // Augment with variant + ref counts in a single query each
+      const ids = t.map((x) => x.id);
+      if (ids.length) {
+        const [{ data: variants }, { data: refs }] = await Promise.all([
+          (supabase as any).from("core_template_channel_variant")
+            .select("template_id, channel_code").in("template_id", ids).eq("is_active", true),
+          (supabase as any).from("core_template_legal_reference")
+            .select("template_id").in("template_id", ids),
+        ]);
+        const vm: Record<string, string[]> = {};
+        (variants || []).forEach((v: any) => {
+          (vm[v.template_id] ||= []).push(v.channel_code);
+        });
+        const rm: Record<string, number> = {};
+        (refs || []).forEach((r: any) => { rm[r.template_id] = (rm[r.template_id] || 0) + 1; });
+        setVariantMap(vm);
+        setRefCountMap(rm);
+      } else {
+        setVariantMap({}); setRefCountMap({});
+      }
     } catch (e: any) {
       toast({ title: "Failed to load templates", description: e.message, variant: "destructive" });
     } finally {
@@ -109,12 +158,43 @@ export default function CoreTemplateManagement({
 
   useEffect(() => { reload(); /* eslint-disable-next-line */ }, [fixedModuleCode, moduleFilter]);
 
+  const augmented: AugmentedTemplate[] = useMemo(() => {
+    return templates.map((t) => {
+      const variants = variantMap[t.id] || [];
+      const body = ""; // body not loaded in list; invalid-token detection requires version body — skip per row, computed on demand
+      const tokenMatches: string[] = [];
+      const invalid: string[] = [];
+      // Optional: parse body_metadata? Not stored on list. Leave invalid empty here; the editor flags it.
+      return {
+        ...t,
+        _layout_code: layoutById[t.default_layout_id || ""]?.code,
+        _ref_count: refCountMap[t.id] || 0,
+        _variant_codes: variants,
+        _missing_channels: EXPECTED_CHANNELS.filter((c) => !variants.includes(c)),
+        _has_active_version: !!t.active_version_id,
+        _invalid_tokens: invalid,
+        _used_by_count: 0,
+      };
+    });
+  }, [templates, variantMap, refCountMap, layoutById]);
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return templates.filter((t) =>
-      !q || t.name.toLowerCase().includes(q) || t.code.toLowerCase().includes(q)
-    );
-  }, [templates, search]);
+    return augmented.filter((t) => {
+      if (q && !t.name.toLowerCase().includes(q) && !t.code.toLowerCase().includes(q)) return false;
+      if (fStatus !== ALL && t.status !== fStatus) return false;
+      if (fType !== ALL && t.template_type !== fType) return false;
+      if (fCategory !== ALL && (t.template_category || "") !== fCategory) return false;
+      if (fChannel !== ALL && !t._variant_codes.includes(fChannel)) return false;
+      if (fLayout !== ALL && (t.default_layout_id || "") !== fLayout) return false;
+      if (fHasRef === "YES" && t._ref_count === 0) return false;
+      if (fHasRef === "NO" && t._ref_count > 0) return false;
+      if (fMissingChannel === "YES" && t._missing_channels.length === 0) return false;
+      if (fMissingChannel === "NO" && t._missing_channels.length > 0) return false;
+      return true;
+    });
+  }, [augmented, search, fStatus, fType, fCategory, fChannel, fLayout, fHasRef, fMissingChannel]);
+
 
   const openPreview = async (tpl: CoreTemplate) => {
     setPreviewTpl(tpl);
@@ -197,11 +277,11 @@ export default function CoreTemplateManagement({
   };
 
   const exportCsv = () => {
-    const header = ["code", "name", "type", "category", "layout", "status", "updated_at"];
+    const header = ["code", "name", "type", "category", "layout", "status", "channels", "refs", "updated_at"];
     const rows = filtered.map((t) => [
       t.code, t.name, t.template_type, t.template_category || "",
       layoutById[t.default_layout_id || ""]?.code || "",
-      t.status, t.updated_at,
+      t.status, t._variant_codes.join("|"), String(t._ref_count), t.updated_at,
     ]);
     const csv = [header, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -212,6 +292,70 @@ export default function CoreTemplateManagement({
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const openEdit = (t: CoreTemplate) => {
+    if ((fixedModuleCode || t.module_code) === "LEGAL") navigate(`/legal/admin/templates/${t.id}/edit`);
+    else setEditing(t);
+  };
+
+  const deleteDraft = async (t: CoreTemplate) => {
+    if (t.status !== "DRAFT") {
+      toast({ title: "Only DRAFT templates can be deleted", variant: "destructive" });
+      return;
+    }
+    if (!window.confirm(`Delete draft template "${t.name}"? This cannot be undone.`)) return;
+    try {
+      await coreTemplateService.updateTemplate(t.id, { status: "RETIRED", is_active: false } as any);
+      const { error } = await (supabase as any).from("core_template").delete().eq("id", t.id);
+      if (error) throw error;
+      toast({ title: "Draft deleted" });
+      reload();
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e.message, variant: "destructive" });
+    }
+  };
+
+  // Bulk actions
+  const bulkRetireDrafts = async (rows: AugmentedTemplate[]) => {
+    const drafts = rows.filter((r) => r.status === "DRAFT");
+    if (!drafts.length) { toast({ title: "No drafts selected" }); return; }
+    try {
+      await Promise.all(drafts.map((r) =>
+        coreTemplateService.updateTemplate(r.id, { status: "RETIRED", is_active: false } as any)));
+      toast({ title: `Retired ${drafts.length} draft(s)` });
+      reload();
+    } catch (e: any) {
+      toast({ title: "Bulk retire failed", description: e.message, variant: "destructive" });
+    }
+  };
+  const bulkValidate = (rows: AugmentedTemplate[]) => {
+    const issues = rows.filter((r) => !r._has_active_version || r._missing_channels.length > 0 || (isLegal && r._ref_count === 0));
+    toast({
+      title: `Validation: ${rows.length - issues.length}/${rows.length} OK`,
+      description: issues.length ? `${issues.length} need attention (missing channels/refs/version).` : "All selected templates pass.",
+    });
+  };
+  const bulkGenerateSamples = async (rows: AugmentedTemplate[]) => {
+    const ready = rows.filter((r) => r._has_active_version);
+    if (!ready.length) { toast({ title: "No active versions in selection", variant: "destructive" }); return; }
+    try {
+      await Promise.all(ready.map((r) => generateSample(r)));
+      toast({ title: `Generated ${ready.length} sample(s)` });
+    } catch (e: any) {
+      toast({ title: "Bulk sample failed", description: e.message, variant: "destructive" });
+    }
+  };
+  const bulkExport = (rows: AugmentedTemplate[]) => {
+    const header = ["code", "name", "type", "category", "status", "channels", "refs"];
+    const out = rows.map((t) => [t.code, t.name, t.template_type, t.template_category || "", t.status, t._variant_codes.join("|"), String(t._ref_count)]);
+    const csv = [header, ...out].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `templates-selected.csv`; a.click();
+    URL.revokeObjectURL(url);
+  };
+
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -239,6 +383,33 @@ export default function CoreTemplateManagement({
         </TabsList>
 
         <TabsContent value="templates">
+          {isLegal ? (
+            <LegalTemplatesGrid
+              data={filtered}
+              loading={loading}
+              layouts={layouts}
+              categories={categories.filter((c: any) => c.module_code === "LEGAL")}
+              channels={channels}
+              search={search}
+              onSearch={setSearch}
+              filterState={{ fStatus, fType, fCategory, fChannel, fLayout, fHasRef, fMissingChannel }}
+              setFilter={{ setFStatus, setFType, setFCategory, setFChannel, setFLayout, setFHasRef, setFMissingChannel }}
+              onRefresh={reload}
+              onCreate={() => setCreating(true)}
+              onPreview={openPreview}
+              onEdit={openEdit}
+              onClone={handleClone}
+              onHistory={openHistory}
+              onGenerateSample={generateSample}
+              onPublish={(t) => setStatus(t, "ACTIVE")}
+              onRetire={(t) => setStatus(t, "RETIRED")}
+              onDeleteDraft={deleteDraft}
+              bulkRetireDrafts={bulkRetireDrafts}
+              bulkValidate={bulkValidate}
+              bulkGenerateSamples={bulkGenerateSamples}
+              bulkExport={bulkExport}
+            />
+          ) : (
           <Card>
             <CardHeader>
               <div className="flex flex-wrap items-end gap-3 justify-between">
@@ -317,10 +488,7 @@ export default function CoreTemplateManagement({
                             <Button size="icon" variant="ghost" className="h-8 w-8" title="Preview" onClick={() => openPreview(t)}>
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
-                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit" disabled={isLegacy} onClick={() => {
-                              if ((fixedModuleCode || t.module_code) === "LEGAL") navigate(`/legal/admin/templates/${t.id}/edit`);
-                              else setEditing(t);
-                            }}>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit" disabled={isLegacy} onClick={() => openEdit(t)}>
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
                             <Button size="icon" variant="ghost" className="h-8 w-8" title="Clone" onClick={() => handleClone(t)}>
@@ -350,7 +518,9 @@ export default function CoreTemplateManagement({
               )}
             </CardContent>
           </Card>
+          )}
         </TabsContent>
+
 
         <TabsContent value="layouts">
           <Card>
@@ -937,4 +1107,267 @@ function CompletenessReport({ moduleCode, country, onEdit }: { moduleCode: strin
     </Card>
   );
 }
+
+// =====================================================================
+// LegalTemplatesGrid — standardized LgDataGrid listing for Legal module
+// =====================================================================
+function LegalTemplatesGrid(props: {
+  data: AugmentedTemplate[];
+  loading: boolean;
+  layouts: CoreTemplateLayout[];
+  categories: any[];
+  channels: CoreTemplateChannel[];
+  search: string;
+  onSearch: (v: string) => void;
+  filterState: {
+    fStatus: string; fType: string; fCategory: string; fChannel: string;
+    fLayout: string; fHasRef: string; fMissingChannel: string;
+  };
+  setFilter: {
+    setFStatus: (v: string) => void; setFType: (v: string) => void;
+    setFCategory: (v: string) => void; setFChannel: (v: string) => void;
+    setFLayout: (v: string) => void; setFHasRef: (v: string) => void;
+    setFMissingChannel: (v: string) => void;
+  };
+  onRefresh: () => void;
+  onCreate: () => void;
+  onPreview: (t: CoreTemplate) => void;
+  onEdit: (t: CoreTemplate) => void;
+  onClone: (t: CoreTemplate) => void;
+  onHistory: (t: CoreTemplate) => void;
+  onGenerateSample: (t: CoreTemplate) => void;
+  onPublish: (t: CoreTemplate) => void;
+  onRetire: (t: CoreTemplate) => void;
+  onDeleteDraft: (t: CoreTemplate) => void;
+  bulkRetireDrafts: (r: AugmentedTemplate[]) => void;
+  bulkValidate: (r: AugmentedTemplate[]) => void;
+  bulkGenerateSamples: (r: AugmentedTemplate[]) => void;
+  bulkExport: (r: AugmentedTemplate[]) => void;
+}) {
+  const {
+    data, loading, layouts, categories, channels,
+    filterState: { fStatus, fType, fCategory, fChannel, fLayout, fHasRef, fMissingChannel },
+    setFilter: { setFStatus, setFType, setFCategory, setFChannel, setFLayout, setFHasRef, setFMissingChannel },
+    onRefresh, onCreate, onPreview, onEdit, onClone, onHistory,
+    onGenerateSample, onPublish, onRetire, onDeleteDraft,
+    bulkRetireDrafts, bulkValidate, bulkGenerateSamples, bulkExport,
+  } = props;
+
+  const columns: LgColumnDef<AugmentedTemplate>[] = useMemo(() => [
+    {
+      accessorKey: "code",
+      header: "Template Code",
+      meta: { label: "Template Code", pinLeft: true },
+      cell: ({ row }) => <span className="font-mono text-xs">{row.original.code}</span>,
+    },
+    { accessorKey: "name", header: "Template Name", meta: { label: "Template Name" } },
+    {
+      accessorKey: "template_category",
+      header: "Category",
+      meta: { label: "Category" },
+      cell: ({ getValue }) => (getValue() as string) || <span className="text-muted-foreground">—</span>,
+    },
+    {
+      accessorKey: "template_type",
+      header: "Type",
+      meta: { label: "Type" },
+      cell: ({ getValue }) => <Badge variant="outline" className="text-xs">{getValue() as string}</Badge>,
+    },
+    {
+      id: "channels",
+      header: "Channel Coverage",
+      meta: { label: "Channel Coverage" },
+      cell: ({ row }) => {
+        const vc = row.original._variant_codes;
+        if (!vc.length) return <span className="text-xs text-muted-foreground">—</span>;
+        return (
+          <div className="flex flex-wrap gap-1">
+            {vc.map((c) => (
+              <Badge key={c} variant="secondary" className="text-[10px] font-mono">{c}</Badge>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
+      id: "layout",
+      header: "Layout",
+      meta: { label: "Layout" },
+      cell: ({ row }) => (
+        <span className="text-xs">{row.original._layout_code || <span className="text-muted-foreground">—</span>}</span>
+      ),
+    },
+    {
+      id: "refs",
+      header: "Legal Refs",
+      meta: { label: "Legal Refs", align: "center" },
+      cell: ({ row }) => {
+        const n = row.original._ref_count;
+        return n > 0
+          ? <Badge variant="outline" className="text-xs"><Scale className="h-3 w-3 mr-1" />{n}</Badge>
+          : <span className="text-xs text-muted-foreground">—</span>;
+      },
+    },
+    {
+      id: "version",
+      header: "Active Version",
+      meta: { label: "Active Version", align: "center" },
+      cell: ({ row }) => row.original._has_active_version
+        ? <Badge variant="default" className="text-[10px]">Published</Badge>
+        : <Badge variant="destructive" className="text-[10px]">None</Badge>,
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      meta: { label: "Status" },
+      cell: ({ getValue }) => {
+        const s = getValue() as string;
+        return (
+          <Badge variant={s === "ACTIVE" ? "default" : s === "RETIRED" ? "destructive" : "secondary"}>{s}</Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "updated_at",
+      header: "Last Updated",
+      meta: { label: "Last Updated" },
+      cell: ({ getValue }) => (
+        <span className="text-xs text-muted-foreground">
+          {new Date(getValue() as string).toLocaleDateString("en-GB")}
+        </span>
+      ),
+    },
+    {
+      id: "warnings",
+      header: "Validation",
+      meta: { label: "Validation" },
+      cell: ({ row }) => {
+        const t = row.original;
+        const warnings: string[] = [];
+        if (!t._has_active_version) warnings.push("No active version");
+        if (t._ref_count === 0) warnings.push("Missing legal references");
+        if (t._missing_channels.length) warnings.push(`Missing channels: ${t._missing_channels.join(", ")}`);
+        if (!t.default_layout_id) warnings.push("Incomplete layout");
+        if (!warnings.length) {
+          return <Badge variant="outline" className="text-[10px]"><CheckCircle2 className="h-3 w-3 mr-1" />OK</Badge>;
+        }
+        return (
+          <div className="flex items-center gap-1" title={warnings.join(" • ")}>
+            <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+            <span className="text-[10px] text-amber-700">{warnings.length} issue{warnings.length > 1 ? "s" : ""}</span>
+          </div>
+        );
+      },
+    },
+    {
+      id: "used_by",
+      header: "Used By",
+      meta: { label: "Used By", align: "center", defaultHidden: true },
+      cell: ({ row }) => <span className="text-xs text-muted-foreground">{row.original._used_by_count || "—"}</span>,
+    },
+  ], []);
+
+  const rowActions: LgRowAction<AugmentedTemplate>[] = useMemo(() => [
+    { key: "view", label: "View / Preview", icon: <Eye className="h-3.5 w-3.5" />, onClick: onPreview },
+    { key: "edit", label: "Edit (full-screen)", icon: <Pencil className="h-3.5 w-3.5" />, onClick: onEdit,
+      disabled: (r) => r.source_system === "COMPLIANCE_LEGACY" },
+    { key: "clone", label: "Clone", icon: <Copy className="h-3.5 w-3.5" />, onClick: onClone },
+    { key: "sample", label: "Generate Sample", icon: <Sparkles className="h-3.5 w-3.5" />,
+      onClick: onGenerateSample, disabled: (r) => !r._has_active_version },
+    { key: "history", label: "Version History", icon: <History className="h-3.5 w-3.5" />, onClick: onHistory },
+    { key: "publish", label: "Publish", icon: <Power className="h-3.5 w-3.5" />, onClick: onPublish,
+      hidden: (r) => r.status === "ACTIVE" },
+    { key: "retire", label: "Retire", icon: <PowerOff className="h-3.5 w-3.5" />, onClick: onRetire,
+      hidden: (r) => r.status !== "ACTIVE" },
+    { key: "delete", label: "Delete Draft", icon: <Trash2 className="h-3.5 w-3.5" />, variant: "destructive",
+      onClick: onDeleteDraft, hidden: (r) => r.status !== "DRAFT" },
+  ], [onPreview, onEdit, onClone, onGenerateSample, onHistory, onPublish, onRetire, onDeleteDraft]);
+
+  const bulkActions: LgBulkAction<AugmentedTemplate>[] = useMemo(() => [
+    { key: "exp", label: "Export Selected", icon: <FileDown className="h-3.5 w-3.5" />, onClick: bulkExport },
+    { key: "val", label: "Validate Selected", icon: <CheckCircle2 className="h-3.5 w-3.5" />, onClick: bulkValidate },
+    { key: "gen", label: "Generate Sample Previews", icon: <Sparkles className="h-3.5 w-3.5" />, onClick: bulkGenerateSamples },
+    { key: "ret", label: "Retire Selected Drafts", icon: <PowerOff className="h-3.5 w-3.5" />,
+      variant: "destructive", onClick: bulkRetireDrafts },
+  ], [bulkExport, bulkValidate, bulkGenerateSamples, bulkRetireDrafts]);
+
+  const categoryOptions = useMemo(() => {
+    const codes = new Set<string>();
+    data.forEach((t) => { if (t.template_category) codes.add(t.template_category); });
+    categories.forEach((c: any) => codes.add(c.category_code));
+    return [{ value: ALL, label: "All categories" }, ...Array.from(codes).sort().map((c) => ({ value: c, label: c }))];
+  }, [data, categories]);
+
+  const toolbarFilters = [
+    { key: "status", label: "Status", value: fStatus, onChange: setFStatus, options: [
+      { value: ALL, label: "All statuses" },
+      { value: "DRAFT", label: "Draft" },
+      { value: "ACTIVE", label: "Published" },
+      { value: "RETIRED", label: "Retired" },
+    ]},
+    { key: "type", label: "Type", value: fType, onChange: setFType, options: [
+      { value: ALL, label: "All types" },
+      ...TEMPLATE_TYPES.map((t) => ({ value: t, label: t })),
+    ]},
+    { key: "category", label: "Category", value: fCategory, onChange: setFCategory, options: categoryOptions },
+    { key: "channel", label: "Channel", value: fChannel, onChange: setFChannel, options: [
+      { value: ALL, label: "All channels" },
+      ...channels.map((c) => ({ value: c.channel_code, label: c.channel_code })),
+    ]},
+    { key: "layout", label: "Layout", value: fLayout, onChange: setFLayout, options: [
+      { value: ALL, label: "All layouts" },
+      ...layouts.map((l) => ({ value: l.id, label: l.code })),
+    ]},
+    { key: "ref", label: "Legal Reference", value: fHasRef, onChange: setFHasRef, options: [
+      { value: ALL, label: "Any" },
+      { value: "YES", label: "Has reference" },
+      { value: "NO", label: "No reference" },
+    ]},
+    { key: "mc", label: "Missing Channel Variant", value: fMissingChannel, onChange: setFMissingChannel, options: [
+      { value: ALL, label: "Any" },
+      { value: "YES", label: "Has missing variant" },
+      { value: "NO", label: "All channels covered" },
+    ]},
+  ];
+
+  const summary = [
+    { label: "Total", value: data.length, tone: "default" as const },
+    { label: "Published", value: data.filter((d) => d.status === "ACTIVE").length, tone: "success" as const },
+    { label: "Draft", value: data.filter((d) => d.status === "DRAFT").length, tone: "info" as const },
+    { label: "Missing Channel", value: data.filter((d) => d._missing_channels.length > 0).length, tone: "warning" as const },
+    { label: "No Legal Refs", value: data.filter((d) => d._ref_count === 0).length, tone: "warning" as const },
+    { label: "No Active Version", value: data.filter((d) => !d._has_active_version).length, tone: "danger" as const },
+  ];
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-3">
+        <div>
+          <CardTitle>Legal Templates</CardTitle>
+          <CardDescription>Standard LgDataGrid listing — filter, validate, publish, and dispatch.</CardDescription>
+        </div>
+        <Button onClick={onCreate}><Plus className="h-4 w-4 mr-2" />New Template</Button>
+      </CardHeader>
+      <CardContent>
+        <LgDataGrid
+          id="lg.templates"
+          columns={columns}
+          data={data}
+          isLoading={loading}
+          searchPlaceholder="Search by name or code..."
+          toolbarFilters={toolbarFilters}
+          summary={summary}
+          rowActions={rowActions}
+          bulkActions={bulkActions}
+          onRefresh={onRefresh}
+          onCreate={onCreate}
+          defaultPageSize={25}
+          exportFilename="legal-templates"
+          emptyMessage="No templates match the current filters"
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 
