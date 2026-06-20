@@ -304,19 +304,30 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Parties */}
           <TabsContent value="parties">
-            <Card><CardContent className="pt-6">
-              {parties.data?.length ? (
-                <div className="space-y-2">
-                  {parties.data.map((p: any) => (
-                    <div key={p.id} className="border rounded p-3 flex justify-between">
-                      <div><div className="font-medium">{p.display_name}</div><div className="text-xs text-muted-foreground">{p.party_role} · {p.party_type}</div></div>
-                      <div className="text-xs text-muted-foreground">{p.representative_name || ""}</div>
-                    </div>
-                  ))}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Parties</CardTitle>
+                  <Button size="sm" onClick={() => setPartyOpen(true)} disabled={!access.can("editCase")} title={!access.can("editCase") ? "Read-only role" : undefined}>
+                    <Plus className="h-4 w-4 mr-1" /> Add Party
+                  </Button>
                 </div>
-              ) : <p className="text-sm text-muted-foreground">No parties recorded.</p>}
-            </CardContent></Card>
+              </CardHeader>
+              <CardContent>
+                {parties.data?.length ? (
+                  <div className="space-y-2">
+                    {parties.data.map((p: any) => (
+                      <div key={p.id} className="border rounded p-3 flex justify-between">
+                        <div><div className="font-medium">{p.display_name}</div><div className="text-xs text-muted-foreground">{p.party_role} · {p.party_type}</div></div>
+                        <div className="text-xs text-muted-foreground">{p.representative_name || ""}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-muted-foreground">No parties recorded.</p>}
+              </CardContent>
+            </Card>
           </TabsContent>
+
 
           {/* Referral */}
           <TabsContent value="referral">
@@ -336,25 +347,36 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Documents */}
           <TabsContent value="documents">
-            <Card><CardHeader><CardTitle>Linked Documents</CardTitle><CardDescription>References only — files live in the central Document module.</CardDescription></CardHeader><CardContent>
-              {documents.data?.length ? (
-                <div className="space-y-2">
-                  {documents.data.map((d: any) => (
-                    <div key={d.id} className="border rounded p-3 flex justify-between text-sm">
-                      <div>
-                        <div className="font-medium">{d.title || d.document_ref_no || d.document_category_code}</div>
-                        <div className="text-xs text-muted-foreground">{d.document_category_code} · v{d.version_no} · {d.document_source}</div>
-                      </div>
-                      <div className="flex gap-1 items-center">
-                        {d.court_filed && <Badge variant="outline">Court-filed{d.filed_date ? ` ${d.filed_date}` : ""}</Badge>}
-                        {d.confidential && <Badge variant="destructive">Confidential</Badge>}
-                      </div>
-                    </div>
-                  ))}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div><CardTitle>Linked Documents</CardTitle><CardDescription>References only — files live in the central Document module.</CardDescription></div>
+                  <Button size="sm" onClick={() => setDocOpen(true)} disabled={!access.can("linkDocument")} title={!access.can("linkDocument") ? "Read-only role" : undefined}>
+                    <Plus className="h-4 w-4 mr-1" /> Link Document
+                  </Button>
                 </div>
-              ) : <p className="text-sm text-muted-foreground">No documents linked.</p>}
-            </CardContent></Card>
+              </CardHeader>
+              <CardContent>
+                {documents.data?.length ? (
+                  <div className="space-y-2">
+                    {documents.data.map((d: any) => (
+                      <div key={d.id} className="border rounded p-3 flex justify-between text-sm">
+                        <div>
+                          <div className="font-medium">{d.title || d.document_ref_no || d.document_category_code}</div>
+                          <div className="text-xs text-muted-foreground">{d.document_category_code} · v{d.version_no} · {d.document_source}</div>
+                        </div>
+                        <div className="flex gap-1 items-center">
+                          {d.court_filed && <Badge variant="outline">Court-filed{d.filed_date ? ` ${d.filed_date}` : ""}</Badge>}
+                          {d.confidential && <Badge variant="destructive">Confidential</Badge>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-muted-foreground">No documents linked.</p>}
+              </CardContent>
+            </Card>
           </TabsContent>
+
 
           {/* Hearings */}
           <TabsContent value="hearings">
