@@ -35915,6 +35915,7 @@ export type Database = {
           generated_pdf_url: string | null
           id: string
           layout_id: string | null
+          legal_references_snapshot: Json | null
           module_code: string
           reference_no: string
           resolved_tokens: Json | null
@@ -35935,6 +35936,7 @@ export type Database = {
           generated_pdf_url?: string | null
           id?: string
           layout_id?: string | null
+          legal_references_snapshot?: Json | null
           module_code: string
           reference_no: string
           resolved_tokens?: Json | null
@@ -35955,6 +35957,7 @@ export type Database = {
           generated_pdf_url?: string | null
           id?: string
           layout_id?: string | null
+          legal_references_snapshot?: Json | null
           module_code?: string
           reference_no?: string
           resolved_tokens?: Json | null
@@ -36508,6 +36511,88 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      core_template_legal_reference: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          display_order: number
+          id: string
+          legal_reference_id: string
+          required_flag: boolean
+          template_id: string
+          template_version_id: string | null
+          updated_at: string
+          usage_note: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          legal_reference_id: string
+          required_flag?: boolean
+          template_id: string
+          template_version_id?: string | null
+          updated_at?: string
+          usage_note?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          display_order?: number
+          id?: string
+          legal_reference_id?: string
+          required_flag?: boolean
+          template_id?: string
+          template_version_id?: string | null
+          updated_at?: string
+          usage_note?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_template_legal_reference_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_legal_ref"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_legal_reference_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_legal_reference_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_legal_reference_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_legal_reference_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "core_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_legal_reference_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_version"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       core_template_schedule_policy: {
         Row: {
