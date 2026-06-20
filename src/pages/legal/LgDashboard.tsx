@@ -62,6 +62,9 @@ export default function LgDashboard() {
             </Button>
             <Button variant="outline" onClick={() => navigate("/legal/lg/hearings")}><Calendar className="h-4 w-4 mr-1" /> Calendar</Button>
             <Button variant="outline" onClick={() => navigate("/legal/lg/cases")}>All Cases</Button>
+            {(access.can("configureFees") || access.isAdmin) && (
+              <Button variant="outline" onClick={() => navigate("/legal/admin/fees")}>Fee Config</Button>
+            )}
           </div>
         </div>
 
