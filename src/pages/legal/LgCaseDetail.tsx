@@ -281,6 +281,16 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Summary */}
           <TabsContent value="summary">
+            {(missingRequired.data?.length ?? 0) > 0 && (
+              <Alert variant="destructive" className="mb-3">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Missing required letters for {caseData.current_stage_code}:</strong>{" "}
+                  {missingRequired.data!.map((m) => m.code).join(", ")}.{" "}
+                  Open the <em>Letters</em> tab to generate them.
+                </AlertDescription>
+              </Alert>
+            )}
             <Card>
               <CardHeader><CardTitle>Case Summary</CardTitle></CardHeader>
               <CardContent className="space-y-4">
