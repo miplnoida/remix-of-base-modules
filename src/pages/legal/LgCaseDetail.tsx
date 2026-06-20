@@ -34,6 +34,8 @@ import { LinkArrangementDialog } from "@/components/legal/lg/LinkArrangementDial
 import { AddTaskDialog } from "@/components/legal/lg/AddTaskDialog";
 import { GenerateNoticeDialog } from "@/components/legal/lg/GenerateNoticeDialog";
 import { AssignOfficerDialog } from "@/components/legal/lg/AssignOfficerDialog";
+import CaseFeesTab from "@/components/legal/lg/CaseFeesTab";
+import { autoApplyForEvent } from "@/services/legal/lgFeeEngineService";
 
 
 const sb = supabase as any;
