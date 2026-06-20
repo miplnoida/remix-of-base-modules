@@ -738,18 +738,56 @@ export interface BnEscalationPolicy {
   id: string;
   policy_code: string;
   policy_name: string;
+  description?: string | null;
   trigger_type: string;
   trigger_config: Record<string, unknown>;
+  applies_to_entity_type: string;
+  calendar_code?: string | null;
+  use_business_hours: boolean;
+  warning_before_hours?: number | null;
+  due_after_hours?: number | null;
+  breach_after_hours?: number | null;
   escalation_target_role: string;
+  escalation_target_user?: string | null;
   escalation_target_basket_id: string | null;
   auto_reassign: boolean;
+  create_escalation_task: boolean;
+  notify_assignee: boolean;
+  notify_supervisor: boolean;
+  notify_target_role: boolean;
   notification_template_id: string | null;
+  notification_template_code?: string | null;
+  repeat_interval_hours?: number | null;
+  max_repeat_count?: number | null;
   severity: string;
   product_category: string | null;
   country_code: string | null;
   is_active: boolean;
+  effective_from?: string | null;
+  effective_to?: string | null;
   entered_by: string | null;
   entered_at: string;
+  levels?: BnEscalationPolicyLevel[];
+}
+
+export interface BnEscalationPolicyLevel {
+  id: string;
+  policy_id: string;
+  level_no: number;
+  trigger_after_hours: number;
+  target_role: string;
+  target_user?: string | null;
+  severity: string;
+  action_type: string;
+  notification_template_code?: string | null;
+  auto_reassign: boolean;
+  repeat_interval_hours?: number | null;
+  max_repeat_count?: number | null;
+  is_active: boolean;
+  entered_by?: string | null;
+  entered_at?: string;
+  modified_by?: string | null;
+  modified_at?: string;
 }
 
 export interface BnEscalationEvent {
