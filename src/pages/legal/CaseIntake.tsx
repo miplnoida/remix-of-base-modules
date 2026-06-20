@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, FileText, MessageSquare } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -10,8 +10,14 @@ type Requisition = (typeof mockLegalRequisitions)[number];
 export default function CaseIntake() {
   const navigate = useNavigate();
 
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
   const pendingCount = mockLegalRequisitions.filter((r) => r.status === 'Pending Review').length;
   const infoRequestedCount = mockLegalRequisitions.filter((r) => r.status === 'Info Requested').length;
+  const filteredData = useMemo(
+    () => (statusFilter === 'all' ? mockLegalRequisitions : mockLegalRequisitions.filter((r) => r.status === statusFilter)),
+    [statusFilter],
+  );
 
   const columns: LgColumnDef<Requisition>[] = useMemo(() => [
     { accessorKey: 'intakeId', header: 'Intake ID', meta: { label: 'Intake ID', pinLeft: true } },
@@ -91,7 +97,7 @@ export default function CaseIntake() {
       <LgDataGrid
         id="lg.case-intake"
         columns={columns}
-        data={mockLegalRequisitions}
+        data={filteredData}
         searchPlaceholder="Search requisitions…"
         exportFilename="legal-case-intake"
         defaultSort={[{ id: 'submissionDate', desc: true }]}
@@ -104,7 +110,10 @@ export default function CaseIntake() {
           {
             key: 'status',
             label: 'Status',
+            value: statusFilter,
+            onChange: setStatusFilter,
             options: [
+              { value: 'all', label: 'All statuses' },
               { value: 'Pending Review', label: 'Pending Review' },
               { value: 'Info Requested', label: 'Info Requested' },
               { value: 'Accepted', label: 'Accepted' },
@@ -114,7 +123,6 @@ export default function CaseIntake() {
         ]}
         rowActions={buildLgRowActions({
           onView: (row: Requisition) => navigate(`/legal/cases/intake/${row.id}`),
-          extra: [{ key: 'open', label: 'Open', icon: <Eye className="h-4 w-4" />, onClick: (row: Requisition) => navigate(`/legal/cases/intake/${row.id}`) }],
         })}
         onRowClick={(row) => navigate(`/legal/cases/intake/${row.id}`)}
         emptyMessage="No legal action requisitions."
