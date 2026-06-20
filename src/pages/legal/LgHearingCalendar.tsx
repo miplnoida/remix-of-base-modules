@@ -144,38 +144,44 @@ export default function LgHearingCalendar() {
           </TabsContent>
 
           <TabsContent value="list">
-            <Card><CardContent className="p-0">
-              <Table>
-                <TableHeader><TableRow>
-                  <TableHead>Date</TableHead><TableHead>Time</TableHead><TableHead>Case</TableHead><TableHead>Type</TableHead><TableHead>Court</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead>
-                </TableRow></TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8">Loading…</TableCell></TableRow>
-                  ) : upcoming.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No hearings scheduled</TableCell></TableRow>
-                  ) : upcoming.map((h: any) => (
-                    <TableRow key={h.id}>
-                      <TableCell>{formatDateForDisplay(h.hearing_date)}</TableCell>
-                      <TableCell>{h.hearing_time ?? "—"}</TableCell>
-                      <TableCell className="font-medium">{h.lg_case?.lg_case_no ?? "—"}</TableCell>
-                      <TableCell>{h.hearing_type_code}</TableCell>
-                      <TableCell>{[h.court_name, h.court_room].filter(Boolean).join(" / ") || "—"}</TableCell>
-                      <TableCell><Badge variant="outline">{h.status}</Badge></TableCell>
-                      <TableCell className="text-right space-x-1">
-                        <Button size="sm" variant="ghost" onClick={() => navigate(`/legal/lg/cases/${h.lg_case_id}`)}>Case</Button>
-                        <Button size="sm" onClick={() => { setSelected(h); setMode("outcome"); setOutcomeOpen(true); }}>
-                          <Gavel className="h-4 w-4 mr-1" /> Outcome
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent></Card>
+            <LgDataGrid<Row>
+              id="lg.hearings"
+              columns={hearingColumns}
+              data={listRows}
+              isLoading={isLoading}
+              searchPlaceholder="Search case no, type, court, status…"
+              defaultSort={[{ id: "hearing_date", desc: false }]}
+              summary={[
+                { label: "Total", value: listRows.length, tone: "default" },
+                { label: "Scheduled", value: listRows.filter((h: any) => h.status === "SCHEDULED").length, tone: "info" },
+                { label: "Overdue", value: listRows.filter((h: any) => h.hearing_date && daysRemainingTone(h.hearing_date) === "danger" && h.status === "SCHEDULED").length, tone: "danger" },
+                { label: "Concluded", value: listRows.filter((h: any) => h.status === "CONCLUDED").length, tone: "success" },
+              ]}
+              toolbarFilters={[
+                {
+                  key: "status", label: "Status", value: "", onChange: () => {},
+                  options: ["SCHEDULED", "CONCLUDED", "ADJOURNED", "CANCELLED"].map((s) => ({ value: s, label: s })),
+                },
+              ]}
+              rowActions={buildLgRowActions<Row>({
+                onView: (r) => navigate(`/legal/lg/cases/${r.lg_case_id}`),
+                onEdit: (r) => { setSelected(r as LgHearing); setMode("outcome"); setOutcomeOpen(true); },
+                canEdit: () => access.can("recordOutcome"),
+                onHistory: (r) => navigate(`/legal/lg/cases/${r.lg_case_id}?tab=hearings`),
+                onDocuments: (r) => navigate(`/legal/lg/cases/${r.lg_case_id}?tab=documents`),
+              })}
+              bulkActions={[
+                { key: "reschedule", label: "Reschedule", onClick: () => { toast.info("Bulk reschedule coming soon"); } },
+                { key: "assign", label: "Assign Officer", onClick: () => { toast.info("Bulk assign coming soon"); } },
+              ]}
+              onRowClick={(r) => { setSelected(r as LgHearing); setMode("outcome"); setOutcomeOpen(true); }}
+              emptyMessage="No hearings in this window."
+              exportFilename="legal-hearings"
+            />
           </TabsContent>
         </Tabs>
       </div>
+
 
       <HearingOutcomeDialog
         open={outcomeOpen}
