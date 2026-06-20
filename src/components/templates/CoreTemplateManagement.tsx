@@ -21,6 +21,8 @@ import {
 } from "@/services/coreTemplateService";
 import { coreDocumentGenerationService } from "@/services/coreDocumentGenerationService";
 import { coreTemplateLegalRefService, TemplateLegalRefLink } from "@/services/coreTemplateLegalRefService";
+import { coreTemplateChannelService, CoreTemplateChannel } from "@/services/coreTemplateChannelService";
+import { supabase } from "@/integrations/supabase/client";
 import type { LegalReference } from "@/services/legal-reference/types";
 
 
@@ -54,6 +56,8 @@ export default function CoreTemplateManagement({
   const [templates, setTemplates] = useState<CoreTemplate[]>([]);
   const [layouts, setLayouts] = useState<CoreTemplateLayout[]>([]);
   const [tokens, setTokens] = useState<CoreTemplateToken[]>([]);
+  const [channels, setChannels] = useState<CoreTemplateChannel[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [moduleFilter, setModuleFilter] = useState<string>(fixedModuleCode || "ALL");
@@ -81,14 +85,19 @@ export default function CoreTemplateManagement({
       const filters: any = {};
       if (fixedModuleCode) filters.module_code = fixedModuleCode;
       else if (moduleFilter !== "ALL") filters.module_code = moduleFilter;
-      const [t, l, k] = await Promise.all([
+      const [t, l, k, ch, cats] = await Promise.all([
         coreTemplateService.listTemplates(filters),
         coreTemplateService.listLayouts(),
         coreTemplateService.listTokens(fixedModuleCode),
+        coreTemplateChannelService.listChannels().catch(() => []),
+        (supabase as any).from("core_template_category").select("*").order("module_code").order("sort_order")
+          .then((r: any) => r.data || []).catch(() => []),
       ]);
       setTemplates(t);
       setLayouts(l);
       setTokens(k);
+      setChannels(ch);
+      setCategories(cats);
     } catch (e: any) {
       toast({ title: "Failed to load templates", description: e.message, variant: "destructive" });
     } finally {
@@ -220,6 +229,8 @@ export default function CoreTemplateManagement({
           <TabsTrigger value="templates">Templates ({templates.length})</TabsTrigger>
           <TabsTrigger value="layouts">Layouts ({layouts.length})</TabsTrigger>
           <TabsTrigger value="tokens">Tokens ({tokens.length})</TabsTrigger>
+          <TabsTrigger value="channels">Channels ({channels.length})</TabsTrigger>
+          <TabsTrigger value="categories">Categories ({categories.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="templates">
@@ -370,6 +381,65 @@ export default function CoreTemplateManagement({
                       <TableCell><Badge variant="outline">{t.module_code}</Badge></TableCell>
                       <TableCell>{t.entity_type || "-"}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">{t.sample_value || "-"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="channels">
+          <Card>
+            <CardHeader>
+              <CardTitle>Delivery Channels</CardTitle>
+              <CardDescription>Channels available for template variants (PDF, Email, SMS, In-App, Webhook, Print)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead>Code</TableHead><TableHead>Name</TableHead>
+                  <TableHead>Group</TableHead><TableHead>Mode</TableHead>
+                  <TableHead>HTML</TableHead><TableHead>Text</TableHead>
+                  <TableHead>Max Length</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {channels.map((c) => (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-mono text-xs">{c.channel_code}</TableCell>
+                      <TableCell>{c.channel_name}</TableCell>
+                      <TableCell><Badge variant="outline">{c.channel_group}</Badge></TableCell>
+                      <TableCell className="text-xs">{c.delivery_mode}</TableCell>
+                      <TableCell>{c.supports_html ? "Yes" : "No"}</TableCell>
+                      <TableCell>{c.supports_text ? "Yes" : "No"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{c.max_length ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="categories">
+          <Card>
+            <CardHeader>
+              <CardTitle>Template Categories</CardTitle>
+              <CardDescription>Normalized categories per module (Legal, Benefits, Compliance)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead>Module</TableHead><TableHead>Code</TableHead>
+                  <TableHead>Name</TableHead><TableHead>Description</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>
+                  {categories.map((c: any) => (
+                    <TableRow key={c.id}>
+                      <TableCell><Badge variant="outline">{c.module_code}</Badge></TableCell>
+                      <TableCell className="font-mono text-xs">{c.category_code}</TableCell>
+                      <TableCell>{c.category_name}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{c.description || "—"}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
