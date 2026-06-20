@@ -182,7 +182,11 @@ export function useLgAccess() {
       if (fb) fb.forEach((t) => typeSet.add(t));
     }
 
-    if (isAdmin) typeSet.add("LG_ADMIN");
+    if (isAdmin) {
+      // System admins get every legal role type (full visibility + every capability)
+      (["LG_CASE_HANDLER","LG_LEGAL_ASSISTANT","LG_REVIEWER","LG_APPROVER","LG_ADMIN"] as LgRoleType[])
+        .forEach((t) => typeSet.add(t));
+    }
 
     const caps = new Set<LgCapability>();
     typeSet.forEach((t) => BASE_MATRIX[t]?.forEach((c) => caps.add(c)));
