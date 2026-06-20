@@ -721,6 +721,8 @@ const LegalAdminConfig = lazy(() => import('@/pages/legal/AdminConfig'));
 const LgFeeConfig = lazy(() => import('@/pages/legal/LgFeeConfig'));
 const LgPolicyConfig = lazy(() => import('@/pages/legal/LgPolicyConfig'));
 const LgFeeWaiverPolicyConfig = lazy(() => import('@/pages/legal/LgFeeWaiverPolicyConfig'));
+const LegalTemplateManagement = lazy(() => import('@/pages/legal/LegalTemplateManagement'));
+const CoreTemplateAdmin = lazy(() => import('@/pages/admin/CoreTemplateAdmin'));
 const CaseWorkflow = lazy(() => import('@/pages/legal/settings/CaseWorkflow'));
 
 // LegalFinal Module pages
