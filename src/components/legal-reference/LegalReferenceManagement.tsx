@@ -90,6 +90,9 @@ export const LegalReferenceManagement: React.FC<LegalReferenceManagementProps> =
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<LegalReference>>(empty(countryCode));
   const [tagInput, setTagInput] = useState('');
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [versionsTarget, setVersionsTarget] = useState<{ id: string; code: string } | null>(null);
+
 
   const supersedeOptions = useMemo(
     () => refs.filter((r) => r.id !== form.id).map((r) => ({
