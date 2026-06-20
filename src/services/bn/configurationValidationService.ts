@@ -281,25 +281,49 @@ export async function validateProduct(
       docsLibraryCheck = { status: 'WARNING', message: 'No bn_document_profile linked — docs not governed by library' };
     }
 
-    // Workflow
-    workflowCheck = activeVersion.workflow_template_id
-      ? { status: 'PASS', message: 'Workflow template linked' }
-      : { status: 'WARNING', message: 'No workflow_template_id — relies on fallback transition matrix' };
+    // Workflow — check per-channel mapping first, then legacy version-level fallback
+    const { data: channelMappings } = await (supabase as any)
+      .from('bn_product_version_workflow')
+      .select('channel_code, is_default, is_active, workflow_template_id')
+      .eq('product_version_id', activeVersion.id)
+      .eq('is_active', true);
 
-    // Workflow definition/template exists?
-    if (activeVersion.workflow_template_id) {
-      const { data: wfTemplate } = await supabase
+    const hasChannelMappings = (channelMappings ?? []).length > 0;
+    const hasDefaultMapping = (channelMappings ?? []).some((r: any) => r.is_default);
+
+    if (hasChannelMappings) {
+      workflowCheck = hasDefaultMapping
+        ? { status: 'PASS', message: `${channelMappings!.length} channel workflow mapping(s); default selected` }
+        : { status: 'WARNING', message: 'Channel workflow mappings exist but no default selected' };
+    } else if (activeVersion.workflow_template_id) {
+      workflowCheck = { status: 'WARNING', message: 'Using legacy product-level workflow — add per-channel mappings' };
+    } else {
+      workflowCheck = { status: 'WARNING', message: 'No workflow mapping — relies on fallback transition matrix' };
+    }
+
+    // Workflow definition/template exists & executable?
+    const templateIds = [
+      ...((channelMappings ?? []) as any[]).map(r => r.workflow_template_id),
+      activeVersion.workflow_template_id,
+    ].filter(Boolean) as string[];
+
+    if (templateIds.length) {
+      const { data: tpls } = await (supabase as any)
         .from('bn_workflow_template')
-        .select('id, template_name, is_active')
-        .eq('id', activeVersion.workflow_template_id)
-        .maybeSingle();
-      if (!wfTemplate) {
-        workflowExistsCheck = { status: 'FAIL', message: 'workflow_template_id points to missing bn_workflow_template row' };
+        .select('id, template_name, is_active, workflow_definition_id')
+        .in('id', templateIds);
+      const missing = templateIds.filter(id => !(tpls ?? []).some((t: any) => t.id === id));
+      const inactive = (tpls ?? []).filter((t: any) => t.is_active === false);
+      const nonExecutable = (tpls ?? []).filter((t: any) => !t.workflow_definition_id);
+      if (missing.length) {
+        workflowExistsCheck = { status: 'FAIL', message: `${missing.length} workflow template reference(s) missing` };
         issues.push('Workflow definition missing.');
-      } else if (wfTemplate.is_active === false) {
-        workflowExistsCheck = { status: 'WARNING', message: `Workflow "${wfTemplate.template_name}" exists but inactive` };
+      } else if (inactive.length) {
+        workflowExistsCheck = { status: 'WARNING', message: `${inactive.length} referenced workflow template(s) inactive` };
+      } else if (nonExecutable.length) {
+        workflowExistsCheck = { status: 'WARNING', message: `${nonExecutable.length} workflow template(s) not linked to a workflow_definition (config-only)` };
       } else {
-        workflowExistsCheck = { status: 'PASS', message: `Workflow "${wfTemplate.template_name}" present` };
+        workflowExistsCheck = { status: 'PASS', message: `${tpls!.length} workflow template(s) present and executable` };
       }
     } else {
       workflowExistsCheck = { status: 'NOT_APPLICABLE', message: 'No workflow linked' };

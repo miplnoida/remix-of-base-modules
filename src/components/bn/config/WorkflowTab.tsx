@@ -13,6 +13,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { ReadOnlyVersionBanner } from './ReadOnlyVersionBanner';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { ProductWorkflowChannelGrid } from './ProductWorkflowChannelGrid';
 
 interface Props { versionId: string | undefined; isReadOnly?: boolean; versionStatus?: string | null; }
 
@@ -171,7 +172,7 @@ export function WorkflowTab({ versionId, isReadOnly, versionStatus }: Props) {
           <ReadOnlyVersionBanner show={!!isReadOnly} status={versionStatus} />
 
           <div className="space-y-2 max-w-md">
-            <Label>Workflow Template</Label>
+            <Label>Legacy Workflow Template (product-level fallback)</Label>
             <Select disabled={isReadOnly} value={form.workflow_template_id || '__none__'} onValueChange={v => setForm(p => ({ ...p, workflow_template_id: v === '__none__' ? '' : v }))}>
               <SelectTrigger><SelectValue placeholder="Select workflow template" /></SelectTrigger>
               <SelectContent>
@@ -179,8 +180,12 @@ export function WorkflowTab({ versionId, isReadOnly, versionStatus }: Props) {
                 {templates.map((t: any) => <SelectItem key={t.id} value={t.id}>{t.template_name} ({t.template_code})</SelectItem>)}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Links to the workflow definition used for claim processing</p>
+            <p className="text-xs text-muted-foreground">
+              Used only when no per-channel mapping below matches. Prefer the Channel Workflow Mapping for new configurations.
+            </p>
           </div>
+
+          <ProductWorkflowChannelGrid productVersionId={versionId} isReadOnly={isReadOnly} />
 
           <div className="space-y-4 rounded-lg border p-4">
             <h4 className="text-sm font-semibold">Processing Flags</h4>

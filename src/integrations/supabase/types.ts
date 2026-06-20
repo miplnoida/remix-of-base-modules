@@ -14279,6 +14279,66 @@ export type Database = {
           },
         ]
       }
+      bn_product_version_workflow: {
+        Row: {
+          channel_code: string
+          created_at: string
+          created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          product_version_id: string
+          updated_at: string
+          updated_by: string | null
+          workflow_template_id: string
+        }
+        Insert: {
+          channel_code: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          product_version_id: string
+          updated_at?: string
+          updated_by?: string | null
+          workflow_template_id: string
+        }
+        Update: {
+          channel_code?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          product_version_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          workflow_template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bn_product_version_workflow_product_version_id_fkey"
+            columns: ["product_version_id"]
+            isOneToOne: false
+            referencedRelation: "bn_product_version"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bn_product_version_workflow_workflow_template_id_fkey"
+            columns: ["workflow_template_id"]
+            isOneToOne: false
+            referencedRelation: "bn_workflow_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_rate_table: {
         Row: {
           allow_gaps: boolean
@@ -15920,6 +15980,7 @@ export type Database = {
       }
       bn_workflow_template: {
         Row: {
+          channel_code: string | null
           country_code: string | null
           created_at: string
           created_by: string | null
@@ -15929,6 +15990,7 @@ export type Database = {
           escalation_config: Json
           id: string
           is_active: boolean
+          is_executable: boolean | null
           sla_config: Json
           steps_config: Json
           template_code: string
@@ -15938,6 +16000,7 @@ export type Database = {
           workflow_definition_id: string | null
         }
         Insert: {
+          channel_code?: string | null
           country_code?: string | null
           created_at?: string
           created_by?: string | null
@@ -15947,6 +16010,7 @@ export type Database = {
           escalation_config?: Json
           id?: string
           is_active?: boolean
+          is_executable?: boolean | null
           sla_config?: Json
           steps_config?: Json
           template_code: string
@@ -15956,6 +16020,7 @@ export type Database = {
           workflow_definition_id?: string | null
         }
         Update: {
+          channel_code?: string | null
           country_code?: string | null
           created_at?: string
           created_by?: string | null
@@ -15965,6 +16030,7 @@ export type Database = {
           escalation_config?: Json
           id?: string
           is_active?: boolean
+          is_executable?: boolean | null
           sla_config?: Json
           steps_config?: Json
           template_code?: string
