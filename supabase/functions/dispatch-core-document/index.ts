@@ -59,9 +59,9 @@ Deno.serve(async (req) => {
       return json({ success: true, channel, message_id: messageId, status: 'QUEUED' })
     }
 
-    if (channel === 'INAPP') {
+    if (channel === 'INAPP' || channel === 'PORTAL_MSG') {
       const user = body.recipient_user_id || recipient
-      if (!user) throw new Error('recipient (user_id) required for INAPP channel')
+      if (!user) throw new Error('recipient (user_id) required for portal channel')
       await supabase.from('in_app_notifications').insert({
         user_id: user,
         title: doc.subject || 'Notification',
@@ -78,6 +78,20 @@ Deno.serve(async (req) => {
       await mark(supabase, doc.id, 'FAILED')
       return json({ success: false, channel, status: 'FAILED', reason: 'SMS provider not configured' }, 200)
     }
+
+    if (channel === 'PRINT_LETTER' || channel === 'PRINT') {
+      // Queue for print spool; an admin/operator will release to the network printer.
+      await supabase.from('in_app_notifications').insert({
+        user_id: body.print_operator_user_id || recipient || 'system',
+        title: `[Print Queue] ${doc.subject || doc.doc_type_code}`,
+        body: `Document ${doc.reference_no} is ready for printing.`,
+        category: 'PRINT_QUEUE',
+        link: `/legal/documents/${doc.id}`,
+      }).then(() => {}, () => {})
+      await mark(supabase, doc.id, 'QUEUED_FOR_PRINT')
+      return json({ success: true, channel, status: 'QUEUED_FOR_PRINT', message: 'Document queued for printing. Open the document and print from the preview.' })
+    }
+
 
     // PDF / PRINT / WEBHOOK / etc — no platform-level delivery needed
     await mark(supabase, doc.id, 'DELIVERED', new Date().toISOString())
