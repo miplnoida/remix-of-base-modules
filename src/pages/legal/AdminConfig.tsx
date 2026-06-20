@@ -196,11 +196,11 @@ export default function AdminConfig() {
   const handleCancelComplainant = () => {
     if (settings) {
       setComplainantData({
-        name: settings.name || "Social Security Board",
-        address: settings.address || "",
+        name: settings.name || SKN_DEFAULT_COMPLAINANT.name,
+        address: settings.address || SKN_DEFAULT_COMPLAINANT.address,
         contactPerson: settings.contact_person || "",
-        email: settings.email || "legal@ssb.gov.bz",
-        phone: settings.phone || "",
+        email: settings.email || SKN_DEFAULT_COMPLAINANT.email,
+        phone: settings.phone || SKN_DEFAULT_COMPLAINANT.phone,
         defaultOfficer: settings.default_officer || "",
         defaultPriority: settings.default_priority || "Medium"
       });
