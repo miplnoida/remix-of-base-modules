@@ -14518,40 +14518,61 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          group_category: string | null
           group_code: string
           group_name: string
           id: string
           is_active: boolean
           is_system: boolean
+          is_system_group: boolean
+          manage_permission_code: string | null
           module_code: string
+          module_name: string | null
+          owner_role_code: string | null
+          sort_order: number
           updated_at: string
           updated_by: string | null
+          view_permission_code: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          group_category?: string | null
           group_code: string
           group_name: string
           id?: string
           is_active?: boolean
           is_system?: boolean
+          is_system_group?: boolean
+          manage_permission_code?: string | null
           module_code?: string
+          module_name?: string | null
+          owner_role_code?: string | null
+          sort_order?: number
           updated_at?: string
           updated_by?: string | null
+          view_permission_code?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          group_category?: string | null
           group_code?: string
           group_name?: string
           id?: string
           is_active?: boolean
           is_system?: boolean
+          is_system_group?: boolean
+          manage_permission_code?: string | null
           module_code?: string
+          module_name?: string | null
+          owner_role_code?: string | null
+          sort_order?: number
           updated_at?: string
           updated_by?: string | null
+          view_permission_code?: string | null
         }
         Relationships: []
       }
@@ -14568,7 +14589,9 @@ export type Database = {
           is_default: boolean
           is_system: boolean
           metadata_json: Json | null
+          module_code: string | null
           sort_order: number
+          status: string
           updated_at: string
           updated_by: string | null
           value_code: string
@@ -14586,7 +14609,9 @@ export type Database = {
           is_default?: boolean
           is_system?: boolean
           metadata_json?: Json | null
+          module_code?: string | null
           sort_order?: number
+          status?: string
           updated_at?: string
           updated_by?: string | null
           value_code: string
@@ -14604,7 +14629,9 @@ export type Database = {
           is_default?: boolean
           is_system?: boolean
           metadata_json?: Json | null
+          module_code?: string | null
           sort_order?: number
+          status?: string
           updated_at?: string
           updated_by?: string | null
           value_code?: string
@@ -50877,71 +50904,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lg_case"
             referencedColumns: ["id"]
-          },
-        ]
-      }
-      lg_reference_group: {
-        Row: {
-          code: string
-          created_at: string
-          description: string | null
-          name: string
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          description?: string | null
-          name: string
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          description?: string | null
-          name?: string
-        }
-        Relationships: []
-      }
-      lg_reference_value: {
-        Row: {
-          code: string
-          created_at: string
-          description: string | null
-          group_code: string
-          id: string
-          is_active: boolean
-          label: string
-          metadata: Json | null
-          sort_order: number
-        }
-        Insert: {
-          code: string
-          created_at?: string
-          description?: string | null
-          group_code: string
-          id?: string
-          is_active?: boolean
-          label: string
-          metadata?: Json | null
-          sort_order?: number
-        }
-        Update: {
-          code?: string
-          created_at?: string
-          description?: string | null
-          group_code?: string
-          id?: string
-          is_active?: boolean
-          label?: string
-          metadata?: Json | null
-          sort_order?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lg_reference_value_group_code_fkey"
-            columns: ["group_code"]
-            isOneToOne: false
-            referencedRelation: "lg_reference_group"
-            referencedColumns: ["code"]
           },
         ]
       }
