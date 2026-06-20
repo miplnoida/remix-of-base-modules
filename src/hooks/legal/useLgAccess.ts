@@ -59,7 +59,7 @@ export type LgCapability =
   // admin
   | "manageTemplates" | "configureFees" | "configurePolicy" | "manageRoleMapping";
 
-const BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
+export const LG_BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
   LG_READ_ONLY: ["viewCase"],
   LG_LEGAL_ASSISTANT: [
     "viewCase",
