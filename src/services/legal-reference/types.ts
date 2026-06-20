@@ -60,9 +60,13 @@ export interface ModuleLegalReferenceMapping {
   id: string;
   module_code: ModuleCode;
   entity_table: string;
+  entity_type: LegalRefEntityType | null;
   entity_id: string;
   legal_reference_id: string;
   role: string;
+  usage_context: string | null;
+  is_required: boolean;
+  is_default: boolean;
   notes: string | null;
   created_by: string | null;
   created_at: string;
