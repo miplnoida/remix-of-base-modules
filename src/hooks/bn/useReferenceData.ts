@@ -39,10 +39,11 @@ export function useReferenceValues(groupCode: string, fallback: ReferenceOption[
   };
 }
 
-export function useReferenceGroups() {
+export function useReferenceGroups(moduleCode?: string | string[]) {
+  const key = Array.isArray(moduleCode) ? moduleCode.join(',') : (moduleCode ?? 'ALL');
   return useQuery({
-    queryKey: ['bn-ref-groups'],
-    queryFn: listReferenceGroups,
+    queryKey: ['bn-ref-groups', key],
+    queryFn: () => listReferenceGroups({ moduleCode }),
     staleTime: 5 * 60_000,
   });
 }
