@@ -67,7 +67,19 @@ const LgCaseDetail: React.FC = () => {
   const { toast } = useToast();
   const qc = useQueryClient();
 
+  const { userCode } = useUserCode();
   const { data: caseData, isLoading, error } = useLgCase(id);
+
+  // ----- dialog state -----
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [partyOpen, setPartyOpen] = useState(false);
+  const [docOpen, setDocOpen] = useState(false);
+  const [hearingOpen, setHearingOpen] = useState(false);
+  const [settlementOpen, setSettlementOpen] = useState(false);
+  const [orderOpen, setOrderOpen] = useState(false);
+  const [taskOpen, setTaskOpen] = useState(false);
+  const [noticeOpen, setNoticeOpen] = useState(false);
+  const [arrangementOpen, setArrangementOpen] = useState(false);
 
   // ----- tab data sources -----
   const parties = useLgList("lg_case_party", id, "created_at");
@@ -94,6 +106,7 @@ const LgCaseDetail: React.FC = () => {
   const [feeForm, setFeeForm] = useState({ head: "", amount: "", reason: "" });
 
   const detectDefaults = useDetectArrangementDefaults();
+  const completeTask = useCompleteLgTask();
 
   // ----- stage change -----
   const stageChange = useMutation({
