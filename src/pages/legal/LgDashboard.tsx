@@ -106,7 +106,7 @@ export default function LgDashboard() {
             <Card><CardContent className="p-0">
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Date</TableHead><TableHead>Time</TableHead><TableHead>Case</TableHead><TableHead>Type</TableHead><TableHead>Court</TableHead><TableHead className="text-right">Open</TableHead>
+                  <TableHead>Date</TableHead><TableHead>Time</TableHead><TableHead>Case</TableHead><TableHead>Type</TableHead><TableHead>Court</TableHead><TableHead className="text-right">View</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {upcomingHearings.length === 0 ? (
