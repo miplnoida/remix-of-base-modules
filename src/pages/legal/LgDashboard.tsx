@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar, Scale, AlertTriangle, Gavel, ListChecks, Loader2, HandshakeIcon, Plus } from "lucide-react";
+import { Calendar, Scale, AlertTriangle, Gavel, ListChecks, Loader2, HandshakeIcon, Plus, Eye } from "lucide-react";
 import { useLgDashboard, useLgHearings, useLgTasks } from "@/hooks/legal/useLgWorkflow";
 import { useLgCases, useLgReference } from "@/hooks/legal/useLgCases";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
@@ -106,7 +106,7 @@ export default function LgDashboard() {
             <Card><CardContent className="p-0">
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead>Date</TableHead><TableHead>Time</TableHead><TableHead>Case</TableHead><TableHead>Type</TableHead><TableHead>Court</TableHead><TableHead className="text-right">Open</TableHead>
+                  <TableHead>Date</TableHead><TableHead>Time</TableHead><TableHead>Case</TableHead><TableHead>Type</TableHead><TableHead>Court</TableHead><TableHead className="text-right">View</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>
                   {upcomingHearings.length === 0 ? (
@@ -119,7 +119,7 @@ export default function LgDashboard() {
                       <TableCell>{h.hearing_type_code}</TableCell>
                       <TableCell>{[h.court_name, h.court_room].filter(Boolean).join(" / ") || "—"}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => navigate(`/legal/lg/cases/${h.lg_case_id}`)}>Open</Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/legal/lg/cases/${h.lg_case_id}`)} title="View case"><Eye className="h-3.5 w-3.5" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}
