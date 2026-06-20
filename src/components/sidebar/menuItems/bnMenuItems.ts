@@ -1,5 +1,6 @@
 import {
   Heart,
+  Scale,
   Settings,
   FileText,
   ClipboardList,
@@ -377,6 +378,13 @@ const _bnMenuItemsRaw = [
         icon: MapPin,
         requiresPermission: "benefits_management",
         description: "Country-specific configuration pack for the selected country.",
+      },
+      {
+        title: "Legal References",
+        url: "/bn/config/country/legal-refs",
+        icon: Scale,
+        requiresPermission: "benefits_management",
+        description: "Shared legal_reference master · acts, regulations and policies (also available in Legal module).",
       },
     ],
   },
