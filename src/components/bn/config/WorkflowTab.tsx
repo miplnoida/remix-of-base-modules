@@ -210,10 +210,20 @@ export function WorkflowTab({ versionId, isReadOnly, versionStatus }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Escalation Policy</CardTitle>
-          <CardDescription>SLA / overdue task escalation applied to this product version.</CardDescription>
+          <CardTitle className="text-base">Escalation Policy (Product-Level Fallback)</CardTitle>
+          <CardDescription>
+            Fallback SLA when neither the workflow step nor the assigned workbasket defines an escalation policy.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-800 dark:text-amber-200 flex items-start gap-2">
+            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+            <div>
+              <strong>Product-level escalation is fallback only.</strong> Prefer workflow-step or
+              workbasket SLA for stage-specific timelines. Runtime resolution order:
+              <span className="font-mono"> step → workbasket → product → country/category → global</span>.
+            </div>
+          </div>
           <div className="max-w-md">
             <Select
               disabled={isReadOnly}
