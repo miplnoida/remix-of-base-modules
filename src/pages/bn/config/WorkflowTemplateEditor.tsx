@@ -128,6 +128,8 @@ export default function WorkflowTemplateEditor() {
       const payload: any = {
         ...form,
         country_code: form.country_code || null,
+        channel_code: form.channel_code || null,
+        workflow_definition_id: form.workflow_definition_id || null,
         steps_config: steps,
       };
       const saved = await upsert.mutateAsync(payload);
