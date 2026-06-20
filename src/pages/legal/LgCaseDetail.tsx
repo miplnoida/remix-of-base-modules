@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, Lock, Plus, UserCheck, CheckCircle2, Gavel } from "lucide-react";
+import { ArrowLeft, Loader2, AlertTriangle, ShieldCheck, Lock, Plus, UserCheck, CheckCircle2, Gavel, Pencil } from "lucide-react";
 import { useLgCase } from "@/hooks/legal/useLgCases";
 import { useLgDocumentLinks } from "@/hooks/legal/useLgTemplates";
 import {
@@ -237,12 +237,15 @@ const LgCaseDetail: React.FC = () => {
               <UserCheck className="h-4 w-4 mr-1" /> Assign Officer
             </Button>
             <Button
-              size="sm"
+              size="icon"
               variant="outline"
+              className="h-8 w-8"
               onClick={() => navigate(`/legal/case-edit/${id}`)}
               disabled={!access.can("editCase")}
-              title={!access.can("editCase") ? "Read-only role" : undefined}
-            >Edit</Button>
+              title={!access.can("editCase") ? "Read-only role" : "Edit case"}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </div>
 

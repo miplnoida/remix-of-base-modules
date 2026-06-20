@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LgDataGrid, type LgColumnDef } from "@/components/legal/grid";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Loader2, Plus, Trash2, ArrowLeft, ShieldCheck, Info } from "lucide-react";
+import { Loader2, Plus, Trash2, ArrowLeft, ShieldCheck, Info, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   useLgDepartmentProfile, useLgPolicies, useLgRoleMappings,
@@ -305,10 +305,12 @@ function MappingTab() {
                   <div>Updated: {r.updated_at ? formatDateForDisplay(r.updated_at) : "—"}{r.updated_by ? ` (${r.updated_by})` : ""}</div>
                 </TableCell>
                 <TableCell className="flex gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => startEdit(r)}
-                    disabled={adding || !!editingId}>Edit</Button>
-                  <Button size="icon" variant="ghost" onClick={() => remove(r.id)}
-                    disabled={adding || !!editingId}>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(r)}
+                    disabled={adding || !!editingId} title="Edit mapping">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => remove(r.id)}
+                    disabled={adding || !!editingId} title="Remove mapping">
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </TableCell>
