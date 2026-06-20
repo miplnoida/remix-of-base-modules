@@ -533,53 +533,105 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Orders */}
           <TabsContent value="orders">
-            <Card><CardContent className="pt-6">
-              {orders.data?.length ? (
-                <div className="space-y-2">
-                  {orders.data.map((o: any) => (
-                    <div key={o.id} className="border rounded p-3 text-sm">
-                      <div className="flex justify-between"><div className="font-medium">{o.order_no} · {o.order_type_code}</div><Badge>{o.status}</Badge></div>
-                      <div className="text-xs text-muted-foreground">{o.issued_by_court} · {o.issued_date}</div>
-                      {o.ordered_amount && <div>Amount: {Number(o.ordered_amount).toFixed(2)}</div>}
-                    </div>
-                  ))}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Orders / Judgments</CardTitle>
+                  <Button size="sm" onClick={() => setOrderOpen(true)} disabled={!access.can("createOrder")} title={!access.can("createOrder") ? "Read-only role" : undefined}>
+                    <Plus className="h-4 w-4 mr-1" /> Add Order
+                  </Button>
                 </div>
-              ) : <p className="text-sm text-muted-foreground">No orders.</p>}
-            </CardContent></Card>
+              </CardHeader>
+              <CardContent>
+                {orders.data?.length ? (
+                  <div className="space-y-2">
+                    {orders.data.map((o: any) => (
+                      <div key={o.id} className="border rounded p-3 text-sm">
+                        <div className="flex justify-between"><div className="font-medium">{o.order_no} · {o.order_type_code}</div><Badge>{o.status}</Badge></div>
+                        <div className="text-xs text-muted-foreground">{o.issued_by_court || "—"} · {o.issued_date || "—"}</div>
+                        {o.ordered_amount && <div>Amount: {Number(o.ordered_amount).toFixed(2)}</div>}
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-muted-foreground">No orders.</p>}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Settlements */}
           <TabsContent value="settlements">
-            <Card><CardContent className="pt-6">
-              {settlements.data?.length ? (
-                <div className="space-y-2">
-                  {settlements.data.map((s: any) => (
-                    <div key={s.id} className="border rounded p-3 text-sm">
-                      <div className="flex justify-between"><div className="font-medium">Proposed {s.proposed_amount ?? "—"} → Agreed {s.agreed_amount ?? "—"}</div><Badge>{s.status}</Badge></div>
-                      <div className="text-xs text-muted-foreground">{s.currency_code} · {s.proposed_at}</div>
-                      {s.terms && <div className="mt-1">{s.terms}</div>}
-                    </div>
-                  ))}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Settlements</CardTitle>
+                  <Button size="sm" onClick={() => setSettlementOpen(true)} disabled={!access.can("createSettlement")} title={!access.can("createSettlement") ? "Read-only role" : undefined}>
+                    <Plus className="h-4 w-4 mr-1" /> Propose Settlement
+                  </Button>
                 </div>
-              ) : <p className="text-sm text-muted-foreground">No settlements.</p>}
-            </CardContent></Card>
+              </CardHeader>
+              <CardContent>
+                {settlements.data?.length ? (
+                  <div className="space-y-2">
+                    {settlements.data.map((s: any) => (
+                      <div key={s.id} className="border rounded p-3 text-sm">
+                        <div className="flex justify-between"><div className="font-medium">Proposed {s.proposed_amount ?? "—"} → Agreed {s.agreed_amount ?? "—"}</div><Badge>{s.status}</Badge></div>
+                        <div className="text-xs text-muted-foreground">{s.currency_code} · {s.proposed_at}</div>
+                        {s.terms && <div className="mt-1">{s.terms}</div>}
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-muted-foreground">No settlements.</p>}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Tasks */}
           <TabsContent value="tasks">
-            <Card><CardContent className="pt-6">
-              {tasks.data?.length ? (
-                <div className="space-y-2">
-                  {tasks.data.map((t: any) => (
-                    <div key={t.id} className="border rounded p-3 text-sm">
-                      <div className="flex justify-between"><div className="font-medium">{t.title}</div><Badge variant={t.status === "DONE" ? "default" : "outline"}>{t.status}</Badge></div>
-                      <div className="text-xs text-muted-foreground">{t.task_type_code} · {t.priority_code} · due {t.due_date ?? "—"}</div>
-                      {t.description && <div className="mt-1">{t.description}</div>}
-                    </div>
-                  ))}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Tasks</CardTitle>
+                  <Button size="sm" onClick={() => setTaskOpen(true)} disabled={!access.can("editCase")} title={!access.can("editCase") ? "Read-only role" : undefined}>
+                    <Plus className="h-4 w-4 mr-1" /> Add Task
+                  </Button>
                 </div>
-              ) : <p className="text-sm text-muted-foreground">No tasks.</p>}
-            </CardContent></Card>
+              </CardHeader>
+              <CardContent>
+                {tasks.data?.length ? (
+                  <div className="space-y-2">
+                    {tasks.data.map((t: any) => (
+                      <div key={t.id} className="border rounded p-3 text-sm">
+                        <div className="flex justify-between items-start gap-2">
+                          <div>
+                            <div className="font-medium">{t.title}</div>
+                            <div className="text-xs text-muted-foreground">{t.task_type_code} · {t.priority_code} · due {t.due_date ?? "—"}</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={t.status === "COMPLETED" || t.status === "DONE" ? "default" : "outline"}>{t.status}</Badge>
+                            {t.status !== "COMPLETED" && t.status !== "DONE" && (
+                              <Button size="sm" variant="ghost" disabled={completeTask.isPending} onClick={async () => {
+                                try {
+                                  await completeTask.mutateAsync({ id: t.id, userCode: userCode ?? null });
+                                  await logLgActivity({ lg_case_id: id!, activity_type: "TASK_COMPLETED", description: t.title, performed_by: userCode ?? null });
+                                  qc.invalidateQueries({ queryKey: ["lg_case_task", id] });
+                                  qc.invalidateQueries({ queryKey: ["lg_case_activity", id] });
+                                  toast({ title: "Task completed" });
+                                } catch (e: any) {
+                                  toast({ title: "Failed", description: e.message, variant: "destructive" });
+                                }
+                              }}>
+                                <CheckCircle2 className="h-4 w-4 mr-1" /> Complete
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        {t.description && <div className="mt-1">{t.description}</div>}
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-muted-foreground">No tasks.</p>}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Activity */}
@@ -601,8 +653,26 @@ const LgCaseDetail: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Dialogs */}
+      {id && (
+        <>
+          <AssignOfficerDialog open={assignOpen} onOpenChange={setAssignOpen} lgCaseId={id} currentOfficerId={caseData?.assigned_legal_officer_id ?? null} />
+          <AddPartyDialog open={partyOpen} onOpenChange={setPartyOpen} lgCaseId={id} />
+          <LinkDocumentDialog open={docOpen} onOpenChange={setDocOpen} lgCaseId={id} />
+          <HearingOutcomeDialog open={hearingOpen} onOpenChange={setHearingOpen} mode={hearingMode} hearing={selectedHearing} lgCaseId={id} />
+          <AddSettlementDialog open={settlementOpen} onOpenChange={setSettlementOpen} lgCaseId={id} />
+          <AddOrderDialog open={orderOpen} onOpenChange={setOrderOpen} lgCaseId={id} />
+          <AddTaskDialog open={taskOpen} onOpenChange={setTaskOpen} lgCaseId={id} />
+          <GenerateNoticeDialog open={noticeOpen} onOpenChange={setNoticeOpen} lgCaseId={id} />
+          <LinkArrangementDialog open={arrangementOpen} onOpenChange={setArrangementOpen} lgCaseId={id} employerId={caseData?.employer_id ?? null} />
+        </>
+      )}
     </div>
   );
 };
+
+export default LgCaseDetail;
+
 
 export default LgCaseDetail;
