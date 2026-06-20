@@ -4,16 +4,34 @@ import { useSupabaseAuth } from "@/contexts/SupabaseAuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Legal access model — four roles, capability-based.
+ * Legal access model — role-type based, capability driven, fully configurable.
  *
- * Roles (matched case-insensitive against the central user_roles table):
- *  - LEGAL_OFFICER
- *  - SENIOR_LEGAL_OFFICER
- *  - LEGAL_MANAGER
- *  - LEGAL_READ_ONLY
+ * The system has six legal role-types:
+ *   LG_CASE_HANDLER      — owns cases, takes substantive legal actions
+ *   LG_LEGAL_ASSISTANT   — prepares drafts, no approval/sending
+ *   LG_REVIEWER          — reviews assistant drafts before approval
+ *   LG_APPROVER          — final sign-off (lawyer)
+ *   LG_ADMIN             — full legal admin, can configure policies/mappings
+ *   LG_READ_ONLY         — view only
  *
- * Admin / system-admin always has full legal access.
+ * The mapping from real system roles (Security module) to legal role-types
+ * lives in `lg_role_type_mapping` so a small department can give one person
+ * many role-types, and a large department can split them across people.
+ *
+ * Capabilities below are intentionally split into PREPARE vs APPROVE so the UI
+ * can render different action buttons for assistants vs lawyers.
  */
+
+export type LgRoleType =
+  | "LG_CASE_HANDLER"
+  | "LG_LEGAL_ASSISTANT"
+  | "LG_REVIEWER"
+  | "LG_APPROVER"
+  | "LG_ADMIN"
+  | "LG_READ_ONLY";
+
+// Legacy role aliases — kept for backward compatibility with older code that
+// still imports `LgRole`. Maps onto the new role-type model.
 export type LgRole =
   | "LEGAL_OFFICER"
   | "SENIOR_LEGAL_OFFICER"
@@ -21,114 +39,178 @@ export type LgRole =
   | "LEGAL_READ_ONLY";
 
 export type LgCapability =
-  | "viewCase"
-  | "createCase"
-  | "editCase"
-  | "closeCase"
-  | "acceptReferral"
-  | "rejectReferral"
-  | "assignOfficer"
-  | "changeStage"
-  | "addHearing"
-  | "recordHearingOutcome"
-  | "generateNotice"
-  | "linkDocument"
-  | "createSettlement"
-  | "approveSettlement"
-  | "postFee"
-  | "createOrder"
-  | "manageTemplates"
-  | "applyFeeBundle"
-  | "addManualFee"
-  | "requestWaiver"
-  | "approveWaiver"
-  | "configureFees";
+  // view / case basics
+  | "viewCase" | "createCase" | "editCase" | "closeCase"
+  | "acceptReferral" | "rejectReferral" | "assignOfficer" | "changeStage"
+  // notices
+  | "prepareNotice" | "approveNotice" | "sendNotice" | "generateNotice"
+  // hearings
+  | "prepareHearingBundle" | "addHearing" | "recordHearingOutcome" | "confirmHearingOutcome"
+  // documents / parties / tasks
+  | "linkDocument" | "updateParties" | "draftTask" | "assignTask"
+  // settlements
+  | "draftSettlement" | "createSettlement" | "approveSettlement"
+  // fees
+  | "draftFee" | "applyFeeBundle" | "addManualFee"
+  | "approveFee" | "postFee"
+  | "requestWaiver" | "approveWaiver"
+  // orders
+  | "createOrder" | "recordOrder"
+  // admin
+  | "manageTemplates" | "configureFees" | "configurePolicy" | "manageRoleMapping";
 
-const MATRIX: Record<LgRole, LgCapability[]> = {
-  LEGAL_READ_ONLY: ["viewCase"],
-  LEGAL_OFFICER: [
+const BASE_MATRIX: Record<LgRoleType, LgCapability[]> = {
+  LG_READ_ONLY: ["viewCase"],
+  LG_LEGAL_ASSISTANT: [
+    "viewCase",
+    "prepareNotice", "generateNotice",
+    "prepareHearingBundle",
+    "linkDocument", "updateParties",
+    "draftTask",
+    "draftSettlement",
+    "draftFee", "applyFeeBundle", "addManualFee", "requestWaiver",
+    "recordOrder",
+  ],
+  LG_CASE_HANDLER: [
     "viewCase", "createCase", "editCase",
-    "addHearing", "recordHearingOutcome",
-    "generateNotice", "linkDocument",
-    "createSettlement", "postFee", "createOrder",
+    "prepareNotice", "generateNotice",
+    "addHearing", "prepareHearingBundle",
+    "linkDocument", "updateParties",
+    "draftTask", "assignTask",
+    "draftSettlement", "createSettlement",
+    "draftFee", "applyFeeBundle", "addManualFee", "requestWaiver",
+    "createOrder", "recordOrder",
     "changeStage",
-    "applyFeeBundle", "addManualFee", "requestWaiver",
   ],
-  SENIOR_LEGAL_OFFICER: [
+  LG_REVIEWER: [
+    "viewCase", "editCase",
+    "approveNotice",
+    "confirmHearingOutcome",
+  ],
+  LG_APPROVER: [
     "viewCase", "createCase", "editCase", "closeCase",
     "acceptReferral", "rejectReferral", "assignOfficer", "changeStage",
-    "addHearing", "recordHearingOutcome",
-    "generateNotice", "linkDocument",
-    "createSettlement", "approveSettlement", "postFee", "createOrder",
-    "applyFeeBundle", "addManualFee", "requestWaiver", "approveWaiver",
+    "prepareNotice", "approveNotice", "sendNotice", "generateNotice",
+    "addHearing", "prepareHearingBundle", "recordHearingOutcome", "confirmHearingOutcome",
+    "linkDocument", "updateParties", "draftTask", "assignTask",
+    "draftSettlement", "createSettlement", "approveSettlement",
+    "draftFee", "applyFeeBundle", "addManualFee", "approveFee", "postFee",
+    "requestWaiver", "approveWaiver",
+    "createOrder", "recordOrder",
   ],
-  LEGAL_MANAGER: [
+  LG_ADMIN: [
     "viewCase", "createCase", "editCase", "closeCase",
     "acceptReferral", "rejectReferral", "assignOfficer", "changeStage",
-    "addHearing", "recordHearingOutcome",
-    "generateNotice", "linkDocument",
-    "createSettlement", "approveSettlement", "postFee", "createOrder",
-    "manageTemplates",
-    "applyFeeBundle", "addManualFee", "requestWaiver", "approveWaiver", "configureFees",
+    "prepareNotice", "approveNotice", "sendNotice", "generateNotice",
+    "addHearing", "prepareHearingBundle", "recordHearingOutcome", "confirmHearingOutcome",
+    "linkDocument", "updateParties", "draftTask", "assignTask",
+    "draftSettlement", "createSettlement", "approveSettlement",
+    "draftFee", "applyFeeBundle", "addManualFee", "approveFee", "postFee",
+    "requestWaiver", "approveWaiver",
+    "createOrder", "recordOrder",
+    "manageTemplates", "configureFees", "configurePolicy", "manageRoleMapping",
   ],
 };
 
-const ADMIN_ROLES = new Set([
-  "Admin", "SystemAdmin", "SuperAdmin",
-  "LegalAdmin", "Legal Admin",
+// Built-in fallback mapping in case the lg_role_type_mapping table is empty
+// for a given role.  Keeps the system working out-of-the-box.
+const FALLBACK_MAPPING: Record<string, LgRoleType[]> = {
+  LEGAL_OFFICER:        ["LG_CASE_HANDLER", "LG_REVIEWER", "LG_APPROVER"],
+  SENIOR_LEGAL_OFFICER: ["LG_CASE_HANDLER", "LG_REVIEWER", "LG_APPROVER"],
+  LEGAL_MANAGER:        ["LG_ADMIN", "LG_APPROVER", "LG_REVIEWER"],
+  LEGAL_ASSISTANT:      ["LG_LEGAL_ASSISTANT"],
+  LEGAL_READ_ONLY:      ["LG_READ_ONLY"],
+  COMPLIANCELEGALOFFICER:["LG_CASE_HANDLER", "LG_REVIEWER", "LG_APPROVER"],
+  COMPLIANCEHEAD:       ["LG_ADMIN", "LG_APPROVER"],
+  COMPLIANCEADMIN:      ["LG_ADMIN"],
+  COMPLIANCEREPORTSVIEWER: ["LG_READ_ONLY"],
+};
+
+const ADMIN_SYSTEM_ROLES = new Set([
+  "ADMIN", "SYSTEMADMIN", "SUPERADMIN", "LEGALADMIN",
 ]);
 
-function normalize(role: string): LgRole | null {
-  const r = role.replace(/[\s-]/g, "_").toUpperCase();
-  // Canonical legal roles
-  if (r === "LEGAL_OFFICER") return "LEGAL_OFFICER";
-  if (r === "SENIOR_LEGAL_OFFICER" || r === "LEGAL_SENIOR_OFFICER") return "SENIOR_LEGAL_OFFICER";
-  if (r === "LEGAL_MANAGER") return "LEGAL_MANAGER";
-  if (r === "LEGAL_READ_ONLY" || r === "LEGAL_READONLY") return "LEGAL_READ_ONLY";
-  // Compliance-side legal roles present in the central user_roles table
-  if (r === "COMPLIANCELEGALOFFICER" || r === "COMPLIANCE_LEGAL_OFFICER") return "SENIOR_LEGAL_OFFICER";
-  if (r === "COMPLIANCEHEAD" || r === "COMPLIANCE_HEAD") return "LEGAL_MANAGER";
-  if (r === "COMPLIANCEADMIN" || r === "COMPLIANCE_ADMIN") return "LEGAL_MANAGER";
-  if (r === "COMPLIANCEREPORTSVIEWER" || r === "COMPLIANCE_REPORTS_VIEWER") return "LEGAL_READ_ONLY";
-  return null;
+function normaliseSystemRole(role: string): string {
+  return role.replace(/[\s-]/g, "_").toUpperCase();
 }
 
 export function useLgAccess() {
   const { user } = useSupabaseAuth();
 
   const { data: rolesData } = useQuery({
-    queryKey: ["lg_access", user?.id],
+    queryKey: ["lg_access_roles", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user!.id);
+        .from("user_roles").select("role").eq("user_id", user!.id);
       if (error) throw error;
       return (data ?? []).map((r: any) => r.role as string);
     },
     staleTime: 5 * 60_000,
   });
 
+  const { data: mappingData } = useQuery({
+    queryKey: ["lg_role_type_mapping_all"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("lg_role_type_mapping").select("*").eq("is_active", true);
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 5 * 60_000,
+  });
+
   return useMemo(() => {
     const roles = rolesData ?? [];
-    const isAdmin = roles.some((r) => ADMIN_ROLES.has(r));
-    const lgRoles = roles.map(normalize).filter((r): r is LgRole => !!r);
-    const caps = new Set<LgCapability>();
-    if (isAdmin) {
-      // All caps
-      (Object.values(MATRIX) as LgCapability[][]).forEach((arr) => arr.forEach((c) => caps.add(c)));
-    } else {
-      lgRoles.forEach((r) => MATRIX[r].forEach((c) => caps.add(c)));
+    const mappings = mappingData ?? [];
+    const normalisedRoles = roles.map(normaliseSystemRole);
+    const isAdmin = normalisedRoles.some((r) => ADMIN_SYSTEM_ROLES.has(r));
+
+    const typeSet = new Set<LgRoleType>();
+
+    for (const sysRole of roles) {
+      // 1) database-driven mapping (preferred)
+      const dbHits = mappings.filter(
+        (m: any) => normaliseSystemRole(m.system_role) === normaliseSystemRole(sysRole),
+      );
+      if (dbHits.length > 0) {
+        dbHits.forEach((m: any) => typeSet.add(m.role_type as LgRoleType));
+        continue;
+      }
+      // 2) built-in fallback
+      const fb = FALLBACK_MAPPING[normaliseSystemRole(sysRole)];
+      if (fb) fb.forEach((t) => typeSet.add(t));
     }
+
+    if (isAdmin) typeSet.add("LG_ADMIN");
+
+    const caps = new Set<LgCapability>();
+    typeSet.forEach((t) => BASE_MATRIX[t]?.forEach((c) => caps.add(c)));
+
+    // Map back to legacy LgRole strings for callers that still import them
+    const legacyRoles: LgRole[] = [];
+    if (typeSet.has("LG_ADMIN")) legacyRoles.push("LEGAL_MANAGER");
+    if (typeSet.has("LG_APPROVER") && !legacyRoles.includes("LEGAL_MANAGER"))
+      legacyRoles.push("SENIOR_LEGAL_OFFICER");
+    if (typeSet.has("LG_CASE_HANDLER")) legacyRoles.push("LEGAL_OFFICER");
+    if (typeSet.has("LG_READ_ONLY")) legacyRoles.push("LEGAL_READ_ONLY");
+
     const can = (cap: LgCapability) => caps.has(cap);
+
     return {
-      roles: lgRoles,
+      // new model
+      roleTypes: Array.from(typeSet),
+      isAssistant: typeSet.has("LG_LEGAL_ASSISTANT") &&
+        !typeSet.has("LG_APPROVER") && !typeSet.has("LG_ADMIN"),
+      isLawyer: typeSet.has("LG_APPROVER") || typeSet.has("LG_ADMIN"),
+      // legacy
+      roles: legacyRoles,
       rawRoles: roles,
-      isAdmin,
-      isReadOnly: lgRoles.length > 0 && lgRoles.every((r) => r === "LEGAL_READ_ONLY") && !isAdmin,
-      hasLegalAccess: isAdmin || lgRoles.length > 0,
+      isAdmin: isAdmin || typeSet.has("LG_ADMIN"),
+      isReadOnly: typeSet.size > 0 &&
+        Array.from(typeSet).every((t) => t === "LG_READ_ONLY") && !isAdmin,
+      hasLegalAccess: isAdmin || typeSet.size > 0,
       can,
     };
-  }, [rolesData]);
+  }, [rolesData, mappingData]);
 }
