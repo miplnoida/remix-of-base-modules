@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { DollarSign as DollarSignIcon, Workflow as WorkflowIcon } from 'lucide-react';
+import { DollarSign as DollarSignIcon, Workflow as WorkflowIcon, ShieldCheck as ShieldCheckIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -227,14 +227,14 @@ export default function AdminConfig() {
       </div>
 
       {/* Quick links to dedicated admin areas */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <Link to="/legal/admin/fees" className="block">
           <Card className="hover:border-primary transition-colors h-full">
             <CardHeader className="flex flex-row items-center gap-3 space-y-0">
               <DollarSignIcon className="h-6 w-6 text-primary" />
               <div>
                 <CardTitle className="text-base">Fee Configuration</CardTitle>
-                <CardDescription>Rules, bundles, waivers (lg_fee_rule, lg_fee_bundle, lg_fee_waiver)</CardDescription>
+                <CardDescription>Rules, bundles, charges (lg_fee_rule, lg_fee_bundle)</CardDescription>
               </div>
             </CardHeader>
           </Card>
@@ -246,6 +246,17 @@ export default function AdminConfig() {
               <div>
                 <CardTitle className="text-base">Workflow &amp; Role Policy</CardTitle>
                 <CardDescription>Department profile, role mapping, per-action approvals</CardDescription>
+              </div>
+            </CardHeader>
+          </Card>
+        </Link>
+        <Link to="/legal/admin/waiver-policies" className="block">
+          <Card className="hover:border-primary transition-colors h-full">
+            <CardHeader className="flex flex-row items-center gap-3 space-y-0">
+              <ShieldCheckIcon className="h-6 w-6 text-primary" />
+              <div>
+                <CardTitle className="text-base">Waiver Policies</CardTitle>
+                <CardDescription>Auto-approve thresholds + tiered waiver approval routing</CardDescription>
               </div>
             </CardHeader>
           </Card>
