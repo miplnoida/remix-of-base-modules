@@ -673,6 +673,3 @@ const LgCaseDetail: React.FC = () => {
 };
 
 export default LgCaseDetail;
-
-
-export default LgCaseDetail;
