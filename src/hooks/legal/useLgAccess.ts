@@ -65,14 +65,23 @@ const MATRIX: Record<LgRole, LgCapability[]> = {
   ],
 };
 
-const ADMIN_ROLES = new Set(["Admin", "SystemAdmin", "SuperAdmin"]);
+const ADMIN_ROLES = new Set([
+  "Admin", "SystemAdmin", "SuperAdmin",
+  "LegalAdmin", "Legal Admin",
+]);
 
 function normalize(role: string): LgRole | null {
   const r = role.replace(/[\s-]/g, "_").toUpperCase();
+  // Canonical legal roles
   if (r === "LEGAL_OFFICER") return "LEGAL_OFFICER";
   if (r === "SENIOR_LEGAL_OFFICER" || r === "LEGAL_SENIOR_OFFICER") return "SENIOR_LEGAL_OFFICER";
   if (r === "LEGAL_MANAGER") return "LEGAL_MANAGER";
   if (r === "LEGAL_READ_ONLY" || r === "LEGAL_READONLY") return "LEGAL_READ_ONLY";
+  // Compliance-side legal roles present in the central user_roles table
+  if (r === "COMPLIANCELEGALOFFICER" || r === "COMPLIANCE_LEGAL_OFFICER") return "SENIOR_LEGAL_OFFICER";
+  if (r === "COMPLIANCEHEAD" || r === "COMPLIANCE_HEAD") return "LEGAL_MANAGER";
+  if (r === "COMPLIANCEADMIN" || r === "COMPLIANCE_ADMIN") return "LEGAL_MANAGER";
+  if (r === "COMPLIANCEREPORTSVIEWER" || r === "COMPLIANCE_REPORTS_VIEWER") return "LEGAL_READ_ONLY";
   return null;
 }
 
