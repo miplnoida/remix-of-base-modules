@@ -10,8 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, CalendarIcon, Gavel } from "lucide-react";
+import { ArrowLeft, CalendarIcon, Gavel, Plus } from "lucide-react";
 import { useLgHearings } from "@/hooks/legal/useLgWorkflow";
+import { useLgCases } from "@/hooks/legal/useLgCases";
+import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import { useUserCode } from "@/hooks/useUserCode";
 import { HearingOutcomeDialog } from "@/components/legal/HearingOutcomeDialog";
 import type { LgHearing } from "@/services/legal/lgWorkflowService";
@@ -22,11 +24,14 @@ const localizer = momentLocalizer(moment);
 export default function LgHearingCalendar() {
   const navigate = useNavigate();
   const { userCode } = useUserCode();
+  const access = useLgAccess();
   const [scopeMine, setScopeMine] = useState(false);
   const [view, setView] = useState<View>("month");
   const [date, setDate] = useState(new Date());
   const [selected, setSelected] = useState<LgHearing | null>(null);
   const [outcomeOpen, setOutcomeOpen] = useState(false);
+  const [mode, setMode] = useState<"create" | "outcome">("outcome");
+  const [createCaseId, setCreateCaseId] = useState<string>("");
 
   const from = useMemo(() => moment(date).startOf("month").subtract(7, "days").format("YYYY-MM-DD"), [date]);
   const to = useMemo(() => moment(date).endOf("month").add(7, "days").format("YYYY-MM-DD"), [date]);
