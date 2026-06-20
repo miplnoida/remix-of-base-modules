@@ -54,6 +54,7 @@ export default function CoreTemplateManagement({
   showAllModules = false,
 }: Props) {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [templates, setTemplates] = useState<CoreTemplate[]>([]);
   const [layouts, setLayouts] = useState<CoreTemplateLayout[]>([]);
   const [tokens, setTokens] = useState<CoreTemplateToken[]>([]);
