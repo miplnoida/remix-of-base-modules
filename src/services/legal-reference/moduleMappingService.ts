@@ -71,3 +71,28 @@ export async function listEntitiesForReference(
   if (error) throw error;
   return (data ?? []) as ModuleLegalReferenceMapping[];
 }
+
+/**
+ * List all reference mappings for a module, optionally filtered by country
+ * (via the joined legal_reference) and entity type.
+ * Used by Legal Admin to display references grouped by usage category.
+ */
+export async function listModuleLegalReferences(opts: {
+  moduleCode: ModuleCode;
+  countryCode?: string;
+  entityType?: string;
+}): Promise<ModuleLegalReferenceMapping[]> {
+  let q = db
+    .from('module_legal_reference_mapping')
+    .select('*, legal_reference:legal_reference_id(*)')
+    .eq('module_code', opts.moduleCode);
+  if (opts.entityType) q = q.eq('entity_type', opts.entityType);
+  q = q.order('entity_type').order('entity_id');
+  const { data, error } = await q;
+  if (error) throw error;
+  let rows = (data ?? []) as ModuleLegalReferenceMapping[];
+  if (opts.countryCode) {
+    rows = rows.filter((r) => r.legal_reference?.country_code === opts.countryCode);
+  }
+  return rows;
+}

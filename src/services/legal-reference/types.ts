@@ -6,7 +6,17 @@
 export type LegalRefStatus = 'DRAFT' | 'ACTIVE' | 'SUPERSEDED' | 'REPEALED';
 
 /** Short stable module codes used in module_legal_reference_mapping.module_code */
-export type ModuleCode = 'BN' | 'LG' | 'CE' | 'IA' | 'CN' | 'CL' | string;
+export type ModuleCode =
+  | 'BENEFITS' | 'LEGAL' | 'COMPLIANCE' | 'COMMON'
+  | 'BN' | 'LG' | 'CE' | 'IA' | 'CN' | 'CL' | string;
+
+/** Entity types a legal reference can be attached to. */
+export type LegalRefEntityType =
+  | 'CASE' | 'TEMPLATE' | 'NOTICE' | 'PRODUCT' | 'RULE'
+  | 'ORDER' | 'HEARING' | 'FEE' | 'SETTLEMENT' | 'COUNTRY_PACK' | string;
+
+/** Default jurisdiction for the Legal module. */
+export const LEGAL_DEFAULT_COUNTRY = 'SKN';
 
 export interface LegalReference {
   id: string;
@@ -50,9 +60,13 @@ export interface ModuleLegalReferenceMapping {
   id: string;
   module_code: ModuleCode;
   entity_table: string;
+  entity_type: LegalRefEntityType | null;
   entity_id: string;
   legal_reference_id: string;
   role: string;
+  usage_context: string | null;
+  is_required: boolean;
+  is_default: boolean;
   notes: string | null;
   created_by: string | null;
   created_at: string;
