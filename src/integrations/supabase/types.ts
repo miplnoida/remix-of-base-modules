@@ -51659,10 +51659,13 @@ export type Database = {
           can_prepare: boolean
           can_review: boolean
           created_at: string
+          created_by: string | null
           id: string
           is_active: boolean
           role_type: string
           system_role: string
+          updated_at: string
+          updated_by: string | null
         }
         Insert: {
           can_approve?: boolean
@@ -51671,10 +51674,13 @@ export type Database = {
           can_prepare?: boolean
           can_review?: boolean
           created_at?: string
+          created_by?: string | null
           id?: string
           is_active?: boolean
           role_type: string
           system_role: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           can_approve?: boolean
@@ -51683,10 +51689,13 @@ export type Database = {
           can_prepare?: boolean
           can_review?: boolean
           created_at?: string
+          created_by?: string | null
           id?: string
           is_active?: boolean
           role_type?: string
           system_role?: string
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }
