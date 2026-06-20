@@ -75,6 +75,8 @@ const LgCaseDetail: React.FC = () => {
   const [partyOpen, setPartyOpen] = useState(false);
   const [docOpen, setDocOpen] = useState(false);
   const [hearingOpen, setHearingOpen] = useState(false);
+  const [hearingMode, setHearingMode] = useState<"create" | "outcome">("create");
+  const [selectedHearing, setSelectedHearing] = useState<any | null>(null);
   const [settlementOpen, setSettlementOpen] = useState(false);
   const [orderOpen, setOrderOpen] = useState(false);
   const [taskOpen, setTaskOpen] = useState(false);
