@@ -106,6 +106,7 @@ const LgCaseDetail: React.FC = () => {
     enabled: !!id,
     queryFn: () => listLgActivity(id as string),
   });
+  const missingRequired = useMissingRequiredForCase(id, undefined as any);
 
   // ----- fee posting -----
   const feeHeads = useLegalFeeHeads();
