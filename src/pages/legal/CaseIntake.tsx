@@ -1,36 +1,63 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, FileText, MessageSquare } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { LgDataGrid, LgStatusBadge, buildLgRowActions, type LgColumnDef } from '@/components/legal/grid';
 import { mockLegalRequisitions } from '@/data/mockLegalIntake';
+
+type Requisition = (typeof mockLegalRequisitions)[number];
 
 export default function CaseIntake() {
   const navigate = useNavigate();
-  const [filter, setFilter] = useState<string>('all');
 
-  const pendingCount = mockLegalRequisitions.filter(r => r.status === 'Pending Review').length;
-  const infoRequestedCount = mockLegalRequisitions.filter(r => r.status === 'Info Requested').length;
+  const pendingCount = mockLegalRequisitions.filter((r) => r.status === 'Pending Review').length;
+  const infoRequestedCount = mockLegalRequisitions.filter((r) => r.status === 'Info Requested').length;
 
-  const filteredRequisitions = filter === 'all' 
-    ? mockLegalRequisitions 
-    : mockLegalRequisitions.filter(r => r.status === filter);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Pending Review':
-        return 'bg-warning/15 text-warning border-warning/20';
-      case 'Info Requested':
-        return 'bg-info/10 text-info border-info/20';
-      case 'Accepted':
-        return 'bg-success/10 text-success border-success/20';
-      case 'Rejected':
-        return 'bg-destructive/10 text-destructive border-destructive/20';
-      default:
-        return 'bg-muted text-muted-foreground border-border';
-    }
-  };
+  const columns: LgColumnDef<Requisition>[] = useMemo(() => [
+    { accessorKey: 'intakeId', header: 'Intake ID', meta: { label: 'Intake ID', pinLeft: true } },
+    {
+      accessorKey: 'caseNumber',
+      header: 'Case No.',
+      meta: { label: 'Case No.' },
+      cell: ({ getValue }) => {
+        const v = getValue() as string | undefined;
+        return v ? <span className="font-medium text-primary">{v}</span> : <span className="text-muted-foreground">—</span>;
+      },
+    },
+    {
+      accessorKey: 'submissionDate',
+      header: 'Date',
+      meta: { label: 'Date' },
+      cell: ({ getValue }) => new Date(getValue() as string).toLocaleDateString(),
+    },
+    {
+      id: 'employer',
+      accessorFn: (r) => r.employer.name,
+      header: 'Employer',
+      meta: { label: 'Employer', exportValue: (r: any) => r.employer?.name },
+      cell: ({ row }) => (
+        <div>
+          <div className="font-medium">{row.original.employer.name}</div>
+          <div className="text-xs text-muted-foreground">{row.original.employer.registrationNumber}</div>
+        </div>
+      ),
+    },
+    { accessorKey: 'reason', header: 'Reason', meta: { label: 'Reason' } },
+    { accessorKey: 'period', header: 'Period', meta: { label: 'Period' } },
+    {
+      accessorKey: 'amount',
+      header: 'Amount',
+      meta: { label: 'Amount', align: 'right' },
+      cell: ({ getValue }) => <span className="font-medium">${(getValue() as number).toLocaleString()}</span>,
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      meta: { label: 'Status' },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue() as string} />,
+    },
+    { accessorKey: 'submittedBy', header: 'Submitted By', meta: { label: 'Submitted By' } },
+  ], []);
 
   return (
     <div className="flex-1 space-y-6 p-8">
@@ -61,88 +88,37 @@ export default function CaseIntake() {
         </div>
       </div>
 
-      <Card>
-        <div className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Legal Action Requisitions</h2>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-max">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Intake ID</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Case No.</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Date</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Employer</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Reason</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Period</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Amount</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Status</th>
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground whitespace-nowrap">Submitted By</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground sticky right-0 bg-card z-10">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRequisitions.map((req) => (
-                  <tr key={req.id} className="border-b hover:bg-muted/50 transition-colors">
-                    <td className="p-3 whitespace-nowrap">
-                      <div className="font-medium">{req.intakeId}</div>
-                    </td>
-                    <td className="p-3 whitespace-nowrap">
-                      {req.caseNumber ? (
-                        <div className="font-medium text-primary">{req.caseNumber}</div>
-                      ) : (
-                        <div className="text-muted-foreground">-</div>
-                      )}
-                    </td>
-                    <td className="p-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <FileText className="h-4 w-4" />
-                        {new Date(req.submissionDate).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="p-3 min-w-[180px]">
-                      <div className="font-medium">{req.employer.name}</div>
-                      <div className="text-xs text-muted-foreground">{req.employer.registrationNumber}</div>
-                    </td>
-                    <td className="p-3 max-w-[200px]">
-                      <div className="text-sm truncate" title={req.reason}>{req.reason}</div>
-                    </td>
-                    <td className="p-3 whitespace-nowrap">
-                      <div className="text-sm">{req.period}</div>
-                    </td>
-                    <td className="p-3 text-right whitespace-nowrap">
-                      <div className="font-medium">${req.amount.toLocaleString()}</div>
-                    </td>
-                    <td className="p-3 whitespace-nowrap">
-                      <Badge variant="outline" className={getStatusColor(req.status)}>
-                        {req.status}
-                      </Badge>
-                    </td>
-                    <td className="p-3 whitespace-nowrap min-w-[140px]">
-                      <div className="flex items-center gap-2 text-sm">
-                        <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
-                          {req.submittedBy.split(' ').map(n => n[0]).join('')}
-                        </div>
-                        <span>{req.submittedBy}</span>
-                      </div>
-                    </td>
-                    <td className="p-3 text-right sticky right-0 bg-card z-10">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate(`/legal/cases/intake/${req.id}`)}
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </Card>
+      <LgDataGrid
+        id="lg.case-intake"
+        columns={columns}
+        data={mockLegalRequisitions}
+        searchPlaceholder="Search requisitions…"
+        exportFilename="legal-case-intake"
+        defaultSort={[{ id: 'submissionDate', desc: true }]}
+        summary={[
+          { label: 'Total', value: mockLegalRequisitions.length, tone: 'default' },
+          { label: 'Pending Review', value: pendingCount, tone: 'warning' },
+          { label: 'Info Requested', value: infoRequestedCount, tone: 'info' },
+        ]}
+        toolbarFilters={[
+          {
+            key: 'status',
+            label: 'Status',
+            options: [
+              { value: 'Pending Review', label: 'Pending Review' },
+              { value: 'Info Requested', label: 'Info Requested' },
+              { value: 'Accepted', label: 'Accepted' },
+              { value: 'Rejected', label: 'Rejected' },
+            ],
+          },
+        ]}
+        rowActions={buildLgRowActions({
+          onView: (row: Requisition) => navigate(`/legal/cases/intake/${row.id}`),
+          extra: [{ key: 'open', label: 'Open', icon: <Eye className="h-4 w-4" />, onClick: (row: Requisition) => navigate(`/legal/cases/intake/${row.id}`) }],
+        })}
+        onRowClick={(row) => navigate(`/legal/cases/intake/${row.id}`)}
+        emptyMessage="No legal action requisitions."
+      />
     </div>
   );
 }
