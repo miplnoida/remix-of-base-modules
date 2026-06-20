@@ -26,6 +26,8 @@ export interface DispatchInput {
   recipient_address?: string;     // email, phone, user id, webhook url
   tokens?: Record<string, any>;
   generated_by?: string;
+  case_stage_code?: string;
+  case_type_code?: string;
 }
 
 export interface DispatchResult {
