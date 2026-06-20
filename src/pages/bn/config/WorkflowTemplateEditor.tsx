@@ -183,16 +183,40 @@ export default function WorkflowTemplateEditor() {
         <div className="col-span-9 space-y-4">
           {form && (
             <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-base">Template Details</CardTitle></CardHeader>
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-base">Template Details</CardTitle>
+                <Badge variant={form.workflow_definition_id ? 'default' : 'secondary'}>
+                  {form.workflow_definition_id ? 'Executable' : 'Config-only'}
+                </Badge>
+              </CardHeader>
               <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div><Label className="text-xs">Code *</Label><Input value={form.template_code} onChange={(e) => setForm({ ...form, template_code: e.target.value })} /></div>
                 <div className="md:col-span-2"><Label className="text-xs">Name *</Label><Input value={form.template_name} onChange={(e) => setForm({ ...form, template_name: e.target.value })} /></div>
                 <div><Label className="text-xs">Country</Label><Input placeholder="e.g. KN" value={form.country_code} onChange={(e) => setForm({ ...form, country_code: e.target.value })} /></div>
+                <div>
+                  <Label className="text-xs">Channel</Label>
+                  <ChannelSelect value={form.channel_code} onChange={(v) => setForm({ ...form, channel_code: v })} />
+                </div>
+                <div className="md:col-span-3">
+                  <Label className="text-xs">Linked Workflow Definition</Label>
+                  <WorkflowDefinitionSelect
+                    value={form.workflow_definition_id}
+                    onChange={(v) => setForm({ ...form, workflow_definition_id: v })}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Required to make this template executable at runtime. BN-specific overrides (steps, SLAs, escalation) live below.
+                  </p>
+                </div>
                 <div className="md:col-span-3"><Label className="text-xs">Description</Label><Input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
                 <div className="flex items-end gap-2"><Switch checked={form.is_active} onCheckedChange={(v) => setForm({ ...form, is_active: v })} /><Label className="text-xs">Active</Label></div>
               </CardContent>
             </Card>
           )}
+
+          {form?.workflow_definition_id && (
+            <WorkflowDefinitionStepsPreview definitionId={form.workflow_definition_id} />
+          )}
+
 
           {/* Steps editor */}
           <Card>
