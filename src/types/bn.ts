@@ -290,8 +290,25 @@ export interface BnWorkflowTemplate {
   escalation_config: Record<string, unknown>;
   country_code: string | null;
   is_active: boolean;
+  channel_code?: string | null;
+  is_executable?: boolean;
   entered_by: string | null;
   entered_at: string;
+}
+
+export interface BnProductVersionWorkflow {
+  id: string;
+  product_version_id: string;
+  channel_code: string;
+  workflow_template_id: string;
+  is_default: boolean;
+  is_active: boolean;
+  effective_from: string | null;
+  effective_to: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_by: string | null;
+  updated_at: string;
 }
 
 export interface BnScreenTemplate {
