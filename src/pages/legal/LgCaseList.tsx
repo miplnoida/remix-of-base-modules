@@ -113,7 +113,7 @@ export default function LgCaseList() {
           </Button>
         </div>
 
-        <LgDataGrid<LgCase>
+        <LgDataGrid
           id="lg.cases"
           columns={columns}
           data={cases}
