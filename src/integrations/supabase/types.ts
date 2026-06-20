@@ -36040,6 +36040,127 @@ export type Database = {
           },
         ]
       }
+      core_document_sequence: {
+        Row: {
+          created_at: string
+          doc_type_code: string
+          id: string
+          last_number: number
+          module_code: string
+          padding: number
+          prefix: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          doc_type_code: string
+          id?: string
+          last_number?: number
+          module_code: string
+          padding?: number
+          prefix: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          doc_type_code?: string
+          id?: string
+          last_number?: number
+          module_code?: string
+          padding?: number
+          prefix?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
+      core_generated_document: {
+        Row: {
+          created_at: string
+          doc_type_code: string | null
+          entity_id: string | null
+          entity_type: string | null
+          generated_at: string
+          generated_by: string | null
+          generated_html: string | null
+          generated_pdf_url: string | null
+          id: string
+          layout_id: string | null
+          module_code: string
+          reference_no: string
+          resolved_tokens: Json | null
+          status: string
+          subject: string | null
+          template_id: string | null
+          template_version_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          doc_type_code?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          generated_at?: string
+          generated_by?: string | null
+          generated_html?: string | null
+          generated_pdf_url?: string | null
+          id?: string
+          layout_id?: string | null
+          module_code: string
+          reference_no: string
+          resolved_tokens?: Json | null
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          template_version_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          doc_type_code?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          generated_at?: string
+          generated_by?: string | null
+          generated_html?: string | null
+          generated_pdf_url?: string | null
+          id?: string
+          layout_id?: string | null
+          module_code?: string
+          reference_no?: string
+          resolved_tokens?: Json | null
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          template_version_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_generated_document_layout_id_fkey"
+            columns: ["layout_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_layout"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_generated_document_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "core_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_generated_document_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       core_reference_group: {
         Row: {
           created_at: string
@@ -36180,6 +36301,433 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "core_reference_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_template: {
+        Row: {
+          active_version_id: string | null
+          code: string
+          country_code: string
+          created_at: string
+          created_by: string | null
+          default_layout_id: string | null
+          description: string | null
+          id: string
+          institution_code: string
+          is_active: boolean
+          module_code: string
+          module_name: string | null
+          name: string
+          owning_department: string | null
+          source_ref_id: string | null
+          source_system: string
+          status: string
+          tags: string[] | null
+          template_category: string | null
+          template_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active_version_id?: string | null
+          code: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          default_layout_id?: string | null
+          description?: string | null
+          id?: string
+          institution_code?: string
+          is_active?: boolean
+          module_code: string
+          module_name?: string | null
+          name: string
+          owning_department?: string | null
+          source_ref_id?: string | null
+          source_system?: string
+          status?: string
+          tags?: string[] | null
+          template_category?: string | null
+          template_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active_version_id?: string | null
+          code?: string
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          default_layout_id?: string | null
+          description?: string | null
+          id?: string
+          institution_code?: string
+          is_active?: boolean
+          module_code?: string
+          module_name?: string | null
+          name?: string
+          owning_department?: string | null
+          source_ref_id?: string | null
+          source_system?: string
+          status?: string
+          tags?: string[] | null
+          template_category?: string | null
+          template_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_template_active_version_fk"
+            columns: ["active_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_version"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_default_layout_id_fkey"
+            columns: ["default_layout_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_layout"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_template_layout: {
+        Row: {
+          code: string
+          contact_details: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          footer_html: string | null
+          has_letterhead: boolean
+          header_html: string | null
+          id: string
+          institution_address: string | null
+          is_active: boolean
+          is_pre_printed: boolean
+          legal_disclaimer: string | null
+          logo_url: string | null
+          name: string
+          orientation: string
+          page_size: string
+          show_doc_reference: boolean
+          show_generated_date: boolean
+          show_page_numbers: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          code: string
+          contact_details?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          footer_html?: string | null
+          has_letterhead?: boolean
+          header_html?: string | null
+          id?: string
+          institution_address?: string | null
+          is_active?: boolean
+          is_pre_printed?: boolean
+          legal_disclaimer?: string | null
+          logo_url?: string | null
+          name: string
+          orientation?: string
+          page_size?: string
+          show_doc_reference?: boolean
+          show_generated_date?: boolean
+          show_page_numbers?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string
+          contact_details?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          footer_html?: string | null
+          has_letterhead?: boolean
+          header_html?: string | null
+          id?: string
+          institution_address?: string | null
+          is_active?: boolean
+          is_pre_printed?: boolean
+          legal_disclaimer?: string | null
+          logo_url?: string | null
+          name?: string
+          orientation?: string
+          page_size?: string
+          show_doc_reference?: boolean
+          show_generated_date?: boolean
+          show_page_numbers?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      core_template_schedule_policy: {
+        Row: {
+          channel: string | null
+          created_at: string
+          delay_minutes: number
+          id: string
+          is_active: boolean
+          schedule_cron: string | null
+          template_id: string
+          trigger_event: string
+          updated_at: string
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          delay_minutes?: number
+          id?: string
+          is_active?: boolean
+          schedule_cron?: string | null
+          template_id: string
+          trigger_event: string
+          updated_at?: string
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          delay_minutes?: number
+          id?: string
+          is_active?: boolean
+          schedule_cron?: string | null
+          template_id?: string
+          trigger_event?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_template_schedule_policy_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "core_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_template_section: {
+        Row: {
+          content_html: string | null
+          created_at: string
+          id: string
+          is_required: boolean
+          label: string | null
+          section_key: string
+          sort_order: number
+          updated_at: string
+          version_id: string
+        }
+        Insert: {
+          content_html?: string | null
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          label?: string | null
+          section_key: string
+          sort_order?: number
+          updated_at?: string
+          version_id: string
+        }
+        Update: {
+          content_html?: string | null
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          label?: string | null
+          section_key?: string
+          sort_order?: number
+          updated_at?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_template_section_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_template_token: {
+        Row: {
+          created_at: string
+          description: string | null
+          entity_type: string | null
+          id: string
+          is_active: boolean
+          module_code: string
+          resolver_service: string | null
+          sample_value: string | null
+          token_code: string
+          token_label: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          entity_type?: string | null
+          id?: string
+          is_active?: boolean
+          module_code?: string
+          resolver_service?: string | null
+          sample_value?: string | null
+          token_code: string
+          token_label: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          entity_type?: string | null
+          id?: string
+          is_active?: boolean
+          module_code?: string
+          resolver_service?: string | null
+          sample_value?: string | null
+          token_code?: string
+          token_label?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_template_usage: {
+        Row: {
+          created_at: string
+          entity_type: string | null
+          feature_area: string | null
+          id: string
+          is_active: boolean
+          module_code: string
+          notes: string | null
+          screen_code: string | null
+          template_id: string
+          template_version_id: string | null
+          trigger_event: string | null
+          updated_at: string
+          workflow_code: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_type?: string | null
+          feature_area?: string | null
+          id?: string
+          is_active?: boolean
+          module_code: string
+          notes?: string | null
+          screen_code?: string | null
+          template_id: string
+          template_version_id?: string | null
+          trigger_event?: string | null
+          updated_at?: string
+          workflow_code?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string | null
+          feature_area?: string | null
+          id?: string
+          is_active?: boolean
+          module_code?: string
+          notes?: string | null
+          screen_code?: string | null
+          template_id?: string
+          template_version_id?: string | null
+          trigger_event?: string | null
+          updated_at?: string
+          workflow_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_template_usage_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "core_template"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_usage_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_template_version: {
+        Row: {
+          body_html: string | null
+          body_text: string | null
+          change_summary: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          layout_id: string | null
+          published_at: string | null
+          published_by: string | null
+          status: string
+          subject: string | null
+          template_id: string
+          updated_at: string
+          updated_by: string | null
+          version_no: number
+        }
+        Insert: {
+          body_html?: string | null
+          body_text?: string | null
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          layout_id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          status?: string
+          subject?: string | null
+          template_id: string
+          updated_at?: string
+          updated_by?: string | null
+          version_no: number
+        }
+        Update: {
+          body_html?: string | null
+          body_text?: string | null
+          change_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          layout_id?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          status?: string
+          subject?: string | null
+          template_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_template_version_layout_id_fkey"
+            columns: ["layout_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_layout"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_version_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "core_template"
             referencedColumns: ["id"]
           },
         ]
@@ -64462,6 +65010,14 @@ export type Database = {
           p_work_permit_expiry?: string
         }
         Returns: Json
+      }
+      core_allocate_document_reference: {
+        Args: {
+          p_doc_type_code: string
+          p_module_code: string
+          p_prefix: string
+        }
+        Returns: string
       }
       create_c3_config_period: {
         Args: {
