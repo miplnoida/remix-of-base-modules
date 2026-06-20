@@ -7,16 +7,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar, Scale, AlertTriangle, Gavel, ListChecks, Loader2, HandshakeIcon } from "lucide-react";
+import { Calendar, Scale, AlertTriangle, Gavel, ListChecks, Loader2, HandshakeIcon, Plus } from "lucide-react";
 import { useLgDashboard, useLgHearings, useLgTasks } from "@/hooks/legal/useLgWorkflow";
 import { useLgCases, useLgReference } from "@/hooks/legal/useLgCases";
+import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import { useUserCode } from "@/hooks/useUserCode";
 import { formatDateForDisplay } from "@/lib/format-config";
+import { NewCaseDialog } from "@/components/legal/lg/NewCaseDialog";
+
 
 export default function LgDashboard() {
   const navigate = useNavigate();
   const { userCode } = useUserCode();
+  const access = useLgAccess();
   const [scopeMine, setScopeMine] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
   const officer = scopeMine ? userCode || undefined : undefined;
 
   const { data: stats, isLoading } = useLgDashboard(officer);
@@ -48,8 +53,15 @@ export default function LgDashboard() {
               <Label className="text-sm">My cases only</Label>
               <Switch checked={scopeMine} onCheckedChange={setScopeMine} />
             </div>
-            <Button onClick={() => navigate("/legal/lg/hearings")}><Calendar className="h-4 w-4 mr-1" /> Calendar</Button>
-            <Button variant="outline" onClick={() => navigate("/legal/cases")}>All Cases</Button>
+            <Button
+              onClick={() => setNewOpen(true)}
+              disabled={!access.can("createCase")}
+              title={!access.can("createCase") ? "You do not have permission to create cases" : undefined}
+            >
+              <Plus className="h-4 w-4 mr-1" /> New Case
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/legal/lg/hearings")}><Calendar className="h-4 w-4 mr-1" /> Calendar</Button>
+            <Button variant="outline" onClick={() => navigate("/legal/lg/cases")}>All Cases</Button>
           </div>
         </div>
 
