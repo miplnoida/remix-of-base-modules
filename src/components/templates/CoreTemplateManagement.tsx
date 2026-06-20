@@ -428,12 +428,13 @@ export default function CoreTemplateManagement({
 
 
 function TemplateFormDialog({
-  open, template, defaultModule, layouts, onClose, onSaved,
+  open, template, defaultModule, layouts, tokens, onClose, onSaved,
 }: {
   open: boolean;
   template: CoreTemplate | null;
   defaultModule?: string;
   layouts: CoreTemplateLayout[];
+  tokens: CoreTemplateToken[];
   onClose: () => void;
   onSaved: () => void;
 }) {
