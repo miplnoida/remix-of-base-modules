@@ -316,6 +316,7 @@ const AutomationJobReports = lazy(() => import('@/pages/compliance/reports/Autom
 // Legal Module
 const LegalAuth = lazy(() => import('@/pages/legal/LegalAuth'));
 const LegalHearingCalendar = lazy(() => import('@/pages/legal/LegalHearingCalendar'));
+const LegalReferenceData = lazy(() => import('@/pages/legal/LegalReferenceData'));
 const LegalOrderRegistry = lazy(() => import('@/pages/legal/LegalOrderRegistry'));
 const LegalDocumentCenter = lazy(() => import('@/pages/legal/DocumentCenter'));
 const SSBCaseListPage = lazy(() => import('@/pages/legal/SSBCaseList'));
