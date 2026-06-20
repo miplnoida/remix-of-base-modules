@@ -273,6 +273,7 @@ export default function CoreTemplateManagement({
                       <TableHead>Code</TableHead>
                       <TableHead>Name</TableHead>
                       {showAllModules && <TableHead>Module</TableHead>}
+                      <TableHead>Scope</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead>Layout</TableHead>
@@ -285,11 +286,17 @@ export default function CoreTemplateManagement({
                     {filtered.map((t) => {
                       const layout = layoutById[t.default_layout_id || ""];
                       const isLegacy = t.source_system === "COMPLIANCE_LEGACY";
+                      const scope = (t as any).scope || "COUNTRY";
                       return (
                         <TableRow key={t.id}>
                           <TableCell className="font-mono text-xs">{t.code}</TableCell>
                           <TableCell>{t.name}</TableCell>
                           {showAllModules && <TableCell><Badge variant="outline">{t.module_code}</Badge></TableCell>}
+                          <TableCell>
+                            <Badge variant={scope === "GLOBAL" ? "secondary" : "outline"} className="text-xs">
+                              {scope === "GLOBAL" ? "GLOBAL" : `${t.country_code}`}
+                            </Badge>
+                          </TableCell>
                           <TableCell>{t.template_type}</TableCell>
                           <TableCell>{t.template_category || "-"}</TableCell>
                           <TableCell className="text-xs">{layout?.code || "-"}</TableCell>
