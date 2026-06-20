@@ -47,5 +47,13 @@ export async function createLgOrder(input: LgOrderInsert) {
     .select("*")
     .single();
   if (error) throw error;
+  // Fire-and-forget: auto-apply fees mapped to JUDGMENT_RECORDED when a judgment-style order is recorded
+  try {
+    const judgmentLike = String(input.order_type_code || "").toUpperCase().includes("JUDGMENT");
+    if (judgmentLike) {
+      const { autoApplyForEvent } = await import("@/services/legal/lgFeeEngineService");
+      autoApplyForEvent(input.lg_case_id, "JUDGMENT_RECORDED", input.created_by ?? null).catch(() => {});
+    }
+  } catch { /* non-blocking */ }
   return data;
 }
