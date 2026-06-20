@@ -380,23 +380,43 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Hearings */}
           <TabsContent value="hearings">
-            <Card><CardContent className="pt-6">
-              {hearings.data?.length ? (
-                <div className="space-y-2">
-                  {hearings.data.map((h: any) => (
-                    <div key={h.id} className="border rounded p-3 text-sm">
-                      <div className="flex justify-between">
-                        <div className="font-medium">{h.hearing_type_code} · {h.hearing_date}{h.hearing_time ? ` ${h.hearing_time}` : ""}</div>
-                        <Badge variant="outline">{h.outcome_code || "Pending"}</Badge>
-                      </div>
-                      <div className="text-xs text-muted-foreground">{h.court_name} {h.court_room ? `· Rm ${h.court_room}` : ""}</div>
-                      {h.minutes && <div className="mt-1">{h.minutes}</div>}
-                    </div>
-                  ))}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <CardTitle>Hearings</CardTitle>
+                  <Button size="sm" onClick={() => { setSelectedHearing(null); setHearingMode("create"); setHearingOpen(true); }} disabled={!access.can("addHearing")} title={!access.can("addHearing") ? "Read-only role" : undefined}>
+                    <Plus className="h-4 w-4 mr-1" /> Add Hearing
+                  </Button>
                 </div>
-              ) : <p className="text-sm text-muted-foreground">No hearings scheduled.</p>}
-            </CardContent></Card>
+              </CardHeader>
+              <CardContent>
+                {hearings.data?.length ? (
+                  <div className="space-y-2">
+                    {hearings.data.map((h: any) => (
+                      <div key={h.id} className="border rounded p-3 text-sm">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="font-medium">{h.hearing_type_code} · {h.hearing_date}{h.hearing_time ? ` ${h.hearing_time}` : ""}</div>
+                            <div className="text-xs text-muted-foreground">{h.court_name} {h.court_room ? `· Rm ${h.court_room}` : ""}</div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">{h.outcome_code || h.status || "Pending"}</Badge>
+                            {h.status !== "COMPLETED" && (
+                              <Button size="sm" variant="ghost" disabled={!access.can("recordHearingOutcome")} onClick={() => { setSelectedHearing(h); setHearingMode("outcome"); setHearingOpen(true); }}>
+                                <Gavel className="h-4 w-4 mr-1" /> Outcome
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        {h.minutes && <div className="mt-1">{h.minutes}</div>}
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-muted-foreground">No hearings scheduled.</p>}
+              </CardContent>
+            </Card>
           </TabsContent>
+
 
           {/* Notices */}
           <TabsContent value="notices">
