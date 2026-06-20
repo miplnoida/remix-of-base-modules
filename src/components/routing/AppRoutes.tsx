@@ -1773,6 +1773,7 @@ export const AppRoutes = () => {
       <Route path="/legal/cases/intake" element={<CaseIntake />} />
       <Route path="/legal/cases/delinquent" element={<DelinquentCases />} />
       <Route path="/legal/hearings" element={<Suspense fallback={<div>Loading...</div>}><LegalHearingCalendar /></Suspense>} />
+      <Route path="/legal/config/reference-data" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceData /></Suspense>} />
       <Route path="/legal/court-orders" element={<CourtOrdersManagement />} />
       <Route path="/legal/enforcement" element={<EnforcementActions />} />
       <Route path="/legal/payment-plans" element={<LegalPaymentPlans />} />
