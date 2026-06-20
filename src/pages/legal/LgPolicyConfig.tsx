@@ -305,10 +305,12 @@ function MappingTab() {
                   <div>Updated: {r.updated_at ? formatDateForDisplay(r.updated_at) : "—"}{r.updated_by ? ` (${r.updated_by})` : ""}</div>
                 </TableCell>
                 <TableCell className="flex gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => startEdit(r)}
-                    disabled={adding || !!editingId}>Edit</Button>
-                  <Button size="icon" variant="ghost" onClick={() => remove(r.id)}
-                    disabled={adding || !!editingId}>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEdit(r)}
+                    disabled={adding || !!editingId} title="Edit mapping">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => remove(r.id)}
+                    disabled={adding || !!editingId} title="Remove mapping">
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </TableCell>
