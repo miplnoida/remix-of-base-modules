@@ -215,11 +215,27 @@ const LgCaseDetail: React.FC = () => {
               <p className="text-sm text-muted-foreground">{caseData.summary || caseData.case_type_code}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className="gap-1"><ShieldCheck className="h-3 w-3" /> {access.isAdmin ? "Admin" : access.roles.join(", ") || "—"}</Badge>
             <Badge>{caseData.status_code}</Badge>
             <Badge variant="secondary">{caseData.current_stage_code}</Badge>
             <Badge variant={caseData.priority_code === "HIGH" || caseData.priority_code === "URGENT" ? "destructive" : "outline"}>{caseData.priority_code}</Badge>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAssignOpen(true)}
+              disabled={!access.can("assignOfficer")}
+              title={!access.can("assignOfficer") ? "You do not have permission to assign officers" : undefined}
+            >
+              <UserCheck className="h-4 w-4 mr-1" /> Assign Officer
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => navigate(`/legal/case-edit/${id}`)}
+              disabled={!access.can("editCase")}
+              title={!access.can("editCase") ? "Read-only role" : undefined}
+            >Edit</Button>
           </div>
         </div>
 
