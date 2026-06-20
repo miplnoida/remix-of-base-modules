@@ -35905,7 +35905,11 @@ export type Database = {
       }
       core_generated_document: {
         Row: {
+          channel_code: string | null
+          content_hash: string | null
           created_at: string
+          delivered_at: string | null
+          delivery_status: string | null
           doc_type_code: string | null
           entity_id: string | null
           entity_type: string | null
@@ -35917,6 +35921,7 @@ export type Database = {
           layout_id: string | null
           legal_references_snapshot: Json | null
           module_code: string
+          recipient_address: string | null
           reference_no: string
           resolved_tokens: Json | null
           status: string
@@ -35926,7 +35931,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          channel_code?: string | null
+          content_hash?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string | null
           doc_type_code?: string | null
           entity_id?: string | null
           entity_type?: string | null
@@ -35938,6 +35947,7 @@ export type Database = {
           layout_id?: string | null
           legal_references_snapshot?: Json | null
           module_code: string
+          recipient_address?: string | null
           reference_no: string
           resolved_tokens?: Json | null
           status?: string
@@ -35947,7 +35957,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          channel_code?: string | null
+          content_hash?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string | null
           doc_type_code?: string | null
           entity_id?: string | null
           entity_type?: string | null
@@ -35959,6 +35973,7 @@ export type Database = {
           layout_id?: string | null
           legal_references_snapshot?: Json | null
           module_code?: string
+          recipient_address?: string | null
           reference_no?: string
           resolved_tokens?: Json | null
           status?: string
@@ -35968,6 +35983,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "core_generated_document_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "core_template_channel"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "core_generated_document_layout_id_fkey"
             columns: ["layout_id"]
@@ -36618,6 +36640,7 @@ export type Database = {
       core_template: {
         Row: {
           active_version_id: string | null
+          category_id: string | null
           code: string
           country_code: string
           created_at: string
@@ -36631,6 +36654,8 @@ export type Database = {
           module_name: string | null
           name: string
           owning_department: string | null
+          parent_template_id: string | null
+          scope: string
           source_ref_id: string | null
           source_system: string
           status: string
@@ -36642,6 +36667,7 @@ export type Database = {
         }
         Insert: {
           active_version_id?: string | null
+          category_id?: string | null
           code: string
           country_code?: string
           created_at?: string
@@ -36655,6 +36681,8 @@ export type Database = {
           module_name?: string | null
           name: string
           owning_department?: string | null
+          parent_template_id?: string | null
+          scope?: string
           source_ref_id?: string | null
           source_system?: string
           status?: string
@@ -36666,6 +36694,7 @@ export type Database = {
         }
         Update: {
           active_version_id?: string | null
+          category_id?: string | null
           code?: string
           country_code?: string
           created_at?: string
@@ -36679,6 +36708,8 @@ export type Database = {
           module_name?: string | null
           name?: string
           owning_department?: string | null
+          parent_template_id?: string | null
+          scope?: string
           source_ref_id?: string | null
           source_system?: string
           status?: string
@@ -36697,10 +36728,203 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "core_template_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_category"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "core_template_default_layout_id_fkey"
             columns: ["default_layout_id"]
             isOneToOne: false
             referencedRelation: "core_template_layout"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_parent_template_id_fkey"
+            columns: ["parent_template_id"]
+            isOneToOne: false
+            referencedRelation: "core_template"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_template_approval: {
+        Row: {
+          acted_at: string
+          action: string
+          actor_user_code: string | null
+          from_state: string | null
+          id: string
+          notes: string | null
+          template_version_id: string
+          to_state: string
+        }
+        Insert: {
+          acted_at?: string
+          action: string
+          actor_user_code?: string | null
+          from_state?: string | null
+          id?: string
+          notes?: string | null
+          template_version_id: string
+          to_state: string
+        }
+        Update: {
+          acted_at?: string
+          action?: string
+          actor_user_code?: string | null
+          from_state?: string | null
+          id?: string
+          notes?: string | null
+          template_version_id?: string
+          to_state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_template_approval_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_template_category: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          module_code: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module_code: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module_code?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_template_channel: {
+        Row: {
+          channel_group: string
+          code: string
+          created_at: string
+          format: string
+          id: string
+          is_active: boolean
+          max_length: number | null
+          name: string
+          sort_order: number
+          supports_attachments: boolean
+          updated_at: string
+        }
+        Insert: {
+          channel_group: string
+          code: string
+          created_at?: string
+          format: string
+          id?: string
+          is_active?: boolean
+          max_length?: number | null
+          name: string
+          sort_order?: number
+          supports_attachments?: boolean
+          updated_at?: string
+        }
+        Update: {
+          channel_group?: string
+          code?: string
+          created_at?: string
+          format?: string
+          id?: string
+          is_active?: boolean
+          max_length?: number | null
+          name?: string
+          sort_order?: number
+          supports_attachments?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      core_template_channel_variant: {
+        Row: {
+          attachments_policy: string | null
+          body_html: string | null
+          body_text: string | null
+          channel_code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          payload_schema: Json | null
+          subject: string | null
+          template_version_id: string
+          updated_at: string
+        }
+        Insert: {
+          attachments_policy?: string | null
+          body_html?: string | null
+          body_text?: string | null
+          channel_code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          payload_schema?: Json | null
+          subject?: string | null
+          template_version_id: string
+          updated_at?: string
+        }
+        Update: {
+          attachments_policy?: string | null
+          body_html?: string | null
+          body_text?: string | null
+          channel_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          payload_schema?: Json | null
+          subject?: string | null
+          template_version_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_template_channel_variant_channel_code_fkey"
+            columns: ["channel_code"]
+            isOneToOne: false
+            referencedRelation: "core_template_channel"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "core_template_channel_variant_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_version"
             referencedColumns: ["id"]
           },
         ]
@@ -36872,6 +37096,47 @@ export type Database = {
           },
         ]
       }
+      core_template_localization: {
+        Row: {
+          body_html: string | null
+          body_text: string | null
+          created_at: string
+          id: string
+          locale: string
+          subject: string | null
+          template_version_id: string
+          updated_at: string
+        }
+        Insert: {
+          body_html?: string | null
+          body_text?: string | null
+          created_at?: string
+          id?: string
+          locale: string
+          subject?: string | null
+          template_version_id: string
+          updated_at?: string
+        }
+        Update: {
+          body_html?: string | null
+          body_text?: string | null
+          created_at?: string
+          id?: string
+          locale?: string
+          subject?: string | null
+          template_version_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_template_localization_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       core_template_schedule_policy: {
         Row: {
           channel: string | null
@@ -36963,40 +37228,49 @@ export type Database = {
       core_template_token: {
         Row: {
           created_at: string
+          data_type: string | null
           description: string | null
           entity_type: string | null
           id: string
           is_active: boolean
+          is_required: boolean
           module_code: string
           resolver_service: string | null
           sample_value: string | null
           token_code: string
+          token_group: string | null
           token_label: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          data_type?: string | null
           description?: string | null
           entity_type?: string | null
           id?: string
           is_active?: boolean
+          is_required?: boolean
           module_code?: string
           resolver_service?: string | null
           sample_value?: string | null
           token_code: string
+          token_group?: string | null
           token_label: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          data_type?: string | null
           description?: string | null
           entity_type?: string | null
           id?: string
           is_active?: boolean
+          is_required?: boolean
           module_code?: string
           resolver_service?: string | null
           sample_value?: string | null
           token_code?: string
+          token_group?: string | null
           token_label?: string
           updated_at?: string
         }
@@ -37062,6 +37336,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "core_template_version"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_template_variable_binding: {
+        Row: {
+          created_at: string
+          default_value: string | null
+          id: string
+          is_required: boolean
+          template_version_id: string
+          token_code: string
+        }
+        Insert: {
+          created_at?: string
+          default_value?: string | null
+          id?: string
+          is_required?: boolean
+          template_version_id: string
+          token_code: string
+        }
+        Update: {
+          created_at?: string
+          default_value?: string | null
+          id?: string
+          is_required?: boolean
+          template_version_id?: string
+          token_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_template_variable_binding_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_template_version"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_variable_binding_token_code_fkey"
+            columns: ["token_code"]
+            isOneToOne: false
+            referencedRelation: "core_template_token"
+            referencedColumns: ["token_code"]
           },
         ]
       }
