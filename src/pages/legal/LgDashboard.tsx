@@ -119,7 +119,7 @@ export default function LgDashboard() {
                       <TableCell>{h.hearing_type_code}</TableCell>
                       <TableCell>{[h.court_name, h.court_room].filter(Boolean).join(" / ") || "—"}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => navigate(`/legal/lg/cases/${h.lg_case_id}`)}>Open</Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/legal/lg/cases/${h.lg_case_id}`)} title="View case"><Eye className="h-3.5 w-3.5" /></Button>
                       </TableCell>
                     </TableRow>
                   ))}
