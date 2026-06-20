@@ -7,7 +7,7 @@ export type LgCaseUpdate = Database["public"]["Tables"]["lg_case"]["Update"];
 export type LgNotice = Database["public"]["Tables"]["lg_notice"]["Row"];
 export type LgNoticeInsert = Database["public"]["Tables"]["lg_notice"]["Insert"];
 
-/** Legal reference values are stored centrally in bn_reference_value (module_code='LEGAL'). */
+/** Legal reference values are stored centrally in core_reference_value (module_code='LEGAL'). */
 export interface LgReferenceValue {
   id: string;
   group_code: string;
