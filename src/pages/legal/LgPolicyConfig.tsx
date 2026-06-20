@@ -220,31 +220,8 @@ function MappingTab() {
 
   if (isLoading) return <Loading />;
 
-    const previewColumns: LgColumnDef<any>[] = useMemo(() => [
-    { accessorKey: "sysRole", header: "System Role", meta: { label: "System Role", pinLeft: true } },
-    { 
-      accessorKey: "types", 
-      header: "Legal Role Types", 
-      meta: { label: "Legal Role Types" },
-      cell: ({ getValue }) => (
-        <div className="flex flex-wrap gap-1">
-          {(getValue() as string[]).map((t) => <Badge key={t} variant="outline">{t}</Badge>)}
-        </div>
-      )
-    },
-    ...PREVIEW_CAPS.map(c => ({
-      id: c,
-      header: c,
-      meta: { label: c },
-      cell: ({ row }: { row: any }) => {
-        const types = row.original.types;
-        const caps = new Set();
-        types.forEach((t: any) => LG_BASE_MATRIX[t]?.forEach((cp: any) => caps.add(cp)));
-        return caps.has(c) ? <span className="text-success">✓</span> : <span className="text-muted-foreground">—</span>;
-      }
-    }))
-  ], []);
-  const previewData = grouped.map(([sysRole, types]) => ({ sysRole, types }));
+
+
 
   const editorRow = (key: string) => (
     <TableRow key={key} className="bg-muted/30">
@@ -447,31 +424,8 @@ function PolicyTab() {
 
   if (isLoading) return <Loading />;
 
-    const previewColumns: LgColumnDef<any>[] = useMemo(() => [
-    { accessorKey: "sysRole", header: "System Role", meta: { label: "System Role", pinLeft: true } },
-    { 
-      accessorKey: "types", 
-      header: "Legal Role Types", 
-      meta: { label: "Legal Role Types" },
-      cell: ({ getValue }) => (
-        <div className="flex flex-wrap gap-1">
-          {(getValue() as string[]).map((t) => <Badge key={t} variant="outline">{t}</Badge>)}
-        </div>
-      )
-    },
-    ...PREVIEW_CAPS.map(c => ({
-      id: c,
-      header: c,
-      meta: { label: c },
-      cell: ({ row }: { row: any }) => {
-        const types = row.original.types;
-        const caps = new Set();
-        types.forEach((t: any) => LG_BASE_MATRIX[t]?.forEach((cp: any) => caps.add(cp)));
-        return caps.has(c) ? <span className="text-success">✓</span> : <span className="text-muted-foreground">—</span>;
-      }
-    }))
-  ], []);
-  const previewData = grouped.map(([sysRole, types]) => ({ sysRole, types }));
+
+
 
   return (
     <Card>
