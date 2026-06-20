@@ -114,7 +114,7 @@ export default function WorkflowTemplateEditor() {
 
   const handleNewTemplate = () => {
     setSelectedId(null);
-    setForm({ template_code: '', template_name: '', description: '', country_code: '', is_active: true });
+    setForm({ template_code: '', template_name: '', description: '', country_code: '', channel_code: '', workflow_definition_id: '', is_active: true });
     setSteps([]);
     setActiveStep(0);
   };
