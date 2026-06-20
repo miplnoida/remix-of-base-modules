@@ -804,6 +804,7 @@ const BnRoleBundles = lazy(() => import('@/pages/bn/config/RoleBundles'));
 const BnDelegations = lazy(() => import('@/pages/bn/config/Delegations'));
 const BnMyWorkbench = lazy(() => import('@/pages/bn/workbench/MyBenefitsWorkbench'));
 const BnEscalationConfig = lazy(() => import('@/pages/bn/config/EscalationConfig'));
+const BnWorkflowTemplateEditor = lazy(() => import('@/pages/bn/config/WorkflowTemplateEditor'));
 const BnServiceDocTypes = lazy(() => import('@/pages/bn/config/ServiceDocTypes'));
 const BnCountryPackPage = lazy(() => import('@/pages/bn/config/country/CountryPackPage'));
 const BnCountryMaster = lazy(() => import('@/pages/bn/config/country/CountryMaster'));
