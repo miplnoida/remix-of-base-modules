@@ -286,12 +286,35 @@ export default function EscalationConfig() {
   return (
     <PermissionWrapper moduleName="benefits_management">
       <div className="space-y-6 p-6">
-        <h1 className="t-page-title">Escalation Policies</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="t-page-title">Escalation Policies</h1>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              const t = toast.loading('Running escalation scan...');
+              try {
+                const { data, error } = await supabase.functions.invoke('bn-escalation-runner', {
+                  body: { performedBy: userCode || 'MANUAL' },
+                });
+                if (error) throw error;
+                toast.success(
+                  `Scan complete — scanned ${data?.scanned ?? 0}, escalated ${data?.escalated ?? 0}, skipped ${data?.skipped ?? 0}`,
+                  { id: t },
+                );
+              } catch (e: any) {
+                toast.error(`Escalation runner failed: ${e?.message || e}`, { id: t });
+              }
+            }}
+          >
+            <PlayCircle className="h-4 w-4 mr-1" /> Run Now
+          </Button>
+        </div>
 
         <BnScreenRoleBanner
           role="library"
           productAssemblyHint
-          description="Reusable SLA escalation framework. Workflow steps, workbaskets, task types, claim stages, override and payment approvals all reference these policies. Multi-level rules and business calendars supported."
+          description="Reusable SLA escalation framework. Workflow steps, workbaskets, task types, claim stages, override and payment approvals all reference these policies. Multi-level rules and business calendars supported. Auto-runs every 15 minutes."
         />
 
         <BNDataGrid
