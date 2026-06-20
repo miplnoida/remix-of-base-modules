@@ -231,7 +231,7 @@ export async function seedDefaultCountryPack(code: string, userCode?: string): P
  * country_code is NOT present in bn_country — used by validation panel.
  */
 export async function findOrphanCountryRefs(): Promise<{ table: string; country_code: string; count: number }[]> {
-  const tables = ['bn_product', 'bn_country_legal_ref', 'bn_country_payment_config', 'bn_country_id_rule', 'bn_country_address_model', 'bn_country_participant_type'];
+  const tables = ['bn_product', 'core_legal_reference', 'bn_country_payment_config', 'bn_country_id_rule', 'bn_country_address_model', 'bn_country_participant_type'];
   const { data: countries } = await db.from('bn_country').select('country_code');
   const known = new Set<string>((countries ?? []).map((r: any) => r.country_code));
   const orphans: { table: string; country_code: string; count: number }[] = [];
