@@ -1787,6 +1787,7 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/codesets" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminCodeSets /></Suspense>} />
       <Route path="/legal/admin/complainant" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminComplainant /></Suspense>} />
       <Route path="/legal/admin/legal-references" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceLibrary /></Suspense>} />
+      <Route path="/legal/admin/legal-references/verification" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceVerification /></Suspense>} />
       <Route path="/admin/core-templates" element={<Suspense fallback={<div>Loading...</div>}><CoreTemplateAdmin /></Suspense>} />
       <Route path="/legal/workbench" element={<LegalWorkbench />} />
       <Route path="/legal/cases" element={<CaseTracking />} />
