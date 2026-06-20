@@ -493,48 +493,9 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Fees */}
           <TabsContent value="fees">
-            <Card><CardHeader><CardTitle>Legal Fees</CardTitle><CardDescription>Posted to the employer account via central fee/head master.</CardDescription></CardHeader><CardContent className="space-y-4">
-              <div className="grid md:grid-cols-4 gap-2 items-end">
-                <div>
-                  <label className="text-xs text-muted-foreground">Fee Head</label>
-                  <select className="w-full border rounded h-9 px-2 bg-background" value={feeForm.head} onChange={(e) => setFeeForm((p) => ({ ...p, head: e.target.value }))}>
-                    <option value="">Select…</option>
-                    {feeHeads.data?.map((h) => <option key={h.id} value={h.id}>{h.code} — {h.description}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Amount</label>
-                  <input type="number" min="0" step="0.01" className="w-full border rounded h-9 px-2 bg-background" value={feeForm.amount} onChange={(e) => setFeeForm((p) => ({ ...p, amount: e.target.value }))} />
-                </div>
-                <div className="md:col-span-2">
-                  <label className="text-xs text-muted-foreground">Reason</label>
-                  <input className="w-full border rounded h-9 px-2 bg-background" value={feeForm.reason} onChange={(e) => setFeeForm((p) => ({ ...p, reason: e.target.value }))} />
-                </div>
-                <div className="md:col-span-4">
-                  <Button onClick={handlePostFee} disabled={!access.can("postFee") || postFee.isPending}>
-                    {postFee.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Post Fee to Employer Account
-                  </Button>
-                </div>
-              </div>
-              <Separator />
-              {fees.data?.length ? (
-                <div className="space-y-2">
-                  {fees.data.map((f) => (
-                    <div key={f.id} className="border rounded p-3 text-sm flex justify-between">
-                      <div>
-                        <div className="font-medium">{f.fee_head_code} · {f.currency_code} {Number(f.amount).toFixed(2)}</div>
-                        <div className="text-xs text-muted-foreground">{f.charge_date} · {f.charge_reason || "—"}</div>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant={f.posting_status === "POSTED" ? "default" : f.posting_status === "FAILED" ? "destructive" : "outline"}>{f.posting_status}</Badge>
-                        {f.employer_account_transaction_id && <div className="text-xs text-muted-foreground">Invoice #{f.employer_account_transaction_id}</div>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : <p className="text-sm text-muted-foreground">No fees posted.</p>}
-            </CardContent></Card>
+            {id && <CaseFeesTab lgCaseId={id} caseTypeCode={caseData.case_type_code} />}
           </TabsContent>
+
 
           {/* Orders */}
           <TabsContent value="orders">
