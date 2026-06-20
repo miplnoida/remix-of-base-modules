@@ -166,7 +166,7 @@ export default function LgHearingCalendar() {
               rowActions={buildLgRowActions<Row>({
                 onView: (r) => navigate(`/legal/lg/cases/${r.lg_case_id}`),
                 onEdit: (r) => { setSelected(r as LgHearing); setMode("outcome"); setOutcomeOpen(true); },
-                canEdit: () => access.can("recordOutcome"),
+                canEdit: () => access.can("recordHearingOutcome"),
                 onHistory: (r) => navigate(`/legal/lg/cases/${r.lg_case_id}?tab=hearings`),
                 onDocuments: (r) => navigate(`/legal/lg/cases/${r.lg_case_id}?tab=documents`),
               })}
