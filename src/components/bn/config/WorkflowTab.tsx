@@ -393,7 +393,7 @@ function EscalationRunnerCard() {
           <AlertCircle className="h-4 w-4" /> Escalation Runner
         </CardTitle>
         <CardDescription>
-          Scan overdue external tasks (employer/doctor/claimant) and fire matching escalation policies.
+          Scan overdue work — external tasks, workbasket assignments, and override reviews — and fire the matching escalation policy using step → workbasket → product → global priority.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex items-center gap-3">
