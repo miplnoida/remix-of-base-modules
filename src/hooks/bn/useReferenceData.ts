@@ -1,60 +1,24 @@
 /**
- * useReferenceData — react-query hooks for BN reference data.
- * Replaces hardcoded TypeScript enum arrays across BN config screens.
+ * DEPRECATED — re-exports from the central core reference hooks.
+ *
+ * Reference data is now hosted by `core_reference_group` / `core_reference_value`.
+ * New code should import from `@/hooks/core/useCoreReferenceData`.
+ *
+ * `useReferenceValues` is kept as a thin alias of `useCoreReferenceValues`
+ * (with the same legacy signature: groupCode + fallback array) so existing
+ * screens compile unchanged during the transition.
  */
-import { useQuery } from '@tanstack/react-query';
 import {
-  listReferenceGroups,
-  listReferenceValues,
-  type BnReferenceValue,
-} from '@/services/bn/referenceDataService';
+  useCoreReferenceValues,
+  useCoreReferenceGroups,
+  type ReferenceOption,
+} from '@/hooks/core/useCoreReferenceData';
 
-export interface ReferenceOption {
-  value: string;
-  label: string;
-  description?: string | null;
-  is_default?: boolean;
-  is_system?: boolean;
-  metadata?: Record<string, unknown> | null;
-}
+export type { ReferenceOption };
+export { useCoreReferenceValues, useCoreReferenceGroups };
 
-/**
- * Pull all active values for a reference group.
- * @param fallback Optional fallback array if DB is empty / errors — used so screens
- *                 keep working before/during migration of all enums.
- */
 export function useReferenceValues(groupCode: string, fallback: ReferenceOption[] = []) {
-  const q = useQuery({
-    queryKey: ['bn-ref-values', groupCode],
-    queryFn: () => listReferenceValues(groupCode),
-    staleTime: 5 * 60_000,
-  });
-  const options: ReferenceOption[] = (q.data ?? []).map(toOption);
-  return {
-    options: options.length > 0 ? options : fallback,
-    isLoading: q.isLoading,
-    error: q.error,
-    raw: q.data ?? [],
-    refetch: q.refetch,
-  };
+  return useCoreReferenceValues(groupCode, { fallback });
 }
 
-export function useReferenceGroups(moduleCode?: string | string[]) {
-  const key = Array.isArray(moduleCode) ? moduleCode.join(',') : (moduleCode ?? 'ALL');
-  return useQuery({
-    queryKey: ['bn-ref-groups', key],
-    queryFn: () => listReferenceGroups({ moduleCode }),
-    staleTime: 5 * 60_000,
-  });
-}
-
-function toOption(v: BnReferenceValue): ReferenceOption {
-  return {
-    value: v.value_code,
-    label: v.value_label,
-    description: v.description,
-    is_default: v.is_default,
-    is_system: v.is_system,
-    metadata: v.metadata_json ?? null,
-  };
-}
+export const useReferenceGroups = useCoreReferenceGroups;
