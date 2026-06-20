@@ -145,6 +145,42 @@ export async function approveWaiver(waiverId: string, userCode: string | null): 
     }
   }
 
+  // Cancel or reduce the cashier invoice raised at posting time
+  if (charge.employer_account_transaction_id) {
+    const invoiceId = charge.employer_account_transaction_id;
+    const { data: inv } = await sb
+      .from("cn_invoices")
+      .select("id, status, total_amount, paid_amount, outstanding_amount")
+      .eq("id", invoiceId)
+      .maybeSingle();
+    if (inv && inv.status !== "C") {
+      const paid = Number(inv.paid_amount || 0);
+      const newTotal = Math.max(paid, Number(inv.total_amount || 0) - finalWaived);
+      const newOutstanding = Math.max(0, newTotal - paid);
+      const fullyWaived = newOutstanding === 0 && paid === 0;
+      await sb
+        .from("cn_invoices")
+        .update(
+          fullyWaived
+            ? {
+                status: "C",
+                cancel_date: new Date().toISOString(),
+                cancel_user: userCode ?? "SYSTEM",
+                cancel_reason: `Legal fee waived (${charge.fee_head_code})`,
+                outstanding_amount: 0,
+              }
+            : {
+                total_amount: newTotal,
+                total_amount_base: newTotal,
+                outstanding_amount: newOutstanding,
+                status: newOutstanding === 0 ? "P" : inv.status,
+                internal_notes: `Waiver of ${finalWaived.toFixed(2)} applied — see waiver ${waiverId}`,
+              },
+        )
+        .eq("id", invoiceId);
+    }
+  }
+
   await sb
     .from("lg_fee_waiver")
     .update({

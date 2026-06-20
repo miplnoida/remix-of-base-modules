@@ -282,7 +282,27 @@ export async function addManualFee(opts: {
   return data.id;
 }
 
-/** Post a confirmed fee charge to the central employer financial ledger. */
+async function nextLegalInvoiceNumber(): Promise<string> {
+  const yr = new Date().getFullYear();
+  const { data } = await sb
+    .from("cn_invoices")
+    .select("invoice_number")
+    .like("invoice_number", `LGL-${yr}-%`)
+    .order("invoice_number", { ascending: false })
+    .limit(1);
+  const last = data?.[0]?.invoice_number;
+  const next = last ? parseInt(String(last).split("-").pop() || "0", 10) + 1 : 1;
+  return `LGL-${yr}-${String(next).padStart(6, "0")}`;
+}
+
+/**
+ * Post a confirmed fee charge.
+ * Dual posting:
+ *   1. `ce_employer_financial_ledger` — compliance/arrears DEBIT entry.
+ *   2. `cn_invoices` + `cn_invoice_lines` — collectible invoice the cashier
+ *      can search, accept payment for, and reconcile.
+ * Both writes are idempotent.
+ */
 export async function postFeeCharge(chargeId: string, userCode: string | null): Promise<void> {
   const { data: charge, error: cErr } = await sb
     .from("lg_fee_charge")
@@ -290,9 +310,10 @@ export async function postFeeCharge(chargeId: string, userCode: string | null): 
     .eq("id", chargeId)
     .single();
   if (cErr) throw cErr;
-  if (charge.posting_status === "POSTED") return;
+  if (charge.posting_status === "POSTED" && charge.ledger_entry_id && charge.employer_account_transaction_id) {
+    return;
+  }
 
-  // Resolve employer er_no for the ledger
   const employerUuid = charge.lg_case?.employer_id;
   let erNo: string | null = null;
   let erName: string | null = null;
@@ -307,51 +328,103 @@ export async function postFeeCharge(chargeId: string, userCode: string | null): 
   }
   if (!erNo) throw new Error("Cannot post fee: employer er_no missing on case");
 
-  const period = new Date().toISOString().slice(0, 7);
+  const currency = charge.currency_code || "XCD";
   const netAmount = Number(charge.net_amount ?? (charge.amount - (charge.waived_amount || 0)));
-  const idem = `LG_FEE_POST:${chargeId}`;
+  const period = new Date().toISOString().slice(0, 7);
 
-  const { data: existing } = await sb
-    .from("ce_employer_financial_ledger")
-    .select("id")
-    .eq("idempotency_key", idem)
-    .maybeSingle();
-
-  let ledgerId: string;
-  if (existing) {
-    ledgerId = existing.id;
-  } else {
-    const { data: ledger, error: lErr } = await sb
+  // ---- 1. Compliance ledger (idempotent) ----
+  const ledgerIdem = `LG_FEE_POST:${chargeId}`;
+  let ledgerId: string | null = charge.ledger_entry_id ?? null;
+  if (!ledgerId) {
+    const { data: existing } = await sb
       .from("ce_employer_financial_ledger")
+      .select("id")
+      .eq("idempotency_key", ledgerIdem)
+      .maybeSingle();
+    if (existing) {
+      ledgerId = existing.id;
+    } else {
+      const { data: ledger, error: lErr } = await sb
+        .from("ce_employer_financial_ledger")
+        .insert({
+          employer_id: erNo,
+          employer_name: erName,
+          entry_type: "ADJUSTMENT",
+          fund_type: "SS",
+          period,
+          debit_amount: netAmount,
+          credit_amount: 0,
+          running_balance: 0,
+          status: "POSTED",
+          idempotency_key: ledgerIdem,
+          reference_type: "LG_FEE_CHARGE",
+          reference_id: chargeId,
+          description: `Legal fee ${charge.fee_head_code}${charge.charge_reason ? " — " + charge.charge_reason : ""}`,
+          posted_by: userCode ?? "SYSTEM",
+          source_system: "LEGAL",
+          source_pk: chargeId,
+        })
+        .select("id")
+        .single();
+      if (lErr) throw lErr;
+      ledgerId = ledger.id;
+    }
+  }
+
+  // ---- 2. Cashier invoice (idempotent on lg_fee_charge.employer_account_transaction_id) ----
+  let invoiceId: number | null = charge.employer_account_transaction_id ?? null;
+  if (!invoiceId) {
+    const due = new Date(); due.setDate(due.getDate() + 14);
+    const invoiceNumber = await nextLegalInvoiceNumber();
+    const { data: invoice, error: iErr } = await sb
+      .from("cn_invoices")
       .insert({
-        employer_id: erNo,
-        employer_name: erName,
-        entry_type: "ADJUSTMENT",
-        fund_type: "SS",
-        period,
-        debit_amount: netAmount,
-        credit_amount: 0,
-        running_balance: 0,
-        status: "POSTED",
-        idempotency_key: idem,
-        reference_type: "LG_FEE_CHARGE",
-        reference_id: chargeId,
-        description: `Legal fee ${charge.fee_head_code}${charge.charge_reason ? " — " + charge.charge_reason : ""}`,
-        posted_by: userCode ?? "SYSTEM",
-        source_system: "LEGAL",
-        source_pk: chargeId,
+        invoice_number: invoiceNumber,
+        invoice_type: "LEGAL",
+        payment_source: "LEGAL",
+        payer_type: "ER",
+        payer_id: erNo,
+        payer_name: erName,
+        currency_code: currency,
+        base_currency: currency,
+        exchange_rate: 1,
+        total_amount: netAmount,
+        total_amount_base: netAmount,
+        outstanding_amount: netAmount,
+        paid_amount: 0,
+        due_date: due.toISOString().slice(0, 10),
+        status: "O",
+        is_recurring: false,
+        internal_notes: `Legal fee ${charge.fee_head_code} for case ${charge.lg_case_id} (charge ${chargeId})`,
+        public_notes: charge.charge_reason ?? charge.description ?? null,
+        created_by: userCode ?? null,
       })
       .select("id")
       .single();
-    if (lErr) throw lErr;
-    ledgerId = ledger.id;
+    if (iErr) throw iErr;
+    invoiceId = invoice.id;
+
+    const { error: lnErr } = await sb
+      .from("cn_invoice_lines")
+      .insert({
+        invoice_id: invoiceId,
+        payment_code: charge.fee_head_code,
+        currency_code: currency,
+        amount: netAmount,
+        exchange_rate: 1,
+        amount_base: netAmount,
+        base_currency: currency,
+        sort_order: 1,
+      });
+    if (lnErr) throw lnErr;
   }
 
   await sb
     .from("lg_fee_charge")
     .update({
       ledger_entry_id: ledgerId,
-      employer_account_transaction_id: null,
+      employer_account_transaction_id: invoiceId,
+      posted_invoice_ref_id: invoiceId ? String(invoiceId) : null,
       posting_status: "POSTED",
       status: "POSTED",
       posted_by: userCode,
@@ -362,7 +435,7 @@ export async function postFeeCharge(chargeId: string, userCode: string | null): 
   await sb.from("lg_case_activity").insert({
     lg_case_id: charge.lg_case_id,
     activity_type: "FEE_POSTED",
-    description: `${charge.fee_head_code} ${netAmount.toFixed(2)} posted to employer ${erNo}`,
+    description: `${charge.fee_head_code} ${netAmount.toFixed(2)} posted → ledger + invoice #${invoiceId} (employer ${erNo})`,
     performed_by: userCode,
   });
 }
