@@ -78,6 +78,8 @@ export default function WorkflowTemplateEditor() {
         template_name: v.template_name || '',
         description: v.description || '',
         country_code: v.country_code || '',
+        channel_code: v.channel_code || '',
+        workflow_definition_id: v.workflow_definition_id || '',
         is_active: !!v.is_active,
       });
       setSteps(normalizeSteps(v.steps_config));
