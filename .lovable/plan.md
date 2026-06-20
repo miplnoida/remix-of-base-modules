@@ -1,96 +1,84 @@
-# Legal Fee + Waiver Workflow Engine
+## Goal
 
-Building on existing `lg_fee_rule`, `lg_fee_bundle`, `lg_fee_bundle_item`, `lg_fee_charge`, `lg_fee_waiver`. Central fee head = `tb_income_codes`. Employer financial source = `ce_employer_financial_ledger`.
+Replace every Legal listing/grid with the Benefits `BNDataGrid` framework so search, filters, sort, pagination, column visibility, export, bulk actions, status badges, and row actions behave identically across both modules. Audit CRUD wiring on every Legal entity and fix dead buttons.
 
-## 1. Database migration (single file)
+## Benefits framework being adopted (source of truth)
 
-**New: `lg_fee_waiver_policy`**
-- `policy_code` (uniq), `policy_name`, `country_code`, `fee_head_id` (nullable FK tb_income_codes), `case_type_code` (nullable)
-- `max_waiver_amount_without_approval`, `max_waiver_percent_without_approval`
-- `approval_required`, `approval_route_code` (workbasket code), `min_approvers`, `allow_self_approval`
-- `requires_reason`, `requires_document`, `status`, `effective_from/to`, audit cols
+Located in `src/components/bn/grid/`:
 
-**New: `lg_fee_waiver_policy_tier`** (amount/percent → approver level)
-- `policy_id`, `tier_order`, `min_amount`, `max_amount`, `min_percent`, `max_percent`, `approver_role_type`, `workbasket_code`
+- `BNDataGrid` — TanStack-based table with client/server modes
+- `BNGridToolbar` — global search, toolbar filters, toolbar extras
+- `BNGridPagination` — page size selector, page numbers, total record range
+- `BNGridColumnPicker` — show/hide + persistence via grid `id` in localStorage
+- `BNGridExport` — Excel / CSV / PDF
+- `BNGridSummary` — KPI chips above grid
+- `BNGridSidePanel` — row detail drawer
+- Status badges: `BnStatusBadge` (`src/components/bn/shared`)
+- Row actions: `BNRowAction<T>` (View / Edit / History / Documents)
+- Bulk actions: `BNBulkAction<T>`
 
-**Extend `lg_fee_rule`**: add `waiver_policy_id uuid REFERENCES lg_fee_waiver_policy(id)`
+All Legal grids must be rebuilt around these — no custom `<table>`, no ad-hoc pagination, no bespoke filter bars.
 
-**Extend `lg_fee_charge`**: add
-- `posting_status varchar(20) DEFAULT 'DRAFT'` (DRAFT, PENDING_POST, POSTED, REVERSED, CANCELLED)
-- `posted_at`, `posted_by`, `employer_account_transaction_id` (already covered by `ledger_entry_id` — keep both as aliases)
-- `reversal_ledger_entry_id`
+## Phase 1 — Shared Legal grid primitives
 
-**Extend `lg_fee_waiver`** (acts as waiver_request): add
-- `lg_case_id uuid` (denorm), `requested_waiver_amount`, `requested_waiver_percent`, `justification`, `supporting_document_id uuid` (REFERENCES `lg_document_link`)
-- `approval_status` enum widened: DRAFT, SUBMITTED, APPROVED, REJECTED, CANCELLED, AUTO_APPROVED
-- `workflow_instance_id uuid`, `rejected_by`, `rejected_at`, `policy_id uuid`
-- `requires_finance_approval boolean`, `finance_approved_by`, `finance_approved_at`
+Create thin Legal wrappers in `src/components/legal/grid/`:
 
-**Seeds** (via `supabase--insert` after migration):
-- 3 waiver policies: SMALL_DEPT_DEFAULT (≤50 XCD/≤5% auto, ≤500/25% reviewer, else manager), FINANCE_REVERSAL (always finance), BOARD_HIGH_VALUE
-- 3 bundles: COURT_FILING_BUNDLE, JUDGMENT_BUNDLE, DEFAULT_RECOVERY_BUNDLE with their items
-- Auto-apply fee rules for events: COURT_FILING, DEMAND_NOTICE_SERVED, HEARING_SCHEDULED, JUDGMENT_RECORDED, ENFORCEMENT_STARTED, SETTLEMENT_APPROVED, ARRANGEMENT_DEFAULTED
-- Workbaskets: LG_FEE_DRAFT, LG_FEE_POSTING, LG_FEE_WAIVER_REVIEW, LG_FEE_WAIVER_FINANCE_REVIEW, LG_FEE_WAIVER_APPROVED_FOR_POSTING (insert into existing `bn_workbasket` if compatible, else `core_reference_value` under group `LG_WORKBASKET`)
+1. `LgDataGrid.tsx` — re-exports `BNDataGrid` with Legal-specific defaults (filename prefix `legal-`, persisted id prefix `lg.`).
+2. `LgStatusBadge.tsx` — wraps `BnStatusBadge`, maps Legal statuses (Draft / Active / Pending / In Review / Closed / Escalated / Overdue) to tones.
+3. `LgRowActions.ts` — helper that builds the standard {View, Edit, History, Documents} action set per entity, hiding actions that don't apply.
+4. `useLgGridFilters.ts` — shared filter primitives (status, stage, case type, hearing type, officer, priority, date range, next hearing date, court).
 
-## 2. Services
+## Phase 2 — Screen-by-screen migration
 
-**New `src/services/legal/lgFeeWaiverPolicyService.ts`** — CRUD for policies + tiers; `evaluateWaiverPolicy({feeCharge, requestedAmount, requestedPercent})` returns `{ autoApprove, approvalRequired, approverRoleType, workbasketCode, requiresFinance }`.
+For each screen: replace existing list with `LgDataGrid`, wire the standard filter set, register row + bulk actions, add summary chips where Benefits uses them, persist column prefs under the listed grid id.
 
-**Extend `lgFeeEngineService.ts`**:
-- `autoApplyForEvent(caseId, eventCode)` — looks up active rules with matching `event_code` + `auto_apply=true`, computes amounts (FIXED/PERCENTAGE/TIER/FORMULA), idempotent insert into `lg_fee_charge`.
-- `applyBundle(caseId, bundleCode, opts)` — iterates `lg_fee_bundle_item` and calls auto-apply per rule.
-- `postFeeCharge(chargeId, userCode)` — guards `posting_status='DRAFT'`, calls ledger posting service (existing `ce_employer_financial_ledger` insert), sets `posted_at`, `ledger_entry_id`, status → `POSTED`. Idempotent.
-- `reverseFeeCharge(chargeId, reason, userCode)` — only if POSTED; insert reversal ledger row; status → `REVERSED`.
+| Screen | File | Grid id | Bulk actions | Special |
+|---|---|---|---|---|
+| Case Tracking | `LgCaseList.tsx`, `CaseTracking.tsx`, `LegalCaseList.tsx` | `lg.cases` | assign officer, update stage, generate notice, export, mark reviewed | Pinned: Case No, Employer, Stage, Officer, Next Hearing, Outstanding, Status |
+| Hearings | `LgHearingCalendar.tsx` (list view) | `lg.hearings` | reschedule, assign, export | Next Hearing column with green/amber/red day-remaining chip |
+| Tasks | new `LgTaskList.tsx` (lg_case_task) | `lg.tasks` | reassign, mark done, export | |
+| Notices | `NoticeGeneration.tsx` | `lg.notices` | regenerate, mark delivered, export | |
+| Documents | `DocumentCenter.tsx` | `lg.documents` | tag, archive, export | |
+| Orders | `LegalOrderRegistry.tsx`, `CourtOrdersManagement.tsx` | `lg.orders` | export | |
+| Settlements | new `LgSettlementList.tsx` | `lg.settlements` | export | |
+| Fees | `LgFeeConfig.tsx` charges grid | `lg.fees` | post, request waiver, export | Expandable row: Original / Waived / Net / Posting history. Columns: Fee Head, Fee Rule, Bundle, Auto Applied, Waived, Waiver Pending, Posted, Employer Txn Ref |
+| Payment Arrangement Links | new `LgPaymentArrangementList.tsx` | `lg.payment-links` | unlink, export | |
+| Referrals | within `LgCaseDetail` / new list | `lg.referrals` | accept, reject, export | |
+| Dashboard drill-downs | `LgDashboard.tsx` | `lg.dash.*` | export | All drill-down lists route through `LgDataGrid` |
 
-**Rewrite `lgFeeWaiverService.ts`**:
-- `requestWaiver({chargeId, amount, percent, reasonCode, justification, documentId})` — validates ≤ net, ≤100%; resolves policy; if auto-approve threshold met → AUTO_APPROVED + applies waiver immediately; else creates SUBMITTED row + workflow instance into resolved workbasket.
-- `approveWaiver(waiverId, userCode)` — checks role policy via `useLgCan('FEE_WAIVER','approve')` server-equivalent; if charge already POSTED → also creates reversal ledger entry and links `reversal_ledger_entry_id`; updates `waived_amount`/`net_amount` on charge.
-- `rejectWaiver(waiverId, reason, userCode)`, `cancelWaiver`, `submitWaiver` (DRAFT→SUBMITTED).
+Standard filter set on every grid:
+`status`, `stage`, `case_type`, `hearing_type`, `officer`, `priority`, `date_range`, `next_hearing_date`, `court` — only render those that apply to the entity.
 
-**Hook event triggers**: extend `lgCaseService` stage transitions, `lgOrderService` (judgment), `lgHearing` scheduling, `lgSettlementService` approval, `lgPaymentArrangementService` default — each calls `lgFeeEngineService.autoApplyForEvent(caseId, eventCode)` fire-and-forget.
+Standard search across: case no, employer name/regno, court case no, officer name, payment arrangement ref.
 
-## 3. Hooks
+## Phase 3 — CRUD audit & fixes
 
-- Extend `useLgFees.ts` with `useFeeWaiverPolicies`, `useApplyBundle`, `usePostFee`, `useRequestWaiver`, `useApproveWaiver`, `useRejectWaiver`.
+For each entity below, verify CREATE / READ / UPDATE / DELETE-or-CANCEL paths: button wired → route exists → dialog opens → service persists → grid refreshes (via React Query invalidation).
 
-## 4. UI
+Entities: `lg_case`, `lg_hearing`, `lg_case_task`, `lg_notice`, `lg_document_link`, `lg_order`, `lg_settlement`, `lg_fee_charge`, `lg_payment_arrangement_link`.
 
-**Extend `LgCaseDetail.tsx`** — replace existing Fees section with a Fees tab containing 5 sub-tabs:
-- **Applied Fees** — full charge list with status badges, Post Net/Reverse actions
-- **Auto Fees** — show rules matched against current stage/event with audit of which fired
-- **Bundles** — "Apply Bundle" picker with the 3 seeded bundles
-- **Waivers** — request/approve/reject panel with policy preview ("This needs Legal Manager approval" before submit)
-- **Employer Ledger Links** — list of `ledger_entry_id` and reversal links, click to open employer financials
+Where a service hook is missing, add it under `src/hooks/legal/` and a thin service under `src/services/legal/`. Capability gating via `useLgAccess` + `LgActionButton`.
 
-Actions gated by `useLgCan('FEE_POST','approve')` / `useLgCan('FEE_WAIVER','approve')` etc. (already wired in earlier turn).
+## Phase 4 — Verification report
 
-**New `src/pages/legal/LgFeeWaiverPolicyConfig.tsx`** — admin page at `/legal/admin/waiver-policies` listing policies + tier table editor.
+Emit `docs/legal/grid-standardization-report.md` with one row per screen:
+`Screen | Grid Component | Pagination | Sorting | Filtering | Export | CRUD | Broken Actions Found | Fixed`.
 
-**Update `LgFeeConfig.tsx`** — add tab for Waiver Policies link/embed; expose Bundles tab with bundle item editor (rules dropdown).
+## Technical notes
 
-**Update `AdminConfig.tsx`** — add Waiver Policies card.
+- No new tables required — all metadata exists (`lg_*` already populated).
+- Column visibility / page size persist per grid id under localStorage key `bn-grid:<id>` (same key the BN grid already uses — Legal piggybacks the same store).
+- Status tone mapping handled in `LgStatusBadge` so colors stay consistent across screens.
+- TypeScript must build clean; no `any` on grid column defs.
 
-**Register route** in `AppRoutes.tsx`; add sidebar entry `lg_admin_waiver_policy` under `lg_admin` (migration row in `app_modules` + mirrored `role_permissions`).
+## Out of scope
 
-## 5. Validation
+- Visual redesign of detail pages (only listing grids).
+- Mobile-specific layouts beyond what BNDataGrid already provides.
+- Changes to Benefits screens.
 
-Centralized in `lgFeeValidation.ts`: waiver ≤ remaining net, percent ≤100, reason required if policy.requires_reason, document required if policy.requires_document, inactive rule/policy blocked, posted charge edit/delete blocked → must reverse.
+## Deliverables
 
-## 6. Audit
-
-Every action writes to `lg_case_activity` (existing) with `event_type` (FEE_APPLIED, FEE_POSTED, FEE_REVERSED, WAIVER_REQUESTED, WAIVER_APPROVED, WAIVER_REJECTED, BUNDLE_APPLIED).
-
-## 7. Out of scope (per instructions)
-
-- No new ledger table — reuse `ce_employer_financial_ledger`.
-- No new workflow engine — use existing workbasket/workflow infrastructure.
-- No changes to central fee head (`tb_income_codes`).
-
-## Acceptance check
-
-- Bundle apply inserts N charges with `auto_applied=true`.
-- Waiver ≤50 XCD AUTO_APPROVED instantly under SMALL_DEPT_DEFAULT policy.
-- Waiver >500 XCD routes to LG_FEE_WAIVER_REVIEW workbasket.
-- Approving a waiver on a POSTED charge creates reversal row and links it.
-- Legal Assistant role can `requestWaiver` but not `approveWaiver`.
-- TypeScript build passes.
+- New: `src/components/legal/grid/*`, missing list pages, missing service hooks.
+- Edited: every Legal listing page in the table above.
+- Doc: `docs/legal/grid-standardization-report.md`.

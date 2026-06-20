@@ -6,8 +6,6 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, CalendarIcon, Gavel, Plus } from "lucide-react";
@@ -18,6 +16,9 @@ import { useUserCode } from "@/hooks/useUserCode";
 import { HearingOutcomeDialog } from "@/components/legal/HearingOutcomeDialog";
 import type { LgHearing } from "@/services/legal/lgWorkflowService";
 import { formatDateForDisplay } from "@/lib/format-config";
+import { LgDataGrid, LgStatusBadge, buildLgRowActions, daysRemainingTone, daysRemainingLabel, type LgColumnDef } from "@/components/legal/grid";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const localizer = momentLocalizer(moment);
 
@@ -54,10 +55,45 @@ export default function LgHearingCalendar() {
       };
     });
 
-  const upcoming = [...hearings]
-    .filter((h: any) => h.hearing_date && h.hearing_date >= new Date().toISOString().slice(0, 10) && h.status === "SCHEDULED")
-    .sort((a: any, b: any) => (a.hearing_date < b.hearing_date ? -1 : 1))
-    .slice(0, 25);
+  const listRows = useMemo(
+    () => [...hearings].sort((a: any, b: any) => (a.hearing_date < b.hearing_date ? -1 : 1)),
+    [hearings],
+  );
+
+  type Row = any;
+  const hearingColumns: LgColumnDef<Row>[] = useMemo(() => [
+    {
+      accessorKey: "hearing_date", header: "Date", meta: { label: "Date", pinLeft: true, width: 120 },
+      cell: ({ getValue }) => formatDateForDisplay(getValue<string>()),
+    },
+    {
+      id: "days_remaining", header: "Days", meta: { label: "Days Remaining", width: 110 },
+      accessorFn: (r) => r.hearing_date,
+      cell: ({ row }) => {
+        const tone = daysRemainingTone(row.original.hearing_date);
+        const cls = tone === "danger" ? "bg-destructive/10 text-destructive border-destructive/20"
+          : tone === "warn" ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+          : tone === "ok" ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+          : "bg-muted text-muted-foreground border-border";
+        return <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium", cls)}>{daysRemainingLabel(row.original.hearing_date)}</span>;
+      },
+    },
+    { accessorKey: "hearing_time", header: "Time", meta: { label: "Time", width: 90 }, cell: ({ getValue }) => getValue<string>() ?? "—" },
+    {
+      id: "case_no", header: "Case", meta: { label: "Case No", width: 150 },
+      accessorFn: (r) => r.lg_case?.lg_case_no ?? "—",
+      cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span>,
+    },
+    { accessorKey: "hearing_type_code", header: "Type", meta: { label: "Type", width: 130 } },
+    {
+      id: "court", header: "Court", meta: { label: "Court", width: 180 },
+      accessorFn: (r) => [r.court_name, r.court_room].filter(Boolean).join(" / ") || "—",
+    },
+    {
+      accessorKey: "status", header: "Status", meta: { label: "Status", width: 130 },
+      cell: ({ getValue }) => <LgStatusBadge status={getValue<string>()} />,
+    },
+  ], []);
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -108,38 +144,44 @@ export default function LgHearingCalendar() {
           </TabsContent>
 
           <TabsContent value="list">
-            <Card><CardContent className="p-0">
-              <Table>
-                <TableHeader><TableRow>
-                  <TableHead>Date</TableHead><TableHead>Time</TableHead><TableHead>Case</TableHead><TableHead>Type</TableHead><TableHead>Court</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead>
-                </TableRow></TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={7} className="text-center py-8">Loading…</TableCell></TableRow>
-                  ) : upcoming.length === 0 ? (
-                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No hearings scheduled</TableCell></TableRow>
-                  ) : upcoming.map((h: any) => (
-                    <TableRow key={h.id}>
-                      <TableCell>{formatDateForDisplay(h.hearing_date)}</TableCell>
-                      <TableCell>{h.hearing_time ?? "—"}</TableCell>
-                      <TableCell className="font-medium">{h.lg_case?.lg_case_no ?? "—"}</TableCell>
-                      <TableCell>{h.hearing_type_code}</TableCell>
-                      <TableCell>{[h.court_name, h.court_room].filter(Boolean).join(" / ") || "—"}</TableCell>
-                      <TableCell><Badge variant="outline">{h.status}</Badge></TableCell>
-                      <TableCell className="text-right space-x-1">
-                        <Button size="sm" variant="ghost" onClick={() => navigate(`/legal/lg/cases/${h.lg_case_id}`)}>Case</Button>
-                        <Button size="sm" onClick={() => { setSelected(h); setMode("outcome"); setOutcomeOpen(true); }}>
-                          <Gavel className="h-4 w-4 mr-1" /> Outcome
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent></Card>
+            <LgDataGrid<Row>
+              id="lg.hearings"
+              columns={hearingColumns}
+              data={listRows}
+              isLoading={isLoading}
+              searchPlaceholder="Search case no, type, court, status…"
+              defaultSort={[{ id: "hearing_date", desc: false }]}
+              summary={[
+                { label: "Total", value: listRows.length, tone: "default" },
+                { label: "Scheduled", value: listRows.filter((h: any) => h.status === "SCHEDULED").length, tone: "info" },
+                { label: "Overdue", value: listRows.filter((h: any) => h.hearing_date && daysRemainingTone(h.hearing_date) === "danger" && h.status === "SCHEDULED").length, tone: "danger" },
+                { label: "Concluded", value: listRows.filter((h: any) => h.status === "CONCLUDED").length, tone: "success" },
+              ]}
+              toolbarFilters={[
+                {
+                  key: "status", label: "Status", value: "", onChange: () => {},
+                  options: ["SCHEDULED", "CONCLUDED", "ADJOURNED", "CANCELLED"].map((s) => ({ value: s, label: s })),
+                },
+              ]}
+              rowActions={buildLgRowActions<Row>({
+                onView: (r) => navigate(`/legal/lg/cases/${r.lg_case_id}`),
+                onEdit: (r) => { setSelected(r as LgHearing); setMode("outcome"); setOutcomeOpen(true); },
+                canEdit: () => access.can("recordHearingOutcome"),
+                onHistory: (r) => navigate(`/legal/lg/cases/${r.lg_case_id}?tab=hearings`),
+                onDocuments: (r) => navigate(`/legal/lg/cases/${r.lg_case_id}?tab=documents`),
+              })}
+              bulkActions={[
+                { key: "reschedule", label: "Reschedule", onClick: () => { toast.info("Bulk reschedule coming soon"); } },
+                { key: "assign", label: "Assign Officer", onClick: () => { toast.info("Bulk assign coming soon"); } },
+              ]}
+              onRowClick={(r) => { setSelected(r as LgHearing); setMode("outcome"); setOutcomeOpen(true); }}
+              emptyMessage="No hearings in this window."
+              exportFilename="legal-hearings"
+            />
           </TabsContent>
         </Tabs>
       </div>
+
 
       <HearingOutcomeDialog
         open={outcomeOpen}
