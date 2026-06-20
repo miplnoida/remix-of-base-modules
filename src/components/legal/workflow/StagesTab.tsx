@@ -130,9 +130,9 @@ export function StagesTab() {
                     <Switch checked={stage.active} onCheckedChange={(checked) => toggleMutation.mutate({ id: stage.id, active: checked })} />
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm" onClick={() => handleEditStage(stage)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditStage(stage)} title="Edit stage">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
                   </TableCell>
                 </TableRow>
               ))
