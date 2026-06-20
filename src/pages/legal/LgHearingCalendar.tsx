@@ -144,7 +144,7 @@ export default function LgHearingCalendar() {
           </TabsContent>
 
           <TabsContent value="list">
-            <LgDataGrid<Row>
+            <LgDataGrid
               id="lg.hearings"
               columns={hearingColumns}
               data={listRows}
