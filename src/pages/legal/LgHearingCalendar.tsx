@@ -6,8 +6,6 @@ import "react-big-calendar/lib/css/react-big-calendar.css";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, CalendarIcon, Gavel, Plus } from "lucide-react";
@@ -18,6 +16,9 @@ import { useUserCode } from "@/hooks/useUserCode";
 import { HearingOutcomeDialog } from "@/components/legal/HearingOutcomeDialog";
 import type { LgHearing } from "@/services/legal/lgWorkflowService";
 import { formatDateForDisplay } from "@/lib/format-config";
+import { LgDataGrid, LgStatusBadge, buildLgRowActions, daysRemainingTone, daysRemainingLabel, type LgColumnDef } from "@/components/legal/grid";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const localizer = momentLocalizer(moment);
 
