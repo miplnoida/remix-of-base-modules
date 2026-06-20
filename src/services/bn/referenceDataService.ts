@@ -66,9 +66,13 @@ export const BN_REF_GROUPS = {
   ESCALATION_ACTION_TYPE: 'BN_ESCALATION_ACTION_TYPE',
 } as const;
 
-export async function listReferenceGroups(): Promise<BnReferenceGroup[]> {
-  const { data, error } = await db.from('bn_reference_group')
-    .select('*').order('group_code');
+export async function listReferenceGroups(opts?: { moduleCode?: string | string[] }): Promise<BnReferenceGroup[]> {
+  let q = db.from('bn_reference_group').select('*').order('sort_order').order('group_code');
+  if (opts?.moduleCode) {
+    if (Array.isArray(opts.moduleCode)) q = q.in('module_code', opts.moduleCode);
+    else q = q.eq('module_code', opts.moduleCode);
+  }
+  const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
 }

@@ -28,7 +28,16 @@ import {
   type BnReferenceGroup, type BnReferenceValue,
 } from '@/services/bn/referenceDataService';
 
-export default function ReferenceDataAdmin() {
+interface ReferenceDataAdminProps {
+  /** Restrict groups to specific module code(s). Undefined = all. */
+  moduleCode?: string | string[];
+  /** Default module_code for newly-created groups. */
+  defaultNewModule?: string;
+  title?: string;
+  description?: string;
+}
+
+export default function ReferenceDataAdmin({ moduleCode, defaultNewModule = 'BN', title, description }: ReferenceDataAdminProps = {}) {
   const { profile } = useSupabaseAuth();
   const userCode = profile?.user_code ?? profile?.email ?? 'system';
 
@@ -40,14 +49,15 @@ export default function ReferenceDataAdmin() {
   const [editValue, setEditValue] = useState<Partial<BnReferenceValue> | null>(null);
   const [editGroup, setEditGroup] = useState<Partial<BnReferenceGroup> | null>(null);
   const [search, setSearch] = useState('');
+  const [moduleFilter, setModuleFilter] = useState<string>('ALL');
 
-  useEffect(() => { void loadGroups(); }, []);
+  useEffect(() => { void loadGroups(); }, [moduleCode]);
   useEffect(() => { if (selectedGroupId) void loadValues(selectedGroupId); }, [selectedGroupId]);
 
   async function loadGroups() {
     try {
       setLoading(true);
-      const g = await listReferenceGroups();
+      const g = await listReferenceGroups({ moduleCode });
       setGroups(g);
       if (!selectedGroupId && g.length) setSelectedGroupId(g[0].id);
     } catch (e: any) {
@@ -65,12 +75,15 @@ export default function ReferenceDataAdmin() {
   }
 
   const selectedGroup = useMemo(() => groups.find((g) => g.id === selectedGroupId) ?? null, [groups, selectedGroupId]);
+  const availableModules = useMemo(() => Array.from(new Set(groups.map((g) => g.module_code))).sort(), [groups]);
   const filteredGroups = useMemo(() => {
     const s = search.trim().toLowerCase();
-    if (!s) return groups;
-    return groups.filter((g) =>
-      g.group_code.toLowerCase().includes(s) || g.group_name.toLowerCase().includes(s));
-  }, [groups, search]);
+    return groups.filter((g) => {
+      if (moduleFilter !== 'ALL' && g.module_code !== moduleFilter) return false;
+      if (!s) return true;
+      return g.group_code.toLowerCase().includes(s) || g.group_name.toLowerCase().includes(s);
+    });
+  }, [groups, search, moduleFilter]);
 
   async function handleSaveValue() {
     if (!editValue || !selectedGroupId) return;
@@ -133,14 +146,13 @@ export default function ReferenceDataAdmin() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" /> Reference Data
+            <Shield className="h-6 w-6 text-primary" /> {title ?? 'Reference Data'}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Manage Benefits dropdown values (rate table types, formula statuses, reimbursement methods, etc.).
-            System-protected values cannot be deleted — deactivate them to retire from new use.
+            {description ?? 'Central reference framework. System-protected values cannot be deleted — mark them Inactive or Retired to remove from new use.'}
           </p>
         </div>
-        <Button onClick={() => setEditGroup({ module_code: 'BN', is_active: true })}>
+        <Button onClick={() => setEditGroup({ module_code: defaultNewModule, is_active: true, is_system: false, is_system_group: false, sort_order: 0 } as any)}>
           <Plus className="h-4 w-4 mr-1" /> New Group
         </Button>
       </div>
@@ -150,6 +162,16 @@ export default function ReferenceDataAdmin() {
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Groups ({filteredGroups.length})</CardTitle>
             <Input placeholder="Search groups…" value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 mt-2" />
+            {!moduleCode && availableModules.length > 1 && (
+              <select
+                className="h-8 mt-2 rounded-md border bg-background px-2 text-sm"
+                value={moduleFilter}
+                onChange={(e) => setModuleFilter(e.target.value)}
+              >
+                <option value="ALL">All modules</option>
+                {availableModules.map((m) => <option key={m} value={m}>{m}</option>)}
+              </select>
+            )}
           </CardHeader>
           <CardContent className="p-0 max-h-[70vh] overflow-auto">
             <ul className="divide-y">

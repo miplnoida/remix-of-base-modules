@@ -316,6 +316,7 @@ const AutomationJobReports = lazy(() => import('@/pages/compliance/reports/Autom
 // Legal Module
 const LegalAuth = lazy(() => import('@/pages/legal/LegalAuth'));
 const LegalHearingCalendar = lazy(() => import('@/pages/legal/LegalHearingCalendar'));
+const LegalReferenceData = lazy(() => import('@/pages/legal/LegalReferenceData'));
 const LegalOrderRegistry = lazy(() => import('@/pages/legal/LegalOrderRegistry'));
 const LegalDocumentCenter = lazy(() => import('@/pages/legal/DocumentCenter'));
 const SSBCaseListPage = lazy(() => import('@/pages/legal/SSBCaseList'));
@@ -1772,6 +1773,7 @@ export const AppRoutes = () => {
       <Route path="/legal/cases/intake" element={<CaseIntake />} />
       <Route path="/legal/cases/delinquent" element={<DelinquentCases />} />
       <Route path="/legal/hearings" element={<Suspense fallback={<div>Loading...</div>}><LegalHearingCalendar /></Suspense>} />
+      <Route path="/legal/config/reference-data" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceData /></Suspense>} />
       <Route path="/legal/court-orders" element={<CourtOrdersManagement />} />
       <Route path="/legal/enforcement" element={<EnforcementActions />} />
       <Route path="/legal/payment-plans" element={<LegalPaymentPlans />} />
