@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { evaluateWaiverPolicy } from "./lgFeeWaiverPolicyService";
 const sb = supabase as any;
 
 export interface LgFeeWaiver {
@@ -9,11 +10,17 @@ export interface LgFeeWaiver {
   requested_at: string;
   waiver_amount: number | null;
   waiver_percent: number | null;
-  approval_status: "PENDING" | "APPROVED" | "REJECTED" | "AUTO_APPROVED";
+  approval_status: "DRAFT" | "SUBMITTED" | "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED" | "AUTO_APPROVED";
   approved_by: string | null;
   approved_at: string | null;
   comments: string | null;
   reversal_ledger_entry_id: string | null;
+  policy_id: string | null;
+  workbasket_code: string | null;
+  approver_role_type: string | null;
+  requires_finance_approval: boolean;
+  justification: string | null;
+  supporting_document_id: string | null;
 }
 
 export async function listWaivers(lgCaseId: string): Promise<LgFeeWaiver[]> {
@@ -35,29 +42,57 @@ export async function requestWaiver(opts: {
   amount?: number | null;
   percent?: number | null;
   comments?: string;
+  justification?: string;
+  supporting_document_id?: string | null;
   userCode?: string | null;
 }): Promise<string> {
-  // Look up the charge + rule to decide if approval is required
   const { data: charge } = await sb
     .from("lg_fee_charge")
-    .select("id, amount, lg_case_id, fee_rule_id, fee_head_code, lg_fee_rule:fee_rule_id(allow_waiver, waiver_requires_approval)")
+    .select("id, amount, lg_case_id, fee_rule_id, fee_head_code, posting_status, waived_amount, lg_fee_rule:fee_rule_id(allow_waiver)")
     .eq("id", opts.fee_charge_id)
     .single();
+
   const ruleAllows = charge?.lg_fee_rule?.allow_waiver ?? true;
   if (!ruleAllows) throw new Error("Waiver not allowed for this fee");
-  const requiresApproval = charge?.lg_fee_rule?.waiver_requires_approval ?? true;
-  const status = requiresApproval ? "PENDING" : "AUTO_APPROVED";
+
+  const gross = Number(charge.amount || 0);
+  const remaining = Math.max(0, gross - Number(charge.waived_amount || 0));
+  const reqAmt = opts.amount != null ? Number(opts.amount) : Number(opts.percent || 0) / 100 * gross;
+  if (reqAmt > remaining) throw new Error(`Waiver ${reqAmt.toFixed(2)} exceeds remaining ${remaining.toFixed(2)}`);
+  if (opts.percent != null && Number(opts.percent) > 100) throw new Error("Waiver percent cannot exceed 100%");
+  if (reqAmt <= 0) throw new Error("Waiver amount must be greater than 0");
+
+  const reqPct = gross > 0 ? (reqAmt / gross) * 100 : 0;
+  const alreadyPosted = charge.posting_status === "POSTED";
+
+  const evalResult = await evaluateWaiverPolicy({
+    feeChargeId: opts.fee_charge_id,
+    requestedAmount: reqAmt,
+    requestedPercent: reqPct,
+    chargeAlreadyPosted: alreadyPosted,
+  });
+
+  const status: LgFeeWaiver["approval_status"] = evalResult.autoApprove ? "AUTO_APPROVED" : "SUBMITTED";
 
   const { data, error } = await sb
     .from("lg_fee_waiver")
     .insert({
       fee_charge_id: opts.fee_charge_id,
+      lg_case_id: charge.lg_case_id,
       waiver_reason_code: opts.reason,
       requested_by: opts.userCode ?? null,
-      waiver_amount: opts.amount ?? null,
-      waiver_percent: opts.percent ?? null,
+      waiver_amount: reqAmt,
+      requested_waiver_amount: reqAmt,
+      waiver_percent: reqPct,
+      requested_waiver_percent: reqPct,
       comments: opts.comments ?? null,
+      justification: opts.justification ?? null,
+      supporting_document_id: opts.supporting_document_id ?? null,
       approval_status: status,
+      policy_id: evalResult.policyId,
+      workbasket_code: evalResult.workbasketCode,
+      approver_role_type: evalResult.approverRoleType,
+      requires_finance_approval: evalResult.requiresFinance,
     })
     .select("id")
     .single();
@@ -67,11 +102,11 @@ export async function requestWaiver(opts: {
   await sb.from("lg_case_activity").insert({
     lg_case_id: charge.lg_case_id,
     activity_type: "FEE_WAIVER_REQUESTED",
-    description: `Waiver requested for ${charge.fee_head_code} (${opts.reason})`,
+    description: `Waiver ${reqAmt.toFixed(2)} requested on ${charge.fee_head_code} — ${evalResult.reason}`,
     performed_by: opts.userCode ?? null,
   });
 
-  if (!requiresApproval) {
+  if (evalResult.autoApprove) {
     await approveWaiver(data.id, opts.userCode ?? null);
   }
   return data.id;
@@ -91,7 +126,6 @@ export async function approveWaiver(waiverId: string, userCode: string | null): 
     : Number(w.waiver_percent || 0) * gross;
   const finalWaived = Math.min(gross, Math.max(0, waivedAmount));
 
-  // Update charge
   await sb
     .from("lg_fee_charge")
     .update({
@@ -101,7 +135,6 @@ export async function approveWaiver(waiverId: string, userCode: string | null): 
     .eq("id", charge.id);
 
   let reversalId: string | null = null;
-  // If charge was already posted, post a reversal credit entry to the ledger
   if (charge.posting_status === "POSTED" && charge.ledger_entry_id) {
     const { data: orig } = await sb
       .from("ce_employer_financial_ledger")
@@ -145,7 +178,6 @@ export async function approveWaiver(waiverId: string, userCode: string | null): 
     }
   }
 
-  // Cancel or reduce the cashier invoice raised at posting time
   if (charge.employer_account_transaction_id) {
     const invoiceId = charge.employer_account_transaction_id;
     const { data: inv } = await sb
@@ -205,8 +237,8 @@ export async function rejectWaiver(waiverId: string, userCode: string | null, re
     .from("lg_fee_waiver")
     .update({
       approval_status: "REJECTED",
-      approved_by: userCode,
-      approved_at: new Date().toISOString(),
+      rejected_by: userCode,
+      rejected_at: new Date().toISOString(),
       comments: reason ?? w.comments,
     })
     .eq("id", waiverId);
@@ -215,6 +247,22 @@ export async function rejectWaiver(waiverId: string, userCode: string | null, re
     lg_case_id: w.charge.lg_case_id,
     activity_type: "FEE_WAIVER_REJECTED",
     description: `Waiver rejected on ${w.charge.fee_head_code}`,
+    performed_by: userCode,
+  });
+}
+
+export async function cancelWaiver(waiverId: string, userCode: string | null): Promise<void> {
+  const { data: w } = await sb.from("lg_fee_waiver").select("lg_case_id, fee_charge_id").eq("id", waiverId).single();
+  await sb.from("lg_fee_waiver").update({
+    approval_status: "CANCELLED",
+    cancelled_by: userCode,
+    cancelled_at: new Date().toISOString(),
+  }).eq("id", waiverId);
+  await sb.from("lg_fee_charge").update({ waiver_status: "NONE" }).eq("id", w.fee_charge_id);
+  await sb.from("lg_case_activity").insert({
+    lg_case_id: w.lg_case_id,
+    activity_type: "FEE_WAIVER_CANCELLED",
+    description: `Waiver cancelled`,
     performed_by: userCode,
   });
 }

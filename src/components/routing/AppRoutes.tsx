@@ -720,6 +720,7 @@ const LegalReportsAnalytics = lazy(() => import('@/pages/legal/ReportsAnalytics'
 const LegalAdminConfig = lazy(() => import('@/pages/legal/AdminConfig'));
 const LgFeeConfig = lazy(() => import('@/pages/legal/LgFeeConfig'));
 const LgPolicyConfig = lazy(() => import('@/pages/legal/LgPolicyConfig'));
+const LgFeeWaiverPolicyConfig = lazy(() => import('@/pages/legal/LgFeeWaiverPolicyConfig'));
 const CaseWorkflow = lazy(() => import('@/pages/legal/settings/CaseWorkflow'));
 
 // LegalFinal Module pages
@@ -1775,6 +1776,7 @@ export const AppRoutes = () => {
       <Route path="/legal/lg/cases/:id" element={<Suspense fallback={<div>Loading...</div>}><LgCaseDetail /></Suspense>} />
       <Route path="/legal/admin/fees" element={<Suspense fallback={<div>Loading...</div>}><LgFeeConfig /></Suspense>} />
       <Route path="/legal/admin/policy" element={<Suspense fallback={<div>Loading...</div>}><LgPolicyConfig /></Suspense>} />
+      <Route path="/legal/admin/waiver-policies" element={<Suspense fallback={<div>Loading...</div>}><LgFeeWaiverPolicyConfig /></Suspense>} />
       <Route path="/legal/workbench" element={<LegalWorkbench />} />
       <Route path="/legal/cases" element={<CaseTracking />} />
       <Route path="/legal/cases/intake" element={<CaseIntake />} />
