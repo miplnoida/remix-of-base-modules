@@ -92,11 +92,6 @@ Deno.serve(async (req) => {
       return json({ success: true, channel, status: 'QUEUED_FOR_PRINT', message: 'Document queued for printing. Open the document and print from the preview.' })
     }
 
-    if (channel === 'SMS') {
-      // Provider not wired yet - mark FAILED so it surfaces in monitoring
-      await mark(supabase, doc.id, 'FAILED')
-      return json({ success: false, channel, status: 'FAILED', reason: 'SMS provider not configured' }, 200)
-    }
 
     // PDF / PRINT / WEBHOOK / etc — no platform-level delivery needed
     await mark(supabase, doc.id, 'DELIVERED', new Date().toISOString())
