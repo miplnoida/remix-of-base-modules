@@ -6,6 +6,7 @@ export interface TemplateLegalRefLink {
   template_id: string;
   template_version_id: string | null;
   legal_reference_id: string;
+  legal_reference_version_id: string | null;
   required_flag: boolean;
   display_order: number;
   usage_note: string | null;
@@ -14,6 +15,7 @@ export interface TemplateLegalRefLink {
   updated_at: string;
   legal_reference?: LegalReference | null;
 }
+
 
 export const coreTemplateLegalRefService = {
   async listForTemplate(templateId: string): Promise<TemplateLegalRefLink[]> {
@@ -85,26 +87,88 @@ export const coreTemplateLegalRefService = {
   },
 
   /**
-   * Build a snapshot suitable for storing on core_generated_document.legal_references_snapshot.
-   * Captures the exact ref version used at generation time.
+   * Build a snapshot suitable for storing on the generated document.
+   * Resolves the active PUBLISHED version of each linked legal reference and
+   * captures the exact version_id so the document remains defensible later.
    */
   async buildSnapshotForTemplate(templateId: string) {
     const links = await this.listForTemplate(templateId);
-    return links
-      .filter((l) => l.legal_reference)
-      .map((l) => ({
+    const out: any[] = [];
+    for (const l of links) {
+      if (!l.legal_reference) continue;
+      const m = l.legal_reference as any;
+      let versionId: string | null = l.legal_reference_version_id ?? null;
+      let effFrom = m.effective_from ?? null;
+      let effTo = m.effective_to ?? null;
+      let versionNumber = m.version_number ?? 1;
+      let fullText = m.full_reference_text ?? null;
+      // Prefer DB-resolved active version (RPC) when not pinned
+      if (!versionId) {
+        try {
+          const { data } = await (supabase as any).rpc('get_active_legal_reference_version', {
+            p_ref_code: m.ref_code,
+            p_country_code: m.country_code,
+            p_as_of: new Date().toISOString().slice(0, 10),
+          });
+          const v = Array.isArray(data) ? data[0] : data;
+          if (v) {
+            versionId = v.id;
+            effFrom = v.effective_from;
+            effTo = v.effective_to;
+            versionNumber = v.version_number;
+            fullText = v.full_reference_text ?? fullText;
+          }
+        } catch { /* fall back to master fields */ }
+      }
+      out.push({
         legal_reference_id: l.legal_reference_id,
-        ref_code: l.legal_reference!.ref_code,
-        country_code: l.legal_reference!.country_code,
-        version_number: l.legal_reference!.version_number,
-        short_title: l.legal_reference!.short_title,
-        act_name: l.legal_reference!.act_name,
-        section: l.legal_reference!.section,
-        regulation: l.legal_reference!.regulation,
-        full_reference_text: l.legal_reference!.full_reference_text,
+        legal_reference_version_id: versionId,
+        ref_code: m.ref_code,
+        country_code: m.country_code,
+        version_number: versionNumber,
+        short_title: m.short_title,
+        act_name: m.act_name,
+        section: m.section,
+        regulation: m.regulation,
+        full_reference_text: fullText,
+        effective_from: effFrom,
+        effective_to: effTo,
         required_flag: l.required_flag,
         display_order: l.display_order,
         usage_note: l.usage_note,
-      }));
+      });
+    }
+    return out;
+  },
+
+  /**
+   * Freeze (pin) legal_reference_version_id on all links for a template
+   * version — typically called when a template version is PUBLISHED.
+   */
+  async freezeVersionsForTemplateVersion(templateVersionId: string, asOf?: string) {
+    const date = asOf || new Date().toISOString().slice(0, 10);
+    const { data: links, error: e1 } = await (supabase as any)
+      .from('core_template_legal_reference')
+      .select('id, legal_reference_id, legal_reference:core_legal_reference(ref_code, country_code)')
+      .eq('template_version_id', templateVersionId)
+      .is('legal_reference_version_id', null);
+    if (e1) throw e1;
+    for (const l of links || []) {
+      const m = l.legal_reference;
+      if (!m) continue;
+      const { data: v } = await (supabase as any).rpc('get_active_legal_reference_version', {
+        p_ref_code: m.ref_code,
+        p_country_code: m.country_code,
+        p_as_of: date,
+      });
+      const ver = Array.isArray(v) ? v[0] : v;
+      if (ver?.id) {
+        await (supabase as any)
+          .from('core_template_legal_reference')
+          .update({ legal_reference_version_id: ver.id })
+          .eq('id', l.id);
+      }
+    }
   },
 };
+

@@ -20,7 +20,9 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
+import { Plus, Pencil, Trash2, ExternalLink, History, Lock } from 'lucide-react';
+import VersionHistoryDialog from './VersionHistoryDialog';
+
 import { toast } from 'sonner';
 import {
   useDeleteLegalReference,
@@ -88,6 +90,9 @@ export const LegalReferenceManagement: React.FC<LegalReferenceManagementProps> =
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<LegalReference>>(empty(countryCode));
   const [tagInput, setTagInput] = useState('');
+  const [versionsOpen, setVersionsOpen] = useState(false);
+  const [versionsTarget, setVersionsTarget] = useState<{ id: string; code: string } | null>(null);
+
 
   const supersedeOptions = useMemo(
     () => refs.filter((r) => r.id !== form.id).map((r) => ({
@@ -224,14 +229,31 @@ export const LegalReferenceManagement: React.FC<LegalReferenceManagementProps> =
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(r)} aria-label="Edit">
-                        <Pencil className="h-4 w-4" />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => { setVersionsTarget({ id: r.id, code: r.ref_code }); setVersionsOpen(true); }}
+                        aria-label="Versions"
+                        title="Version history"
+                      >
+                        <History className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEdit(r)}
+                        aria-label="Edit"
+                        title={r.status === 'ACTIVE' ? 'Published — open Versions to amend' : 'Edit'}
+                      >
+                        {r.status === 'ACTIVE'
+                          ? <Lock className="h-4 w-4 text-muted-foreground" />
+                          : <Pencil className="h-4 w-4" />}
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={async () => {
-                          if (!confirm('Delete this reference? It cannot be deleted if it is in use.')) return;
+                          if (!confirm('Delete this reference? It cannot be deleted if it is in use or published.')) return;
                           try {
                             await remove.mutateAsync(r.id);
                             toast.success('Deleted');
@@ -245,6 +267,7 @@ export const LegalReferenceManagement: React.FC<LegalReferenceManagementProps> =
                       </Button>
                     </div>
                   </TableCell>
+
                 </TableRow>
               ))}
               {!refs.length && !isLoading && (
@@ -391,6 +414,15 @@ export const LegalReferenceManagement: React.FC<LegalReferenceManagementProps> =
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {versionsTarget && (
+        <VersionHistoryDialog
+          open={versionsOpen}
+          onOpenChange={(o) => { setVersionsOpen(o); if (!o) setVersionsTarget(null); }}
+          masterId={versionsTarget.id}
+          masterCode={versionsTarget.code}
+        />
+      )}
     </div>
   );
 };

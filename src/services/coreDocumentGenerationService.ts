@@ -103,6 +103,24 @@ export const coreDocumentGenerationService = {
       .select("*")
       .single();
     if (error) throw error;
+
+    // Write-once snapshot rows into core_generated_document_legal_reference
+    if (legalRefsSnapshot.length) {
+      const snapshotRows = legalRefsSnapshot.map((r: any) => ({
+        generated_document_id: data.id,
+        legal_reference_id: r.legal_reference_id,
+        legal_reference_version_id: r.legal_reference_version_id ?? null,
+        ref_code: r.ref_code,
+        citation_snapshot: r.full_reference_text || r.short_title || null,
+        full_reference_snapshot: r.full_reference_text || null,
+        effective_from_snapshot: r.effective_from ?? null,
+        effective_to_snapshot: r.effective_to ?? null,
+      }));
+      await (supabase as any)
+        .from("core_generated_document_legal_reference")
+        .insert(snapshotRows);
+    }
+
     return {
       id: data.id,
       reference_no: data.reference_no,
@@ -111,6 +129,7 @@ export const coreDocumentGenerationService = {
       legal_references_snapshot: data.legal_references_snapshot,
     };
   },
+
 
   async listForEntity(entity_type: string, entity_id: string) {
     const { data, error } = await (supabase as any)
