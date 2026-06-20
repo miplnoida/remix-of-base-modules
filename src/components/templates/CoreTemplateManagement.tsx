@@ -233,6 +233,9 @@ export default function CoreTemplateManagement({
           <TabsTrigger value="tokens">Tokens ({tokens.length})</TabsTrigger>
           <TabsTrigger value="channels">Channels ({channels.length})</TabsTrigger>
           <TabsTrigger value="categories">Categories ({categories.length})</TabsTrigger>
+          {(fixedModuleCode === "LEGAL" || !fixedModuleCode) && (
+            <TabsTrigger value="completeness">Completeness Report</TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="templates">
