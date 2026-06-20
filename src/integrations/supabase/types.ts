@@ -35991,6 +35991,88 @@ export type Database = {
           },
         ]
       }
+      core_generated_document_legal_reference: {
+        Row: {
+          citation_snapshot: string | null
+          created_at: string
+          effective_from_snapshot: string | null
+          effective_to_snapshot: string | null
+          full_reference_snapshot: string | null
+          generated_document_id: string
+          id: string
+          legal_reference_id: string
+          legal_reference_version_id: string | null
+          ref_code: string
+        }
+        Insert: {
+          citation_snapshot?: string | null
+          created_at?: string
+          effective_from_snapshot?: string | null
+          effective_to_snapshot?: string | null
+          full_reference_snapshot?: string | null
+          generated_document_id: string
+          id?: string
+          legal_reference_id: string
+          legal_reference_version_id?: string | null
+          ref_code: string
+        }
+        Update: {
+          citation_snapshot?: string | null
+          created_at?: string
+          effective_from_snapshot?: string | null
+          effective_to_snapshot?: string | null
+          full_reference_snapshot?: string | null
+          generated_document_id?: string
+          id?: string
+          legal_reference_id?: string
+          legal_reference_version_id?: string | null
+          ref_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_generated_document_legal_r_legal_reference_version_id_fkey"
+            columns: ["legal_reference_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference_version"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_generated_document_legal_refere_generated_document_id_fkey"
+            columns: ["generated_document_id"]
+            isOneToOne: false
+            referencedRelation: "core_generated_document"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_generated_document_legal_reference_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_legal_ref"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_generated_document_legal_reference_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_generated_document_legal_reference_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_generated_document_legal_reference_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "legal_reference"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       core_legal_reference: {
         Row: {
           act_name: string | null
@@ -35999,17 +36081,21 @@ export type Database = {
           country_code: string
           created_at: string
           created_by: string | null
+          current_version_id: string | null
           effective_from: string
           effective_to: string | null
           full_reference_text: string | null
           id: string
           is_active: boolean
           jurisdiction: string | null
+          jurisdiction_name: string | null
           legacy_id: string | null
           notes: string | null
+          parent_reference_id: string | null
           ref_code: string
           ref_type: string | null
           ref_url: string | null
+          reference_type: string | null
           regulation: string | null
           section: string | null
           short_title: string
@@ -36029,17 +36115,21 @@ export type Database = {
           country_code: string
           created_at?: string
           created_by?: string | null
+          current_version_id?: string | null
           effective_from: string
           effective_to?: string | null
           full_reference_text?: string | null
           id?: string
           is_active?: boolean
           jurisdiction?: string | null
+          jurisdiction_name?: string | null
           legacy_id?: string | null
           notes?: string | null
+          parent_reference_id?: string | null
           ref_code: string
           ref_type?: string | null
           ref_url?: string | null
+          reference_type?: string | null
           regulation?: string | null
           section?: string | null
           short_title: string
@@ -36059,17 +36149,21 @@ export type Database = {
           country_code?: string
           created_at?: string
           created_by?: string | null
+          current_version_id?: string | null
           effective_from?: string
           effective_to?: string | null
           full_reference_text?: string | null
           id?: string
           is_active?: boolean
           jurisdiction?: string | null
+          jurisdiction_name?: string | null
           legacy_id?: string | null
           notes?: string | null
+          parent_reference_id?: string | null
           ref_code?: string
           ref_type?: string | null
           ref_url?: string | null
+          reference_type?: string | null
           regulation?: string | null
           section?: string | null
           short_title?: string
@@ -36083,6 +36177,41 @@ export type Database = {
           version_number?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "core_legal_reference_current_version_id_fkey"
+            columns: ["current_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference_version"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_legal_reference_parent_reference_id_fkey"
+            columns: ["parent_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_legal_ref"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_legal_reference_parent_reference_id_fkey"
+            columns: ["parent_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_legal_reference_parent_reference_id_fkey"
+            columns: ["parent_reference_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_legal_reference_parent_reference_id_fkey"
+            columns: ["parent_reference_id"]
+            isOneToOne: false
+            referencedRelation: "legal_reference"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "legal_reference_ref_type_fkey"
             columns: ["ref_type"]
@@ -36120,6 +36249,135 @@ export type Database = {
           },
         ]
       }
+      core_legal_reference_version: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          change_reason: string | null
+          change_summary: string | null
+          citation_text: string | null
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          full_reference_text: string | null
+          gazette_number: string | null
+          id: string
+          legal_reference_id: string
+          official_document_id: string | null
+          official_text: string | null
+          published_at: string | null
+          published_by: string | null
+          regulation: string | null
+          section: string | null
+          source_url: string | null
+          subsection: string | null
+          summary: string | null
+          supersedes_version_id: string | null
+          updated_at: string
+          updated_by: string | null
+          version_label: string | null
+          version_number: number
+          version_status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          change_reason?: string | null
+          change_summary?: string | null
+          citation_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          effective_to?: string | null
+          full_reference_text?: string | null
+          gazette_number?: string | null
+          id?: string
+          legal_reference_id: string
+          official_document_id?: string | null
+          official_text?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          regulation?: string | null
+          section?: string | null
+          source_url?: string | null
+          subsection?: string | null
+          summary?: string | null
+          supersedes_version_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version_label?: string | null
+          version_number: number
+          version_status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          change_reason?: string | null
+          change_summary?: string | null
+          citation_text?: string | null
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          full_reference_text?: string | null
+          gazette_number?: string | null
+          id?: string
+          legal_reference_id?: string
+          official_document_id?: string | null
+          official_text?: string | null
+          published_at?: string | null
+          published_by?: string | null
+          regulation?: string | null
+          section?: string | null
+          source_url?: string | null
+          subsection?: string | null
+          summary?: string | null
+          supersedes_version_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          version_label?: string | null
+          version_number?: number
+          version_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "core_legal_reference_version_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_legal_ref"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_legal_reference_version_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_legal_reference_version_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_legal_reference_version_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_legal_reference_version_supersedes_version_id_fkey"
+            columns: ["supersedes_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference_version"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       core_module_legal_reference: {
         Row: {
           created_at: string
@@ -36131,6 +36389,7 @@ export type Database = {
           is_default: boolean
           is_required: boolean
           legal_reference_id: string
+          legal_reference_version_id: string | null
           module_code: string
           notes: string | null
           role: string
@@ -36148,6 +36407,7 @@ export type Database = {
           is_default?: boolean
           is_required?: boolean
           legal_reference_id: string
+          legal_reference_version_id?: string | null
           module_code: string
           notes?: string | null
           role?: string
@@ -36165,6 +36425,7 @@ export type Database = {
           is_default?: boolean
           is_required?: boolean
           legal_reference_id?: string
+          legal_reference_version_id?: string | null
           module_code?: string
           notes?: string | null
           role?: string
@@ -36173,6 +36434,13 @@ export type Database = {
           usage_context?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "core_module_legal_reference_legal_reference_version_id_fkey"
+            columns: ["legal_reference_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference_version"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
             columns: ["legal_reference_id"]
@@ -36519,6 +36787,7 @@ export type Database = {
           display_order: number
           id: string
           legal_reference_id: string
+          legal_reference_version_id: string | null
           required_flag: boolean
           template_id: string
           template_version_id: string | null
@@ -36531,6 +36800,7 @@ export type Database = {
           display_order?: number
           id?: string
           legal_reference_id: string
+          legal_reference_version_id?: string | null
           required_flag?: boolean
           template_id: string
           template_version_id?: string | null
@@ -36543,6 +36813,7 @@ export type Database = {
           display_order?: number
           id?: string
           legal_reference_id?: string
+          legal_reference_version_id?: string | null
           required_flag?: boolean
           template_id?: string
           template_version_id?: string | null
@@ -36576,6 +36847,13 @@ export type Database = {
             columns: ["legal_reference_id"]
             isOneToOne: false
             referencedRelation: "legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "core_template_legal_reference_legal_reference_version_id_fkey"
+            columns: ["legal_reference_version_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference_version"
             referencedColumns: ["id"]
           },
           {
@@ -65593,6 +65871,35 @@ export type Database = {
         }
         Returns: string
       }
+      core_legal_ref_audit: {
+        Args: {
+          p_action: string
+          p_after: Json
+          p_before: Json
+          p_entity_id: string
+          p_reason?: string
+          p_user_code: string
+        }
+        Returns: undefined
+      }
+      core_legal_ref_create_version: {
+        Args: {
+          p_change_reason?: string
+          p_effective_from: string
+          p_master_id: string
+          p_user_code: string
+        }
+        Returns: string
+      }
+      core_legal_ref_transition: {
+        Args: {
+          p_reason?: string
+          p_to_status: string
+          p_user_code: string
+          p_version_id: string
+        }
+        Returns: undefined
+      }
       create_c3_config_period: {
         Args: {
           p_description?: string
@@ -66049,6 +66356,45 @@ export type Database = {
       get_active_head_cashier: {
         Args: { p_date: string; p_office_code?: string }
         Returns: Json
+      }
+      get_active_legal_reference_version: {
+        Args: { p_as_of?: string; p_country_code: string; p_ref_code: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          change_reason: string | null
+          change_summary: string | null
+          citation_text: string | null
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          full_reference_text: string | null
+          gazette_number: string | null
+          id: string
+          legal_reference_id: string
+          official_document_id: string | null
+          official_text: string | null
+          published_at: string | null
+          published_by: string | null
+          regulation: string | null
+          section: string | null
+          source_url: string | null
+          subsection: string | null
+          summary: string | null
+          supersedes_version_id: string | null
+          updated_at: string
+          updated_by: string | null
+          version_label: string | null
+          version_number: number
+          version_status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "core_legal_reference_version"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_all_public_tables: {
         Args: never
