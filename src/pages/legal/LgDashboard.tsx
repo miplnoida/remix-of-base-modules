@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar, Scale, AlertTriangle, Gavel, ListChecks, Loader2, HandshakeIcon, Plus } from "lucide-react";
+import { Calendar, Scale, AlertTriangle, Gavel, ListChecks, Loader2, HandshakeIcon, Plus, Eye } from "lucide-react";
 import { useLgDashboard, useLgHearings, useLgTasks } from "@/hooks/legal/useLgWorkflow";
 import { useLgCases, useLgReference } from "@/hooks/legal/useLgCases";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
