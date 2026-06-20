@@ -49,6 +49,8 @@ export type BnWorkflowRole = (typeof BN_WORKFLOW_ROLES)[number];
 
 export const BN_ESCALATION_TRIGGERS = [
   { value: 'SLA_BREACH', label: 'SLA Breach' },
+  { value: 'TASK_OVERDUE', label: 'Task Overdue' },
+  { value: 'WARNING_THRESHOLD', label: 'Warning Threshold Reached' },
   { value: 'MANUAL', label: 'Manual Escalation' },
   { value: 'THRESHOLD', label: 'Threshold Exceeded' },
   { value: 'EXCEPTION', label: 'Exception Raised' },
@@ -59,6 +61,24 @@ export const BN_ESCALATION_SEVERITIES = [
   { value: 'MEDIUM', label: 'Medium' },
   { value: 'HIGH', label: 'High' },
   { value: 'CRITICAL', label: 'Critical' },
+] as const;
+
+export const BN_ESCALATION_ACTION_TYPES = [
+  { value: 'NOTIFY', label: 'Notify' },
+  { value: 'REASSIGN', label: 'Reassign' },
+  { value: 'PRIORITY_UPGRADE', label: 'Priority Upgrade' },
+  { value: 'CREATE_TASK', label: 'Create Task' },
+  { value: 'HOLD', label: 'Hold' },
+  { value: 'MANAGER_ALERT', label: 'Manager Alert' },
+] as const;
+
+export const BN_ESCALATION_ENTITY_TYPES = [
+  { value: 'WORKFLOW_STEP', label: 'Workflow Step' },
+  { value: 'WORKBASKET', label: 'Workbasket' },
+  { value: 'TASK_TYPE', label: 'Task Type' },
+  { value: 'CLAIM_STAGE', label: 'Claim Stage' },
+  { value: 'OVERRIDE_REQUEST', label: 'Override Request' },
+  { value: 'PAYMENT_BATCH', label: 'Payment Batch' },
 ] as const;
 
 export const BN_PRODUCT_CATEGORIES = [
