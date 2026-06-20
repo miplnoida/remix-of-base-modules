@@ -145,10 +145,10 @@ export default function LgCaseList() {
             onDocuments: (r) => navigate(`/legal/lg/cases/${r.id}?tab=documents`),
           })}
           bulkActions={[
-            { key: "assign", label: "Assign Officer", onClick: () => toast.info("Bulk assign coming soon") },
-            { key: "stage", label: "Update Stage", onClick: () => toast.info("Bulk stage update coming soon") },
-            { key: "notice", label: "Generate Notice", onClick: () => toast.info("Bulk notice generation coming soon") },
-            { key: "review", label: "Mark Reviewed", onClick: () => toast.info("Bulk review coming soon") },
+            { key: "assign", label: "Assign Officer", onClick: () => { toast.info("Bulk assign coming soon"); } },
+            { key: "stage", label: "Update Stage", onClick: () => { toast.info("Bulk stage update coming soon"); } },
+            { key: "notice", label: "Generate Notice", onClick: () => { toast.info("Bulk notice generation coming soon"); } },
+            { key: "review", label: "Mark Reviewed", onClick: () => { toast.info("Bulk review coming soon"); } },
           ]}
           onRowClick={(r) => navigate(`/legal/lg/cases/${r.id}`)}
           onRefresh={() => refetch()}
