@@ -7,16 +7,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Calendar, Scale, AlertTriangle, Gavel, ListChecks, Loader2, HandshakeIcon } from "lucide-react";
+import { Calendar, Scale, AlertTriangle, Gavel, ListChecks, Loader2, HandshakeIcon, Plus } from "lucide-react";
 import { useLgDashboard, useLgHearings, useLgTasks } from "@/hooks/legal/useLgWorkflow";
 import { useLgCases, useLgReference } from "@/hooks/legal/useLgCases";
+import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import { useUserCode } from "@/hooks/useUserCode";
 import { formatDateForDisplay } from "@/lib/format-config";
+import { NewCaseDialog } from "@/components/legal/lg/NewCaseDialog";
+
 
 export default function LgDashboard() {
   const navigate = useNavigate();
   const { userCode } = useUserCode();
+  const access = useLgAccess();
   const [scopeMine, setScopeMine] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
   const officer = scopeMine ? userCode || undefined : undefined;
 
   const { data: stats, isLoading } = useLgDashboard(officer);
@@ -48,8 +53,15 @@ export default function LgDashboard() {
               <Label className="text-sm">My cases only</Label>
               <Switch checked={scopeMine} onCheckedChange={setScopeMine} />
             </div>
-            <Button onClick={() => navigate("/legal/lg/hearings")}><Calendar className="h-4 w-4 mr-1" /> Calendar</Button>
-            <Button variant="outline" onClick={() => navigate("/legal/cases")}>All Cases</Button>
+            <Button
+              onClick={() => setNewOpen(true)}
+              disabled={!access.can("createCase")}
+              title={!access.can("createCase") ? "You do not have permission to create cases" : undefined}
+            >
+              <Plus className="h-4 w-4 mr-1" /> New Case
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/legal/lg/hearings")}><Calendar className="h-4 w-4 mr-1" /> Calendar</Button>
+            <Button variant="outline" onClick={() => navigate("/legal/lg/cases")}>All Cases</Button>
           </div>
         </div>
 
@@ -101,7 +113,7 @@ export default function LgDashboard() {
                       <TableCell>{h.hearing_type_code}</TableCell>
                       <TableCell>{[h.court_name, h.court_room].filter(Boolean).join(" / ") || "—"}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={() => navigate(`/legal/cases/${h.lg_case_id}`)}>Open</Button>
+                        <Button variant="ghost" size="sm" onClick={() => navigate(`/legal/lg/cases/${h.lg_case_id}`)}>Open</Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -120,7 +132,7 @@ export default function LgDashboard() {
                   {overdueTasks.length === 0 ? (
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No overdue tasks</TableCell></TableRow>
                   ) : overdueTasks.map((t: any) => (
-                    <TableRow key={t.id} className="cursor-pointer" onClick={() => navigate(`/legal/cases/${t.lg_case_id}`)}>
+                    <TableRow key={t.id} className="cursor-pointer" onClick={() => navigate(`/legal/lg/cases/${t.lg_case_id}`)}>
                       <TableCell className="text-destructive">{formatDateForDisplay(t.due_date)}</TableCell>
                       <TableCell>{t.title}</TableCell>
                       <TableCell>{t.lg_case?.lg_case_no ?? "—"}</TableCell>
@@ -143,7 +155,7 @@ export default function LgDashboard() {
                   {myAssigned.length === 0 ? (
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">No cases</TableCell></TableRow>
                   ) : myAssigned.slice(0, 25).map((c) => (
-                    <TableRow key={c.id} className="cursor-pointer" onClick={() => navigate(`/legal/cases/${c.id}`)}>
+                    <TableRow key={c.id} className="cursor-pointer" onClick={() => navigate(`/legal/lg/cases/${c.id}`)}>
                       <TableCell className="font-medium">{c.lg_case_no}</TableCell>
                       <TableCell>{stageLabel(c.current_stage_code)}</TableCell>
                       <TableCell><Badge variant="outline">{c.status_code}</Badge></TableCell>
@@ -157,9 +169,12 @@ export default function LgDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <NewCaseDialog open={newOpen} onOpenChange={setNewOpen} />
     </div>
   );
 }
+
 
 function Stat({ label, value, icon, tone }: { label: string; value: number; icon: React.ReactNode; tone?: "destructive" }) {
   return (

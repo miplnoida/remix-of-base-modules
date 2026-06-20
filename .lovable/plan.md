@@ -1,105 +1,97 @@
-# BN Workflow Templates — Clarify & Channel-Aware Mapping
 
-## Goal
-Make `bn_workflow_template` an explicit **Benefits wrapper** over the existing workflow engine (`workflow_definitions` / `workflow_steps` / `workflow_instances` / `workflow_tasks`), and let one product version map to **different workflows per channel** (online portal, office-assisted, back-office, paper, API).
+# Legal Module Action Audit & Fix
 
-## 1. Database (single migration)
+Wire every Legal button/menu to a real `lg_*` service, remove mock runtime data, ensure routes resolve, and add audit trail on critical mutations. Done in two phases: canonical `Lg*` screens first, then legacy.
 
-### 1a. Add channel + executable flag to `bn_workflow_template`
-- `channel_code TEXT` — FK-style reference to `bn_reference_value` group `BN_APPLICATION_CHANNEL` (no enum, no hardcoded list)
-- ensure `workflow_definition_id UUID` exists and is the link to the real engine
-- add `is_executable BOOLEAN GENERATED ALWAYS AS (workflow_definition_id IS NOT NULL) STORED` (or plain column maintained by trigger)
-- index `(channel_code, is_active)`
+## Phase 1 — Canonical Lg* screens (primary)
 
-### 1b. Seed reference group `BN_APPLICATION_CHANNEL`
-Seed via insert tool (not migration): ONLINE_PORTAL, OFFICE_ASSISTED, BACK_OFFICE, PAPER, API.
+**Screens**
+- `/legal/lg/dashboard` — `LgDashboard.tsx`
+- `/legal/lg/cases/:id` — `LgCaseDetail.tsx` (Overview, Parties, Hearings, Tasks, Notices, Documents, Settlements, Orders, Fees tabs)
+- `/legal/lg/hearings` — `LgHearingCalendar.tsx`
 
-### 1c. New table `bn_product_version_workflow`
-```
-product_version_id UUID NOT NULL
-channel_code       TEXT NOT NULL
-workflow_template_id UUID NOT NULL REFERENCES bn_workflow_template
-is_default         BOOLEAN NOT NULL DEFAULT false
-is_active          BOOLEAN NOT NULL DEFAULT true
-effective_from     DATE
-effective_to       DATE
-created_by / updated_by / timestamps
-UNIQUE (product_version_id, channel_code, effective_from)
-```
-Partial unique index: only one `is_default = true` per `(product_version_id)`.
+**Required actions wired to services**
 
-GRANT SELECT/INSERT/UPDATE/DELETE to `authenticated`; GRANT ALL to `service_role`. RLS stays **off** per project NO-RLS policy.
+| Action | Service | Audit |
+|---|---|---|
+| New Legal Case | `lgCaseService.create` | yes |
+| View / Edit Case | route + `lgCaseService.update` | edit only |
+| Assign Officer | `lgCaseService.assign` | yes |
+| Change Stage | `lgCaseService.changeStage` | yes |
+| Add Hearing / Update Outcome / Add Next | `lgHearingService` (extend `lgCaseService`) | yes |
+| Add / Complete Task | new `lgTaskService` on `lg_case_task` | complete only |
+| Upload / Link Document | `lgDocumentLinkService` | no |
+| Generate / Preview / Send Notice | `lgNoticeService` on `lg_notice` (new) + `lgTemplateService` | generate+send |
+| Add Settlement | `lgSettlementService` on `lg_settlement` (new) | yes |
+| Link Payment Arrangement | `lgPaymentArrangementService.link` | yes |
+| Add Legal Fee / Post to Employer Acct | `lgFeeChargeService.create` + `.postToEmployer` (extend) | post only |
+| Add Order / Judgment | `lgOrderService` on `lg_order` (new) | yes |
+| Close Case | `lgCaseService.close` | yes |
+| Export / List filters / search | client-side + URL params | no |
 
-### 1d. Keep legacy `bn_product_version.workflow_template_id`
-Treated as the **product-level fallback** only. No drop in this round (safe migration).
+**New service files**
+- `src/services/legal/lgHearingService.ts` (`lg_hearing`, `lg_hearing_attendee`)
+- `src/services/legal/lgTaskService.ts` (`lg_case_task`)
+- `src/services/legal/lgNoticeService.ts` (`lg_notice`, preview + send)
+- `src/services/legal/lgSettlementService.ts` (`lg_settlement`)
+- `src/services/legal/lgOrderService.ts` (`lg_order`)
 
-## 2. Runtime resolution
+**New hooks** — `src/hooks/legal/`
+- `useLgHearings`, `useLgTasks`, `useLgNotices`, `useLgSettlements`, `useLgOrders`, `useLgFees`
 
-New service `src/services/bn/workflow/resolveProductWorkflow.ts`:
+**New dialogs / forms** (small focused components under `src/components/legal/lg/`)
+- `NewCaseDialog`, `AssignOfficerDialog`, `ChangeStageDialog`, `AddHearingDialog`, `HearingOutcomeDialog`, `AddTaskDialog`, `LinkDocumentDialog`, `GenerateNoticeDialog`, `AddSettlementDialog`, `LinkPaymentArrangementDialog`, `AddFeeDialog`, `AddOrderDialog`, `CloseCaseDialog`
+- Reuse existing `ScheduleHearingDialog`, `IssueNoticeDialog`, `CreateTaskDialog`, `UploadDocumentDialog`, `UploadOrderDialog`, `PaymentPlanDialog` where they fit — wire them to `lg_*` services instead of mock state.
 
-```text
-input:  product_version_id, channel_code
-order:
-  1. bn_product_version_workflow active for (product_version_id, channel_code) within effective dates
-  2. bn_product_version_workflow active where is_default = true
-  3. bn_product_version.workflow_template_id (legacy fallback)
-output: { workflowTemplate, workflowDefinitionId, source }
-```
+**UI behavior on every action**
+- `useMutation` from React Query, `useBlockingMutation` for full-screen ops
+- Required-field validation on each dialog (zod or inline)
+- Disabled buttons get a `title=` reason
+- Success toast + invalidate related query
+- Error toast via shielded error pattern
+- Audit via `lgAuditService.log` on the actions flagged above
 
-Wire into:
-- `claimIntakeService.ts` — when creating claim/application, resolve before instantiating a workflow_instance
-- `intakeReadinessService.ts` — surface "no workflow for channel" as a readiness error
+## Phase 2 — Legacy screens
 
-## 3. UI
+Same audit applied to:
+- `CaseTracking`, `CaseDetailView`, `CaseEditView`
+- `NoticeGeneration`
+- `LegalHearingCalendar`
+- `CourtOrdersManagement`, `EnforcementActions`, `LegalPaymentPlans`, `EvidenceManagement`, `DocumentCenter`
 
-### 3a. Workflow Template editor (`WorkflowTemplateEditor.tsx`)
-- Channel dropdown (from `BN_APPLICATION_CHANNEL` reference group)
-- Linked workflow definition picker (`workflow_definitions`)
-- Read-only **Steps Preview** pulled from `workflow_steps` of the linked definition
-- "BN Overrides" section kept separate (existing `steps_config`, `sla_config`, `escalation_config`)
-- Badge: Executable / Not executable (based on workflow_definition_id presence)
+For each:
+1. Replace mock arrays with `lg_*` queries via the new hooks.
+2. Re-point any "create/update" buttons to the same dialogs from Phase 1.
+3. Add missing route handlers; any orphaned `navigate('/legal/...')` target gets either a route or a redirect.
 
-### 3b. Product Workflow tab (`WorkflowTab.tsx`)
-Replace single workflow_template_id picker with a **channel mapping grid**:
-```
-Channel | Workflow Template | Default | Active | Effective From | Effective To | actions
-```
-- Add row, edit, delete, toggle default/active
-- Validation: at least one row marked default; warn if a channel enabled on the product has no workflow
+**Routes** — add to `AppRoutes.tsx`
+- `/legal/lg/cases` (list)
+- `/legal/lg/cases/new` (intake)
+- `/legal/lg/tasks`
+- `/legal/lg/notices`
+- `/legal/lg/documents`
+- `/legal/lg/fees`
+- `/legal/lg/orders`
+- `/legal/lg/settlements`
 
-## 4. Validation (config validation service)
-Add checks in `configurationValidationService.ts`:
-- WARN if `bn_workflow_template.workflow_definition_id` is null
-- ERROR if product version has no default workflow mapping AND no legacy `workflow_template_id`
-- WARN if a product channel is enabled but no mapping exists for it
-- ERROR if a workflow step has no `workbasket_id` or `assigned_role`
-- WARN if active product references an inactive workflow template
-
-## 5. Escalation/workbasket linkage (no schema change)
-Already implemented earlier (step → workbasket → product fallback). Just confirm `resolveProductWorkflow` returns the template whose steps already carry workbasket/escalation overrides.
-
-## 6. Out of scope (this round)
-- Dropping `bn_product_version.workflow_template_id` — kept as fallback
-- Migrating existing product rows into `bn_product_version_workflow` — handled by a follow-up data backfill task
-- Channel-specific step library (online vs office vs paper canned templates) — listed in docs only
-
-## Technical details
-- Files to add:
-  - `supabase/migrations/<new>.sql`
-  - `src/services/bn/workflow/resolveProductWorkflow.ts`
-  - `src/components/bn/config/ProductWorkflowChannelGrid.tsx`
-- Files to edit:
-  - `src/components/bn/config/WorkflowTab.tsx` (grid replaces single picker)
-  - `src/pages/bn/config/WorkflowTemplateEditor.tsx` (channel + steps preview + executable badge)
-  - `src/services/bn/intake/claimIntakeService.ts` (use resolver)
-  - `src/services/bn/intake/intakeReadinessService.ts` (surface missing-channel-workflow)
-  - `src/services/bn/configurationValidationService.ts` (new checks)
-  - `src/types/bn.ts` (channel_code, mapping row type)
-- Seed: insert `BN_APPLICATION_CHANNEL` reference values via insert tool after migration.
+## Out of scope
+- Schema changes to `lg_*` tables (assumed adequate; will add columns only if a required action has nowhere to write).
+- Removing the parallel `SSB*` Legal UI — left in place, just kept working.
+- Redesigning legacy screen layouts — only wiring + mock removal.
 
 ## Acceptance
-- `bn_workflow_template` clearly shows channel + linked workflow_definition + executable badge.
-- Product Workflow tab shows per-channel grid; default + active are explicit.
-- Claim/application intake resolves workflow by (product_version, channel) with documented fallback order.
-- Validation warns on the gaps listed in §4.
+- Every visible Legal button performs a real action or shows a reasoned `disabled`.
+- Zero mock arrays in runtime Legal screens (`grep -n "const mock" src/pages/legal src/components/legal` returns nothing).
+- All `navigate('/legal/...')` targets resolve to a defined route.
+- All 21 required actions wired to `lg_*` services with toast + query invalidation.
+- Critical actions write to `lgAuditService`.
 - TypeScript build passes.
+
+## Execution order
+1. Add 5 new services + 6 new hooks (parallel writes).
+2. Add new route entries.
+3. Refactor `LgDashboard` to use real queries + "New Case" dialog.
+4. Refactor `LgCaseDetail` tabs to use real data + wire every tab's actions.
+5. Refactor `LgHearingCalendar` to use `useLgHearings` + outcome dialog.
+6. Sweep legacy screens — replace mock data + repoint actions to new dialogs.
+7. Run `tsc` / fix until clean.
