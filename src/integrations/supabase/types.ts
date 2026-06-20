@@ -7818,87 +7818,6 @@ export type Database = {
           },
         ]
       }
-      bn_country_legal_ref: {
-        Row: {
-          applicable_products: string[] | null
-          country_code: string
-          created_at: string
-          created_by: string | null
-          effective_from: string
-          effective_to: string | null
-          entered_at: string
-          entered_by: string | null
-          id: string
-          is_active: boolean
-          notes: string | null
-          ref_code: string
-          ref_section: string | null
-          ref_title: string
-          ref_url: string | null
-          supersedes_id: string | null
-          updated_at: string
-          updated_by: string | null
-          version_number: number
-        }
-        Insert: {
-          applicable_products?: string[] | null
-          country_code: string
-          created_at?: string
-          created_by?: string | null
-          effective_from?: string
-          effective_to?: string | null
-          entered_at?: string
-          entered_by?: string | null
-          id?: string
-          is_active?: boolean
-          notes?: string | null
-          ref_code: string
-          ref_section?: string | null
-          ref_title: string
-          ref_url?: string | null
-          supersedes_id?: string | null
-          updated_at?: string
-          updated_by?: string | null
-          version_number?: number
-        }
-        Update: {
-          applicable_products?: string[] | null
-          country_code?: string
-          created_at?: string
-          created_by?: string | null
-          effective_from?: string
-          effective_to?: string | null
-          entered_at?: string
-          entered_by?: string | null
-          id?: string
-          is_active?: boolean
-          notes?: string | null
-          ref_code?: string
-          ref_section?: string | null
-          ref_title?: string
-          ref_url?: string | null
-          supersedes_id?: string | null
-          updated_at?: string
-          updated_by?: string | null
-          version_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bn_country_legal_ref_country_code_fkey"
-            columns: ["country_code"]
-            isOneToOne: false
-            referencedRelation: "bn_country"
-            referencedColumns: ["country_code"]
-          },
-          {
-            foreignKeyName: "bn_country_legal_ref_supersedes_id_fkey"
-            columns: ["supersedes_id"]
-            isOneToOne: false
-            referencedRelation: "bn_country_legal_ref"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       bn_country_participant_proof_link: {
         Row: {
           country_code: string
@@ -36069,6 +35988,218 @@ export type Database = {
           },
         ]
       }
+      core_legal_reference: {
+        Row: {
+          act_name: string | null
+          applicable_products: string[] | null
+          chapter: string | null
+          country_code: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          full_reference_text: string | null
+          id: string
+          is_active: boolean
+          jurisdiction: string | null
+          legacy_id: string | null
+          notes: string | null
+          ref_code: string
+          ref_type: string | null
+          ref_url: string | null
+          regulation: string | null
+          section: string | null
+          short_title: string
+          source: string | null
+          status: string
+          subsection: string | null
+          supersedes_id: string | null
+          tags: string[] | null
+          updated_at: string
+          updated_by: string | null
+          version_number: number
+        }
+        Insert: {
+          act_name?: string | null
+          applicable_products?: string[] | null
+          chapter?: string | null
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          effective_to?: string | null
+          full_reference_text?: string | null
+          id?: string
+          is_active?: boolean
+          jurisdiction?: string | null
+          legacy_id?: string | null
+          notes?: string | null
+          ref_code: string
+          ref_type?: string | null
+          ref_url?: string | null
+          regulation?: string | null
+          section?: string | null
+          short_title: string
+          source?: string | null
+          status?: string
+          subsection?: string | null
+          supersedes_id?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          updated_by?: string | null
+          version_number?: number
+        }
+        Update: {
+          act_name?: string | null
+          applicable_products?: string[] | null
+          chapter?: string | null
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          full_reference_text?: string | null
+          id?: string
+          is_active?: boolean
+          jurisdiction?: string | null
+          legacy_id?: string | null
+          notes?: string | null
+          ref_code?: string
+          ref_type?: string | null
+          ref_url?: string | null
+          regulation?: string | null
+          section?: string | null
+          short_title?: string
+          source?: string | null
+          status?: string
+          subsection?: string | null
+          supersedes_id?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          updated_by?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_reference_ref_type_fkey"
+            columns: ["ref_type"]
+            isOneToOne: false
+            referencedRelation: "legal_reference_type"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_legal_ref"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "bn_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "legal_reference"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      core_module_legal_reference: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_table: string
+          entity_type: string | null
+          id: string
+          is_default: boolean
+          is_required: boolean
+          legal_reference_id: string
+          module_code: string
+          notes: string | null
+          role: string
+          updated_at: string
+          updated_by: string | null
+          usage_context: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_table: string
+          entity_type?: string | null
+          id?: string
+          is_default?: boolean
+          is_required?: boolean
+          legal_reference_id: string
+          module_code: string
+          notes?: string | null
+          role?: string
+          updated_at?: string
+          updated_by?: string | null
+          usage_context?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_table?: string
+          entity_type?: string | null
+          id?: string
+          is_default?: boolean
+          is_required?: boolean
+          legal_reference_id?: string
+          module_code?: string
+          notes?: string | null
+          role?: string
+          updated_at?: string
+          updated_by?: string | null
+          usage_context?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_legal_ref"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "legal_reference"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       core_reference_group: {
         Row: {
           created_at: string
@@ -50056,125 +50187,6 @@ export type Database = {
           },
         ]
       }
-      legal_reference: {
-        Row: {
-          act_name: string | null
-          chapter: string | null
-          country_code: string
-          created_at: string
-          created_by: string | null
-          effective_from: string
-          effective_to: string | null
-          full_reference_text: string | null
-          id: string
-          is_active: boolean
-          jurisdiction: string | null
-          legacy_id: string | null
-          notes: string | null
-          ref_code: string
-          ref_type: string | null
-          ref_url: string | null
-          regulation: string | null
-          section: string | null
-          short_title: string
-          source: string | null
-          status: string
-          subsection: string | null
-          supersedes_id: string | null
-          tags: string[] | null
-          updated_at: string
-          updated_by: string | null
-          version_number: number
-        }
-        Insert: {
-          act_name?: string | null
-          chapter?: string | null
-          country_code: string
-          created_at?: string
-          created_by?: string | null
-          effective_from: string
-          effective_to?: string | null
-          full_reference_text?: string | null
-          id?: string
-          is_active?: boolean
-          jurisdiction?: string | null
-          legacy_id?: string | null
-          notes?: string | null
-          ref_code: string
-          ref_type?: string | null
-          ref_url?: string | null
-          regulation?: string | null
-          section?: string | null
-          short_title: string
-          source?: string | null
-          status?: string
-          subsection?: string | null
-          supersedes_id?: string | null
-          tags?: string[] | null
-          updated_at?: string
-          updated_by?: string | null
-          version_number?: number
-        }
-        Update: {
-          act_name?: string | null
-          chapter?: string | null
-          country_code?: string
-          created_at?: string
-          created_by?: string | null
-          effective_from?: string
-          effective_to?: string | null
-          full_reference_text?: string | null
-          id?: string
-          is_active?: boolean
-          jurisdiction?: string | null
-          legacy_id?: string | null
-          notes?: string | null
-          ref_code?: string
-          ref_type?: string | null
-          ref_url?: string | null
-          regulation?: string | null
-          section?: string | null
-          short_title?: string
-          source?: string | null
-          status?: string
-          subsection?: string | null
-          supersedes_id?: string | null
-          tags?: string[] | null
-          updated_at?: string
-          updated_by?: string | null
-          version_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "legal_reference_ref_type_fkey"
-            columns: ["ref_type"]
-            isOneToOne: false
-            referencedRelation: "legal_reference_type"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "legal_reference_supersedes_id_fkey"
-            columns: ["supersedes_id"]
-            isOneToOne: false
-            referencedRelation: "bn_legal_reference"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "legal_reference_supersedes_id_fkey"
-            columns: ["supersedes_id"]
-            isOneToOne: false
-            referencedRelation: "core_legal_reference"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "legal_reference_supersedes_id_fkey"
-            columns: ["supersedes_id"]
-            isOneToOne: false
-            referencedRelation: "legal_reference"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       legal_reference_type: {
         Row: {
           code: string
@@ -53484,82 +53496,6 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "module_doc_categories"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      module_legal_reference_mapping: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          entity_id: string
-          entity_table: string
-          entity_type: string | null
-          id: string
-          is_default: boolean
-          is_required: boolean
-          legal_reference_id: string
-          module_code: string
-          notes: string | null
-          role: string
-          updated_at: string
-          updated_by: string | null
-          usage_context: string | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          entity_id: string
-          entity_table: string
-          entity_type?: string | null
-          id?: string
-          is_default?: boolean
-          is_required?: boolean
-          legal_reference_id: string
-          module_code: string
-          notes?: string | null
-          role?: string
-          updated_at?: string
-          updated_by?: string | null
-          usage_context?: string | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          entity_id?: string
-          entity_table?: string
-          entity_type?: string | null
-          id?: string
-          is_default?: boolean
-          is_required?: boolean
-          legal_reference_id?: string
-          module_code?: string
-          notes?: string | null
-          role?: string
-          updated_at?: string
-          updated_by?: string | null
-          usage_context?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
-            columns: ["legal_reference_id"]
-            isOneToOne: false
-            referencedRelation: "bn_legal_reference"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
-            columns: ["legal_reference_id"]
-            isOneToOne: false
-            referencedRelation: "core_legal_reference"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
-            columns: ["legal_reference_id"]
-            isOneToOne: false
-            referencedRelation: "legal_reference"
             referencedColumns: ["id"]
           },
         ]
@@ -62940,6 +62876,101 @@ export type Database = {
       }
     }
     Views: {
+      bn_country_legal_ref: {
+        Row: {
+          applicable_products: string[] | null
+          country_code: string | null
+          created_at: string | null
+          created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
+          entered_at: string | null
+          entered_by: string | null
+          id: string | null
+          is_active: boolean | null
+          notes: string | null
+          ref_code: string | null
+          ref_section: string | null
+          ref_title: string | null
+          ref_url: string | null
+          supersedes_id: string | null
+          updated_at: string | null
+          updated_by: string | null
+          version_number: number | null
+        }
+        Insert: {
+          applicable_products?: string[] | null
+          country_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string | null
+          entered_by?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          ref_code?: string | null
+          ref_section?: string | null
+          ref_title?: string | null
+          ref_url?: string | null
+          supersedes_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          applicable_products?: string[] | null
+          country_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          entered_at?: string | null
+          entered_by?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          notes?: string | null
+          ref_code?: string | null
+          ref_section?: string | null
+          ref_title?: string | null
+          ref_url?: string | null
+          supersedes_id?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          version_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_legal_ref"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "bn_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "legal_reference"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bn_legal_reference: {
         Row: {
           act_name: string | null
@@ -63023,6 +63054,13 @@ export type Database = {
           version_number?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_legal_ref"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "legal_reference_supersedes_id_fkey"
             columns: ["supersedes_id"]
@@ -64032,195 +64070,6 @@ export type Database = {
           },
         ]
       }
-      core_legal_reference: {
-        Row: {
-          act_name: string | null
-          chapter: string | null
-          country_code: string | null
-          created_at: string | null
-          created_by: string | null
-          effective_from: string | null
-          effective_to: string | null
-          full_reference_text: string | null
-          id: string | null
-          is_active: boolean | null
-          jurisdiction_name: string | null
-          notes: string | null
-          ref_code: string | null
-          ref_type: string | null
-          ref_url: string | null
-          regulation: string | null
-          section: string | null
-          short_title: string | null
-          status: string | null
-          subsection: string | null
-          supersedes_id: string | null
-          tags: string[] | null
-          updated_at: string | null
-          updated_by: string | null
-          version_number: number | null
-        }
-        Insert: {
-          act_name?: string | null
-          chapter?: string | null
-          country_code?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          effective_from?: string | null
-          effective_to?: string | null
-          full_reference_text?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          jurisdiction_name?: string | null
-          notes?: string | null
-          ref_code?: string | null
-          ref_type?: string | null
-          ref_url?: string | null
-          regulation?: string | null
-          section?: string | null
-          short_title?: string | null
-          status?: string | null
-          subsection?: string | null
-          supersedes_id?: string | null
-          tags?: string[] | null
-          updated_at?: string | null
-          updated_by?: string | null
-          version_number?: number | null
-        }
-        Update: {
-          act_name?: string | null
-          chapter?: string | null
-          country_code?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          effective_from?: string | null
-          effective_to?: string | null
-          full_reference_text?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          jurisdiction_name?: string | null
-          notes?: string | null
-          ref_code?: string | null
-          ref_type?: string | null
-          ref_url?: string | null
-          regulation?: string | null
-          section?: string | null
-          short_title?: string | null
-          status?: string | null
-          subsection?: string | null
-          supersedes_id?: string | null
-          tags?: string[] | null
-          updated_at?: string | null
-          updated_by?: string | null
-          version_number?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "legal_reference_ref_type_fkey"
-            columns: ["ref_type"]
-            isOneToOne: false
-            referencedRelation: "legal_reference_type"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "legal_reference_supersedes_id_fkey"
-            columns: ["supersedes_id"]
-            isOneToOne: false
-            referencedRelation: "bn_legal_reference"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "legal_reference_supersedes_id_fkey"
-            columns: ["supersedes_id"]
-            isOneToOne: false
-            referencedRelation: "core_legal_reference"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "legal_reference_supersedes_id_fkey"
-            columns: ["supersedes_id"]
-            isOneToOne: false
-            referencedRelation: "legal_reference"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      core_module_legal_reference: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          entity_id: string | null
-          entity_table: string | null
-          entity_type: string | null
-          id: string | null
-          is_default: boolean | null
-          is_required: boolean | null
-          legal_reference_id: string | null
-          module_code: string | null
-          notes: string | null
-          role: string | null
-          updated_at: string | null
-          updated_by: string | null
-          usage_context: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          entity_id?: string | null
-          entity_table?: string | null
-          entity_type?: never
-          id?: string | null
-          is_default?: boolean | null
-          is_required?: boolean | null
-          legal_reference_id?: string | null
-          module_code?: string | null
-          notes?: string | null
-          role?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-          usage_context?: never
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          entity_id?: string | null
-          entity_table?: string | null
-          entity_type?: never
-          id?: string | null
-          is_default?: boolean | null
-          is_required?: boolean | null
-          legal_reference_id?: string | null
-          module_code?: string | null
-          notes?: string | null
-          role?: string | null
-          updated_at?: string | null
-          updated_by?: string | null
-          usage_context?: never
-        }
-        Relationships: [
-          {
-            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
-            columns: ["legal_reference_id"]
-            isOneToOne: false
-            referencedRelation: "bn_legal_reference"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
-            columns: ["legal_reference_id"]
-            isOneToOne: false
-            referencedRelation: "core_legal_reference"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
-            columns: ["legal_reference_id"]
-            isOneToOne: false
-            referencedRelation: "legal_reference"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       dashboard_v_active_alerts: {
         Row: {
           detail: string | null
@@ -64345,6 +64194,218 @@ export type Database = {
           total: number | null
         }
         Relationships: []
+      }
+      legal_reference: {
+        Row: {
+          act_name: string | null
+          applicable_products: string[] | null
+          chapter: string | null
+          country_code: string | null
+          created_at: string | null
+          created_by: string | null
+          effective_from: string | null
+          effective_to: string | null
+          full_reference_text: string | null
+          id: string | null
+          is_active: boolean | null
+          jurisdiction: string | null
+          legacy_id: string | null
+          notes: string | null
+          ref_code: string | null
+          ref_type: string | null
+          ref_url: string | null
+          regulation: string | null
+          section: string | null
+          short_title: string | null
+          source: string | null
+          status: string | null
+          subsection: string | null
+          supersedes_id: string | null
+          tags: string[] | null
+          updated_at: string | null
+          updated_by: string | null
+          version_number: number | null
+        }
+        Insert: {
+          act_name?: string | null
+          applicable_products?: string[] | null
+          chapter?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          full_reference_text?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          jurisdiction?: string | null
+          legacy_id?: string | null
+          notes?: string | null
+          ref_code?: string | null
+          ref_type?: string | null
+          ref_url?: string | null
+          regulation?: string | null
+          section?: string | null
+          short_title?: string | null
+          source?: string | null
+          status?: string | null
+          subsection?: string | null
+          supersedes_id?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          updated_by?: string | null
+          version_number?: number | null
+        }
+        Update: {
+          act_name?: string | null
+          applicable_products?: string[] | null
+          chapter?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          effective_from?: string | null
+          effective_to?: string | null
+          full_reference_text?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          jurisdiction?: string | null
+          legacy_id?: string | null
+          notes?: string | null
+          ref_code?: string | null
+          ref_type?: string | null
+          ref_url?: string | null
+          regulation?: string | null
+          section?: string | null
+          short_title?: string | null
+          source?: string | null
+          status?: string | null
+          subsection?: string | null
+          supersedes_id?: string | null
+          tags?: string[] | null
+          updated_at?: string | null
+          updated_by?: string | null
+          version_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legal_reference_ref_type_fkey"
+            columns: ["ref_type"]
+            isOneToOne: false
+            referencedRelation: "legal_reference_type"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_legal_ref"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "bn_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "legal_reference_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "legal_reference"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_legal_reference_mapping: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          entity_id: string | null
+          entity_table: string | null
+          entity_type: string | null
+          id: string | null
+          is_default: boolean | null
+          is_required: boolean | null
+          legal_reference_id: string | null
+          module_code: string | null
+          notes: string | null
+          role: string | null
+          updated_at: string | null
+          updated_by: string | null
+          usage_context: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          entity_id?: string | null
+          entity_table?: string | null
+          entity_type?: string | null
+          id?: string | null
+          is_default?: boolean | null
+          is_required?: boolean | null
+          legal_reference_id?: string | null
+          module_code?: string | null
+          notes?: string | null
+          role?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          usage_context?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          entity_id?: string | null
+          entity_table?: string | null
+          entity_type?: string | null
+          id?: string | null
+          is_default?: boolean | null
+          is_required?: boolean | null
+          legal_reference_id?: string | null
+          module_code?: string | null
+          notes?: string | null
+          role?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          usage_context?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_country_legal_ref"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "bn_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "core_legal_reference"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_legal_reference_mapping_legal_reference_id_fkey"
+            columns: ["legal_reference_id"]
+            isOneToOne: false
+            referencedRelation: "legal_reference"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       v_bn_config_lifecycle: {
         Row: {
