@@ -79,14 +79,30 @@ export async function updateLgCase(id: string, patch: LgCaseUpdate): Promise<LgC
 }
 
 export async function listLgReferenceValues(groupCode: string): Promise<LgReferenceValue[]> {
-  const { data, error } = await supabase
-    .from("lg_reference_value")
-    .select("*")
+  const db = supabase as any;
+  const { data: g } = await db
+    .from("bn_reference_group")
+    .select("id")
     .eq("group_code", groupCode)
-    .eq("is_active", true)
+    .eq("module_code", "LEGAL")
+    .maybeSingle();
+  if (!g) return [];
+  const { data, error } = await db
+    .from("bn_reference_value")
+    .select("id, value_code, value_label, sort_order, is_active, status")
+    .eq("group_id", g.id)
+    .eq("status", "ACTIVE")
     .order("sort_order", { ascending: true });
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    group_code: groupCode,
+    code: r.value_code,
+    label: r.value_label,
+    sort_order: r.sort_order,
+    is_active: r.is_active,
+    status: r.status,
+  }));
 }
 
 export async function listLgNotices(caseId?: string): Promise<LgNotice[]> {
