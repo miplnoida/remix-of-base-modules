@@ -1,0 +1,207 @@
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Play, Target, CheckCircle2, XCircle, MinusCircle, ArrowRight } from "lucide-react";
+import {
+  resolveRouting,
+  loadPrecedence,
+  type RoutingDecision,
+  type PrecedenceRuleType,
+} from "@/services/legal/lgRoutingService";
+
+const sb = supabase as any;
+const COUNTRY = "SKN";
+const NONE = "__none__";
+const SOURCES = ["COMPLIANCE_REFERRAL", "MANUAL_EMPLOYER", "MANUAL_IP", "LEGACY"];
+
+const RULE_LABELS: Record<PrecedenceRuleType, string> = {
+  STAGE_CASE_TYPE: "Stage + Case Type",
+  STAGE: "Stage only",
+  CASE_TYPE: "Case Type only",
+  SOURCE_CASE_TYPE: "Source + Case Type",
+  SOURCE: "Source only",
+  GLOBAL_DEFAULT: "Global Default",
+  FALLBACK: "Fallback",
+};
+
+export default function RoutingSimulator({
+  caseTypes,
+  stages,
+}: {
+  caseTypes: string[];
+  stages: string[];
+}) {
+  const [source, setSource] = useState<string>(NONE);
+  const [caseType, setCaseType] = useState<string>(NONE);
+  const [stage, setStage] = useState<string>(NONE);
+  const [country, setCountry] = useState<string>(COUNTRY);
+  const [result, setResult] = useState<RoutingDecision | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const precQ = useQuery({
+    queryKey: ["lg_routing_precedence_active", COUNTRY],
+    queryFn: () => loadPrecedence(COUNTRY),
+  });
+
+  const sortedTypes = useMemo(() => [...caseTypes].sort(), [caseTypes]);
+  const sortedStages = useMemo(() => [...stages].sort(), [stages]);
+
+  async function preview() {
+    setBusy(true);
+    try {
+      const dec = await resolveRouting({
+        source_code: source === NONE ? null : source,
+        case_type_code: caseType === NONE ? null : caseType,
+        stage_code: stage === NONE ? null : stage,
+      });
+      setResult(dec);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const precedence = precQ.data ?? [];
+  const matchedIdx = result ? precedence.findIndex((p) => p === result.matched_rule) : -1;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Target className="h-4 w-4" /> Routing Simulator
+        </CardTitle>
+        <CardDescription>
+          Test how a case would be routed before saving rule changes. See the matched rule and full evaluation trace.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+          <div>
+            <Label className="text-xs">Source</Label>
+            <Select value={source} onValueChange={setSource}>
+              <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Any" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>— Any —</SelectItem>
+                {SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Case Type</Label>
+            <Select value={caseType} onValueChange={setCaseType}>
+              <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Any" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>— Any —</SelectItem>
+                {sortedTypes.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Stage</Label>
+            <Select value={stage} onValueChange={setStage}>
+              <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Any" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE}>— Any —</SelectItem>
+                {sortedStages.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Country</Label>
+            <Select value={country} onValueChange={setCountry}>
+              <SelectTrigger className="h-9 mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="SKN">SKN</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <Button onClick={preview} disabled={busy} className="h-9">
+            <Play className="h-4 w-4 mr-2" />{busy ? "Resolving…" : "Preview Route"}
+          </Button>
+        </div>
+
+        {result && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-lg border bg-gradient-to-br from-muted/30 to-transparent p-4 space-y-3">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Resolved Route</div>
+              <div className="flex items-center gap-2">
+                <Badge
+                  variant={result.used_fallback ? "destructive" : "default"}
+                  className="text-xs"
+                >
+                  {RULE_LABELS[result.matched_rule]}
+                </Badge>
+                <span className="text-xs text-muted-foreground">{result.matched_rule_label}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Badge variant="secondary" className="font-mono">{result.workbasket_code}</Badge>
+                <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="font-medium">{result.team_code}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3 pt-2 text-xs">
+                <KV label="Strategy" value={result.assignment_strategy ?? "—"} />
+                <KV label="Priority" value={result.priority_code ?? "—"} />
+                <KV label="Auto-assign" value={result.auto_assign ? "Yes" : "No"} />
+                <KV label="Fallback" value={result.used_fallback ? "Yes" : "No"} />
+              </div>
+            </div>
+
+            <div className="rounded-lg border p-4 space-y-2">
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">Rule Evaluation Trace</div>
+              <ul className="space-y-1.5 text-sm">
+                {precedence.map((p, i) => {
+                  const state =
+                    matchedIdx === -1
+                      ? "skipped"
+                      : i < matchedIdx
+                      ? "nomatch"
+                      : i === matchedIdx
+                      ? "match"
+                      : "skipped";
+                  return (
+                    <li key={p} className="flex items-center gap-2">
+                      {state === "match" ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      ) : state === "nomatch" ? (
+                        <XCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                      ) : (
+                        <MinusCircle className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                      )}
+                      <span
+                        className={
+                          state === "match"
+                            ? "font-medium"
+                            : state === "skipped"
+                            ? "text-muted-foreground/70"
+                            : "text-muted-foreground"
+                        }
+                      >
+                        {RULE_LABELS[p]}
+                      </span>
+                      <span className="ml-auto text-[10px] uppercase tracking-wide text-muted-foreground">
+                        {state === "match" ? "matched" : state === "nomatch" ? "no match" : "not evaluated"}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function KV({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-muted-foreground">{label}</div>
+      <div className="font-mono">{value}</div>
+    </div>
+  );
+}
