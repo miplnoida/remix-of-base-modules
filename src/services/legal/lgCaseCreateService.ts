@@ -268,6 +268,96 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
     }
   }
 
+  // 7) Routing: workbasket task + (optional) auto officer assignment.
+  // Routing policy comes from legal_complainant_settings; we never hard-code an officer.
+  let routedWorkbasket: string | null = null;
+  let routedOfficerId: string | null = null;
+  try {
+    const sb = (supabase as any);
+    const { data: policy } = await sb
+      .from("legal_complainant_settings")
+      .select("default_workbasket_code, default_team_code, default_assignment_strategy, auto_assign_on_referral, auto_assign_on_manual_case")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Stage → workbasket override map
+    const stage = (created.current_stage_code || "").toUpperCase();
+    const stageBasket =
+      stage.includes("HEARING")    ? "LEGAL_HEARING_PREPARATION" :
+      stage.includes("SETTLEMENT") ? "LEGAL_SETTLEMENT_REVIEW"   :
+      stage.includes("FEE")        ? "LEGAL_FEE_POSTING"         :
+      stage.includes("ENFORCE")    ? "LEGAL_ENFORCEMENT"         :
+      input.source_mode === "COMPLIANCE_REFERRAL" ? "LEGAL_REFERRAL_REVIEW" :
+      null;
+    routedWorkbasket = stageBasket || policy?.default_workbasket_code || "LEGAL_CASE_ASSIGNMENT";
+
+    // Already-picked officer wins
+    routedOfficerId = input.assigned_legal_officer_id ?? null;
+
+    // Auto-assignment per strategy + source flags
+    const autoFlag = input.source_mode === "COMPLIANCE_REFERRAL"
+      ? policy?.auto_assign_on_referral
+      : policy?.auto_assign_on_manual_case;
+    const strategy = (policy?.default_assignment_strategy || "WORKBASKET_ONLY").toUpperCase();
+
+    if (!routedOfficerId && autoFlag && strategy !== "WORKBASKET_ONLY" && strategy !== "MANUAL_ASSIGNMENT") {
+      // Eligible officer pool
+      const LEGAL_ROLES = ["LEGAL_OFFICER", "SENIOR_LEGAL_OFFICER", "LEGAL_MANAGER", "LegalOfficer"];
+      const { data: roleRows } = await sb
+        .from("user_roles").select("user_id").in("role", LEGAL_ROLES);
+      const eligible: string[] = Array.from(new Set((roleRows ?? []).map((r: any) => r.user_id as string)));
+
+      if (eligible.length) {
+        if (strategy === "BY_WORKLOAD") {
+          const { data: openCases } = await sb
+            .from("lg_case")
+            .select("assigned_legal_officer_id")
+            .in("assigned_legal_officer_id", eligible)
+            .neq("status_code", "CLOSED");
+          const load: Record<string, number> = {};
+          eligible.forEach((u) => { load[u] = 0; });
+          (openCases ?? []).forEach((c: any) => {
+            if (c.assigned_legal_officer_id) load[c.assigned_legal_officer_id] = (load[c.assigned_legal_officer_id] || 0) + 1;
+          });
+          routedOfficerId = eligible.sort((a, b) => (load[a] || 0) - (load[b] || 0))[0];
+        } else {
+          // ROUND_ROBIN / BY_CASE_TYPE / BY_PRIORITY / BY_STAGE → use last-assigned rotation
+          const { data: last } = await sb
+            .from("lg_case_assignment")
+            .select("assigned_to_user_id")
+            .not("assigned_to_user_id", "is", null)
+            .order("assigned_at", { ascending: false })
+            .limit(1);
+          const lastId = last?.[0]?.assigned_to_user_id || null;
+          const idx = lastId ? eligible.indexOf(lastId) : -1;
+          routedOfficerId = eligible[(idx + 1) % eligible.length];
+        }
+      }
+    }
+
+    // Persist assignment row (workbasket always, officer optional)
+    await sb.from("lg_case_assignment").insert({
+      lg_case_id: created.id,
+      assigned_to_user_id: routedOfficerId,
+      assigned_team_code: policy?.default_team_code || null,
+      assignment_role: routedWorkbasket,
+      assigned_by: input.created_by ?? null,
+      is_current: true,
+      reason: routedOfficerId
+        ? `Auto-assigned via ${strategy}`
+        : `Routed to workbasket ${routedWorkbasket}`,
+    });
+
+    // Mirror officer onto lg_case header when assigned
+    if (routedOfficerId && routedOfficerId !== input.assigned_legal_officer_id) {
+      await sb.from("lg_case").update({ assigned_legal_officer_id: routedOfficerId }).eq("id", created.id);
+    }
+  } catch (err) {
+    console.warn("[lg-case-create] routing failed (non-fatal)", err);
+  }
+
+
   // 7) Audit
   await logLgActivity({
     lg_case_id: created.id,

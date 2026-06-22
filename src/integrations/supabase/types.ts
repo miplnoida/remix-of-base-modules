@@ -50715,12 +50715,21 @@ export type Database = {
       legal_complainant_settings: {
         Row: {
           address: string | null
+          allow_manual_override: boolean
+          auto_assign_on_manual_case: boolean
+          auto_assign_on_referral: boolean
           contact_person: string | null
           created_at: string | null
           created_by: string | null
+          default_assignment_strategy: string
           default_officer: string | null
           default_priority: string | null
+          default_priority_code: string
+          default_team_code: string | null
+          default_workbasket_code: string | null
+          department_name: string | null
           email: string
+          escalate_unassigned_days: number
           id: string
           name: string
           phone: string | null
@@ -50728,12 +50737,21 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          allow_manual_override?: boolean
+          auto_assign_on_manual_case?: boolean
+          auto_assign_on_referral?: boolean
           contact_person?: string | null
           created_at?: string | null
           created_by?: string | null
+          default_assignment_strategy?: string
           default_officer?: string | null
           default_priority?: string | null
+          default_priority_code?: string
+          default_team_code?: string | null
+          default_workbasket_code?: string | null
+          department_name?: string | null
           email: string
+          escalate_unassigned_days?: number
           id?: string
           name: string
           phone?: string | null
@@ -50741,12 +50759,21 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          allow_manual_override?: boolean
+          auto_assign_on_manual_case?: boolean
+          auto_assign_on_referral?: boolean
           contact_person?: string | null
           created_at?: string | null
           created_by?: string | null
+          default_assignment_strategy?: string
           default_officer?: string | null
           default_priority?: string | null
+          default_priority_code?: string
+          default_team_code?: string | null
+          default_workbasket_code?: string | null
+          department_name?: string | null
           email?: string
+          escalate_unassigned_days?: number
           id?: string
           name?: string
           phone?: string | null
