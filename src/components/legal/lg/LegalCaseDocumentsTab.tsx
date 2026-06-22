@@ -213,6 +213,17 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
         </Alert>
       )}
 
+      {hiddenConfidentialCount > 0 && (
+        <Alert>
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>Confidential documents hidden</AlertTitle>
+          <AlertDescription>
+            {hiddenConfidentialCount} document{hiddenConfidentialCount === 1 ? " is" : "s are"} marked confidential
+            and require the <span className="font-mono">LEGAL_DOCUMENT_CONFIDENTIAL_VIEW</span> permission to view.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start gap-3">
@@ -245,6 +256,12 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
 
       <LinkDocumentDialog open={linkOpen} onOpenChange={setLinkOpen} lgCaseId={lgCaseId} />
       <UploadCaseDocumentDialog open={uploadOpen} onOpenChange={setUploadOpen} lgCaseId={lgCaseId} currentStageCode={currentStageCode} />
+      <DocumentVersionHistoryDialog
+        open={!!versionsFor}
+        onOpenChange={(o) => { if (!o) setVersionsFor(null); }}
+        dmsDocumentId={versionsFor?.dmsId ?? null}
+        title={versionsFor?.title ?? null}
+      />
     </div>
   );
 }
