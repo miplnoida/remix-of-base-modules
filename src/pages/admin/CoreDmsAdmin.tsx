@@ -295,7 +295,6 @@ export default function CoreDmsAdmin() {
         title="Central DMS Administration"
         subtitle="Configure the central Document Management System used across modules"
         breadcrumbs={[{ label: "Admin" }, { label: "Central DMS" }]}
-        icon={<ServerCog className="h-5 w-5" />}
       />
       <Tabs defaultValue="providers">
         <TabsList>
