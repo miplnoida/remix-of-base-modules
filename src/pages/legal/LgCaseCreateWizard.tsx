@@ -415,14 +415,14 @@ export default function LgCaseCreateWizard() {
                   <Label>Default Task to Create</Label>
                   <div className="grid md:grid-cols-3 gap-2">
                     <Select
-                      value={form.default_task?.task_type_code ?? ""}
-                      onValueChange={(v) => set("default_task", v
+                      value={form.default_task?.task_type_code ?? "__NONE__"}
+                      onValueChange={(v) => set("default_task", v && v !== "__NONE__"
                         ? { task_type_code: v, title: taskTypes.find((t) => t.code === v)?.label ?? v }
                         : null)}
                     >
                       <SelectTrigger><SelectValue placeholder="No default task" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">(none)</SelectItem>
+                        <SelectItem value="__NONE__">(none)</SelectItem>
                         {taskTypes.map((t) => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
