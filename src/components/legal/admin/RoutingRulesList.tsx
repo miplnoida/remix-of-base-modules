@@ -203,14 +203,18 @@ export default function RoutingRulesList() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"ALL" | RuleType>("ALL");
   const [activeOnly, setActiveOnly] = useState(false);
-  const [invalidOnly, setInvalidOnly] = useState(false);
+  const [severityFilter, setSeverityFilter] = useState<"ALL" | "error" | "warn" | "info" | "issues">("ALL");
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     return rules.filter((r) => {
       if (typeFilter !== "ALL" && r.type !== typeFilter) return false;
       if (activeOnly && !r.is_active) return false;
-      if (invalidOnly && validate(r).ok) return false;
+      const v = validate(r);
+      if (severityFilter === "issues" && v.ok) return false;
+      if (severityFilter === "error" && v.level !== "error") return false;
+      if (severityFilter === "warn" && v.level !== "warn") return false;
+      if (severityFilter === "info" && v.level !== "info") return false;
       if (!s) return true;
       const hay = [r.stage_code, r.case_type_code, r.source_code, r.workbasket_code, r.team_code, ruleName(r)]
         .filter(Boolean)
@@ -218,9 +222,18 @@ export default function RoutingRulesList() {
         .toLowerCase();
       return hay.includes(s);
     });
-  }, [rules, search, typeFilter, activeOnly, invalidOnly, validate]);
+  }, [rules, search, typeFilter, activeOnly, severityFilter, validate]);
 
-  const invalidCount = useMemo(() => rules.filter((r) => !validate(r).ok).length, [rules, validate]);
+  const counts = useMemo(() => {
+    let error = 0, warn = 0, info = 0;
+    for (const r of rules) {
+      const v = validate(r);
+      if (v.level === "error") error++;
+      else if (v.level === "warn") warn++;
+      else if (v.level === "info") info++;
+    }
+    return { error, warn, info, ok: rules.length - error - warn - info };
+  }, [rules, validate]);
 
   async function patch(r: UnifiedRule, fields: Partial<UnifiedRule>) {
     const { error } = await sb.from(r.table).update(fields).eq("id", r.id);
