@@ -229,13 +229,24 @@ export default function LegalAdminComplainant() {
             </div>
 
             <div className="space-y-2">
-              <Label>Default Team (optional)</Label>
-              <Input
-                value={data.defaultTeamCode}
-                onChange={(e) => setData({ ...data, defaultTeamCode: e.target.value })}
-                placeholder="e.g. LEGAL_TEAM_A"
+              <Label>Default Team</Label>
+              <Select
+                value={data.defaultTeamCode || "GENERAL_LEGAL"}
+                onValueChange={(v) => setData({ ...data, defaultTeamCode: v })}
                 disabled={!canEditRouting}
-              />
+              >
+                <SelectTrigger><SelectValue placeholder="Select team…" /></SelectTrigger>
+                <SelectContent>
+                  {teams.map((t) => (
+                    <SelectItem key={t.team_code} value={t.team_code}>
+                      {t.team_name}{t.is_default ? " (default)" : ""}{!t.is_active ? " — inactive" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Configure team members in <Link to="/legal/admin/teams" className="text-primary underline">Teams &amp; Staff</Link>.
+              </p>
             </div>
 
             <div className="space-y-2">
