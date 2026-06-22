@@ -9,7 +9,10 @@ export const legalMenuItems = [
     icon: Scale,
     subItems: [
       { title: "Legal Dashboard",    url: "/legal",                icon: Scale,         description: "Overview of legal cases and enforcement" },
-      { title: "Case Intake",        url: "/legal/case-intake",    icon: FileText,      description: "Register new legal cases" },
+      { title: "Cases (LG)",         url: "/legal/lg/cases",       icon: FolderOpen,    description: "All legal cases — search, filter, open" },
+      { title: "New Legal Case",     url: "/legal/lg/cases/new",   icon: FileText,      description: "Create a new legal case (wizard)" },
+      { title: "Hearings Calendar",  url: "/legal/lg/hearings",    icon: Gavel,         description: "Upcoming hearings across all cases" },
+      { title: "Case Intake (legacy)", url: "/legal/case-intake",  icon: FileText,      description: "Legacy intake screen" },
       { title: "Case Tracking",      url: "/legal/case-tracking",  icon: Search,        description: "Monitor case progress and status" },
       { title: "Document Center",    url: "/legal/documents",      icon: FolderOpen,    description: "Manage legal documents and evidence" },
       { title: "Notice Generation",  url: "/legal/notices",        icon: FileText,      description: "Generate legal notices and documents" },
