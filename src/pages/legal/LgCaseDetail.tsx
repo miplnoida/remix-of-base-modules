@@ -603,6 +603,11 @@ const LgCaseDetail: React.FC = () => {
             </Card>
           </TabsContent>
 
+          {/* Unified History */}
+          <TabsContent value="history">
+            {id && <CaseHistoryTimeline lgCaseId={id} />}
+          </TabsContent>
+
           {/* Activity */}
           <TabsContent value="activity">
             <Card><CardHeader><CardTitle>Audit Trail</CardTitle><CardDescription>Every critical Legal action is recorded here.</CardDescription></CardHeader><CardContent>
