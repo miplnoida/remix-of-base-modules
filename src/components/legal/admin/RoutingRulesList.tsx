@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Trash2, ArrowRight, Layers, Info } from "lucide-react";
+import { Plus, Search, Trash2, ArrowRight, Layers, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 const sb = supabase as any;
@@ -69,6 +69,19 @@ export default function RoutingRulesList() {
     queryKey: ["lg_routing_source_map", COUNTRY],
     queryFn: async () => (await sb.from("lg_routing_source_map").select("*").eq("country_code", COUNTRY)).data ?? [],
   });
+  const allowedCtQ = useQuery({
+    queryKey: ["lg_case_source_case_type_all", COUNTRY],
+    queryFn: async () =>
+      (await sb.from("lg_case_source_case_type").select("source_code,case_type_code,is_active").eq("country_code", COUNTRY)).data ?? [],
+  });
+  const allowedStQ = useQuery({
+    queryKey: ["lg_case_source_stage_all", COUNTRY],
+    queryFn: async () =>
+      (await sb
+        .from("lg_case_source_stage")
+        .select("source_code,stage_code,allowed_as_initial_stage,allowed_as_transition_stage,is_active")
+        .eq("country_code", COUNTRY)).data ?? [],
+  });
 
   const rules: UnifiedRule[] = useMemo(() => {
     const out: UnifiedRule[] = [];
@@ -77,6 +90,46 @@ export default function RoutingRulesList() {
     for (const r of sourceRowsQ.data ?? []) out.push({ id: r.id, type: "SOURCE", table: "lg_routing_source_map", ...r });
     return out;
   }, [stageRowsQ.data, typeRowsQ.data, sourceRowsQ.data]);
+
+  const validate = useMemo(() => {
+    const cts = ((allowedCtQ.data ?? []) as any[]).filter((x) => x.is_active);
+    const sts = ((allowedStQ.data ?? []) as any[]).filter(
+      (x) => x.is_active && (x.allowed_as_initial_stage || x.allowed_as_transition_stage),
+    );
+    const ctBySrc = (src: string) => cts.filter((x) => x.source_code === src).map((x) => x.case_type_code);
+    const stBySrc = (src: string) => sts.filter((x) => x.source_code === src).map((x) => x.stage_code);
+    const ctAny = (ct: string) => cts.some((x) => x.case_type_code === ct);
+    const stAny = (st: string) => sts.some((x) => x.stage_code === st);
+
+    return (r: UnifiedRule): { ok: boolean; level: "ok" | "warn" | "error"; messages: string[] } => {
+      const msgs: string[] = [];
+      let level: "ok" | "warn" | "error" = "ok";
+      if (r.type === "SOURCE" && r.source_code) {
+        const allowedCts = ctBySrc(r.source_code);
+        if (allowedCts.length === 0) {
+          msgs.push("Source has no allowed case types configured");
+          level = "warn";
+        }
+        if (r.case_type_code && !allowedCts.includes(r.case_type_code)) {
+          msgs.push(`Case type "${r.case_type_code}" is not allowed for source "${r.source_code}"`);
+          level = "error";
+        }
+      }
+      if (r.type === "STAGE" && r.stage_code && !stAny(r.stage_code)) {
+        msgs.push(`Stage "${r.stage_code}" is not enabled for any source`);
+        level = level === "error" ? "error" : "warn";
+      }
+      if (r.type === "STAGE" && r.case_type_code && !ctAny(r.case_type_code)) {
+        msgs.push(`Case type "${r.case_type_code}" is not enabled for any source`);
+        level = level === "error" ? "error" : "warn";
+      }
+      if (r.type === "CASE_TYPE" && r.case_type_code && !ctAny(r.case_type_code)) {
+        msgs.push(`Case type "${r.case_type_code}" is not enabled for any source`);
+        level = level === "error" ? "error" : "warn";
+      }
+      return { ok: msgs.length === 0, level, messages: msgs };
+    };
+  }, [allowedCtQ.data, allowedStQ.data]);
 
   const wbLabel = (c?: string | null) => (c ? (workbaskets as any[]).find((w) => w.value_code === c)?.value_label ?? c : "—");
   const teamLabel = (c?: string | null) => (c ? activeTeams.find((t: any) => t.team_code === c)?.team_name ?? c : "Default team");
@@ -101,12 +154,14 @@ export default function RoutingRulesList() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"ALL" | RuleType>("ALL");
   const [activeOnly, setActiveOnly] = useState(false);
+  const [invalidOnly, setInvalidOnly] = useState(false);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
     return rules.filter((r) => {
       if (typeFilter !== "ALL" && r.type !== typeFilter) return false;
       if (activeOnly && !r.is_active) return false;
+      if (invalidOnly && validate(r).ok) return false;
       if (!s) return true;
       const hay = [r.stage_code, r.case_type_code, r.source_code, r.workbasket_code, r.team_code, ruleName(r)]
         .filter(Boolean)
@@ -114,7 +169,9 @@ export default function RoutingRulesList() {
         .toLowerCase();
       return hay.includes(s);
     });
-  }, [rules, search, typeFilter, activeOnly]);
+  }, [rules, search, typeFilter, activeOnly, invalidOnly, validate]);
+
+  const invalidCount = useMemo(() => rules.filter((r) => !validate(r).ok).length, [rules, validate]);
 
   async function patch(r: UnifiedRule, fields: Partial<UnifiedRule>) {
     const { error } = await sb.from(r.table).update(fields).eq("id", r.id);
@@ -178,7 +235,27 @@ export default function RoutingRulesList() {
             <Switch checked={activeOnly} onCheckedChange={setActiveOnly} />
             <span className="text-muted-foreground">Active only</span>
           </label>
+          <label className="flex items-center gap-2 text-sm">
+            <Switch checked={invalidOnly} onCheckedChange={setInvalidOnly} />
+            <span className="text-muted-foreground">Issues only</span>
+          </label>
         </div>
+
+        {invalidCount > 0 ? (
+          <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>
+              <span className="font-semibold">{invalidCount}</span> rule{invalidCount === 1 ? "" : "s"} reference a case
+              type or stage that isn't allowed by the matching Source configuration. Expand a flagged rule to see details
+              and fix it.
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>All routing rules use case types and stages permitted by their Source configuration.</span>
+          </div>
+        )}
 
         {filtered.length === 0 ? (
           <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
@@ -186,11 +263,15 @@ export default function RoutingRulesList() {
           </div>
         ) : (
           <Accordion type="multiple" className="space-y-2">
-            {filtered.map((r) => (
+            {filtered.map((r) => {
+              const v = validate(r);
+              return (
               <AccordionItem
                 key={`${r.type}-${r.id}`}
                 value={`${r.type}-${r.id}`}
-                className="rounded-md border bg-card data-[state=open]:shadow-sm"
+                className={`rounded-md border bg-card data-[state=open]:shadow-sm ${
+                  v.level === "error" ? "border-destructive/40" : v.level === "warn" ? "border-amber-300" : ""
+                }`}
               >
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
                   <div className="flex flex-1 flex-wrap items-center gap-3 text-left">
@@ -214,6 +295,19 @@ export default function RoutingRulesList() {
                       <ArrowRight className="h-3 w-3 text-muted-foreground" />
                       <span>{teamLabel(r.team_code)}</span>
                     </div>
+                    {!v.ok && (
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
+                          v.level === "error"
+                            ? "bg-destructive/10 text-destructive border-destructive/30"
+                            : "bg-amber-50 text-amber-800 border-amber-200"
+                        }`}
+                        title={v.messages.join(" • ")}
+                      >
+                        <AlertTriangle className="h-3 w-3" />
+                        {v.level === "error" ? "Invalid" : "Check"}
+                      </span>
+                    )}
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full border ${
                         r.is_active
@@ -226,6 +320,28 @@ export default function RoutingRulesList() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 pt-0">
+                  {!v.ok && (
+                    <div
+                      className={`mt-2 mb-3 rounded-md border px-3 py-2 text-xs ${
+                        v.level === "error"
+                          ? "border-destructive/40 bg-destructive/5 text-destructive"
+                          : "border-amber-200 bg-amber-50 text-amber-900"
+                      }`}
+                    >
+                      <div className="font-semibold flex items-center gap-1.5 mb-1">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        {v.level === "error" ? "Rule conflicts with Source configuration" : "Rule may not be reachable"}
+                      </div>
+                      <ul className="list-disc pl-5 space-y-0.5">
+                        {v.messages.map((m, i) => (
+                          <li key={i}>{m}</li>
+                        ))}
+                      </ul>
+                      <div className="mt-1.5 text-[11px] opacity-80">
+                        Update the Source's allowed case types/stages on the <b>Sources</b> tab, or change this rule below.
+                      </div>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t">
                     <div>
                       <Label className="text-xs">Workbasket</Label>
@@ -338,7 +454,8 @@ export default function RoutingRulesList() {
                   </div>
                 </AccordionContent>
               </AccordionItem>
-            ))}
+              );
+            })}
           </Accordion>
         )}
       </CardContent>
