@@ -53552,6 +53552,45 @@ export type Database = {
         }
         Relationships: []
       }
+      lg_routing_precedence: {
+        Row: {
+          country_code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          priority_order: number
+          rule_type: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          priority_order: number
+          rule_type: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          priority_order?: number
+          rule_type?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       lg_routing_source_map: {
         Row: {
           assignment_strategy: string | null
