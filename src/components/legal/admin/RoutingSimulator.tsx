@@ -133,7 +133,7 @@ export default function RoutingSimulator({
               <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Any" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE}>— Any —</SelectItem>
-                {sortedStages.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {stageOptions.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
