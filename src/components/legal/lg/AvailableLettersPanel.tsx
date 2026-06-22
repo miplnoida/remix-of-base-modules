@@ -6,7 +6,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, FileText, Loader2, CheckCircle2, Send } from "lucide-react";
 import { useStageTemplates, useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { coreTemplateDispatcherService } from "@/services/coreTemplateDispatcherService";
-import { coreDmsService } from "@/services/core/coreDmsService";
 import { useLgTokenContext } from "@/hooks/legal/useLgTemplates";
 import { useUserCode } from "@/hooks/useUserCode";
 import { toast } from "sonner";
@@ -92,33 +91,21 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
         generated_by: userCode ?? "SYSTEM",
         case_stage_code: stage,
         case_type_code: caseTypeCode ?? undefined,
+        // Tell the dispatcher to auto-upload & link this letter into DMS.
+        legal_link: {
+          lg_case_id: caseId,
+          document_category_code: "CORRESPONDENCE",
+          document_type_code: t.code || null,
+          linked_stage_code: stage || null,
+          title: `${t.name}`,
+          confidential: false,
+          court_filed: false,
+        } as any,
       });
       toast.success(`Generated ${res.reference_no}`);
-
-      // Auto-link generated letter into DMS + lg_document_link so it
-      // appears in the case Documents tab (idempotent).
-      try {
-        if (res.id) {
-          await coreDmsService.linkGeneratedToLegal({
-            generated_document_id: res.id,
-            user_code: userCode ?? "SYSTEM",
-            link: {
-              module_code: "LEGAL",
-              lg_case_id: caseId,
-              document_category_code: "CORRESPONDENCE",
-              document_type_code: t.code || null,
-              linked_stage_code: stage || null,
-              title: `${t.name} — ${res.reference_no}`,
-              confidential: false,
-              court_filed: false,
-            },
-          });
-        }
-      } catch (linkErr: any) {
-        // Non-blocking: letter is generated even if DMS link fails.
-        console.warn("[Legal] auto-link of generated letter failed:", linkErr?.message);
+      if (res.dms_upload_error) {
+        toast.warning(`Letter saved, but DMS link failed: ${res.dms_upload_error}`);
       }
-
       qc.invalidateQueries({ queryKey: ["lg_generated_letters", caseId, stage] });
       qc.invalidateQueries({ queryKey: ["lg_missing_required", caseId, stage] });
       qc.invalidateQueries({ queryKey: ["lg_document_link", caseId] });
