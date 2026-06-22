@@ -1,23 +1,22 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Play, Target, CheckCircle2, XCircle, MinusCircle, ArrowRight } from "lucide-react";
+import { Play, Target, CheckCircle2, XCircle, MinusCircle, ArrowRight, ShieldCheck, ShieldX } from "lucide-react";
 import {
   resolveRouting,
   loadPrecedence,
   type RoutingDecision,
   type PrecedenceRuleType,
 } from "@/services/legal/lgRoutingService";
+import { checkCaseCreation, type CaseCreationCheck } from "@/services/legal/lgCaseSourceConfigService";
+import { useLgSources, useLgSourceAllowance } from "@/hooks/legal/useLgCaseSourceConfig";
 
-const sb = supabase as any;
 const COUNTRY = "SKN";
 const NONE = "__none__";
-const SOURCES = ["COMPLIANCE_REFERRAL", "MANUAL_EMPLOYER", "MANUAL_IP", "LEGACY"];
 
 const RULE_LABELS: Record<PrecedenceRuleType, string> = {
   STAGE_CASE_TYPE: "Stage + Case Type",
