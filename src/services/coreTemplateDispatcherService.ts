@@ -149,6 +149,34 @@ export const coreTemplateDispatcherService = {
       );
     }
 
+    // Auto-upload to DMS for Legal documents (HTML body) when caller provided a legal_link.
+    let dms_document_id: string | null = null;
+    let dms_url: string | null = null;
+    let legal_link_id: string | null = null;
+    let dms_upload_error: string | null = null;
+    const shouldUpload =
+      !input.skip_dms_upload &&
+      input.module_code === "LEGAL" &&
+      input.legal_link &&
+      input.legal_link.lg_case_id;
+    if (shouldUpload) {
+      try {
+        const up = await coreDmsService.uploadGenerated({
+          generated_document_id: data.id,
+          user_code: input.generated_by || "SYSTEM",
+          category_id: "LEGAL",
+          link: { module_code: "LEGAL", ...(input.legal_link as any) },
+        });
+        dms_document_id = up.dms_document_id ?? null;
+        dms_url = up.dms_url ?? null;
+        legal_link_id = up.link_id ?? null;
+      } catch (e: any) {
+        dms_upload_error = String(e?.message || e);
+        // Non-fatal: dispatch still succeeds; DMS row marked FAILED by edge function.
+        console.error("[coreTemplateDispatcher] DMS auto-upload failed", e);
+      }
+    }
+
     return {
       id: data.id,
       reference_no: data.reference_no,
@@ -156,6 +184,10 @@ export const coreTemplateDispatcherService = {
       delivery_status,
       content_hash,
       generated_html: body,
+      dms_document_id,
+      dms_url,
+      legal_link_id,
+      dms_upload_error,
     };
   },
 
