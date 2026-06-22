@@ -39,6 +39,7 @@ import CaseFeesTab from "@/components/legal/lg/CaseFeesTab";
 import LegalCaseDocumentsTab from "@/components/legal/lg/LegalCaseDocumentsTab";
 import { AvailableLettersPanel } from "@/components/legal/lg/AvailableLettersPanel";
 import { CaseHistoryTimeline } from "@/components/legal/lg/CaseHistoryTimeline";
+import AssignmentHistoryPanel from "@/components/legal/AssignmentHistoryPanel";
 import { useMissingRequiredForCase } from "@/hooks/legal/useLgStageTemplates";
 import { autoApplyForEvent } from "@/services/legal/lgFeeEngineService";
 
@@ -604,7 +605,8 @@ const LgCaseDetail: React.FC = () => {
           </TabsContent>
 
           {/* Unified History */}
-          <TabsContent value="history">
+          <TabsContent value="history" className="space-y-4">
+            {id && <AssignmentHistoryPanel caseId={id} />}
             {id && <CaseHistoryTimeline lgCaseId={id} />}
           </TabsContent>
 

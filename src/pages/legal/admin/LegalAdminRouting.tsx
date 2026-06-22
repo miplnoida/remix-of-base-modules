@@ -180,6 +180,9 @@ export default function LegalAdminRouting() {
           <Button asChild variant="outline" size="sm">
             <Link to="/legal/admin/teams"><Users className="h-4 w-4 mr-2" />Teams</Link>
           </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/legal/admin/staff"><Users className="h-4 w-4 mr-2" />Staff</Link>
+          </Button>
         </div>
       </div>
 

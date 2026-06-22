@@ -726,6 +726,7 @@ const LegalTemplateEditor = lazy(() => import('@/pages/legal/admin/LegalTemplate
 const LegalAdminCodeSets = lazy(() => import('@/pages/legal/admin/LegalAdminCodeSets'));
 const LegalAdminComplainant = lazy(() => import('@/pages/legal/admin/LegalAdminComplainant'));
 const LegalAdminTeams = lazy(() => import('@/pages/legal/admin/LegalAdminTeams'));
+const LegalAdminStaff = lazy(() => import('@/pages/legal/admin/LegalAdminStaff'));
 const LegalAdminRouting = lazy(() => import('@/pages/legal/admin/LegalAdminRouting'));
 const LegalReferenceLibrary = lazy(() => import('@/pages/legal/admin/LegalReferenceLibrary'));
 const LegalReferenceVerification = lazy(() => import('@/pages/legal/admin/LegalReferenceVerification'));
@@ -1807,6 +1808,7 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/code-sets" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminCodeSets /></Suspense>} />
       <Route path="/legal/admin/complainant" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminComplainant /></Suspense>} />
       <Route path="/legal/admin/teams" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminTeams /></Suspense>} />
+      <Route path="/legal/admin/staff" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminStaff /></Suspense>} />
       <Route path="/legal/admin/legal-references" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceLibrary /></Suspense>} />
       <Route path="/legal/admin/legal-references/verification" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceVerification /></Suspense>} />
       <Route path="/legal/admin/stage-template-mapping" element={<Suspense fallback={<div>Loading...</div>}><LegalStageTemplateMapping /></Suspense>} />
