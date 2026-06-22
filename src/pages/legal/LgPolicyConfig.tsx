@@ -64,16 +64,35 @@ export default function LgPolicyConfig() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <ShieldCheck className="h-6 w-6" /> Legal Department Configuration
+              <ShieldCheck className="h-6 w-6" /> Workflow &amp; Stage Rules
             </h1>
             <p className="text-sm text-muted-foreground">
-              Legal uses common Security roles. Map each Security role to a Legal role-type, then configure per-action approval policies.
+              Use this screen to decide <strong>what</strong> actions are allowed at each stage,
+              <strong> who prepares</strong> them, and <strong>who must approve</strong> them.
             </p>
           </div>
-          <Button variant="outline" onClick={() => navigate("/legal/lg")}>
-            <ArrowLeft className="h-4 w-4 mr-1" /> Back to Legal
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/legal/admin/routing"><GitBranch className="h-4 w-4 mr-1" /> Routing &amp; Assignment</Link>
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/legal/lg")}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Back to Legal
+            </Button>
+          </div>
         </div>
+
+        <div className="rounded-md border border-blue-200 bg-blue-50/60 p-3 text-sm text-blue-900 flex items-start gap-2">
+          <Info className="h-4 w-4 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <span className="font-medium">Workflow = what can happen here. Approval = who must approve the action.</span>{" "}
+            Destination, team, workbasket and assignment strategy are configured separately in{" "}
+            <Link to="/legal/admin/routing" className="underline underline-offset-2 font-medium">
+              Routing &amp; Assignment
+            </Link>
+            .
+          </div>
+        </div>
+
 
         <Tabs defaultValue="mapping">
           <TabsList>
