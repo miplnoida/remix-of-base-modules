@@ -373,35 +373,16 @@ const LgCaseDetail: React.FC = () => {
 
           {/* Documents */}
           <TabsContent value="documents">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div><CardTitle>Linked Documents</CardTitle><CardDescription>References only — files live in the central Document module.</CardDescription></div>
-                  <Button size="sm" onClick={() => setDocOpen(true)} disabled={!access.can("linkDocument")} title={!access.can("linkDocument") ? "Read-only role" : undefined}>
-                    <Plus className="h-4 w-4 mr-1" /> Link Document
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {documents.data?.length ? (
-                  <div className="space-y-2">
-                    {documents.data.map((d: any) => (
-                      <div key={d.id} className="border rounded p-3 flex justify-between text-sm">
-                        <div>
-                          <div className="font-medium">{d.title || d.document_ref_no || d.document_category_code}</div>
-                          <div className="text-xs text-muted-foreground">{d.document_category_code} · v{d.version_no} · {d.document_source}</div>
-                        </div>
-                        <div className="flex gap-1 items-center">
-                          {d.court_filed && <Badge variant="outline">Court-filed{d.filed_date ? ` ${d.filed_date}` : ""}</Badge>}
-                          {d.confidential && <Badge variant="destructive">Confidential</Badge>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : <p className="text-sm text-muted-foreground">No documents linked.</p>}
-              </CardContent>
-            </Card>
+            {id && (
+              <LegalCaseDocumentsTab
+                lgCaseId={id}
+                currentStageCode={caseData.current_stage_code ?? null}
+                caseTypeCode={caseData.case_type_code ?? null}
+                canEdit={!!access.can("linkDocument")}
+              />
+            )}
           </TabsContent>
+
 
 
           {/* Hearings */}
