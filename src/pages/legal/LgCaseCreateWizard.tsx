@@ -388,7 +388,7 @@ export default function LgCaseCreateWizard() {
                       <SelectValue placeholder="Select…" />
                     </SelectTrigger>
                     <SelectContent className="max-h-80">
-                      {caseTypes.map((t) => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}
+                      {filteredCaseTypes.map((t) => <SelectItem key={t.code} value={t.code}>{t.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   {submitAttempted && issueByField.get("case_type_code") && (
