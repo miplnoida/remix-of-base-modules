@@ -51619,6 +51619,7 @@ export type Database = {
           assigned_legal_officer_id: string | null
           assigned_team_code: string | null
           case_category_code: string | null
+          case_source_code: string | null
           case_type_code: string
           claim_amount: number | null
           closed_date: string | null
@@ -51634,6 +51635,13 @@ export type Database = {
           employer_account_id: string | null
           employer_id: string | null
           id: string
+          is_legacy: boolean
+          legacy_case_no: string | null
+          legacy_court_case_no: string | null
+          legacy_employer_name: string | null
+          legacy_notes: string | null
+          legacy_opened_date: string | null
+          legacy_person_name: string | null
           lg_case_no: string
           next_action: string | null
           next_action_due_date: string | null
@@ -51643,6 +51651,7 @@ export type Database = {
           payment_arrangement_id: string | null
           person_id: string | null
           priority_code: string
+          source_mode: string | null
           status_code: string
           summary: string | null
           updated_at: string
@@ -51652,6 +51661,7 @@ export type Database = {
           assigned_legal_officer_id?: string | null
           assigned_team_code?: string | null
           case_category_code?: string | null
+          case_source_code?: string | null
           case_type_code: string
           claim_amount?: number | null
           closed_date?: string | null
@@ -51667,6 +51677,13 @@ export type Database = {
           employer_account_id?: string | null
           employer_id?: string | null
           id?: string
+          is_legacy?: boolean
+          legacy_case_no?: string | null
+          legacy_court_case_no?: string | null
+          legacy_employer_name?: string | null
+          legacy_notes?: string | null
+          legacy_opened_date?: string | null
+          legacy_person_name?: string | null
           lg_case_no: string
           next_action?: string | null
           next_action_due_date?: string | null
@@ -51676,6 +51693,7 @@ export type Database = {
           payment_arrangement_id?: string | null
           person_id?: string | null
           priority_code?: string
+          source_mode?: string | null
           status_code?: string
           summary?: string | null
           updated_at?: string
@@ -51685,6 +51703,7 @@ export type Database = {
           assigned_legal_officer_id?: string | null
           assigned_team_code?: string | null
           case_category_code?: string | null
+          case_source_code?: string | null
           case_type_code?: string
           claim_amount?: number | null
           closed_date?: string | null
@@ -51700,6 +51719,13 @@ export type Database = {
           employer_account_id?: string | null
           employer_id?: string | null
           id?: string
+          is_legacy?: boolean
+          legacy_case_no?: string | null
+          legacy_court_case_no?: string | null
+          legacy_employer_name?: string | null
+          legacy_notes?: string | null
+          legacy_opened_date?: string | null
+          legacy_person_name?: string | null
           lg_case_no?: string
           next_action?: string | null
           next_action_due_date?: string | null
@@ -51709,6 +51735,7 @@ export type Database = {
           payment_arrangement_id?: string | null
           person_id?: string | null
           priority_code?: string
+          source_mode?: string | null
           status_code?: string
           summary?: string | null
           updated_at?: string
