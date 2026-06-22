@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Search, Trash2, ArrowRight, Layers, Info } from "lucide-react";
+import { Plus, Search, Trash2, ArrowRight, Layers, Info, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 const sb = supabase as any;
