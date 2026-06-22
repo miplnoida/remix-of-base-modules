@@ -4,6 +4,7 @@ export interface LgDocumentLink {
   id: string;
   lg_case_id: string;
   document_category_code: string;
+  document_type_code: string | null;
   document_source: string;
   document_ref_id: string | null;
   document_ref_no: string | null;
@@ -13,6 +14,7 @@ export interface LgDocumentLink {
   hearing_id: string | null;
   order_id: string | null;
   settlement_id: string | null;
+  notice_id: string | null;
   version_no: number;
   court_filed: boolean;
   filed_date: string | null;

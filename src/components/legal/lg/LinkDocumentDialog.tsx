@@ -10,6 +10,7 @@ import { Loader2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useUserCode } from "@/hooks/useUserCode";
 import { useCreateLgDocumentLink } from "@/hooks/legal/useLgTemplates";
+import { useDmsDocumentTypes } from "@/hooks/legal/useDmsDocumentTypes";
 
 const CATEGORIES = ["PLEADING", "EVIDENCE", "ORDER", "NOTICE", "CORRESPONDENCE", "INTERNAL", "OTHER"];
 const SOURCES = ["DMS", "UPLOAD", "EXTERNAL"];
@@ -19,8 +20,10 @@ interface Props { open: boolean; onOpenChange: (o: boolean) => void; lgCaseId: s
 export function LinkDocumentDialog({ open, onOpenChange, lgCaseId }: Props) {
   const { userCode } = useUserCode();
   const create = useCreateLgDocumentLink();
+  const { data: docTypes = [] } = useDmsDocumentTypes("LEGAL");
   const [form, setForm] = useState({
     document_category_code: "PLEADING",
+    document_type_code: "",
     document_source: "DMS",
     title: "",
     document_ref_no: "",
@@ -31,7 +34,7 @@ export function LinkDocumentDialog({ open, onOpenChange, lgCaseId }: Props) {
   });
 
   useEffect(() => {
-    if (open) setForm({ document_category_code: "PLEADING", document_source: "DMS", title: "", document_ref_no: "", notes: "", court_filed: false, filed_date: "", confidential: false });
+    if (open) setForm({ document_category_code: "PLEADING", document_type_code: "", document_source: "DMS", title: "", document_ref_no: "", notes: "", court_filed: false, filed_date: "", confidential: false });
   }, [open]);
 
   const submit = async () => {
@@ -43,6 +46,7 @@ export function LinkDocumentDialog({ open, onOpenChange, lgCaseId }: Props) {
       await create.mutateAsync({
         lg_case_id: lgCaseId,
         document_category_code: form.document_category_code,
+        document_type_code: form.document_type_code || null,
         document_source: form.document_source,
         document_ref_id: null,
         document_ref_no: form.document_ref_no || null,
@@ -52,6 +56,7 @@ export function LinkDocumentDialog({ open, onOpenChange, lgCaseId }: Props) {
         hearing_id: null,
         order_id: null,
         settlement_id: null,
+        notice_id: null,
         court_filed: form.court_filed,
         filed_date: form.court_filed ? form.filed_date || new Date().toISOString().slice(0, 10) : null,
         confidential: form.confidential,
@@ -85,6 +90,17 @@ export function LinkDocumentDialog({ open, onOpenChange, lgCaseId }: Props) {
             <Select value={form.document_source} onValueChange={(v) => setForm((p) => ({ ...p, document_source: v }))}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{SOURCES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="col-span-2">
+            <Label>Document Type (optional)</Label>
+            <Select value={form.document_type_code} onValueChange={(v) => setForm((p) => ({ ...p, document_type_code: v }))}>
+              <SelectTrigger><SelectValue placeholder="— Select a Legal document type —" /></SelectTrigger>
+              <SelectContent className="max-h-72">
+                {docTypes.map((t) => (
+                  <SelectItem key={t.id} value={t.type_code}>{t.type_code} — {t.type_name}</SelectItem>
+                ))}
+              </SelectContent>
             </Select>
           </div>
           <div className="col-span-2"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} /></div>

@@ -90,6 +90,36 @@ export const coreDmsService = {
     });
   },
 
+  /**
+   * Convenience: dispatch a generated letter (already saved to
+   * `core_generated_document`) into DMS AND link it on the Legal case in one call.
+   * If the letter is already linked (idempotent by generated_document_id),
+   * the existing link is returned and no duplicate is created.
+   */
+  async linkGeneratedToLegal(args: {
+    generated_document_id: string;
+    user_code: string;
+    link: CoreDmsLegalLink;
+  }): Promise<{ link_id: string | null; skipped: boolean; result?: CoreDmsUploadResult }> {
+    // Idempotency: check if this generated doc is already linked on the case
+    const { data: existing } = await (supabase as any)
+      .from("lg_document_link")
+      .select("id")
+      .eq("lg_case_id", args.link.lg_case_id)
+      .eq("document_ref_id", args.generated_document_id)
+      .maybeSingle();
+    if (existing?.id) return { link_id: existing.id, skipped: true };
+
+    const result = await invokeUpload({
+      generated_document_id: args.generated_document_id,
+      user_code: args.user_code,
+      category_id: "LEGAL",
+      link: args.link,
+    });
+    return { link_id: result.link_id ?? null, skipped: false, result };
+  },
+
+
   /** Upload raw file bytes (e.g. user-selected file) into DMS. */
   async uploadFile(input: UploadFileInput): Promise<CoreDmsUploadResult> {
     const base64 = await blobToBase64(input.file);

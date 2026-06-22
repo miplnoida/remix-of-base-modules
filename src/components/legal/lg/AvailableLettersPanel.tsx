@@ -91,10 +91,24 @@ export function AvailableLettersPanel({ caseId, caseTypeCode, currentStage, canG
         generated_by: userCode ?? "SYSTEM",
         case_stage_code: stage,
         case_type_code: caseTypeCode ?? undefined,
+        // Tell the dispatcher to auto-upload & link this letter into DMS.
+        legal_link: {
+          lg_case_id: caseId,
+          document_category_code: "CORRESPONDENCE",
+          document_type_code: t.code || null,
+          linked_stage_code: stage || null,
+          title: `${t.name}`,
+          confidential: false,
+          court_filed: false,
+        } as any,
       });
       toast.success(`Generated ${res.reference_no}`);
+      if (res.dms_upload_error) {
+        toast.warning(`Letter saved, but DMS link failed: ${res.dms_upload_error}`);
+      }
       qc.invalidateQueries({ queryKey: ["lg_generated_letters", caseId, stage] });
       qc.invalidateQueries({ queryKey: ["lg_missing_required", caseId, stage] });
+      qc.invalidateQueries({ queryKey: ["lg_document_link", caseId] });
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to generate letter");
     } finally {
