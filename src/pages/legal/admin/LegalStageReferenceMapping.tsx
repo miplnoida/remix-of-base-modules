@@ -130,7 +130,7 @@ export default function LegalStageReferenceMapping() {
             id="stage-reference-mapping"
             columns={columns}
             data={rows}
-            loading={isLoading}
+            isLoading={isLoading}
             rowActions={rowActions}
             enableExport
             filters={[
