@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
-import { listTeams, listTeamMembers, listWorkbasketRoles } from "@/services/legal/lgTeamService";
+import {
+  listTeams, listTeamMembers, listWorkbasketRoles,
+  listTeamWorkbaskets, listAllTeamWorkbaskets,
+} from "@/services/legal/lgTeamService";
 import { supabase } from "@/integrations/supabase/client";
 
 export function useLegalTeams() {
@@ -17,6 +20,36 @@ export function useLegalTeamMembers(teamId?: string) {
 
 export function useLegalWorkbasketRoles() {
   return useQuery({ queryKey: ["lg_workbasket_role"], queryFn: listWorkbasketRoles, staleTime: 5 * 60_000 });
+}
+
+export function useLegalTeamWorkbaskets(teamId?: string) {
+  return useQuery({
+    queryKey: ["lg_team_workbasket", teamId ?? "all"],
+    queryFn: () => (teamId ? listTeamWorkbaskets(teamId) : listAllTeamWorkbaskets()),
+    staleTime: 60_000,
+  });
+}
+
+/** Reference values for a given group_code (e.g. LG_WORKBASKET, LG_CASE_STAGE, LG_CASE_TYPE). */
+export function useLegalReferenceValues(groupCode: string) {
+  return useQuery<Array<{ value_code: string; value_label: string; is_active: boolean }>>({
+    queryKey: ["legal_ref_values", groupCode],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const sb = supabase as any;
+      const { data, error } = await sb
+        .from("core_reference_group")
+        .select("id, value:core_reference_value(value_code, value_label, is_active, sort_order)")
+        .eq("group_code", groupCode)
+        .maybeSingle();
+      if (error) return [];
+      const rows = (data?.value ?? []) as any[];
+      return rows
+        .filter((r) => r.is_active)
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.value_code.localeCompare(b.value_code))
+        .map((r) => ({ value_code: r.value_code, value_label: r.value_label, is_active: r.is_active }));
+    },
+  });
 }
 
 /** Active case counts per team_code — used in the teams grid. */
