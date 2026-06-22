@@ -545,8 +545,18 @@ export default function LgCaseCreateWizard() {
                     />
                   </div>
                 </div>
+                <div>
+                  <Label>SKN Legal References to attach</Label>
+                  <LegalReferencePickerLite
+                    countryCode={form.country_code || "KN"}
+                    value={form.legal_reference_ids ?? []}
+                    onChange={(ids) => set("legal_reference_ids", ids)}
+                  />
+                </div>
+
                 <p className="text-xs text-muted-foreground">
-                  Stage templates and legal references will be suggested on the case detail screen based on the starting stage you selected.
+                  Stage templates will be suggested on the case detail screen based on the starting stage you selected.
+                  Additional DMS documents can be uploaded or linked from the case detail screen.
                 </p>
               </CardContent>
             </>
