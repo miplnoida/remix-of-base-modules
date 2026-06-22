@@ -11,12 +11,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BackNavigation } from "@/components/ui/back-navigation";
 import {
-  Users, UserPlus, Trash2, ShieldAlert, Plus, Pencil, PowerOff, Star,
+  Users, UserPlus, Trash2, ShieldAlert, Plus, Pencil, PowerOff, Star, Briefcase,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useLegalTeams, useLegalTeamMembers, useLegalWorkbasketRoles, useTeamActiveCaseCounts,
+  useLegalTeams, useLegalTeamMembers, useLegalWorkbasketRoles,
+  useTeamActiveCaseCounts, useLegalTeamWorkbaskets, useLegalReferenceValues,
 } from "@/hooks/legal/useLegalTeams";
 import { useLegalOfficers, type LegalOfficerOption } from "@/hooks/legal/useLegalOfficers";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
@@ -24,8 +25,12 @@ import {
   addTeamMember, updateTeamMember, deleteTeamMember, setPrimaryMember,
   createTeam, updateTeam, setTeamActive,
   capabilityDefaults, suggestFromRoles,
+  upsertTeamWorkbasket, deleteTeamWorkbasket, setTeamWorkbasketActive,
   type LgMemberFunction, type LgTeam,
+  type LgTeamWorkbasket, type LgResponsibilityType,
 } from "@/services/legal/lgTeamService";
+
+const RESPONSIBILITY_TYPES: LgResponsibilityType[] = ["OWNER", "SUPPORT", "REVIEW", "APPROVAL"];
 
 const FUNCTIONS: LgMemberFunction[] = ["LAWYER", "MANAGER", "SUPPORT", "CLERK", "ADMIN"];
 
@@ -48,11 +53,15 @@ export default function LegalAdminTeams() {
   const { data: officers = [] } = useLegalOfficers();
   const { data: caseCounts = {} } = useTeamActiveCaseCounts();
   const { data: wbRoles = [] } = useLegalWorkbasketRoles();
+  const { data: wbCodes = [] } = useLegalReferenceValues("LG_WORKBASKET");
+  const { data: stageCodes = [] } = useLegalReferenceValues("LG_CASE_STAGE");
+  const { data: caseTypeCodes = [] } = useLegalReferenceValues("LG_CASE_TYPE");
 
   const [activeTeamId, setActiveTeamId] = useState<string | undefined>(undefined);
   const teamId = activeTeamId ?? teams.find((t) => t.is_default)?.id ?? teams[0]?.id;
   const team = teams.find((t) => t.id === teamId);
   const { data: members = [] } = useLegalTeamMembers(teamId);
+  const { data: teamWbs = [] } = useLegalTeamWorkbaskets(teamId);
 
   const officerById = useMemo(() => {
     const m: Record<string, LegalOfficerOption> = {};
@@ -69,6 +78,7 @@ export default function LegalAdminTeams() {
     qc.invalidateQueries({ queryKey: ["lg_team"] });
     qc.invalidateQueries({ queryKey: ["lg_team_member"] });
     qc.invalidateQueries({ queryKey: ["lg_team_active_case_counts"] });
+    qc.invalidateQueries({ queryKey: ["lg_team_workbasket"] });
   };
 
   /* ---------------- team dialog state ---------------- */
@@ -202,6 +212,125 @@ export default function LegalAdminTeams() {
     try { await deleteTeamMember(id); toast({ title: "Removed" }); refreshAll(); }
     catch (e: any) { toast({ title: "Delete failed", description: e.message, variant: "destructive" }); }
   }
+
+  /* ---------------- workbasket-assignment dialog ---------------- */
+  type WbForm = {
+    id?: string;
+    workbasket_code: string;
+    responsibility_type: LgResponsibilityType;
+    can_receive_new_cases: boolean;
+    can_auto_assign: boolean;
+    default_for_stage: string;
+    default_for_case_type: string;
+    escalation_target: boolean;
+    is_active: boolean;
+  };
+  const emptyWbForm: WbForm = {
+    workbasket_code: "",
+    responsibility_type: "OWNER",
+    can_receive_new_cases: true,
+    can_auto_assign: false,
+    default_for_stage: "",
+    default_for_case_type: "",
+    escalation_target: false,
+    is_active: true,
+  };
+  const [wbDialog, setWbDialog] = useState<{ open: boolean; editing?: LgTeamWorkbasket }>({ open: false });
+  const [wbForm, setWbForm] = useState<WbForm>(emptyWbForm);
+
+  function openAddWb() {
+    setWbForm(emptyWbForm);
+    setWbDialog({ open: true });
+  }
+  function openEditWb(row: LgTeamWorkbasket) {
+    setWbForm({
+      id: row.id,
+      workbasket_code: row.workbasket_code,
+      responsibility_type: row.responsibility_type,
+      can_receive_new_cases: row.can_receive_new_cases,
+      can_auto_assign: row.can_auto_assign,
+      default_for_stage: row.default_for_stage ?? "",
+      default_for_case_type: row.default_for_case_type ?? "",
+      escalation_target: row.escalation_target,
+      is_active: row.is_active,
+    });
+    setWbDialog({ open: true, editing: row });
+  }
+  async function saveWb() {
+    if (!teamId) return;
+    if (!wbForm.workbasket_code) {
+      toast({ title: "Pick a workbasket", variant: "destructive" });
+      return;
+    }
+    // duplicate-active guard
+    const dup = teamWbs.find(
+      (w) =>
+        w.id !== wbForm.id &&
+        w.is_active &&
+        w.workbasket_code === wbForm.workbasket_code &&
+        w.responsibility_type === wbForm.responsibility_type,
+    );
+    if (dup && wbForm.is_active) {
+      toast({
+        title: "Duplicate assignment",
+        description: `This team already has an active ${wbForm.responsibility_type} role for ${wbForm.workbasket_code}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    if (wbForm.can_auto_assign && lawyerCount === 0) {
+      toast({
+        title: "Cannot enable auto-assign",
+        description: "Team has no member with Own Case capability.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const wbActive = wbCodes.find((w) => w.value_code === wbForm.workbasket_code)?.is_active ?? true;
+    if (!wbActive) {
+      toast({ title: "Workbasket is inactive", variant: "destructive" });
+      return;
+    }
+    try {
+      await upsertTeamWorkbasket({
+        id: wbForm.id,
+        team_id: teamId,
+        workbasket_code: wbForm.workbasket_code,
+        responsibility_type: wbForm.responsibility_type,
+        can_receive_new_cases: wbForm.can_receive_new_cases,
+        can_auto_assign: wbForm.can_auto_assign,
+        default_for_stage: wbForm.default_for_stage || null,
+        default_for_case_type: wbForm.default_for_case_type || null,
+        escalation_target: wbForm.escalation_target,
+        is_active: wbForm.is_active,
+      });
+      toast({ title: wbForm.id ? "Assignment updated" : "Workbasket assigned" });
+      setWbDialog({ open: false });
+      refreshAll();
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e.message, variant: "destructive" });
+    }
+  }
+  async function removeWb(id: string) {
+    if (!confirm("Remove this workbasket assignment?")) return;
+    try {
+      await deleteTeamWorkbasket(id);
+      toast({ title: "Removed" });
+      refreshAll();
+    } catch (e: any) {
+      toast({ title: "Delete failed", description: e.message, variant: "destructive" });
+    }
+  }
+  async function toggleWbActive(row: LgTeamWorkbasket) {
+    try {
+      await setTeamWorkbasketActive(row.id, !row.is_active);
+      refreshAll();
+    } catch (e: any) {
+      toast({ title: "Failed", description: e.message, variant: "destructive" });
+    }
+  }
+
+
 
   return (
     <div className="p-6 space-y-6">
@@ -398,6 +527,88 @@ export default function LegalAdminTeams() {
         </Card>
       )}
 
+      {/* Assigned Workbaskets for selected team */}
+      {team && (
+        <Card>
+          <CardHeader className="flex flex-row items-start justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Assigned Workbaskets — {team.team_name}</CardTitle>
+              <CardDescription>
+                Define which workbaskets this team owns, supports, reviews, or approves.
+                {teamWbs.length === 0 && (
+                  <span className="ml-2 inline-flex items-center gap-1 text-destructive">
+                    <ShieldAlert className="h-3.5 w-3.5" /> Team has no workbaskets — it will not receive cases.
+                  </span>
+                )}
+              </CardDescription>
+            </div>
+            {canEdit && (
+              <Button size="sm" className="gap-2" onClick={openAddWb}>
+                <Plus className="h-4 w-4" /> Assign Workbasket
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Workbasket</TableHead>
+                  <TableHead>Responsibility</TableHead>
+                  <TableHead className="text-center">Receive New</TableHead>
+                  <TableHead className="text-center">Auto Assign</TableHead>
+                  <TableHead>Default for Stage</TableHead>
+                  <TableHead>Default for Case Type</TableHead>
+                  <TableHead className="text-center">Escalation</TableHead>
+                  <TableHead className="text-center">Active</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {teamWbs.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center text-sm text-muted-foreground py-6">
+                      No workbaskets assigned yet.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {teamWbs.map((w) => {
+                  const label = wbCodes.find((c) => c.value_code === w.workbasket_code)?.value_label ?? w.workbasket_code;
+                  return (
+                    <TableRow key={w.id}>
+                      <TableCell>
+                        <div className="font-medium">{label}</div>
+                        <div className="text-[11px] font-mono text-muted-foreground">{w.workbasket_code}</div>
+                      </TableCell>
+                      <TableCell><Badge variant="outline" className="text-[10px]">{w.responsibility_type}</Badge></TableCell>
+                      <TableCell className="text-center">{w.can_receive_new_cases ? "✓" : "—"}</TableCell>
+                      <TableCell className="text-center">{w.can_auto_assign ? "✓" : "—"}</TableCell>
+                      <TableCell className="text-xs">{w.default_for_stage ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{w.default_for_case_type ?? "—"}</TableCell>
+                      <TableCell className="text-center">{w.escalation_target ? "✓" : "—"}</TableCell>
+                      <TableCell className="text-center">
+                        <Switch checked={w.is_active} disabled={!canEdit} onCheckedChange={() => toggleWbActive(w)} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {canEdit && (
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" title="Edit" onClick={() => openEditWb(w)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Remove" onClick={() => removeWb(w.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Workbasket role map (read-only context) */}
       <Card>
         <CardHeader>
@@ -569,6 +780,107 @@ export default function LegalAdminTeams() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setMemDialog(false)}>Cancel</Button>
             <Button onClick={submitAddMember} disabled={!memUserId || !(selectedOfficer?.roles.length)}>Add Member</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ---------------- Assign Workbasket dialog ---------------- */}
+      <Dialog open={wbDialog.open} onOpenChange={(o) => setWbDialog({ open: o, editing: o ? wbDialog.editing : undefined })}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{wbDialog.editing ? "Edit Workbasket Assignment" : "Assign Workbasket"}</DialogTitle>
+            <DialogDescription>
+              Configure how {team?.team_name} handles cases from this workbasket.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Workbasket</Label>
+                <Select
+                  value={wbForm.workbasket_code}
+                  onValueChange={(v) => setWbForm({ ...wbForm, workbasket_code: v })}
+                  disabled={!!wbDialog.editing}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select…" /></SelectTrigger>
+                  <SelectContent>
+                    {wbCodes.map((w) => (
+                      <SelectItem key={w.value_code} value={w.value_code}>{w.value_label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Responsibility</Label>
+                <Select
+                  value={wbForm.responsibility_type}
+                  onValueChange={(v) => setWbForm({ ...wbForm, responsibility_type: v as LgResponsibilityType })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {RESPONSIBILITY_TYPES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Default for Stage (optional)</Label>
+                <Select
+                  value={wbForm.default_for_stage || "__none"}
+                  onValueChange={(v) => setWbForm({ ...wbForm, default_for_stage: v === "__none" ? "" : v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">— Any —</SelectItem>
+                    {stageCodes.map((s) => <SelectItem key={s.value_code} value={s.value_code}>{s.value_label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Default for Case Type (optional)</Label>
+                <Select
+                  value={wbForm.default_for_case_type || "__none"}
+                  onValueChange={(v) => setWbForm({ ...wbForm, default_for_case_type: v === "__none" ? "" : v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">— Any —</SelectItem>
+                    {caseTypeCodes.map((s) => <SelectItem key={s.value_code} value={s.value_code}>{s.value_label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 rounded-md border p-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span>Receive New Cases</span>
+                <Switch checked={wbForm.can_receive_new_cases} onCheckedChange={(v) => setWbForm({ ...wbForm, can_receive_new_cases: v })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Auto Assign</span>
+                <Switch checked={wbForm.can_auto_assign} onCheckedChange={(v) => setWbForm({ ...wbForm, can_auto_assign: v })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Escalation Target</span>
+                <Switch checked={wbForm.escalation_target} onCheckedChange={(v) => setWbForm({ ...wbForm, escalation_target: v })} />
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Active</span>
+                <Switch checked={wbForm.is_active} onCheckedChange={(v) => setWbForm({ ...wbForm, is_active: v })} />
+              </div>
+            </div>
+
+            {wbForm.can_auto_assign && lawyerCount === 0 && (
+              <div className="text-xs text-destructive flex items-center gap-1">
+                <ShieldAlert className="h-3.5 w-3.5" /> Auto-assign requires a team member with Own Case capability.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWbDialog({ open: false })}>Cancel</Button>
+            <Button onClick={saveWb}>{wbDialog.editing ? "Save" : "Assign"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

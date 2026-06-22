@@ -53894,6 +53894,65 @@ export type Database = {
           },
         ]
       }
+      lg_team_workbasket: {
+        Row: {
+          can_auto_assign: boolean
+          can_receive_new_cases: boolean
+          created_at: string
+          created_by: string | null
+          default_for_case_type: string | null
+          default_for_stage: string | null
+          escalation_target: boolean
+          id: string
+          is_active: boolean
+          responsibility_type: string
+          team_id: string
+          updated_at: string
+          updated_by: string | null
+          workbasket_code: string
+        }
+        Insert: {
+          can_auto_assign?: boolean
+          can_receive_new_cases?: boolean
+          created_at?: string
+          created_by?: string | null
+          default_for_case_type?: string | null
+          default_for_stage?: string | null
+          escalation_target?: boolean
+          id?: string
+          is_active?: boolean
+          responsibility_type?: string
+          team_id: string
+          updated_at?: string
+          updated_by?: string | null
+          workbasket_code: string
+        }
+        Update: {
+          can_auto_assign?: boolean
+          can_receive_new_cases?: boolean
+          created_at?: string
+          created_by?: string | null
+          default_for_case_type?: string | null
+          default_for_stage?: string | null
+          escalation_target?: boolean
+          id?: string
+          is_active?: boolean
+          responsibility_type?: string
+          team_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          workbasket_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_team_workbasket_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "lg_team"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lg_workbasket_role: {
         Row: {
           created_at: string
