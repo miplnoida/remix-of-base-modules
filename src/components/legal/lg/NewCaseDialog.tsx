@@ -107,8 +107,9 @@ export function NewCaseDialog({ open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2"><Scale className="h-5 w-5" /> New Legal Case</DialogTitle>
-          <DialogDescription>Opens a new case in the Legal module.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2"><Scale className="h-5 w-5" /> Quick Case</DialogTitle>
+          <DialogDescription>Lightweight intake. For full setup (parties, references, documents) use <strong>New Legal Case</strong>.</DialogDescription>
+
         </DialogHeader>
         <div className="grid md:grid-cols-2 gap-3 py-2">
           <div>
