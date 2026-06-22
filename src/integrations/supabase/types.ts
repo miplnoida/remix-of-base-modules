@@ -54018,6 +54018,13 @@ export type Database = {
             referencedRelation: "lg_team"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lg_staff_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "lg_team_metrics"
+            referencedColumns: ["team_id"]
+          },
         ]
       }
       lg_stage_action_rule: {
@@ -54433,6 +54440,13 @@ export type Database = {
             referencedRelation: "lg_team"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lg_team_member_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "lg_team_metrics"
+            referencedColumns: ["team_id"]
+          },
         ]
       }
       lg_team_workbasket: {
@@ -54491,6 +54505,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "lg_team"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lg_team_workbasket_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "lg_team_metrics"
+            referencedColumns: ["team_id"]
           },
         ]
       }
@@ -66476,6 +66497,16 @@ export type Database = {
           },
         ]
       }
+      lg_case_team_summary: {
+        Row: {
+          assigned_legal_officer_id: string | null
+          assigned_team_code: string | null
+          case_count: number | null
+          priority_code: string | null
+          status_code: string | null
+        }
+        Relationships: []
+      }
       lg_staff_workload: {
         Row: {
           active_cases: number | null
@@ -66498,7 +66529,31 @@ export type Database = {
             referencedRelation: "lg_team"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lg_staff_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "lg_team_metrics"
+            referencedColumns: ["team_id"]
+          },
         ]
+      }
+      lg_team_metrics: {
+        Row: {
+          assigned_cases: number | null
+          avg_age_days: number | null
+          capacity_pct: number | null
+          current_load: number | null
+          high_priority_cases: number | null
+          manager_user_id: string | null
+          open_cases: number | null
+          team_code: string | null
+          team_id: string | null
+          team_name: string | null
+          total_capacity: number | null
+          unassigned_cases: number | null
+        }
+        Relationships: []
       }
       module_legal_reference_mapping: {
         Row: {
