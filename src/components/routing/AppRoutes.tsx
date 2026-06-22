@@ -1853,7 +1853,8 @@ export const AppRoutes = () => {
       {/* Legal Module Routes - Old */}
       <Route path="/legal" element={<NewLegalModule />} />
       <Route path="/legal/case-intake" element={<CaseIntake />} />
-      <Route path="/legal/cases/intake" element={<CaseIntake />} />
+      {/* duplicate /legal/cases/intake removed — canonical registration at line 1832 */}
+
       <Route path="/legal/cases/intake/:id" element={<IntakeDetail />} />
       <Route path="/legal/case-tracking" element={<CaseTracking />} />
       <Route path="/legal/case-detail/:id" element={<CaseDetailView />} />
