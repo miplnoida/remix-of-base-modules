@@ -298,26 +298,38 @@ export default function RoutingRulesList() {
             <span className="text-muted-foreground">Active only</span>
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <Switch checked={invalidOnly} onCheckedChange={setInvalidOnly} />
-            <span className="text-muted-foreground">Issues only</span>
+            <span className="text-muted-foreground text-xs">Severity:</span>
+            <Select value={severityFilter} onValueChange={(v) => setSeverityFilter(v as any)}>
+              <SelectTrigger className="h-8 w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All</SelectItem>
+                <SelectItem value="issues">All issues</SelectItem>
+                <SelectItem value="error">Errors ({counts.error})</SelectItem>
+                <SelectItem value="warn">Warnings ({counts.warn})</SelectItem>
+                <SelectItem value="info">Info ({counts.info})</SelectItem>
+              </SelectContent>
+            </Select>
           </label>
         </div>
 
-        {invalidCount > 0 ? (
-          <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            <AlertTriangle className="h-4 w-4 shrink-0" />
-            <span>
-              <span className="font-semibold">{invalidCount}</span> rule{invalidCount === 1 ? "" : "s"} reference a case
-              type or stage that isn't allowed by the matching Source configuration. Expand a flagged rule to see details
-              and fix it.
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-            <CheckCircle2 className="h-4 w-4 shrink-0" />
-            <span>All routing rules use case types and stages permitted by their Source configuration.</span>
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs">
+          <span className="text-muted-foreground">Configuration health:</span>
+          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+            <CheckCircle2 className="h-3 w-3 mr-1" /> {counts.ok} OK
+          </Badge>
+          <Badge variant="outline" className={counts.error ? "bg-destructive/10 text-destructive border-destructive/30" : "bg-muted text-muted-foreground"}>
+            {counts.error} Error{counts.error === 1 ? "" : "s"}
+          </Badge>
+          <Badge variant="outline" className={counts.warn ? "bg-amber-50 text-amber-800 border-amber-200" : "bg-muted text-muted-foreground"}>
+            {counts.warn} Warning{counts.warn === 1 ? "" : "s"}
+          </Badge>
+          <Badge variant="outline" className={counts.info ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-muted text-muted-foreground"}>
+            {counts.info} Info
+          </Badge>
+          <span className="ml-auto text-muted-foreground">
+            Errors block routing • Warnings need review • Info is advisory
+          </span>
+        </div>
 
         {filtered.length === 0 ? (
           <div className="rounded-md border border-dashed p-8 text-center text-sm text-muted-foreground">
@@ -327,12 +339,21 @@ export default function RoutingRulesList() {
           <Accordion type="multiple" className="space-y-2">
             {filtered.map((r) => {
               const v = validate(r);
+              const sevBadge =
+                v.level === "error"
+                  ? { cls: "bg-destructive/10 text-destructive border-destructive/30", label: "Error" }
+                  : v.level === "warn"
+                  ? { cls: "bg-amber-50 text-amber-800 border-amber-200", label: "Warning" }
+                  : v.level === "info"
+                  ? { cls: "bg-blue-50 text-blue-700 border-blue-200", label: "Info" }
+                  : null;
+              const src = r.source_code ? (allSources as any[]).find((s) => s.source_code === r.source_code) : null;
               return (
               <AccordionItem
                 key={`${r.type}-${r.id}`}
                 value={`${r.type}-${r.id}`}
                 className={`rounded-md border bg-card data-[state=open]:shadow-sm ${
-                  v.level === "error" ? "border-destructive/40" : v.level === "warn" ? "border-amber-300" : ""
+                  v.level === "error" ? "border-destructive/40" : v.level === "warn" ? "border-amber-300" : v.level === "info" ? "border-blue-200" : ""
                 }`}
               >
                 <AccordionTrigger className="px-4 py-3 hover:no-underline">
@@ -357,17 +378,13 @@ export default function RoutingRulesList() {
                       <ArrowRight className="h-3 w-3 text-muted-foreground" />
                       <span>{teamLabel(r.team_code)}</span>
                     </div>
-                    {!v.ok && (
+                    {sevBadge && (
                       <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
-                          v.level === "error"
-                            ? "bg-destructive/10 text-destructive border-destructive/30"
-                            : "bg-amber-50 text-amber-800 border-amber-200"
-                        }`}
-                        title={v.messages.join(" • ")}
+                        className={`text-[10px] px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${sevBadge.cls}`}
+                        title={v.issues.map((i) => i.message).join(" • ")}
                       >
                         <AlertTriangle className="h-3 w-3" />
-                        {v.level === "error" ? "Invalid" : "Check"}
+                        {sevBadge.label}
                       </span>
                     )}
                     <span
@@ -382,25 +399,43 @@ export default function RoutingRulesList() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4 pt-0">
+                  {src && (
+                    <div className="mt-2 mb-3 rounded-md border bg-muted/30 px-3 py-2 text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <span><span className="text-muted-foreground">Source type:</span> <b>{src.source_type ?? "OPERATIONAL"}</b></span>
+                      <span>
+                        <span className="text-muted-foreground">Enforcement:</span>{" "}
+                        <Badge variant="outline" className="text-[10px]">case type {src.enforce_case_type_restrictions === false ? "off" : "on"}</Badge>{" "}
+                        <Badge variant="outline" className="text-[10px]">stage {src.enforce_stage_restrictions === false ? "off" : "on"}</Badge>
+                        {src.allow_historical_exceptions && <Badge variant="outline" className="text-[10px] ml-1 bg-blue-50 text-blue-700 border-blue-200">historical exceptions</Badge>}
+                      </span>
+                    </div>
+                  )}
                   {!v.ok && (
                     <div
                       className={`mt-2 mb-3 rounded-md border px-3 py-2 text-xs ${
                         v.level === "error"
                           ? "border-destructive/40 bg-destructive/5 text-destructive"
-                          : "border-amber-200 bg-amber-50 text-amber-900"
+                          : v.level === "warn"
+                          ? "border-amber-200 bg-amber-50 text-amber-900"
+                          : "border-blue-200 bg-blue-50 text-blue-900"
                       }`}
                     >
                       <div className="font-semibold flex items-center gap-1.5 mb-1">
                         <AlertTriangle className="h-3.5 w-3.5" />
-                        {v.level === "error" ? "Rule conflicts with Source configuration" : "Rule may not be reachable"}
+                        {v.level === "error" ? "Routing error — fix before this rule can be used"
+                          : v.level === "warn" ? "Routing warning — review configuration"
+                          : "Routing info"}
                       </div>
-                      <ul className="list-disc pl-5 space-y-0.5">
-                        {v.messages.map((m, i) => (
-                          <li key={i}>{m}</li>
+                      <ul className="space-y-1.5">
+                        {v.issues.map((i, idx) => (
+                          <li key={idx}>
+                            <div>• {i.message}</div>
+                            {i.fix && <div className="pl-3 text-[11px] opacity-80">↳ {i.fix}</div>}
+                          </li>
                         ))}
                       </ul>
                       <div className="mt-1.5 text-[11px] opacity-80">
-                        Update the Source's allowed case types/stages on the <b>Sources</b> tab, or change this rule below.
+                        Open the <b>Sources</b> tab to adjust allowed case types/stages or change this rule below.
                       </div>
                     </div>
                   )}
