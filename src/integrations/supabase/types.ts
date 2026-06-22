@@ -53453,13 +53453,57 @@ export type Database = {
         }
         Relationships: []
       }
+      lg_routing_case_type: {
+        Row: {
+          assignment_strategy: string | null
+          case_type_code: string
+          country_code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          priority_code: string | null
+          team_code: string | null
+          updated_at: string
+          updated_by: string | null
+          workbasket_code: string | null
+        }
+        Insert: {
+          assignment_strategy?: string | null
+          case_type_code: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority_code?: string | null
+          team_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          workbasket_code?: string | null
+        }
+        Update: {
+          assignment_strategy?: string | null
+          case_type_code?: string
+          country_code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          priority_code?: string | null
+          team_code?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          workbasket_code?: string | null
+        }
+        Relationships: []
+      }
       lg_routing_policy: {
         Row: {
           allow_manual_override: boolean
           auto_assign_on_manual: boolean
+          auto_assign_on_manual_case: boolean | null
           auto_assign_on_referral: boolean
           country_code: string
           created_at: string
+          default_priority_code: string | null
           default_strategy_code: string | null
           default_team_code: string | null
           default_workbasket_code: string | null
@@ -53473,9 +53517,11 @@ export type Database = {
         Insert: {
           allow_manual_override?: boolean
           auto_assign_on_manual?: boolean
+          auto_assign_on_manual_case?: boolean | null
           auto_assign_on_referral?: boolean
           country_code?: string
           created_at?: string
+          default_priority_code?: string | null
           default_strategy_code?: string | null
           default_team_code?: string | null
           default_workbasket_code?: string | null
@@ -53489,9 +53535,11 @@ export type Database = {
         Update: {
           allow_manual_override?: boolean
           auto_assign_on_manual?: boolean
+          auto_assign_on_manual_case?: boolean | null
           auto_assign_on_referral?: boolean
           country_code?: string
           created_at?: string
+          default_priority_code?: string | null
           default_strategy_code?: string | null
           default_team_code?: string | null
           default_workbasket_code?: string | null
@@ -53506,11 +53554,13 @@ export type Database = {
       }
       lg_routing_source_map: {
         Row: {
+          assignment_strategy: string | null
           case_type_code: string | null
           country_code: string
           created_at: string
           id: string
           is_active: boolean
+          priority_code: string | null
           source_code: string
           team_code: string | null
           updated_at: string
@@ -53518,11 +53568,13 @@ export type Database = {
           workbasket_code: string | null
         }
         Insert: {
+          assignment_strategy?: string | null
           case_type_code?: string | null
           country_code?: string
           created_at?: string
           id?: string
           is_active?: boolean
+          priority_code?: string | null
           source_code: string
           team_code?: string | null
           updated_at?: string
@@ -53530,11 +53582,13 @@ export type Database = {
           workbasket_code?: string | null
         }
         Update: {
+          assignment_strategy?: string | null
           case_type_code?: string | null
           country_code?: string
           created_at?: string
           id?: string
           is_active?: boolean
+          priority_code?: string | null
           source_code?: string
           team_code?: string | null
           updated_at?: string
@@ -53545,6 +53599,8 @@ export type Database = {
       }
       lg_routing_stage_override: {
         Row: {
+          auto_assign: boolean
+          case_type_code: string | null
           country_code: string
           created_at: string
           id: string
@@ -53556,6 +53612,8 @@ export type Database = {
           workbasket_code: string | null
         }
         Insert: {
+          auto_assign?: boolean
+          case_type_code?: string | null
           country_code?: string
           created_at?: string
           id?: string
@@ -53567,6 +53625,8 @@ export type Database = {
           workbasket_code?: string | null
         }
         Update: {
+          auto_assign?: boolean
+          case_type_code?: string | null
           country_code?: string
           created_at?: string
           id?: string
