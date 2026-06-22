@@ -71,7 +71,7 @@ export const dmsApiTestService = {
           lg_case_no, case_type_code: "CONTRIBUTION_RECOVERY", status_code: "OPEN",
           current_stage_code: "INTAKE", priority_code: "NORMAL",
           opened_date: new Date().toISOString().split("T")[0], is_legacy: false,
-          source_mode: "MANUAL", title: "DMS API harness", created_by: ctx.userCode,
+          source_mode: "MANUAL", summary: "DMS API harness", created_by: ctx.userCode,
         }).select("id").single();
         if (error) throw error;
         return data;
