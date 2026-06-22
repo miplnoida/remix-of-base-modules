@@ -454,7 +454,8 @@ export default function RoutingRulesList() {
                   </div>
                 </AccordionContent>
               </AccordionItem>
-            ))}
+              );
+            })}
           </Accordion>
         )}
       </CardContent>
