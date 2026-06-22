@@ -56,6 +56,7 @@ export function LinkDocumentDialog({ open, onOpenChange, lgCaseId }: Props) {
         hearing_id: null,
         order_id: null,
         settlement_id: null,
+        notice_id: null,
         court_filed: form.court_filed,
         filed_date: form.court_filed ? form.filed_date || new Date().toISOString().slice(0, 10) : null,
         confidential: form.confidential,
