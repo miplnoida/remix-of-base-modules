@@ -212,6 +212,118 @@ export const coreDmsService = {
     if (!data.base_url) return { ok: false, reason: "base_url not set" };
     return { ok: true, base_url: data.base_url, header_name: data.header_name || "x-api-key" };
   },
+
+  /** Read a single link row. */
+  async getLinkById(linkId: string) {
+    const { data, error } = await (supabase as any)
+      .from("lg_document_link").select("*").eq("id", linkId).maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+
+  /** Generic filter search over lg_document_link. */
+  async searchLinks(opts: {
+    lg_case_id?: string;
+    document_category_code?: string;
+    document_type_code?: string;
+    document_source?: string;
+    confidential?: boolean;
+    court_filed?: boolean;
+    limit?: number;
+  }) {
+    let q = (supabase as any).from("lg_document_link").select("*");
+    for (const [k, v] of Object.entries(opts)) {
+      if (k === "limit") continue;
+      if (v !== undefined && v !== null && v !== "") q = q.eq(k, v);
+    }
+    const { data, error } = await q.order("uploaded_at", { ascending: false }).limit(opts.limit ?? 100);
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  /** Free-text search across title / file name / reference number. */
+  async searchByText(text: string, lg_case_id?: string) {
+    let q = (supabase as any).from("lg_document_link").select("*");
+    if (lg_case_id) q = q.eq("lg_case_id", lg_case_id);
+    const like = `%${text.replace(/[%_]/g, "")}%`;
+    q = q.or(`title.ilike.${like},file_name.ilike.${like},document_ref_no.ilike.${like}`);
+    const { data, error } = await q.order("uploaded_at", { ascending: false }).limit(200);
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  /** All versions for a given logical DMS document, newest first. */
+  async getVersionHistory(dms_document_id: string) {
+    const { data, error } = await (supabase as any)
+      .from("lg_document_link")
+      .select("id, version_no, file_name, mime_type, size_bytes, uploaded_at, uploaded_by, upload_status")
+      .eq("dms_document_id", dms_document_id)
+      .order("version_no", { ascending: false });
+    if (error) throw error;
+    return data ?? [];
+  },
+
+  /** Soft-archive a link. */
+  async archiveLink(linkId: string) {
+    const { error } = await (supabase as any)
+      .from("lg_document_link").update({ upload_status: "ARCHIVED" }).eq("id", linkId);
+    if (error) throw error;
+  },
+
+  /** Remove a Legal ↔ DMS link without deleting the underlying file. */
+  async unlink(linkId: string, user_code: string) {
+    const row = await this.getLinkById(linkId);
+    const { error } = await (supabase as any).from("lg_document_link").delete().eq("id", linkId);
+    if (error) throw error;
+    try {
+      await (supabase as any).from("system_audit_trail").insert({
+        action: "core_dms_link_removed",
+        entity_type: "lg_document_link",
+        entity_id: linkId,
+        module: "Core DMS",
+        user_name: user_code || "SYSTEM",
+        severity: "info",
+        payload_json: row,
+        timestamp: new Date().toISOString(),
+      });
+    } catch { /* non-blocking */ }
+  },
+
+  /** Stream/view a link via document-proxy. */
+  async viewByLink(linkId: string): Promise<string> {
+    const row = await this.getLinkById(linkId);
+    if (!row?.dms_url && !row?.dms_document_id) throw new Error("Link has no DMS reference");
+    const target = row.dms_url || (await this.getDownloadUrl(row.dms_document_id));
+    return target;
+  },
+
+  /** Latest DMS audit rows for a case. */
+  async getAuditForCase(lg_case_id: string, limit = 50) {
+    const { data, error } = await (supabase as any)
+      .from("system_audit_trail")
+      .select("id, action, entity_type, entity_id, severity, payload_json, timestamp, user_name")
+      .eq("module", "Core DMS")
+      .contains("payload_json", { link: { lg_case_id } })
+      .order("timestamp", { ascending: false })
+      .limit(limit);
+    if (error) return [];
+    return data ?? [];
+  },
+
+  /** Cheap permission check for confidential view. */
+  async canViewConfidential(userId: string): Promise<boolean> {
+    const { data: roles } = await (supabase as any)
+      .from("user_roles").select("role_id").eq("user_id", userId);
+    const ids = (roles ?? []).map((r: any) => r.role_id);
+    if (!ids.length) return false;
+    const { data: actions } = await (supabase as any)
+      .from("module_actions").select("id, action_code").eq("action_code", "LEGAL_DOCUMENT_CONFIDENTIAL_VIEW");
+    const aIds = (actions ?? []).map((a: any) => a.id);
+    if (!aIds.length) return false;
+    const { data: perms } = await (supabase as any)
+      .from("role_permissions").select("id").in("role_id", ids).in("action_id", aIds).limit(1);
+    return !!(perms && perms.length);
+  },
 };
 
 export type CoreDmsService = typeof coreDmsService;
