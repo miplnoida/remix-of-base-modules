@@ -9,10 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
  *   LEGAL_OFFICER, SENIOR_LEGAL_OFFICER, LEGAL_MANAGER, LEGAL_ADMIN, LegalOfficer
  */
 const LEGAL_ROLE_NAMES = [
+  "LEGAL_ADMIN",
+  "LEGAL_MANAGER",
   "LEGAL_OFFICER",
   "SENIOR_LEGAL_OFFICER",
-  "LEGAL_MANAGER",
-  "LEGAL_ADMIN",
+  "LEGAL_SENIOR",
+  "LEGAL_READ_ONLY",
   "LegalOfficer",
 ];
 
