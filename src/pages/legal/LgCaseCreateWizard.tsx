@@ -290,7 +290,7 @@ export default function LgCaseCreateWizard() {
                   <button
                     key={m.code}
                     type="button"
-                    onClick={() => set("source_mode", m.code)}
+                    onClick={() => setSourceMode(m.code)}
                     className={`text-left rounded-lg border p-4 transition-colors ${
                       form.source_mode === m.code
                         ? "border-primary bg-primary/5 ring-2 ring-primary/20"
