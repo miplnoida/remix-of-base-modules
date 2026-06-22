@@ -52128,6 +52128,7 @@ export type Database = {
       }
       lg_case_source_config: {
         Row: {
+          allow_historical_exceptions: boolean
           allow_manual_entry: boolean
           country_code: string
           created_at: string
@@ -52136,14 +52137,18 @@ export type Database = {
           default_workbasket_code: string | null
           description: string | null
           display_order: number
+          enforce_case_type_restrictions: boolean
+          enforce_stage_restrictions: boolean
           id: string
           is_active: boolean
           source_code: string
           source_name: string
+          source_type: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          allow_historical_exceptions?: boolean
           allow_manual_entry?: boolean
           country_code?: string
           created_at?: string
@@ -52152,14 +52157,18 @@ export type Database = {
           default_workbasket_code?: string | null
           description?: string | null
           display_order?: number
+          enforce_case_type_restrictions?: boolean
+          enforce_stage_restrictions?: boolean
           id?: string
           is_active?: boolean
           source_code: string
           source_name: string
+          source_type?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          allow_historical_exceptions?: boolean
           allow_manual_entry?: boolean
           country_code?: string
           created_at?: string
@@ -52168,10 +52177,13 @@ export type Database = {
           default_workbasket_code?: string | null
           description?: string | null
           display_order?: number
+          enforce_case_type_restrictions?: boolean
+          enforce_stage_restrictions?: boolean
           id?: string
           is_active?: boolean
           source_code?: string
           source_name?: string
+          source_type?: string
           updated_at?: string
           updated_by?: string | null
         }

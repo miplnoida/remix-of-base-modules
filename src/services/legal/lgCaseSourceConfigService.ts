@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 const sb = supabase as any;
 const COUNTRY = "SKN";
 
+export type SourceType = "OPERATIONAL" | "REFERRAL" | "EXTERNAL" | "LEGACY" | "MIGRATION";
+
 export type SourceConfig = {
   id?: string;
   country_code: string;
@@ -15,6 +17,10 @@ export type SourceConfig = {
   allow_manual_entry: boolean;
   is_active: boolean;
   display_order: number;
+  source_type?: SourceType;
+  enforce_case_type_restrictions?: boolean;
+  enforce_stage_restrictions?: boolean;
+  allow_historical_exceptions?: boolean;
 };
 
 export type SourceCaseType = {
