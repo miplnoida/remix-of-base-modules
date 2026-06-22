@@ -186,11 +186,16 @@ export default function LegalAdminRouting() {
       {/* Tabs — one focused section at a time */}
       <Tabs defaultValue="rules" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="sources"><GitBranch className="h-4 w-4 mr-1.5" />Sources</TabsTrigger>
           <TabsTrigger value="rules"><Layers className="h-4 w-4 mr-1.5" />Rules</TabsTrigger>
           <TabsTrigger value="priority"><ListOrdered className="h-4 w-4 mr-1.5" />Priority</TabsTrigger>
           <TabsTrigger value="test"><Target className="h-4 w-4 mr-1.5" />Test</TabsTrigger>
           <TabsTrigger value="settings"><Settings2 className="h-4 w-4 mr-1.5" />Settings</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="sources" className="space-y-3">
+          <RoutingSourceSetup />
+        </TabsContent>
 
         <TabsContent value="rules" className="space-y-3">
           <RoutingRulesList />
