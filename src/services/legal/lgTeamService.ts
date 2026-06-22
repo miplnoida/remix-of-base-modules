@@ -156,6 +156,87 @@ export async function listWorkbasketRoles(): Promise<LgWorkbasketRole[]> {
   return data ?? [];
 }
 
+/* ---------------- team workbasket assignments ---------------- */
+
+export type LgResponsibilityType = "OWNER" | "SUPPORT" | "REVIEW" | "APPROVAL";
+
+export interface LgTeamWorkbasket {
+  id: string;
+  team_id: string;
+  workbasket_code: string;
+  responsibility_type: LgResponsibilityType;
+  can_receive_new_cases: boolean;
+  can_auto_assign: boolean;
+  default_for_stage: string | null;
+  default_for_case_type: string | null;
+  escalation_target: boolean;
+  is_active: boolean;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function listTeamWorkbaskets(teamId?: string): Promise<LgTeamWorkbasket[]> {
+  let q = sb.from("lg_team_workbasket").select("*").order("workbasket_code");
+  if (teamId) q = q.eq("team_id", teamId);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function listAllTeamWorkbaskets(): Promise<LgTeamWorkbasket[]> {
+  const { data, error } = await sb.from("lg_team_workbasket").select("*");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function upsertTeamWorkbasket(row: {
+  id?: string;
+  team_id: string;
+  workbasket_code: string;
+  responsibility_type: LgResponsibilityType;
+  can_receive_new_cases?: boolean;
+  can_auto_assign?: boolean;
+  default_for_stage?: string | null;
+  default_for_case_type?: string | null;
+  escalation_target?: boolean;
+  is_active?: boolean;
+  user_code?: string | null;
+}): Promise<LgTeamWorkbasket> {
+  const payload: any = {
+    team_id: row.team_id,
+    workbasket_code: row.workbasket_code,
+    responsibility_type: row.responsibility_type,
+    can_receive_new_cases: row.can_receive_new_cases ?? true,
+    can_auto_assign: row.can_auto_assign ?? false,
+    default_for_stage: row.default_for_stage ?? null,
+    default_for_case_type: row.default_for_case_type ?? null,
+    escalation_target: row.escalation_target ?? false,
+    is_active: row.is_active ?? true,
+    updated_by: row.user_code ?? null,
+  };
+  if (row.id) {
+    const { data, error } = await sb.from("lg_team_workbasket").update(payload).eq("id", row.id).select().maybeSingle();
+    if (error) throw error;
+    return data as LgTeamWorkbasket;
+  }
+  payload.created_by = row.user_code ?? null;
+  const { data, error } = await sb.from("lg_team_workbasket").insert(payload).select().maybeSingle();
+  if (error) throw error;
+  return data as LgTeamWorkbasket;
+}
+
+export async function deleteTeamWorkbasket(id: string) {
+  const { error } = await sb.from("lg_team_workbasket").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function setTeamWorkbasketActive(id: string, is_active: boolean) {
+  const { error } = await sb.from("lg_team_workbasket").update({ is_active }).eq("id", id);
+  if (error) throw error;
+}
+
 /* ---------------- capability defaults from function ---------------- */
 
 export function capabilityDefaults(fn: LgMemberFunction) {
