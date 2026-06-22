@@ -269,7 +269,7 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
   }
 
   // 7) Routing: workbasket task + (optional) auto officer assignment.
-  // Routing policy comes from legal_complainant_settings; we never hard-code an officer.
+  // Policy comes from legal_complainant_settings; ownership respects lg_team_member.can_own_case.
   let routedWorkbasket: string | null = null;
   let routedOfficerId: string | null = null;
   try {
@@ -281,7 +281,6 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
       .limit(1)
       .maybeSingle();
 
-    // Stage → workbasket override map
     const stage = (created.current_stage_code || "").toUpperCase();
     const stageBasket =
       stage.includes("HEARING")    ? "LEGAL_HEARING_PREPARATION" :
@@ -292,66 +291,112 @@ export async function createLegalCaseFull(input: CreateLegalCaseInput): Promise<
       null;
     routedWorkbasket = stageBasket || policy?.default_workbasket_code || "LEGAL_CASE_ASSIGNMENT";
 
-    // Already-picked officer wins
-    routedOfficerId = input.assigned_legal_officer_id ?? null;
+    // Resolve owning team + responsible/support roles for this workbasket
+    const { data: wbRole } = await sb
+      .from("lg_workbasket_role")
+      .select("owning_team_code, responsible_role_code, support_role_code")
+      .eq("workbasket_code", routedWorkbasket)
+      .maybeSingle();
 
-    // Auto-assignment per strategy + source flags
+    const teamCode = wbRole?.owning_team_code || policy?.default_team_code || "GENERAL_LEGAL";
+    const { data: team } = await sb.from("lg_team").select("id").eq("team_code", teamCode).maybeSingle();
+
+    // Eligible owner pool: active team members with can_own_case = true
+    let eligibleOwners: string[] = [];
+    let supportMembers: Array<{ user_id: string; role_code: string }> = [];
+    if (team?.id) {
+      const { data: tm } = await sb
+        .from("lg_team_member")
+        .select("user_id, role_code, can_own_case, is_active")
+        .eq("team_id", team.id)
+        .eq("is_active", true);
+      eligibleOwners = (tm ?? []).filter((m: any) => m.can_own_case).map((m: any) => m.user_id);
+      supportMembers = (tm ?? []).filter((m: any) => !m.can_own_case);
+    }
+
+    // Already-picked officer must satisfy can_own_case
+    if (input.assigned_legal_officer_id) {
+      if (eligibleOwners.length === 0 || eligibleOwners.includes(input.assigned_legal_officer_id)) {
+        routedOfficerId = input.assigned_legal_officer_id;
+      } else {
+        console.warn("[lg-case-create] assigned user lacks can_own_case — routing to workbasket instead");
+      }
+    }
+
     const autoFlag = input.source_mode === "COMPLIANCE_REFERRAL"
       ? policy?.auto_assign_on_referral
       : policy?.auto_assign_on_manual_case;
     const strategy = (policy?.default_assignment_strategy || "WORKBASKET_ONLY").toUpperCase();
 
-    if (!routedOfficerId && autoFlag && strategy !== "WORKBASKET_ONLY" && strategy !== "MANUAL_ASSIGNMENT") {
-      // Eligible officer pool
-      const LEGAL_ROLES = ["LEGAL_OFFICER", "SENIOR_LEGAL_OFFICER", "LEGAL_MANAGER", "LegalOfficer"];
-      const { data: roleRows } = await sb
-        .from("user_roles").select("user_id").in("role", LEGAL_ROLES);
-      const eligible: string[] = Array.from(new Set((roleRows ?? []).map((r: any) => r.user_id as string)));
-
-      if (eligible.length) {
-        if (strategy === "BY_WORKLOAD") {
-          const { data: openCases } = await sb
-            .from("lg_case")
-            .select("assigned_legal_officer_id")
-            .in("assigned_legal_officer_id", eligible)
-            .neq("status_code", "CLOSED");
-          const load: Record<string, number> = {};
-          eligible.forEach((u) => { load[u] = 0; });
-          (openCases ?? []).forEach((c: any) => {
-            if (c.assigned_legal_officer_id) load[c.assigned_legal_officer_id] = (load[c.assigned_legal_officer_id] || 0) + 1;
-          });
-          routedOfficerId = eligible.sort((a, b) => (load[a] || 0) - (load[b] || 0))[0];
-        } else {
-          // ROUND_ROBIN / BY_CASE_TYPE / BY_PRIORITY / BY_STAGE → use last-assigned rotation
-          const { data: last } = await sb
-            .from("lg_case_assignment")
-            .select("assigned_to_user_id")
-            .not("assigned_to_user_id", "is", null)
-            .order("assigned_at", { ascending: false })
-            .limit(1);
-          const lastId = last?.[0]?.assigned_to_user_id || null;
-          const idx = lastId ? eligible.indexOf(lastId) : -1;
-          routedOfficerId = eligible[(idx + 1) % eligible.length];
-        }
+    if (!routedOfficerId && autoFlag && strategy !== "WORKBASKET_ONLY" && strategy !== "MANUAL_ASSIGNMENT" && eligibleOwners.length) {
+      if (strategy === "BY_WORKLOAD") {
+        const { data: openCases } = await sb
+          .from("lg_case")
+          .select("assigned_legal_officer_id")
+          .in("assigned_legal_officer_id", eligibleOwners)
+          .neq("status_code", "CLOSED");
+        const load: Record<string, number> = {};
+        eligibleOwners.forEach((u) => { load[u] = 0; });
+        (openCases ?? []).forEach((c: any) => {
+          if (c.assigned_legal_officer_id) load[c.assigned_legal_officer_id] = (load[c.assigned_legal_officer_id] || 0) + 1;
+        });
+        routedOfficerId = eligibleOwners.sort((a, b) => (load[a] || 0) - (load[b] || 0))[0];
+      } else {
+        const { data: last } = await sb
+          .from("lg_case_assignment")
+          .select("assigned_to_user_id")
+          .not("assigned_to_user_id", "is", null)
+          .order("assigned_at", { ascending: false })
+          .limit(1);
+        const lastId = last?.[0]?.assigned_to_user_id || null;
+        const idx = lastId ? eligibleOwners.indexOf(lastId) : -1;
+        routedOfficerId = eligibleOwners[(idx + 1) % eligibleOwners.length];
       }
     }
 
-    // Persist assignment row (workbasket always, officer optional)
+    // Persist owner assignment (workbasket always, officer optional)
     await sb.from("lg_case_assignment").insert({
       lg_case_id: created.id,
       assigned_to_user_id: routedOfficerId,
-      assigned_team_code: policy?.default_team_code || null,
+      assigned_team_code: teamCode,
       assignment_role: routedWorkbasket,
       assigned_by: input.created_by ?? null,
       is_current: true,
       reason: routedOfficerId
         ? `Auto-assigned via ${strategy}`
-        : `Routed to workbasket ${routedWorkbasket}`,
+        : (eligibleOwners.length === 0
+          ? `No eligible lawyer in ${teamCode} — held in workbasket ${routedWorkbasket}`
+          : `Routed to workbasket ${routedWorkbasket}`),
     });
 
-    // Mirror officer onto lg_case header when assigned
     if (routedOfficerId && routedOfficerId !== input.assigned_legal_officer_id) {
       await sb.from("lg_case").update({ assigned_legal_officer_id: routedOfficerId }).eq("id", created.id);
+    }
+
+    // Create a support task if the workbasket defines a support role and we have such staff
+    const supportRole = wbRole?.support_role_code;
+    if (supportRole && supportMembers.length) {
+      const supportUser =
+        supportMembers.find((m) => m.role_code === supportRole)?.user_id ?? supportMembers[0].user_id;
+      try {
+        await sb.from("lg_case_task").insert({
+          lg_case_id: created.id,
+          task_type_code: "SUPPORT_PREPARATION",
+          task_kind: "SUPPORT",
+          title:
+            input.source_mode === "COMPLIANCE_REFERRAL" ? "Verify referral documents"
+            : routedWorkbasket === "LEGAL_HEARING_PREPARATION" ? "Schedule hearing and upload notice"
+            : routedWorkbasket === "LEGAL_FEE_POSTING" ? "Compile filing pack"
+            : "Prepare case documents",
+          description: `Support task created automatically for workbasket ${routedWorkbasket}.`,
+          status: "OPEN",
+          priority_code: input.priority_code,
+          assigned_to_user_id: supportUser,
+          created_by: input.created_by ?? null,
+        });
+      } catch (err) {
+        console.warn("[lg-case-create] support task creation failed", err);
+      }
     }
   } catch (err) {
     console.warn("[lg-case-create] routing failed (non-fatal)", err);

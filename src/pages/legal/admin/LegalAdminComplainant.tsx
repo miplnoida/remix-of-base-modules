@@ -15,6 +15,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLgReference } from "@/hooks/legal/useLgCases";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
 import { useLegalOfficers } from "@/hooks/legal/useLegalOfficers";
+import { useLegalTeams } from "@/hooks/legal/useLegalTeams";
+import { Link } from "react-router-dom";
 
 const DEFAULTS = {
   name: "St. Christopher and Nevis Social Security Board",
@@ -23,9 +25,9 @@ const DEFAULTS = {
   email: "legal@socialsecurity.kn",
   phone: "+1 (869) 465-2535",
   departmentName: "Legal Department",
-  defaultWorkbasketCode: "LEGAL_CASE_ASSIGNMENT",
-  defaultTeamCode: "",
-  defaultAssignmentStrategy: "WORKBASKET_ONLY",
+  defaultWorkbasketCode: "LEGAL_INTAKE_REVIEW",
+  defaultTeamCode: "GENERAL_LEGAL",
+  defaultAssignmentStrategy: "BY_WORKLOAD",
   defaultPriorityCode: "MEDIUM",
   allowManualOverride: true,
   autoAssignOnReferral: false,
@@ -47,6 +49,7 @@ export default function LegalAdminComplainant() {
   const { data: strategies   = [] } = useLgReference("LG_ASSIGNMENT_STRATEGY");
   const { data: priorities   = [] } = useLgReference("LG_PRIORITY");
   const { data: officers     = [] } = useLegalOfficers();
+  const { data: teams        = [] } = useLegalTeams();
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["complainant-settings"],
@@ -226,13 +229,24 @@ export default function LegalAdminComplainant() {
             </div>
 
             <div className="space-y-2">
-              <Label>Default Team (optional)</Label>
-              <Input
-                value={data.defaultTeamCode}
-                onChange={(e) => setData({ ...data, defaultTeamCode: e.target.value })}
-                placeholder="e.g. LEGAL_TEAM_A"
+              <Label>Default Team</Label>
+              <Select
+                value={data.defaultTeamCode || "GENERAL_LEGAL"}
+                onValueChange={(v) => setData({ ...data, defaultTeamCode: v })}
                 disabled={!canEditRouting}
-              />
+              >
+                <SelectTrigger><SelectValue placeholder="Select team…" /></SelectTrigger>
+                <SelectContent>
+                  {teams.map((t) => (
+                    <SelectItem key={t.team_code} value={t.team_code}>
+                      {t.team_name}{t.is_default ? " (default)" : ""}{!t.is_active ? " — inactive" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Configure team members in <Link to="/legal/admin/teams" className="text-primary underline">Teams &amp; Staff</Link>.
+              </p>
             </div>
 
             <div className="space-y-2">

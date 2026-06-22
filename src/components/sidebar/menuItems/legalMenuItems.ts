@@ -1,6 +1,6 @@
 import {
   Scale, FileText, Gavel, AlertTriangle, Search, BarChart3, Settings, FolderOpen,
-  Code, Building2, DollarSign, Workflow, ShieldCheck,
+  Code, Building2, DollarSign, Workflow, ShieldCheck, Users,
 } from 'lucide-react';
 
 export const legalMenuItems = [
@@ -27,6 +27,7 @@ export const legalMenuItems = [
           { title: "Templates",           url: "/legal/admin/templates",       icon: FileText,    description: "Notices, letters and PDFs (Core Templates)" },
           { title: "Legal References",    url: "/legal/admin/legal-references", icon: Scale,      description: "Acts, regulations and policies (shared)" },
           { title: "Complainant Settings",url: "/legal/admin/complainant",     icon: Building2,   description: "Default complainant info" },
+          { title: "Teams & Staff",       url: "/legal/admin/teams",           icon: Users,       description: "Lawyers, support staff and capabilities" },
           { title: "Fee Configuration",   url: "/legal/admin/fees",            icon: DollarSign,  description: "Rules, bundles and charges" },
           { title: "Workflow & Roles",    url: "/legal/admin/policy",          icon: Workflow,    description: "Department, roles, approvals" },
           { title: "Waiver Policies",     url: "/legal/admin/waiver-policies", icon: ShieldCheck, description: "Tiered waiver approval routing" },
