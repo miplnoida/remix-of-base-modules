@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Plus, Upload, ExternalLink, Gavel, Lock, Unlock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Plus, Upload, Eye, Gavel, Lock, Unlock, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { LgDataGrid, buildLgRowActions, LgStatusBadge, type LgColumnDef, type LgToolbarFilter } from "@/components/legal/grid";
+import { LgDataGrid, LgStatusBadge, type LgColumnDef, type LgRowAction, type LgToolbarFilter } from "@/components/legal/grid";
 import { useLgDocumentLinks, useDeleteLgDocumentLink } from "@/hooks/legal/useLgTemplates";
 import { useLgStageDocumentRules, summariseCompleteness } from "@/hooks/legal/useLgStageDocumentRules";
 import { useDmsDocumentTypes } from "@/hooks/legal/useDmsDocumentTypes";
@@ -21,6 +21,8 @@ interface Props {
   canEdit: boolean;
 }
 
+const ALL = "__all__";
+
 export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, caseTypeCode, canEdit }: Props) {
   const qc = useQueryClient();
   const docs = useLgDocumentLinks(lgCaseId);
@@ -31,12 +33,29 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
   const [linkOpen, setLinkOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
 
+  const [fCategory, setFCategory] = useState(ALL);
+  const [fType, setFType] = useState(ALL);
+  const [fStage, setFStage] = useState(ALL);
+  const [fCourt, setFCourt] = useState(ALL);
+  const [fConf, setFConf] = useState(ALL);
+
+  const filtered = useMemo(() => {
+    const list = docs.data ?? [];
+    return list.filter((d: any) => {
+      if (fCategory !== ALL && d.document_category_code !== fCategory) return false;
+      if (fType !== ALL && d.document_type_code !== fType) return false;
+      if (fStage !== ALL && d.linked_stage_code !== fStage) return false;
+      if (fCourt !== ALL && Boolean(d.court_filed) !== (fCourt === "true")) return false;
+      if (fConf !== ALL && Boolean(d.confidential) !== (fConf === "true")) return false;
+      return true;
+    });
+  }, [docs.data, fCategory, fType, fStage, fCourt, fConf]);
+
   const completeness = useMemo(
     () => summariseCompleteness(rules.data, docs.data),
     [rules.data, docs.data],
   );
   const missing = completeness.filter(c => !c.satisfied);
-  const allRequiredMet = missing.length === 0 && (completeness.some(c => c.rule.is_required) || completeness.length === 0);
 
   const openDoc = async (row: any) => {
     try {
@@ -46,9 +65,7 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
         window.open(url, "_blank"); return;
       }
       toast.message("No DMS link on this row (reference-only).");
-    } catch (e: any) {
-      toast.error(e?.message || "Could not open document");
-    }
+    } catch (e: any) { toast.error(e?.message || "Could not open"); }
   };
 
   const toggleCourtFiled = async (row: any) => {
@@ -78,8 +95,8 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
       ),
     },
     { accessorKey: "document_category_code", header: "Category", meta: { label: "Category" } },
-    { accessorKey: "document_type_code", header: "Type", meta: { label: "Type" }, cell: ({ getValue }) => getValue() || "—" },
-    { accessorKey: "linked_stage_code", header: "Stage", meta: { label: "Stage" }, cell: ({ getValue }) => getValue() || "—" },
+    { accessorKey: "document_type_code", header: "Type", meta: { label: "Type" }, cell: ({ getValue }) => (getValue() as string) || "—" },
+    { accessorKey: "linked_stage_code", header: "Stage", meta: { label: "Stage" }, cell: ({ getValue }) => (getValue() as string) || "—" },
     { accessorKey: "document_source", header: "Source", meta: { label: "Source" },
       cell: ({ getValue }) => <Badge variant="outline">{String(getValue() || "—")}</Badge>,
     },
@@ -111,42 +128,35 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
     },
   ], []);
 
-  const filters: LgToolbarFilter[] = useMemo(() => [
-    {
-      id: "document_category_code", label: "Category",
-      options: ["PLEADING","EVIDENCE","ORDER","NOTICE","CORRESPONDENCE","INTERNAL","OTHER"].map(v => ({ value: v, label: v })),
-    },
-    {
-      id: "document_type_code", label: "Document Type",
-      options: docTypes.map(t => ({ value: t.type_code, label: `${t.type_code} — ${t.type_name}` })),
-    },
-    {
-      id: "linked_stage_code", label: "Stage",
-      options: Array.from(new Set((docs.data ?? []).map((d: any) => d.linked_stage_code).filter(Boolean)))
-        .map(v => ({ value: v as string, label: v as string })),
-    },
-    {
-      id: "court_filed", label: "Court Filed",
-      options: [{ value: "true", label: "Court-filed" }, { value: "false", label: "Not filed" }],
-    },
-    {
-      id: "confidential", label: "Confidential",
-      options: [{ value: "true", label: "Confidential" }, { value: "false", label: "Open" }],
-    },
-  ], [docTypes, docs.data]);
+  const rowActions: LgRowAction<any>[] = useMemo(() => [
+    { key: "view", label: "View", icon: <Eye className="h-3.5 w-3.5" />, onClick: openDoc },
+    { key: "court", label: (r: any) => r.court_filed ? "Unmark court-filed" : "Mark court-filed",
+      icon: <Gavel className="h-3.5 w-3.5" />, onClick: toggleCourtFiled, disabled: () => !canEdit },
+    { key: "conf", label: (r: any) => r.confidential ? "Unmark confidential" : "Mark confidential",
+      icon: <Lock className="h-3.5 w-3.5" />, onClick: toggleConfidential, disabled: () => !canEdit },
+    { key: "del", label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, variant: "destructive",
+      onClick: (r: any) => { if (confirm("Remove this document link?")) del.mutate(r.id); }, disabled: () => !canEdit },
+  ] as any, [canEdit]);
 
-  const rowActions = buildLgRowActions<any>({
-    onView: openDoc,
-    extra: [
-      { id: "court", label: (r) => r.court_filed ? "Unmark court-filed" : "Mark court-filed", icon: Gavel, onClick: toggleCourtFiled, disabled: () => !canEdit },
-      { id: "conf",  label: (r) => r.confidential ? "Unmark confidential" : "Mark confidential", icon: (r: any) => (r.confidential ? Unlock : Lock) as any, onClick: toggleConfidential, disabled: () => !canEdit },
-    ],
-    onDelete: canEdit ? (r) => { if (confirm("Remove this document link?")) del.mutate(r.id); } : undefined,
-  });
+  const toolbarFilters: LgToolbarFilter[] = useMemo(() => {
+    const optAll = (label: string) => ({ value: ALL, label: `All ${label}` });
+    return [
+      { key: "category", label: "Category", value: fCategory, onChange: setFCategory,
+        options: [optAll("Categories"), ...["PLEADING","EVIDENCE","ORDER","NOTICE","CORRESPONDENCE","INTERNAL","OTHER"].map(v => ({ value: v, label: v }))] },
+      { key: "type", label: "Type", value: fType, onChange: setFType,
+        options: [optAll("Types"), ...docTypes.map(t => ({ value: t.type_code, label: t.type_code }))] },
+      { key: "stage", label: "Stage", value: fStage, onChange: setFStage,
+        options: [optAll("Stages"), ...Array.from(new Set((docs.data ?? []).map((d: any) => d.linked_stage_code).filter(Boolean)))
+          .map((v: any) => ({ value: v as string, label: v as string }))] },
+      { key: "court", label: "Court", value: fCourt, onChange: setFCourt,
+        options: [optAll("Court status"), { value: "true", label: "Court-filed" }, { value: "false", label: "Not filed" }] },
+      { key: "conf", label: "Confidentiality", value: fConf, onChange: setFConf,
+        options: [optAll("Confidentiality"), { value: "true", label: "Confidential" }, { value: "false", label: "Open" }] },
+    ];
+  }, [docTypes, docs.data, fCategory, fType, fStage, fCourt, fConf]);
 
   return (
     <div className="space-y-4">
-      {/* Stage completeness */}
       {completeness.length > 0 && (
         <Alert variant={missing.length ? "destructive" : "default"}>
           {missing.length ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
@@ -194,10 +204,10 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
           <LgDataGrid
             id="lg-case-documents"
             columns={columns}
-            data={docs.data ?? []}
+            data={filtered}
             isLoading={docs.isLoading}
             rowActions={rowActions}
-            toolbarFilters={filters}
+            toolbarFilters={toolbarFilters}
             searchPlaceholder="Search documents…"
           />
         </CardContent>
