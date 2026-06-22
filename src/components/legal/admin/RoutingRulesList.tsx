@@ -161,6 +161,7 @@ export default function RoutingRulesList() {
     return rules.filter((r) => {
       if (typeFilter !== "ALL" && r.type !== typeFilter) return false;
       if (activeOnly && !r.is_active) return false;
+      if (invalidOnly && validate(r).ok) return false;
       if (!s) return true;
       const hay = [r.stage_code, r.case_type_code, r.source_code, r.workbasket_code, r.team_code, ruleName(r)]
         .filter(Boolean)
@@ -168,7 +169,9 @@ export default function RoutingRulesList() {
         .toLowerCase();
       return hay.includes(s);
     });
-  }, [rules, search, typeFilter, activeOnly]);
+  }, [rules, search, typeFilter, activeOnly, invalidOnly, validate]);
+
+  const invalidCount = useMemo(() => rules.filter((r) => !validate(r).ok).length, [rules, validate]);
 
   async function patch(r: UnifiedRule, fields: Partial<UnifiedRule>) {
     const { error } = await sb.from(r.table).update(fields).eq("id", r.id);
