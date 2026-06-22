@@ -103,6 +103,58 @@ export default function LgCaseCreateWizard() {
     return m;
   }, [issues]);
 
+  // ---- Source-driven restrictions (lg_case_source_config) ----
+  const { data: srcAllowance } = useLgSourceAllowance(form.source_mode);
+  const allowedTypeCodes = useMemo(
+    () => new Set((srcAllowance?.caseTypes ?? []).map((c) => c.case_type_code)),
+    [srcAllowance],
+  );
+  const allowedInitialStageCodes = useMemo(
+    () => new Set(
+      (srcAllowance?.stages ?? [])
+        .filter((s) => s.allowed_as_initial_stage)
+        .map((s) => s.stage_code),
+    ),
+    [srcAllowance],
+  );
+  const filteredCaseTypes = useMemo(
+    () => (allowedTypeCodes.size > 0 ? caseTypes.filter((t) => allowedTypeCodes.has(t.code)) : caseTypes),
+    [caseTypes, allowedTypeCodes],
+  );
+  const filteredStages = useMemo(
+    () => (allowedInitialStageCodes.size > 0 ? stages.filter((s) => allowedInitialStageCodes.has(s.code)) : stages),
+    [stages, allowedInitialStageCodes],
+  );
+  const { data: creationCheck } = useCaseCreationCheck({
+    source_code: form.source_mode,
+    case_type_code: form.case_type_code || null,
+    stage_code: form.current_stage_code || null,
+    manual: form.source_mode !== "COMPLIANCE_REFERRAL",
+  });
+
+  // When source changes and current selections are no longer allowed, reset them
+  // and apply the source's suggested defaults.
+  const sourceForReset = form.source_mode;
+  const allowanceKey = srcAllowance?.source?.source_code;
+  useMemo(() => {
+    if (!srcAllowance?.source) return;
+    if (allowanceKey !== sourceForReset) return;
+    setForm((p) => {
+      const next = { ...p };
+      if (allowedTypeCodes.size > 0 && p.case_type_code && !allowedTypeCodes.has(p.case_type_code)) {
+        next.case_type_code = "";
+      }
+      if (allowedInitialStageCodes.size > 0 && !allowedInitialStageCodes.has(p.current_stage_code)) {
+        next.current_stage_code = srcAllowance.source?.default_stage_code
+          ?? Array.from(allowedInitialStageCodes)[0]
+          ?? p.current_stage_code;
+      }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allowanceKey]);
+
+
   const stepHasError = (idx: number): boolean => {
     if (!submitAttempted) return false;
     if (idx === 0) return issueByField.has("source_mode");
