@@ -34,6 +34,7 @@ import {
   type LgTeamWorkbasket, type LgResponsibilityType,
 } from "@/services/legal/lgTeamService";
 import { useQuery } from "@tanstack/react-query";
+import { SknSetupCard } from "@/components/legal/admin/SknSetupCard";
 
 const RESPONSIBILITY_TYPES: LgResponsibilityType[] = ["OWNER", "SUPPORT", "REVIEW", "APPROVAL"];
 const FUNCTIONS: LgMemberFunction[] = ["LAWYER", "MANAGER", "SUPPORT", "CLERK", "ADMIN"];
@@ -457,6 +458,8 @@ export default function LegalAdminTeams() {
           highlight={summary.unmappedWb > 0}
         />
       </div>
+
+      <SknSetupCard />
 
       {/* Master-detail */}
       <div className="grid grid-cols-12 gap-4">
