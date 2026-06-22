@@ -11,6 +11,8 @@ import { useNavigate } from "react-router-dom";
 import { useCreateLgCase, useLgReference } from "@/hooks/legal/useLgCases";
 import { useUserCode } from "@/hooks/useUserCode";
 import { logLgActivity } from "@/services/legal/lgAuditService";
+import { assignCase } from "@/services/legal/lgAssignmentService";
+
 
 interface Props {
   open: boolean;
