@@ -56,6 +56,8 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
   const filtered = useMemo(() => {
     const list = docs.data ?? [];
     return list.filter((d: any) => {
+      // Hide confidential rows from users without the permission.
+      if (d.confidential && !canViewConfidential) return false;
       if (fCategory !== ALL && d.document_category_code !== fCategory) return false;
       if (fType !== ALL && d.document_type_code !== fType) return false;
       if (fStage !== ALL && d.linked_stage_code !== fStage) return false;
@@ -63,7 +65,12 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
       if (fConf !== ALL && Boolean(d.confidential) !== (fConf === "true")) return false;
       return true;
     });
-  }, [docs.data, fCategory, fType, fStage, fCourt, fConf]);
+  }, [docs.data, fCategory, fType, fStage, fCourt, fConf, canViewConfidential]);
+
+  const hiddenConfidentialCount = useMemo(
+    () => (docs.data ?? []).filter((d: any) => d.confidential && !canViewConfidential).length,
+    [docs.data, canViewConfidential],
+  );
 
   const completeness = useMemo(
     () => summariseCompleteness(rules.data, docs.data),
@@ -73,6 +80,10 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
 
   const openDoc = async (row: any) => {
     try {
+      if (row.confidential && !canViewConfidential) {
+        toast.error("Confidential document — you don't have permission to view this.");
+        return;
+      }
       if (row.dms_url) { window.open(row.dms_url, "_blank"); return; }
       if (row.dms_document_id) {
         const url = await coreDmsService.getDownloadUrl(row.dms_document_id);
@@ -144,13 +155,18 @@ export default function LegalCaseDocumentsTab({ lgCaseId, currentStageCode, case
 
   const rowActions: LgRowAction<any>[] = useMemo(() => [
     { key: "view", label: "View", icon: <Eye className="h-3.5 w-3.5" />, onClick: openDoc },
+    { key: "versions", label: "Versions", icon: <History className="h-3.5 w-3.5" />,
+      onClick: (r: any) => r.dms_document_id
+        ? setVersionsFor({ dmsId: r.dms_document_id, title: r.title })
+        : toast.message("No DMS document — no versions to show."),
+    },
     { key: "court", label: (r: any) => r.court_filed ? "Unmark court-filed" : "Mark court-filed",
       icon: <Gavel className="h-3.5 w-3.5" />, onClick: toggleCourtFiled, disabled: () => !canEdit },
     { key: "conf", label: (r: any) => r.confidential ? "Unmark confidential" : "Mark confidential",
       icon: <Lock className="h-3.5 w-3.5" />, onClick: toggleConfidential, disabled: () => !canEdit },
     { key: "del", label: "Delete", icon: <Trash2 className="h-3.5 w-3.5" />, variant: "destructive",
       onClick: (r: any) => { if (confirm("Remove this document link?")) del.mutate(r.id); }, disabled: () => !canEdit },
-  ] as any, [canEdit]);
+  ] as any, [canEdit, canViewConfidential]);
 
   const toolbarFilters: LgToolbarFilter[] = useMemo(() => {
     const optAll = (label: string) => ({ value: ALL, label: `All ${label}` });
