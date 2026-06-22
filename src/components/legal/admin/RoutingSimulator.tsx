@@ -123,7 +123,7 @@ export default function RoutingSimulator({
               <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Any" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE}>— Any —</SelectItem>
-                {sortedTypes.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {typeOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
