@@ -14,7 +14,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { ArrowRight, Save, Users, Info, CheckCircle2, AlertTriangle, ListOrdered } from "lucide-react";
+import { Save, Users, Info, CheckCircle2, AlertTriangle } from "lucide-react";
+import RoutingPrecedenceCard from "@/components/legal/admin/RoutingPrecedenceCard";
+import RoutingPreviewCard from "@/components/legal/admin/RoutingPreviewCard";
 
 const sb = supabase as any;
 const COUNTRY = "SKN";
