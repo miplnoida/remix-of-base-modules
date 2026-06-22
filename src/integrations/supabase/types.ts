@@ -36180,6 +36180,12 @@ export type Database = {
           created_at: string
           delivered_at: string | null
           delivery_status: string | null
+          dms_document_id: string | null
+          dms_file_id: string | null
+          dms_upload_error: string | null
+          dms_upload_status: string
+          dms_uploaded_at: string | null
+          dms_url: string | null
           doc_type_code: string | null
           entity_id: string | null
           entity_type: string | null
@@ -36209,6 +36215,12 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           delivery_status?: string | null
+          dms_document_id?: string | null
+          dms_file_id?: string | null
+          dms_upload_error?: string | null
+          dms_upload_status?: string
+          dms_uploaded_at?: string | null
+          dms_url?: string | null
           doc_type_code?: string | null
           entity_id?: string | null
           entity_type?: string | null
@@ -36238,6 +36250,12 @@ export type Database = {
           created_at?: string
           delivered_at?: string | null
           delivery_status?: string | null
+          dms_document_id?: string | null
+          dms_file_id?: string | null
+          dms_upload_error?: string | null
+          dms_upload_status?: string
+          dms_uploaded_at?: string | null
+          dms_url?: string | null
           doc_type_code?: string | null
           entity_id?: string | null
           entity_type?: string | null
