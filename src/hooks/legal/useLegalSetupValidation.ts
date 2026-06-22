@@ -45,6 +45,8 @@ async function load(): Promise<LegalSetupValidation> {
     { data: policyRows },
     { data: sourceRows },
     { data: stageRows },
+    { data: workflowPolicyRows },
+    { data: roleMappingRows },
   ] = await Promise.all([
     sb.from("lg_department_profile").select("*").limit(1).maybeSingle(),
     sb.from("lg_team").select("id, team_code, is_active, is_default"),
@@ -52,7 +54,10 @@ async function load(): Promise<LegalSetupValidation> {
     sb.from("lg_routing_policy").select("*").eq("country_code", "SKN").maybeSingle(),
     sb.from("lg_routing_source_map").select("source_code, workbasket_code, is_active").eq("country_code", "SKN"),
     sb.from("lg_routing_stage_override").select("stage_code, workbasket_code, is_active").eq("country_code", "SKN"),
+    sb.from("lg_workflow_policy").select("action_code, action_label, approver_role_type, approval_required, is_active"),
+    sb.from("lg_role_type_mapping").select("role_type, is_active"),
   ]);
+
 
   const generalTeam = (teamRows ?? []).find((t: any) => t.team_code === "GENERAL_LEGAL");
   let memberRows: any[] = [];
