@@ -11,12 +11,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BackNavigation } from "@/components/ui/back-navigation";
 import {
-  Users, UserPlus, Trash2, ShieldAlert, Plus, Pencil, PowerOff, Star,
+  Users, UserPlus, Trash2, ShieldAlert, Plus, Pencil, PowerOff, Star, Briefcase,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useLegalTeams, useLegalTeamMembers, useLegalWorkbasketRoles, useTeamActiveCaseCounts,
+  useLegalTeams, useLegalTeamMembers, useLegalWorkbasketRoles,
+  useTeamActiveCaseCounts, useLegalTeamWorkbaskets, useLegalReferenceValues,
 } from "@/hooks/legal/useLegalTeams";
 import { useLegalOfficers, type LegalOfficerOption } from "@/hooks/legal/useLegalOfficers";
 import { useLgAccess } from "@/hooks/legal/useLgAccess";
@@ -24,8 +25,12 @@ import {
   addTeamMember, updateTeamMember, deleteTeamMember, setPrimaryMember,
   createTeam, updateTeam, setTeamActive,
   capabilityDefaults, suggestFromRoles,
+  upsertTeamWorkbasket, deleteTeamWorkbasket, setTeamWorkbasketActive,
   type LgMemberFunction, type LgTeam,
+  type LgTeamWorkbasket, type LgResponsibilityType,
 } from "@/services/legal/lgTeamService";
+
+const RESPONSIBILITY_TYPES: LgResponsibilityType[] = ["OWNER", "SUPPORT", "REVIEW", "APPROVAL"];
 
 const FUNCTIONS: LgMemberFunction[] = ["LAWYER", "MANAGER", "SUPPORT", "CLERK", "ADMIN"];
 
