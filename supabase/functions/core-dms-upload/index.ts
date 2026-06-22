@@ -317,15 +317,21 @@ Deno.serve(async (req) => {
     return json({ error: 'DMS upload failed', details: msg, correlation_id: correlationId }, 502)
   }
 
-  // Extract identifiers from DMS response (be forgiving about casing)
+  // Extract identifiers from DMS response (be forgiving about casing).
+  // The remote DMS at digitalnoticeboard.biz returns only `data.filename` —
+  // that filename IS the remote handle, so we use it as both the document id
+  // and to build a stable download URL.
+  const dmsFileName =
+    respJson?.data?.filename ?? respJson?.data?.fileName ?? respJson?.filename ?? respJson?.fileName ?? null
   const dmsDocumentId =
     respJson?.documentId ?? respJson?.DocumentId ?? respJson?.id ?? respJson?.Id ??
-    respJson?.data?.documentId ?? respJson?.data?.DocumentId ?? null
+    respJson?.data?.documentId ?? respJson?.data?.DocumentId ?? dmsFileName ?? null
   const dmsFileId =
-    respJson?.fileId ?? respJson?.FileId ?? respJson?.data?.fileId ?? respJson?.data?.FileId ?? null
+    respJson?.fileId ?? respJson?.FileId ?? respJson?.data?.fileId ?? respJson?.data?.FileId ?? dmsFileName ?? null
   const dmsUrl =
     respJson?.url ?? respJson?.Url ?? respJson?.fileUrl ?? respJson?.FileUrl ??
-    respJson?.data?.url ?? respJson?.data?.Url ?? null
+    respJson?.data?.url ?? respJson?.data?.Url ??
+    (dmsFileName ? `${trimmed}/api/Dms/files/${encodeURIComponent(String(dmsFileName))}` : null)
 
   // Update generated document if applicable
   if (genDoc) {
