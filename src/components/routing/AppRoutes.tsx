@@ -1793,10 +1793,14 @@ export const AppRoutes = () => {
       <Route path="/legal/lg/cases/:id" element={<Suspense fallback={<div>Loading...</div>}><LgCaseDetail /></Suspense>} />
       <Route path="/legal/admin/fees" element={<Suspense fallback={<div>Loading...</div>}><LgFeeConfig /></Suspense>} />
       <Route path="/legal/admin/policy" element={<Suspense fallback={<div>Loading...</div>}><LgPolicyConfig /></Suspense>} />
+      {/* Alias of /policy — new menu label "Workflow & Stage Rules" */}
+      <Route path="/legal/admin/workflow" element={<Suspense fallback={<div>Loading...</div>}><LgPolicyConfig /></Suspense>} />
       <Route path="/legal/admin/waiver-policies" element={<Suspense fallback={<div>Loading...</div>}><LgFeeWaiverPolicyConfig /></Suspense>} />
       <Route path="/legal/admin/templates" element={<Suspense fallback={<div>Loading...</div>}><LegalTemplateManagement /></Suspense>} />
       <Route path="/legal/admin/templates/:id/edit" element={<Suspense fallback={<div>Loading...</div>}><LegalTemplateEditor /></Suspense>} />
       <Route path="/legal/admin/codesets" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminCodeSets /></Suspense>} />
+      {/* Alias of /codesets — new menu uses /code-sets */}
+      <Route path="/legal/admin/code-sets" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminCodeSets /></Suspense>} />
       <Route path="/legal/admin/complainant" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminComplainant /></Suspense>} />
       <Route path="/legal/admin/teams" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminTeams /></Suspense>} />
       <Route path="/legal/admin/legal-references" element={<Suspense fallback={<div>Loading...</div>}><LegalReferenceLibrary /></Suspense>} />
@@ -1804,6 +1808,14 @@ export const AppRoutes = () => {
       <Route path="/legal/admin/stage-template-mapping" element={<Suspense fallback={<div>Loading...</div>}><LegalStageTemplateMapping /></Suspense>} />
       <Route path="/legal/admin/stage-reference-mapping" element={<Suspense fallback={<div>Loading...</div>}><LegalStageReferenceMapping /></Suspense>} />
       <Route path="/legal/admin/stage-document-rules" element={<Suspense fallback={<div>Loading...</div>}><LegalStageDocumentRules /></Suspense>} />
+      {/* New grouped leaves — placeholder UIs (seeded in app_modules) */}
+      <Route path="/legal/admin/profile" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Department Profile" description="Legal department identity, contact and branding." permissionCode="lg_admin_profile" /></Suspense>} />
+      <Route path="/legal/admin/routing" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Routing & Assignment" description="Case routing strategy and officer assignment rules." permissionCode="lg_admin_routing" /></Suspense>} />
+      <Route path="/legal/admin/document-types" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Document Types" description="Catalog of legal document types used across cases." permissionCode="lg_admin_doc_types" /></Suspense>} />
+      <Route path="/legal/admin/fee-bundles" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Fee Bundles" description="Pre-defined groups of fees that can be applied together." permissionCode="lg_admin_fee_bundles" /></Suspense>} />
+      <Route path="/legal/admin/permissions" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Permissions" description="Legal role-permission matrix overview." permissionCode="lg_admin_permissions" /></Suspense>} />
+      <Route path="/legal/admin/audit" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Audit Log" description="Audit trail for Legal Admin configuration changes." permissionCode="lg_admin_audit_log" /></Suspense>} />
+      <Route path="/legal/admin/validation" element={<Suspense fallback={<div>Loading...</div>}><LegalAdminPlaceholder title="Validation Report" description="Configuration validation report for the Legal module." permissionCode="lg_admin_validation_report" /></Suspense>} />
       <Route path="/admin/dms" element={<Suspense fallback={<div>Loading...</div>}><CoreDmsAdmin /></Suspense>} />
       <Route path="/admin/dms-api-test" element={<Suspense fallback={<div>Loading...</div>}><DmsApiTest /></Suspense>} />
       <Route path="/admin/core-templates" element={<Suspense fallback={<div>Loading...</div>}><CoreTemplateAdmin /></Suspense>} />
