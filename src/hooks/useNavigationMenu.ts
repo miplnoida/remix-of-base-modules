@@ -63,6 +63,7 @@ export function useNavigationMenu() {
         .from('app_modules')
         .select('*')
         .eq('is_enabled', true)
+        .eq('show_in_menu', true)
         .order('sort_order');
       if (error) throw error;
       return data as AppModule[];
