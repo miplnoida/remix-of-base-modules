@@ -725,6 +725,7 @@ const LegalTemplateManagement = lazy(() => import('@/pages/legal/LegalTemplateMa
 const LegalTemplateEditor = lazy(() => import('@/pages/legal/admin/LegalTemplateEditor'));
 const LegalAdminCodeSets = lazy(() => import('@/pages/legal/admin/LegalAdminCodeSets'));
 const LegalAdminComplainant = lazy(() => import('@/pages/legal/admin/LegalAdminComplainant'));
+const LegalAdminTeams = lazy(() => import('@/pages/legal/admin/LegalAdminTeams'));
 const LegalReferenceLibrary = lazy(() => import('@/pages/legal/admin/LegalReferenceLibrary'));
 const LegalReferenceVerification = lazy(() => import('@/pages/legal/admin/LegalReferenceVerification'));
 const LegalStageTemplateMapping = lazy(() => import('@/pages/legal/admin/LegalStageTemplateMapping'));
