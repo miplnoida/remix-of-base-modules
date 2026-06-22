@@ -113,7 +113,7 @@ export default function RoutingSimulator({
               <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Any" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={NONE}>— Any —</SelectItem>
-                {SOURCES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                {allSources.map((s) => <SelectItem key={s.source_code} value={s.source_code}>{s.source_name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
