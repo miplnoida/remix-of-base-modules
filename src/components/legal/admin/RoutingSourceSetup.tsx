@@ -172,7 +172,24 @@ export default function RoutingSourceSetup() {
                     </Select>
                   </Field>
                 </div>
-                <div className="flex flex-wrap gap-4 pt-2 border-t">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t">
+                  <Field label="Source Category">
+                    <Select
+                      value={currentSource.source_type ?? "OPERATIONAL"}
+                      onValueChange={(v) => patchSource(currentSource, { source_type: v as any })}
+                    >
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="OPERATIONAL">Operational — day-to-day intake</SelectItem>
+                        <SelectItem value="REFERRAL">Referral — from another module</SelectItem>
+                        <SelectItem value="EXTERNAL">External — court/agency feed</SelectItem>
+                        <SelectItem value="LEGACY">Legacy — historical data import</SelectItem>
+                        <SelectItem value="MIGRATION">Migration — one-off cutover</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+                <div className="flex flex-wrap gap-4 pt-2">
                   <label className="flex items-center gap-2 text-sm">
                     <Switch
                       checked={currentSource.allow_manual_entry}
@@ -186,6 +203,27 @@ export default function RoutingSourceSetup() {
                       onCheckedChange={(v) => patchSource(currentSource, { is_active: v })}
                     />
                     <span>Source active</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch
+                      checked={currentSource.enforce_case_type_restrictions !== false}
+                      onCheckedChange={(v) => patchSource(currentSource, { enforce_case_type_restrictions: v })}
+                    />
+                    <span>Enforce case-type restrictions</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch
+                      checked={currentSource.enforce_stage_restrictions !== false}
+                      onCheckedChange={(v) => patchSource(currentSource, { enforce_stage_restrictions: v })}
+                    />
+                    <span>Enforce stage restrictions</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <Switch
+                      checked={!!currentSource.allow_historical_exceptions}
+                      onCheckedChange={(v) => patchSource(currentSource, { allow_historical_exceptions: v })}
+                    />
+                    <span>Allow historical exceptions</span>
                   </label>
                 </div>
               </TabsContent>
