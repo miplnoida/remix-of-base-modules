@@ -154,6 +154,7 @@ export default function RoutingRulesList() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"ALL" | RuleType>("ALL");
   const [activeOnly, setActiveOnly] = useState(false);
+  const [invalidOnly, setInvalidOnly] = useState(false);
 
   const filtered = useMemo(() => {
     const s = search.trim().toLowerCase();
