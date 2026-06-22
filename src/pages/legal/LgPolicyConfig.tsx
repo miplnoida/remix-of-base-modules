@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LgDataGrid, type LgColumnDef } from "@/components/legal/grid";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Loader2, Plus, Trash2, ArrowLeft, ShieldCheck, Info, Pencil } from "lucide-react";
+import { Loader2, Plus, Trash2, ArrowLeft, ShieldCheck, Info, Pencil, GitBranch } from "lucide-react";
+import { Link } from "react-router-dom";
+
 import { toast } from "sonner";
 import {
   useLgDepartmentProfile, useLgPolicies, useLgRoleMappings,
