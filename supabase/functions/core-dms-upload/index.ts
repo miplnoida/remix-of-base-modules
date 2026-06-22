@@ -173,7 +173,12 @@ Deno.serve(async (req) => {
   let fileBytes: Uint8Array | null = null
   let fileName = body.file_name || ''
   let mimeType = body.mime_type || ''
-  let categoryId = body.category_id || 'LEGAL'
+  // Remote DMS only has a fixed set of registered CategoryIds (e.g. PPIP). The
+  // logical module (LEGAL, EMPLOYER, …) is conveyed via EntryFields.Module, not
+  // CategoryId. Resolve a sane default; allow override via env or request body.
+  const DEFAULT_DMS_CATEGORY = Deno.env.get('DMS_DEFAULT_CATEGORY_ID') || 'PPIP'
+  const LEGAL_DMS_CATEGORY = Deno.env.get('DMS_LEGAL_CATEGORY_ID') || DEFAULT_DMS_CATEGORY
+  let categoryId = body.category_id || DEFAULT_DMS_CATEGORY
   let genDoc: any = null
 
   try {
@@ -203,7 +208,7 @@ Deno.serve(async (req) => {
       fileBytes = new TextEncoder().encode(wrapped)
       fileName = fileName || `${data.reference_no || data.id}.html`
       mimeType = mimeType || 'text/html'
-      categoryId = body.category_id || (data.module_code === 'LEGAL' ? 'LEGAL' : data.module_code || 'GENERAL')
+      categoryId = body.category_id || (data.module_code === 'LEGAL' ? LEGAL_DMS_CATEGORY : DEFAULT_DMS_CATEGORY)
     } else if (body.file_base64) {
       if (!fileName) return json({ error: 'file_name required when uploading raw bytes' }, 400)
       fileBytes = base64ToUint8Array(body.file_base64)

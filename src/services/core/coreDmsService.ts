@@ -113,7 +113,8 @@ export const coreDmsService = {
     const result = await invokeUpload({
       generated_document_id: args.generated_document_id,
       user_code: args.user_code,
-      category_id: "LEGAL",
+      // category_id intentionally omitted — server resolves the valid remote
+      // DMS CategoryId for LEGAL (defaults to PPIP, overridable via env).
       link: args.link,
     });
     return { link_id: result.link_id ?? null, skipped: false, result };
