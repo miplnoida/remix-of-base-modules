@@ -52132,6 +52132,7 @@ export type Database = {
           lg_case_id: string
           priority_code: string
           status: string
+          task_kind: string
           task_type_code: string
           title: string
           updated_at: string
@@ -52148,6 +52149,7 @@ export type Database = {
           lg_case_id: string
           priority_code?: string
           status?: string
+          task_kind?: string
           task_type_code: string
           title: string
           updated_at?: string
@@ -52164,6 +52166,7 @@ export type Database = {
           lg_case_id?: string
           priority_code?: string
           status?: string
+          task_kind?: string
           task_type_code?: string
           title?: string
           updated_at?: string
@@ -53775,6 +53778,140 @@ export type Database = {
           rule_severity?: string
           to_stage_code?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      lg_team: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          team_code: string
+          team_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          team_code: string
+          team_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          team_code?: string
+          team_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lg_team_member: {
+        Row: {
+          can_approve: boolean
+          can_generate_notice: boolean
+          can_own_case: boolean
+          can_post_fee: boolean
+          can_prepare_documents: boolean
+          can_schedule_hearing: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          member_function: string
+          role_code: string
+          team_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_approve?: boolean
+          can_generate_notice?: boolean
+          can_own_case?: boolean
+          can_post_fee?: boolean
+          can_prepare_documents?: boolean
+          can_schedule_hearing?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          member_function?: string
+          role_code: string
+          team_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_approve?: boolean
+          can_generate_notice?: boolean
+          can_own_case?: boolean
+          can_post_fee?: boolean
+          can_prepare_documents?: boolean
+          can_schedule_hearing?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          member_function?: string
+          role_code?: string
+          team_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_team_member_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "lg_team"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_workbasket_role: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          owning_team_code: string | null
+          responsible_role_code: string | null
+          support_role_code: string | null
+          updated_at: string
+          workbasket_code: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          owning_team_code?: string | null
+          responsible_role_code?: string | null
+          support_role_code?: string | null
+          updated_at?: string
+          workbasket_code: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          owning_team_code?: string | null
+          responsible_role_code?: string | null
+          support_role_code?: string | null
+          updated_at?: string
+          workbasket_code?: string
         }
         Relationships: []
       }
