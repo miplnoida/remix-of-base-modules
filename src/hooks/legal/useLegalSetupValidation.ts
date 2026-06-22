@@ -165,6 +165,45 @@ async function load(): Promise<LegalSetupValidation> {
     },
   ];
 
+  // ---- Separation-of-concerns checks (Routing vs Workflow & Stage Rules) ----
+  const activeRoleTypes = new Set(
+    (roleMappingRows ?? []).filter((r: any) => r.is_active).map((r: any) => r.role_type)
+  );
+  const routedStageCodes = new Set(
+    (stageRows ?? []).filter((r: any) => r.is_active && r.workbasket_code).map((r: any) => r.stage_code)
+  );
+  const workflowActions = (workflowPolicyRows ?? []).filter((p: any) => p.is_active);
+  // Stage codes that have at least one workflow policy action covering them.
+  // Policies are action-based, not stage-keyed, so any active policy is treated
+  // as global coverage; if there are none, every routed stage is unconfigured.
+  const stagesWithoutWorkflow = workflowActions.length === 0
+    ? Array.from(routedStageCodes)
+    : [];
+  const orphanApprovals = workflowActions
+    .filter((p: any) => p.approval_required && p.approver_role_type && !activeRoleTypes.has(p.approver_role_type))
+    .map((p: any) => `${p.action_label} → ${p.approver_role_type}`);
+
+  areas.push({
+    key: "workflow_coverage", area: "Workflow coverage for routed stages",
+    status: stagesWithoutWorkflow.length === 0 ? "ok" : "warn",
+    detail: stagesWithoutWorkflow.length === 0
+      ? "All routed stages have workflow policies configured"
+      : "Some routed stages have no workflow actions defined",
+    missing: stagesWithoutWorkflow.map((s) => `${s} — no workflow action`),
+    action: { label: "Open Workflow & Stage Rules", to: "/legal/admin/policy" },
+  });
+
+  areas.push({
+    key: "approval_role_validity", area: "Approval role validity",
+    status: orphanApprovals.length === 0 ? "ok" : "fail",
+    detail: orphanApprovals.length === 0
+      ? "No approval policy references an inactive role"
+      : `${orphanApprovals.length} approval policy(s) reference an inactive Legal role-type`,
+    missing: orphanApprovals,
+    action: { label: "Fix Role Mapping", to: "/legal/admin/policy" },
+  });
+
+
   const ready = areas.every((a) => a.status === "ok");
   return { areas, ready, legalUserCount: legalUserIds.length, assignedUserCount: assignedIds.size };
 }
