@@ -733,6 +733,8 @@ const LegalStageTemplateMapping = lazy(() => import('@/pages/legal/admin/LegalSt
 const LegalStageReferenceMapping = lazy(() => import('@/pages/legal/admin/LegalStageReferenceMapping'));
 const LegalStageDocumentRules = lazy(() => import('@/pages/legal/admin/LegalStageDocumentRules'));
 const LegalAdminPlaceholder = lazy(() => import('@/pages/legal/admin/LegalAdminPlaceholder'));
+const LegalAdminDepartmentProfile = lazy(() => import('@/pages/legal/admin/LegalAdminDepartmentProfile'));
+const LegalAdminValidationReport = lazy(() => import('@/pages/legal/admin/LegalAdminValidationReport'));
 const CoreDmsAdmin = lazy(() => import('@/pages/admin/CoreDmsAdmin'));
 const DmsApiTest = lazy(() => import('@/pages/admin/DmsApiTest'));
 const LgCaseCreateWizard = lazy(() => import('@/pages/legal/LgCaseCreateWizard'));
